@@ -95,8 +95,6 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     Examples
     --------
-    >>> import datetime
-
     >>> to_offset("5min")
     <5 * Minutes>
 
@@ -109,7 +107,7 @@ def to_offset(freq) -> Optional[DateOffset]:
     >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
