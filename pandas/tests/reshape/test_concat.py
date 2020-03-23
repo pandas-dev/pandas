@@ -1243,8 +1243,8 @@ class TestConcatenate:
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_mapping(self, non_mapping_dict_subclass):
-        frames = non_mapping_dict_subclass(
+    def test_concat_mapping(self, non_dict_mapping_subclass):
+        frames = non_dict_mapping_subclass(
             {
                 "foo": DataFrame(np.random.randn(4, 3)),
                 "bar": DataFrame(np.random.randn(4, 3)),
