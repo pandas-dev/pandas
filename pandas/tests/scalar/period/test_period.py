@@ -1257,7 +1257,7 @@ class TestArithmetic:
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
-                if isinstance(o, np.timedelta64,):
+                if isinstance(o, np.timedelta64):
                     msg = "cannot use operands with types"
                     with pytest.raises(TypeError, match=msg):
                         o + p
