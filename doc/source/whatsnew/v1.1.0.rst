@@ -271,7 +271,7 @@ Numeric
 - Bug in :meth:`to_numeric` with string argument ``"uint64"`` and ``errors="coerce"`` silently fails (:issue:`32394`)
 - Bug in :meth:`to_numeric` with ``downcast="unsigned"`` fails for empty data (:issue:`32493`)
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
--
+- Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 
 Conversion
 ^^^^^^^^^^
@@ -361,6 +361,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 
 Reshaping
 ^^^^^^^^^
