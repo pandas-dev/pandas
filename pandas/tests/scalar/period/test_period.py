@@ -1195,7 +1195,7 @@ class TestArithmetic:
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    msg = "ufunc 'add' cannot use operands with types"
+                    msg = "cannot use operands with types"
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
@@ -1249,7 +1249,7 @@ class TestArithmetic:
                     p + o
 
                 if isinstance(o, np.timedelta64,):
-                    msg = "ufunc 'add' cannot use operands with types"
+                    msg = "cannot use operands with types"
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
@@ -1271,7 +1271,7 @@ class TestArithmetic:
             assert p + offsets.Hour(3) == exp
             assert offsets.Hour(3) + p == exp
 
-            msg = "ufunc 'add' cannot use operands with types"
+            msg = "cannot use operands with types"
             exp = Period("2011-04-01 12:00", freq=freq)
             assert p + np.timedelta64(3, "h") == exp
             with pytest.raises(TypeError, match=msg):
@@ -1302,7 +1302,7 @@ class TestArithmetic:
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    msg = "ufunc 'add' cannot use operands with types"
+                    msg = "cannot use operands with types"
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
