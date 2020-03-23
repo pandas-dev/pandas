@@ -11,7 +11,7 @@ from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -858,7 +858,7 @@ class Resampler(_GroupBy, ShallowMixin):
         nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof)
 
-    @Appender(GroupBy.size.__doc__)
+    @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
         if not len(self.ax):
@@ -871,7 +871,7 @@ class Resampler(_GroupBy, ShallowMixin):
             result = Series([], index=result.index, dtype="int64", name=name)
         return result
 
-    @Appender(GroupBy.count.__doc__)
+    @doc(GroupBy.count)
     def count(self):
         result = self._downsample("count")
         if not len(self.ax):
