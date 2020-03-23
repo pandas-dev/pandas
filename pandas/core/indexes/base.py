@@ -280,7 +280,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
     ) -> "Index":
 
         from pandas.core.indexes.range import RangeIndex
@@ -3060,13 +3060,16 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     def _filter_indexer_tolerance(
-        self, target: "Index", indexer: np.ndarray, tolerance
+        self,
+        target: Union["Index", np.ndarray, ExtensionArray],
+        indexer: np.ndarray,
+        tolerance,
     ) -> np.ndarray:
-        distance = abs(self._values[indexer] - target._values)
+        distance = abs(self._values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
