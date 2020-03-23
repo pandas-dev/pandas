@@ -12,6 +12,7 @@ from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, 
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas import period_range, Series
 
 
 def test_repr():
@@ -2057,3 +2058,14 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+def test_groupby_period_index():
+    periods=2
+    index = period_range(start='2018-01', periods=periods, freq='M')
+    periodSerie = Series(range(periods), index=index)
+    periodSerie.index.name = 'Month'
+    result = periodSerie.groupby(periodSerie.index.month).sum()
+
+    expected = pd.Series(range(0,periods), index=range(1,periods+1))
+    expected.index.name = periodSerie.index.name
+    tm.assert_series_equal(result, expected)
