@@ -932,9 +932,8 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        assert isinstance(mask, np.ndarray), type(mask)
-        assert mask.dtype == bool, mask.dtype
-        assert not isinstance(new, (ABCSeries, ABCDataFrame)), type(new)
+        mask = _extract_bool_array(mask)
+        assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -1333,9 +1332,8 @@ class Block(PandasObject):
         """
         import pandas.core.computation.expressions as expressions
 
-        assert isinstance(cond, np.ndarray), type(cond)
-        assert cond.dtype == bool, cond.dtype
-        assert not isinstance(other, (ABCSeries, ABCDataFrame)), type(other)
+        cond = _extract_bool_array(cond)
+        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1642,15 +1640,9 @@ class ExtensionBlock(Block):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        if isinstance(mask, ExtensionArray):
-            assert mask.dtype == "boolean", mask.dtype
-            mask = mask.astype(bool, copy=False)
-        assert isinstance(mask, np.ndarray), type(mask)
-        assert mask.dtype == bool, mask.dtype
+        mask = _extract_bool_array(mask)
 
-        # use block's copy logic.
-        # .values may be an Index which does shallow copy by default
-        new_values = self.values if inplace else self.copy().values
+        new_values = self.values if inplace else self.values.copy()
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -1880,18 +1872,16 @@ class ExtensionBlock(Block):
         self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
 
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)), type(
-            other
-        )
-        assert not isinstance(cond, (ABCIndexClass, ABCSeries, ABCDataFrame)), type(
-            cond
-        )
+        cond = _extract_bool_array(cond)
+        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
         if isinstance(other, np.ndarray) and other.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
             assert other.shape[1] == 1
             other = other[:, 0]
 
         if isinstance(cond, np.ndarray) and cond.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
             assert cond.shape[1] == 1
             cond = cond[:, 0]
 
@@ -3135,3 +3125,16 @@ def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
+
+
+def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
+    """
+    If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
+    """
+    if isinstance(mask, ExtensionArray):
+        # We could have BooleanArray, Sparse[bool], ...
+        mask = np.asarray(mask, dtype=np.bool_)
+
+    assert isinstance(mask, np.ndarray), type(mask)
+    assert mask.dtype == bool, mask.dtype
+    return mask
