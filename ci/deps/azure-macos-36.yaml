@@ -14,7 +14,6 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - cftime  # Needed for downstream xarray.CFTimeIndex test
   - html5lib
   - jinja2
   - lxml

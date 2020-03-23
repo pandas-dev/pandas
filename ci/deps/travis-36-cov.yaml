@@ -15,7 +15,6 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
-  - cftime  # Needed for downstream xarray.CFTimeIndex test
   - cython>=0.29.13
   - dask
   - fastparquet>=0.3.2
