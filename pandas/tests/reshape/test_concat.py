@@ -1,5 +1,4 @@
 from collections import OrderedDict, abc, deque
-from collections.abc import Mapping
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1266,7 +1265,6 @@ class TestConcatenate:
         result = concat(frames, keys=keys)
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
-
 
     def test_concat_ignore_index(self, sort):
         frame1 = DataFrame(
