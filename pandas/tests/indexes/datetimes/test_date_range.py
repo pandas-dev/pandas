@@ -9,6 +9,7 @@ import pytest
 import pytz
 from pytz import timezone
 
+from pandas._libs.tslibs import timezones
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -660,6 +661,60 @@ class TestDateRanges:
             end="2011-06-01", start="2011-01-01", freq="1MS", tz=tz
         )[::-1]
         tm.assert_index_equal(result, expected)
+
+
+class TestDateRangeTZ:
+    """Tests for date_range with timezones"""
+
+    def test_hongkong_tz_convert(self):
+        # GH#1673 smoke test
+        dr = date_range("2012-01-01", "2012-01-10", freq="D", tz="Hongkong")
+
+        # it works!
+        dr.hour
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_span_dst_transition(self, tzstr):
+        # GH#1778
+
+        # Standard -> Daylight Savings Time
+        dr = date_range("03/06/2012 00:00", periods=200, freq="W-FRI", tz="US/Eastern")
+
+        assert (dr.hour == 0).all()
+
+        dr = date_range("2012-11-02", periods=10, tz=tzstr)
+        result = dr.hour
+        expected = pd.Index([0] * 10)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_timezone_str_argument(self, tzstr):
+        tz = timezones.maybe_get_tz(tzstr)
+        result = date_range("1/1/2000", periods=10, tz=tzstr)
+        expected = date_range("1/1/2000", periods=10, tz=tz)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_with_fixedoffset_noname(self):
+        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+
+        off = fixed_off_no_name
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
+
+        idx = pd.Index([start, end])
+        assert off == idx.tz
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_with_tz(self, tzstr):
+        stamp = Timestamp("3/11/2012 05:00", tz=tzstr)
+        assert stamp.hour == 5
+
+        rng = date_range("3/11/2012 04:00", periods=10, freq="H", tz=tzstr)
+
+        assert stamp == rng[1]
 
 
 class TestGenRangeGeneration:
