@@ -18,6 +18,7 @@ import tokenize
 from typing import IO, Callable, Iterable, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
+PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
@@ -321,6 +322,8 @@ def main(
                 )
 
     for subdir, _, files in os.walk(source_path):
+        if any(path in subdir for path in PATHS_TO_IGNORE):
+            continue
         for file_name in files:
             if not any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
