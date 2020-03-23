@@ -1258,7 +1258,6 @@ class TestConcatenate:
             def __len__(self):
                 return len(self.map)
 
-
         frames = SomeMapping({
             "foo": DataFrame(np.random.randn(4, 3)),
             "bar": DataFrame(np.random.randn(4, 3)),
