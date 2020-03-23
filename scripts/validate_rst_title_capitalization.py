@@ -10,11 +10,11 @@ Usage::
 
 """
 import argparse
-import sys
-import re
-import os
-from typing import Tuple, Generator, List
 import glob
+import os
+import re
+import sys
+from typing import Generator, List, Tuple
 
 
 CAPITALIZATION_EXCEPTIONS = {
@@ -46,6 +46,61 @@ CAPITALIZATION_EXCEPTIONS = {
     "NumFOCUS",
     "sklearn",
     "Docker",
+    "PeriodIndex",
+    "NA",
+    "NaN",
+    "ValueError",
+    "BooleanArray",
+    "KeyError",
+    "API",
+    "FAQ",
+    "IO",
+    "GroupBy",
+    "TimedeltaIndex",
+    "DatetimeIndex",
+    "IntervalIndex",
+    "CategoricalIndex",
+    "SPSS",
+    "ORC",
+    "R",
+    "HDF5",
+    "HDFStore",
+    "CDay",
+    "CBMonthBegin",
+    "CBMonthEnd",
+    "BMonthBegin",
+    "BMonthEnd",
+    "BDay",
+    "FY5253Quarter",
+    "FY5253",
+    "YearBegin",
+    "YearEnd",
+    "BYearBegin",
+    "BYearEnd",
+    "YearOffset",
+    "QuarterBegin",
+    "QuarterEnd",
+    "BQuarterBegin",
+    "BQuarterEnd",
+    "QuarterOffset",
+    "LastWeekOfMonth",
+    "WeekOfMonth",
+    "SemiMonthBegin",
+    "SemiMonthEnd",
+    "SemiMonthOffset",
+    "CustomBusinessMonthBegin",
+    "CustomBusinessMonthEnd",
+    "BusinessMonthBegin",
+    "BusinessMonthEnd",
+    "MonthBegin",
+    "MonthEnd",
+    "MonthOffset",
+    "CustomBusinessHour",
+    "CustomBusinessDay",
+    "BusinessHour",
+    "BusinessDay",
+    "DateOffset",
+
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -72,24 +127,7 @@ def correct_title_capitalization(title: str) -> str:
 
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
-    correct_title: str = re.sub(r"^\W*", "", title)
-
-    # Take into consideration words with multiple capital letters
-    # Such as DataFrame or PeriodIndex or IO to not lower them.
-    # Lower the other words
-    if re.search(r'((?:[A-Z]\w*){2,})', correct_title):
-        list_words: List[str] = correct_title.split(' ')
-        if correct_title[0].islower():
-            list_words[0].replace(correct_title[0], correct_title[0].upper())
-
-        for idx in range(1, len(list_words)):
-            if not re.search(r'((?:[A-Z]\w*){2,})', list_words[idx]):
-                list_words[idx] = list_words[idx].lower()
-
-        correct_title = " ".join(list_words)
-
-    else:
-        correct_title = correct_title.capitalize()
+    correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
     # Remove a URL from the title. We do this because words in a URL must
     # stay lowercase, even if they are a capitalization exception.
