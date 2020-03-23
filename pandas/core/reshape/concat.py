@@ -2,8 +2,9 @@
 Concat routines.
 """
 
-from typing import Iterable, List, Mapping, Union, overload
 from collections import abc
+from typing import Iterable, List, Mapping, Union, overload
+
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion, Label
