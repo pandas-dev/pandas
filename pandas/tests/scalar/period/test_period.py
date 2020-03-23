@@ -79,7 +79,8 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(ordinal=200701)
 
-        with pytest.raises(ValueError, match="Invalid frequency: X"):
+        msg = "Invalid frequency: X"
+        with pytest.raises(ValueError, match=msg):
             Period("2007-1-1", freq="X")
 
     def test_construction_bday(self):
@@ -1038,7 +1039,7 @@ class TestArithmetic:
         result = left - right
         assert result == 4 * right.freq
 
-        msg = "Input has different freq=M from Period\\(freq=A-DEC\\)"
+        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             left - Period("2007-01", freq="M")
 
@@ -1081,10 +1082,14 @@ class TestArithmetic:
 
         # We may get a different message depending on which class raises
         # the error.
-        msg = (
-            r"cannot add|unsupported operand|"
-            r"can only operate on a|incompatible type|"
-            r"ufunc add cannot use operands"
+        msg = "|".join(
+            [
+                "cannot add",
+                "unsupported operand",
+                "can only operate on a",
+                "incompatible type",
+                "ufunc add cannot use operands",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             lbox(ts) + rbox(per)
@@ -1166,9 +1171,11 @@ class TestArithmetic:
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    msg = (
-                        "Input has different freq|"
-                        "Input cannot be converted to Period"
+                    msg = "|".join(
+                        [
+                            "Input has different freq",
+                            "Input cannot be converted to Period",
+                        ]
                     )
                     with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
@@ -1199,9 +1206,11 @@ class TestArithmetic:
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    msg = (
-                        "Input has different freq|"
-                        "Input cannot be converted to Period"
+                    msg = "|".join(
+                        [
+                            "Input has different freq",
+                            "Input cannot be converted to Period",
+                        ]
                     )
                     with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
@@ -1253,9 +1262,11 @@ class TestArithmetic:
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    msg = (
-                        "Input has different freq|"
-                        "Input cannot be converted to Period"
+                    msg = "|".join(
+                        [
+                            "Input has different freq",
+                            "Input cannot be converted to Period",
+                        ]
                     )
                     with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
@@ -1306,9 +1317,11 @@ class TestArithmetic:
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    msg = (
-                        "Input has different freq|"
-                        "Input cannot be converted to Period"
+                    msg = "|".join(
+                        [
+                            "Input has different freq",
+                            "Input cannot be converted to Period",
+                        ]
                     )
                     with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p

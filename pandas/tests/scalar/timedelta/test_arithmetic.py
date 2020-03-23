@@ -457,10 +457,12 @@ class TestTimedeltaMultiplicationDivision:
         result = np.timedelta64("NaT") / td
         assert np.isnan(result)
 
-        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+        msg = "cannot use operands with types dtype"
+        with pytest.raises(TypeError, match=msg):
             np.datetime64("NaT") / td
 
-        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+        msg = "Cannot divide float by Timedelta"
+        with pytest.raises(TypeError, match=msg):
             np.nan / td
 
     def test_td_rdiv_ndarray(self):
@@ -477,11 +479,13 @@ class TestTimedeltaMultiplicationDivision:
         tm.assert_numpy_array_equal(result, expected)
 
         arr = np.array([np.nan], dtype=object)
-        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+        msg = "Cannot divide float by Timedelta"
+        with pytest.raises(TypeError, match=msg):
             arr / td
 
         arr = np.array([np.nan], dtype=np.float64)
-        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+        msg = "cannot use operands with types dtype"
+        with pytest.raises(TypeError, match=msg):
             arr / td
 
     # ---------------------------------------------------------------
@@ -514,9 +518,11 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        msg = (
-            r"Invalid dtype datetime64\[D\] for __floordiv__|"
-            "'dtype' is an invalid keyword argument for this function"
+        msg = "|".join(
+            [
+                r"Invalid dtype datetime64\[D\] for __floordiv__",
+                "'dtype' is an invalid keyword argument for this function",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             td // np.datetime64("2016-01-01", dtype="datetime64[us]")
@@ -631,7 +637,8 @@ class TestTimedeltaMultiplicationDivision:
         # deprecated GH#19761, enforced GH#29797
         ints = np.array([1349654400, 1349740800, 1349827200, 1349913600]) * 10 ** 9
 
-        with pytest.raises(TypeError, match="Invalid dtype"):
+        msg = "Invalid dtype"
+        with pytest.raises(TypeError, match=msg):
             ints // Timedelta(1, unit="s")
 
     def test_td_rfloordiv_numeric_series(self):
@@ -641,7 +648,8 @@ class TestTimedeltaMultiplicationDivision:
         res = td.__rfloordiv__(ser)
         assert res is NotImplemented
 
-        with pytest.raises(TypeError, match="Invalid dtype"):
+        msg = "Invalid dtype"
+        with pytest.raises(TypeError, match=msg):
             # Deprecated GH#19761, enforced GH#29797
             # TODO: GH-19761. Change to TypeError.
             ser // td
@@ -966,10 +974,12 @@ def test_ops_error_str():
 
     for left, right in [(td, "a"), ("a", td)]:
 
-        msg = (
-            "unsupported operand type|"
-            'can only concatenate str \\(not "Timedelta"\\) to str|'
-            "must be str, not Timedelta|"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                r'can only concatenate str \(not "Timedelta"\) to str',
+                "must be str, not Timedelta",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             left + right

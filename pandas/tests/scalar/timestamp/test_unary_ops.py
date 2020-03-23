@@ -188,7 +188,8 @@ class TestTimestampUnaryOps:
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
+        msg = "2018-03-11 02:00:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
             getattr(ts, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize(

@@ -165,20 +165,25 @@ class TestTimestampConstructors:
         assert result == eval(repr(result))
 
     def test_constructor_invalid(self):
-        with pytest.raises(TypeError, match="Cannot convert input"):
+        msg = "Cannot convert input"
+        with pytest.raises(TypeError, match=msg):
             Timestamp(slice(2))
-        with pytest.raises(ValueError, match="Cannot convert Period"):
+        msg = "Cannot convert Period"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(Period("1000-01-01"))
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        with pytest.raises(TypeError, match="must be a datetime.tzinfo"):
+        msg = "must be a datetime.tzinfo"
+        with pytest.raises(TypeError, match=msg):
             Timestamp("2017-10-22", tzinfo="US/Eastern")
 
-        with pytest.raises(ValueError, match="at most one of"):
+        msg = "at most one of"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
-        with pytest.raises(ValueError, match="Invalid frequency:"):
+        msg = "Invalid frequency:"
+        with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
@@ -324,7 +329,8 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        with pytest.raises(ValueError, match="could not convert string to Timestamp"):
+        msg = "could not convert string to Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(f"2014-11-02 01:00{z}")
 
     @pytest.mark.parametrize(
@@ -495,16 +501,19 @@ class TestTimestampConstructors:
 
     def test_constructor_invalid_frequency(self):
         # GH 22311
-        with pytest.raises(ValueError, match="Invalid frequency:"):
+        msg = "Invalid frequency:"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
         kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": pytz.utc}
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+        msg = "Cannot pass a datetime or Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tz="US/Pacific")
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+        msg = "Cannot pass a datetime or Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
 
     def test_dont_convert_dateutil_utc_to_pytz_utc(self):

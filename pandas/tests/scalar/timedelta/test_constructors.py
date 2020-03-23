@@ -93,10 +93,12 @@ def test_construction():
         Timedelta("3.1415")
 
     # invalid construction
-    with pytest.raises(ValueError, match="cannot construct a Timedelta"):
+    msg = "cannot construct a Timedelta"
+    with pytest.raises(ValueError, match=msg):
         Timedelta()
 
-    with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo")
 
     msg = (
@@ -123,7 +125,8 @@ def test_construction():
     assert result == expected
     assert to_timedelta(offsets.Hour(2)) == Timedelta("0 days, 02:00:00")
 
-    with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo bar")
 
 

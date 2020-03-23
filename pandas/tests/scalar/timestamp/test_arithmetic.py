@@ -90,7 +90,8 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            with pytest.raises(TypeError, match="subtraction must have"):
+            msg = "subtraction must have"
+            with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
