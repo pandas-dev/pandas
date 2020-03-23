@@ -1316,8 +1316,8 @@ cdef class TextReader:
         else:
             if self.header is not None:
                 j = i - self.leading_cols
-                # hack for #2442
-                if j == len(self.header[0]):
+                # generate extra (bogus) headers if there are more columns than headers
+                if j >= len(self.header[0]):
                     return j
                 else:
                     return self.header[0][j]
