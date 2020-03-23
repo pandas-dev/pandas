@@ -428,7 +428,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`.
    s
    s.value_counts()
 
-String Methods
+String methods
 ~~~~~~~~~~~~~~
 
 Series is equipped with a set of string processing methods in the `str`
