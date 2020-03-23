@@ -479,7 +479,7 @@ class TestTimedeltas:
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
 
-        msg = "Python int too large to convert to C long"
+        msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):
             min_td - Timedelta(2, "ns")
 

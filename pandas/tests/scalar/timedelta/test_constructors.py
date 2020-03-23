@@ -179,7 +179,7 @@ def test_td_from_repr_roundtrip(val):
 
 
 def test_overflow_on_construction():
-    msg = "Python int too large to convert to C long"
+    msg = "int too (large|big) to convert"
 
     # GH#3374
     value = Timedelta("1day").value * 20169940

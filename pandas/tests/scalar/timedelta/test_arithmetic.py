@@ -89,7 +89,7 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_add_timestamp_overflow(self):
-        msg = "Python int too large to convert to C long"
+        msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
@@ -744,7 +744,7 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError, match=msg):
             16.0 % td
 
-        msg = "Invalid dtype int64 for __mod__"
+        msg = "Invalid dtype int"
         with pytest.raises(TypeError, match=msg):
             np.array([22, 24]) % td
 
@@ -827,7 +827,7 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError, match=msg):
             divmod(16.0, td)
 
-        msg = "Invalid dtype int64 for __mod__"
+        msg = "Invalid dtype int"
         with pytest.raises(TypeError, match=msg):
             divmod(np.array([22, 24]), td)
 
