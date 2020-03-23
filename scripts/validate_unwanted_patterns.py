@@ -11,6 +11,7 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 """
 
 import argparse
+import ast
 import os
 import sys
 import token
@@ -100,6 +101,33 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                     "Please pass in the argument 'match' as well the exception.",
                 )
                 break
+
+
+def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """
+    Checking that a private function is not used across modules.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of import statement, that imports the private function.
+    msg : str
+        Explenation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)):
+            continue
+
+        if any(mod.name.split(".")[-1].startswith("_") for mod in node.names):
+            yield (node.lineno, "Use of private function across modules found.")
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
@@ -343,6 +371,7 @@ def main(
 if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
+        "private_function_across_module",
         "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
