@@ -123,15 +123,11 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
