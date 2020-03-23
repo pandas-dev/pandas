@@ -170,15 +170,6 @@ class Base:
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_boolean_context_compat(self):
-
-        # boolean context compat
-        idx = self.create_index()
-
-        with pytest.raises(ValueError, match="The truth value of a"):
-            if idx:
-                pass
-
     def test_reindex_base(self):
         idx = self.create_index()
         expected = np.arange(idx.size, dtype=np.intp)
@@ -224,14 +215,6 @@ class Base:
 
         idx = self.create_index()
         tm.assert_index_equal(eval(repr(idx)), idx)
-
-    def test_str(self):
-
-        # test the string repr
-        idx = self.create_index()
-        idx.name = "foo"
-        assert "'foo'" in str(idx)
-        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182

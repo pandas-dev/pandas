@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, date_range
+from pandas import DataFrame, MultiIndex
 import pandas._testing as tm
 
 
@@ -121,18 +121,6 @@ def test_to_frame_resulting_column_order():
     )
     result = mi.to_frame().columns.tolist()
     assert result == expected
-
-
-def test_roundtrip_pickle_with_tz():
-
-    # GH 8367
-    # round-trip of timezone
-    index = MultiIndex.from_product(
-        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
-        names=["one", "two", "three"],
-    )
-    unpickled = tm.round_trip_pickle(index)
-    assert index.equal_levels(unpickled)
 
 
 def test_to_flat_index(idx):

@@ -8,6 +8,12 @@ import pytest
 import pandas._testing as tm
 
 
+def test_boolean_context_compat(indices):
+    with pytest.raises(ValueError, match="The truth value of a"):
+        if indices:
+            pass
+
+
 def test_sort(indices):
     msg = "cannot sort an Index object in-place, use sort_values instead"
     with pytest.raises(TypeError, match=msg):
@@ -29,8 +35,9 @@ def test_mutability(indices):
 
 
 def test_wrong_number_names(indices):
+    names = indices.nlevels * ["apple", "banana", "carrot"]
     with pytest.raises(ValueError, match="^Length"):
-        indices.names = ["apple", "banana", "carrot"]
+        indices.names = names
 
 
 class TestConversion:
@@ -67,8 +74,19 @@ class TestRoundTrips:
     def test_pickle_roundtrip(self, indices):
         result = tm.round_trip_pickle(indices)
         tm.assert_index_equal(result, indices)
+        if result.nlevels > 1:
+            # GH#8367 round-trip with timezone
+            assert indices.equal_levels(result)
 
 
 class TestIndexing:
     def test_slice_keeps_name(self, indices):
         assert indices.name == indices[1:].name
+
+
+class TestRendering:
+    def test_str(self, indices):
+        # test the string repr
+        indices.name = "foo"
+        assert "'foo'" in str(indices)
+        assert type(indices).__name__ in str(indices)

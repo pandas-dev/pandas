@@ -368,6 +368,17 @@ def _create_multiindex():
     return mi
 
 
+def _create_mi_with_dt64tz_level():
+    """
+    MultiIndex with a level that is a tzaware DatetimeIndex.
+    """
+    # GH#8367 round trip with pickle
+    return MultiIndex.from_product(
+        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        names=["one", "two", "three"],
+    )
+
+
 indices_dict = {
     "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
@@ -384,6 +395,7 @@ indices_dict = {
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
 }
