@@ -8,6 +8,8 @@ import sys
 import numpy as np  # noqa
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -47,10 +49,12 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
-    cftime = import_module("cftime")
-    xarray = import_module("xarray")
+    import cftime
+    import xarray
 
     times = xarray.cftime_range("0001", periods=2)
     result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
