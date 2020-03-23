@@ -1391,7 +1391,6 @@ class DataFrameGroupBy(GroupBy):
             validate_udf(func, include_columns=True)
             func = jit_user_function(func, nopython, nogil, parallel)
         else:
-            path = None
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         for name, group in gen:
@@ -1403,17 +1402,14 @@ class DataFrameGroupBy(GroupBy):
                 # Return the result as a DataFrame for concatenation later
                 res = DataFrame(res, index=group.index, columns=group.columns)
             else:
-                if path is None:
-                    # Try slow path and fast path.
-                    try:
-                        path, res = self._choose_path(fast_path, slow_path, group)
-                    except TypeError:
-                        return self._transform_item_by_item(obj, fast_path)
-                    except ValueError as err:
-                        msg = "transform must return a scalar value for each group"
-                        raise ValueError(msg) from err
-                else:
-                    res = path(group)
+                # Try slow path and fast path.
+                try:
+                    path, res = self._choose_path(fast_path, slow_path, group)
+                except TypeError:
+                    return self._transform_item_by_item(obj, fast_path)
+                except ValueError as err:
+                    msg = "transform must return a scalar value for each group"
+                    raise ValueError(msg) from err
 
             if isinstance(res, Series):
 
