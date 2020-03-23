@@ -10,11 +10,11 @@ Usage::
 
 """
 import argparse
-import sys
-import re
-import os
-from typing import Tuple, Generator, List
 import glob
+import os
+import re
+import sys
+from typing import Generator, List, Tuple
 
 
 CAPITALIZATION_EXCEPTIONS = {
@@ -46,6 +46,61 @@ CAPITALIZATION_EXCEPTIONS = {
     "NumFOCUS",
     "sklearn",
     "Docker",
+    "PeriodIndex",
+    "NA",
+    "NaN",
+    "ValueError",
+    "BooleanArray",
+    "KeyError",
+    "API",
+    "FAQ",
+    "IO",
+    "GroupBy",
+    "TimedeltaIndex",
+    "DatetimeIndex",
+    "IntervalIndex",
+    "CategoricalIndex",
+    "SPSS",
+    "ORC",
+    "R",
+    "HDF5",
+    "HDFStore",
+    "CDay",
+    "CBMonthBegin",
+    "CBMonthEnd",
+    "BMonthBegin",
+    "BMonthEnd",
+    "BDay",
+    "FY5253Quarter",
+    "FY5253",
+    "YearBegin",
+    "YearEnd",
+    "BYearBegin",
+    "BYearEnd",
+    "YearOffset",
+    "QuarterBegin",
+    "QuarterEnd",
+    "BQuarterBegin",
+    "BQuarterEnd",
+    "QuarterOffset",
+    "LastWeekOfMonth",
+    "WeekOfMonth",
+    "SemiMonthBegin",
+    "SemiMonthEnd",
+    "SemiMonthOffset",
+    "CustomBusinessMonthBegin",
+    "CustomBusinessMonthEnd",
+    "BusinessMonthBegin",
+    "BusinessMonthEnd",
+    "MonthBegin",
+    "MonthEnd",
+    "MonthOffset",
+    "CustomBusinessHour",
+    "CustomBusinessDay",
+    "BusinessHour",
+    "BusinessDay",
+    "DateOffset",
+
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

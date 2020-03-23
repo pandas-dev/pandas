@@ -58,11 +58,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCSeries,
-    ABCSparseArray,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -71,6 +68,7 @@ from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -1228,11 +1226,7 @@ class GenericArrayFormatter:
                 # object dtype
                 return str(formatter(x))
 
-        vals = self.values
-        if isinstance(vals, Index):
-            vals = vals._values
-        elif isinstance(vals, ABCSparseArray):
-            vals = vals.values
+        vals = extract_array(self.values, extract_numpy=True)
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = self.leading_space
@@ -1457,9 +1451,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        values = self.values
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
+        values = extract_array(self.values, extract_numpy=True)
 
         formatter = values._formatter(boxed=True)
 
