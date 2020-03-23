@@ -102,7 +102,7 @@ class BaseGrouper:
         return self._groupings
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, ...]:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
