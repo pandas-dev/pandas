@@ -452,6 +452,7 @@ class TestDataFrameOperators:
         added = float_frame + mixed_int_frame
         _check_mixed_float(added, dtype="float64")
 
+    # TODO: arithmetic test
     def test_combine_series(
         self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
     ):

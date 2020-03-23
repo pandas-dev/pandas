@@ -1186,9 +1186,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         self_i8 = self.asi8
         other_i8 = other.asi8
+        # TODO: do we need to worry about these having the same row/column order?
         new_values = checked_add_with_arr(
-            self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
-        )
+            self_i8.ravel(), other_i8.ravel(), arr_mask=self._isnan.ravel(), b_mask=other._isnan.ravel()
+        ).reshape(self.shape)
         if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT

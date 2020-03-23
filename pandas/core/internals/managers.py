@@ -412,7 +412,7 @@ class BlockManager(PandasObject):
         aligned_args = {
             k: kwargs[k]
             for k in align_keys
-            if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
+            #if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
         }
 
         for b in self.blocks:
@@ -425,13 +425,15 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = obj._info_axis_number
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        axis = obj._info_axis_number
                         kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
                     else:
                         # We should have an ndarray or ExtensionArray
-                        assert obj.shape[0] == self.shape[0], (obj.shape, self.shape)
-                        kwargs[k] = obj[b.mgr_locs.indexer]
+                        if obj.ndim == 2:
+                            # FIXME: kludge; shouldnt need the ndim restriction
+                            assert obj.shape[0] == self.shape[0], (obj.shape, self.shape)
+                            kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
