@@ -417,16 +417,14 @@ def test_set_levels_with_iterable():
 
 def test_at_indexing_fails_multiindex():
     # GH9259
-    cols = [("a_col", chr(i + 65)) for i in range(5)]
-    cols.extend([("b_col", chr(i + 65)) for i in range(5, 10)])
-    idx = [("a_row", chr(i + 65)) for i in range(5)]
-    idx.extend([("b_row", chr(i + 65)) for i in range(5, 10)])
+    cols = [("a_col", chr(i + 65)) for i in range(2)]
+    idx = [("a_row", chr(i + 65)) for i in range(2)]
     df = pd.DataFrame(
-        np.linspace(1, 100, 100).reshape(10, 10),
+        np.linspace(1, 4, 4).reshape(2, 2),
         index=pd.MultiIndex.from_tuples(idx),
         columns=pd.MultiIndex.from_tuples(cols),
     )
-    s = pd.Series(np.linspace(1, 91, 10), index=pd.MultiIndex.from_tuples(idx))
+    s = pd.Series(np.linspace(1, 2, 2), index=pd.MultiIndex.from_tuples(idx))
 
     with pytest.raises(KeyError, match=r".+? indexing with .+? failing for MultiIndex"):
         df.at["a_row", "A"]
