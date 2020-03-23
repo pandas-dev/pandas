@@ -414,6 +414,7 @@ Other
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
+- Fixture :func:`non_mapping_dict_subclass` is now properly called :func:`non_dict_mapping_subclass`.
 
 .. ---------------------------------------------------------------------------
 
