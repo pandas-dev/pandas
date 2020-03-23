@@ -45,7 +45,6 @@ class SparseArrayConstructor:
 class SparseDataFrameConstructor:
     def setup(self):
         N = 1000
-        self.arr = np.arange(N)
         self.sparse = scipy.sparse.rand(N, N, 0.005)
 
     def time_from_scipy(self):

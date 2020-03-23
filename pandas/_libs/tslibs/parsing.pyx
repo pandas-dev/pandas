@@ -349,7 +349,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such paramaters copies behavior of python `float`
+            # xstrtod with such parameters copies behavior of python `float`
             # cast; for example, " 35.e-1 " is valid string for this cast so,
             # for correctly xstrtod call necessary to pass these params:
             # b'.' - a dot is used as separator, b'e' - an exponential form of
@@ -577,8 +577,8 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
         object[:] result
 
     n = len(dates)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(times) != n:
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if times.shape[0] != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -614,8 +614,8 @@ def try_parse_year_month_day(object[:] years, object[:] months,
         object[:] result
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if months.shape[0] != n or days.shape[0] != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -640,10 +640,14 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
-            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
-            <Py_ssize_t>len(seconds) != n):
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if (
+        months.shape[0] != n
+        or days.shape[0] != n
+        or hours.shape[0] != n
+        or minutes.shape[0] != n
+        or seconds.shape[0] != n
+    ):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
