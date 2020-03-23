@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
+import pandas as pd
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -581,6 +582,14 @@ class BaseGrouper:
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
+
+        if (
+            how == "add"
+            and is_integer_dtype(orig_values.dtype)
+            and is_extension_array_dtype(orig_values.dtype)
+            and isna(result).any()
+        ):
+            result = pd.array(result.ravel(), dtype="Int64")
 
         return result, names
 
