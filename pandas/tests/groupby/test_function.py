@@ -1645,7 +1645,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     idx = pd.Index([0, 1, 2], dtype=object, name="a")
 
     result = grouped["b"].sum(min_count=2)
-    expected = pd.Series([np.nan] * 3, index=idx, name="b")
+    expected = pd.Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
     tm.assert_series_equal(result, expected)
 
     result = grouped.sum(min_count=2)
