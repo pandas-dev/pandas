@@ -11199,8 +11199,10 @@ def _make_cum_function(
         else:
             axis = self._get_axis_number(axis)
 
-        if issubclass(self.dtype, ExtensionDtype):
-            return self._accumulate(name, skipna=skipna)
+        # mimicking from series._reduce, which delegates
+        delegate = self._values
+        if isinstance(delegate.dtype, ExtensionDtype):
+            return delegate._accumulate(name, skipna=skipna, **kwargs)
 
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T

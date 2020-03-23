@@ -249,7 +249,12 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestNumericAccumulation(base.BaseNumericAccumulateTests):
-    pass
+    def check_accumulate(self, s, op_name, skipna):
+        # overwrite to ensure pd.NA is tested instead of np.nan
+        # https://github.com/pandas-dev/pandas/issues/30958
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = integer_array(getattr(s.astype("float64"), op_name)(skipna=skipna))
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestPrinting(base.BasePrintingTests):
