@@ -15,10 +15,7 @@ import os
 import re
 import sys
 from typing import Generator, List, Tuple
-<<<<<<< HEAD
-=======
 
->>>>>>> temporary_repo/changes_to_pandas_remote
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -104,10 +101,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessDay",
     "DateOffset",
 
-<<<<<<< HEAD
-=======
-
->>>>>>> temporary_repo/changes_to_pandas_remote
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
