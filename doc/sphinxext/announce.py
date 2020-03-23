@@ -68,8 +68,21 @@ def get_authors(revision_range):
         revision_range = f"{lst_release}..{cur_release}"
 
     # authors, in current release and previous to current release.
-    cur = set(re.findall(pat, this_repo.git.shortlog("-s", revision_range), re.M))
-    pre = set(re.findall(pat, this_repo.git.shortlog("-s", lst_release), re.M))
+    # We need two passes over the log for cur and prev, one to get the
+    # "Co-authored by" commits, which come from backports by the bot,
+    # and one for regular commits.
+    xpr = re.compile(r"Co-authored-by: (?P<name>[^<]+) ")
+    cur = set(
+        xpr.findall(
+            this_repo.git.log("--grep=Co-authored", "--pretty=%b", revision_range)
+        )
+    )
+    cur |= set(re.findall(pat, this_repo.git.shortlog("-s", revision_range), re.M))
+
+    pre = set(
+        xpr.findall(this_repo.git.log("--grep=Co-authored", "--pretty=%b", lst_release))
+    )
+    pre |= set(re.findall(pat, this_repo.git.shortlog("-s", lst_release), re.M))
 
     # Homu is the author of auto merges, clean him out.
     cur.discard("Homu")
