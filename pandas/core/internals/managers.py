@@ -565,14 +565,25 @@ class BlockManager(PandasObject):
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, **kwargs):
+    def putmask(
+        self, mask, new, align: bool = True, axis: int = 0,
+    ):
+        transpose = self.ndim == 2
 
-        if kwargs.pop("align", True):
+        if align:
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
 
-        return self.apply("putmask", align_keys=align_keys, **kwargs)
+        return self.apply(
+            "putmask",
+            align_keys=align_keys,
+            mask=mask,
+            new=new,
+            inplace=True,
+            axis=axis,
+            transpose=transpose,
+        )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
         return self.apply("diff", n=n, axis=axis)
@@ -1770,7 +1781,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=[i])
+            make_block(array, klass=DatetimeTZBlock, placement=i)
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1785,7 +1796,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=[i])
+            make_block(array, klass=CategoricalBlock, placement=i)
             for i, _, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
@@ -1793,7 +1804,7 @@ def form_blocks(arrays, names, axes):
     if len(items_dict["ExtensionBlock"]):
 
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=[i])
+            make_block(array, klass=ExtensionBlock, placement=i)
             for i, _, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1801,7 +1812,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 

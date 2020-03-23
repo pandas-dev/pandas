@@ -188,7 +188,7 @@ Which passenger of the titanic has the longest name?
 
     titanic["Name"].str.len()
 
-To get the longest name we first have to get the lenghts of each of the
+To get the longest name we first have to get the lengths of each of the
 names in the ``Name`` column. By using pandas string methods, the
 :meth:`Series.str.len` function is applied to each of the names individually
 (element-wise).

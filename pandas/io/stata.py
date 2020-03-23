@@ -351,10 +351,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
     def parse_dates_safe(dates, delta=False, year=False, days=False):
         d = {}
-        if is_datetime64_dtype(dates.values):
+        if is_datetime64_dtype(dates.dtype):
             if delta:
                 time_delta = dates - stata_epoch
-                d["delta"] = time_delta.values.astype(np.int64) // 1000  # microseconds
+                d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 # ignore since mypy reports that DatetimeIndex has no year/month
                 date_index = DatetimeIndex(dates)
@@ -368,7 +368,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
         elif infer_dtype(dates, skipna=False) == "datetime":
             if delta:
-                delta = dates.values - stata_epoch
+                delta = dates._values - stata_epoch
 
                 def f(x: datetime.timedelta) -> float:
                     return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
@@ -377,8 +377,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = v(delta)
             if year:
                 year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month.values // 100
-                d["month"] = year_month.values - d["year"] * 100
+                d["year"] = year_month._values // 100
+                d["month"] = year_month._values - d["year"] * 100
             if days:
 
                 def g(x: datetime.datetime) -> int:
@@ -1956,7 +1956,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1998,7 +1998,7 @@ def _dtype_to_default_stata_fmt(
         if force_strl:
             return "%9s"
     if dtype.type == np.object_:
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return "%9s"
@@ -2151,7 +2151,7 @@ class StataWriter(StataParser):
                         "It is not possible to export "
                         "int64-based categorical data to Stata."
                     )
-                values = data[col].cat.codes.values.copy()
+                values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
                 if values.max() >= get_base_missing_value(dtype):
@@ -2384,7 +2384,7 @@ supported types."""
                 encoded = self.data[col].str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
-                    max_len_string_array(ensure_object(encoded.values))
+                    max_len_string_array(ensure_object(encoded._values))
                     <= self._max_string_length
                 ):
                     self.data[col] = encoded
@@ -2650,7 +2650,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize
