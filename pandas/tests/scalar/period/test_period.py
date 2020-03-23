@@ -1244,7 +1244,7 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                msg = "Input has different freq|" "Input cannot be converted to Period"
+                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
@@ -1297,7 +1297,7 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                msg = "Input has different freq|" "Input cannot be converted to Period"
+                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
@@ -1315,7 +1315,7 @@ class TestArithmetic:
 
     def test_sub_offset(self):
         # freq is DateOffset
-        msg = "Input has different freq|" "Input cannot be converted to Period"
+        msg = "Input has different freq|Input cannot be converted to Period"
         for freq in ["A", "2A", "3A"]:
             p = Period("2011", freq=freq)
             assert p - offsets.YearEnd(2) == Period("2009", freq=freq)
