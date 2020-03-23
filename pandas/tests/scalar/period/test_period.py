@@ -1157,12 +1157,12 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|" "Input cannot be converted to Period"
+                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    msg = "ufunc 'add' cannot use operands with types"
+                    msg = "cannot use operands with types"
                     with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
@@ -1190,7 +1190,7 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|" "Input cannot be converted to Period"
+                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
@@ -1220,7 +1220,7 @@ class TestArithmetic:
 
             exp = Period("2011-04-03", freq=freq)
             assert p + np.timedelta64(2, "D") == exp
-            msg = "ufunc 'add' cannot use operands with types"
+            msg = "cannot use operands with types"
             with pytest.raises(TypeError, match=msg):
                 np.timedelta64(2, "D") + p
 

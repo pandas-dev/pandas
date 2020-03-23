@@ -326,7 +326,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19819
         td = Timedelta(10, unit="d")
         msg = (
-            "ufunc 'multiply' cannot use operands with types|"
+            "cannot use operands with types|"
             "Cannot multiply Timedelta with NaT"
         )
         with pytest.raises(TypeError, match=msg):
@@ -968,7 +968,8 @@ def test_ops_error_str():
 
         msg = (
             "unsupported operand type|"
-            r"can only concatenate str \(not \"Timedelta\"\) to str"
+            r"can only concatenate str \(not \"Timedelta\"\) to str\|"
+            "must be str, not Timedelta"
         )
         with pytest.raises(TypeError, match=msg):
             left + right
