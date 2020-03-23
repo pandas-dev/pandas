@@ -163,12 +163,14 @@ class TestDataFrameSubclassing:
 
         # frame + series
         res1, res2 = df.align(s, axis=0)
-        exp1 = pd.DataFrame(
+        exp1 = tm.SubclassedDataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
         )
         # name is lost when
-        exp2 = pd.Series([1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x")
+        exp2 = tm.SubclassedSeries(
+            [1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x"
+        )
 
         assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
@@ -557,3 +559,17 @@ class TestDataFrameSubclassing:
         result = df.apply(lambda x: [1, 2, 3], axis=1)
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
+
+    def test_subclassed_numeric_reductions(self, all_numeric_reductions):
+        # GH 25596
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = getattr(df, all_numeric_reductions)()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_subclassed_boolean_reductions(self, all_boolean_reductions):
+        # GH 25596
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = getattr(df, all_boolean_reductions)()
+        assert isinstance(result, tm.SubclassedSeries)

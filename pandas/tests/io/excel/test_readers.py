@@ -426,7 +426,8 @@ class TestReaders:
         expected["c"] = ["001", "002", "003", "004"]
         tm.assert_frame_equal(actual, expected)
 
-        with pytest.raises(ValueError):
+        msg = "Unable to convert column d to type int64"
+        with pytest.raises(ValueError, match=msg):
             pd.read_excel(basename + read_ext, dtype={"d": "int64"})
 
     @pytest.mark.parametrize(
@@ -596,7 +597,8 @@ class TestReaders:
             # fails on some systems
             import platform
 
-            pytest.skip("failing on {}".format(" ".join(platform.uname()).strip()))
+            platform_info = " ".join(platform.uname()).strip()
+            pytest.skip(f"failing on {platform_info}")
 
         tm.assert_frame_equal(url_table, local_table)
 
@@ -627,6 +629,17 @@ class TestReaders:
         actual = pd.read_excel(path_obj, "Sheet1", index_col=0)
 
         tm.assert_frame_equal(expected, actual)
+
+    @td.check_file_leaks
+    def test_close_from_py_localpath(self, read_ext):
+
+        # GH31467
+        str_path = os.path.join("test1" + read_ext)
+        with open(str_path, "rb") as f:
+            x = pd.read_excel(f, "Sheet1", index_col=0)
+            del x
+            # should not throw an exception because the passed file was closed
+            f.read()
 
     def test_reader_seconds(self, read_ext):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -810,13 +823,15 @@ class TestReaders:
 
     def test_read_excel_bool_header_arg(self, read_ext):
         # GH 6114
+        msg = "Passing a bool to header is invalid"
         for arg in [True, False]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
     def test_read_excel_chunksize(self, read_ext):
         # GH 8011
-        with pytest.raises(NotImplementedError):
+        msg = "chunksize keyword of read_excel is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.read_excel("test1" + read_ext, chunksize=100)
 
     def test_read_excel_skiprows_list(self, read_ext):
@@ -957,7 +972,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = r"unexpected keyword argument `{}`".format(arg)
+        msg = fr"unexpected keyword argument `{arg}`"
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):
@@ -1019,10 +1034,10 @@ class TestExcelFileRead:
         tm.assert_frame_equal(expected, actual)
 
     def test_reader_closes_file(self, engine, read_ext):
-        f = open("test1" + read_ext, "rb")
-        with pd.ExcelFile(f) as xlsx:
-            # parses okay
-            pd.read_excel(xlsx, "Sheet1", index_col=0, engine=engine)
+        with open("test1" + read_ext, "rb") as f:
+            with pd.ExcelFile(f) as xlsx:
+                # parses okay
+                pd.read_excel(xlsx, "Sheet1", index_col=0, engine=engine)
 
         assert f.closed
 
@@ -1042,4 +1057,12 @@ class TestExcelFileRead:
             data = f.read()
 
         actual = pd.read_excel(data, engine=engine)
+        tm.assert_frame_equal(expected, actual)
+
+    def test_excel_high_surrogate(self, engine):
+        # GH 23809
+        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+
+        # should not produce a segmentation violation
+        actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)

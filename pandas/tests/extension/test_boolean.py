@@ -112,9 +112,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # subtraction for bools raises TypeError (but not yet in 1.13)
                 if _np_version_under1p14:
                     pytest.skip("__sub__ does not yet raise in numpy 1.13")
-                with pytest.raises(TypeError):
+                msg = r"numpy boolean subtract"
+                with pytest.raises(TypeError, match=msg):
                     op(s, other)
-
                 return
 
             result = op(s, other)
@@ -339,6 +339,10 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestPrinting(base.BasePrintingTests):
+    pass
+
+
+class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 

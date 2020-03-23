@@ -41,7 +41,7 @@ def set_engine(engine, ext):
     which engine should be used to write Excel files. After executing
     the test it rolls back said change to the global option.
     """
-    option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
+    option_name = f"io.excel.{ext.strip('.')}.writer"
     prev_engine = get_option(option_name)
     set_option(option_name, engine)
     yield
@@ -258,6 +258,36 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, res)
 
+    def test_multiindex_interval_datetimes(self, ext):
+        # GH 30986
+        midx = pd.MultiIndex.from_arrays(
+            [
+                range(4),
+                pd.interval_range(
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                ),
+            ]
+        )
+        df = pd.DataFrame(range(4), index=midx)
+        with tm.ensure_clean(ext) as pth:
+            df.to_excel(pth)
+            result = pd.read_excel(pth, index_col=[0, 1])
+        expected = pd.DataFrame(
+            range(4),
+            pd.MultiIndex.from_arrays(
+                [
+                    range(4),
+                    [
+                        "(2020-01-31, 2020-07-31]",
+                        "(2020-07-31, 2021-01-31]",
+                        "(2021-01-31, 2021-07-31]",
+                        "(2021-07-31, 2022-01-31]",
+                    ],
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no("xlrd")
 @pytest.mark.parametrize(
@@ -300,7 +330,8 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(gt, df)
 
-        with pytest.raises(xlrd.XLRDError):
+        msg = "No sheet named <'0'>"
+        with pytest.raises(xlrd.XLRDError, match=msg):
             pd.read_excel(xl, "0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -422,7 +453,7 @@ class TestExcelWriter:
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, "test1", index_col=0).astype(np_type)
 
-        tm.assert_frame_equal(df, recons, check_dtype=False)
+        tm.assert_frame_equal(df, recons)
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
     def test_bool_types(self, np_type, path):
@@ -534,7 +565,7 @@ class TestExcelWriter:
 
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, "test1", index_col=[0, 1])
-        tm.assert_frame_equal(df, recons, check_less_precise=True)
+        tm.assert_frame_equal(df, recons)
 
     def test_excel_roundtrip_indexname(self, merge_cells, path):
         df = DataFrame(np.random.randn(10, 4))
@@ -943,7 +974,11 @@ class TestExcelWriter:
         # This if will be removed once multi-column Excel writing
         # is implemented. For now fixing gh-9794.
         if c_idx_nlevels > 1:
-            with pytest.raises(NotImplementedError):
+            msg = (
+                "Writing to Excel with MultiIndex columns and no index "
+                "\\('index'=False\\) is not yet implemented."
+            )
+            with pytest.raises(NotImplementedError, match=msg):
                 roundtrip(df, use_headers, index=False)
         else:
             res = roundtrip(df, use_headers)
@@ -1017,6 +1052,27 @@ class TestExcelWriter:
             KeyError, match="'passes columns are not ALL present dataframe'"
         ):
             write_frame.to_excel(path, "test1", columns=["C", "D"])
+
+    @pytest.mark.parametrize(
+        "to_excel_index,read_excel_index_col",
+        [
+            (True, 0),  # Include index in write to file
+            (False, None),  # Dont include index in write to file
+        ],
+    )
+    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):
+        # GH 31677
+        write_frame = DataFrame({"A": [1, 1, 1], "B": [2, 2, 2], "C": [3, 3, 3]})
+        write_frame.to_excel(
+            path, "col_subset_bug", columns=["A", "B"], index=to_excel_index
+        )
+
+        expected = write_frame[["A", "B"]]
+        read_frame = pd.read_excel(
+            path, "col_subset_bug", index_col=read_excel_index_col
+        )
+
+        tm.assert_frame_equal(expected, read_frame)
 
     def test_comment_arg(self, path):
         # see gh-18735
@@ -1155,7 +1211,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path="foo.{ext}".format(ext=ext))
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
@@ -1163,7 +1219,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path="foo.{ext}".format(ext=ext))
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, merge_cells, path):

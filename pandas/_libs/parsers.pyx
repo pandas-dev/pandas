@@ -241,9 +241,9 @@ cdef extern from "parser/io.h":
     void* buffer_mmap_bytes(void *source, size_t nbytes,
                             size_t *bytes_read, int *status)
 
-    void *new_file_source(char *fname, size_t buffer_size)
+    void *new_file_source(char *fname, size_t buffer_size) except NULL
 
-    void *new_rd_source(object obj)
+    void *new_rd_source(object obj) except NULL
 
     int del_file_source(void *src)
     int del_rd_source(void *src)
@@ -638,7 +638,8 @@ cdef class TextReader:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
 
-            if self.encoding and isinstance(source, io.BufferedIOBase):
+            if (self.encoding and hasattr(source, "read") and
+                    not hasattr(source, "encoding")):
                 source = io.TextIOWrapper(
                     source, self.encoding.decode('utf-8'), newline='')
 
@@ -666,26 +667,12 @@ cdef class TextReader:
                 ptr = new_file_source(source, self.parser.chunksize)
                 self.parser.cb_io = &buffer_file_bytes
                 self.parser.cb_cleanup = &del_file_source
-
-            if ptr == NULL:
-                if not os.path.exists(source):
-
-                    raise FileNotFoundError(
-                        ENOENT,
-                        f'File {usource} does not exist',
-                        usource)
-                raise IOError('Initializing from file failed')
-
             self.parser.source = ptr
 
         elif hasattr(source, 'read'):
             # e.g., StringIO
 
             ptr = new_rd_source(source)
-            if ptr == NULL:
-                raise IOError('Initializing parser from file-like '
-                              'object failed')
-
             self.parser.source = ptr
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
@@ -701,7 +688,7 @@ cdef class TextReader:
             char *word
             object name, old_name
             int status
-            uint64_t hr, data_line
+            uint64_t hr, data_line = 0
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -805,7 +792,6 @@ cdef class TextReader:
                 self._tokenize_rows(1)
 
             header = [ self.names ]
-            data_line = 0
 
             if self.parser.lines < 1:
                 field_count = len(header[0])
@@ -1330,8 +1316,8 @@ cdef class TextReader:
         else:
             if self.header is not None:
                 j = i - self.leading_cols
-                # hack for #2442
-                if j == len(self.header[0]):
+                # generate extra (bogus) headers if there are more columns than headers
+                if j >= len(self.header[0]):
                     return j
                 else:
                     return self.header[0][j]
@@ -1595,8 +1581,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
                    int64_t line_end, int64_t width):
     cdef:
-        Py_ssize_t i
-        coliter_t it
         const char *word = NULL
         char *data
         ndarray result
@@ -1641,15 +1625,11 @@ cdef _try_double(parser_t *parser, int64_t col,
                  bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i, lines
-        coliter_t it
-        const char *word = NULL
-        char *p_end
+        Py_ssize_t lines
         float64_t *data
         float64_t NA = na_values[np.float64]
         kh_float64_t *na_fset
         ndarray result
-        khiter_t k
         bint use_na_flist = len(na_flist) > 0
 
     lines = line_end - line_start
@@ -1684,7 +1664,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
         coliter_t it
         const char *word = NULL
         char *p_end
-        khiter_t k, k64
+        khiter_t k64
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1747,11 +1727,10 @@ cdef _try_uint64(parser_t *parser, int64_t col,
                  bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error
-        Py_ssize_t i, lines
+        Py_ssize_t lines
         coliter_t it
         uint64_t *data
         ndarray result
-        khiter_t k
         uint_state state
 
     lines = line_end - line_start
@@ -1821,13 +1800,11 @@ cdef _try_int64(parser_t *parser, int64_t col,
                 bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i, lines
+        Py_ssize_t lines
         coliter_t it
         int64_t *data
         ndarray result
-
         int64_t NA = na_values[np.int64]
-        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
@@ -1855,7 +1832,6 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        khiter_t k
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1891,9 +1867,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
                     const kh_str_starts_t *false_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i, lines
-        coliter_t it
-        const char *word = NULL
+        Py_ssize_t lines
         uint8_t *data
         ndarray result
 
@@ -1925,7 +1899,6 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        khiter_t k
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1980,10 +1953,8 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         Py_ssize_t i
-        khiter_t k
         kh_str_starts_t *table
         int ret = 0
-
         object val
 
     table = kh_init_str_starts()
@@ -2011,7 +1982,6 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
 cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
-        Py_ssize_t i
         khiter_t k
         kh_float64_t *table
         int ret = 0
@@ -2149,7 +2119,6 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
                       char* c_encoding):
     cdef:
-        int error
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL

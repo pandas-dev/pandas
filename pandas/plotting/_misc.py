@@ -149,7 +149,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     influence of all dimensions.
 
     More info available at the `original article
-    <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
     describing RadViz.
 
     Parameters
@@ -294,6 +294,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
+    This example draws a basic bootstap plot for a Series.
 
     .. plot::
             :context: close-figs

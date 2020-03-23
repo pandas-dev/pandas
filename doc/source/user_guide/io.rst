@@ -41,8 +41,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
+   with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -910,16 +909,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
 Date parsing functions
@@ -2453,7 +2442,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -3124,11 +3113,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
@@ -3830,7 +3815,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -4262,12 +4247,12 @@ control compression: ``complevel`` and ``complib``.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
   - `bzip2 <http://bzip.org/>`_: Good compression rates.
-  - `blosc <http://www.blosc.org/>`_: Fast compression and
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
     Support for alternative blosc compressors:
 
-    - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
       <https://fastcompression.blogspot.dk/p/lz4.html>`_:
@@ -5020,8 +5005,8 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  For more information check the SQLAlchemy `documentation
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.

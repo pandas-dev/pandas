@@ -29,7 +29,7 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
+    get_timezone, maybe_get_tz, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -39,7 +39,8 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.tzconversion import (
     tz_localize_to_utc, tz_convert_single)
-from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
+from pandas._libs.tslibs.tzconversion cimport (
+    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -84,12 +85,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------
-    result : ndarray with dtype datetime64[ns]
-
+    ndarray with dtype datetime64[ns]
     """
     cdef:
         Py_ssize_t i, n = arr.size
@@ -152,7 +152,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(object[:] values):
+def datetime_to_datetime64(ndarray[object] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -216,32 +216,16 @@ cdef class _TSObject:
     #    npy_datetimestruct dts      # npy_datetimestruct
     #    int64_t value               # numpy dt64
     #    object tzinfo
+    #    bint fold
+
+    def __cinit__(self):
+        # GH 25057. As per PEP 495, set fold to 0 by default
+        self.fold = 0
 
     @property
     def value(self):
         # This is needed in order for `value` to be accessible in lib.pyx
         return self.value
-
-
-cpdef int64_t pydt_to_i8(object pydt) except? -1:
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-
-    Parameters
-    ----------
-    pydt : object
-
-    Returns
-    -------
-    i8value : np.int64
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -344,6 +328,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     cdef:
         _TSObject obj = _TSObject()
 
+    obj.fold = ts.fold
     if tz is not None:
         tz = maybe_get_tz(tz)
 
@@ -362,14 +347,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
-        # GH 24329 When datetime is ambiguous,
-        # pydatetime_to_dt64 doesn't take DST into account
-        # but with dateutil timezone, get_utcoffset does
-        # so we need to correct for it
-        if treat_tz_as_dateutil(ts.tzinfo):
-            if ts.tzinfo.is_ambiguous(ts):
-                dst_offset = ts.tzinfo.dst(ts)
-                obj.value += int(dst_offset.total_seconds() * 1e9)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
@@ -410,6 +387,8 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
+        ndarray[int64_t] trans
+        int64_t[:] deltas
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -419,10 +398,23 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
+    # Infer fold from offset-adjusted obj.value
+    # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    if is_utc(tz):
+        pass
+    elif is_tzlocal(tz):
+        _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ == 'dateutil':
+            pos = trans.searchsorted(obj.value, side='right') - 1
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
-                  obj.dts.us, obj.tzinfo)
+                  obj.dts.us, obj.tzinfo, fold=obj.fold)
     obj = convert_datetime_to_tsobject(
         dt, tz, nanos=obj.dts.ps // 1000)
     return obj
@@ -573,7 +565,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
+        local_val = _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -592,6 +584,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
             # i.e. treat_tz_as_dateutil(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
+            # dateutil supports fold, so we infer fold from value
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
@@ -600,6 +594,45 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
 
     obj.tzinfo = tz
 
+
+cdef inline bint _infer_tsobject_fold(_TSObject obj, ndarray[int64_t] trans,
+                                      int64_t[:] deltas, int32_t pos):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    obj : _TSObject
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
+    pos : int32_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if obj.value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """

@@ -695,10 +695,11 @@ class TestDataFrameReshape:
     def test_unstack_non_unique_index_names(self):
         idx = MultiIndex.from_tuples([("a", "b"), ("c", "d")], names=["c1", "c1"])
         df = DataFrame([1, 2], index=idx)
-        with pytest.raises(ValueError):
+        msg = "The name c1 occurs multiple times, use a level number"
+        with pytest.raises(ValueError, match=msg):
             df.unstack("c1")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.T.stack("c1")
 
     def test_unstack_unused_levels(self):
@@ -765,7 +766,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_nan_index(self):  # GH7466
-        cast = lambda val: "{0:1}".format("" if val != val else val)
+        def cast(val):
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]

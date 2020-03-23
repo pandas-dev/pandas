@@ -39,13 +39,10 @@ from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
-
-
-def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -145,8 +142,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Constructors
 
     def __init__(self, values, dtype=_TD_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            values = values._values
+        values = extract_array(values)
 
         inferred_freq = getattr(values, "_freq", None)
 
@@ -199,9 +195,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
         assert dtype == _TD_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
+        if values.dtype != _TD_DTYPE:
+            assert values.dtype == "i8"
+            values = values.view(_TD_DTYPE)
 
         result = object.__new__(cls)
-        result._data = values.view(_TD_DTYPE)
+        result._data = values
         result._freq = to_offset(freq)
         result._dtype = _TD_DTYPE
         return result
@@ -259,6 +258,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = _generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
+            if len(index) >= 2:
+                # Infer a frequency
+                td = Timedelta(index[1] - index[0])
+                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
@@ -397,23 +400,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new TimedeltaArray.
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : TimedeltaArray
-        """
-        new_values = super()._add_delta(delta)
-        return type(self)._from_sequence(new_values, freq="infer")
-
     def _add_datetime_arraylike(self, other):
         """
         Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
@@ -452,10 +438,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
             return super()._addsub_object_array(other, op)
-        except AttributeError:
+        except AttributeError as err:
             raise TypeError(
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
-            )
+            ) from err
 
     def __mul__(self, other):
         other = lib.item_from_zerodim(other)
@@ -615,6 +601,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
                 freq = self.freq / other
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
             return type(self)(result.view("m8[ns]"), freq=freq)
 
         if not hasattr(other, "dtype"):
@@ -818,7 +808,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         """
         return self._maybe_mask_results(1e-9 * self.asi8, fill_value=None)
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
         objects.

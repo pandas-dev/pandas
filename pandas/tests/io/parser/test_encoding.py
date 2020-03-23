@@ -5,6 +5,7 @@ for all of the parsers defined in parsers.py
 
 from io import BytesIO
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -45,7 +46,7 @@ A,B,C
 4,5,6""".replace(
         ",", sep
     )
-    path = "__{}__.csv".format(tm.rands(10))
+    path = f"__{tm.rands(10)}__.csv"
     kwargs = dict(sep=sep, skiprows=2)
     utf8 = "utf-8"
 
@@ -141,6 +142,7 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
 )
 def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.
+    # gh-31575: Python csv engine shouldn't error on files opened in raw binary.
     parser = all_parsers
 
     fpath = os.path.join(csv_dir_path, fname)
@@ -151,6 +153,10 @@ def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb") as fb:
+        result = parser.read_csv(fb, encoding=encoding)
+    tm.assert_frame_equal(expected, result)
+
+    with open(fpath, mode="rb", buffering=0) as fb:
         result = parser.read_csv(fb, encoding=encoding)
     tm.assert_frame_equal(expected, result)
 
@@ -168,4 +174,26 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         f.seek(0)
 
         result = parser.read_csv(f, encoding=encoding if pass_encoding else None)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_encoding_named_temp_file(all_parsers):
+    # see gh-31819
+    parser = all_parsers
+    encoding = "shift-jis"
+
+    if parser.engine == "python":
+        pytest.skip("NamedTemporaryFile does not work with Python engine")
+
+    title = "てすと"
+    data = "こむ"
+
+    expected = DataFrame({title: [data]})
+
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(f"{title}\n{data}".encode(encoding))
+
+        f.seek(0)
+
+        result = parser.read_csv(f, encoding=encoding)
         tm.assert_frame_equal(result, expected)

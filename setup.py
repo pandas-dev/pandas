@@ -9,6 +9,7 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import argparse
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
+import multiprocessing
 import os
 from os.path import join as pjoin
 import platform
@@ -35,17 +36,6 @@ def is_platform_mac():
 min_numpy_ver = "1.13.3"
 min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
 
-setuptools_kwargs = {
-    "install_requires": [
-        "python-dateutil >= 2.6.1",
-        "pytz >= 2017.2",
-        f"numpy >= {min_numpy_ver}",
-    ],
-    "setup_requires": [f"numpy >= {min_numpy_ver}"],
-    "zip_safe": False,
-}
-
-
 try:
     import Cython
 
@@ -60,7 +50,7 @@ except ImportError:
 
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
-# See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
+# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 
@@ -443,8 +433,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # args to ignore warnings
-    extra_compile_args = []
+    extra_compile_args = ["-Werror"]
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -487,6 +476,14 @@ if linetrace:
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ < LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
@@ -531,11 +528,6 @@ def maybe_cythonize(extensions, *args, **kwargs):
         nthreads = parsed.parallel
     elif parsed.j:
         nthreads = parsed.j
-
-    # GH#30356 Cythonize doesn't support parallel on Windows
-    if is_platform_windows() and nthreads > 0:
-        print("Parallel build for cythonize ignored on Windows")
-        nthreads = 0
 
     kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
@@ -749,37 +741,51 @@ extensions.append(ujson_ext)
 # ----------------------------------------------------------------------
 
 
-# The build cache system does string matching below this point.
-# if you change something, be careful.
+def setup_package():
+    setuptools_kwargs = {
+        "install_requires": [
+            "python-dateutil >= 2.6.1",
+            "pytz >= 2017.2",
+            f"numpy >= {min_numpy_ver}",
+        ],
+        "setup_requires": [f"numpy >= {min_numpy_ver}"],
+        "zip_safe": False,
+    }
 
-setup(
-    name=DISTNAME,
-    maintainer=AUTHOR,
-    version=versioneer.get_version(),
-    packages=find_packages(include=["pandas", "pandas.*"]),
-    package_data={"": ["templates/*", "_libs/*.dll"]},
-    ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
-    maintainer_email=EMAIL,
-    description=DESCRIPTION,
-    license=LICENSE,
-    cmdclass=cmdclass,
-    url=URL,
-    download_url=DOWNLOAD_URL,
-    project_urls=PROJECT_URLS,
-    long_description=LONG_DESCRIPTION,
-    classifiers=CLASSIFIERS,
-    platforms="any",
-    python_requires=">=3.6.1",
-    extras_require={
-        "test": [
-            # sync with setup.cfg minversion & install.rst
-            "pytest>=4.0.2",
-            "pytest-xdist",
-            "hypothesis>=3.58",
-        ]
-    },
-    entry_points={
-        "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
-    },
-    **setuptools_kwargs,
-)
+    setup(
+        name=DISTNAME,
+        maintainer=AUTHOR,
+        version=versioneer.get_version(),
+        packages=find_packages(include=["pandas", "pandas.*"]),
+        package_data={"": ["templates/*", "_libs/*.dll"]},
+        ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
+        maintainer_email=EMAIL,
+        description=DESCRIPTION,
+        license=LICENSE,
+        cmdclass=cmdclass,
+        url=URL,
+        download_url=DOWNLOAD_URL,
+        project_urls=PROJECT_URLS,
+        long_description=LONG_DESCRIPTION,
+        classifiers=CLASSIFIERS,
+        platforms="any",
+        python_requires=">=3.6.1",
+        extras_require={
+            "test": [
+                # sync with setup.cfg minversion & install.rst
+                "pytest>=4.0.2",
+                "pytest-xdist",
+                "hypothesis>=3.58",
+            ]
+        },
+        entry_points={
+            "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
+        },
+        **setuptools_kwargs,
+    )
+
+
+if __name__ == "__main__":
+    # Freeze to support parallel compilation when using spawn instead of fork
+    multiprocessing.freeze_support()
+    setup_package()

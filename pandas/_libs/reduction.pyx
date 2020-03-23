@@ -114,7 +114,8 @@ cdef class Reducer:
                     if self.typ is not None:
                         # In this case, we also have self.index
                         name = labels[i]
-                        cached_typ = self.typ(chunk, index=self.index, name=name)
+                        cached_typ = self.typ(
+                            chunk, index=self.index, name=name, dtype=arr.dtype)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
@@ -176,6 +177,8 @@ cdef class _BaseGrouper:
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ._data._block, 'mgr_locs',
+                               slice(len(vslider.buf)))
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
 
@@ -308,8 +311,7 @@ cdef class SeriesGrouper(_BaseGrouper):
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
 
-        # in practice we always pass either obj[:0] or the
-        #  safer obj._get_values(slice(None, 0))
+        # in practice we always pass obj.iloc[:0] or equivalent
         assert dummy is not None
 
         if len(series) == 0:
@@ -501,9 +503,9 @@ def apply_frame_axis0(object frame, object f, object names,
 
             if not is_scalar(piece):
                 # Need to copy data to avoid appending references
-                if hasattr(piece, "copy"):
+                try:
                     piece = piece.copy(deep="all")
-                else:
+                except (TypeError, AttributeError):
                     piece = copy(piece)
 
             results.append(piece)

@@ -56,6 +56,11 @@ joining paths, replacing file extensions, and checking if files exist are also a
 Statistics and machine learning
 -------------------------------
 
+`pandas-tfrecords <https://pypi.org/project/pandas-tfrecords/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
+
 `Statsmodels <https://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -303,8 +308,8 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Blaze <http://blaze.pydata.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Blaze <https://blaze.pydata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,

@@ -15,6 +15,49 @@ from pandas.tests.indexing.common import Base
 
 
 class TestiLoc(Base):
+    def test_iloc_getitem_int(self):
+        # integer
+        self.check_result(
+            "iloc",
+            2,
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+    def test_iloc_getitem_neg_int(self):
+        # neg integer
+        self.check_result(
+            "iloc",
+            -1,
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+    def test_iloc_getitem_list_int(self):
+        self.check_result(
+            "iloc",
+            [0, 1, 2],
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+        # array of ints (GH5006), make sure that a single indexer is returning
+        # the correct type
+
+
+class TestiLoc2:
+    # TODO: better name, just separating out things that dont rely on base class
+
+    def test_is_scalar_access(self):
+        # GH#32085 index with duplicates doesnt matter for _is_scalar_access
+        index = pd.Index([1, 2, 1])
+        ser = pd.Series(range(3), index=index)
+
+        assert ser.iloc._is_scalar_access((1,))
+
+        df = ser.to_frame()
+        assert df.iloc._is_scalar_access((1, 0,))
+
     def test_iloc_exceeds_bounds(self):
 
         # GH6296
@@ -135,28 +178,6 @@ class TestiLoc(Base):
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
-    def test_iloc_getitem_int(self):
-        # integer
-        self.check_result(
-            "iloc",
-            2,
-            "iloc",
-            2,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_neg_int(self):
-        # neg integer
-        self.check_result(
-            "iloc",
-            -1,
-            "iloc",
-            -1,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
     @pytest.mark.parametrize("dims", [1, 2])
     def test_iloc_getitem_invalid_scalar(self, dims):
         # GH 21982
@@ -182,19 +203,6 @@ class TestiLoc(Base):
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
         df.iloc[:, array_with_neg_numbers]
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
-
-    def test_iloc_getitem_list_int(self):
-        self.check_result(
-            "iloc",
-            [0, 1, 2],
-            "iloc",
-            [0, 1, 2],
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-        # array of ints (GH5006), make sure that a single indexer is returning
-        # the correct type
 
     def test_iloc_getitem_neg_int_can_reach_first_index(self):
         # GH10547 and GH10779
@@ -249,10 +257,8 @@ class TestiLoc(Base):
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(
-            IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
-        ):
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
+        with pytest.raises(IndexError, match=msg):
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
@@ -286,7 +292,9 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
     def test_iloc_setitem(self):
-        df = self.frame_ints
+        df = DataFrame(
+            np.random.randn(4, 4), index=np.arange(0, 8, 2), columns=np.arange(0, 12, 3)
+        )
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
@@ -341,7 +349,6 @@ class TestiLoc(Base):
         df = concat([df1, df2], axis=1)
 
         expected = df.fillna(3)
-        expected["A"] = expected["A"].astype("float64")
         inds = np.isnan(df.iloc[:, 0])
         mask = inds[inds].index
         df.iloc[mask, 0] = df.iloc[mask, 2]
@@ -613,9 +620,7 @@ class TestiLoc(Base):
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
-                            "[{key}] does not match [{ans}], received [{r}]".format(
-                                key=key, ans=ans, r=r
-                            )
+                            f"[{key}] does not match [{ans}], received [{r}]"
                         )
 
     def test_iloc_non_unique_indexing(self):
@@ -688,3 +693,43 @@ class TestiLoc(Base):
         s = Series([1, 2])
         result = s.iloc[np.array(0)]
         assert result == 1
+
+    def test_iloc_setitem_categorical_updates_inplace(self):
+        # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
+        cat = pd.Categorical(["A", "B", "C"])
+        df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
+
+        # This should modify our original values in-place
+        df.iloc[:, 0] = cat[::-1]
+
+        expected = pd.Categorical(["C", "B", "A"])
+        tm.assert_categorical_equal(cat, expected)
+
+
+class TestILocSetItemDuplicateColumns:
+    def test_iloc_setitem_scalar_duplicate_columns(self):
+        # GH#15686, duplicate columns and mixed dtype
+        df1 = pd.DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
+        df2 = pd.DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
+        df = pd.concat([df1, df2], axis=1)
+        df.iloc[0, 0] = -1
+
+        assert df.iloc[0, 0] == -1
+        assert df.iloc[0, 2] == 3
+        assert df.dtypes.iloc[2] == np.int64
+
+    def test_iloc_setitem_list_duplicate_columns(self):
+        # GH#22036 setting with same-sized list
+        df = pd.DataFrame([[0, "str", "str2"]], columns=["a", "b", "b"])
+
+        df.iloc[:, 2] = ["str3"]
+
+        expected = pd.DataFrame([[0, "str", "str3"]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_series_duplicate_columns(self):
+        df = pd.DataFrame(
+            np.arange(8, dtype=np.int64).reshape(2, 4), columns=["A", "B", "A", "B"]
+        )
+        df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
+        assert df.dtypes.iloc[2] == np.int64
