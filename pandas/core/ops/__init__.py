@@ -584,17 +584,18 @@ def _align_method_FRAME(
     """
 
     def to_series(right):
-        msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
         if axis is not None and left._get_axis_name(axis) == "index":
             if len(left.index) != len(right):
                 raise ValueError(
-                    msg.format(req_len=len(left.index), given_len=len(right))
+                    "Unable to coerce to Series, length must be "
+                    f"{len(left.index)}: given {len(right)}"
                 )
             right = left._constructor_sliced(right, index=left.index)
         else:
             if len(left.columns) != len(right):
                 raise ValueError(
-                    msg.format(req_len=len(left.columns), given_len=len(right))
+                    "Unable to coerce to Series, length must be "
+                    f"{len(left.columns)}: given {len(right)}"
                 )
             right = left._constructor_sliced(right, index=left.columns)
         return right
