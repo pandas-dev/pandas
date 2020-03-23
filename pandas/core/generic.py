@@ -5700,7 +5700,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric: bool_t = False,
         timedelta: bool_t = False,
         coerce: bool_t = False,
-        copy: bool_t = True,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -5717,10 +5716,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         coerce : bool, default False
             If True, force conversion with unconvertible values converted to
             nulls (NaN or NaT).
-        copy : bool, default True
-            If True, return a copy even if no copy is necessary (e.g. no
-            conversion was done). Note: This is meant for internal use, and
-            should not be confused with inplace.
 
         Returns
         -------
@@ -5730,14 +5725,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
         validate_bool_kwarg(coerce, "coerce")
-        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._data.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
                 coerce=coerce,
-                copy=copy,
+                copy=True,
             )
         ).__finalize__(self)
 
