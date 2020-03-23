@@ -1238,7 +1238,7 @@ def _maybe_null_out(
     result: np.ndarray,
     axis: Optional[int],
     mask: Optional[np.ndarray],
-    shape: Tuple,
+    shape: Tuple[int],
     min_count: int = 1,
 ) -> float:
     """
@@ -1266,10 +1266,23 @@ def _maybe_null_out(
     return result
 
 
-def _below_min_count(shape, mask, min_count):
+def _below_min_count(shape: Tuple[int], mask: Optional[np.ndarray], min_count: int):
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
     missing value should be returned from the reduction).
+
+    Parameters
+    ----------
+    shape : tuple
+        The shape of the values (`values.shape`).
+    mask : ndarray or None
+        Boolean numpy array (typically of same shape as `shape`) or None.
+    min_count : int
+        Keyword passed through from sum/prod call.
+
+    Returns
+    -------
+    bool
     """
     if min_count > 0:
         if mask is None:
