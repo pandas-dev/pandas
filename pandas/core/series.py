@@ -3853,7 +3853,7 @@ Name: Max Speed, dtype: float64
                 # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
-                values = self.astype(object).values
+                values = self.astype(object)._values
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):

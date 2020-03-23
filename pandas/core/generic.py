@@ -8604,7 +8604,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 if self.ndim == 1:
 
-                    icond = cond.values
+                    icond = cond._values
 
                     # GH 2745 / GH 4192
                     # treat like a scalar
