@@ -1,4 +1,5 @@
 from collections import OrderedDict, abc, deque
+from collections.abc import Mapping
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1242,6 +1243,44 @@ class TestConcatenate:
         result = concat(frames, keys=keys)
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_mapping(self):
+        class SomeMapping(Mapping):
+            def __init__(self, mapping=None):
+                self.map = {} if mapping is None else mapping
+
+            def __getitem__(self, key):
+                return self.map[key]
+
+            def __iter__(self):
+                return iter(self.map)
+
+            def __len__(self):
+                return len(self.map)
+
+
+        frames = SomeMapping({
+            "foo": DataFrame(np.random.randn(4, 3)),
+            "bar": DataFrame(np.random.randn(4, 3)),
+            "baz": DataFrame(np.random.randn(4, 3)),
+            "qux": DataFrame(np.random.randn(4, 3)),
+        })
+
+        sorted_keys = list(frames.keys())
+
+        result = concat(frames)
+        expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
+        tm.assert_frame_equal(result, expected)
+
+        result = concat(frames, axis=1)
+        expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        keys = ["baz", "foo", "bar"]
+        result = concat(frames, keys=keys)
+        expected = concat([frames[k] for k in keys], keys=keys)
+        tm.assert_frame_equal(result, expected)
+
 
     def test_concat_ignore_index(self, sort):
         frame1 = DataFrame(

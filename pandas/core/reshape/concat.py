@@ -3,7 +3,7 @@ Concat routines.
 """
 
 from typing import Iterable, List, Mapping, Union, overload
-
+from collections import abc
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion, Label
@@ -85,7 +85,7 @@ def concat(
     Parameters
     ----------
     objs : a sequence or mapping of Series or DataFrame objects
-        If a dict is passed, the sorted keys will be used as the `keys`
+        If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
@@ -315,7 +315,7 @@ class _Concatenator:
                 "Only can inner (intersect) or outer (union) join the other axis"
             )
 
-        if isinstance(objs, Mapping):
+        if isinstance(objs, abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]
