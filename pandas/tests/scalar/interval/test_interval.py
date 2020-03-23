@@ -255,5 +255,9 @@ class TestInterval:
         left = Timestamp("2017-01-01", tz=tz_left)
         right = Timestamp("2017-01-02", tz=tz_right)
         error = TypeError if com.any_none(tz_left, tz_right) else ValueError
-        with pytest.raises(error):
+        msg = (
+            "left and right must have the same time zone|"
+            "Cannot compare tz-naive and tz-aware timestamps"
+        )
+        with pytest.raises(error, match=msg):
             Interval(left, right)

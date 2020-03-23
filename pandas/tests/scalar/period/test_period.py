@@ -235,26 +235,34 @@ class TestPeriodConstruction:
         assert i1 == expected
 
     def test_invalid_arguments(self):
-        with pytest.raises(ValueError):
+        msg = "Must supply freq for datetime value"
+        with pytest.raises(ValueError, match=msg):
             Period(datetime.now())
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Period(datetime.now().date())
 
-        with pytest.raises(ValueError):
+        msg = "Value must be Period, string, integer, or datetime"
+        with pytest.raises(ValueError, match=msg):
             Period(1.6, freq="D")
-        with pytest.raises(ValueError):
+        msg = "Ordinal must be an integer"
+        with pytest.raises(ValueError, match=msg):
             Period(ordinal=1.6, freq="D")
-        with pytest.raises(ValueError):
+        msg = "Only value or ordinal but not both should be given but not both"
+        with pytest.raises(ValueError, match=msg):
             Period(ordinal=2, value=1, freq="D")
 
-        with pytest.raises(ValueError):
+        msg = "If value is None, freq cannot be None"
+        with pytest.raises(ValueError, match=msg):
             Period(month=1)
 
-        with pytest.raises(ValueError):
+        msg = "Given date string not likely a datetime"
+        with pytest.raises(ValueError, match=msg):
             Period("-2000", "A")
-        with pytest.raises(DateParseError):
+        msg = "day is out of range for month"
+        with pytest.raises(DateParseError, match=msg):
             Period("0", "A")
-        with pytest.raises(DateParseError):
+        msg = "Unknown datetime string format, unable to parse"
+        with pytest.raises(DateParseError, match=msg):
             Period("1/1/-2000", "A")
 
     def test_constructor_corner(self):
@@ -1030,7 +1038,8 @@ class TestArithmetic:
         result = left - right
         assert result == 4 * right.freq
 
-        with pytest.raises(IncompatibleFrequency):
+        msg = "Input has different freq=M from Period\\(freq=A-DEC\\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             left - Period("2007-01", freq="M")
 
     def test_add_integer(self):
@@ -1148,14 +1157,20 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                msg = "Input has different freq|" "Input cannot be converted to Period"
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
+                    msg = "ufunc 'add' cannot use operands with types"
+                    with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    with pytest.raises(IncompatibleFrequency):
+                    msg = (
+                        "Input has different freq|"
+                        "Input cannot be converted to Period"
+                    )
+                    with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
 
         for freq in ["M", "2M", "3M"]:
@@ -1175,14 +1190,20 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                msg = "Input has different freq|" "Input cannot be converted to Period"
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
+                    msg = "ufunc 'add' cannot use operands with types"
+                    with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    with pytest.raises(IncompatibleFrequency):
+                    msg = (
+                        "Input has different freq|"
+                        "Input cannot be converted to Period"
+                    )
+                    with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
 
         # freq is Tick
@@ -1199,12 +1220,13 @@ class TestArithmetic:
 
             exp = Period("2011-04-03", freq=freq)
             assert p + np.timedelta64(2, "D") == exp
-            with pytest.raises(TypeError):
+            msg = "ufunc 'add' cannot use operands with types"
+            with pytest.raises(TypeError, match=msg):
                 np.timedelta64(2, "D") + p
 
             exp = Period("2011-04-02", freq=freq)
             assert p + np.timedelta64(3600 * 24, "s") == exp
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 np.timedelta64(3600 * 24, "s") + p
 
             exp = Period("2011-03-30", freq=freq)
@@ -1222,14 +1244,20 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                msg = "Input has different freq|" "Input cannot be converted to Period"
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
+                if isinstance(o, np.timedelta64,):
+                    msg = "ufunc 'add' cannot use operands with types"
+                    with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    with pytest.raises(IncompatibleFrequency):
+                    msg = (
+                        "Input has different freq|"
+                        "Input cannot be converted to Period"
+                    )
+                    with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
 
         for freq in ["H", "2H", "3H"]:
@@ -1243,14 +1271,15 @@ class TestArithmetic:
             assert p + offsets.Hour(3) == exp
             assert offsets.Hour(3) + p == exp
 
+            msg = "ufunc 'add' cannot use operands with types"
             exp = Period("2011-04-01 12:00", freq=freq)
             assert p + np.timedelta64(3, "h") == exp
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 np.timedelta64(3, "h") + p
 
             exp = Period("2011-04-01 10:00", freq=freq)
             assert p + np.timedelta64(3600, "s") == exp
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 np.timedelta64(3600, "s") + p
 
             exp = Period("2011-04-01 11:00", freq=freq)
@@ -1268,18 +1297,25 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                msg = "Input has different freq|" "Input cannot be converted to Period"
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
+                    msg = "ufunc 'add' cannot use operands with types"
+                    with pytest.raises(TypeError, match=msg):
                         o + p
                 else:
-                    with pytest.raises(IncompatibleFrequency):
+                    msg = (
+                        "Input has different freq|"
+                        "Input cannot be converted to Period"
+                    )
+                    with pytest.raises(IncompatibleFrequency, match=msg):
                         o + p
 
     def test_sub_offset(self):
         # freq is DateOffset
+        msg = "Input has different freq|" "Input cannot be converted to Period"
         for freq in ["A", "2A", "3A"]:
             p = Period("2011", freq=freq)
             assert p - offsets.YearEnd(2) == Period("2009", freq=freq)
@@ -1291,7 +1327,7 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p - o
 
         for freq in ["M", "2M", "3M"]:
@@ -1306,7 +1342,7 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p - o
 
         # freq is Tick
@@ -1326,7 +1362,7 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p - o
 
         for freq in ["H", "2H", "3H"]:
@@ -1349,7 +1385,7 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                with pytest.raises(IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency, match=msg):
                     p - o
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
@@ -1377,12 +1413,14 @@ class TestArithmetic:
 
 def test_period_immutable():
     # see gh-17116
+    msg = "not writable"
+
     per = Period("2014Q1")
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError, match=msg):
         per.ordinal = 14
 
     freq = per.freq
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError, match=msg):
         per.freq = 2 * freq
 
 

@@ -195,7 +195,8 @@ class TestTimestampArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             ts - other
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts
 
     @pytest.mark.parametrize(
@@ -215,14 +216,15 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_with_freq(self, ts, other):
-
-        with pytest.raises(TypeError):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             ts + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + ts
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts - other
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts

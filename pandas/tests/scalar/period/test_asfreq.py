@@ -33,7 +33,8 @@ class TestFreqConversion:
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643, used to incorrectly give Timestamp in 1754
         per = Period("0001-01-01", freq="B")
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             per.to_timestamp()
 
     def test_asfreq_corner(self):
