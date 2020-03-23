@@ -2,10 +2,7 @@ import io
 
 import pytest
 
-# TODO: change this import to "import validate_unwanted_patterns"
-# when renaming "scripts/validate_string_concatenation.py" to
-# "scripts/validate_unwanted_patterns.py"
-import validate_string_concatenation as validate_unwanted_patterns
+import validate_unwanted_patterns
 
 
 class TestBarePytestRaises:
