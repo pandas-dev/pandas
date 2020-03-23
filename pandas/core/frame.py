@@ -6449,10 +6449,12 @@ Wild         185.0
 
     See Also
     --------
-    %(other)s
-    pivot_table
-    DataFrame.pivot
-    Series.explode
+    %(other)s : Identical method.
+    pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Return reshaped DataFrame organized
+        by given index / column values.
+    DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
 
     Examples
     --------
