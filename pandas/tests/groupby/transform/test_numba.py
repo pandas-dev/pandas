@@ -65,13 +65,13 @@ def test_numba_vs_cython(jit, nogil, parallel, nopython):
     result = grouped.transform(
         dataframe_func, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = grouped.transform(lambda x: x + 1, engine='cython')
+    expected = grouped.transform(lambda x: x + 1, engine="cython")
 
     tm.assert_frame_equal(result, expected)
 
     result = grouped[1].transform(
         series_func, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = grouped[1].transform(lambda x: x + 1, engine='cython')
+    expected = grouped[1].transform(lambda x: x + 1, engine="cython")
 
     tm.assert_series_equal(result, expected)
