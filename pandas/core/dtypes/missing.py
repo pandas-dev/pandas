@@ -229,7 +229,7 @@ def _isna_ndarraylike(obj):
     if not is_extension:
         # Avoid accessing `.values` on things like
         # PeriodIndex, which may be expensive.
-        values = getattr(obj, "values", obj)
+        values = getattr(obj, "_values", obj)
     else:
         values = obj
 
@@ -270,7 +270,7 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
-    values = getattr(obj, "values", obj)
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_string_dtype(dtype):

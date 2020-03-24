@@ -205,7 +205,7 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         return np.ndarray(0, dtype=dtype)
 
     if isinstance(arr, ABCSeries):
-        arr = arr.values
+        arr = arr._values  # TODO: extract_array?
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
@@ -2034,8 +2034,8 @@ class StringMethods(NoNewAttributesMixin):
         self._is_categorical = is_categorical_dtype(data)
         self._is_string = data.dtype.name == "string"
 
-        # .values.categories works for both Series/Index
-        self._parent = data.values.categories if self._is_categorical else data
+        # ._values.categories works for both Series/Index
+        self._parent = data._values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -2236,7 +2236,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndexClass):
-            return [Series(others.values, index=others)]
+            return [Series(others._values, index=others)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:

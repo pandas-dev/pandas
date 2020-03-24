@@ -312,7 +312,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.astype(object).values
+        return self.astype(object)._values
 
     @property
     def _formatter_func(self):
@@ -389,7 +389,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
         elif not isinstance(where_idx, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
         elif where_idx.freq != self.freq:

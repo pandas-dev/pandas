@@ -287,7 +287,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import _is_dates_only
 
-        return _is_dates_only(self.values) and self.tz is None
+        return self.tz is None and _is_dates_only(self._values)
 
     def __reduce__(self):
 

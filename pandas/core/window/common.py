@@ -296,7 +296,7 @@ def zsqrt(x):
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():

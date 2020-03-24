@@ -1104,9 +1104,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
-                result = result.values.astype(self.dtype.subtype)
+                result = result._values.astype(self.dtype.subtype)
             else:
-                result = result.values
+                result = result._values
 
             return type(self).from_tuples(result, closed=self.closed, name=result_name)
 
