@@ -282,7 +282,8 @@ def _register_accessor(name, cls):
 @doc(
     _register_accessor,
     klass="DataFrame",
-    others="register_series_accessor, register_index_accessor",
+    others=("register_series_accessor : Register a custom accessor on Series objects.\n"
+            "register_index_accessor : Register a custom accessor on Index objects."),
 )
 def register_dataframe_accessor(name):
     from pandas import DataFrame
@@ -293,7 +294,12 @@ def register_dataframe_accessor(name):
 @doc(
     _register_accessor,
     klass="Series",
-    others="register_dataframe_accessor, register_index_accessor",
+    others="""
+           register_dataframe_accessor : Register a custom accessor on
+                  DataFrame objects.
+           register_index_accessor : Register a custom accessor on
+                  Index objects.
+           """,
 )
 def register_series_accessor(name):
     from pandas import Series
@@ -304,7 +310,8 @@ def register_series_accessor(name):
 @doc(
     _register_accessor,
     klass="Index",
-    others="register_dataframe_accessor, register_series_accessor",
+    others="""register_dataframe_accessor : Register a custom accessor on DataFrame objects.
+           register_series_accessor : Register a custom accessor on Series objects.""",
 )
 def register_index_accessor(name):
     from pandas import Index

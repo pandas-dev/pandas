@@ -1036,7 +1036,7 @@ def read_html(
 
     See Also
     --------
-    read_csv
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----

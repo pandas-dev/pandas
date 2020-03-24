@@ -1566,7 +1566,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        DataFrame
+        DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
+            tabular data.
         """
         from pandas import DataFrame
 
