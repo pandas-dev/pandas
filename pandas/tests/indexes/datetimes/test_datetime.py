@@ -104,13 +104,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(dates, freq="WOM-1SAT")
         tm.assert_index_equal(result, expected)
 
-    def test_hash_error(self):
-        index = date_range("20010101", periods=10)
-        with pytest.raises(
-            TypeError, match=f"unhashable type: '{type(index).__name__}'"
-        ):
-            hash(index)
-
     def test_stringified_slice_with_tz(self):
         # GH#2658
         start = "2013-01-07"

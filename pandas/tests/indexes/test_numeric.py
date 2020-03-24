@@ -648,10 +648,6 @@ class NumericInt(Numeric):
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
-    def test_slice_keep_name(self):
-        idx = self._holder([1, 2], name="asdf")
-        assert idx.name == idx[1:].name
-
 
 class TestInt64Index(NumericInt):
     _dtype = "int64"

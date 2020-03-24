@@ -147,19 +147,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
-    def test_pickle(self):
-
-        rng = timedelta_range("1 days", periods=10)
-        rng_p = tm.round_trip_pickle(rng)
-        tm.assert_index_equal(rng, rng_p)
-
-    def test_hash_error(self):
-        index = timedelta_range("1 days", periods=10)
-        with pytest.raises(
-            TypeError, match=(f"unhashable type: {repr(type(index).__name__)}")
-        ):
-            hash(index)
-
     def test_append_numpy_bug_1681(self):
 
         td = timedelta_range("1 days", "10 days", freq="2D")
