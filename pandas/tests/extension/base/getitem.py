@@ -40,8 +40,8 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.iloc[:4, 0]
         self.assert_series_equal(result, expected)
 
-        # GH#32957 null slice along index, slice along rows
-        result = df.iloc[:, :1]
+        # GH#32957 null slice along index, slice along columns with single-block
+        result = df[["A"]].iloc[:, :1]
         self.assert_frame_equal(result, df[["A"]])
 
     def test_loc_series(self, data):

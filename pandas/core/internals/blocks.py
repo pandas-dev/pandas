@@ -2240,6 +2240,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
     should_store = DatetimeBlock.should_store
+    _slice = ExtensionBlock._slice
 
     @property
     def _holder(self):
@@ -2306,15 +2307,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # the analogous NumPy-backed column would be a 2-D ndarray.
             values = values.reshape(1, -1)
         return values
-
-    def _slice(self, slicer):
-        """ return a slice of my values """
-        if isinstance(slicer, tuple):
-            col, loc = slicer
-            if not com.is_null_slice(col) and col != 0:
-                raise IndexError(f"{self} only contains one item")
-            return self.values[loc]
-        return self.values[slicer]
 
     def diff(self, n: int, axis: int = 0) -> List["Block"]:
         """
