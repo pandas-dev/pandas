@@ -19,6 +19,7 @@ from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timedelta, period as periodlib
+from pandas._libs.tslibs.period cimport c_Period
 from pandas._libs.missing import checknull
 
 
@@ -467,7 +468,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, periodlib._Period):
+        if isinstance(scalar, c_Period):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)
