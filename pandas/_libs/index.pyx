@@ -12,7 +12,6 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.tslibs import Period
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
@@ -468,9 +467,8 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, Period):
+        if isinstance(scalar, periodlib._Period):
             # NB: we assume that we have the correct freq here.
-            # TODO: potential optimize by checking for _Period?
             return scalar.ordinal
         raise TypeError(scalar)
 
