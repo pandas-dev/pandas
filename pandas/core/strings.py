@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Pattern, Type, Union
 import warnings
 
 import numpy as np
@@ -10,7 +10,7 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -787,9 +787,15 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan):
+def str_match(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
     """
-    Determine if each string matches a regular expression.
+    Determine if each string starts with a match of a regular expression.
 
     Parameters
     ----------
@@ -808,6 +814,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
+    fullmatch : Stricter matching that requires the entire string to match.
     contains : Analogous, but less strict, relying on re.search instead of
         re.match.
     extract : Extract matched groups.
@@ -819,6 +826,50 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     dtype = bool
     f = lambda x: regex.match(x) is not None
+
+    return _na_map(f, arr, na, dtype=dtype)
+
+
+def str_fullmatch(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
+    """
+    Determine if each string entirely matches a regular expression.
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
+    flags : int, default 0 (no flags)
+        Regex module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
+
+    Returns
+    -------
+    Series/array of boolean values
+
+    See Also
+    --------
+    match : Similar, but also returns `True` when only a *prefix* of the string
+        matches the regular expression.
+    extract : Extract matched groups.
+    """
+    if not case:
+        flags |= re.IGNORECASE
+
+    regex = re.compile(pat, flags=flags)
+
+    dtype = bool
+    f = lambda x: regex.fullmatch(x) is not None
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -2760,6 +2811,12 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
+
+    @copy(str_fullmatch)
+    @forbid_nonstring_types(["bytes"])
+    def fullmatch(self, pat, case=True, flags=0, na=np.nan):
+        result = str_fullmatch(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_replace)
