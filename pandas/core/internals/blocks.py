@@ -920,7 +920,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        mask : np.ndarray[bool]
+        mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
         inplace : bool, default False
             Perform inplace modification.
@@ -1307,12 +1307,7 @@ class Block(PandasObject):
         return [self.make_block(new_values)]
 
     def where(
-        self,
-        other,
-        cond: np.ndarray,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
@@ -1320,7 +1315,7 @@ class Block(PandasObject):
         Parameters
         ----------
         other : a ndarray/object
-        cond : np.ndarray[bool]
+        cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
