@@ -80,13 +80,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8-rst doc/source --filename=*.rst --format="$FLAKE8_FORMAT"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # Check if pandas is referenced as pandas, not *pandas* or Pandas
-    MSG='Checking if pandas reference is standardized or not' ; echo  $MSG
-    grep -nr '*pandas*|Pandas' doc/*
-    grep -nr '*pandas*|Pandas' web/*
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
     # it doesn't make a difference, but we want to be internally consistent.
     # Note: this grep pattern is (intended to be) equivalent to the python
@@ -236,6 +229,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
+
+    # Check if pandas is referenced as pandas, not *pandas* or Pandas
+    MSG='Checking if the pandas word reference is always used lowercase (pandas,not Pandas or PANDAS' ; echo  $MSG
+    invgrep -nr '*pandas*|Pandas' web/* doc/*
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
