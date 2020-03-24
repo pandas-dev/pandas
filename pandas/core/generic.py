@@ -6839,9 +6839,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
-        else:
-            msg = f"axis must be 0 or 1, {axis} was provided"
-            raise ValueError(msg)
 
         ax = _maybe_transposed_self._get_axis_number(ax)
 
@@ -8438,11 +8435,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if is_datetime64tz_dtype(left.index):
-            if left.index.tz != right.index.tz:
-                if join_index is not None:
-                    left.index = join_index
-                    right.index = join_index
+        if (
+            is_datetime64tz_dtype(left.index.dtype)
+            and (left.index.tz != right.index.tz)
+            and (join_index is not None)
+        ):
+            left.index = join_index
+            right.index = join_index
 
         return left.__finalize__(self), right.__finalize__(other)
 
@@ -8523,7 +8522,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # if DatetimeIndex have different tz, convert to UTC
         if (
             (is_series or (not is_series and axis == 0))
-            and is_datetime64tz_dtype(left.index)
+            and is_datetime64tz_dtype(left.index.dtype)
             and (left.index.tz != right.index.tz)
             and (join_index is not None)
         ):
@@ -9247,7 +9246,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_convert(ax, tz)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self._constructor(self._data)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -9416,7 +9415,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self._constructor(self._data)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
