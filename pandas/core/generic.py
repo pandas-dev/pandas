@@ -5131,9 +5131,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Attribute access
 
-    def __finalize__(
-        self: FrameOrSeries, other, method=None, **kwargs
-    ) -> FrameOrSeries:
+    def __finalize__(self: FrameOrSeries, other) -> FrameOrSeries:
         """
         Propagate metadata from other to self.
 
@@ -5141,9 +5139,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         other : the object from which to get the attributes that we are going
             to propagate
-        method : optional, a passed method name ; possibly to take different
-            types of propagation actions based on this
-
         """
         if isinstance(other, NDFrame):
             for name in other.attrs:

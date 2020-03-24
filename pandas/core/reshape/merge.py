@@ -635,7 +635,7 @@ class _MergeOperation:
         )
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = typ(result_data).__finalize__(self)
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1457,7 +1457,7 @@ class _OrderedMerge(_MergeOperation):
         )
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = typ(result_data).__finalize__(self)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 

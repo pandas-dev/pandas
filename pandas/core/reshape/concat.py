@@ -460,7 +460,7 @@ class _Concatenator:
                     [x._data for x in self.objs], self.new_axes
                 )
                 cons = self.objs[0]._constructor
-                return cons(mgr, name=name).__finalize__(self, method="concat")
+                return cons(mgr, name=name).__finalize__(self)
 
             # combine as columns in a frame
             else:
@@ -470,7 +470,7 @@ class _Concatenator:
                 index, columns = self.new_axes
                 df = cons(data, index=index)
                 df.columns = columns
-                return df.__finalize__(self, method="concat")
+                return df.__finalize__(self)
 
         # combine block managers
         else:
@@ -496,7 +496,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            return cons(new_data).__finalize__(self)
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
