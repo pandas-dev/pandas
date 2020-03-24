@@ -2437,10 +2437,6 @@ class TestMixedIntIndex(Base):
         result = klass(list(range(3)), index=index)
         assert "0" in repr(result)
 
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
-
     def test_str_to_bytes_raises(self):
         # GH 26447
         index = Index([str(x) for x in range(10)])
