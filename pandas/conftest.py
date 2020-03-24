@@ -405,7 +405,7 @@ def indices(request):
 
 
 # Needed to generate cartesian product of indices
-indices2 = indices
+index_fixture2 = indices
 
 
 # ----------------------------------------------------------------
