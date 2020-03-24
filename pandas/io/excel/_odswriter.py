@@ -1,6 +1,6 @@
 from collections import defaultdict
 import datetime
-from typing import DefaultDict
+from typing import DefaultDict, Dict
 
 import pandas._libs.json as json
 
@@ -23,7 +23,7 @@ class _ODSWriter(ExcelWriter):
         super().__init__(path, mode=mode, **engine_kwargs)
 
         self.book = OpenDocumentSpreadsheet()
-        self._style_dict = {}
+        self._style_dict: Dict[str, str] = {}
 
     def save(self):
         """
