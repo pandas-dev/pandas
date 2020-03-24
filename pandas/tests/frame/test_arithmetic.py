@@ -530,6 +530,15 @@ class TestFrameFlexArithmetic:
         with pytest.raises(NotImplementedError, match="fill_value"):
             df_len0.sub(df["A"], axis=None, fill_value=3)
 
+    def test_flex_add_scalar_fill_value(self):
+        # GH#12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype="float")
+        df = pd.DataFrame({"foo": dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        tm.assert_frame_equal(res, exp)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
