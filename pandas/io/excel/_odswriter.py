@@ -92,12 +92,8 @@ class _ODSWriter(ExcelWriter):
             value = str(val).lower()
             pvalue = str(val).upper()
         if isinstance(val, datetime.datetime):
-            if val.time():
-                value = val.isoformat()
-                pvalue = val.strftime("%c")
-            else:
-                value = val.strftime("%Y-%m-%d")
-                pvalue = val.strftime("%x")
+            value = val.isoformat()
+            pvalue = val.strftime("%c")
             return (
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
