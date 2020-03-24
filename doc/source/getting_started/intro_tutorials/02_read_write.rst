@@ -118,7 +118,7 @@ done by requesting the pandas ``dtypes`` attribute:
     titanic.dtypes
 
 For each of the columns, the used data type is enlisted. The data types
-in this ``DataFrame`` are integers (``int64``), floats (``float63``) and
+in this ``DataFrame`` are integers (``int64``), floats (``float64``) and
 strings (``object``).
 
 .. note::
