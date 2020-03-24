@@ -33,9 +33,14 @@ def _make_flex_doc(op_name, typ):
             desc=op_desc["desc"],
             op_name=op_name,
             equiv=equiv,
-            reverse=op_desc["reverse"],
             series_returns=op_desc["series_returns"],
         )
+        if op_desc["reverse"]:
+            doc_see_also = _see_also_reverse_SERIES.format(
+                reverse=op_desc["reverse"],
+                see_also_desc=op_desc["see_also_desc"],
+            )
+            doc_no_examples = doc_no_examples + doc_see_also
         if op_desc["series_examples"]:
             doc = doc_no_examples + op_desc["series_examples"]
         else:
@@ -352,6 +357,10 @@ for key in _op_names:
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
+        _op_descriptions[key]["see_also_desc"] = \
+            f"Reversed {_op_descriptions[key]['desc']}"
+        _op_descriptions[reverse_op]["see_also_desc"] = \
+            f"Usual {_op_descriptions[key]['desc']}"
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
@@ -374,10 +383,12 @@ level : int or name
 Returns
 -------
 {series_returns}
+"""
 
+_see_also_reverse_SERIES = """
 See Also
 --------
-Series.{reverse}
+Series.{reverse} : {see_also_desc}.
 """
 
 _arith_doc_FRAME = """
