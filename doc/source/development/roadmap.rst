@@ -23,7 +23,7 @@ Extensibility
 -------------
 
 pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
-data types and array storage. Pandas uses extension types internally, and provides
+data types and array storage. pandas uses extension types internally, and provides
 an interface for 3rd-party libraries to define their own custom data types.
 
 Many parts of pandas still unintentionally convert data to a NumPy array.
