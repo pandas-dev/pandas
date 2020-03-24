@@ -664,9 +664,13 @@ Or whether elements match a pattern:
     ``fullmatch`` tests whether the entire string matches the regular expression;
     ``match`` tests whether there is a match of the regular expression that begins
     at the first character of the string; and ``contains`` tests whether there is
-    a match of the regular expression at any position within the string. The
-    corresponding functions in the ``re`` package for these three match modes are
-    :ref:`re.fullmatch`, :ref:`re.match`, and :ref:`re.search`, respectively.
+    a match of the regular expression at any position within the string.
+
+    The corresponding functions in the ``re`` package for these three match modes are
+    `re.fullmatch <https://docs.python.org/3/library/re.html#re.fullmatch>`_,
+    `re.match <https://docs.python.org/3/library/re.html#re.match>`_, and
+    `re.search <https://docs.python.org/3/library/re.html#re.search>`_,
+    respectively.
 
 Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
 ``endswith`` take an extra ``na`` argument so missing values can be considered
