@@ -147,9 +147,9 @@ class TestPeriodIndex:
 
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx._ndarray_values)
+            PeriodIndex(idx.asi8)
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx._ndarray_values))
+            PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):

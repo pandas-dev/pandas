@@ -1508,7 +1508,8 @@ class TestDataFrameFormatting:
 
         assert df_s == expected
 
-        with pytest.raises(ValueError):
+        msg = "Writing 2 cols but got 1 aliases"
+        with pytest.raises(ValueError, match=msg):
             df.to_string(header=["X"])
 
     def test_to_string_no_index(self):

@@ -127,6 +127,14 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
+    def test_column_name_contains_unicode_surrogate(self):
+        # GH 25509
+        colname = "\ud83d"
+        df = DataFrame({colname: []})
+        # this should not crash
+        assert colname not in dir(df)
+        assert df.columns[0] == colname
+
     def test_new_empty_index(self):
         df1 = DataFrame(np.random.randn(0, 3))
         df2 = DataFrame(np.random.randn(0, 3))
@@ -363,10 +371,7 @@ class TestDataFrameMisc:
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
         tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
         tm.assert_frame_equal(df, df.swapaxes(0, 0))
-        msg = (
-            "No axis named 2 for object type "
-            r"<class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
-        )
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
 
