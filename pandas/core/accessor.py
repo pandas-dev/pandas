@@ -282,8 +282,7 @@ def _register_accessor(name, cls):
 
 
 @doc(
-    _register_accessor,
-    klass="DataFrame",
+    _register_accessor, klass="DataFrame",
 )
 def register_dataframe_accessor(name):
     from pandas import DataFrame
@@ -292,8 +291,7 @@ def register_dataframe_accessor(name):
 
 
 @doc(
-    _register_accessor,
-    klass="Series",
+    _register_accessor, klass="Series",
 )
 def register_series_accessor(name):
     from pandas import Series
@@ -302,8 +300,7 @@ def register_series_accessor(name):
 
 
 @doc(
-    _register_accessor,
-    klass="Index",
+    _register_accessor, klass="Index",
 )
 def register_index_accessor(name):
     from pandas import Index
