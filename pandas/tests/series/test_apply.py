@@ -9,7 +9,6 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 import pandas._testing as tm
-from pandas.conftest import _get_cython_table_params
 from pandas.core.base import SpecificationError
 
 
@@ -356,7 +355,7 @@ class TestSeriesAggregate:
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series(dtype=np.float64),
                 [
                     ("sum", 0),
@@ -371,7 +370,7 @@ class TestSeriesAggregate:
                     ("median", np.nan),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
                 [
                     ("sum", 6),
@@ -386,7 +385,7 @@ class TestSeriesAggregate:
                     ("median", 2),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()),
                 [
                     ("sum", "abc"),
@@ -411,21 +410,21 @@ class TestSeriesAggregate:
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series(dtype=np.float64),
                 [
                     ("cumprod", Series([], Index([]), dtype=np.float64)),
                     ("cumsum", Series([], Index([]), dtype=np.float64)),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
                 [
                     ("cumprod", Series([np.nan, 1, 2, 6])),
                     ("cumsum", Series([np.nan, 1, 3, 6])),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
             ),
         ),
@@ -440,7 +439,7 @@ class TestSeriesAggregate:
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()),
                 [
                     ("mean", TypeError),  # mean raises TypeError
