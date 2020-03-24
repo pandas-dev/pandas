@@ -88,7 +88,7 @@ name of the column of interest.
     </ul>
 
 Each column in a :class:`DataFrame` is a :class:`Series`. As a single column is
-selected, the returned object is a pandas :class:`DataFrame`. We can verify this
+selected, the returned object is a pandas :class:`Series`. We can verify this
 by checking the type of the output:
 
 .. ipython:: python
@@ -101,7 +101,7 @@ And have a look at the ``shape`` of the output:
 
     titanic["Age"].shape
 
-:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parantheses for attributes) of a
+:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parentheses for attributes) of a
 pandas ``Series`` and ``DataFrame`` containing the number of rows and
 columns: *(nrows, ncolumns)*. A pandas Series is 1-dimensional and only
 the number of rows is returned.

@@ -80,7 +80,7 @@ class TestDatetimeIndexShift:
     def test_dti_shift_no_freq(self):
         # GH#19147
         dti = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
             dti.shift(2)
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])

@@ -169,6 +169,7 @@ def test_series_equal_values_mismatch(check_less_precise):
     msg = """Series are different
 
 Series values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[1, 2, 3\\]
 \\[right\\]: \\[1, 2, 4\\]"""
 

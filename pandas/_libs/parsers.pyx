@@ -241,9 +241,9 @@ cdef extern from "parser/io.h":
     void* buffer_mmap_bytes(void *source, size_t nbytes,
                             size_t *bytes_read, int *status)
 
-    void *new_file_source(char *fname, size_t buffer_size)
+    void *new_file_source(char *fname, size_t buffer_size) except NULL
 
-    void *new_rd_source(object obj)
+    void *new_rd_source(object obj) except NULL
 
     int del_file_source(void *src)
     int del_rd_source(void *src)
@@ -667,26 +667,12 @@ cdef class TextReader:
                 ptr = new_file_source(source, self.parser.chunksize)
                 self.parser.cb_io = &buffer_file_bytes
                 self.parser.cb_cleanup = &del_file_source
-
-            if ptr == NULL:
-                if not os.path.exists(source):
-
-                    raise FileNotFoundError(
-                        ENOENT,
-                        f'File {usource} does not exist',
-                        usource)
-                raise IOError('Initializing from file failed')
-
             self.parser.source = ptr
 
         elif hasattr(source, 'read'):
             # e.g., StringIO
 
             ptr = new_rd_source(source)
-            if ptr == NULL:
-                raise IOError('Initializing parser from file-like '
-                              'object failed')
-
             self.parser.source = ptr
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
@@ -806,7 +792,6 @@ cdef class TextReader:
                 self._tokenize_rows(1)
 
             header = [ self.names ]
-            data_line = 0
 
             if self.parser.lines < 1:
                 field_count = len(header[0])
@@ -1331,8 +1316,8 @@ cdef class TextReader:
         else:
             if self.header is not None:
                 j = i - self.leading_cols
-                # hack for #2442
-                if j == len(self.header[0]):
+                # generate extra (bogus) headers if there are more columns than headers
+                if j >= len(self.header[0]):
                     return j
                 else:
                     return self.header[0][j]

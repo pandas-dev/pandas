@@ -313,16 +313,11 @@ class Base:
             result = result.tz_localize("UTC").tz_convert(indices.tz)
 
         tm.assert_index_equal(indices, result)
-        tm.assert_numpy_array_equal(
-            indices._ndarray_values, result._ndarray_values, check_same="copy"
-        )
 
         if isinstance(indices, PeriodIndex):
             # .values an object array of Period, thus copied
             result = index_type(ordinal=indices.asi8, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
-            )
+            tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
         elif isinstance(indices, IntervalIndex):
             # checked in test_interval.py
             pass
@@ -330,9 +325,6 @@ class Base:
             result = index_type(indices.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(
                 indices.values, result.values, check_same="same"
-            )
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
             )
 
     def test_memory_usage(self, indices):
@@ -919,6 +911,19 @@ class Base:
 
         with pytest.raises(TypeError):
             {} in idx._engine
+
+    def test_copy_copies_cache(self):
+        # GH32898
+        idx = self.create_index()
+        idx.get_loc(idx[0])  # populates the _cache.
+        copy = idx.copy()
+
+        # check that the copied cache is a copy of the original
+        assert idx._cache == copy._cache
+        assert idx._cache is not copy._cache
+        # cache values should reference the same object
+        for key, val in idx._cache.items():
+            assert copy._cache[key] is val, key
 
     def test_shallow_copy_copies_cache(self):
         # GH32669
