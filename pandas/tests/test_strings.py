@@ -1210,6 +1210,7 @@ class TestStringMethods:
         tm.assert_series_equal(exp, res)
 
     def test_fullmatch(self):
+        # GH 32806
         values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
         result = values.str.fullmatch(".*BAD[_]+.*BAD")
         exp = Series([True, False, np.nan, False])

@@ -840,6 +840,8 @@ def str_fullmatch(
     """
     Determine if each string entirely matches a regular expression.
 
+    .. versionadded:: 1.1.0
+
     Parameters
     ----------
     pat : str
@@ -850,8 +852,6 @@ def str_fullmatch(
         Regex module flags, e.g. re.IGNORECASE.
     na : default NaN
         Fill value for missing values.
-
-    .. versionadded:: 1.1.0
 
     Returns
     -------

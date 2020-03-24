@@ -658,14 +658,15 @@ Or whether elements match a pattern:
    pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.fullmatch(pattern)
 
+.. note::
 
-The distinction between ``match``, ``fullmatch``, and ``contains`` is strictness:
-``fullmatch`` tests whether the entire string matches the regular expression;
-``match`` tests whether there is a match of the regular expression that begins
-at the first character of the string; and ``contains`` tests whether there is
-a match of the regular expression at any position within the string. The
-corresponding functions in the ``re`` package for these three match modes are
-``re.fullmatch``, ``re.match``, and ``re.search``, respectively.
+    The distinction between ``match``, ``fullmatch``, and ``contains`` is strictness:
+    ``fullmatch`` tests whether the entire string matches the regular expression;
+    ``match`` tests whether there is a match of the regular expression that begins
+    at the first character of the string; and ``contains`` tests whether there is
+    a match of the regular expression at any position within the string. The
+    corresponding functions in the ``re`` package for these three match modes are
+    :ref:`re.fullmatch`, :ref:`re.match`, and :ref:`re.search`, respectively.
 
 Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
 ``endswith`` take an extra ``na`` argument so missing values can be considered
