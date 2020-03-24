@@ -1716,7 +1716,7 @@ Name: Max Speed, dtype: float64
             level_codes[mask] = cnt = len(lev)
             lev = lev.insert(cnt, lev._na_value)
 
-        obs = level_codes[notna(self.values)]
+        obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
 
@@ -2718,6 +2718,7 @@ Name: Max Speed, dtype: float64
         if is_categorical_dtype(self.dtype):
             pass
         elif is_extension_array_dtype(self.dtype):
+            # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             new_values = try_cast_to_ea(self._values, new_values)
@@ -3852,7 +3853,7 @@ Name: Max Speed, dtype: float64
                 # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
-                values = self.astype(object).values
+                values = self.astype(object)._values
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):

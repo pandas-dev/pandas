@@ -888,7 +888,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         elif is_timedelta64_dtype(dtype):
             from pandas import to_timedelta
 
-            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
+            return astype_nansafe(to_timedelta(arr)._values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
