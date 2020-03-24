@@ -33,17 +33,16 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
-from pandas._typing import DtypeObj, FrameOrSeries, Scalar
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -53,7 +52,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, DatetimeArray, try_cast_to_ea
+from pandas.core.arrays import Categorical, DatetimeArray
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -792,37 +791,6 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _try_cast(self, result, obj, numeric_only: bool = False, how: str = ""):
-        """
-        Try to cast the result to the desired type,
-        we may have roundtripped through object in the mean-time.
-
-        If numeric_only is True, then only try to cast numerics
-        and not datetimelikes.
-
-        """
-        if obj.ndim > 1:
-            dtype = obj._values.dtype
-        else:
-            dtype = obj.dtype
-        dtype = self._result_dtype(dtype, how)
-
-        if not is_scalar(result):
-            if is_extension_array_dtype(dtype) and dtype.kind != "M":
-                # The function can return something of any type, so check
-                #  if the type is compatible with the calling EA.
-                # datetime64tz is handled correctly in agg_series,
-                #  so is excluded here.
-
-                if len(result) and isinstance(result[0], dtype.type):
-                    cls = dtype.construct_array_type()
-                    result = try_cast_to_ea(cls, result, dtype=dtype)
-
-            elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
-                result = maybe_downcast_to_dtype(result, dtype)
-
-        return result
-
     def _transform_should_cast(self, func_nm: str) -> bool:
         """
         Parameters
@@ -853,7 +821,7 @@ b  2""",
                 continue
 
             if self._transform_should_cast(how):
-                result = self._try_cast(result, obj, how=how)
+                result = maybe_cast_result(result, obj, how=how)
 
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
@@ -896,12 +864,12 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = self._try_cast(result_column, obj, how=how)
+                    output[key] = maybe_cast_result(result_column, obj, how=how)
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = self._try_cast(result, obj, how=how)
+                output[key] = maybe_cast_result(result, obj, how=how)
                 idx += 1
 
         if len(output) == 0:
@@ -930,7 +898,7 @@ b  2""",
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = self._try_cast(result, obj, numeric_only=True)
+            output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -945,7 +913,7 @@ b  2""",
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[key] = self._try_cast(values[mask], result)
+                output[key] = maybe_cast_result(values[mask], result)
 
         return self._wrap_aggregated_output(output)
 
@@ -1025,30 +993,6 @@ b  2""",
             mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
-
-    @staticmethod
-    def _result_dtype(dtype, how) -> DtypeObj:
-        """
-        Get the desired dtype of a groupby result based on the
-        input dtype and how the aggregation is done.
-
-        Parameters
-        ----------
-        dtype : dtype, type
-            The input dtype of the groupby.
-        how : str
-            How the aggregation is performed.
-
-        Returns
-        -------
-        The desired dtype of the aggregation result.
-        """
-        d = {
-            (np.dtype(np.bool), "add"): np.dtype(np.int64),
-            (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
-            (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-        }
-        return d.get((dtype, how), dtype)
 
 
 class GroupBy(_GroupBy):

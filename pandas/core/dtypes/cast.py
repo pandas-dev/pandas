@@ -246,6 +246,85 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     return result
 
 
+def maybe_cast_result(result, obj, numeric_only: bool = False, how: str = ""):
+    """
+    Try to cast the result to the desired type,
+    we may have roundtripped through object in the mean-time.
+
+    If numeric_only is True, then only try to cast numerics
+    and not datetimelikes.
+
+    """
+    if obj.ndim > 1:
+        dtype = obj._values.dtype
+    else:
+        dtype = obj.dtype
+    dtype = maybe_cast_result_dtype(dtype, how)
+
+    if not is_scalar(result):
+        if is_extension_array_dtype(dtype) and dtype.kind != "M":
+            # The function can return something of any type, so check
+            #  if the type is compatible with the calling EA.
+            # datetime64tz is handled correctly in agg_series,
+            #  so is excluded here.
+
+            if len(result) and isinstance(result[0], dtype.type):
+                cls = dtype.construct_array_type()
+                result = try_cast_to_ea(cls, result, dtype=dtype)
+
+        elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
+            result = maybe_downcast_to_dtype(result, dtype)
+
+    return result
+
+
+def maybe_cast_result_dtype(dtype, how):
+    """
+    Get the desired dtype of a groupby result based on the
+    input dtype and how the aggregation is done.
+
+    Parameters
+    ----------
+    dtype : dtype, type
+        The input dtype of the groupby.
+    how : str
+        How the aggregation is performed.
+
+    Returns
+    -------
+    The desired dtype of the aggregation result.
+    """
+    d = {
+        (np.dtype(np.bool), "add"): np.dtype(np.int64),
+        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
+        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
+    }
+    return d.get((dtype, how), dtype)
+
+
+def try_cast_to_ea(cls_or_instance, obj, dtype=None):
+    """
+    Call to `_from_sequence` that returns the object unchanged on Exception.
+
+    Parameters
+    ----------
+    cls_or_instance : ExtensionArray subclass or instance
+    obj : arraylike
+        Values to pass to cls._from_sequence
+    dtype : ExtensionDtype, optional
+
+    Returns
+    -------
+    ExtensionArray or obj
+    """
+    try:
+        result = cls_or_instance._from_sequence(obj, dtype=dtype)
+    except Exception:
+        # We can't predict what downstream EA constructors may raise
+        result = obj
+    return result
+
+
 def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
     """
     A safe version of putmask that potentially upcasts the result.

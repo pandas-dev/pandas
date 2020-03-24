@@ -7,8 +7,6 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
@@ -2059,27 +2057,3 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
-
-
-@pytest.mark.parametrize(
-    "op",
-    [
-        lambda x: x.sum(),
-        lambda x: x.cumsum(),
-        lambda x: x.transform("sum"),
-        lambda x: x.transform("cumsum"),
-        lambda x: x.agg("sum"),
-        lambda x: x.agg("cumsum"),
-    ],
-)
-def test_bool_agg_dtype(op):
-    # GH 7001
-    # Bool sum aggregations result in int
-    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
-    s = df.set_index("a")["b"]
-
-    result = op(df.groupby("a"))["b"].dtype
-    assert is_integer_dtype(result)
-
-    result = op(s.groupby("a")).dtype
-    assert is_integer_dtype(result)
