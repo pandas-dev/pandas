@@ -125,10 +125,6 @@ class TestCommon:
         result = indices.to_flat_index()
         tm.assert_index_equal(result, indices)
 
-    def test_wrong_number_names(self, indices):
-        with pytest.raises(ValueError, match="^Length"):
-            indices.names = ["apple", "banana", "carrot"]
-
     def test_set_name_methods(self, indices):
         new_name = "This is the new name for this index"
 
