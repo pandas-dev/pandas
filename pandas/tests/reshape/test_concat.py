@@ -1243,9 +1243,13 @@ class TestConcatenate:
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("mapping", [
-        pytest.param("mapping", id="Non dict subclass of collections.abc.Mapping"),
-        pytest.param("dict", id="Built-in dict")])
+    @pytest.mark.parametrize(
+        "mapping",
+        [
+            pytest.param("mapping", id="Non dict subclass of collections.abc.Mapping"),
+            pytest.param("dict", id="Built-in dict"),
+        ],
+    )
     def test_concat_mapping(self, mapping, non_mapping_dict_subclass):
         constructor = dict if mapping == "dict" else non_mapping_dict_subclass
         frames = constructor(
