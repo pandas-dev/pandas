@@ -4,5 +4,3 @@ cdef class _Period:
     cdef readonly:
         int64_t ordinal
         object freq
-
-cdef _Period c_Period
