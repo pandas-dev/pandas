@@ -198,7 +198,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __init__(
         self,
         data: BlockManager,
-        copy: bool = False,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
@@ -1795,7 +1794,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result):
         result = lib.item_from_zerodim(result)
         if is_scalar(result):
             # e.g. we get here with np.ptp(series)
@@ -6840,6 +6839,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
+        else:
+            msg = f"axis must be 0 or 1, {axis} was provided"
+            raise ValueError(msg)
 
         ax = _maybe_transposed_self._get_axis_number(ax)
 
@@ -8519,12 +8521,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(fill_value, method=method, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if is_series or (not is_series and axis == 0):
-            if is_datetime64tz_dtype(left.index):
-                if left.index.tz != right.index.tz:
-                    if join_index is not None:
-                        left.index = join_index
-                        right.index = join_index
+        if (
+            (is_series or (not is_series and axis == 0))
+            and is_datetime64tz_dtype(left.index)
+            and (left.index.tz != right.index.tz)
+            and (join_index is not None)
+        ):
+            left.index = join_index
+            right.index = join_index
 
         return left.__finalize__(self), right.__finalize__(other)
 
@@ -9175,9 +9179,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             before = to_datetime(before)
             after = to_datetime(after)
 
-        if before is not None and after is not None:
-            if before > after:
-                raise ValueError(f"Truncate: {after} must be after {before}")
+        if not (before is None or after is None) and (before > after):
+            raise ValueError(f"Truncate: {after} must be after {before}")
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
