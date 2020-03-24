@@ -373,7 +373,8 @@ class TestDataFrameMissingData:
         val = Categorical([np.nan, np.nan, np.nan])
         df = DataFrame({"cats": cat, "vals": val})
         with tm.assert_produces_warning(None):
-            res = df.fillna(df.median())
+            median = df.median()
+        res = df.fillna(median)
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp}, dtype="category")
         tm.assert_frame_equal(res, df_exp)
