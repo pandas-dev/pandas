@@ -123,15 +123,11 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
@@ -372,7 +368,7 @@ class SelectionMixin:
                     )
                 return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
