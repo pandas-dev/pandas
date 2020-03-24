@@ -1220,36 +1220,7 @@ class TestConcatenate:
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_dict(self):
-        frames = {
-            "foo": DataFrame(np.random.randn(4, 3)),
-            "bar": DataFrame(np.random.randn(4, 3)),
-            "baz": DataFrame(np.random.randn(4, 3)),
-            "qux": DataFrame(np.random.randn(4, 3)),
-        }
-
-        sorted_keys = list(frames.keys())
-
-        result = concat(frames)
-        expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
-        tm.assert_frame_equal(result, expected)
-
-        result = concat(frames, axis=1)
-        expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys, axis=1)
-        tm.assert_frame_equal(result, expected)
-
-        keys = ["baz", "foo", "bar"]
-        result = concat(frames, keys=keys)
-        expected = concat([frames[k] for k in keys], keys=keys)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "mapping",
-        [
-            pytest.param("mapping", id="Non dict subclass of collections.abc.Mapping"),
-            pytest.param("dict", id="Built-in dict"),
-        ],
-    )
+    @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_mapping_dict_subclass):
         constructor = dict if mapping == "dict" else non_mapping_dict_subclass
         frames = constructor(
