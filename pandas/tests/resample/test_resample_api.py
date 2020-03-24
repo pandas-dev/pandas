@@ -287,7 +287,7 @@ def test_agg_consistency():
 
     r = df.resample("3T")
 
-    msg = "nested renamer is not supported"
+    msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(pd.core.base.SpecificationError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
 
@@ -419,7 +419,7 @@ def test_agg_misc():
         [("result1", "A"), ("result1", "B"), ("result2", "A"), ("result2", "B")]
     )
 
-    msg = "nested renamer is not supported"
+    msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
             t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
@@ -439,6 +439,8 @@ def test_agg_misc():
     for t in cases:
         result = t[["A", "B"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
         tm.assert_frame_equal(result, expected, check_like=True)
+
+    msg = "nested renamer is not supported"
 
     # series like aggs
     for t in cases:

@@ -7071,7 +7071,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 return Series(np.nan, index=self.columns, name=where[0])
 
-        locs = self.index.asof_locs(where, ~(nulls.values))
+        locs = self.index.asof_locs(where, ~(nulls._values))
 
         # mask the missing
         missing = locs == -1
@@ -7230,7 +7230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-        mask = isna(self.values)
+        mask = isna(self._values)
 
         with np.errstate(all="ignore"):
             if upper is not None:
@@ -8604,7 +8604,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 if self.ndim == 1:
 
-                    icond = cond.values
+                    icond = cond._values
 
                     # GH 2745 / GH 4192
                     # treat like a scalar
@@ -8652,12 +8652,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._data.putmask(
-                mask=cond,
-                new=other,
-                align=align,
-                inplace=True,
-                axis=block_axis,
-                transpose=self._AXIS_REVERSED,
+                mask=cond, new=other, align=align, axis=block_axis,
             )
             self._update_inplace(new_data)
 

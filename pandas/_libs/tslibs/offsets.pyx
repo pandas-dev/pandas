@@ -609,8 +609,13 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_quarters(int64_t[:] dtindex, int quarters,
-                   int q1start_month, object day, int modby=3):
+def shift_quarters(
+    const int64_t[:] dtindex,
+    int quarters,
+    int q1start_month,
+    object day,
+    int modby=3,
+):
     """
     Given an int64 array representing nanosecond timestamps, shift all elements
     by the specified number of quarters using DateOffset semantics.
@@ -759,7 +764,7 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(int64_t[:] dtindex, int months, object day=None):
+def shift_months(const int64_t[:] dtindex, int months, object day=None):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics

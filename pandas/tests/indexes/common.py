@@ -49,34 +49,6 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             self._holder()
 
-    def test_to_series(self):
-        # assert that we are creating a copy of the index
-
-        idx = self.create_index()
-        s = idx.to_series()
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name == idx.name
-
-    def test_to_series_with_arguments(self):
-        # GH18699
-
-        # index kwarg
-        idx = self.create_index()
-        s = idx.to_series(index=idx)
-
-        assert s.values is not idx.values
-        assert s.index is idx
-        assert s.name == idx.name
-
-        # name kwarg
-        idx = self.create_index()
-        s = idx.to_series(name="__test")
-
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name != idx.name
-
     @pytest.mark.parametrize("name", [None, "new_name"])
     def test_to_frame(self, name):
         # see GH-15230, GH-22580
@@ -198,15 +170,6 @@ class Base:
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_boolean_context_compat(self):
-
-        # boolean context compat
-        idx = self.create_index()
-
-        with pytest.raises(ValueError, match="The truth value of a"):
-            if idx:
-                pass
-
     def test_reindex_base(self):
         idx = self.create_index()
         expected = np.arange(idx.size, dtype=np.intp)
@@ -252,14 +215,6 @@ class Base:
 
         idx = self.create_index()
         tm.assert_index_equal(eval(repr(idx)), idx)
-
-    def test_str(self):
-
-        # test the string repr
-        idx = self.create_index()
-        idx.name = "foo"
-        assert "'foo'" in str(idx)
-        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
