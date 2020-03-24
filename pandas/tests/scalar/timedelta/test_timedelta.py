@@ -408,9 +408,11 @@ class TestTimedeltas:
         assert Timedelta(" - 10000D ") == -conv(np.timedelta64(10000, "D"))
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = "invalid unit abbreviation"
+        with pytest.raises(ValueError, match=msg):
             Timedelta("1foo")
-        with pytest.raises(ValueError):
+        msg = "unit abbreviation w/o a number"
+        with pytest.raises(ValueError, match=msg):
             Timedelta("foo")
 
     def test_full_format_converters(self):
@@ -439,7 +441,8 @@ class TestTimedeltas:
         )
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = "have leftover units"
+        with pytest.raises(ValueError, match=msg):
             Timedelta("- 1days, 00")
 
     def test_pickle(self):
@@ -476,20 +479,21 @@ class TestTimedeltas:
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
 
-        with pytest.raises(OverflowError):
+        msg = "int too (large|big) to convert"
+        with pytest.raises(OverflowError, match=msg):
             min_td - Timedelta(2, "ns")
 
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             max_td + Timedelta(1, "ns")
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, "ns")
         assert td is NaT
 
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             Timedelta(min_td.value - 2, "ns")
 
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             Timedelta(max_td.value + 1, "ns")
 
     def test_total_seconds_precision(self):

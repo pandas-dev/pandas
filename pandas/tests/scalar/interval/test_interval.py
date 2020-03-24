@@ -49,7 +49,8 @@ class TestInterval:
         assert Interval(0, 1) != 0
 
     def test_comparison(self):
-        with pytest.raises(TypeError, match="unorderable types"):
+        msg = "unorderable types"
+        with pytest.raises(TypeError, match=msg):
             Interval(0, 1) < 2
 
         assert Interval(0, 1) < Interval(1, 2)
@@ -254,6 +255,12 @@ class TestInterval:
         # GH 18538
         left = Timestamp("2017-01-01", tz=tz_left)
         right = Timestamp("2017-01-02", tz=tz_right)
-        error = TypeError if com.any_none(tz_left, tz_right) else ValueError
-        with pytest.raises(error):
+
+        if com.any_none(tz_left, tz_right):
+            error = TypeError
+            msg = "Cannot compare tz-naive and tz-aware timestamps"
+        else:
+            error = ValueError
+            msg = "left and right must have the same time zone"
+        with pytest.raises(error, match=msg):
             Interval(left, right)

@@ -393,12 +393,14 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
         elif val_type == "str":
             # un-specific check here because the message comes from str
             #  and varies by method
-            msg = (
-                "can only concatenate str|"
-                "unsupported operand type|"
-                "can't multiply sequence|"
-                "Can't convert 'NaTType'|"
-                "must be str, not NaTType"
+            msg = "|".join(
+                [
+                    "can only concatenate str",
+                    "unsupported operand type",
+                    "can't multiply sequence",
+                    "Can't convert 'NaTType'",
+                    "must be str, not NaTType",
+                ]
             )
         else:
             msg = "unsupported operand type"

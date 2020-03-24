@@ -28,7 +28,8 @@ class TestTimestampComparison:
 
         # tzaware mismatch
         arr = np.array([naive], dtype=object)
-        with pytest.raises(TypeError):
+        msg = "Cannot compare tz-naive and tz-aware timestamps"
+        with pytest.raises(TypeError, match=msg):
             arr < ts
 
     def test_comparison(self):
@@ -85,30 +86,31 @@ class TestTimestampComparison:
         a = Timestamp("3/12/2012")
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
-        with pytest.raises(TypeError):
+        msg = "Cannot compare tz-naive and tz-aware timestamps"
+        with pytest.raises(TypeError, match=msg):
             a == b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a != b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a < b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a <= b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a > b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b == a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b != a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b < a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b <= a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b > a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b >= a
 
         assert not a == b.to_pydatetime()

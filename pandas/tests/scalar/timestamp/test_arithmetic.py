@@ -90,7 +90,8 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            with pytest.raises(TypeError, match="subtraction must have"):
+            msg = "subtraction must have"
+            with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
@@ -195,7 +196,8 @@ class TestTimestampArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             ts - other
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts
 
     @pytest.mark.parametrize(
@@ -215,14 +217,15 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_with_freq(self, ts, other):
-
-        with pytest.raises(TypeError):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             ts + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + ts
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts - other
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts

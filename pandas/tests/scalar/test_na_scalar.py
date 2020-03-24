@@ -23,10 +23,12 @@ def test_repr():
 
 
 def test_truthiness():
-    with pytest.raises(TypeError):
+    msg = "boolean value of NA is ambiguous"
+
+    with pytest.raises(TypeError, match=msg):
         bool(NA)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         not NA
 
 
@@ -145,7 +147,8 @@ def test_logical_and():
     assert False & NA is False
     assert NA & NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA & 5
 
 
@@ -157,7 +160,8 @@ def test_logical_or():
     assert False | NA is NA
     assert NA | NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA | 5
 
 
@@ -169,7 +173,8 @@ def test_logical_xor():
     assert False ^ NA is NA
     assert NA ^ NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA ^ 5
 
 
@@ -216,7 +221,8 @@ def test_ufunc():
 
 
 def test_ufunc_raises():
-    with pytest.raises(ValueError, match="ufunc method 'at'"):
+    msg = "ufunc method 'at'"
+    with pytest.raises(ValueError, match=msg):
         np.log.at(pd.NA, 0)
 
 
