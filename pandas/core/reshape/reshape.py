@@ -363,7 +363,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             for i in range(len(clocs)):
                 val = clocs[i]
                 result = result.unstack(val, fill_value=fill_value)
-                clocs = [v if i > v else v - 1 for v in clocs]
+                clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
 
