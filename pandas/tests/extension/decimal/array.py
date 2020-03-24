@@ -79,7 +79,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+    ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])

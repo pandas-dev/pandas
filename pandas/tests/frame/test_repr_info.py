@@ -137,6 +137,10 @@ class TestDataFrameReprInfoEtc:
         df = DataFrame({"A": ["\u05d0"]})
         str(df)
 
+    def test_repr_unicode_columns(self):
+        df = DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
+        repr(df.columns)  # should not raise UnicodeDecodeError
+
     def test_str_to_bytes_raises(self):
         # GH 26447
         df = DataFrame({"A": ["abc"]})

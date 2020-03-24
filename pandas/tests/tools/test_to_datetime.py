@@ -1056,6 +1056,23 @@ class TestToDatetime:
         with pytest.raises(OutOfBoundsDatetime):
             pd.to_datetime(dt_str, format="%Y%m%d")
 
+    def test_to_datetime_utc(self):
+        arr = np.array([parse("2012-06-13T01:39:00Z")], dtype=object)
+
+        result = to_datetime(arr, utc=True)
+        assert result.tz is pytz.utc
+
+    def test_to_datetime_fixed_offset(self):
+        from pandas.tests.indexes.datetimes.test_timezones import fixed_off
+
+        dates = [
+            datetime(2000, 1, 1, tzinfo=fixed_off),
+            datetime(2000, 1, 2, tzinfo=fixed_off),
+            datetime(2000, 1, 3, tzinfo=fixed_off),
+        ]
+        result = to_datetime(dates)
+        assert result.tz == fixed_off
+
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])

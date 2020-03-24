@@ -11,6 +11,7 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import ArrayLike
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -29,7 +30,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
-    ensure_platform_int,
     is_bool_dtype,
     is_categorical,
     is_categorical_dtype,
@@ -66,6 +66,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -110,7 +111,6 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
-    _ftype = "dense"
     _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
@@ -322,14 +322,6 @@ class Block(PandasObject):
     def dtype(self):
         return self.values.dtype
 
-    @property
-    def ftype(self) -> str:
-        if getattr(self.values, "_pandas_ftype", False):
-            dtype = self.dtype.subtype
-        else:
-            dtype = self.dtype
-        return f"{dtype}:{self._ftype}"
-
     def merge(self, other):
         return _merge_blocks([self, other])
 
@@ -349,11 +341,12 @@ class Block(PandasObject):
 
     def set(self, locs, values):
         """
-        Modify Block in-place with new item value
+        Modify block values in-place with new item value.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        `set` never creates a new array or new Block, whereas `setitem` _may_
+        create a new array and always creates a new Block.
         """
         self.values[locs] = values
 
@@ -802,7 +795,7 @@ class Block(PandasObject):
 
     def setitem(self, indexer, value):
         """
-        Set the value inplace, returning a a maybe different typed block.
+        Attempt self.values[indexer] = value, possibly creating a new array.
 
         Parameters
         ----------
@@ -883,7 +876,7 @@ class Block(PandasObject):
             # GH#8669 empty indexers
             pass
 
-        elif is_scalar_indexer(indexer, arr_value):
+        elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
             #  be e.g. a list; see GH#6043
             values[indexer] = value
@@ -901,12 +894,10 @@ class Block(PandasObject):
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
         elif exact_match:
+            # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
 
-            try:
-                values = values.astype(arr_value.dtype)
-            except ValueError:
-                pass
+            values = values.astype(arr_value.dtype, copy=False)
 
         # set
         else:
@@ -918,33 +909,27 @@ class Block(PandasObject):
         return block
 
     def putmask(
-        self,
-        mask,
-        new,
-        align: bool = True,
-        inplace: bool = False,
-        axis: int = 0,
-        transpose: bool = False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        return the resulting block(s)
+        Return the resulting block(s).
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
+        inplace : bool, default False
+            Perform inplace modification.
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
+        transpose : bool, default False
+            Set to True if self is stored with axes reversed.
 
         Returns
         -------
-        a list of new blocks, the result of the putmask
+        List[Block]
         """
         new_values = self.values if inplace else self.values.copy()
 
@@ -1316,36 +1301,12 @@ class Block(PandasObject):
         # that, handle boolean etc also
         new_values, fill_value = maybe_upcast(self.values, fill_value)
 
-        # make sure array sent to np.roll is c_contiguous
-        f_ordered = new_values.flags.f_contiguous
-        if f_ordered:
-            new_values = new_values.T
-            axis = new_values.ndim - axis - 1
-
-        if np.prod(new_values.shape):
-            new_values = np.roll(new_values, ensure_platform_int(periods), axis=axis)
-
-        axis_indexer = [slice(None)] * self.ndim
-        if periods > 0:
-            axis_indexer[axis] = slice(None, periods)
-        else:
-            axis_indexer[axis] = slice(periods, None)
-        new_values[tuple(axis_indexer)] = fill_value
-
-        # restore original order
-        if f_ordered:
-            new_values = new_values.T
+        new_values = shift(new_values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
     def where(
-        self,
-        other,
-        cond,
-        align: bool = True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
@@ -1354,8 +1315,6 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond  : the condition to respect
-        align : bool, default True
-            Perform alignment on other/cond.
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
@@ -1421,12 +1380,7 @@ class Block(PandasObject):
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(
-                    orig_other,
-                    cond,
-                    align=align,
-                    errors=errors,
-                    try_cast=try_cast,
-                    axis=axis,
+                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis,
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1662,32 +1616,21 @@ class ExtensionBlock(Block):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def should_store(self, value):
+    def should_store(self, value: ArrayLike) -> bool:
+        """
+        Can we set the given array-like value inplace?
+        """
         return isinstance(value, self._holder)
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values = values
+        self.values[:] = values
 
     def putmask(
-        self, mask, new, align=True, inplace=False, axis=0, transpose=False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
-        putmask the data to the block; we must be a single block and not
-        generate other blocks
-
-        return the resulting block
-
-        Parameters
-        ----------
-        mask  : the condition to respect
-        new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
-
-        Returns
-        -------
-        a new block, the result of the putmask
+        See Block.putmask.__doc__
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1778,7 +1721,7 @@ class ExtensionBlock(Block):
 
     def setitem(self, indexer, value):
         """
-        Set the value inplace, returning a same-typed block.
+        Attempt self.values[indexer] = value, possibly creating a new array.
 
         This differs from Block.setitem by not allowing setitem to change
         the dtype of the Block.
@@ -1920,13 +1863,7 @@ class ExtensionBlock(Block):
         ]
 
     def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
@@ -1973,10 +1910,6 @@ class ExtensionBlock(Block):
             )
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
-
-    @property
-    def _ftype(self):
-        return getattr(self.values, "_pandas_ftype", Block._ftype)
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         # ExtensionArray-safe unstack.
@@ -2088,7 +2021,7 @@ class FloatBlock(FloatOrComplexBlock):
         )
         return formatter.get_result_as_array()
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         # when inserting a column should not coerce integers to floats
         # unnecessarily
         return issubclass(value.dtype.type, np.floating) and value.dtype == self.dtype
@@ -2106,7 +2039,7 @@ class ComplexBlock(FloatOrComplexBlock):
             element, (float, int, complex, np.float_, np.int_)
         ) and not isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return issubclass(value.dtype.type, np.complexfloating)
 
 
@@ -2125,7 +2058,7 @@ class IntBlock(NumericBlock):
             )
         return is_integer(element)
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return is_integer_dtype(value) and value.dtype == self.dtype
 
 
@@ -2135,6 +2068,9 @@ class DatetimeLikeBlockMixin:
     @property
     def _holder(self):
         return DatetimeArray
+
+    def should_store(self, value):
+        return is_dtype_equal(self.dtype, value.dtype)
 
     @property
     def fill_value(self):
@@ -2272,16 +2208,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         ).reshape(i8values.shape)
         return np.atleast_2d(result)
 
-    def should_store(self, value) -> bool:
-        return is_datetime64_dtype(value.dtype)
-
     def set(self, locs, values):
         """
-        Modify Block in-place with new item value
-
-        Returns
-        -------
-        None
+        See Block.set.__doc__
         """
         values = conversion.ensure_datetime64ns(values, copy=False)
 
@@ -2305,6 +2234,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
+    should_store = DatetimeBlock.should_store
 
     @property
     def _holder(self):
@@ -2514,9 +2444,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def should_store(self, value) -> bool:
-        return is_timedelta64_dtype(value.dtype)
-
     def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
@@ -2558,7 +2485,7 @@ class BoolBlock(NumericBlock):
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return issubclass(value.dtype.type, np.bool_) and not is_extension_array_dtype(
             value
         )
@@ -2650,7 +2577,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return not (
             issubclass(
                 value.dtype.type,
@@ -2898,6 +2825,9 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
+
+    def should_store(self, arr: ArrayLike):
+        return isinstance(arr, self._holder) and is_dtype_equal(self.dtype, arr.dtype)
 
     def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
