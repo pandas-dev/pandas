@@ -263,7 +263,7 @@ class TestMultiLevel(Base):
         expected = DataFrame(
             index=Index(["John", "Myla"], name="Person"),
             columns=Index(["Age"]),
-            data=np.array([2, 2]),
+            data=[2, 2],
         )
         tm.assert_frame_equal(res, expected)
 
@@ -272,7 +272,7 @@ class TestMultiLevel(Base):
         expected = DataFrame(
             columns=Index(["John", "Myla"], name="Person"),
             index=Index(["Age"]),
-            data=np.array([[2, 2]]),
+            data=[[2, 2]],
         )
         tm.assert_frame_equal(res, expected)
 
