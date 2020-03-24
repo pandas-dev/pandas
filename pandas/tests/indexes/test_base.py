@@ -70,19 +70,17 @@ class TestIndex(Base):
     def test_constructor_regular(self, indices):
         tm.assert_contains_all(indices, indices)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_constructor_casting(self, indices):
+    def test_constructor_casting(self, string_index):
         # casting
-        arr = np.array(indices)
+        arr = np.array(string_index)
         new_index = Index(arr)
         tm.assert_contains_all(arr, new_index)
-        tm.assert_index_equal(indices, new_index)
+        tm.assert_index_equal(string_index, new_index)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_constructor_copy(self, indices):
+    def test_constructor_copy(self, string_index):
         # copy
         # index = self.create_index()
-        arr = np.array(indices)
+        arr = np.array(string_index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
         assert new_index.name == "name"
@@ -629,17 +627,16 @@ class TestIndex(Base):
         expected_ts = np_datetime64_compat("2013-01-01 00:00:00.000000050+0000", "ns")
         assert first_value == x[Timestamp(expected_ts)]
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_booleanindex(self, indices):
-        bool_index = np.ones(len(indices), dtype=bool)
+    def test_booleanindex(self, string_index):
+        bool_index = np.ones(len(string_index), dtype=bool)
         bool_index[5:30:2] = False
 
-        sub_index = indices[bool_index]
+        sub_index = string_index[bool_index]
 
         for i, val in enumerate(sub_index):
             assert sub_index.get_loc(val) == i
 
-        sub_index = indices[list(bool_index)]
+        sub_index = string_index[list(bool_index)]
         for i, val in enumerate(sub_index):
             assert sub_index.get_loc(val) == i
 
@@ -671,10 +668,9 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             indices[empty_farr]
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_intersection(self, indices, sort):
-        first = indices[:20]
-        second = indices[:10]
+    def test_intersection(self, string_index, sort):
+        first = string_index[:20]
+        second = string_index[:10]
         intersect = first.intersection(second, sort=sort)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
@@ -703,16 +699,15 @@ class TestIndex(Base):
         assert result.name == expected.name
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
     @pytest.mark.parametrize(
         "first_name,second_name,expected_name",
         [("A", "A", "A"), ("A", "B", None), (None, "B", None)],
     )
     def test_intersection_name_preservation2(
-        self, indices, first_name, second_name, expected_name, sort
+        self, string_index, first_name, second_name, expected_name, sort
     ):
-        first = indices[5:20]
-        second = indices[:10]
+        first = string_index[5:20]
+        second = string_index[:10]
         first.name = first_name
         second.name = second_name
         intersect = first.intersection(second, sort=sort)
@@ -782,11 +777,10 @@ class TestIndex(Base):
         expected = j1.union(j2, sort=sort).union(j3, sort=sort)
         tm.assert_index_equal(union, expected)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_union(self, indices, sort):
-        first = indices[5:20]
-        second = indices[:10]
-        everything = indices[:20]
+    def test_union(self, string_index, sort):
+        first = string_index[5:20]
+        second = string_index[:10]
+        everything = string_index[:20]
 
         union = first.union(second, sort=sort)
         if sort is None:
@@ -820,12 +814,11 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_union_from_iterables(self, indices, klass, sort):
+    def test_union_from_iterables(self, string_index, klass, sort):
         # GH 10149
-        first = indices[5:20]
-        second = indices[:10]
-        everything = indices[:20]
+        first = string_index[5:20]
+        second = string_index[:10]
+        everything = string_index[:20]
 
         case = klass(second.values)
         result = first.union(case, sort=sort)
@@ -833,9 +826,8 @@ class TestIndex(Base):
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_union_identity(self, indices, sort):
-        first = indices[5:20]
+    def test_union_identity(self, string_index, sort):
+        first = string_index[5:20]
 
         union = first.union(first, sort=sort)
         # i.e. identity is not preserved when sort is True
@@ -1004,12 +996,13 @@ class TestIndex(Base):
         result = left.append(right)
         assert result.name == expected
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
     @pytest.mark.parametrize("second_name,expected", [(None, None), ("name", "name")])
-    def test_difference_name_preservation(self, indices, second_name, expected, sort):
-        first = indices[5:20]
-        second = indices[:10]
-        answer = indices[10:20]
+    def test_difference_name_preservation(
+        self, string_index, second_name, expected, sort
+    ):
+        first = string_index[5:20]
+        second = string_index[:10]
+        answer = string_index[10:20]
 
         first.name = "name"
         second.name = second_name
@@ -1022,31 +1015,28 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_difference_empty_arg(self, indices, sort):
-        first = indices[5:20]
+    def test_difference_empty_arg(self, string_index, sort):
+        first = string_index[5:20]
         first.name = "name"
         result = first.difference([], sort)
 
         assert tm.equalContents(result, first)
         assert result.name == first.name
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_difference_identity(self, indices, sort):
-        first = indices[5:20]
+    def test_difference_identity(self, string_index, sort):
+        first = string_index[5:20]
         first.name = "name"
         result = first.difference(first, sort)
 
         assert len(result) == 0
         assert result.name == first.name
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
-    def test_difference_sort(self, indices, sort):
-        first = indices[5:20]
-        second = indices[:10]
+    def test_difference_sort(self, string_index, sort):
+        first = string_index[5:20]
+        second = string_index[:10]
 
         result = first.difference(second, sort)
-        expected = indices[10:20]
+        expected = string_index[10:20]
 
         if sort is None:
             expected = expected.sort_values()
@@ -1866,10 +1856,9 @@ class TestIndex(Base):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("indices", ["string"], indirect=True)
     @pytest.mark.parametrize("name,level", [(None, 0), ("a", "a")])
-    def test_get_level_values(self, indices, name, level):
-        expected = indices.copy()
+    def test_get_level_values(self, string_index, name, level):
+        expected = string_index.copy()
         if name:
             expected.name = name
 
