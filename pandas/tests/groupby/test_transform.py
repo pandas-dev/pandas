@@ -1202,21 +1202,23 @@ def test_transform_lambda_indexing():
 
 def test_categorical_and_not_categorical_key():
     # GH 32494
-    df = pd.DataFrame(
+    df_with_categorical = pd.DataFrame(
         {
             "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
             "B": [1, 2, 3],
             "C": ["a", "b", "a"],
         }
     )
+    df_without_categorical = pd.DataFrame(
+        {"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]}
+    )
+
     # DataFrame case
-    result = df.groupby(["A", "C"]).transform("sum")
-    df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
-    expected = df.groupby(["A", "C"]).transform("sum")
+    result = df_with_categorical.groupby(["A", "C"]).transform("sum")
+    expected = df_without_categorical.groupby(["A", "C"]).transform("sum")
     tm.assert_frame_equal(result, expected)
 
     # Series case
-    result = df.groupby(["A", "C"])["B"].transform("sum")
-    df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
-    expected = df.groupby(["A", "C"])["B"].transform("sum")
+    result = df_with_categorical.groupby(["A", "C"])["B"].transform("sum")
+    expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
