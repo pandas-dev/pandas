@@ -353,10 +353,6 @@ class TestRangeIndex(Numeric):
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
-
     def test_repr_roundtrip(self):
         index = self.create_index()
         tm.assert_index_equal(eval(repr(index)), index)
