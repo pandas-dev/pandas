@@ -82,6 +82,7 @@ cdef dict timedelta_abbrevs = {
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
+    "µs": "us",
     "micro": "us",
     "micros": "us",
     "u": "us",
