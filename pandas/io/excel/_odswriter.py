@@ -36,12 +36,12 @@ class _ODSWriter(ExcelWriter):
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
+        """
+        Write the frame cells using odf
+        """
         from odf.table import Table, TableCell, TableRow
         from odf.text import P
 
-        # Write the frame cells using odf
-        # assert startrow == 0
-        # assert startcol == 0
         sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
@@ -53,10 +53,18 @@ class _ODSWriter(ExcelWriter):
         if _validate_freeze_panes(freeze_panes):
             self._create_freeze_panes(sheet_name, freeze_panes)
 
+        for _ in range(startrow):
+            wks.addElement(TableRow())
+
         rows: DefaultDict = defaultdict(TableRow)
         col_count: DefaultDict = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
+            # only add empty cells if the row is still empty
+            if not col_count[cell.row]:
+                for _ in range(startcol):
+                    rows[cell.row].addElement(TableCell())
+
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
