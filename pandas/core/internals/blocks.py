@@ -2288,7 +2288,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if is_object_dtype(dtype):
             values = values.astype(object)
 
-        # TODO(EA2D): reshape uuncessary with 2D EAs
+        # TODO(EA2D): reshape unnecessary with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
     def external_values(self):
