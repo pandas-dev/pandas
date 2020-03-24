@@ -523,6 +523,7 @@ class SeriesGroupBy(GroupBy):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index)
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:

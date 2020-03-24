@@ -1209,7 +1209,14 @@ def test_categorical_and_not_categorical_key():
             "C": ["a", "b", "a"],
         }
     )
-    result = df.groupby(["A", "C"]).transform("sum")["B"]
+    # DataFrame case
+    result = df.groupby(["A", "C"]).transform("sum")
     df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
-    expected = df.groupby(["A", "C"]).transform("sum")["B"]
+    expected = df.groupby(["A", "C"]).transform("sum")
+    tm.assert_frame_equal(result, expected)
+
+    # Series case
+    result = df.groupby(["A", "C"])["B"].transform("sum")
+    df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
+    expected = df.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
