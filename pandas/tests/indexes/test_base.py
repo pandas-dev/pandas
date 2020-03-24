@@ -1823,17 +1823,17 @@ class TestIndex(Base):
         index.name = "foobar"
         tm.assert_numpy_array_equal(expected, index.isin(values, level="foobar"))
 
-    @pytest.mark.parametrize("level", [2, 10, -3])
-    def test_isin_level_kwarg_bad_level_raises(self, level, indices):
+    def test_isin_level_kwarg_bad_level_raises(self, indices):
         index = indices
-        with pytest.raises(IndexError, match="Too many levels"):
-            index.isin([], level=level)
+        for level in [10, index.nlevels, -(index.nlevels + 1)]:
+            with pytest.raises(IndexError, match="Too many levels"):
+                index.isin([], level=level)
 
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, indices):
         index = indices
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"])
+            index = index.rename(["foo", "bar"] + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
@@ -2436,10 +2436,6 @@ class TestMixedIntIndex(Base):
         index = Index(["a", "b", "c"], name=0)
         result = klass(list(range(3)), index=index)
         assert "0" in repr(result)
-
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_str_to_bytes_raises(self):
         # GH 26447

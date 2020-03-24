@@ -125,10 +125,6 @@ class TestCommon:
         result = indices.to_flat_index()
         tm.assert_index_equal(result, indices)
 
-    def test_wrong_number_names(self, indices):
-        with pytest.raises(ValueError, match="^Length"):
-            indices.names = ["apple", "banana", "carrot"]
-
     def test_set_name_methods(self, indices):
         new_name = "This is the new name for this index"
 
@@ -307,13 +303,13 @@ class TestCommon:
             pytest.skip("MultiIndex is tested separately")
         if isinstance(indices, RangeIndex):
             pytest.skip(
-                "RangeIndex is tested in test_drop_duplicates_no_duplicates"
-                " as it cannot hold duplicates"
+                "RangeIndex is tested in test_drop_duplicates_no_duplicates "
+                "as it cannot hold duplicates"
             )
         if len(indices) == 0:
             pytest.skip(
-                "empty index is tested in test_drop_duplicates_no_duplicates"
-                " as it cannot hold duplicates"
+                "empty index is tested in test_drop_duplicates_no_duplicates "
+                "as it cannot hold duplicates"
             )
 
         # make unique index
