@@ -110,15 +110,12 @@ class TestDataFrame(Generic):
         df1.filename = "fname1.csv"
         df2.filename = "fname2.csv"
 
-        def finalize(self, other, method=None, **kwargs):
+        def finalize(self, other):
 
             for name in self._metadata:
-                if method == "merge":
-                    left, right = other.left, other.right
-                    value = getattr(left, name, "") + "|" + getattr(right, name, "")
-                    object.__setattr__(self, name, value)
-                else:
-                    object.__setattr__(self, name, getattr(other, name, ""))
+                left, right = other.left, other.right
+                value = getattr(left, name, "") + "|" + getattr(right, name, "")
+                object.__setattr__(self, name, value)
 
             return self
 
@@ -132,15 +129,12 @@ class TestDataFrame(Generic):
         df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
         df1.filename = "foo"
 
-        def finalize(self, other, method=None, **kwargs):
+        def finalize(self, other):
             for name in self._metadata:
-                if method == "concat":
-                    value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
-                    )
-                    object.__setattr__(self, name, value)
-                else:
-                    object.__setattr__(self, name, getattr(other, name, None))
+                value = "+".join(
+                    [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                )
+                object.__setattr__(self, name, value)
 
             return self
 

@@ -145,9 +145,9 @@ class TestSeries(Generic):
         o.filename = "foo"
         o2.filename = "bar"
 
-        def finalize(self, other, method=None, **kwargs):
+        def finalize(self, other):
             for name in self._metadata:
-                if method == "concat" and name == "filename":
+                if name == "filename":
                     value = "+".join(
                         [getattr(o, name) for o in other.objs if getattr(o, name, None)]
                     )
