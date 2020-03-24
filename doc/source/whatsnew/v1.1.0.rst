@@ -225,6 +225,10 @@ Performance improvements
 - The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
   avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
   existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
+- Significant performance improvement when creating a :class:`DataFrame` with
+  sparse values from ``scipy.sparse`` matrices using the
+  :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
+  :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
 
 .. ---------------------------------------------------------------------------
 
@@ -336,7 +340,7 @@ MultiIndex
 
 I/O
 ^^^
-- Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
+- Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
 - Bug in :meth:`DataFrame.to_parquet` overwriting pyarrow's default for
@@ -350,6 +354,7 @@ I/O
 - Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
+- Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
 
 
 Plotting
@@ -381,7 +386,7 @@ Reshaping
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 - Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
-
+- :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 
 Sparse
 ^^^^^^
@@ -406,6 +411,7 @@ Other
 - Fixed :func:`pandas.testing.assert_series_equal` to correctly raise if left object is a different subclass with ``check_series_type=True`` (:issue:`32670`).
 - :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
+- Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 
 .. ---------------------------------------------------------------------------
