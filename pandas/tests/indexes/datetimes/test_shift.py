@@ -9,6 +9,8 @@ import pandas as pd
 from pandas import DatetimeIndex, Series, date_range
 import pandas._testing as tm
 
+START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
+
 
 class TestDatetimeIndexShift:
 
@@ -115,3 +117,34 @@ class TestDatetimeIndexShift:
         result = s.shift(shift, freq="H")
         expected = Series(1, index=DatetimeIndex([result_time], tz="EST"))
         tm.assert_series_equal(result, expected)
+
+    def test_shift_periods(self):
+        # GH#22458 : argument 'n' was deprecated in favor of 'periods'
+        idx = pd.date_range(start=START, end=END, periods=3)
+        tm.assert_index_equal(idx.shift(periods=0), idx)
+        tm.assert_index_equal(idx.shift(0), idx)
+
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_shift_bday(self, freq):
+        rng = date_range(START, END, freq=freq)
+        shifted = rng.shift(5)
+        assert shifted[0] == rng[5]
+        assert shifted.freq == rng.freq
+
+        shifted = rng.shift(-5)
+        assert shifted[5] == rng[0]
+        assert shifted.freq == rng.freq
+
+        shifted = rng.shift(0)
+        assert shifted[0] == rng[0]
+        assert shifted.freq == rng.freq
+
+    def test_shift_bmonth(self):
+        rng = date_range(START, END, freq=pd.offsets.BMonthEnd())
+        shifted = rng.shift(1, freq=pd.offsets.BDay())
+        assert shifted[0] == rng[0] + pd.offsets.BDay()
+
+        rng = date_range(START, END, freq=pd.offsets.BMonthEnd())
+        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+            shifted = rng.shift(1, freq=pd.offsets.CDay())
+            assert shifted[0] == rng[0] + pd.offsets.CDay()
