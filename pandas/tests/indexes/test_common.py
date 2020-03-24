@@ -378,7 +378,7 @@ class TestCommon:
     def test_astype_preserves_name(self, indices, dtype, copy):
         # https://github.com/pandas-dev/pandas/issues/32013
         if isinstance(indices, MultiIndex):
-            indices.names = ["idx1", "idx2"]
+            indices.names = ["idx" + str(i) for i in range(indices.nlevels)]
         else:
             indices.name = "idx"
 
