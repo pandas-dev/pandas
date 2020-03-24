@@ -404,6 +404,10 @@ def indices(request):
     return indices_dict[request.param].copy()
 
 
+# Needed to generate cartesian product of indices
+indices2 = indices
+
+
 # ----------------------------------------------------------------
 # Series'
 # ----------------------------------------------------------------

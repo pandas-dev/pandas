@@ -2,8 +2,6 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
-import itertools as it
-
 import numpy as np
 import pytest
 
@@ -13,7 +11,6 @@ import pandas as pd
 from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
-from pandas.conftest import indices_dict
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),
@@ -21,14 +18,6 @@ COMPATIBLE_INCONSISTENT_PAIRS = {
     (Float64Index, RangeIndex): (tm.makeFloatIndex, tm.makeIntIndex),
     (Float64Index, UInt64Index): (tm.makeFloatIndex, tm.makeUIntIndex),
 }
-
-
-@pytest.fixture(params=it.combinations(indices_dict, 2), ids="-".join)
-def index_pair(request):
-    """
-    Create all combinations of 2 index types.
-    """
-    return indices_dict[request.param[0]], indices_dict[request.param[1]]
 
 
 def test_union_same_types(indices):
@@ -39,14 +28,14 @@ def test_union_same_types(indices):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_pair):
+def test_union_different_types(indices, indices2):
     # GH 23525
-    idx1, idx2 = index_pair
+    idx1, idx2 = indices, indices2
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
     if type_pair in COMPATIBLE_INCONSISTENT_PAIRS:
         pytest.xfail("This test only considers non compatible indexes.")
 
-    if any(isinstance(idx, pd.MultiIndex) for idx in index_pair):
+    if any(isinstance(idx, pd.MultiIndex) for idx in (idx1, idx2)):
         pytest.xfail("This test doesn't consider multiindixes.")
 
     if is_dtype_equal(idx1.dtype, idx2.dtype):
