@@ -29,6 +29,7 @@ def test_union_same_types(indices):
 
 
 def test_union_different_types(indices, indices2):
+    # This test only considers combinations of indices
     # GH 23525
     idx1, idx2 = indices, indices2
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
