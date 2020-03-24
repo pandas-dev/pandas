@@ -55,7 +55,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "API",
     "FAQ",
     "IO",
-    "GroupBy",
     "TimedeltaIndex",
     "DatetimeIndex",
     "IntervalIndex",
