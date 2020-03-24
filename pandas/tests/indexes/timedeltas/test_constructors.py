@@ -168,7 +168,11 @@ class TestTimedeltaIndex:
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"TimedeltaIndex\(\) must be called with a collection of some kind,"
+            " '1 days' was passed"
+        )
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex("1 days")
 
         # generator expression
@@ -220,5 +224,6 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        with pytest.raises(ValueError):
+        msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
+        with pytest.raises(ValueError, match=msg):
             pd.TimedeltaIndex(["2000"], dtype="timedelta64[us]")

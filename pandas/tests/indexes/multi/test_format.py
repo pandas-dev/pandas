@@ -58,7 +58,8 @@ def test_repr_with_unicode_data():
 
 def test_repr_roundtrip_raises():
     mi = MultiIndex.from_product([list("ab"), range(3)], names=["first", "second"])
-    with pytest.raises(TypeError):
+    msg = "Must pass both levels and codes"
+    with pytest.raises(TypeError, match=msg):
         eval(repr(mi))
 
 
