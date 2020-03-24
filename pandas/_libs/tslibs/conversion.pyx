@@ -523,10 +523,14 @@ cdef inline check_overflows(_TSObject obj):
     # GH#12677
     if obj.dts.year == 1677:
         if not (obj.value < 0):
-            raise OutOfBoundsDatetime
+            raise OutOfBoundsDatetime(
+                f'Timestamp cannot be converted within implementation bounds'
+            )
     elif obj.dts.year == 2262:
         if not (obj.value > 0):
-            raise OutOfBoundsDatetime
+            raise OutOfBoundsDatetime(
+                f'Timestamp cannot be converted within implementation bounds'
+            )
 
 
 # ----------------------------------------------------------------------

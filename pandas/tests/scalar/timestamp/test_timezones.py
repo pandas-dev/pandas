@@ -25,6 +25,7 @@ class TestTimestampTZOperations:
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
         pac = Timestamp.min.tz_localize("US/Pacific")
+        msg = "Timestamp cannot be converted within implementation bounds"
         assert pac.value > Timestamp.min.value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
