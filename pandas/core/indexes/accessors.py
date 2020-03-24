@@ -321,7 +321,7 @@ class CombinedDatetimelikeProperties(
                 orig.array,
                 name=orig.name,
                 copy=False,
-                dtype=orig.values.categories.dtype,
+                dtype=orig._values.categories.dtype,
             )
 
         if is_datetime64_dtype(data.dtype):
