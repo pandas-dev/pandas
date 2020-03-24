@@ -656,7 +656,7 @@ class IndexOpsMixin:
         ):
             # numpy returns ints instead of datetime64/timedelta64 objects,
             #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self.values.item()
+            return self._values.item()
 
         if len(self) == 1:
             return next(iter(self))
@@ -1128,10 +1128,8 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_array_dtype(self.dtype):
-                values = self._values
-            else:
-                values = self.values
+
+            values = self._values
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
