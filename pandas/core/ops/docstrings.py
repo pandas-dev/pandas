@@ -37,8 +37,7 @@ def _make_flex_doc(op_name, typ):
         )
         if op_desc["reverse"]:
             doc_see_also = _see_also_reverse_SERIES.format(
-                reverse=op_desc["reverse"],
-                see_also_desc=op_desc["see_also_desc"],
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
             )
             doc_no_examples = doc_no_examples + doc_see_also
         if op_desc["series_examples"]:
@@ -357,10 +356,12 @@ for key in _op_names:
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
-        _op_descriptions[key]["see_also_desc"] = \
-            f"Reversed {_op_descriptions[key]['desc']}"
-        _op_descriptions[reverse_op]["see_also_desc"] = \
-            f"Usual {_op_descriptions[key]['desc']}"
+        _op_descriptions[key][
+            "see_also_desc"
+        ] = f"Reversed {_op_descriptions[key]['desc']}"
+        _op_descriptions[reverse_op][
+            "see_also_desc"
+        ] = f"Usual {_op_descriptions[key]['desc']}"
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
