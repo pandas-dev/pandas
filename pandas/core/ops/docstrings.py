@@ -53,7 +53,7 @@ def _make_flex_doc(op_name, typ):
     return doc
 
 
-_common_examples_SERIES = """
+_common_examples_algebra_SERIES = """
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
@@ -92,7 +92,7 @@ f    1.0
 dtype: float64"""
 
 _add_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.add(b, fill_value=0)
 a    2.0
@@ -105,7 +105,7 @@ dtype: float64
 )
 
 _sub_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.subtract(b, fill_value=0)
 a    0.0
@@ -118,7 +118,7 @@ dtype: float64
 )
 
 _mul_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.multiply(b, fill_value=0)
 a    1.0
@@ -131,7 +131,7 @@ dtype: float64
 )
 
 _div_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.divide(b, fill_value=0)
 a    1.0
@@ -144,7 +144,7 @@ dtype: float64
 )
 
 _floordiv_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
@@ -157,7 +157,7 @@ dtype: float64
 )
 
 _mod_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.mod(b, fill_value=0)
 a    0.0
@@ -169,7 +169,7 @@ dtype: float64
 """
 )
 _pow_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.pow(b, fill_value=0)
 a    1.0
@@ -182,7 +182,7 @@ dtype: float64
 )
 
 _ne_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.ne(b, fill_value=0)
 a    False
@@ -195,7 +195,7 @@ dtype: bool
 )
 
 _eq_example_SERIES = (
-    _common_examples_SERIES
+    _common_examples_algebra_SERIES
     + """
 >>> a.eq(b, fill_value=0)
 a     True
