@@ -12,7 +12,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
-from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
 
@@ -1323,7 +1322,7 @@ class TestDataFrameAggregate:
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame(),
                 [
                     ("sum", Series(dtype="float64")),
@@ -1338,7 +1337,7 @@ class TestDataFrameAggregate:
                     ("median", Series(dtype="float64")),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
                     ("sum", Series([1.0, 3])),
@@ -1365,10 +1364,10 @@ class TestDataFrameAggregate:
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
                     ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
@@ -1390,7 +1389,7 @@ class TestDataFrameAggregate:
 
     @pytest.mark.parametrize(
         "df, func, expected",
-        _get_cython_table_params(
+        tm.get_cython_table_params(
             DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
         ),
     )
