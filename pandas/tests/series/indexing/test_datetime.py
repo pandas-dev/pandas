@@ -705,15 +705,6 @@ def test_set_none_nan():
     assert series[6] is NaT
 
 
-def test_nat_operations():
-    # GH 8617
-    s = Series([0, pd.NaT], dtype="m8[ns]")
-    exp = s[0]
-    assert s.median() == exp
-    assert s.min() == exp
-    assert s.max() == exp
-
-
 def test_setitem_tuple_with_datetimetz():
     # GH 20441
     arr = date_range("2017", periods=4, tz="US/Eastern")
