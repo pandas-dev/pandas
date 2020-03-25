@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
+    is_categorical,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -523,7 +524,11 @@ class SeriesGroupBy(GroupBy):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index)
+
+        # in categorical case there may be unobserved categories in index
+        if any(is_categorical(ping.grouper) for ping in self.grouper.groupings):
+            result = result.reindex(self.grouper.result_index)
+
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
@@ -1455,7 +1460,11 @@ class DataFrameGroupBy(GroupBy):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index)
+
+        # in categorical case there may be unobserved categories in index
+        if any(is_categorical(ping.grouper) for ping in self.grouper.groupings):
+            result = result.reindex(self.grouper.result_index)
+
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
