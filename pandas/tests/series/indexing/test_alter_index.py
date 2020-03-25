@@ -479,16 +479,6 @@ def test_reindex_empty_series_tz_dtype():
     tm.assert_equal(result, expected)
 
 
-def test_rename():
-    # GH 17407
-    s = Series(range(1, 6), index=pd.Index(range(2, 7), name="IntIndex"))
-    result = s.rename(str)
-    expected = s.rename(lambda i: str(i))
-    tm.assert_series_equal(result, expected)
-
-    assert result.name == expected.name
-
-
 @pytest.mark.parametrize(
     "data, index, drop_labels, axis, expected_data, expected_index",
     [
