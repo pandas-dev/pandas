@@ -41,9 +41,9 @@ class TestMisc:
         tm.assert_numpy_array_equal(np.array(out), expected)
 
     def test_fast_unique_multiple_unsortable_runtimewarning(self):
-        idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["foo", "bar"]])
+        arr = [np.array(["foo", pd.Timestamp("2000")])]
         with tm.assert_produces_warning(RuntimeWarning):
-            idx.union(idx[:1], sort=None)
+            lib.fast_unique_multiple(arr, sort=None)
 
 
 class TestIndexing:
