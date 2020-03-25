@@ -349,10 +349,10 @@ def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
-    errors=None,
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
+    errors=None,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -365,12 +365,6 @@ def get_handle(
         Mode to open path_or_buf with.
     encoding : str or None
         Encoding to use.
-    errors : str, default 'strict'
-        Specifies how encoding and decoding errors are to be handled.
-        See the errors argument for :func:`open` for a full list
-        of options.
-
-        .. versionadded:: 1.1.0
     compression : str or dict, default None
         If string, specifies compression mode. If dict, value at key 'method'
         specifies compression mode. Compression mode must be one of {'infer',
@@ -397,6 +391,12 @@ def get_handle(
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.).
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------

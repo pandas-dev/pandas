@@ -3040,7 +3040,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        errors: str = "strict",
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
@@ -3050,6 +3049,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
+        errors: str = "strict",
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3097,12 +3097,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
-
-            .. versionadded:: 1.1.0
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
@@ -3150,6 +3144,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
