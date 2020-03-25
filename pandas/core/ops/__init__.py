@@ -306,7 +306,7 @@ def operate_blockwise(left, right, array_op):
 
         left_ea = not isinstance(blk_vals, np.ndarray)
 
-        if not isinstance(blk_vals, np.ndarray):
+        if False:#left_ea:
             # 1D EA
             assert len(locs) == 1, locs
             rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
@@ -319,8 +319,6 @@ def operate_blockwise(left, right, array_op):
             if not right_ea:
                 assert rvals.shape[0] == 1, rvals.shape
                 rvals = rvals[0, :]
-            #rser = right.iloc[:, locs[0]]
-            #rvals = extract_array(rser, extract_numpy=True)
             res_values = array_op(blk_vals, rvals)
             nbs = blk._split_op_result(res_values)
             # Setting nb.mgr_locs is unnecessary here, but harmless
@@ -329,30 +327,38 @@ def operate_blockwise(left, right, array_op):
 
         rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
 
+        if left_ea:
+            assert len(locs) == 1, locs
+            assert len(rblks) == 1, rblks
+            assert rblks[0].shape[0] == 1, rblks[0].shape
+
         for k, rblk in enumerate(rblks):
             rvals = rblk.values
             right_ea = not isinstance(rvals, np.ndarray)
 
-            lvals = blk_vals[rblk.mgr_locs.indexer, :]
+            #lvals = blk_vals[rblk.mgr_locs.indexer, :]
 
             if not (left_ea or right_ea):
+                lvals = blk_vals[rblk.mgr_locs.indexer, :]
                 assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-            #elif left_ea and right_ea:
-            #    assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+            elif left_ea and right_ea:
+                lvals = blk_vals
+                assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
             elif right_ea:
                 # 1D EA
+                lvals = blk_vals[rblk.mgr_locs.indexer, :]
                 assert lvals.shape[0] == 1, lvals.shape
                 lvals = lvals[0, :]
             else:
-                assert False  # should be unreachable ATM
-                #assert rvals.shape[0] == 1, rvals.shape
-                #rvals = rvals[0, :]
+                lvals = blk_vals
+                assert rvals.shape[0] == 1, rvals.shape
+                rvals = rvals[0, :]
 
             res_values = array_op(lvals, rvals)
             nbs = rblk._split_op_result(res_values)
 
             # Debugging assertions
-            if right_ea:  # or left_ea
+            if right_ea or left_ea:
                 assert len(nbs) == 1
             else:
                 assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
