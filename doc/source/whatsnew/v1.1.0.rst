@@ -355,6 +355,7 @@ I/O
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 - Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
+- `TypeError` exceptions raised by :meth:`read_csv` and :meth:`read_table` where showing as ``parser_f`` when an unexpected keyword argument was passed (:issue:`25648`)
 
 
 Plotting
