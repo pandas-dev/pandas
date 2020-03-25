@@ -261,7 +261,7 @@ def maybe_cast_result(
     numeric_only : bool, default False
         Whether to cast only numerics or datetimes as well.
     how : str, default ""
-        If result was aggregated, how the aggregation was performed.
+        How the result was computed.
 
     Returns
     -------
@@ -306,7 +306,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     Returns
     -------
     DtypeObj
-        The desired dtype of the aggregation result.
+        The desired dtype of the result.
     """
     d = {
         (np.dtype(np.bool), "add"): np.dtype(np.int64),
