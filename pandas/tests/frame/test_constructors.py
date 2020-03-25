@@ -2,6 +2,7 @@ from collections import OrderedDict, abc
 from datetime import date, datetime, timedelta
 import functools
 import itertools
+import re
 
 import numpy as np
 import numpy.ma as ma
@@ -9,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import PY37, is_platform_little_endian
 from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1364,6 +1365,47 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+
+        datas = [Point(0, 3), Point(1, 3)]
+        expected = DataFrame({"x": [0, 1], "y": [3, 3]})
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_with_varying_types(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        # varying types
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+        HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
+
+        datas = [Point(0, 3), HLine(1, 3, 3)]
+
+        expected = DataFrame(
+            {"x": [0, np.nan], "y": [3, 3], "x0": [np.nan, 1], "x1": [np.nan, 3]}
+        )
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_error_thrown(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+
+        # expect TypeError
+        msg = "asdict() should be called on dataclass instances"
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            DataFrame([Point(0, 0), {"x": 1, "y": 0}])
+
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [
@@ -2604,3 +2646,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         expected = DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
+
+    def test_construction_from_set_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32582
+        msg = "Set type is unordered"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame({"a": {1, 2, 3}})

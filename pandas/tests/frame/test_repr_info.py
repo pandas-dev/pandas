@@ -137,6 +137,10 @@ class TestDataFrameReprInfoEtc:
         df = DataFrame({"A": ["\u05d0"]})
         str(df)
 
+    def test_repr_unicode_columns(self):
+        df = DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
+        repr(df.columns)  # should not raise UnicodeDecodeError
+
     def test_str_to_bytes_raises(self):
         # GH 26447
         df = DataFrame({"A": ["abc"]})
@@ -212,3 +216,8 @@ class TestDataFrameReprInfoEtc:
         # GH 25445
         result = repr(box([arg("NaT")], dtype=object))
         assert result == expected
+
+    def test_frame_datetime64_pre1900_repr(self):
+        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="A-DEC")})
+        # it works!
+        repr(df)

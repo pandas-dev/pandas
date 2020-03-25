@@ -15,6 +15,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
     deprecate_kwarg,
+    doc,
 )
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -449,10 +450,6 @@ class Categorical(ExtensionArray, PandasObject):
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self.codes
 
     @property
     def _constructor(self) -> Type["Categorical"]:
@@ -1352,8 +1349,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    @Substitution(klass="Categorical")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Categorical")
     def searchsorted(self, value, side="left", sorter=None):
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
@@ -1675,6 +1671,12 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dense : array
         """
+        warn(
+            "Categorical.to_dense is deprecated and will be removed in "
+            "a future version.  Use np.asarray(cat) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return np.asarray(self)
 
     def fillna(self, value=None, method=None, limit=None):
@@ -2561,12 +2563,7 @@ def _get_codes_for_values(values, categories):
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if dtype_equal:
-        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
-        # the underlying numpy array. gh-22702
-        values = getattr(values, "_ndarray_values", values)
-        categories = getattr(categories, "_ndarray_values", categories)
-    elif is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
@@ -2576,7 +2573,7 @@ def _get_codes_for_values(values, categories):
             # exception raised in _from_sequence
             values = ensure_object(values)
             categories = ensure_object(categories)
-    else:
+    elif not dtype_equal:
         values = ensure_object(values)
         categories = ensure_object(categories)
 
