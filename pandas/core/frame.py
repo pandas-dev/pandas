@@ -39,7 +39,7 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, algos as libalgos, lib, properties
+from pandas._libs import algos as libalgos, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -89,7 +89,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_named_tuple,
-    is_numeric_dtype,
     is_object_dtype,
     is_period_dtype,
     is_scalar,
@@ -6676,11 +6675,7 @@ Wild         185.0
 
             def get_na_ser(ser):
                 # get a Series with an appropriate diff dtype
-                if is_numeric_dtype(ser.dtype):
-                    return ser - np.nan
-                elif needs_i8_conversion(ser.dtype):
-                    return ser - NaT
-                raise NotImplementedError(ser.dtype)
+                return ser.to_frame().diff(1, axis=1).iloc[:, 0]
 
             if periods < 0:
                 return self.iloc[:, ::-1].diff(-periods, axis).iloc[:, ::-1]
