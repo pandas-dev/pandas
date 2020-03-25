@@ -1,5 +1,6 @@
 import pytest
 
+import numpy as np
 from pandas import Index, MultiIndex
 
 
@@ -7,14 +8,15 @@ class TestIndexConstructor:
     # Tests for the Index constructor, specifically for cases that do
     #  not return a subclass
 
-    def test_constructor_corner(self):
+    @pytest.mark.parametrize("value", [1, [1, 2][0], np.array([1, 2])[0]])
+    def test_constructor_corner(self, value):
         # corner case
         msg = (
             r"Index\(\.\.\.\) must be called with a collection of some "
-            "kind, 0 was passed"
+            f"kind, {value} was passed"
         )
         with pytest.raises(TypeError, match=msg):
-            Index(0)
+            Index(value)
 
     @pytest.mark.parametrize("index_vals", [[("A", 1), "B"], ["B", ("A", 1)]])
     def test_construction_list_mixed_tuples(self, index_vals):
