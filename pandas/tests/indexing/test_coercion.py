@@ -297,7 +297,8 @@ class TestSetitemCoercion(CoercionBase):
 
         if exp_dtype is IndexError:
             temp = obj.copy()
-            with pytest.raises(exp_dtype):
+            msg = "index 5 is out of bounds for axis 0 with size 4"
+            with pytest.raises(exp_dtype, match=msg):
                 temp[5] = 5
         else:
             exp_index = pd.Index(list("abcd") + [val])
