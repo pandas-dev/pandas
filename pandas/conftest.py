@@ -23,6 +23,7 @@ from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import operator
 import os
+from typing import List
 
 from dateutil.tz import tzlocal, tzutc
 import hypothesis
@@ -31,6 +32,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
+from pandas._typing import Dtype
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -798,14 +800,14 @@ def utc_fixture(request):
 
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
 SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
-FLOAT_DTYPES = [float, "float32", "float64"]
-COMPLEX_DTYPES = [complex, "complex64", "complex128"]
-STRING_DTYPES = [str, "str", "U"]
+FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
 DATETIME64_DTYPES = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES = ["timedelta64[ns]", "m8[ns]"]
