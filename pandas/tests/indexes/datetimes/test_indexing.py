@@ -476,6 +476,13 @@ class TestGetLoc:
             index.get_loc("1/1/2000")
 
 
+class TestContains:
+    def test_dti_contains_with_duplicates(self):
+        d = datetime(2011, 12, 5, 20, 30)
+        ix = DatetimeIndex([d, d])
+        assert d in ix
+
+
 class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
