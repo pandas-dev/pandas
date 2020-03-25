@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 
-import numpy as np
 from pandas import Index, MultiIndex
 
 
