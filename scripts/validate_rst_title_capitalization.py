@@ -59,6 +59,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "DatetimeIndex",
     "IntervalIndex",
     "CategoricalIndex",
+    "GroupBy",
     "SPSS",
     "ORC",
     "R",
