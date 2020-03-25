@@ -15,19 +15,22 @@ class TestSeriesGetitemScalars:
 
 class TestSeriesGetitemSlices:
     def test_getitem_slice_2d(self, datetime_series):
+        # GH#30588 multi-dimensional indexing deprecated
 
         # This is currently failing because the test was relying on
         # the DeprecationWarning coming through Index.__getitem__.
         # We want to implement a warning specifically for Series.__getitem__
         # at which point this will become a Deprecation/FutureWarning
         with tm.assert_produces_warning(None):
-            # GH#30588 multi-dimensional indexing deprecated
+            # GH#30867 Don't want to support this long-term, but
+            # for now ensure that the warning from Index
+            # doesn't comes through via Series.__getitem__.
             result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 
 
-class TestGetitemListLike:
+class TestSeriesGetitemListLike:
     def test_getitem_intlist_intindex_periodvalues(self):
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 
