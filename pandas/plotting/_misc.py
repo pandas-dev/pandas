@@ -29,7 +29,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
 def register():
     """
-    Register pandas Formatters and Converters with matplotlib.
+    Register pandas formatters and converters with matplotlib.
 
     This function modifies the global ``matplotlib.units.registry``
     dictionary. Pandas adds custom converters for
@@ -62,7 +62,7 @@ def deregister():
 
     See Also
     --------
-    register_matplotlib_converters : Register pandas Formatters and Converters
+    register_matplotlib_converters : Register pandas formatters and fonverters
         with matplotlib.
     """
     plot_backend = _get_plot_backend("matplotlib")
