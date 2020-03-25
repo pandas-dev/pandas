@@ -304,43 +304,62 @@ def operate_blockwise(left, right, array_op):
 
         blk_vals = blk.values
 
+        left_ea = not isinstance(blk_vals, np.ndarray)
+
         if not isinstance(blk_vals, np.ndarray):
             # 1D EA
             assert len(locs) == 1, locs
-            rser = right.iloc[:, locs[0]]
-            rvals = extract_array(rser, extract_numpy=True)
+            rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
+            assert len(rblks) == 1, rblks
+            rblk = rblks[0]
+            assert rblk.shape[0] == 1, rblk.shape
+
+            rvals = rblk.values
+            right_ea = not isinstance(rvals, np.ndarray)
+            if not right_ea:
+                assert rvals.shape[0] == 1, rvals.shape
+                rvals = rvals[0, :]
+            #rser = right.iloc[:, locs[0]]
+            #rvals = extract_array(rser, extract_numpy=True)
             res_values = array_op(blk_vals, rvals)
             nbs = blk._split_op_result(res_values)
+            # Setting nb.mgr_locs is unnecessary here, but harmless
             res_blks.extend(nbs)
             continue
 
         rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
 
         for k, rblk in enumerate(rblks):
-            lvals = blk_vals[rblk.mgr_locs.indexer, :]
             rvals = rblk.values
+            right_ea = not isinstance(rvals, np.ndarray)
 
-            if not isinstance(rvals, np.ndarray):
+            lvals = blk_vals[rblk.mgr_locs.indexer, :]
+
+            if not (left_ea or right_ea):
+                assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+            #elif left_ea and right_ea:
+            #    assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+            elif right_ea:
                 # 1D EA
                 assert lvals.shape[0] == 1, lvals.shape
                 lvals = lvals[0, :]
-                res_values = array_op(lvals, rvals)
-                nbs = rblk._split_op_result(res_values)
-                assert len(nbs) == 1
-                nb = nbs[0]
-                nb.mgr_locs = locs.as_array[nb.mgr_locs]
-                res_blks.append(nb)
-                continue
-
-            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+            else:
+                assert False  # should be unreachable ATM
+                #assert rvals.shape[0] == 1, rvals.shape
+                #rvals = rvals[0, :]
 
             res_values = array_op(lvals, rvals)
-            assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
             nbs = rblk._split_op_result(res_values)
+
+            # Debugging assertions
+            if right_ea:  # or left_ea
+                assert len(nbs) == 1
+            else:
+                assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
+
             for nb in nbs:
                 # TODO: maybe optimize by sticking with slices?
-                nb_mgr_locs = nb.mgr_locs
-                nblocs = locs.as_array[nb_mgr_locs.indexer]
+                nblocs = locs.as_array[nb.mgr_locs.indexer]
                 nb.mgr_locs = nblocs
                 assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
                 assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
