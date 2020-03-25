@@ -321,7 +321,7 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
         mask = values == -1
-        return cls(values.astype(bool), mask)
+        return cls(values.astype(bool, copy=False), mask)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
