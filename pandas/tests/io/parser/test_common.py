@@ -2126,3 +2126,10 @@ def test_no_header_two_extra_columns(all_parsers):
     parser = all_parsers
     df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
+
+def test_unexpected_keyword_parameter_exception(all_parsers):
+    # GH 25648
+    parser = all_parsers
+    msg = "read_csv\\(\\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg):
+        parser.read_csv("foo.csv", foo=1)
