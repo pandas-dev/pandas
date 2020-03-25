@@ -785,7 +785,6 @@ class TestDataFrameReshape:
             ),
             index=pd.Index([0], name="i1"),
         )
-        print(expected)
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_multi_level_cols(self):
