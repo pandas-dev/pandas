@@ -7,6 +7,8 @@ import tokenize
 from typing import Optional
 import warnings
 
+from pandas._config import get_option
+
 from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
@@ -39,10 +41,11 @@ def _check_engine(engine: Optional[str]) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import _NUMEXPR_INSTALLED
+    from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 
     if engine is None:
-        engine = "numexpr" if _NUMEXPR_INSTALLED else "python"
+        use_numexpr = _USE_NUMEXPR and get_option("compute.use_numexpr")
+        engine = "numexpr" if use_numexpr else "python"
 
     if engine not in _engines:
         valid_engines = list(_engines.keys())
