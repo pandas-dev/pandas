@@ -103,9 +103,6 @@ def test_on_offset_implementations(dt, offset):
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
 
-    # TODO: Remove this `warnings.simplefilter`
-    warnings.simplefilter("ignore")
-
     # TODO: test for that case separately
     assume(offset.n != 0)
 
