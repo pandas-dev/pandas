@@ -28,7 +28,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def indices(self):
         return tm.makeTimedeltaIndex(10)
 
-    def create_index(self):
+    def create_index(self) -> TimedeltaIndex:
         return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
 
     def test_numeric_compat(self):
@@ -146,19 +146,6 @@ class TestTimedeltaIndex(DatetimeLike):
         expected = Index(rng.to_pytimedelta(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
-
-    def test_pickle(self):
-
-        rng = timedelta_range("1 days", periods=10)
-        rng_p = tm.round_trip_pickle(rng)
-        tm.assert_index_equal(rng, rng_p)
-
-    def test_hash_error(self):
-        index = timedelta_range("1 days", periods=10)
-        with pytest.raises(
-            TypeError, match=(f"unhashable type: {repr(type(index).__name__)}")
-        ):
-            hash(index)
 
     def test_append_numpy_bug_1681(self):
 

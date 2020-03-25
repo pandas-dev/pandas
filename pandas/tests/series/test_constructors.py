@@ -393,7 +393,7 @@ class TestSeriesConstructors:
         expected = Series(
             ["a", "a"], index=[0, 1], dtype=CategoricalDtype(["a", "b"], ordered=True)
         )
-        tm.assert_series_equal(result, expected, check_categorical=True)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_categorical_string(self):
         # GH 26336: the string 'category' maintains existing CategoricalDtype
@@ -1115,7 +1115,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
-    def test_contructor_dict_tuple_indexer(self):
+    def test_constructor_dict_tuple_indexer(self):
         # GH 12948
         data = {(1, 1, None): -1.0}
         result = Series(data)
@@ -1428,3 +1428,10 @@ class TestSeriesConstructors:
         result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
         expected = Series([Timestamp("2019")])
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_datetime64(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        dates = np.asarray(rng)
+
+        series = Series(dates)
+        assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))

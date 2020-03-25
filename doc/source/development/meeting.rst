@@ -25,7 +25,7 @@ This calendar shows all the developer meetings.
 You can subscribe to this calendar with the following links:
 
 * `iCal <https://calendar.google.com/calendar/ical/pgbn14p6poja8a1cf2dv2jhrmg%40group.calendar.google.com/public/basic.ics>`__
-* `Google calendar <https://calendar.google.com/calendar/embed?src=pgbn14p6poja8a1cf2dv2jhrmg%40group.calendar.google.com>`__
+* `Google calendar <https://calendar.google.com/calendar/r?cid=pgbn14p6poja8a1cf2dv2jhrmg@group.calendar.google.com>`__
 
 Additionally, we'll sometimes have one-off meetings on specific topics.
 These will be published on the same calendar.

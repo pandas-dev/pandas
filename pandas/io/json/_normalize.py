@@ -8,6 +8,7 @@ from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas._typing import Scalar
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -226,14 +227,28 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+    def _pull_field(
+        js: Dict[str, Any], spec: Union[List, str]
+    ) -> Union[Scalar, Iterable]:
+        """Internal function to pull field"""
         result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+        return result
 
+    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+        """
+        Interal function to pull field for records, and similar to
+        _pull_field, but require to return Iterable. And will raise error
+        if has non iterable value.
+        """
+        result = _pull_field(js, spec)
+
+        # GH 31507 GH 30145, if result is not Iterable, raise TypeError if not
+        # null, otherwise return an empty list
         if not isinstance(result, Iterable):
             if pd.isnull(result):
                 result = []  # type: ignore
@@ -242,7 +257,6 @@ def _json_normalize(
                     f"{js} has non iterable value {result} for path {spec}. "
                     "Must be iterable or null."
                 )
-
         return result
 
     if isinstance(data, list) and not data:
@@ -292,7 +306,7 @@ def _json_normalize(
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                recs = _pull_records(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)

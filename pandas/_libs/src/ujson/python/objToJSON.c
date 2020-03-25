@@ -165,7 +165,6 @@ void *initObjToJSON(void) {
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
 
@@ -222,28 +221,19 @@ static PyObject *get_values(PyObject *obj) {
 
     PRINTMARK();
 
-    if (PyObject_HasAttrString(obj, "_internal_get_values")) {
+    if (PyObject_TypeCheck(obj, cls_index) || PyObject_TypeCheck(obj, cls_series)) {
+        // The special cases to worry about are dt64tz and category[dt64tz].
+        //  In both cases we want the UTC-localized datetime64 ndarray,
+        //  without going through and object array of Timestamps.
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
+        values = PyObject_GetAttrString(obj, "values");
 
         if (values == NULL) {
             // Clear so we can subsequently try another method
             PyErr_Clear();
-        } else if (!PyArray_CheckExact(values)) {
-            // Didn't get a numpy array, so keep trying
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
-    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values")) {
-        PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values", NULL);
-
-        if (values == NULL) {
-            // Clear so we can subsequently try another method
-            PyErr_Clear();
+        } else if (PyObject_HasAttrString(values, "__array__")) {
+            // We may have gotten a Categorical or Sparse array so call np.array
+            values = PyObject_CallMethod(values, "__array__", NULL);
         } else if (!PyArray_CheckExact(values)) {
             // Didn't get a numpy array, so keep trying
             PRINTMARK();
@@ -364,6 +354,12 @@ static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
     return int64ToIso(GET_TC(tc)->longValue, base, len);
+}
+
+/* JSON callback. returns a char* and mutates the pointer to *len */
+static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                       JSONTypeContext *tc, size_t *len) {
+    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
 }
 
 /* JSON callback */
@@ -780,7 +776,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
             goto BLKRET;
         }
 
-        tmp = get_values(block);
+        tmp = PyObject_CallMethod(block, "get_block_values_for_json", NULL);
         if (!tmp) {
             ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
             Py_DECREF(block);
@@ -1266,7 +1262,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     } else if (index == 2) {
         memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
         if (is_simple_frame(obj)) {
-            GET_TC(tc)->itemValue = get_values(obj);
+            GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
             if (!GET_TC(tc)->itemValue) {
                 return 0;
             }
@@ -1454,7 +1450,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                  1000000000LL; // nanoseconds per second
                 } else {
                     // datetime.* objects don't follow above rules
-                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
+                    nanosecVal =
+                        PyDateTimeToEpoch(item, NPY_FR_ns);
                 }
             }
         }
@@ -1466,37 +1463,13 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 strncpy(cLabel, "null", len);
             } else {
                 if (enc->datetimeIso) {
-                    // TODO: Vectorized Timedelta function
                     if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
-                        PyObject *td =
-                            PyObject_CallFunction(cls_timedelta, "(O)", item);
-                        if (td == NULL) {
-                            Py_DECREF(item);
-                            NpyArr_freeLabels(ret, num);
-                            ret = 0;
-                            break;
-                        }
-
-                        PyObject *iso =
-                            PyObject_CallMethod(td, "isoformat", NULL);
-                        Py_DECREF(td);
-                        if (iso == NULL) {
-                            Py_DECREF(item);
-                            NpyArr_freeLabels(ret, num);
-                            ret = 0;
-                            break;
-                        }
-
-                        len = strlen(PyUnicode_AsUTF8(iso));
-                        cLabel = PyObject_Malloc(len + 1);
-                        memcpy(cLabel, PyUnicode_AsUTF8(iso), len + 1);
-                        Py_DECREF(iso);
+                        cLabel = int64ToIsoDuration(nanosecVal, &len);
                     } else {
                         if (type_num == NPY_DATETIME) {
                             cLabel = int64ToIso(nanosecVal, base, &len);
                         } else {
-                            cLabel = PyDateTimeToIso((PyDateTime_Date *)item,
-                                                     base, &len);
+                            cLabel = PyDateTimeToIso(item, base, &len);
                         }
                     }
                     if (cLabel == NULL) {
@@ -1623,7 +1596,11 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
             if (enc->datetimeIso) {
                 PRINTMARK();
-                pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+                if (enc->npyType == NPY_TIMEDELTA) {
+                    pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+                } else {
+                    pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+                }
                 // Currently no way to pass longVal to iso function, so use
                 // state management
                 GET_TC(tc)->longValue = longVal;
@@ -1704,7 +1681,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+            GET_TC(tc)->longValue =
+                PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1730,7 +1708,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+            GET_TC(tc)->longValue =
+                PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1743,28 +1722,30 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
         }
 
-        unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        if (scaleNanosecToUnit(&value, unit) != 0) {
-            // TODO: Add some kind of error handling here
-        }
-
-        exc = PyErr_Occurred();
-
-        if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
-            PRINTMARK();
-            goto INVALID;
-        }
-
+        PRINTMARK();
         if (value == get_nat()) {
             PRINTMARK();
             tc->type = JT_NULL;
             return;
+        } else if (enc->datetimeIso) {
+            pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+            tc->type = JT_UTF8;
+        } else {
+            unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+            if (scaleNanosecToUnit(&value, unit) != 0) {
+                // TODO: Add some kind of error handling here
+            }
+
+            exc = PyErr_Occurred();
+
+            if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+                PRINTMARK();
+                goto INVALID;
+            }
+
+            tc->type = JT_LONG;
         }
-
         GET_TC(tc)->longValue = value;
-
-        PRINTMARK();
-        tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
@@ -1935,7 +1916,7 @@ ISITERABLE:
             pc->iterNext = NpyArr_iterNext;
             pc->iterGetName = NpyArr_iterGetName;
 
-            pc->newObj = get_values(obj);
+            pc->newObj = PyObject_GetAttrString(obj, "values");
             if (!pc->newObj) {
                 goto INVALID;
             }

@@ -9,7 +9,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -233,6 +234,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._data
         result.name = name
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -250,11 +252,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = name if name is not no_default else self.name
-
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
 
-        return self._simple_new(values, name=name)
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -295,12 +299,20 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # raise when input doesn't have freq
         raise raise_on_incompatible(self, None)
 
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not isinstance(dtype, PeriodDtype):
+            return False
+        return dtype.freq == self.freq
+
     # ------------------------------------------------------------------------
     # Rendering Methods
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.astype(object).values
+        return self.astype(object)._values
 
     @property
     def _formatter_func(self):
@@ -377,7 +389,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
         elif not isinstance(where_idx, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
         elif where_idx.freq != self.freq:
@@ -451,12 +463,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if target.freq != self.freq:
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches, no_matches
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
 
-            target = target.asi8
+        target = target.asi8
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing

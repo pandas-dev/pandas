@@ -94,20 +94,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
 
 
-def values_from_object(obj: object):
-    """
-    Return my values or the object if we are say an ndarray.
-    """
-    func: object
-
-    func = getattr(obj, '_internal_get_values', None)
-    if func is not None:
-        # Includes DataFrame, for which we get frame.values
-        obj = func()
-
-    return obj
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(arr: object[:]) -> int64_t:
@@ -2073,7 +2059,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         If an array-like object contains only timedelta values or NaT is
         encountered, whether to convert and return an array of m8[ns] dtype.
     convert_to_nullable_integer : bool, default False
-        If an array-like object contains only interger values (and NaN) is
+        If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
 
     Returns
@@ -2296,7 +2282,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                                 return uints
                             else:
                                 return ints
-                elif seen.is_bool:
+                elif seen.is_bool and not seen.nan_:
                     return bools.view(np.bool_)
 
     return objects

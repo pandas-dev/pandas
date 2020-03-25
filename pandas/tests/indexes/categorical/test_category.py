@@ -488,7 +488,7 @@ class TestCategoricalIndex(Base):
         assert not ci.equals(CategoricalIndex(list("aabca") + [np.nan], ordered=True))
         assert ci.equals(ci.copy())
 
-    def test_equals_categoridcal_unordered(self):
+    def test_equals_categorical_unordered(self):
         # https://github.com/pandas-dev/pandas/issues/16603
         a = pd.CategoricalIndex(["A"], categories=["A", "B"])
         b = pd.CategoricalIndex(["A"], categories=["B", "A"])
