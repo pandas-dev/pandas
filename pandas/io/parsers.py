@@ -528,9 +528,13 @@ _deprecated_args: Set[str] = set()
 
 
 def _make_parser_function(name, default_sep=","):
-    def parser_f(
-        filepath_or_buffer: FilePathOrBuffer,
-        sep=default_sep,
+    exec(f"""
+from pandas._typing import FilePathOrBuffer
+import csv
+
+def {name}(
+        filepath_or_buffer : FilePathOrBuffer,
+        sep="{default_sep}",
         delimiter=None,
         # Column and Index Locations and Names
         header="infer",
@@ -583,7 +587,7 @@ def _make_parser_function(name, default_sep=","):
         warn_bad_lines=True,
         # Internal
         delim_whitespace=False,
-        low_memory=_c_parser_defaults["low_memory"],
+        low_memory={_c_parser_defaults["low_memory"]},
         memory_map=False,
         float_precision=None,
     ):
@@ -674,13 +678,10 @@ def _make_parser_function(name, default_sep=","):
         )
 
         return _read(filepath_or_buffer, kwds)
-
-    parser_f.__name__ = name
-
-    return parser_f
+    """, globals())
 
 
-read_csv = _make_parser_function("read_csv", default_sep=",")
+_make_parser_function("read_csv", default_sep=",")
 read_csv = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -689,7 +690,7 @@ read_csv = Appender(
     )
 )(read_csv)
 
-read_table = _make_parser_function("read_table", default_sep="\t")
+_make_parser_function("read_table", default_sep="\t")
 read_table = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
