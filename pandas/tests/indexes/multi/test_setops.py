@@ -209,7 +209,8 @@ def test_difference_sort_incomparable():
     # sort=None, the default
     # MultiIndex.difference deviates here from other difference
     # implementations in not catching the TypeError
-    with pytest.raises(TypeError):
+    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=msg):
         result = idx.difference(other)
 
     # sort=False
