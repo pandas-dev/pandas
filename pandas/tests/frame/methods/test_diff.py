@@ -120,7 +120,7 @@ class TestDataFrameDiff:
         )
 
     def test_diff_period(self):
-        # Don't pass an incorrect axis
+        # GH#32995 Don't pass an incorrect axis
         #  TODO(EA2D): this bug wouldn't have happened with 2D EA
         pi = pd.date_range("2016-01-01", periods=3).to_period("D")
         df = pd.DataFrame({"A": pi})
@@ -132,7 +132,7 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(result, expected)
 
     def test_diff_axis1_mixed_dtypes(self):
-        # We cannot diff across Blocks with axis=1
+        # GH#32995 We cannot diff across Blocks with axis=1
 
         df = pd.DataFrame({"A": range(3), "B": np.arange(3, dtype=np.float64)})
 
