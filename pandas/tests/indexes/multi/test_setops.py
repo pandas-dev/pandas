@@ -209,7 +209,8 @@ def test_difference_sort_incomparable():
     # sort=None, the default
     # MultiIndex.difference deviates here from other difference
     # implementations in not catching the TypeError
-    with pytest.raises(TypeError):
+    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=msg):
         result = idx.difference(other)
 
     # sort=False
@@ -246,6 +247,7 @@ def test_union(idx, sort):
     the_union = idx.union(idx[:0], sort=sort)
     assert the_union is idx
 
+    # FIXME: dont leave commented-out
     # won't work in python 3
     # tuples = _index.values
     # result = _index[:4] | tuples[4:]
@@ -282,6 +284,7 @@ def test_intersection(idx, sort):
     expected = idx[:0]
     assert empty.equals(expected)
 
+    # FIXME: dont leave commented-out
     # can't do in python 3
     # tuples = _index.values
     # result = _index & tuples
@@ -349,6 +352,17 @@ def test_union_sort_other_incomparable_sort():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     with pytest.raises(TypeError, match="Cannot compare"):
         idx.union(idx[:1], sort=True)
+
+
+def test_union_non_object_dtype_raises():
+    # GH#32646 raise NotImplementedError instead of less-informative error
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+
+    idx = mi.levels[1]
+
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        mi.union(idx)
 
 
 @pytest.mark.parametrize(
