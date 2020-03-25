@@ -10541,13 +10541,14 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-*args, **kwargs :
+*args, **kwargs
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
 
 Returns
 -------
 %(name1)s or %(name2)s
+    Return cumulative %(desc)s of %(name1)s or %(name2)s.
 
 See Also
 --------
