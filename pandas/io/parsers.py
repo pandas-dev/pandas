@@ -605,7 +605,7 @@ def {name}(
         # the comparison to dialect values by checking if default values
         # for BOTH "delimiter" and "sep" were provided.
         if dialect is not None:
-            sep_override = delimiter is None and sep == default_sep
+            sep_override = delimiter is None and sep == "{default_sep}"
             kwds = dict(sep_override=sep_override)
         else:
             kwds = dict()
@@ -614,7 +614,7 @@ def {name}(
         if delimiter is None:
             delimiter = sep
 
-        if delim_whitespace and delimiter != default_sep:
+        if delim_whitespace and delimiter != "{default_sep}":
             raise ValueError(
                 "Specified a delimiter with both sep and "
                 "delim_whitespace=True; you can only specify one."
