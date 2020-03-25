@@ -2263,7 +2263,8 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
         else:
-            with pytest.raises(AttributeError):
+            msg = f"'{type(indices).__name__}' object has no attribute 'contains'"
+            with pytest.raises(AttributeError, match=msg):
                 indices.contains(1)
 
 
