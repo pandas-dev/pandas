@@ -697,7 +697,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return type(self)._from_sequence(result).tz_localize(self.tz)
 
-        return type(self)._from_sequence(result, freq="infer")
+        return type(self)._from_sequence(result)._with_freq("infer")
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -717,23 +717,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
         return result.view("timedelta64[ns]")
-
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new DatetimeArray
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : DatetimeArray
-        """
-        new_values = super()._add_delta(delta)
-        return type(self)._from_sequence(new_values, tz=self.tz, freq="infer")
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -1048,7 +1031,7 @@ default 'raise'
             new_values[not_null] = new_values[not_null] - adjustment
         else:
             new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
-        return type(self)._from_sequence(new_values, freq="infer").tz_localize(self.tz)
+        return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
     def to_period(self, freq=None):
         """
