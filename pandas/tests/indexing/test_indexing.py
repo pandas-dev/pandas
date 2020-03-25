@@ -7,23 +7,20 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.errors import AbstractMethodError
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.tests.indexing.common import Base, _mklbl
+from pandas.tests.indexing.common import _mklbl
 
 # ------------------------------------------------------------------------
 # Indexing test cases
 
 
-class TestFancy(Base):
+class TestFancy:
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -56,9 +53,6 @@ class TestFancy(Base):
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
-    @pytest.mark.parametrize(
         "obj",
         [
             lambda i: Series(np.arange(len(i)), index=i),
@@ -74,43 +68,28 @@ class TestFancy(Base):
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1, "
-            r"got 3\)|"
-            "Cannot index with multidimensional key|"
-            r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
-            "Index data must be 1-dimensional"
+        msg = "|".join(
+            [
+                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
+                "Cannot index with multidimensional key",
+                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
+                "Index data must be 1-dimensional",
+                "positional indexers are out-of-bounds",
+                "Indexing a MultiIndex with a multidimensional key is not implemented",
+            ]
         )
 
-        if (
-            isinstance(obj, Series)
-            and idxr_id == "getitem"
-            and index.inferred_type
-            in [
-                "string",
-                "datetime64",
-                "period",
-                "timedelta64",
-                "boolean",
-                "categorical",
-            ]
-        ):
+        potential_errors = (IndexError, ValueError, NotImplementedError)
+        with pytest.raises(potential_errors, match=msg):
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
-        else:
-            with pytest.raises(ValueError, match=msg):
-                with tm.assert_produces_warning(DeprecationWarning):
-                    idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -127,44 +106,49 @@ class TestFancy(Base):
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1, "
-            r"got 3\)|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute "
-            "'set_value'|"  # AttributeError
-            "unhashable type: 'numpy.ndarray'|"  # TypeError
-            "No matching signature found|"  # TypeError
-            r"^\[\[\[|"  # pandas.core.indexing.IndexingError
-            "Index data must be 1-dimensional"
-        )
-
-        if (idxr_id == "iloc") or (
-            (
-                isinstance(obj, Series)
-                and idxr_id == "setitem"
-                and index.inferred_type
-                in [
-                    "floating",
-                    "string",
-                    "datetime64",
-                    "period",
-                    "timedelta64",
-                    "boolean",
-                    "categorical",
-                ]
-            )
+        if (
+            (len(indices) == 0)
+            and (idxr_id == "iloc")
+            and isinstance(obj, pd.DataFrame)
         ):
-            idxr[nd3] = 0
+            # gh-32896
+            pytest.skip("This is currently failing. There's an xfailed test below.")
+
+        if idxr_id == "iloc":
+            err = ValueError
+            msg = f"Cannot set values with ndim > {obj.ndim}"
+        elif (
+            isinstance(indices, pd.IntervalIndex)
+            and idxr_id == "setitem"
+            and obj.ndim == 1
+        ):
+            err = AttributeError
+            msg = (
+                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
+            )
         else:
-            err = (ValueError, AttributeError)
-            with pytest.raises(err, match=msg):
-                idxr[nd3] = 0
+            err = ValueError
+            msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
+
+        with pytest.raises(err, match=msg):
+            idxr[nd3] = 0
+
+    @pytest.mark.xfail(reason="gh-32896")
+    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
+        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
+        i = Index([])
+        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
@@ -543,7 +527,7 @@ class TestFancy(Base):
                 self.value = value
 
             def __str__(self) -> str:
-                return "[{0}]".format(self.value)
+                return f"[{self.value}]"
 
             __repr__ = __str__
 
@@ -750,7 +734,7 @@ class TestFancy(Base):
                 assert s2.index.is_object()
 
 
-class TestMisc(Base):
+class TestMisc:
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
         df["a"] = 10
@@ -875,21 +859,21 @@ class TestMisc(Base):
         assert df2.loc[:, "a"].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, "a"], df2.iloc[:, 0])
 
-    def test_range_in_series_indexing(self):
+    @pytest.mark.parametrize("size", [5, 999999, 1000000])
+    def test_range_in_series_indexing(self, size):
         # range can cause an indexing error
         # GH 11652
-        for x in [5, 999999, 1000000]:
-            s = Series(index=range(x), dtype=np.float64)
-            s.loc[range(1)] = 42
-            tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        s = Series(index=range(size), dtype=np.float64)
+        s.loc[range(1)] = 42
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
 
-            s.loc[range(2)] = 43
-            tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        s.loc[range(2)] = 43
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
 
-    def test_non_reducing_slice(self):
-        df = DataFrame([[0, 1], [2, 3]])
-
-        slices = [
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            # FIXME: dont leave commented-out
             # pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
@@ -902,10 +886,13 @@ class TestMisc(Base):
             [0, 1],
             np.array([0, 1]),
             Series([0, 1]),
-        ]
-        for slice_ in slices:
-            tslice_ = _non_reducing_slice(slice_)
-            assert isinstance(df.loc[tslice_], DataFrame)
+        ],
+    )
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
+
+        tslice_ = _non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
         # like dataframe getitem
@@ -965,37 +952,37 @@ class TestSeriesNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_setitem_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
 
 class TestDataframeNoneCoercion:
@@ -1012,31 +999,35 @@ class TestDataframeNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_loc(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[0, ["foo"]] = None
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_loc(self, expected):
+        start_data, expected_result = expected
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[0, ["foo"]] = None
 
-    def test_coercion_with_setitem_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_setitem_and_dataframe(self, expected):
+        start_data, expected_result = expected
 
-    def test_none_coercion_loc_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[
-                start_dataframe["foo"] == start_dataframe["foo"][0]
-            ] = None
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
+
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_none_coercion_loc_and_dataframe(self, expected):
+        start_data, expected_result = expected
+
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     def test_none_coercion_mixed_dtypes(self):
         start_dataframe = DataFrame(
@@ -1114,29 +1105,6 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "idxr, error, error_message",
-    [
-        (lambda x: x, AbstractMethodError, None),
-        (
-            lambda x: x.loc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
-        ),
-        (
-            lambda x: x.iloc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
-        ),
-    ],
-)
-def test_ndframe_indexing_raises(idxr, error, error_message):
-    # GH 25567
-    frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
-    with pytest.raises(error, match=error_message):
-        idxr(frame)[0]
 
 
 def test_readonly_indices():

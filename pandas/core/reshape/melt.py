@@ -88,9 +88,7 @@ def melt(
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = [
-                    "variable_{i}".format(i=i) for i in range(len(frame.columns.names))
-                ]
+                var_name = [f"variable_{i}" for i in range(len(frame.columns.names))]
         else:
             var_name = [
                 frame.columns.name if frame.columns.name is not None else "variable"
@@ -107,12 +105,12 @@ def melt(
         if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
-            id_data = np.tile(id_data.values, K)
+            id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame.values.ravel("F")
+    mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
@@ -172,13 +170,13 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     pivot_cols = []
 
     for target, names in zip(keys, values):
-        to_concat = [data[col].values for col in names]
+        to_concat = [data[col]._values for col in names]
 
         mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:
-        mdata[col] = np.tile(data[col].values, K)
+        mdata[col] = np.tile(data[col]._values, K)
 
     if dropna:
         mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
@@ -417,9 +415,7 @@ def wide_to_long(
     """
 
     def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
-        regex = r"^{stub}{sep}{suffix}$".format(
-            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
-        )
+        regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 

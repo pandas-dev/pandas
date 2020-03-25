@@ -109,26 +109,23 @@ def mask_zero_div_zero(x, y, result):
         return result
 
     if zmask.any():
-        shape = result.shape
 
         # Flip sign if necessary for -0.0
         zneg_mask = zmask & np.signbit(y)
         zpos_mask = zmask & ~zneg_mask
 
-        nan_mask = (zmask & (x == 0)).ravel()
+        nan_mask = zmask & (x == 0)
         with np.errstate(invalid="ignore"):
-            neginf_mask = ((zpos_mask & (x < 0)) | (zneg_mask & (x > 0))).ravel()
-            posinf_mask = ((zpos_mask & (x > 0)) | (zneg_mask & (x < 0))).ravel()
+            neginf_mask = (zpos_mask & (x < 0)) | (zneg_mask & (x > 0))
+            posinf_mask = (zpos_mask & (x > 0)) | (zneg_mask & (x < 0))
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
-            result = result.astype("float64", copy=False).ravel()
+            result = result.astype("float64", copy=False)
 
-            np.putmask(result, nan_mask, np.nan)
-            np.putmask(result, posinf_mask, np.inf)
-            np.putmask(result, neginf_mask, -np.inf)
-
-            result = result.reshape(shape)
+            result[nan_mask] = np.nan
+            result[posinf_mask] = np.inf
+            result[neginf_mask] = -np.inf
 
     return result
 

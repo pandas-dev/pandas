@@ -146,7 +146,7 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
-    def test_categories_assigments(self):
+    def test_categories_assignments(self):
         s = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
         s.categories = [1, 2, 3]
@@ -154,7 +154,7 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
-    def test_categories_assigments_wrong_length_raises(self, new_categories):
+    def test_categories_assignments_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
             "new categories need to have the same number of items "
@@ -240,14 +240,17 @@ def test_mask_with_boolean(index):
 
 
 @pytest.mark.parametrize("index", [True, False])
-def test_mask_with_boolean_raises(index):
+def test_mask_with_boolean_na_treated_as_false(index):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = Series(range(3))
     idx = Categorical([True, False, None])
     if index:
         idx = CategoricalIndex(idx)
 
-    with pytest.raises(ValueError, match="NA / NaN"):
-        s[idx]
+    result = s[idx]
+    expected = s[idx.fillna(False)]
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.fixture

@@ -40,9 +40,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         tm.assert_almost_equal(rolling_result, result)
 
     def test_expanding_count(self):
-        result = self.series.expanding().count()
+        result = self.series.expanding(min_periods=0).count()
         tm.assert_almost_equal(
-            result, self.series.rolling(window=len(self.series)).count()
+            result, self.series.rolling(window=len(self.series), min_periods=0).count()
         )
 
     def test_expanding_quantile(self):
@@ -369,7 +369,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             )
             self._test_moments_consistency(
                 min_periods=min_periods,
-                count=lambda x: x.expanding().count(),
+                count=lambda x: x.expanding(min_periods=min_periods).count(),
                 mean=lambda x: x.expanding(min_periods=min_periods).mean(),
                 corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
                 var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),

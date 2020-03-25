@@ -3,90 +3,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 
 # Column add, remove, delete.
 
 
 class TestDataFrameMutateColumns:
-    def test_assign(self):
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        original = df.copy()
-        result = df.assign(C=df.B / df.A)
-        expected = df.copy()
-        expected["C"] = [4, 2.5, 2]
-        tm.assert_frame_equal(result, expected)
-
-        # lambda syntax
-        result = df.assign(C=lambda x: x.B / x.A)
-        tm.assert_frame_equal(result, expected)
-
-        # original is unmodified
-        tm.assert_frame_equal(df, original)
-
-        # Non-Series array-like
-        result = df.assign(C=[4, 2.5, 2])
-        tm.assert_frame_equal(result, expected)
-        # original is unmodified
-        tm.assert_frame_equal(df, original)
-
-        result = df.assign(B=df.B / df.A)
-        expected = expected.drop("B", axis=1).rename(columns={"C": "B"})
-        tm.assert_frame_equal(result, expected)
-
-        # overwrite
-        result = df.assign(A=df.A + df.B)
-        expected = df.copy()
-        expected["A"] = [5, 7, 9]
-        tm.assert_frame_equal(result, expected)
-
-        # lambda
-        result = df.assign(A=lambda x: x.A + x.B)
-        tm.assert_frame_equal(result, expected)
-
-    def test_assign_multiple(self):
-        df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=["A", "B"])
-        result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
-        expected = DataFrame(
-            [[1, 4, 7, 1, 4], [2, 5, 8, 2, 5], [3, 6, 9, 3, 6]], columns=list("ABCDE")
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_assign_order(self):
-        # GH 9818
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        result = df.assign(D=df.A + df.B, C=df.A - df.B)
-
-        expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]], columns=list("ABDC"))
-        tm.assert_frame_equal(result, expected)
-        result = df.assign(C=df.A - df.B, D=df.A + df.B)
-
-        expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]], columns=list("ABCD"))
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_assign_bad(self):
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        # non-keyword argument
-        with pytest.raises(TypeError):
-            df.assign(lambda x: x.A)
-        with pytest.raises(AttributeError):
-            df.assign(C=df.A, D=df.A + df.C)
-
-    def test_assign_dependent(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4]})
-
-        result = df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
-        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
-        tm.assert_frame_equal(result, expected)
-
-        result = df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
-        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
-        tm.assert_frame_equal(result, expected)
-
-    def test_insert_error_msmgs(self):
+    def test_setitem_error_msmgs(self):
 
         # GH 7432
         df = DataFrame(
@@ -106,7 +30,7 @@ class TestDataFrameMutateColumns:
         with pytest.raises(TypeError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
-    def test_insert_benchmark(self):
+    def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5
@@ -117,18 +41,12 @@ class TestDataFrameMutateColumns:
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K), index=range(N))
         tm.assert_frame_equal(df, expected)
 
-    def test_insert(self):
+    def test_setitem_different_dtype(self):
         df = DataFrame(
             np.random.randn(5, 3), index=np.arange(5), columns=["c", "b", "a"]
         )
-
         df.insert(0, "foo", df["a"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "b", "a"]))
-        tm.assert_series_equal(df["a"], df["foo"], check_names=False)
-
         df.insert(2, "bar", df["c"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "bar", "b", "a"]))
-        tm.assert_almost_equal(df["c"], df["bar"], check_names=False)
 
         # diff dtype
 
@@ -158,17 +76,7 @@ class TestDataFrameMutateColumns:
         )
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(ValueError, match="already exists"):
-            df.insert(1, "a", df["b"])
-        msg = "cannot insert c, already exists"
-        with pytest.raises(ValueError, match=msg):
-            df.insert(1, "c", df["b"])
-
-        df.columns.name = "some_name"
-        # preserve columns name field
-        df.insert(0, "baz", df["c"])
-        assert df.columns.name == "some_name"
-
+    def test_setitem_empty_columns(self):
         # GH 13522
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
@@ -241,22 +149,3 @@ class TestDataFrameMutateColumns:
         assert "b" in df.columns
         assert "a" not in df.columns
         assert len(df.index) == 2
-
-    def test_insert_column_bug_4032(self):
-
-        # GH4032, inserting a column and renaming causing errors
-        df = DataFrame({"b": [1.1, 2.2]})
-        df = df.rename(columns={})
-        df.insert(0, "a", [1, 2])
-
-        result = df.rename(columns={})
-        str(result)
-        expected = DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
-        tm.assert_frame_equal(result, expected)
-        df.insert(0, "c", [1.3, 2.3])
-
-        result = df.rename(columns={})
-        str(result)
-
-        expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
-        tm.assert_frame_equal(result, expected)

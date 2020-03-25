@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -48,16 +49,31 @@ class TestGetItem:
 
     @pytest.mark.parametrize(
         "key",
-        [pd.Timestamp("1970-01-01"), pd.Timestamp("1970-01-02"), datetime(1970, 1, 1)],
+        [
+            pd.Timestamp("1970-01-01"),
+            pd.Timestamp("1970-01-02"),
+            datetime(1970, 1, 1),
+            pd.Timestamp("1970-01-03").to_datetime64(),
+            # non-matching NA values
+            np.datetime64("NaT"),
+        ],
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
         tdi = pd.timedelta_range(0, periods=10)
-        with pytest.raises(TypeError):
+        with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = TimedeltaIndex([tdi[0], tdi[1], tdi[0]], freq=None, name="idx")
+
+        result = tdi.where(cond, tdi[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
@@ -168,102 +184,12 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
 
 class TestTimedeltaIndex:
-    def test_insert_empty(self):
-        # Corner case inserting with length zero doesnt raise IndexError
-        idx = timedelta_range("1 Day", periods=3)
-        td = idx[0]
-
-        idx[:0].insert(0, td)
-        idx[:0].insert(1, td)
-        idx[:0].insert(-1, td)
-
-    def test_insert(self):
-
-        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-
-        result = idx.insert(2, timedelta(days=5))
-        exp = TimedeltaIndex(["4day", "1day", "5day", "2day"], name="idx")
-        tm.assert_index_equal(result, exp)
-
-        # insertion of non-datetime should coerce to object index
-        result = idx.insert(1, "inserted")
-        expected = Index(
-            [Timedelta("4day"), "inserted", Timedelta("1day"), Timedelta("2day")],
-            name="idx",
-        )
-        assert not isinstance(result, TimedeltaIndex)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
-        idx = timedelta_range("1day 00:00:01", periods=3, freq="s", name="idx")
-
-        # preserve freq
-        expected_0 = TimedeltaIndex(
-            ["1day", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
-            name="idx",
-            freq="s",
-        )
-        expected_3 = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:04"],
-            name="idx",
-            freq="s",
-        )
-
-        # reset freq to None
-        expected_1_nofreq = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
-            name="idx",
-            freq=None,
-        )
-        expected_3_nofreq = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:05"],
-            name="idx",
-            freq=None,
-        )
-
-        cases = [
-            (0, Timedelta("1day"), expected_0),
-            (-3, Timedelta("1day"), expected_0),
-            (3, Timedelta("1day 00:00:04"), expected_3),
-            (1, Timedelta("1day 00:00:01"), expected_1_nofreq),
-            (3, Timedelta("1day 00:00:05"), expected_3_nofreq),
-        ]
-
-        for n, d, expected in cases:
-            result = idx.insert(n, d)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-    @pytest.mark.parametrize(
-        "null", [None, np.nan, np.timedelta64("NaT"), pd.NaT, pd.NA]
-    )
-    def test_insert_nat(self, null):
-        # GH 18295 (test missing)
-        idx = timedelta_range("1day", "3day")
-        result = idx.insert(1, null)
-        expected = TimedeltaIndex(["1day", pd.NaT, "2day", "3day"])
-        tm.assert_index_equal(result, expected)
-
-    def test_insert_invalid_na(self):
-        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-        with pytest.raises(TypeError, match="incompatible label"):
-            idx.insert(0, np.datetime64("NaT"))
-
-    def test_insert_dont_cast_strings(self):
-        # To match DatetimeIndex and PeriodIndex behavior, dont try to
-        #  parse strings to Timedelta
-        idx = timedelta_range("1day", "3day")
-
-        result = idx.insert(0, "1 Day")
-        assert result.dtype == object
-        assert result[0] == "1 Day"
-
     def test_delete(self):
         idx = timedelta_range(start="1 Days", periods=5, freq="D", name="idx")
 

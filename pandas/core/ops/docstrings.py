@@ -34,6 +34,7 @@ def _make_flex_doc(op_name, typ):
             op_name=op_name,
             equiv=equiv,
             reverse=op_desc["reverse"],
+            series_returns=op_desc["series_returns"],
         )
         if op_desc["series_examples"]:
             doc = doc_no_examples + op_desc["series_examples"]
@@ -52,7 +53,7 @@ def _make_flex_doc(op_name, typ):
     return doc
 
 
-_add_example_SERIES = """
+_common_examples_algebra_SERIES = """
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
@@ -68,7 +69,31 @@ a    1.0
 b    NaN
 d    1.0
 e    NaN
+dtype: float64"""
+
+_common_examples_comparison_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
 dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64"""
+
+_add_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.add(b, fill_value=0)
 a    2.0
 b    1.0
@@ -77,24 +102,11 @@ d    1.0
 e    NaN
 dtype: float64
 """
+)
 
-_sub_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_sub_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.subtract(b, fill_value=0)
 a    0.0
 b    1.0
@@ -103,24 +115,11 @@ d   -1.0
 e    NaN
 dtype: float64
 """
+)
 
-_mul_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_mul_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.multiply(b, fill_value=0)
 a    1.0
 b    0.0
@@ -129,24 +128,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_div_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_div_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.divide(b, fill_value=0)
 a    1.0
 b    inf
@@ -155,24 +141,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_floordiv_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_floordiv_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
 b    NaN
@@ -181,24 +154,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_mod_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_mod_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.mod(b, fill_value=0)
 a    0.0
 b    NaN
@@ -207,23 +167,10 @@ d    0.0
 e    NaN
 dtype: float64
 """
-_pow_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+)
+_pow_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.pow(b, fill_value=0)
 a    1.0
 b    1.0
@@ -232,6 +179,93 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
+
+_ne_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.ne(b, fill_value=0)
+a    False
+b     True
+c     True
+d     True
+e     True
+dtype: bool
+"""
+)
+
+_eq_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.eq(b, fill_value=0)
+a     True
+b    False
+c    False
+d    False
+e    False
+dtype: bool
+"""
+)
+
+_lt_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.lt(b, fill_value=0)
+a    False
+b    False
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+)
+
+_le_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.le(b, fill_value=0)
+a    False
+b     True
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+)
+
+_gt_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.gt(b, fill_value=0)
+a     True
+b    False
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+)
+
+_ge_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.ge(b, fill_value=0)
+a     True
+b     True
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+)
+
+_returns_series = """Series\n    The result of the operation."""
+
+_returns_tuple = """2-Tuple of Series\n    The result of the operation."""
 
 _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     # Arithmetic Operators
@@ -240,18 +274,21 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "desc": "Addition",
         "reverse": "radd",
         "series_examples": _add_example_SERIES,
+        "series_returns": _returns_series,
     },
     "sub": {
         "op": "-",
         "desc": "Subtraction",
         "reverse": "rsub",
         "series_examples": _sub_example_SERIES,
+        "series_returns": _returns_series,
     },
     "mul": {
         "op": "*",
         "desc": "Multiplication",
         "reverse": "rmul",
         "series_examples": _mul_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "mod": {
@@ -259,12 +296,14 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "desc": "Modulo",
         "reverse": "rmod",
         "series_examples": _mod_example_SERIES,
+        "series_returns": _returns_series,
     },
     "pow": {
         "op": "**",
         "desc": "Exponential power",
         "reverse": "rpow",
         "series_examples": _pow_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "truediv": {
@@ -272,6 +311,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "desc": "Floating division",
         "reverse": "rtruediv",
         "series_examples": _div_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "floordiv": {
@@ -279,6 +319,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "desc": "Integer division",
         "reverse": "rfloordiv",
         "series_examples": _floordiv_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "divmod": {
@@ -286,29 +327,51 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
         "series_examples": None,
+        "series_returns": _returns_tuple,
         "df_examples": None,
     },
     # Comparison Operators
-    "eq": {"op": "==", "desc": "Equal to", "reverse": None, "series_examples": None},
+    "eq": {
+        "op": "==",
+        "desc": "Equal to",
+        "reverse": None,
+        "series_examples": _eq_example_SERIES,
+        "series_returns": _returns_series,
+    },
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ne_example_SERIES,
+        "series_returns": _returns_series,
     },
-    "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
+    "lt": {
+        "op": "<",
+        "desc": "Less than",
+        "reverse": None,
+        "series_examples": _lt_example_SERIES,
+        "series_returns": _returns_series,
+    },
     "le": {
         "op": "<=",
         "desc": "Less than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _le_example_SERIES,
+        "series_returns": _returns_series,
     },
-    "gt": {"op": ">", "desc": "Greater than", "reverse": None, "series_examples": None},
+    "gt": {
+        "op": ">",
+        "desc": "Greater than",
+        "reverse": None,
+        "series_examples": _gt_example_SERIES,
+        "series_returns": _returns_series,
+    },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ge_example_SERIES,
+        "series_returns": _returns_series,
     },
 }
 
@@ -339,8 +402,7 @@ level : int or name
 
 Returns
 -------
-Series
-    The result of the operation.
+{series_returns}
 
 See Also
 --------

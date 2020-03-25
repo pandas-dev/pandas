@@ -7,10 +7,10 @@ python: 3.7
 # travis cache --delete inside the project directory from the travis command line client
 # The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
- ccache: true
- directories:
-  - $HOME/.cache # cython cache
-  - $HOME/.ccache # compiler cache
+  ccache: true
+  directories:
+    - $HOME/.cache # cython cache
+    - $HOME/.ccache # compiler cache
 
 env:
   global:
@@ -20,13 +20,13 @@ env:
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
-    # for cloning
-    depth: false
+  # for cloning
+  depth: false
 
 matrix:
-    fast_finish: true
+  fast_finish: true
 
-    include:
+  include:
     - env:
         - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
 
@@ -40,6 +40,9 @@ matrix:
         - postgresql
 
     - env:
+        # Enabling Deprecations when running tests
+        # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
+        # See pandas/_testing.py for more details.
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
       services:
         - mysql
@@ -70,7 +73,6 @@ before_install:
   # This overrides travis and tells it to look nowhere.
   - export BOTO_CONFIG=/dev/null
 
-
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
@@ -87,5 +89,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - ci/print_skipped.py 
+  - ci/print_skipped.py
   - echo "after_script done"

@@ -19,12 +19,7 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    stringify_path,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compression
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
@@ -56,7 +51,11 @@ def to_json(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
-    path_or_buf = stringify_path(path_or_buf)
+    if path_or_buf is not None:
+        path_or_buf, _, _, _ = get_filepath_or_buffer(
+            path_or_buf, compression=compression, mode="w"
+        )
+
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
@@ -267,7 +266,6 @@ class JSONTableWriter(FrameWriter):
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
         """
-
         super().__init__(
             obj,
             orient,
@@ -527,7 +525,6 @@ def read_json(
 
     Examples
     --------
-
     >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
@@ -573,7 +570,6 @@ def read_json(
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
-
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
@@ -887,7 +883,6 @@ class Parser:
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """
-
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -942,7 +937,7 @@ class Parser:
                 if (new_data == data).all():
                     data = new_data
                     result = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         # coerce ints to 64
@@ -964,7 +959,6 @@ class Parser:
         Try to coerce object in epoch/iso formats and integer/float in epoch
         formats. Return a boolean if parsing was successful.
         """
-
         # no conversion on empty
         if not len(data):
             return data, False
@@ -979,9 +973,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False
@@ -1118,7 +1112,6 @@ class FrameParser(Parser):
         """
         Take a conversion function and possibly recreate the frame.
         """
-
         if filt is None:
             filt = lambda col, c: True
 

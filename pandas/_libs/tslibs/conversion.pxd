@@ -12,6 +12,7 @@ cdef class _TSObject:
         npy_datetimestruct dts      # npy_datetimestruct
         int64_t value               # numpy dt64
         object tzinfo
+        bint fold
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -22,7 +23,5 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                                             int32_t nanos=*)
 
 cdef int64_t get_datetime64_nanos(object val) except? -1
-
-cpdef int64_t pydt_to_i8(object pydt) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)

@@ -56,6 +56,11 @@ joining paths, replacing file extensions, and checking if files exist are also a
 Statistics and machine learning
 -------------------------------
 
+`pandas-tfrecords <https://pypi.org/project/pandas-tfrecords/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
+
 `Statsmodels <https://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -122,16 +127,14 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`yhat/ggpy <https://github.com/yhat/ggpy>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`plotnine <https://github.com/has2k1/plotnine/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
-It's really quite incredible. Various implementations to other languages are available,
-but a faithful implementation for Python users has long been missing. Although still young
-(as of Jan-2014), the `yhat/ggpy <https://github.com/yhat/ggpy>`__ project has been
-progressing quickly in that direction.
+Various implementations to other languages are available.
+A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,8 +308,8 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Blaze <http://blaze.pydata.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Blaze <https://blaze.pydata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,

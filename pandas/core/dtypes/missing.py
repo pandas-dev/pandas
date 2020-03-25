@@ -8,6 +8,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
+from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -228,7 +229,7 @@ def _isna_ndarraylike(obj):
     if not is_extension:
         # Avoid accessing `.values` on things like
         # PeriodIndex, which may be expensive.
-        values = getattr(obj, "values", obj)
+        values = getattr(obj, "_values", obj)
     else:
         values = obj
 
@@ -269,7 +270,7 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
-    values = getattr(obj, "values", obj)
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_string_dtype(dtype):
@@ -429,7 +430,6 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     ...     np.array([1, 2, np.nan]))
     False
     """
-
     left, right = np.asarray(left), np.asarray(right)
 
     # shape compat
@@ -503,7 +503,6 @@ def _infer_fill_value(val):
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
     element to provide proper block construction
     """
-
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
@@ -582,10 +581,10 @@ def remove_na_arraylike(arr):
     if is_extension_array_dtype(arr):
         return arr[notna(arr)]
     else:
-        return arr[notna(lib.values_from_object(arr))]
+        return arr[notna(np.asarray(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype) -> bool:
+def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 

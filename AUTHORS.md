@@ -14,7 +14,7 @@ About the Copyright Holders
     The PyData Development Team is the collection of developers of the PyData
     project. This includes all of the PyData sub-projects, including pandas. The
     core team that coordinates development on GitHub can be found here:
-    http://github.com/pydata.
+    https://github.com/pydata.
 
 Full credits for pandas contributors can be found in the documentation.
 
