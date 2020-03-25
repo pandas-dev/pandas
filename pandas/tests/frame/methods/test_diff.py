@@ -64,14 +64,18 @@ class TestDataFrameDiff:
                 1: date_range("2010", freq="D", periods=2, tz=tz),
             }
         )
-        result = df.diff(axis=1)
-        expected = DataFrame(
-            {
-                0: pd.TimedeltaIndex(["NaT", "NaT"]),
-                1: pd.TimedeltaIndex(["0 days", "0 days"]),
-            }
-        )
-        tm.assert_frame_equal(result, expected)
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame(
+                {
+                    0: pd.TimedeltaIndex(["NaT", "NaT"]),
+                    1: pd.TimedeltaIndex(["0 days", "0 days"]),
+                }
+            )
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
 
     def test_diff_timedelta(self):
         # GH#4533
