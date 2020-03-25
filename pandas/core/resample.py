@@ -1596,7 +1596,7 @@ class TimeGrouper(Grouper):
 def _take_new_index(obj, indexer, new_index, axis=0):
 
     if isinstance(obj, ABCSeries):
-        new_values = algos.take_1d(obj.values, indexer)
+        new_values = algos.take_1d(obj._values, indexer)
         return obj._constructor(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, ABCDataFrame):
         if axis == 1:

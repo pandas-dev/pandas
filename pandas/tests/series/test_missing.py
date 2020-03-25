@@ -448,13 +448,6 @@ class TestSeriesMissingData:
         s2[1] = "foo"
         tm.assert_series_equal(s2, expected)
 
-    def test_where_sparse(self):
-        # GH#17198 make sure we dont get an AttributeError for sp_index
-        ser = pd.Series(pd.arrays.SparseArray([1, 2]))
-        result = ser.where(ser >= 2, 0)
-        expected = pd.Series(pd.arrays.SparseArray([0, 2]))
-        tm.assert_series_equal(result, expected)
-
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
 
@@ -939,14 +932,6 @@ class TestSeriesMissingData:
         ts = datetime_series.copy()
         ts.dropna(inplace=True)
         assert ts.name == name
-
-    def test_fill_value_when_combine_const(self):
-        # GH12723
-        s = Series([0, 1, np.nan, 3, 4, 5])
-
-        exp = s.fillna(0).add(2)
-        res = s.add(2, fill_value=0)
-        tm.assert_series_equal(res, exp)
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
