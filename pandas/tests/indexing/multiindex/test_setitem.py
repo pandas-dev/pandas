@@ -137,7 +137,8 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df.loc[["bar"]], expected)
 
         # raise because these have differing levels
-        with pytest.raises(TypeError):
+        msg = "cannot align on a multi-index with out specifying the join levels"
+        with pytest.raises(TypeError, match=msg):
             df.loc["bar"] *= 2
 
         # from SO
@@ -203,10 +204,14 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot set using a multi-index selection indexer "
+            "with a different length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0, 1, 2, 3]
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0]
 
         # groupby example

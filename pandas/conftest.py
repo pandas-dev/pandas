@@ -368,6 +368,17 @@ def _create_multiindex():
     return mi
 
 
+def _create_mi_with_dt64tz_level():
+    """
+    MultiIndex with a level that is a tzaware DatetimeIndex.
+    """
+    # GH#8367 round trip with pickle
+    return MultiIndex.from_product(
+        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        names=["one", "two", "three"],
+    )
+
+
 indices_dict = {
     "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
@@ -384,6 +395,7 @@ indices_dict = {
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
 }
@@ -1119,44 +1131,13 @@ def spmatrix(request):
     return getattr(sparse, request.param + "_matrix")
 
 
-_cython_table = pd.core.base.SelectionMixin._cython_table.items()
-
-
-@pytest.fixture(params=list(_cython_table))
+@pytest.fixture(params=list(tm.cython_table))
 def cython_table_items(request):
     """
     Yields a tuple of a function and its corresponding name. Correspond to
     the list of aggregator "Cython functions" used on selected table items.
     """
     return request.param
-
-
-def _get_cython_table_params(ndframe, func_names_and_expected):
-    """
-    Combine frame, functions from SelectionMixin._cython_table
-    keys and expected result.
-
-    Parameters
-    ----------
-    ndframe : DataFrame or Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value.
-
-    Returns
-    -------
-    list
-        List of three items (DataFrame, function, expected result)
-    """
-    results = []
-    for func_name, expected in func_names_and_expected:
-        results.append((ndframe, func_name, expected))
-        results += [
-            (ndframe, func, expected)
-            for func, name in _cython_table
-            if name == func_name
-        ]
-    return results
 
 
 @pytest.fixture(
