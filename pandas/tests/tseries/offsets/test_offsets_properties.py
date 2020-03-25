@@ -112,7 +112,6 @@ def test_apply_index_implementations(offset, rng):
     ser = pd.Series(rng)
 
     res = rng + offset
-    res_v2 = offset.apply_index(rng)
     res_v2 = offset.apply_index(rng.tz_localize(None)).tz_localize(rng.tz)
     assert (res == res_v2).all()
 
