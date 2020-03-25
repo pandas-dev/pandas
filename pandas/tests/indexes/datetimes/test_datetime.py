@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import dateutil
 import numpy as np
@@ -426,3 +426,9 @@ class TestDatetimeIndex:
         expected = indices.copy()
         expected._set_freq(None)
         tm.assert_index_equal(result, expected)
+
+
+def test_dti_contains_with_duplicates():
+    d = datetime(2011, 12, 5, 20, 30)
+    ix = DatetimeIndex([d, d])
+    assert d in ix

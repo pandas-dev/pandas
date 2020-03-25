@@ -464,12 +464,6 @@ def test_index_unique(dups):
     assert idx.nunique(dropna=False) == 21
 
 
-def test_index_dupes_contains():
-    d = datetime(2011, 12, 5, 20, 30)
-    ix = DatetimeIndex([d, d])
-    assert d in ix
-
-
 def test_duplicate_dates_indexing(dups):
     ts = dups
 
@@ -688,21 +682,6 @@ def test_indexing():
 """
 test NaT support
 """
-
-
-def test_set_none_nan():
-    series = Series(date_range("1/1/2000", periods=10))
-    series[3] = None
-    assert series[3] is NaT
-
-    series[3:5] = None
-    assert series[4] is NaT
-
-    series[5] = np.nan
-    assert series[5] is NaT
-
-    series[5:7] = np.nan
-    assert series[6] is NaT
 
 
 def test_nat_operations():
