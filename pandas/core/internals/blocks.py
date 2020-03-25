@@ -847,21 +847,24 @@ class Block(PandasObject):
 
         else:
             # current dtype cannot store value, coerce to common dtype
-            find_dtype = False
 
             if hasattr(value, "dtype"):
                 dtype = value.dtype
-                find_dtype = True
 
             elif lib.is_scalar(value) and not isna(value):
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-                find_dtype = True
 
-            if find_dtype:
-                dtype = find_common_type([values.dtype, dtype])
-                if not is_dtype_equal(self.dtype, dtype):
-                    b = self.astype(dtype)
-                    return b.setitem(indexer, value)
+            else:
+                # e.g. we are bool dtype and value is nan
+                # TODO: watch out for case with listlike value and scalar/empty indexer
+                dtype, _ = maybe_promote(np.array(value).dtype)
+                return self.astype(dtype).setitem(indexer, value)
+
+            dtype = find_common_type([values.dtype, dtype])
+            assert not is_dtype_equal(self.dtype, dtype)
+            # otherwise should have _can_hold_element
+
+            return self.astype(dtype).setitem(indexer, value)
 
         # value must be storeable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -870,11 +873,6 @@ class Block(PandasObject):
             arr_value = value
         else:
             arr_value = np.array(value)
-
-        # cast the values to a type that can hold nan (if necessary)
-        if not self._can_hold_element(value):
-            dtype, _ = maybe_promote(arr_value.dtype)
-            values = values.astype(dtype)
 
         if transpose:
             values = values.T
@@ -895,11 +893,7 @@ class Block(PandasObject):
             #  be e.g. a list; see GH#6043
             values[indexer] = value
 
-        elif (
-            exact_match
-            and is_categorical_dtype(arr_value.dtype)
-            and not is_categorical_dtype(values)
-        ):
+        elif exact_match and is_categorical_dtype(arr_value.dtype):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
