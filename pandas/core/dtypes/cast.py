@@ -16,7 +16,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import Dtype
+from pandas._typing import Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -246,14 +246,27 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     return result
 
 
-def maybe_cast_result(result, obj, numeric_only: bool = False, how: str = ""):
+def maybe_cast_result(
+    result, obj: ABCSeries, numeric_only: bool = False, how: str = ""
+):
     """
-    Try to cast the result to the desired type,
-    we may have roundtripped through object in the mean-time.
+    Try casting result to a different type if appropriate
 
-    If numeric_only is True, then only try to cast numerics
-    and not datetimelikes.
+    Parameters
+    ----------
+    result : array-like
+        Result to cast.
+    obj : ABCSeries
+        Input series from which result was calculated.
+    numeric_only : bool, default False
+        Whether to cast only numerics or datetimes as well.
+    how : str, default ""
+        If result was aggregated, how the aggregation was performed.
 
+    Returns
+    -------
+    result : array-like
+        result maybe casted to the dtype.
     """
     if obj.ndim > 1:
         dtype = obj._values.dtype
@@ -278,21 +291,22 @@ def maybe_cast_result(result, obj, numeric_only: bool = False, how: str = ""):
     return result
 
 
-def maybe_cast_result_dtype(dtype, how):
+def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     """
-    Get the desired dtype of a groupby result based on the
-    input dtype and how the aggregation is done.
+    Get the desired dtype of a result based on the
+    input dtype and how it was computed.
 
     Parameters
     ----------
-    dtype : dtype, type
-        The input dtype of the groupby.
+    dtype : DtypeObj
+        Input dtype.
     how : str
-        How the aggregation is performed.
+        How the result was computed.
 
     Returns
     -------
-    The desired dtype of the aggregation result.
+    DtypeObj
+        The desired dtype of the aggregation result.
     """
     d = {
         (np.dtype(np.bool), "add"): np.dtype(np.int64),

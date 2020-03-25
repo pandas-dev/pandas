@@ -1,5 +1,3 @@
-from pandas.core.dtypes.cast import try_cast_to_ea
-
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionOpsMixin,
@@ -20,7 +18,6 @@ __all__ = [
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",
-    "try_cast_to_ea",
     "BooleanArray",
     "Categorical",
     "DatetimeArray",
