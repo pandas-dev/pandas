@@ -32,6 +32,7 @@ from pandas.core.arrays.period import (
     validate_dtype_freq,
 )
 import pandas.core.common as com
+from pandas.core.indexers import deprecate_ndim_indexing
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     InvalidIndexError,
@@ -348,6 +349,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
     # Index Methods
+
+    def __getitem__(self, key):
+        # PeriodArray.__getitem__ returns PeriodArray for 2D lookups,
+        #  so we need to issue deprecation warning and cast here
+        result = super().__getitem__(key)
+
+        if isinstance(result, PeriodIndex) and result._data.ndim == 2:
+            # this are not actually a valid Index object
+            deprecate_ndim_indexing(result._data)
+            return result._data._data
+        return result
 
     def __array_wrap__(self, result, context=None):
         """

@@ -623,10 +623,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
-        res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
+
+        mask = self._isnan
+        if self.ndim == self.size == 1 and other.ndim == 2:
+            # TODO: more general case?  should this be handled by DataFrame
+            #  op before we get here?
+            arr = np.broadcast_to(self._data[:, None], other.shape)
+            self = type(self)(arr, freq=self.freq)
+
+        res_values = algos.checked_add_with_arr(
+            self.asi8.ravel(), other.ravel(), arr_mask=self._isnan,
+        )
         res_values = res_values.view("i8")
-        res_values[self._isnan] = iNaT
-        return type(self)(res_values, freq=self.freq)
+        res_values[mask] = iNaT
+        return type(self)(res_values.reshape(self.shape), freq=self.freq)
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)

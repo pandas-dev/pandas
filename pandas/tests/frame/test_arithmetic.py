@@ -611,13 +611,6 @@ class TestFrameArithmetic:
 
         expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
 
-        if False:#opname in ["__rmod__", "__rfloordiv__"]:
-            # exvals will have dtypes [f8, i8, i8] so expected will be
-            #   all-f8, but the DataFrame operation will return mixed dtypes
-            # use exvals[-1].dtype instead of "i8" for compat with 32-bit
-            # systems/pythons
-            expected[False] = expected[False].astype(exvals[-1].dtype)
-
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 

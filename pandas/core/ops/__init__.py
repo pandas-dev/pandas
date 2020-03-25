@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.array_algos.npcompat import broadcast_to
 from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
@@ -54,7 +55,6 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
-from pandas.core.array_algos.npcompat import broadcast_to
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
@@ -334,17 +334,13 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
-        # FIXME: we really dont want separate code-paths for nblocks==1;
-        #  tests are likely biased towards nblocks==1.
-        if isinstance(right.dtype, np.dtype):# and left._data.nblocks == 1:
-            # includes TDA/DTA-naive
-            rvals = right._values
-            right = rvals.reshape(1, -1)
-            right = broadcast_to(right, left.shape).T
+        rvals = right._values
+        if hasattr(rvals, "reshape"):
+            # i.e. ndarray, DatetimeArray, TimedeltaArray, PeriodArray
+            right = broadcast_to(rvals, left.shape, orient="rowlike").T
 
             array_op = get_array_op(func, str_rep=str_rep)
             bm = left._data.apply(array_op, right=right, align_keys=["right"])
-            # TODO: BlockManager.apply needs to know to align right
             return type(left)(bm)
 
         # still needed for two tests with PeriodArray

@@ -567,7 +567,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             key = check_array_indexer(self, key)
 
-        is_period = is_period_dtype(self)
+        is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
         else:
@@ -583,7 +583,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
-        if result.ndim > 1:
+        if result.ndim > 1 and not is_period and not is_datetime64tz_dtype(self.dtype):
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             return result
@@ -1216,7 +1216,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         other_i8 = other.asi8
         # TODO: do we need to worry about these having the same row/column order?
         new_values = checked_add_with_arr(
-            self_i8.ravel(), other_i8.ravel(), arr_mask=self._isnan.ravel(), b_mask=other._isnan.ravel()
+            self_i8.ravel(),
+            other_i8.ravel(),
+            arr_mask=self._isnan.ravel(),
+            b_mask=other._isnan.ravel(),
         ).reshape(self.shape)
         if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)

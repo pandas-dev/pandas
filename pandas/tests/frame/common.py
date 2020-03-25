@@ -6,13 +6,13 @@ def _check_mixed_float(df, dtype=None):
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get("A"):
-        assert df.dtypes["A"] == dtypes["A"]
+        assert df.dtypes["A"] == dtypes["A"], (df.dtypes, dtypes)
     if dtypes.get("B"):
-        assert df.dtypes["B"] == dtypes["B"]
+        assert df.dtypes["B"] == dtypes["B"], (df.dtypes, dtypes)
     if dtypes.get("C"):
-        assert df.dtypes["C"] == dtypes["C"]
+        assert df.dtypes["C"] == dtypes["C"], (df.dtypes, dtypes)
     if dtypes.get("D"):
-        assert df.dtypes["D"] == dtypes["D"]
+        assert df.dtypes["D"] == dtypes["D"], (df.dtypes, dtypes)
 
 
 def _check_mixed_int(df, dtype=None):
@@ -22,10 +22,10 @@ def _check_mixed_int(df, dtype=None):
     elif isinstance(dtype, dict):
         dtypes.update(dtype)
     if dtypes.get("A"):
-        assert df.dtypes["A"] == dtypes["A"]
+        assert df.dtypes["A"] == dtypes["A"], (df.dtypes, dtypes)
     if dtypes.get("B"):
-        assert df.dtypes["B"] == dtypes["B"]
+        assert df.dtypes["B"] == dtypes["B"], (df.dtypes, dtypes)
     if dtypes.get("C"):
-        assert df.dtypes["C"] == dtypes["C"]
+        assert df.dtypes["C"] == dtypes["C"], (df.dtypes, dtypes)
     if dtypes.get("D"):
-        assert df.dtypes["D"] == dtypes["D"]
+        assert df.dtypes["D"] == dtypes["D"], (df.dtypes, dtypes)

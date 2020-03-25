@@ -409,11 +409,7 @@ class BlockManager(PandasObject):
         if f == "where":
             align_copy = True
 
-        aligned_args = {
-            k: kwargs[k]
-            for k in align_keys
-            #if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
-        }
+        aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
             if filter is not None:
@@ -432,7 +428,10 @@ class BlockManager(PandasObject):
                         # We should have an ndarray or ExtensionArray
                         if obj.ndim == 2:
                             # FIXME: kludge; shouldnt need the ndim restriction
-                            assert obj.shape[0] == self.shape[0], (obj.shape, self.shape)
+                            assert obj.shape[0] == self.shape[0], (
+                                obj.shape,
+                                self.shape,
+                            )
                             kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
