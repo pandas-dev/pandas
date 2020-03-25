@@ -833,21 +833,24 @@ class Block(PandasObject):
 
         else:
             # current dtype cannot store value, coerce to common dtype
-            find_dtype = False
 
             if hasattr(value, "dtype"):
                 dtype = value.dtype
-                find_dtype = True
 
             elif lib.is_scalar(value) and not isna(value):
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-                find_dtype = True
 
-            if find_dtype:
-                dtype = find_common_type([values.dtype, dtype])
-                if not is_dtype_equal(self.dtype, dtype):
-                    b = self.astype(dtype)
-                    return b.setitem(indexer, value)
+            else:
+                # e.g. we are bool dtype and value is nan
+                # TODO: watch out for case with listlike value and scalar/empty indexer
+                dtype, _ = maybe_promote(np.array(value).dtype)
+                return self.astype(dtype).setitem(indexer, value)
+
+            dtype = find_common_type([values.dtype, dtype])
+            assert not is_dtype_equal(self.dtype, dtype)
+            # otherwise should have _can_hold_element
+
+            return self.astype(dtype).setitem(indexer, value)
 
         # value must be storeable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -856,11 +859,6 @@ class Block(PandasObject):
             arr_value = value
         else:
             arr_value = np.array(value)
-
-        # cast the values to a type that can hold nan (if necessary)
-        if not self._can_hold_element(value):
-            dtype, _ = maybe_promote(arr_value.dtype)
-            values = values.astype(dtype)
 
         if transpose:
             values = values.T
@@ -881,11 +879,7 @@ class Block(PandasObject):
             #  be e.g. a list; see GH#6043
             values[indexer] = value
 
-        elif (
-            exact_match
-            and is_categorical_dtype(arr_value.dtype)
-            and not is_categorical_dtype(values)
-        ):
+        elif exact_match and is_categorical_dtype(arr_value.dtype):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
@@ -910,25 +904,26 @@ class Block(PandasObject):
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
-    ):
+    ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        return the resulting block(s)
+        Return the resulting block(s).
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        inplace : perform inplace modification, default is False
+        inplace : bool, default False
+            Perform inplace modification.
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
+        transpose : bool, default False
+            Set to True if self is stored with axes reversed.
 
         Returns
         -------
-        a list of new blocks, the result of the putmask
+        List[Block]
         """
         new_values = self.values if inplace else self.values.copy()
 
@@ -1626,23 +1621,10 @@ class ExtensionBlock(Block):
         self.values[:] = values
 
     def putmask(
-        self, mask, new, inplace=False, axis=0, transpose=False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
-        putmask the data to the block; we must be a single block and not
-        generate other blocks
-
-        return the resulting block
-
-        Parameters
-        ----------
-        mask  : the condition to respect
-        new : a ndarray/object
-        inplace : perform inplace modification, default is False
-
-        Returns
-        -------
-        a new block, the result of the putmask
+        See Block.putmask.__doc__
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
