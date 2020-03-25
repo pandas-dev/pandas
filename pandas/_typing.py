@@ -45,7 +45,9 @@ Scalar = Union[PythonScalar, PandasScalar]
 
 # other
 
-Dtype = Union["ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]]
+Dtype = Union[
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
