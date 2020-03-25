@@ -304,14 +304,19 @@ class TestRangeIndex(Numeric):
         i2 = RangeIndex(0, 10)
         assert i.nbytes == i2.nbytes
 
-    def test_cant_or_shouldnt_cast(self):
-        # can't
-        with pytest.raises(TypeError):
-            RangeIndex("foo", "bar", "baz")
-
-        # shouldn't
-        with pytest.raises(TypeError):
-            RangeIndex("0", "1", "2")
+    @pytest.mark.parametrize(
+        "start,stop,step",
+        [
+            # can't
+            ("foo", "bar", "baz"),
+            # shouldn't
+            ("0", "1", "2"),
+        ],
+    )
+    def test_cant_or_shouldnt_cast(self, start, stop, step):
+        msg = f"Wrong type {type(start)} for value {start}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(start, stop, step)
 
     def test_view_index(self):
         index = self.create_index()
@@ -350,12 +355,9 @@ class TestRangeIndex(Numeric):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
-
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_roundtrip(self):
         index = self.create_index()
