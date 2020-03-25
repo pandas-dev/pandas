@@ -234,7 +234,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
     )
     if tz is not None:
         # GH 32792
-        tz_results = np.array([tz_result.astimezone(tz) for tz_result in tz_results])
+        tz_results = np.array([tz_result.tz_convert(tz) for tz_result in tz_results])
     from pandas import Index
 
     return Index(tz_results, name=name)
