@@ -70,6 +70,7 @@ Other enhancements
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
+- :func:`to_datetime` will now allow parsing formats with ``%z`` while ``utc=True`` (:issue:`32792`)
 -
 
 .. ---------------------------------------------------------------------------

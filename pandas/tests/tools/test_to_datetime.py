@@ -325,7 +325,7 @@ class TestTimeConversionFormats:
 
         # GH 32792
         result = pd.to_datetime(dates, format=fmt, utc=True)
-        expected = pd.Index([date.astimezone('UTC') for date in expected_dates])
+        expected = pd.DatetimeIndex([date.astimezone("UTC") for date in expected_dates])
         tm.assert_equal(result, expected)
         assert result.dtype._tz is pytz.UTC
 

@@ -341,14 +341,16 @@ class ToDatetimeFormat:
         self.s2 = self.s.str.replace(":\\S+$", "")
 
         self.same_offset = ['10/11/2018 00:00:00.045-07:00'] * N
-        self.diff_offset = [f'10/11/2018 00:00:00.045-0{offset}:00' for offset in range(10)] * int(N / 10)
+        self.diff_offset = [
+            f'10/11/2018 00:00:00.045-0{offset}:00' for offset in range(10)
+        ] * int(N / 10)
 
     def time_exact(self):
         to_datetime(self.s2, format="%d%b%y")
 
     def time_no_exact(self):
         to_datetime(self.s, format="%d%b%y", exact=False)
-    
+
     def time_same_offset(self):
         to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
 
