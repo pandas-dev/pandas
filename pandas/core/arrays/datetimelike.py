@@ -1297,10 +1297,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         assert op in [operator.add, operator.sub]
         if len(other) == 1 and self.ndim == other.ndim == 1:
+            # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
         warnings.warn(
-            "Adding/subtracting array of DateOffsets to "
+            "Adding/subtracting object-dtype array to "
             f"{type(self).__name__} not vectorized",
             PerformanceWarning,
         )
@@ -1308,7 +1309,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.array(other))
+        res_values = op(self.astype("O"), np.asarray(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
