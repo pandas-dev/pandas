@@ -323,9 +323,24 @@ class TestTimeConversionFormats:
         expected = pd.Index(expected_dates)
         tm.assert_equal(result, expected)
 
+    def test_to_datetime_parse_tzname_or_tzoffset_different_tz_to_utc(self):
         # GH 32792
+        dates = [
+            "2010-01-01 12:00:00 +0100",
+            "2010-01-01 12:00:00 -0100",
+            "2010-01-01 12:00:00 +0300",
+            "2010-01-01 12:00:00 +0400",
+        ]
+        expected_dates = [
+            "2010-01-01 11:00:00+00:00",
+            "2010-01-01 13:00:00+00:00",
+            "2010-01-01 09:00:00+00:00",
+            "2010-01-01 08:00:00+00:00",
+        ]
+        fmt = "%Y-%m-%d %H:%M:%S %z"
+
         result = pd.to_datetime(dates, format=fmt, utc=True)
-        expected = pd.DatetimeIndex([date.astimezone("UTC") for date in expected_dates])
+        expected = pd.DatetimeIndex(expected_dates)
         tm.assert_equal(result, expected)
         assert result.dtype._tz is pytz.UTC
 

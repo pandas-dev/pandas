@@ -58,6 +58,22 @@ For example:
 
 For more on working with fold, see :ref:`Fold subsection <timeseries.fold>` in the user guide.
 
+.. _whatsnew_110.to_datetime_multiple_tzname_tzoffset_support:
+
+Parsing timezone-aware format with different timezones in to_datetime
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`to_datetime` now supports parsing formats containing timezone names (``%Z``) and UTC offsets (``%z``) from different timezones then converting them to UTC by setting ``utc=True``. This would returns a ``DatetimeIndex`` with timezone at UTC as opposed to an ``Index`` with ``object`` dtype if ``utc=True`` is not set (:issue:`32792`).
+
+For example:
+
+.. ipython:: python
+
+    tz_strs = ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100",
+               "2010-01-01 12:00:00 +0300", "2010-01-01 12:00:00 +0400"]
+    pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
+    pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements

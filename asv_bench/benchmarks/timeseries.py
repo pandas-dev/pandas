@@ -355,7 +355,7 @@ class ToDatetimeFormat:
         to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
 
     def time_different_offset(self):
-        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
+        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
 
     def time_same_offset_to_utc(self):
         to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
