@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -46,13 +47,16 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                with pytest.raises(TypeError):
+                msg = re.escape(
+                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
+                )
+                with pytest.raises(TypeError, match=msg):
                     x >= y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x > y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x < y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x <= y
 
         # GH4968
@@ -98,9 +102,13 @@ class TestFrameComparisons:
                 result = right_f(pd.Timestamp("20010109"), df)
                 tm.assert_frame_equal(result, expected)
             else:
-                with pytest.raises(TypeError):
+                msg = (
+                    "'(<|>)=?' not supported between "
+                    "instances of 'Timestamp' and 'float'"
+                )
+                with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     right_f(pd.Timestamp("20010109"), df)
             # nats
             expected = left_f(df, pd.Timestamp("nat"))
@@ -521,6 +529,15 @@ class TestFrameFlexArithmetic:
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             df_len0.sub(df["A"], axis=None, fill_value=3)
+
+    def test_flex_add_scalar_fill_value(self):
+        # GH#12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype="float")
+        df = pd.DataFrame({"foo": dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        tm.assert_frame_equal(res, exp)
 
 
 class TestFrameArithmetic:
