@@ -579,6 +579,13 @@ class BlockManager(PandasObject):
         )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
+        self._consolidate_inplace()
+        if axis == 0 and self.nblocks > 1:
+            # This check needs to occur after the consolidation above
+            raise NotImplementedError(
+                "Cannot perform DataFrame.diff with axis=1 with mixed dtypes.  "
+                "Try `frame.T.diff(periods, axis=0).T` instead."
+            )
         return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> "BlockManager":

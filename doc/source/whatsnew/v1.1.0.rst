@@ -276,6 +276,7 @@ Numeric
 - Bug in :meth:`to_numeric` with string argument ``"uint64"`` and ``errors="coerce"`` silently fails (:issue:`32394`)
 - Bug in :meth:`to_numeric` with ``downcast="unsigned"`` fails for empty data (:issue:`32493`)
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
+- Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes; this will now raise ``NotImplementedError`` (:issue:`?????`)
 -
 
 Conversion

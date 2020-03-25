@@ -118,3 +118,24 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(
             df.diff(axis=0), DataFrame([[np.nan, np.nan], [2.0, 2.0]])
         )
+
+    def test_diff_period(self):
+        # Don't pass an incorrect axis
+        #  TODO(EA2D): this bug wouldn't have happened with 2D EA
+        pi = pd.date_range("2016-01-01", periods=3).to_period("D")
+        df = pd.DataFrame({"A": pi})
+
+        result = df.diff(1, axis=1)
+
+        # TODO: should we make Block.diff do type inference?  or maybe algos.diff?
+        expected = (df - pd.NaT).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_mixed_dtypes(self):
+        # We cannot diff across Blocks with axis=1
+
+        df = pd.DataFrame({"A": range(3), "B": np.arange(3, dtype=np.float64)})
+
+        msg = "Cannot perform DataFrame.diff with axis=1 with mixed dtypes"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.diff(axis=1)
