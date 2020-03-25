@@ -1,7 +1,6 @@
 from collections import deque
 from datetime import datetime
 import operator
-import re
 
 import numpy as np
 import pytest
@@ -47,10 +46,11 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                msg = "|".join([
+                msgs = [
                     r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
                     "invalid type promotion",
-                    ])
+                ]
+                msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
                     x >= y
                 with pytest.raises(TypeError, match=msg):
