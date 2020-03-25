@@ -69,6 +69,7 @@ Other enhancements
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
+- :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 -
 
@@ -260,7 +261,7 @@ Timedelta
 
 - Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
 - Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta`` incorrectly returning ``NaT`` (:issue:`31869`)
--
+- Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 
 Timezones
 ^^^^^^^^^
