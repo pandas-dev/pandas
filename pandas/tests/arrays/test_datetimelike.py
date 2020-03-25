@@ -108,14 +108,20 @@ class SharedTests:
         result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
         assert result[0] is pd.NaT
 
-        with pytest.raises(ValueError):
-            arr.take([0, 1], allow_fill=True, fill_value=2)
+        value = 2
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
+        with pytest.raises(ValueError, match=msg):
+            arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        with pytest.raises(ValueError):
-            arr.take([0, 1], allow_fill=True, fill_value=2.0)
+        value = 2.0
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
+        with pytest.raises(ValueError, match=msg):
+            arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        with pytest.raises(ValueError):
-            arr.take([0, 1], allow_fill=True, fill_value=pd.Timestamp.now().time)
+        value = pd.Timestamp.now().time
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
+        with pytest.raises(ValueError, match=msg):
+            arr.take([0, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -139,7 +145,8 @@ class SharedTests:
         result = arr._unbox_scalar(pd.NaT)
         assert isinstance(result, int)
 
-        with pytest.raises(ValueError):
+        msg = f"'value' should be a {self.dtype.__name__}."
+        with pytest.raises(ValueError, match=msg):
             arr._unbox_scalar("foo")
 
     def test_check_compatible_with(self):
@@ -261,6 +268,7 @@ class SharedTests:
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
+    dtype = pd.Timestamp
 
     def test_round(self, tz_naive_fixture):
         # GH#24064
@@ -452,23 +460,28 @@ class TestDatetimeArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
         assert result[0] == now
 
-        with pytest.raises(ValueError):
+        msg = f"'fill_value' should be a {self.dtype}. Got '0 days 00:00:00'."
+        with pytest.raises(ValueError, match=msg):
             # fill_value Timedelta invalid
             arr.take([-1, 1], allow_fill=True, fill_value=now - now)
 
-        with pytest.raises(ValueError):
+        msg = f"'fill_value' should be a {self.dtype}. Got '2014Q1'."
+        with pytest.raises(ValueError, match=msg):
             # fill_value Period invalid
             arr.take([-1, 1], allow_fill=True, fill_value=pd.Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
         now = pd.Timestamp.now().tz_localize(tz)
-        with pytest.raises(TypeError):
+        msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
-        with pytest.raises(ValueError):
+        value = pd.NaT.value
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+        with pytest.raises(ValueError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
-            arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT.value)
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones
@@ -520,6 +533,7 @@ class TestDatetimeArray(SharedTests):
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
     array_cls = TimedeltaArray
+    dtype = pd.Timedelta
 
     def test_from_tdi(self):
         tdi = pd.TimedeltaIndex(["1 Day", "3 Hours"])
@@ -618,18 +632,23 @@ class TestTimedeltaArray(SharedTests):
         assert result[0] == td1
 
         now = pd.Timestamp.now()
-        with pytest.raises(ValueError):
+        value = now
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+        with pytest.raises(ValueError, match=msg):
             # fill_value Timestamp invalid
-            arr.take([0, 1], allow_fill=True, fill_value=now)
+            arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        with pytest.raises(ValueError):
+        value = now.to_period("D")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+        with pytest.raises(ValueError, match=msg):
             # fill_value Period invalid
-            arr.take([0, 1], allow_fill=True, fill_value=now.to_period("D"))
+            arr.take([0, 1], allow_fill=True, fill_value=value)
 
 
 class TestPeriodArray(SharedTests):
     index_cls = pd.PeriodIndex
     array_cls = PeriodArray
+    dtype = pd.Period
 
     def test_from_pi(self, period_index):
         pi = period_index
@@ -665,10 +684,11 @@ class TestPeriodArray(SharedTests):
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
         pi = pd.period_range("1500", freq="Y", periods=3)
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pi.to_timestamp()
 
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pi._data.to_timestamp()
 
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
@@ -708,7 +728,8 @@ class TestPeriodArray(SharedTests):
         tm.assert_numpy_array_equal(result, arr.asi8)
 
         # to other dtypes
-        with pytest.raises(TypeError):
+        msg = r"float\(\) argument must be a string or a number, not 'Period'"
+        with pytest.raises(TypeError, match=msg):
             np.asarray(arr, dtype="float64")
 
         result = np.asarray(arr, dtype="S20")
@@ -774,8 +795,25 @@ def test_casting_nat_setitem_array(array, casting_nats):
     ids=lambda x: type(x).__name__,
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
+    msg = (
+        r"'value' should be a 'Timestamp', 'NaT', or array of those. "
+        r"Got 'timedelta64' instead.|"
+        r"'value' should be a 'Timedelta', 'NaT', or array of those. "
+        r"Got 'datetime64' instead.|"
+        r"'value' should be a 'Timedelta', 'NaT', or array of those. "
+        r"Got 'int' instead.|"
+        r"'value' should be a 'Timestamp', 'NaT', or array of those. "
+        r"Got 'int' instead.|"
+        r"'value' should be a 'Period', 'NaT', or array of those. "
+        r"Got 'datetime64' instead.|"
+        r"'value' should be a 'Period', 'NaT', or array of those. "
+        r"Got 'timedelta64' instead.|"
+        r"'value' should be a 'Period', 'NaT', or array of those. "
+        r"Got 'int' instead."
+    )
+
     for nat in non_casting_nats:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             array[0] = nat
 
 
