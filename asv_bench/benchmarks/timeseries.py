@@ -340,9 +340,9 @@ class ToDatetimeFormat:
         self.s = Series(["19MAY11", "19MAY11:00:00:00"] * N)
         self.s2 = self.s.str.replace(":\\S+$", "")
 
-        self.same_offset = ['10/11/2018 00:00:00.045-07:00'] * N
+        self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
         self.diff_offset = [
-            f'10/11/2018 00:00:00.045-0{offset}:00' for offset in range(10)
+            f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
         ] * int(N / 10)
 
     def time_exact(self):
