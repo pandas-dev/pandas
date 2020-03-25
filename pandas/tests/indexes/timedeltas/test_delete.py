@@ -61,3 +61,10 @@ class TestTimedeltaIndexDelete:
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == expected.freq
+
+    def test_delete_doesnt_infer_freq(self):
+        # GH#30655 behavior matches DatetimeIndex
+
+        tdi = TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
+        result = tdi.delete(2)
+        assert result.freq is None
