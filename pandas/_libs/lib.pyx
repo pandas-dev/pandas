@@ -287,9 +287,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
         try:
             uniques.sort()
         except TypeError:
-            warnings.warn(
-                "Not sure what will be a helpful error message", RuntimeWarning
-            )
+            warnings.warn("The values in the array are unorderable", RuntimeWarning)
             pass
 
     return uniques
