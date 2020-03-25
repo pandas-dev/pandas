@@ -785,6 +785,39 @@ class TestDataFrameReshape:
             ),
             index=pd.Index([0], name="i1"),
         )
+        print(expected)
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_multi_level_cols(self):
+        # PH 24729: Unstack a df with multi level columns
+        df = pd.DataFrame(
+            [[0.0, 0.0], [0.0, 0.0]],
+            columns=pd.MultiIndex.from_tuples(
+                [["B", "C"], ["B", "D"]], names=["c1", "c2"]
+            ),
+            index=pd.MultiIndex.from_tuples(
+                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"],
+            ),
+        )
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
+
+    def test_unstack_multi_level_rows_and_cols(self):
+        # PH 28306: Unstack df with multi level cols and rows
+        df = pd.DataFrame(
+            [[1, 2], [3, 4], [-1, -2], [-3, -4]],
+            columns=pd.MultiIndex.from_tuples([["a", "b", "c"], ["d", "e", "f"]]),
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ["m1", "P3", 222],
+                    ["m1", "A5", 111],
+                    ["m2", "P3", 222],
+                    ["m2", "A5", 111],
+                ],
+                names=["i1", "i2", "i3"],
+            ),
+        )
+        result = df.unstack(["i3", "i2"])
+        expected = df.unstack(["i3"]).unstack(["i2"])
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_nan_index(self):  # GH7466
