@@ -528,7 +528,8 @@ _deprecated_args: Set[str] = set()
 
 
 def _make_parser_function(name, default_sep=","):
-    exec(f"""
+    exec(
+        f"""
 from pandas._typing import FilePathOrBuffer
 import csv
 
@@ -678,7 +679,9 @@ def {name}(
         )
 
         return _read(filepath_or_buffer, kwds)
-    """, globals())
+    """,
+        globals(),
+    )
 
 
 _make_parser_function("read_csv", default_sep=",")
