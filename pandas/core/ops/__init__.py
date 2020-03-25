@@ -4,7 +4,7 @@ Arithmetic operations for PandasObjects
 This is not a public API.
 """
 import operator
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -297,33 +297,40 @@ def fill_binop(left, right, fill_value):
 def operate_blockwise(left, right, array_op):
     assert right._indexed_same(left)
 
+    def get_same_shape_values(
+        lblk: "Block", rblk: "Block", left_ea: bool, right_ea: bool
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        """
+        Slice lblk.values to align with rblk.  Squeeze if we have EAs.
+        """
+        lvals = lblk.values
+        rvals = rblk.values
+
+        # TODO(EA2D): with 2D EAs pnly this first clause would be needed
+        if not (left_ea or right_ea):
+            lvals = lvals[rblk.mgr_locs.indexer, :]
+            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+        elif left_ea and right_ea:
+            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+        elif right_ea:
+            # lvals are 2D, rvals are 1D
+            lvals = lvals[rblk.mgr_locs.indexer, :]
+            assert lvals.shape[0] == 1, lvals.shape
+            lvals = lvals[0, :]
+        else:
+            # lvals are 1D, rvals are 2D
+            assert rvals.shape[0] == 1, rvals.shape
+            rvals = rvals[0, :]
+
+        return lvals, rvals
+
     res_blks: List["Block"] = []
     rmgr = right._data
     for n, blk in enumerate(left._data.blocks):
         locs = blk.mgr_locs
-
         blk_vals = blk.values
 
         left_ea = not isinstance(blk_vals, np.ndarray)
-
-        if False:#left_ea:
-            # 1D EA
-            assert len(locs) == 1, locs
-            rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
-            assert len(rblks) == 1, rblks
-            rblk = rblks[0]
-            assert rblk.shape[0] == 1, rblk.shape
-
-            rvals = rblk.values
-            right_ea = not isinstance(rvals, np.ndarray)
-            if not right_ea:
-                assert rvals.shape[0] == 1, rvals.shape
-                rvals = rvals[0, :]
-            res_values = array_op(blk_vals, rvals)
-            nbs = blk._split_op_result(res_values)
-            # Setting nb.mgr_locs is unnecessary here, but harmless
-            res_blks.extend(nbs)
-            continue
 
         rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
 
@@ -333,38 +340,20 @@ def operate_blockwise(left, right, array_op):
             assert rblks[0].shape[0] == 1, rblks[0].shape
 
         for k, rblk in enumerate(rblks):
-            rvals = rblk.values
-            right_ea = not isinstance(rvals, np.ndarray)
+            right_ea = not isinstance(rblk.values, np.ndarray)
 
-            #lvals = blk_vals[rblk.mgr_locs.indexer, :]
-
-            if not (left_ea or right_ea):
-                lvals = blk_vals[rblk.mgr_locs.indexer, :]
-                assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-            elif left_ea and right_ea:
-                lvals = blk_vals
-                assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-            elif right_ea:
-                # 1D EA
-                lvals = blk_vals[rblk.mgr_locs.indexer, :]
-                assert lvals.shape[0] == 1, lvals.shape
-                lvals = lvals[0, :]
-            else:
-                lvals = blk_vals
-                assert rvals.shape[0] == 1, rvals.shape
-                rvals = rvals[0, :]
+            lvals, rvals = get_same_shape_values(blk, rblk, left_ea, right_ea)
 
             res_values = array_op(lvals, rvals)
             nbs = rblk._split_op_result(res_values)
 
-            # Debugging assertions
             if right_ea or left_ea:
                 assert len(nbs) == 1
             else:
                 assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
 
             for nb in nbs:
-                # TODO: maybe optimize by sticking with slices?
+                # Reset mgr_locs to correspond to our original DataFrame
                 nblocs = locs.as_array[nb.mgr_locs.indexer]
                 nb.mgr_locs = nblocs
                 assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
