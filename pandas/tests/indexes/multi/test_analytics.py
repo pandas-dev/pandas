@@ -57,6 +57,23 @@ def test_truncate():
         index.truncate(3, 1)
 
 
+def test_where():
+    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+
+    msg = r"\.where is not supported for MultiIndex operations"
+    with pytest.raises(NotImplementedError, match=msg):
+        i.where(True)
+
+
+@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+def test_where_array_like(klass):
+    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    cond = [False, True]
+    msg = r"\.where is not supported for MultiIndex operations"
+    with pytest.raises(NotImplementedError, match=msg):
+        i.where(klass(cond))
+
+
 # TODO: reshape
 
 
@@ -140,6 +157,23 @@ def test_iter(idx):
         ("qux", "two"),
     ]
     assert result == expected
+
+
+def test_sub(idx):
+
+    first = idx
+
+    # - now raises (previously was set op difference)
+    msg = "cannot perform __sub__ with this index type: MultiIndex"
+    with pytest.raises(TypeError, match=msg):
+        first - idx[-3:]
+    with pytest.raises(TypeError, match=msg):
+        idx[-3:] - first
+    with pytest.raises(TypeError, match=msg):
+        idx[-3:] - first.tolist()
+    msg = "cannot perform __rsub__ with this index type: MultiIndex"
+    with pytest.raises(TypeError, match=msg):
+        first.tolist() - idx[-3:]
 
 
 def test_map(idx):

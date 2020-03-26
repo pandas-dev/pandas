@@ -240,55 +240,6 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestWhere:
-    def test_where(self):
-        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-
-        msg = r"\.where is not supported for MultiIndex operations"
-        with pytest.raises(NotImplementedError, match=msg):
-            i.where(True)
-
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where_array_like(self, klass):
-        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-        cond = [False, True]
-        msg = r"\.where is not supported for MultiIndex operations"
-        with pytest.raises(NotImplementedError, match=msg):
-            i.where(klass(cond))
-
-
-class TestContains:
-    def test_contains_top_level(self):
-        midx = MultiIndex.from_product([["A", "B"], [1, 2]])
-        assert "A" in midx
-        assert "A" not in midx._engine
-
-    def test_contains_with_nat(self):
-        # MI with a NaT
-        mi = MultiIndex(
-            levels=[["C"], pd.date_range("2012-01-01", periods=5)],
-            codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
-            names=[None, "B"],
-        )
-        assert ("C", pd.Timestamp("2012-01-01")) in mi
-        for val in mi.values:
-            assert val in mi
-
-    def test_contains(self, idx):
-        assert ("foo", "two") in idx
-        assert ("bar", "two") not in idx
-        assert None not in idx
-
-    def test_contains_with_missing_value(self):
-        # GH#19132
-        idx = MultiIndex.from_arrays([[1, np.nan, 2]])
-        assert np.nan in idx
-
-        idx = MultiIndex.from_arrays([[1, 2], [np.nan, 3]])
-        assert np.nan not in idx
-        assert (1, np.nan) in idx
-
-
 def test_getitem(idx):
     # scalar
     assert idx[2] == ("bar", "one")
