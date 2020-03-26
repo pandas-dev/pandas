@@ -395,10 +395,10 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional")
             return cls._simple_new(subarr, name)
 
-        elif hasattr(data, "__array__"):
-            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         elif data is None or is_scalar(data):
             raise cls._scalar_data_error(data)
+        elif hasattr(data, "__array__"):
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
