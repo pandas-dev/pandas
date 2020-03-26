@@ -82,7 +82,7 @@ def convert_json_to_lines(arr: object) -> str:
     """
     cdef:
         Py_ssize_t i = 0, num_open_brackets_seen = 0, length
-        bint in_quotes = 0, is_escaping = 0
+        bint in_quotes = False, is_escaping = False
         ndarray[uint8_t, ndim=1] narr
         unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
