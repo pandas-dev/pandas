@@ -1238,7 +1238,7 @@ def _maybe_null_out(
     result: np.ndarray,
     axis: Optional[int],
     mask: Optional[np.ndarray],
-    shape: Tuple[int],
+    shape: Tuple[int, ...],
     min_count: int = 1,
 ) -> float:
     """
