@@ -289,7 +289,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
         except TypeError:
             warnings.warn(
                 "The values in the array are unorderable. "
-                "Pass `sort=Flase` to suppress this warning.",
+                "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
             )
             pass
