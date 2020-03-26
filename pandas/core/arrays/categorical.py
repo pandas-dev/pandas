@@ -50,7 +50,7 @@ from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, uni
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
-    try_cast_to_ea,
+    maybe_cast_to_extension_array,
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
@@ -2568,7 +2568,7 @@ def _get_codes_for_values(values, categories):
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
         cls = categories.dtype.construct_array_type()
-        values = try_cast_to_ea(cls, values)
+        values = maybe_cast_to_extension_array(cls, values)
         if not isinstance(values, cls):
             # exception raised in _from_sequence
             values = ensure_object(values)

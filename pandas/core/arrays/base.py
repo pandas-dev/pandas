@@ -19,7 +19,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import try_cast_to_ea
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -1192,7 +1192,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = try_cast_to_ea(self, arr)
+                    res = maybe_cast_to_extension_array(self, arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

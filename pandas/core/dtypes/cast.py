@@ -276,14 +276,11 @@ def maybe_cast_result(
 
     if not is_scalar(result):
         if is_extension_array_dtype(dtype) and dtype.kind != "M":
-            # The function can return something of any type, so check
-            #  if the type is compatible with the calling EA.
-            # datetime64tz is handled correctly in agg_series,
-            #  so is excluded here.
-
+            # The result may be of any type, cast back to original
+            # type if it's compatible.
             if len(result) and isinstance(result[0], dtype.type):
                 cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
         elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
             result = maybe_downcast_to_dtype(result, dtype)
@@ -316,7 +313,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return d.get((dtype, how), dtype)
 
 
-def try_cast_to_ea(cls_or_instance, obj, dtype=None):
+def maybe_cast_to_extension_array(cls_or_instance, obj, dtype=None):
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
