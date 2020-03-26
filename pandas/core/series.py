@@ -2725,7 +2725,7 @@ Name: Max Speed, dtype: float64
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = maybe_cast_to_extension_array(self._values, new_values)
+            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":

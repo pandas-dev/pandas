@@ -19,7 +19,11 @@ from pandas.util._decorators import (
 )
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype, maybe_infer_to_datetimelike
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    maybe_cast_to_extension_array,
+    maybe_infer_to_datetimelike,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -47,11 +51,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
-from pandas.core.arrays.base import (
-    ExtensionArray,
-    _extension_array_shared_docs,
-    maybe_cast_to_extension_array,
-)
+from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
