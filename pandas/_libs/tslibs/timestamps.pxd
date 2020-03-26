@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from numpy cimport int64_t
 from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 

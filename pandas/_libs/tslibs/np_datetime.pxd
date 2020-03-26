@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython.datetime cimport date, datetime
 
 from numpy cimport int64_t, int32_t
