@@ -8,7 +8,7 @@ import numpy as np
 from pandas._libs import missing as libmissing
 from pandas.compat.numpy import _np_version_under1p17
 
-from pandas.core.nanops import _below_min_count
+from pandas.core.nanops import check_below_min_count
 
 
 def sum(
@@ -34,11 +34,11 @@ def sum(
         if mask.any():
             return libmissing.NA
         else:
-            if _below_min_count(values.shape, None, min_count):
+            if check_below_min_count(values.shape, None, min_count):
                 return libmissing.NA
             return np.sum(values)
     else:
-        if _below_min_count(values.shape, mask, min_count):
+        if check_below_min_count(values.shape, mask, min_count):
             return libmissing.NA
 
         if _np_version_under1p17:

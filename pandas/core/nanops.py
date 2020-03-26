@@ -1260,13 +1260,15 @@ def _maybe_null_out(
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
     elif result is not NaT:
-        if _below_min_count(shape, mask, min_count):
+        if check_below_min_count(shape, mask, min_count):
             result = np.nan
 
     return result
 
 
-def _below_min_count(shape: Tuple[int], mask: Optional[np.ndarray], min_count: int):
+def check_below_min_count(
+    shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
+):
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
     missing value should be returned from the reduction).
