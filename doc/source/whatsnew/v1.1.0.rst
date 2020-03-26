@@ -179,7 +179,7 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     left_df
     right_df
 
-*pandas 1.0.x*
+*Previous behavior*:
 
 .. code-block:: python
 
@@ -188,7 +188,7 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     0      pig         11
     1  quetzal         80
 
-*pandas 1.1.0*
+*New behavior*:
 
 .. ipython:: python
 
