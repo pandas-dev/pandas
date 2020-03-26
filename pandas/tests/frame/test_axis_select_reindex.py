@@ -1,10 +1,7 @@
-from datetime import datetime
-import re
+﻿from datetime import datetime
 
 import numpy as np
 import pytest
-
-from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
@@ -719,46 +716,6 @@ class TestDataFrameSelectReindex:
         result = df2.reindex(midx)
         expected = pd.DataFrame({"a": [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
         tm.assert_frame_equal(result, expected)
-
-    data = [[1, 2, 3], [1, 2, 3]]
-
-    @pytest.mark.parametrize(
-        "actual",
-        [
-            DataFrame(data=data, index=["a", "a"]),
-            DataFrame(data=data, index=["a", "b"]),
-            DataFrame(data=data, index=["a", "b"]).set_index([0, 1]),
-            DataFrame(data=data, index=["a", "a"]).set_index([0, 1]),
-        ],
-    )
-    def test_raise_on_drop_duplicate_index(self, actual):
-
-        # issue 19186
-        level = 0 if isinstance(actual.index, MultiIndex) else None
-        msg = re.escape("\"['c'] not found in axis\"")
-        with pytest.raises(KeyError, match=msg):
-            actual.drop("c", level=level, axis=0)
-        with pytest.raises(KeyError, match=msg):
-            actual.T.drop("c", level=level, axis=1)
-        expected_no_err = actual.drop("c", axis=0, level=level, errors="ignore")
-        tm.assert_frame_equal(expected_no_err, actual)
-        expected_no_err = actual.T.drop("c", axis=1, level=level, errors="ignore")
-        tm.assert_frame_equal(expected_no_err.T, actual)
-
-    @pytest.mark.parametrize("index", [[1, 2, 3], [1, 1, 2]])
-    @pytest.mark.parametrize("drop_labels", [[], [1], [2]])
-    def test_drop_empty_list(self, index, drop_labels):
-        # GH 21494
-        expected_index = [i for i in index if i not in drop_labels]
-        frame = pd.DataFrame(index=index).drop(drop_labels)
-        tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
-
-    @pytest.mark.parametrize("index", [[1, 2, 3], [1, 2, 2]])
-    @pytest.mark.parametrize("drop_labels", [[1, 4], [4, 5]])
-    def test_drop_non_empty_list(self, index, drop_labels):
-        # GH 21494
-        with pytest.raises(KeyError, match="not found in axis"):
-            pd.DataFrame(index=index).drop(drop_labels)
 
     @pytest.mark.parametrize(
         "operation", ["__iadd__", "__isub__", "__imul__", "__ipow__"]
