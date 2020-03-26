@@ -255,6 +255,7 @@ Datetimelike
 - Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
 - Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
+- Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
 
 Timedelta
 ^^^^^^^^^
