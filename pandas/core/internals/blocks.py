@@ -2076,6 +2076,7 @@ class DatetimeLikeBlockMixin:
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
+            # DTA/TDA constructor and astype can handle 2D
             return self._holder(self.values).astype(object)
         return self.values
 
@@ -2084,7 +2085,7 @@ class DatetimeLikeBlockMixin:
         return self.array_values()
 
     def array_values(self):
-        return self._holder(self.values)
+        return self._holder._simple_new(self.values)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
@@ -2225,6 +2226,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
     should_store = Block.should_store
+    array_values = ExtensionBlock.array_values
 
     @property
     def _holder(self):
@@ -2284,6 +2286,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.astype(object)
 
         # TODO(EA2D): reshape unnecessary with 2D EAs
+        # Ensure that our shape is correct for DataFrame.
+        # ExtensionArrays are always 1-D, even in a DataFrame when
+        # the analogous NumPy-backed column would be a 2-D ndarray.
         return np.asarray(values).reshape(self.shape)
 
     def external_values(self):
