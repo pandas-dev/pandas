@@ -6,14 +6,14 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
+    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -1271,7 +1272,7 @@ def _get_join_indexers(
 
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1283,8 +1284,8 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
@@ -1822,7 +1823,59 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-def _factorize_keys(lk, rk, sort=True):
+def _factorize_keys(
+    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+) -> Tuple[np.array, np.array, int]:
+    """
+    Encode left and right keys as enumerated types.
+
+    This is used to get the join indexers to be used when merging DataFrames.
+
+    Parameters
+    ----------
+    lk : array-like
+        Left key.
+    rk : array-like
+        Right key.
+    sort : bool, defaults to True
+        If True, the encoding is done such that the unique elements in the
+        keys are sorted.
+    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+        Type of merge.
+
+    Returns
+    -------
+    array
+        Left (resp. right if called with `key='right'`) labels, as enumerated type.
+    array
+        Right (resp. left if called with `key='right'`) labels, as enumerated type.
+    int
+        Number of unique elements in union of left and right labels.
+
+    See Also
+    --------
+    merge : Merge DataFrame or named Series objects
+        with a database-style join.
+    algorithms.factorize : Encode the object as an enumerated type
+        or categorical variable.
+
+    Examples
+    --------
+    >>> lk = np.array(["a", "c", "b"])
+    >>> rk = np.array(["a", "c"])
+
+    Here, the unique values are `'a', 'b', 'c'`. With the default
+    `sort=True`, the encoding will be `{0: 'a', 1: 'b', 2: 'c'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk)
+    (array([0, 2, 1]), array([0, 2]), 3)
+
+    With the `sort=False`, the encoding will correspond to the order
+    in which the unique elements first appear: `{0: 'a', 1: 'c', 2: 'b'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk, sort=False)
+    (array([0, 1, 2]), array([0, 1]), 3)
+    """
     # Some pre-processing for non-ndarray lk / rk
     lk = extract_array(lk, extract_numpy=True)
     rk = extract_array(rk, extract_numpy=True)
@@ -1834,8 +1887,11 @@ def _factorize_keys(lk, rk, sort=True):
         rk, _ = rk._values_for_factorize()
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
+        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
+        assert is_categorical(lk) and is_categorical(rk)
+        lk = cast(Categorical, lk)
+        rk = cast(Categorical, rk)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
@@ -1892,6 +1948,8 @@ def _factorize_keys(lk, rk, sort=True):
             np.putmask(rlab, rmask, count)
         count += 1
 
+    if how == "right":
+        return rlab, llab, count
     return llab, rlab, count
 
 
