@@ -311,7 +311,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_mapping_dict_subclass():
+def non_dict_mapping_subclass():
     """
     Fixture for a non-mapping dictionary subclass.
     """
