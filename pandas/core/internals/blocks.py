@@ -734,7 +734,7 @@ class Block(PandasObject):
 
             # try again with a compatible block
             block = self.astype(object)
-            return block.replace(
+            block_replaced = block.replace(
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
@@ -742,6 +742,9 @@ class Block(PandasObject):
                 regex=regex,
                 convert=convert,
             )
+            return [
+                inner_elem.convert() for elem in block_replaced for inner_elem in elem
+            ]
 
         values = self.values
         if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):
