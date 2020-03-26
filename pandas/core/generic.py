@@ -7071,7 +7071,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 return Series(np.nan, index=self.columns, name=where[0])
 
-        locs = self.index.asof_locs(where, ~(nulls.values))
+        locs = self.index.asof_locs(where, ~(nulls._values))
 
         # mask the missing
         missing = locs == -1
@@ -7230,7 +7230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-        mask = isna(self.values)
+        mask = isna(self._values)
 
         with np.errstate(all="ignore"):
             if upper is not None:
@@ -8604,12 +8604,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 if self.ndim == 1:
 
-                    icond = cond.values
+                    icond = cond._values
 
                     # GH 2745 / GH 4192
                     # treat like a scalar
                     if len(other) == 1:
-                        other = np.array(other[0])
+                        other = other[0]
 
                     # GH 3235
                     # match True cond to other
@@ -10541,13 +10541,14 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-*args, **kwargs :
+*args, **kwargs
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
 
 Returns
 -------
 %(name1)s or %(name2)s
+    Return cumulative %(desc)s of %(name1)s or %(name2)s.
 
 See Also
 --------
