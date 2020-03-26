@@ -255,6 +255,7 @@ Datetimelike
 - Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
 - Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
+- Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
 
 Timedelta
 ^^^^^^^^^
@@ -387,7 +388,9 @@ Reshaping
 - Bug on inplace operation of a Series that was adding a column to the DataFrame from where it was originally dropped from (using inplace=True) (:issue:`30484`)
 - Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
+- Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
+
 
 Sparse
 ^^^^^^
