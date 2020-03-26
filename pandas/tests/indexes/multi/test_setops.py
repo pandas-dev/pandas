@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY37
 from pandas.compat.numpy import _is_numpy_dev
 
 import pandas as pd
@@ -339,7 +340,7 @@ def test_union_sort_other_incomparable():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    warn = None if _is_numpy_dev else RuntimeWarning
+    warn = None if (PY37 and _is_numpy_dev) else RuntimeWarning
     with tm.assert_produces_warning(warn):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
