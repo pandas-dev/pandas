@@ -8,7 +8,7 @@ class TestIndexConstructor:
     # Tests for the Index constructor, specifically for cases that do
     #  not return a subclass
 
-    @pytest.mark.parametrize("value", [1, [1, 2][0], np.array([1, 2])[0]])
+    @pytest.mark.parametrize("value", [1, np.int64(1)])
     def test_constructor_corner(self, value):
         # corner case
         msg = (
