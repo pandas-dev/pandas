@@ -12,7 +12,7 @@ from pandas.core.nanops import _below_min_count
 
 
 def sum(
-    values: np.ndarray, mask: np.ndarray, skipna: bool, min_count: int = 0,
+    values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0,
 ):
     """
     Sum for 1D masked array.
