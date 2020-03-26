@@ -14,7 +14,7 @@
 
 For documentation-related issues, you can check the latest versions of the docs on `master` here:
 
-https://pandas-docs.github.io/pandas-docs-travis/
+https://pandas.pydata.org/pandas-docs/stable/
 
 If the issue has not been resolved there, go ahead and file it in the issue tracker.
 
