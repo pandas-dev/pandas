@@ -1,8 +1,16 @@
 import numbers
 from operator import le, lt
 
-from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
-                             PyObject_RichCompare)
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+)
+
 
 import cython
 from cython import Py_ssize_t
@@ -10,9 +18,16 @@ from cython import Py_ssize_t
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    NPY_QUICKSORT,
+    PyArray_ArgSort,
+    PyArray_Take,
+    float32_t,
+    float64_t,
+    int32_t,
+    int64_t,
     ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+    uint64_t,
+)
 cnp.import_array()
 
 
