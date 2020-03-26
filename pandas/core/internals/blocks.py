@@ -55,6 +55,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
+    ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
 )
@@ -913,7 +914,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        mask : the condition to respect
+        mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
         inplace : bool, default False
             Perform inplace modification.
@@ -925,10 +926,10 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        new_values = self.values if inplace else self.values.copy()
+        mask = _extract_bool_array(mask)
+        assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
-        new = getattr(new, "values", new)
-        mask = getattr(mask, "values", mask)
+        new_values = self.values if inplace else self.values.copy()
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1308,7 +1309,7 @@ class Block(PandasObject):
         Parameters
         ----------
         other : a ndarray/object
-        cond  : the condition to respect
+        cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
@@ -1316,9 +1317,12 @@ class Block(PandasObject):
 
         Returns
         -------
-        a new block(s), the result of the func
+        List[Block]
         """
         import pandas.core.computation.expressions as expressions
+
+        cond = _extract_bool_array(cond)
+        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1327,9 +1331,6 @@ class Block(PandasObject):
         orig_other = other
         if transpose:
             values = values.T
-
-        other = getattr(other, "_values", getattr(other, "values", other))
-        cond = getattr(cond, "values", cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
@@ -1628,9 +1629,9 @@ class ExtensionBlock(Block):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # use block's copy logic.
-        # .values may be an Index which does shallow copy by default
-        new_values = self.values if inplace else self.copy().values
+        mask = _extract_bool_array(mask)
+
+        new_values = self.values if inplace else self.values.copy()
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -1859,19 +1860,19 @@ class ExtensionBlock(Block):
     def where(
         self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
-        if isinstance(other, ABCDataFrame):
-            # ExtensionArrays are 1-D, so if we get here then
-            # `other` should be a DataFrame with a single column.
+
+        cond = _extract_bool_array(cond)
+        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+
+        if isinstance(other, np.ndarray) and other.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
             assert other.shape[1] == 1
-            other = other.iloc[:, 0]
+            other = other[:, 0]
 
-        other = extract_array(other, extract_numpy=True)
-
-        if isinstance(cond, ABCDataFrame):
+        if isinstance(cond, np.ndarray) and cond.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
             assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0]
-
-        cond = extract_array(cond, extract_numpy=True)
+            cond = cond[:, 0]
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan
@@ -3113,3 +3114,16 @@ def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
+
+
+def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
+    """
+    If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
+    """
+    if isinstance(mask, ExtensionArray):
+        # We could have BooleanArray, Sparse[bool], ...
+        mask = np.asarray(mask, dtype=np.bool_)
+
+    assert isinstance(mask, np.ndarray), type(mask)
+    assert mask.dtype == bool, mask.dtype
+    return mask
