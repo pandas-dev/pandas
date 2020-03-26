@@ -1220,13 +1220,17 @@ class TestConcatenate:
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_dict(self):
-        frames = {
-            "foo": DataFrame(np.random.randn(4, 3)),
-            "bar": DataFrame(np.random.randn(4, 3)),
-            "baz": DataFrame(np.random.randn(4, 3)),
-            "qux": DataFrame(np.random.randn(4, 3)),
-        }
+    @pytest.mark.parametrize("mapping", ["mapping", "dict"])
+    def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
+        constructor = dict if mapping == "dict" else non_dict_mapping_subclass
+        frames = constructor(
+            {
+                "foo": DataFrame(np.random.randn(4, 3)),
+                "bar": DataFrame(np.random.randn(4, 3)),
+                "baz": DataFrame(np.random.randn(4, 3)),
+                "qux": DataFrame(np.random.randn(4, 3)),
+            }
+        )
 
         sorted_keys = list(frames.keys())
 

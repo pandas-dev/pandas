@@ -11,6 +11,7 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    array,
     date_range,
     timedelta_range,
 )
@@ -111,6 +112,26 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
 
+    @pytest.mark.parametrize("klass", [list, np.array, array, Series])
+    def test_searchsorted_different_argument_classes(self, klass):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        result = idx.searchsorted(klass(idx))
+        expected = np.arange(len(idx), dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = idx._data.searchsorted(klass(idx))
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "arg",
+        [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2],
+    )
+    def test_searchsorted_invalid_argument_dtype(self, arg):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        msg = "searchsorted requires compatible dtype"
+        with pytest.raises(TypeError, match=msg):
+            idx.searchsorted(arg)
+
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
         assert idx.argmin() == 1
@@ -156,13 +177,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = a.append(c)
         assert (result["B"] == td).all()
-
-    def test_delete_doesnt_infer_freq(self):
-        # GH#30655 behavior matches DatetimeIndex
-
-        tdi = pd.TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
-        result = tdi.delete(2)
-        assert result.freq is None
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
