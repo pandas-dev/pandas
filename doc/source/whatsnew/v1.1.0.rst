@@ -310,7 +310,7 @@ Indexing
 - Bug in :meth:`DataFrame.iloc.__setitem__` on a :class:`DataFrame` with duplicate columns incorrectly setting values for all matching columns (:issue:`15686`, :issue:`22036`)
 - Bug in :meth:`DataFrame.loc:` and :meth:`Series.loc` with a :class:`DatetimeIndex`, :class:`TimedeltaIndex`, or :class:`PeriodIndex` incorrectly allowing lookups of non-matching datetime-like dtypes (:issue:`32650`)
 - Bug in :meth:`Series.__getitem__` indexing with non-standard scalars, e.g. ``np.dtype`` (:issue:`32684`)
-- :meth:`Index._get_nearest_indexer` now internally uses NumPy arrays or ExtensionArrays to compute left and right distances.  This preserves the fix to :issue:`26683` while maintaining compatibility with downstream :class:`Index` subclasses, e.g. xarray's CFTimeIndex (:issue:`32905`). See also `pydata/xarray#3751 <https://github.com/pydata/xarray/issues/3751>`_.
+- Fix to preserve the ability to index with the "nearest" method with xarray's CFTimeIndex, an :class:`Index` subclass (`pydata/xarray#3751 <https://github.com/pydata/xarray/issues/3751>`_, :issue:`32905`).
 
 Missing
 ^^^^^^^
