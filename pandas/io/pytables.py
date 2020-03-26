@@ -2202,7 +2202,7 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+    def set_data(self, data: ArrayLike):
         assert data is not None
         assert self.dtype is None
 
@@ -2382,7 +2382,7 @@ class DataCol(IndexCol):
                 mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum().values
+                    codes[codes != -1] -= mask.astype(int).cumsum()._values
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered
@@ -4682,7 +4682,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
-    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    # we won't get inferred_type of "datetime64" or "timedelta64" as these
     #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)
@@ -4826,7 +4826,9 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
+            Series(data.ravel())
+            .str.encode(encoding, errors)
+            ._values.reshape(data.shape)
         )
 
     # create the sized dtype
@@ -4865,7 +4867,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors).values
+            data = Series(data).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -4959,11 +4961,11 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+def _get_data_and_dtype_name(data: ArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """
-    if is_categorical_dtype(data.dtype):
+    if isinstance(data, Categorical):
         data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?

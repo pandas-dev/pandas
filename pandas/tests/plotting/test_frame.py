@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
