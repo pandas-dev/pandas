@@ -17,7 +17,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
 from pandas.core.base import DataError, ShallowMixin
-from pandas.core.generic import _shared_docs, NDFrame
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
