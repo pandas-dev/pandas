@@ -2063,7 +2063,16 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return key
 
+    @property
+    def _axes_are_unique(self) -> bool:
+        # Only relevant for self.ndim == 2
+        return self.obj.index.is_unique and self.obj.columns.is_unique
+
     def __getitem__(self, key):
+        if self.ndim == 2 and not self._axes_are_unique:
+            # GH#33041 fall back to .loc
+            return self.obj.loc[key]
+
         if self.ndim != 1 or not is_scalar(key):
             # FIXME: is_scalar check is a kludge
             return super().__getitem__(key)
@@ -2072,6 +2081,14 @@ class _AtIndexer(_ScalarAccessIndexer):
         obj = self.obj
         loc = obj.index.get_loc(key)
         return obj.index._get_values_for_loc(obj, loc, key)
+
+    def __setitem__(self, key, value):
+        if self.ndim == 2 and not self._axes_are_unique:
+            # GH#33041 fall back to .loc
+            self.obj.loc[key] = value
+            return
+
+        return super().__setitem__(key, value)
 
 
 @doc(IndexingMixin.iat)

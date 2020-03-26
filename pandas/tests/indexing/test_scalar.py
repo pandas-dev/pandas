@@ -128,6 +128,24 @@ class TestScalar2:
         result = df.iat[2, 0]
         assert result == 2
 
+    def test_frame_at_with_duplicate_axes(self):
+        # GH#33041
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        result = df.at[0, "A"]
+        expected = df.iloc[0]
+
+        tm.assert_series_equal(result, expected)
+
+        result = df.T.at["A", 0]
+        tm.assert_series_equal(result, expected)
+
+        # setter
+        df.at[1, "A"] = 2
+        expected = Series([2.0, 2.0], index=["A", "A"], name=1)
+        tm.assert_series_equal(df.iloc[1], expected)
+
     def test_series_at_raises_type_error(self):
         # at should not fallback
         # GH 7814
