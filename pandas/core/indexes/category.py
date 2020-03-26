@@ -243,8 +243,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = no_default):
+        name = self.name if name is no_default else name
+
         if values is not None:
             values = Categorical(values, dtype=self.dtype)
+
         return super()._shallow_copy(values=values, name=name)
 
     def _is_dtype_compat(self, other) -> bool:
