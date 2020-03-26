@@ -3897,7 +3897,7 @@ class DataFrame(NDFrame):
         columns : dict-like or function
             Alternative to specifying axis (``mapper, axis=1``
             is equivalent to ``columns=mapper``).
-        axis : int or str
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis to target with ``mapper``. Can be either the axis name
             ('index', 'columns') or number (0, 1). The default is 'index'.
         copy : bool, default True
@@ -5260,6 +5260,9 @@ class DataFrame(NDFrame):
         ----------
         i, j : int or str
             Levels of the indices to be swapped. Can pass level name as string.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
+            'columns' for column-wise.
 
         Returns
         -------
@@ -5289,7 +5292,7 @@ class DataFrame(NDFrame):
         order : list of int or list of str
             List representing new level order. Reference level by number
             (position) or by key (label).
-        axis : int
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Where to reorder levels.
 
         Returns
@@ -7783,7 +7786,7 @@ Wild         185.0
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
-            If 1 or 'columns' counts are generated for each **row**.
+            If 1 or 'columns' counts are generated for each row.
         level : int or str, optional
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular `level`, collapsing into a `DataFrame`.
@@ -8341,7 +8344,7 @@ Wild         185.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'} (default 0)
+        axis : {0, 1, 'index', 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
