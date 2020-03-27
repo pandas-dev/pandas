@@ -3,33 +3,8 @@ import pytest
 
 from pandas.compat import PYPY
 
-import pandas as pd
 from pandas import MultiIndex
 import pandas._testing as tm
-
-
-def test_contains_top_level():
-    midx = MultiIndex.from_product([["A", "B"], [1, 2]])
-    assert "A" in midx
-    assert "A" not in midx._engine
-
-
-def test_contains_with_nat():
-    # MI with a NaT
-    mi = MultiIndex(
-        levels=[["C"], pd.date_range("2012-01-01", periods=5)],
-        codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
-        names=[None, "B"],
-    )
-    assert ("C", pd.Timestamp("2012-01-01")) in mi
-    for val in mi.values:
-        assert val in mi
-
-
-def test_contains(idx):
-    assert ("foo", "two") in idx
-    assert ("bar", "two") not in idx
-    assert None not in idx
 
 
 @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
@@ -98,16 +73,6 @@ def test_isin_level_kwarg():
 
     with pytest.raises(KeyError, match="'Level C not found'"):
         idx.isin(vals_1, level="C")
-
-
-def test_contains_with_missing_value():
-    # issue 19132
-    idx = MultiIndex.from_arrays([[1, np.nan, 2]])
-    assert np.nan in idx
-
-    idx = MultiIndex.from_arrays([[1, 2], [np.nan, 3]])
-    assert np.nan not in idx
-    assert (1, np.nan) in idx
 
 
 @pytest.mark.parametrize(
