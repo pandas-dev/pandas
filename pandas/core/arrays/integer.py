@@ -484,7 +484,7 @@ class IntegerArray(BaseMaskedArray):
         # use masked algorithms, rather than object-dtype / np.nan.
         return self.to_numpy(dtype=float, na_value=np.nan), np.nan
 
-    def factorize2(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+    def factorize2(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "IntegerArray"]:
         arr = self._data
         mask = self._mask
 
