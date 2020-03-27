@@ -8001,29 +8001,54 @@ Wild         185.0
                 df = _get_data(axis_matters=True)
             return df._reduce_columns(blk_func)
 
-        if numeric_only is not None and axis in [0, 1]:
+        # if numeric_only is not None and axis in [0, 1]:
+        if axis in [0, 1]:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
             if axis == 1:
                 df = df.T
-                axis = 0
+                # axis = 0
 
             out_dtype = "bool" if filter_type == "bool" else None
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(blk_func)
+            try:
+                res = df._data.reduce(blk_func, ignore_failures=numeric_only is None)
+            except TypeError:
+                # if block-wise fails and numeric_only was None, we try
+                # again after removing non-numerical columns.
+                # (got here with mixed float + string frame and axis=1 -> need
+                # to remove non-numerical columns before transposing)
+                if numeric_only is None:
+                    df = _get_data(axis_matters=True)
+                    if axis == 1:
+                        df = df.T
+                else:
+                    raise
+                res = df._data.reduce(blk_func)
+
+            # breakpoint()
             assert isinstance(res, dict)
-            if len(res):
-                assert len(res) == max(list(res.keys())) + 1, res.keys()
-            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
-            out.index = df.columns
-            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
-                # FIXME: needs_i8_conversion check is kludge, not sure
-                #  why it is necessary in this case and this case alone
-                out[:] = coerce_to_dtypes(out.values, df.dtypes)
+            # if len(res):
+            #     assert len(res) == max(list(res.keys())) + 1, res.keys()
+
+            out = df._constructor_sliced(
+                res, index=list(res.keys()), dtype=out_dtype
+            ).sort_index()
+            if len(res) < len(df.columns):
+                out.index = df.columns[np.sort(list(res.keys()))]
+            else:
+                out.index = df.columns
+            # if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
+            #     # FIXME: needs_i8_conversion check is kludge, not sure
+            #     #  why it is necessary in this case and this case alone
+            #     out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
+        else:
+            # axis is None
+            return f(self.values)
 
         if numeric_only is None:
             data = self

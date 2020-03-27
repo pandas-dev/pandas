@@ -6478,7 +6478,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         self._consolidate_inplace()
-        breakpoint()
         if value is None:
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat

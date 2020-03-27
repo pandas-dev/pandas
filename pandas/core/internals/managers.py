@@ -41,6 +41,7 @@ from pandas.core.internals.blocks import (
     CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
+    ObjectBlock,
     ObjectValuesExtensionBlock,
     _extend_blocks,
     _merge_blocks,
@@ -350,7 +351,7 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func):
+    def reduce(self, func, ignore_failures=False):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
@@ -359,16 +360,53 @@ class BlockManager(PandasObject):
 
         res = {}
         for blk in self.blocks:
-            bres = func(blk.values)
+            placement = blk.mgr_locs.as_array
+            if isinstance(blk, CategoricalBlock):
+                try:
+                    bres = func(blk.values)
+                except TypeError:
+                    # not all operations (eg any, all) are supported on
+                    # Categorical, so fallback to operating on dense array
+                    # eg pandas/tests/frame/test_analytics.py::TestDataFrameAnalytics::test_any_all_np_func
+                    bres = func(np.asarray(blk.values).reshape(1, len(blk.values)))
+            elif isinstance(blk, ObjectBlock):
+                try:
+                    bres = func(blk.values)
+                except TypeError:
+                    # object dtype can have different type of objects in
+                    # different columns, so for this specific case we need
+                    # to fall back to apply the function column-wise
+                    values = blk.values
+                    n_cols = values.shape[0]
+                    results = []
+                    locs = []
+                    for i in range(n_cols):
+                        # need to keep as 2D since the func expects that
+                        col_values = values[[i], :]
+                        try:
+                            col_res = func(col_values)
+                        except TypeError:
+                            if ignore_failures:
+                                pass
+                            else:
+                                raise
+                        else:
+                            results.extend(col_res.tolist())
+                            locs.append(placement[i])
+                    bres = np.array(results, dtype=object)
+                    placement = locs
+
+            else:
+                bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA
                 assert blk.shape[0] == 1
-                new_res = zip(blk.mgr_locs.as_array, [bres])
+                new_res = zip(placement, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
-                new_res = zip(blk.mgr_locs.as_array, bres)
+                # assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
+                new_res = zip(placement, bres)
 
             nr = dict(new_res)
             assert not any(key in res for key in nr)
