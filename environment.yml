@@ -98,7 +98,7 @@ dependencies:
 
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
-  - s3fs<=0.4.0  # pandas.read_csv... when using 's3://...' path
+  - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
   - cftime  # Needed for downstream xarray.CFTimeIndex test
