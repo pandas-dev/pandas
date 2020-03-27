@@ -265,12 +265,6 @@ class XportReader(abc.Iterator):
         else:
             # Copy to BytesIO, and ensure no encoding
             contents = filepath_or_buffer.read()
-            # Convert string output to bytes, if needed
-            if hasattr(contents, "encode"):
-                try:
-                    contents = contents.encode(self._encoding)
-                except UnicodeEncodeError:
-                    pass
             self.filepath_or_buffer = BytesIO(contents)
 
         self._read_header()
