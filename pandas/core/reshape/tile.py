@@ -171,24 +171,26 @@ def cut(
     ...               index=['a', 'b', 'c', 'd', 'e'])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
-     d    3.0
-     e    4.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+    (a    1.0
+     b    2.0
+     c    3.0
+     d    4.0
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6,  8, 10]))
 
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
     ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
+    (a    1.0
+     b    2.0
+     c    3.0
      d    3.0
-     e    3.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6, 10]))
 
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
@@ -197,7 +199,7 @@ def cut(
 
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
-    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
