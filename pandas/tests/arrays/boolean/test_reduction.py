@@ -46,7 +46,9 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
     if dropna:
         s = s.dropna()
 
-    if op in ("sum", "prod"):
+    if op == "sum":
+        assert isinstance(getattr(s, op)(), np.int_)
+    elif op == "prod":
         assert isinstance(getattr(s, op)(), np.int64)
     elif op in ("min", "max"):
         assert isinstance(getattr(s, op)(), np.bool_)
