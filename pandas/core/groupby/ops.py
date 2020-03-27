@@ -566,7 +566,8 @@ class BaseGrouper:
             result = result.astype(orig_values.dtype)
 
         if (
-            is_integer_dtype(orig_values.dtype)
+            how == "add"
+            and is_integer_dtype(orig_values.dtype)
             and is_extension_array_dtype(orig_values.dtype)
             and not is_extension_array_dtype(result.dtype)
         ):
