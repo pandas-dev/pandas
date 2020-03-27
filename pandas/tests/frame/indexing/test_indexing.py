@@ -9,7 +9,7 @@ from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.common import is_float_dtype, is_integer
 
 import pandas as pd
-  ../pandas/tests/frame/indexing/test_indexing.pyfrom pandas import (
+from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
