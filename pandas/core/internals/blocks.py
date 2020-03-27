@@ -296,6 +296,7 @@ class Block(PandasObject):
 
     def _slice(self, slicer):
         """ return a slice of my values """
+
         return self.values[slicer]
 
     def getitem_block(self, slicer, new_mgr_locs=None):
@@ -1796,19 +1797,36 @@ class ExtensionBlock(Block):
         return True
 
     def _slice(self, slicer):
-        """ return a slice of my values """
-        # slice the category
-        # return same dims as we currently have
+        """
+        Return a slice of my values.
 
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim categorical")
-            slicer = slicer[1]
-        elif not isinstance(slicer, tuple) and self.ndim == 2:
+        Parameters
+        ----------
+        slicer : slice, ndarray[int], or a tuple of these
+            Valid (non-reducing) indexer for self.values.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        # return same dims as we currently have
+        if not isinstance(slicer, tuple) and self.ndim == 2:
             # reached via getitem_block via _slice_take_blocks_ax0
             # TODO(EA2D): wont be necessary with 2D EAs
-            # treat this like (slicer, slice(None)
-            slicer = slice(None)
+            slicer = (slicer, slice(None))
+
+        if isinstance(slicer, tuple) and len(slicer) == 2:
+            first = slicer[0]
+            if not isinstance(first, slice):
+                raise AssertionError(
+                    "invalid slicing for a 1-ndim ExtensionArray", first
+                )
+            elif not (first == slice(None) or first == slice(1)):
+                # TODO(EA2D): wont be necessary with 2D EAs
+                # Since self.shape[0] is always 1, the slicer[0] must be
+                #  either slice(None) or slice(1)
+                raise AssertionError("invalid slicing for a 1-ndim categorical", first)
+            slicer = slicer[1]
 
         return self.values[slicer]
 
@@ -2235,7 +2253,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
     should_store = DatetimeBlock.should_store
-    _slice = ExtensionBlock._slice
 
     @property
     def _holder(self):
