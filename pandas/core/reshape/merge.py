@@ -618,7 +618,7 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        ldata, rdata = self.left._data, self.right._data
+        ldata, rdata = self.left._mgr, self.right._mgr
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -818,8 +818,8 @@ class _MergeOperation:
         )
 
     def _get_join_info(self):
-        left_ax = self.left._data.axes[self.axis]
-        right_ax = self.right._data.axes[self.axis]
+        left_ax = self.left._mgr.axes[self.axis]
+        right_ax = self.right._mgr.axes[self.axis]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1433,7 +1433,7 @@ class _OrderedMerge(_MergeOperation):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         # this is a bit kludgy
-        ldata, rdata = self.left._data, self.right._data
+        ldata, rdata = self.left._mgr, self.right._mgr
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(

@@ -75,7 +75,7 @@ ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extensio
 
 class _ABCGeneric(type):
     def __instancecheck__(cls, inst) -> bool:
-        return hasattr(inst, "_data")
+        return hasattr(inst, "_mgr")
 
 
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})

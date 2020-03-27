@@ -1645,7 +1645,7 @@ def take_nd(
         if arr.flags.f_contiguous and axis == arr.ndim - 1:
             # minor tweak that can make an order-of-magnitude difference
             # for dataframes initialized directly from 2-d ndarrays
-            # (s.t. df.values is c-contiguous and df._data.blocks[0] is its
+            # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
             # f-contiguous transpose)
             out = np.empty(out_shape, dtype=dtype, order="F")
         else:

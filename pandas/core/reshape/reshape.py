@@ -431,7 +431,7 @@ def _unstack_frame(obj, level, fill_value=None):
         unstacker = partial(
             _Unstacker, index=obj.index, level=level, fill_value=fill_value
         )
-        blocks = obj._data.unstack(unstacker, fill_value=fill_value)
+        blocks = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(blocks)
     else:
         return _Unstacker(

@@ -561,7 +561,7 @@ def get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
         if not _is_label_like(key):
-            items = obj._data.items
+            items = obj._mgr.items
             try:
                 items.get_loc(key)
             except (KeyError, TypeError, InvalidIndexError):

@@ -271,7 +271,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
-                data = data._data
+                data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
@@ -329,7 +329,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _init_dict(self, data, index=None, dtype=None):
         """
-        Derive the "_data" and "index" attributes of a new Series from a
+        Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
 
         Parameters
@@ -369,7 +369,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        return s._data, s.index
+        return s._mgr, s.index
 
     # ----------------------------------------------------------------------
 
@@ -386,7 +386,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # types
     @property
     def _can_hold_na(self):
-        return self._data._can_hold_na
+        return self._mgr._can_hold_na
 
     _index = None
 
@@ -407,7 +407,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
-                        self._data.set_axis(axis, labels)
+                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -416,7 +416,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call aabove ensures we have an Index object
-            self._data.set_axis(axis, labels)
+            self._mgr.set_axis(axis, labels)
 
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
@@ -428,14 +428,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
     def name(self) -> Label:
@@ -533,7 +533,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
         """
-        return self._data.external_values()
+        return self._mgr.external_values()
 
     @property
     def _values(self):
@@ -567,12 +567,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Nullable    | EA            | EA            | EA            |
 
         """
-        return self._data.internal_values()
+        return self._mgr.internal_values()
 
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
     @property
     def array(self) -> ExtensionArray:
-        return self._data._block.array_values()
+        return self._mgr._block.array_values()
 
     # ops
     def ravel(self, order="C"):
@@ -594,7 +594,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the length of the Series.
         """
-        return len(self._data)
+        return len(self._mgr)
 
     def view(self, dtype=None) -> "Series":
         """
@@ -979,7 +979,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values(self, indexer):
         try:
             return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
+                self._mgr.get_slice(indexer), fastpath=True
             ).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
@@ -1102,7 +1102,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
-        self._data = self._data.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False):
@@ -2817,7 +2817,7 @@ Name: Max Speed, dtype: float64
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other)
+        self._mgr = self._mgr.putmask(mask=mask, new=other)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------

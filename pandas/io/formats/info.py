@@ -265,7 +265,7 @@ def info(
         else:
             _verbose_repr()
 
-    counts = data._data.get_dtype_counts()
+    counts = data._mgr.get_dtype_counts()
     dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
     lines.append(f"dtypes: {', '.join(dtypes)}")
 

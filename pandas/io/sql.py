@@ -692,7 +692,7 @@ class SQLTable(PandasObject):
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
-        blocks = temp._data.blocks
+        blocks = temp._mgr.blocks
 
         for b in blocks:
             if b.is_datetime:

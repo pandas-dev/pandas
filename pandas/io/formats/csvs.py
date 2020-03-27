@@ -131,7 +131,7 @@ class CSVFormatter:
         self.cols = cols
 
         # preallocate data 2d list
-        self.blocks = self.obj._data.blocks
+        self.blocks = self.obj._mgr.blocks
         ncols = sum(b.shape[0] for b in self.blocks)
         self.data = [None] * ncols
 

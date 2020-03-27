@@ -1552,8 +1552,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._data.blocks:
-            (blk,) = self.obj._data.blocks
+        if not take_split_path and self.obj._mgr.blocks:
+            (blk,) = self.obj._mgr.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
@@ -1617,7 +1617,7 @@ class _iLocIndexer(_LocationIndexer):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._data = self.obj.reindex(labels, axis=i)._data
+                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 
@@ -1698,7 +1698,7 @@ class _iLocIndexer(_LocationIndexer):
                     # set the item, possibly having a dtype change
                     ser._consolidate_inplace()
                     ser = ser.copy()
-                    ser._data = ser._data.setitem(indexer=pi, value=v)
+                    ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
@@ -1809,7 +1809,7 @@ class _iLocIndexer(_LocationIndexer):
 
             # actually do the set
             self.obj._consolidate_inplace()
-            self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
+            self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
@@ -1841,9 +1841,9 @@ class _iLocIndexer(_LocationIndexer):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
-            self.obj._data = self.obj._constructor(
+            self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
-            )._data
+            )._mgr
             self.obj._maybe_update_cacher(clear=True)
 
         elif self.ndim == 2:
@@ -1866,7 +1866,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 value = Series(value, index=self.obj.columns, name=indexer)
 
-            self.obj._data = self.obj.append(value)._data
+            self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
     def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
@@ -2119,7 +2119,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, str):
 
         # we are an actual column
-        if key in obj._data.items:
+        if key in obj._mgr.items:  # TODO: just obj.columns?
             return None
 
         # We might have a datetimelike string that we can translate to a

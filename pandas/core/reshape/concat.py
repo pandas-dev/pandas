@@ -457,8 +457,8 @@ class _Concatenator:
             if self.axis == 0:
                 name = com.consensus_name_attr(self.objs)
 
-                mgr = self.objs[0]._data.concat(
-                    [x._data for x in self.objs], self.new_axes
+                mgr = self.objs[0]._mgr.concat(
+                    [x._mgr for x in self.objs], self.new_axes
                 )
                 cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")
@@ -477,7 +477,7 @@ class _Concatenator:
         else:
             mgrs_indexers = []
             for obj in self.objs:
-                mgr = obj._data
+                mgr = obj._mgr
                 indexers = {}
                 for ax, new_labels in enumerate(self.new_axes):
                     if ax == self.axis:
@@ -488,7 +488,7 @@ class _Concatenator:
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
-                mgrs_indexers.append((obj._data, indexers))
+                mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=self.copy
@@ -555,7 +555,7 @@ class _Concatenator:
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
-            indexes = [x._data.axes[self.axis] for x in self.objs]
+            indexes = [x._mgr.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
             idx = ibase.default_index(sum(len(i) for i in indexes))
