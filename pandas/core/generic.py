@@ -6835,13 +6835,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if axis == 0:
-            ax = self._info_axis_number
             df = self
         else:
             df = self.T
-            ax = 1
-
-        alt_ax = self._get_block_manager_axis(ax)
 
         if isinstance(df.index, MultiIndex) and method != "linear":
             raise ValueError(
@@ -6858,9 +6854,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(df._get_axis(alt_ax)))
+            index = np.arange(len(df.index))
         else:
-            index = df._get_axis(alt_ax)
+            index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)
@@ -6884,7 +6880,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         data = df._data
         new_data = data.interpolate(
             method=method,
-            axis=ax,
+            axis=self._info_axis_number,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
