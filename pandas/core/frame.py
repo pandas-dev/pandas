@@ -4678,21 +4678,15 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         duplicated = self.duplicated(subset, keep=keep)
 
+        result = self[-duplicated]
+        if ignore_index:
+            result.index = range(len(result))
+
         if inplace:
-            (inds,) = np.asarray(-duplicated).nonzero()
-            new_data = self._data.take(inds)
-
-            if ignore_index:
-                new_data.axes[1] = ibase.default_index(len(inds))
-            self._update_inplace(new_data)
+            self._update_inplace(result._data)
+            return None
         else:
-            result = self[-duplicated]
-
-            if ignore_index:
-                result.index = ibase.default_index(len(result))
             return result
-
-        return None
 
     def duplicated(
         self,
