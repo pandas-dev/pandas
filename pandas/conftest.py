@@ -1145,6 +1145,7 @@ def cython_table_items(request):
     """
     return request.param
 
+
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1157,6 +1158,7 @@ def tick_classes(request):
     Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param
+
 
 @pytest.fixture(params=[None, lambda x: x])
 def sort_by_key(request):
