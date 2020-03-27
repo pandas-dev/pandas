@@ -18,6 +18,7 @@ from pandas._typing import FrameOrSeries
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -542,22 +543,6 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-            and not isna(result).any()
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            #
-            # Sometimes result can contain null values (e.g. see
-            # https://github.com/pandas-dev/pandas/issues/32861)
-            # and so we must check for that before casting to int
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -582,12 +567,11 @@ class BaseGrouper:
             result = result.astype(orig_values.dtype)
 
         if (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
+            is_integer_dtype(orig_values.dtype)
             and is_extension_array_dtype(orig_values.dtype)
-            and isna(result).any()
+            and not is_extension_array_dtype(result.dtype)
         ):
-            result = pd.array(result.ravel(), dtype="Int64")
+            result = maybe_cast_to_extension_array(type(orig_values), result)
 
         return result, names
 
