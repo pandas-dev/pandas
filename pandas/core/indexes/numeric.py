@@ -369,7 +369,7 @@ class Float64Index(NumericIndex):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
             arr = astype_nansafe(self._values, dtype=dtype)
-            return Int64Index(arr)
+            return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
     # ----------------------------------------------------------------

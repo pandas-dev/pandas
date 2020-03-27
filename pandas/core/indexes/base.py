@@ -670,7 +670,7 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), dtype=dtype, copy=copy)
+            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
             casted = self.values.astype(dtype, copy=copy)

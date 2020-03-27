@@ -369,3 +369,29 @@ class TestCommon:
         idx = holder([indices[0]] * 5)
         assert idx.is_unique is False
         assert idx.has_duplicates is True
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int64", "uint64", "float64", "category", "datetime64[ns]", "timedelta64[ns]"],
+    )
+    @pytest.mark.parametrize("copy", [True, False])
+    def test_astype_preserves_name(self, indices, dtype, copy):
+        # https://github.com/pandas-dev/pandas/issues/32013
+        if isinstance(indices, MultiIndex):
+            indices.names = ["idx" + str(i) for i in range(indices.nlevels)]
+        else:
+            indices.name = "idx"
+
+        try:
+            # Some of these conversions cannot succeed so we use a try / except
+            if copy:
+                result = indices.copy(dtype=dtype)
+            else:
+                result = indices.astype(dtype)
+        except (ValueError, TypeError, NotImplementedError, SystemError):
+            return
+
+        if isinstance(indices, MultiIndex):
+            assert result.names == indices.names
+        else:
+            assert result.name == indices.name
