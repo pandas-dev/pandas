@@ -308,6 +308,31 @@ class GetItemSingleColumn:
         self.df_int_col[0]
 
 
+class IndexSingleRow:
+    params = [True, False]
+    param_names = ["unique_cols"]
+
+    def setup_cache(self, unique_cols):
+        arr = np.arange(10 ** 7).reshape(-1, 10)
+        df = DataFrame(arr)
+        dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
+        for i, d in enumerate(dtypes):
+            df[i] = df[i].astype(d)
+
+        if not unique_cols:
+            # GH#33032 single-row lookups with non-unique columns were
+            #  15x slower than with unique columns
+            df.columns = ["A", "A"] + list(df.columns[2:])
+
+        self.df = df
+
+    def time_iloc_row(self, unique_cols):
+        self.df.iloc[10000]
+
+    def time_loc_row(self, unique_cols):
+        self.df.loc[10000]
+
+
 class AssignTimeseriesIndex:
     def setup(self):
         N = 100000
