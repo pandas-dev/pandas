@@ -380,7 +380,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
         pass
 
     def parse(
@@ -436,7 +436,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
+            data = self.get_sheet_data(sheet, convert_float, header, skiprows, nrows)
             usecols = _maybe_convert_usecols(usecols)
 
             if not data:

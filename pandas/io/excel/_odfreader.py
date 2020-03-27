@@ -63,7 +63,7 @@ class _ODFReader(_BaseExcelReader):
 
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """

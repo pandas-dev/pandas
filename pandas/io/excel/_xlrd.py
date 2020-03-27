@@ -46,7 +46,7 @@ class _XlrdReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.sheet_by_index(index)
 
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
         from xlrd import (
             xldate,
             XL_CELL_DATE,
