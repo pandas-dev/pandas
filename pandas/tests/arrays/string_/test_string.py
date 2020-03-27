@@ -214,6 +214,14 @@ def test_from_sequence_no_mutate(copy):
     tm.assert_numpy_array_equal(a, original)
 
 
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):
