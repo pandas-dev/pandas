@@ -868,7 +868,7 @@ def test_apply_function_returns_numpy_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_function_adds_a_row():
+def test_apply_function_with_indexing():
     # GH: 33058
     df = pd.DataFrame(
         {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
