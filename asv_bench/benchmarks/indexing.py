@@ -312,7 +312,7 @@ class IndexSingleRow:
     params = [True, False]
     param_names = ["unique_cols"]
 
-    def setup_cache(self, unique_cols):
+    def setup(self, unique_cols):
         arr = np.arange(10 ** 7).reshape(-1, 10)
         df = DataFrame(arr)
         dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
