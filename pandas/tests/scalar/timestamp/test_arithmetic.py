@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 from pandas import Timedelta, Timestamp
 
 from pandas.tseries import offsets
@@ -60,6 +62,18 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=msg):
             stamp - offset_overflow
 
+    def test_overflow_timestamp_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/31774
+        msg = "Result is too large"
+        a = Timestamp("2101-01-01 00:00:00")
+        b = Timestamp("1688-01-01 00:00:00")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            a - b
+
+        # but we're OK for timestamp and datetime.datetime
+        assert (a - b.to_pydatetime()) == (a.to_pydatetime() - b)
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
@@ -76,7 +90,8 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            with pytest.raises(TypeError, match="subtraction must have"):
+            msg = "subtraction must have"
+            with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
@@ -181,7 +196,8 @@ class TestTimestampArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             ts - other
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts
 
     @pytest.mark.parametrize(
@@ -201,14 +217,15 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_with_freq(self, ts, other):
-
-        with pytest.raises(TypeError):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             ts + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + ts
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts - other
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             other - ts

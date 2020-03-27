@@ -433,8 +433,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # args to ignore warnings
-    extra_compile_args = []
+    extra_compile_args = ["-Werror"]
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -477,6 +476,14 @@ if linetrace:
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ < LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------

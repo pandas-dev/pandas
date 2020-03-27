@@ -30,7 +30,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, lib
+from pandas._libs import Timestamp, lib
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -354,7 +354,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
-        raise ValueError(f"No axis named {axis} for object type {cls}")
+        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     @classmethod
     def _get_axis_name(cls, axis):
@@ -367,7 +367,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
-        raise ValueError(f"No axis named {axis} for object type {cls}")
+        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -967,7 +967,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 continue
 
             ax = self._get_axis(axis_no)
-            baxis = self._get_block_manager_axis(axis_no)
             f = com.get_rename_function(replacements)
 
             if level is not None:
@@ -984,9 +983,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            result._data = result._data.rename_axis(
-                f, axis=baxis, copy=copy, level=level
-            )
+            new_index = ax._transform_index(f, level)
+            result.set_axis(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 
         if inplace:
@@ -1914,117 +1912,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         %(klass)s in Markdown-friendly format.
     """
 
-    _shared_docs[
-        "to_excel"
-    ] = """
-    Write %(klass)s to an Excel sheet.
-
-    To write a single %(klass)s to an Excel .xlsx file it is only necessary to
-    specify a target file name. To write to multiple sheets it is necessary to
-    create an `ExcelWriter` object with a target file name, and specify a sheet
-    in the file to write to.
-
-    Multiple sheets may be written to by specifying unique `sheet_name`.
-    With all data written to the file it is necessary to save the changes.
-    Note that creating an `ExcelWriter` object with a file name that already
-    exists will result in the contents of the existing file being erased.
-
-    Parameters
-    ----------
-    excel_writer : str or ExcelWriter object
-        File path or existing ExcelWriter.
-    sheet_name : str, default 'Sheet1'
-        Name of sheet which will contain DataFrame.
-    na_rep : str, default ''
-        Missing data representation.
-    float_format : str, optional
-        Format string for floating point numbers. For example
-        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
-    columns : sequence or list of str, optional
-        Columns to write.
-    header : bool or list of str, default True
-        Write out the column names. If a list of string is given it is
-        assumed to be aliases for the column names.
-    index : bool, default True
-        Write row names (index).
-    index_label : str or sequence, optional
-        Column label for index column(s) if desired. If not specified, and
-        `header` and `index` are True, then the index names are used. A
-        sequence should be given if the DataFrame uses MultiIndex.
-    startrow : int, default 0
-        Upper left cell row to dump data frame.
-    startcol : int, default 0
-        Upper left cell column to dump data frame.
-    engine : str, optional
-        Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-        via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
-        ``io.excel.xlsm.writer``.
-    merge_cells : bool, default True
-        Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : str, optional
-        Encoding of the resulting excel file. Only necessary for xlwt,
-        other writers support unicode natively.
-    inf_rep : str, default 'inf'
-        Representation for infinity (there is no native representation for
-        infinity in Excel).
-    verbose : bool, default True
-        Display more information in the error logs.
-    freeze_panes : tuple of int (length 2), optional
-        Specifies the one-based bottommost row and rightmost column that
-        is to be frozen.
-
-    See Also
-    --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
-    ExcelWriter : Class for writing DataFrame objects into excel sheets.
-    read_excel : Read an Excel file into a pandas DataFrame.
-    read_csv : Read a comma-separated values (csv) file into DataFrame.
-
-    Notes
-    -----
-    For compatibility with :meth:`~DataFrame.to_csv`,
-    to_excel serializes lists and dicts to strings before writing.
-
-    Once a workbook has been saved it is not possible write further data
-    without rewriting the whole workbook.
-
-    Examples
-    --------
-
-    Create, write to and save a workbook:
-
-    >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                    index=['row 1', 'row 2'],
-    ...                    columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
-
-    To specify the sheet name:
-
-    >>> df1.to_excel("output.xlsx",
-    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
-
-    If you wish to write to more than one sheet in the workbook, it is
-    necessary to specify an ExcelWriter object:
-
-    >>> df2 = df1.copy()
-    >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
-    ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
-    ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
-
-    ExcelWriter can also be used to append to an existing Excel file:
-
-    >>> with pd.ExcelWriter('output.xlsx',
-    ...                     mode='a') as writer:  # doctest: +SKIP
-    ...     df.to_excel(writer, sheet_name='Sheet_name_3')
-
-    To set the library that is used to write the Excel file,
-    you can pass the `engine` keyword (the default engine is
-    automatically chosen depending on the file extension):
-
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
-    """
-
-    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
+    @doc(klass="object")
     def to_excel(
         self,
         excel_writer,
@@ -2044,6 +1932,114 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         verbose=True,
         freeze_panes=None,
     ) -> None:
+        """
+        Write {klass} to an Excel sheet.
+
+        To write a single {klass} to an Excel .xlsx file it is only necessary to
+        specify a target file name. To write to multiple sheets it is necessary to
+        create an `ExcelWriter` object with a target file name, and specify a sheet
+        in the file to write to.
+
+        Multiple sheets may be written to by specifying unique `sheet_name`.
+        With all data written to the file it is necessary to save the changes.
+        Note that creating an `ExcelWriter` object with a file name that already
+        exists will result in the contents of the existing file being erased.
+
+        Parameters
+        ----------
+        excel_writer : str or ExcelWriter object
+            File path or existing ExcelWriter.
+        sheet_name : str, default 'Sheet1'
+            Name of sheet which will contain DataFrame.
+        na_rep : str, default ''
+            Missing data representation.
+        float_format : str, optional
+            Format string for floating point numbers. For example
+            ``float_format="%.2f"`` will format 0.1234 to 0.12.
+        columns : sequence or list of str, optional
+            Columns to write.
+        header : bool or list of str, default True
+            Write out the column names. If a list of string is given it is
+            assumed to be aliases for the column names.
+        index : bool, default True
+            Write row names (index).
+        index_label : str or sequence, optional
+            Column label for index column(s) if desired. If not specified, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        startrow : int, default 0
+            Upper left cell row to dump data frame.
+        startcol : int, default 0
+            Upper left cell column to dump data frame.
+        engine : str, optional
+            Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+            ``io.excel.xlsm.writer``.
+        merge_cells : bool, default True
+            Write MultiIndex and Hierarchical Rows as merged cells.
+        encoding : str, optional
+            Encoding of the resulting excel file. Only necessary for xlwt,
+            other writers support unicode natively.
+        inf_rep : str, default 'inf'
+            Representation for infinity (there is no native representation for
+            infinity in Excel).
+        verbose : bool, default True
+            Display more information in the error logs.
+        freeze_panes : tuple of int (length 2), optional
+            Specifies the one-based bottommost row and rightmost column that
+            is to be frozen.
+
+        See Also
+        --------
+        to_csv : Write DataFrame to a comma-separated values (csv) file.
+        ExcelWriter : Class for writing DataFrame objects into excel sheets.
+        read_excel : Read an Excel file into a pandas DataFrame.
+        read_csv : Read a comma-separated values (csv) file into DataFrame.
+
+        Notes
+        -----
+        For compatibility with :meth:`~DataFrame.to_csv`,
+        to_excel serializes lists and dicts to strings before writing.
+
+        Once a workbook has been saved it is not possible write further data
+        without rewriting the whole workbook.
+
+        Examples
+        --------
+
+        Create, write to and save a workbook:
+
+        >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+        ...                    index=['row 1', 'row 2'],
+        ...                    columns=['col 1', 'col 2'])
+        >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
+
+        To specify the sheet name:
+
+        >>> df1.to_excel("output.xlsx",
+        ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
+
+        If you wish to write to more than one sheet in the workbook, it is
+        necessary to specify an ExcelWriter object:
+
+        >>> df2 = df1.copy()
+        >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
+        ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+        ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+        ExcelWriter can also be used to append to an existing Excel file:
+
+        >>> with pd.ExcelWriter('output.xlsx',
+        ...                     mode='a') as writer:  # doctest: +SKIP
+        ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+
+        To set the library that is used to write the Excel file,
+        you can pass the `engine` keyword (the default engine is
+        automatically chosen depending on the file extension):
+
+        >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
+        """
+
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -3579,6 +3575,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
+    def _iset_item(self, loc: int, value) -> None:
+        self._data.iset(loc, value)
+        self._clear_item_cache()
+
     def _set_item(self, key, value) -> None:
         self._data.set(key, value)
         self._clear_item_cache()
@@ -4556,6 +4556,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
 
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])
@@ -4788,9 +4792,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int or numpy.random.RandomState, optional
-            Seed for the random number generator (if int), or numpy RandomState
-            object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator
+            If np.random.RandomState, use as numpy RandomState object.
+
+            ..versionchanged:: 1.1.0
+
+                array-like and BitGenerator (for NumPy>=1.17) object now passed to
+                np.random.RandomState() as seed
+
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
@@ -5374,26 +5385,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    def _internal_get_values(self) -> np.ndarray:
-        """
-        Return an ndarray after converting sparse values to dense.
-
-        This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `SparseArray`, the data are first
-        converted to a dense representation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Numpy representation of DataFrame.
-
-        See Also
-        --------
-        values : Numpy representation of DataFrame.
-        SparseArray : Container for sparse data.
-        """
         return self.values
 
     @property
@@ -6075,14 +6066,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            if len(self._get_axis(axis)) == 0:
-                return self
-
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
+                    value = value.reindex(self.index, copy=False)
+                    value = value._values
                 elif not is_list_like(value):
                     pass
                 else:
@@ -7081,7 +7071,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 return Series(np.nan, index=self.columns, name=where[0])
 
-        locs = self.index.asof_locs(where, ~(nulls.values))
+        locs = self.index.asof_locs(where, ~(nulls._values))
 
         # mask the missing
         missing = locs == -1
@@ -7240,7 +7230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-        mask = isna(self.values)
+        mask = isna(self._values)
 
         with np.errstate(all="ignore"):
             if upper is not None:
@@ -7485,6 +7475,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         freq : DateOffset or str
+            Frequency DateOffset or string.
         method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
@@ -7502,11 +7493,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        converted : same type as caller
+        Same type as caller
+            Object converted to the specified frequency.
 
         See Also
         --------
-        reindex
+        reindex : Conform DataFrame to new index with optional filling logic.
 
         Notes
         -----
@@ -8014,15 +8006,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
-        Method to subset initial periods of time series data based on a date offset.
+        Select initial periods of time series data based on a date offset.
+
+        When having a DataFrame with dates as index, this function can
+        select the first few rows based on a date offset.
 
         Parameters
         ----------
-        offset : str, DateOffset, dateutil.relativedelta
+        offset : str, DateOffset or dateutil.relativedelta
+            The offset length of the data that will be selected. For instance,
+            '1M' will display all the rows having their index within the first month.
 
         Returns
         -------
-        subset : same type as caller
+        Series or DataFrame
+            A subset of the caller.
 
         Raises
         ------
@@ -8038,7 +8036,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -8053,7 +8051,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2018-04-09  1
         2018-04-11  2
 
-        Notice the data for 3 first calender days were returned, not the first
+        Notice the data for 3 first calendar days were returned, not the first
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
@@ -8115,7 +8113,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2018-04-13  3
         2018-04-15  4
 
-        Notice the data for 3 last calender days were returned, not the last
+        Notice the data for 3 last calendar days were returned, not the last
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
         """
@@ -8432,9 +8430,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
         if method is not None:
-            left = self._ensure_type(
-                left.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            _left = left.fillna(method=method, axis=fill_axis, limit=limit)
+            assert _left is not None  # needed for mypy
+            left = _left
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
@@ -8571,12 +8569,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
+        else:
+            # GH#21947 we have an empty DataFrame, could be object-dtype
+            cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
 
         # try to align with other
         try_quick = True
-        if hasattr(other, "align"):
+        if isinstance(other, NDFrame):
 
             # align with me
             if other.ndim <= self.ndim:
@@ -8603,12 +8604,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 if self.ndim == 1:
 
-                    icond = cond.values
+                    icond = cond._values
 
                     # GH 2745 / GH 4192
                     # treat like a scalar
                     if len(other) == 1:
-                        other = np.array(other[0])
+                        other = other[0]
 
                     # GH 3235
                     # match True cond to other
@@ -8651,12 +8652,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._data.putmask(
-                mask=cond,
-                new=other,
-                align=align,
-                inplace=True,
-                axis=block_axis,
-                transpose=self._AXIS_REVERSED,
+                mask=cond, new=other, align=align, axis=block_axis,
             )
             self._update_inplace(new_data)
 
@@ -8982,7 +8978,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return new_obj.__finalize__(self)
 
     def tshift(
-        self: FrameOrSeries, periods: int = 1, freq=None, axis=0
+        self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
     ) -> FrameOrSeries:
         """
         Shift the time index, using the index's frequency if available.
@@ -9024,22 +9020,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(freq, str):
             freq = to_offset(freq)
 
-        block_axis = self._get_block_manager_axis(axis)
+        axis = self._get_axis_number(axis)
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
-            if freq == orig_freq:
-                new_data = self._data.copy()
-                new_data.axes[block_axis] = index.shift(periods)
-            elif orig_freq is not None:
+            if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
                 raise ValueError(
                     f"Given freq {freq.rule_code} does not match "
                     f"PeriodIndex freq {orig_freq.rule_code}"
                 )
+            new_ax = index.shift(periods)
         else:
-            new_data = self._data.copy()
-            new_data.axes[block_axis] = index.shift(periods, freq)
+            new_ax = index.shift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self)
+        result = self.copy()
+        result.set_axis(new_ax, axis, inplace=True)
+        return result.__finalize__(self)
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
@@ -9967,9 +9963,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if fill_method is None:
             data = self
         else:
-            data = self._ensure_type(
-                self.fillna(method=fill_method, axis=axis, limit=limit)
-            )
+            _data = self.fillna(method=fill_method, axis=axis, limit=limit)
+            assert _data is not None  # needed for mypy
+            data = _data
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
         if freq is not None:
@@ -10092,8 +10088,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="minimum",
             accum_func=np.minimum.accumulate,
             accum_func_name="min",
-            mask_a=np.inf,
-            mask_b=np.nan,
             examples=_cummin_examples,
         )
         cls.cumsum = _make_cum_function(
@@ -10105,8 +10099,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="sum",
             accum_func=np.cumsum,
             accum_func_name="sum",
-            mask_a=0.0,
-            mask_b=np.nan,
             examples=_cumsum_examples,
         )
         cls.cumprod = _make_cum_function(
@@ -10118,8 +10110,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="product",
             accum_func=np.cumprod,
             accum_func_name="prod",
-            mask_a=1.0,
-            mask_b=np.nan,
             examples=_cumprod_examples,
         )
         cls.cummax = _make_cum_function(
@@ -10131,8 +10121,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="maximum",
             accum_func=np.maximum.accumulate,
             accum_func_name="max",
-            mask_a=-np.inf,
-            mask_b=np.nan,
             examples=_cummax_examples,
         )
 
@@ -10553,13 +10541,14 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-*args, **kwargs :
+*args, **kwargs
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
 
 Returns
 -------
 %(name1)s or %(name2)s
+    Return cumulative %(desc)s of %(name1)s or %(name2)s.
 
 See Also
 --------
@@ -11172,8 +11161,6 @@ def _make_cum_function(
     desc: str,
     accum_func: Callable,
     accum_func_name: str,
-    mask_a: float,
-    mask_b: float,
     examples: str,
 ) -> Callable:
     @Substitution(
@@ -11195,61 +11182,15 @@ def _make_cum_function(
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
 
-        def na_accum_func(blk_values):
-            # We will be applying this function to block values
-            if blk_values.dtype.kind in ["m", "M"]:
-                # GH#30460, GH#29058
-                # numpy 1.18 started sorting NaTs at the end instead of beginning,
-                #  so we need to work around to maintain backwards-consistency.
-                orig_dtype = blk_values.dtype
+        def block_accum_func(blk_values):
+            values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-                # We need to define mask before masking NaTs
-                mask = isna(blk_values)
+            result = nanops.na_accum_func(values, accum_func, skipna=skipna)
 
-                if accum_func == np.minimum.accumulate:
-                    # Note: the accum_func comparison fails as an "is" comparison
-                    y = blk_values.view("i8")
-                    y[mask] = np.iinfo(np.int64).max
-                    changed = True
-                else:
-                    y = blk_values
-                    changed = False
+            result = result.T if hasattr(result, "T") else result
+            return result
 
-                result = accum_func(y.view("i8"), axis)
-                if skipna:
-                    np.putmask(result, mask, iNaT)
-                elif accum_func == np.minimum.accumulate:
-                    # Restore NaTs that we masked previously
-                    nz = (~np.asarray(mask)).nonzero()[0]
-                    if len(nz):
-                        # everything up to the first non-na entry stays NaT
-                        result[: nz[0]] = iNaT
-
-                if changed:
-                    # restore NaT elements
-                    y[mask] = iNaT  # TODO: could try/finally for this?
-
-                if isinstance(blk_values, np.ndarray):
-                    result = result.view(orig_dtype)
-                else:
-                    # DatetimeArray
-                    result = type(blk_values)._from_sequence(result, dtype=orig_dtype)
-
-            elif skipna and not issubclass(
-                blk_values.dtype.type, (np.integer, np.bool_)
-            ):
-                vals = blk_values.copy().T
-                mask = isna(vals)
-                np.putmask(vals, mask, mask_a)
-                result = accum_func(vals, axis)
-                np.putmask(result, mask, mask_b)
-            else:
-                result = accum_func(blk_values.T, axis)
-
-            # transpose back for ndarray, not for EA
-            return result.T if hasattr(result, "T") else result
-
-        result = self._data.apply(na_accum_func)
+        result = self._data.apply(block_accum_func)
 
         d = self._construct_axes_dict()
         d["copy"] = False

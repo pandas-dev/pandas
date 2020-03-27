@@ -260,7 +260,7 @@ def _convert_listlike_datetimes(
     Parameters
     ----------
     arg : list, tuple, ndarray, Series, Index
-        date to be parced
+        date to be parsed
     name : object
         None or string for the Index name
     tz : object
@@ -323,15 +323,13 @@ def _convert_listlike_datetimes(
         # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
         # because it expects an ndarray argument
         if isinstance(arg, IntegerArray):
-            # Explicitly pass NaT mask to array_with_unit_to_datetime
-            mask = arg.isna()
-            arg = arg._ndarray_values
+            result = arg.astype(f"datetime64[{unit}]")
+            tz_parsed = None
         else:
-            mask = None
 
-        result, tz_parsed = tslib.array_with_unit_to_datetime(
-            arg, mask, unit, errors=errors
-        )
+            result, tz_parsed = tslib.array_with_unit_to_datetime(
+                arg, unit, errors=errors
+            )
 
         if errors == "ignore":
             from pandas import Index
@@ -361,7 +359,18 @@ def _convert_listlike_datetimes(
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
     orig_arg = arg
-    arg, _ = maybe_convert_dtype(arg, copy=False)
+    try:
+        arg, _ = maybe_convert_dtype(arg, copy=False)
+    except TypeError:
+        if errors == "coerce":
+            result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            return DatetimeIndex(result, name=name)
+        elif errors == "ignore":
+            from pandas import Index
+
+            result = Index(arg, name=name)
+            return result
+        raise
 
     arg = ensure_object(arg)
     require_iso8601 = False
@@ -556,7 +565,7 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like
+    arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

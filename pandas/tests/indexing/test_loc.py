@@ -632,6 +632,64 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
+    @pytest.mark.parametrize(
+        "index,box,expected",
+        [
+            (
+                ([0, 2], ["A", "B", "C", "D"]),
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [3, 4, np.nan, np.nan], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["C", "D"]),
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["A", "B", "C"]),
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]],
+                    columns=["A", "B", "C"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["B", "C", "D"]),
+                [[7, 8, 9], [10, 11, 12]],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["C", "A", "D"]),
+                np.array([[7, 8, 9], [10, 11, 12]], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [8, 4, 7, 9], [11, 6, 10, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(None, None, None), ["A", "C"]),
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_loc_setitem_missing_columns(self, index, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df.loc[index] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_coercion(self):
 
         # 12411
@@ -1016,6 +1074,28 @@ def test_loc_slice_disallows_positional():
     with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
+
+
+def test_loc_datetimelike_mismatched_dtypes():
+    # GH#32650 dont mix and match datetime/timedelta/period dtypes
+
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique DatetimeIndex
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    dti = df.index
+    tdi = pd.TimedeltaIndex(dti.asi8)  # matching i8 values
+
+    msg = r"None of \[TimedeltaIndex.* are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
+        df.loc[tdi]
+
+    with pytest.raises(KeyError, match=msg):
+        df["a"].loc[tdi]
 
 
 def test_loc_setitem_df_datetime64tz_column_with_index():

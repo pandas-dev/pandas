@@ -24,6 +24,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
     is_complex,
+    is_dataclass,
     is_decimal,
     is_dict_like,
     is_file_like,
@@ -187,7 +188,9 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
+        raise TypeError(
+            f"Value needs to be a scalar value, was type {type(value).__name__}"
+        )
     try:
         new_value = int(value)
         assert new_value == value

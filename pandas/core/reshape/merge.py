@@ -6,14 +6,14 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
+    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -45,8 +46,9 @@ from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import _transform_index, concatenate_block_managers
+from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -92,9 +94,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(
-    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
-):
+def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -102,11 +102,9 @@ def _groupby_and_merge(
     ----------
     by: field to group
     on: duplicates field
-    left: left frame
-    right: right frame
-    _merge_pieces: function for merging
-    check_duplicates: bool, default True
-        should we check & clean duplicates
+    left: DataFrame
+    right: DataFrame
+    merge_pieces: function for merging
     """
     pieces = []
     if not isinstance(by, (list, tuple)):
@@ -118,18 +116,6 @@ def _groupby_and_merge(
     # if we can groupby the rhs
     # then we can get vastly better perf
 
-    # we will check & remove duplicates if indicated
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
-
-        if right.duplicated(by + on).any():
-            _right = right.drop_duplicates(by + on, keep="last")
-            # TODO: use overload to refine return type of drop_duplicates
-            assert _right is not None  # needed for mypy
-            right = _right
     try:
         rby = right.groupby(by, sort=False)
     except KeyError:
@@ -151,16 +137,13 @@ def _groupby_and_merge(
                 pieces.append(merged)
                 continue
 
-        merged = _merge_pieces(lhs, rhs)
+        merged = merge_pieces(lhs, rhs)
 
         # make sure join keys are in the merged
-        # TODO, should _merge_pieces do this?
+        # TODO, should merge_pieces do this?
         for k in by:
-            try:
-                if k in merged:
-                    merged[k] = key
-            except KeyError:
-                pass
+            if k in merged:
+                merged[k] = key
 
         pieces.append(merged)
 
@@ -235,8 +218,8 @@ def merge_ordered(
 
     See Also
     --------
-    merge
-    merge_asof
+    merge : Merge with a database-style join.
+    merge_asof : Merge on nearest keys.
 
     Examples
     --------
@@ -287,16 +270,11 @@ def merge_ordered(
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
         result, _ = _groupby_and_merge(
-            left_by, on, left, right, lambda x, y: _merger(x, y), check_duplicates=False
+            left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
         result, _ = _groupby_and_merge(
-            right_by,
-            on,
-            right,
-            left,
-            lambda x, y: _merger(y, x),
-            check_duplicates=False,
+            right_by, on, right, left, lambda x, y: _merger(y, x)
         )
     else:
         result = _merger(left, right)
@@ -387,8 +365,8 @@ def merge_asof(
 
     See Also
     --------
-    merge
-    merge_ordered
+    merge : Merge with a database-style join.
+    merge_ordered : Merge with optional filling/interpolation.
 
     Examples
     --------
@@ -1294,7 +1272,7 @@ def _get_join_indexers(
 
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1306,8 +1284,8 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
@@ -1370,7 +1348,7 @@ def _restore_dropped_levels_multijoin(
         if isinstance(index, MultiIndex):
             return index
         else:
-            return MultiIndex.from_arrays([index.values], names=[index.name])
+            return MultiIndex.from_arrays([index._values], names=[index.name])
 
     # For multi-multi joins with one overlapping level,
     # the returned index if of type Index
@@ -1605,11 +1583,6 @@ class _AsOfMerge(_OrderedMerge):
         if self.direction not in ["backward", "forward", "nearest"]:
             raise MergeError(f"direction invalid: {self.direction}")
 
-    @property
-    def _asof_key(self):
-        """ This is our asof key, the 'on' """
-        return self.left_on[-1]
-
     def _get_merge_keys(self):
 
         # note this function has side effects
@@ -1685,10 +1658,13 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self):
         """ return the join indexers """
 
-        def flip(xs):
+        def flip(xs) -> np.ndarray:
             """ unlike np.transpose, this returns an array of tuples """
             xs = [
-                x if not is_extension_array_dtype(x) else x._ndarray_values for x in xs
+                x
+                if not is_extension_array_dtype(x)
+                else extract_array(x)._values_for_argsort()
+                for x in xs
             ]
             labels = list(string.ascii_lowercase[: len(xs)])
             dtypes = [x.dtype for x in xs]
@@ -1697,10 +1673,10 @@ class _AsOfMerge(_OrderedMerge):
 
         # values to compare
         left_values = (
-            self.left.index.values if self.left_index else self.left_join_keys[-1]
+            self.left.index._values if self.left_index else self.left_join_keys[-1]
         )
         right_values = (
-            self.right.index.values if self.right_index else self.right_join_keys[-1]
+            self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
         tolerance = self.tolerance
 
@@ -1847,15 +1823,75 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-def _factorize_keys(lk, rk, sort=True):
+def _factorize_keys(
+    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+) -> Tuple[np.array, np.array, int]:
+    """
+    Encode left and right keys as enumerated types.
+
+    This is used to get the join indexers to be used when merging DataFrames.
+
+    Parameters
+    ----------
+    lk : array-like
+        Left key.
+    rk : array-like
+        Right key.
+    sort : bool, defaults to True
+        If True, the encoding is done such that the unique elements in the
+        keys are sorted.
+    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+        Type of merge.
+
+    Returns
+    -------
+    array
+        Left (resp. right if called with `key='right'`) labels, as enumerated type.
+    array
+        Right (resp. left if called with `key='right'`) labels, as enumerated type.
+    int
+        Number of unique elements in union of left and right labels.
+
+    See Also
+    --------
+    merge : Merge DataFrame or named Series objects
+        with a database-style join.
+    algorithms.factorize : Encode the object as an enumerated type
+        or categorical variable.
+
+    Examples
+    --------
+    >>> lk = np.array(["a", "c", "b"])
+    >>> rk = np.array(["a", "c"])
+
+    Here, the unique values are `'a', 'b', 'c'`. With the default
+    `sort=True`, the encoding will be `{0: 'a', 1: 'b', 2: 'c'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk)
+    (array([0, 2, 1]), array([0, 2]), 3)
+
+    With the `sort=False`, the encoding will correspond to the order
+    in which the unique elements first appear: `{0: 'a', 1: 'c', 2: 'b'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk, sort=False)
+    (array([0, 1, 2]), array([0, 1]), 3)
+    """
     # Some pre-processing for non-ndarray lk / rk
-    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = getattr(lk, "_values", lk)._data
-        rk = getattr(rk, "_values", rk)._data
+    lk = extract_array(lk, extract_numpy=True)
+    rk = extract_array(rk, extract_numpy=True)
+
+    if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
+        # Extract the ndarray (UTC-localized) values
+        # Note: we dont need the dtypes to match, as these can still be compared
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
+        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
+        assert is_categorical(lk) and is_categorical(rk)
+        lk = cast(Categorical, lk)
+        rk = cast(Categorical, rk)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
@@ -1866,11 +1902,7 @@ def _factorize_keys(lk, rk, sort=True):
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
 
-    elif (
-        is_extension_array_dtype(lk.dtype)
-        and is_extension_array_dtype(rk.dtype)
-        and lk.dtype == rk.dtype
-    ):
+    elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         lk, _ = lk._values_for_factorize()
         rk, _ = rk._values_for_factorize()
 
@@ -1878,15 +1910,15 @@ def _factorize_keys(lk, rk, sort=True):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com.values_from_object(lk))
-        rk = ensure_int64(com.values_from_object(rk))
-    elif issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and issubclass(
-        rk.dtype.type, (np.timedelta64, np.datetime64)
-    ):
+        lk = ensure_int64(np.asarray(lk))
+        rk = ensure_int64(np.asarray(rk))
+
+    elif needs_i8_conversion(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com.values_from_object(lk))
-        rk = ensure_int64(com.values_from_object(rk))
+        lk = ensure_int64(np.asarray(lk, dtype=np.int64))
+        rk = ensure_int64(np.asarray(rk, dtype=np.int64))
+
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)
@@ -1916,6 +1948,8 @@ def _factorize_keys(lk, rk, sort=True):
             np.putmask(rlab, rmask, count)
         count += 1
 
+    if how == "right":
+        return rlab, llab, count
     return llab, rlab, count
 
 
@@ -2022,4 +2056,4 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (_transform_index(left, lrenamer), _transform_index(right, rrenamer))
+    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
