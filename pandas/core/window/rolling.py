@@ -55,9 +55,6 @@ from pandas.core.window.indexers import (
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
 
-# GH 32865: These functions work correctly with a BaseIndexer subclass
-BASEINDEXER_WHITELIST = {"mean", "sum", "median", "kurt", "quantile"}
-
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
     _attributes: List[str] = [
@@ -146,6 +143,20 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             raise ValueError(
                 f"{type(window).__name__} does not implement the correct signature for "
                 f"get_window_bounds"
+            )
+
+    @staticmethod
+    def _validate_baseindexer_support(window, func_name: Optional[str]) -> None:
+        # GH 32865: These functions work correctly with a BaseIndexer subclass
+        BASEINDEXER_WHITELIST = {"mean", "sum", "median", "kurt", "quantile"}
+        if (
+            isinstance(window, BaseIndexer)
+            and isinstance(func_name, str)
+            and func_name not in BASEINDEXER_WHITELIST
+        ):
+            raise NotImplementedError(
+                f"{func_name} is not supported with using a BaseIndexer "
+                f"subclasses. You can use .apply() with {func_name}."
             )
 
     def _create_blocks(self):
@@ -398,12 +409,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Return an indexer class that will compute the window start and end bounds
         """
+        self._validate_baseindexer_support(self.window, func_name)
+
         if isinstance(self.window, BaseIndexer):
-            if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
-                raise NotImplementedError(
-                    f"{func_name} is not supported with using a BaseIndexer "
-                    f"subclasses. You can use .apply() with {func_name}."
-                )
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -1181,11 +1189,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            raise NotImplementedError(
-                f"count is not supported with using a BaseIndexer subclasses. "
-                f"You can use .apply() with count."
-            )
+        self._validate_baseindexer_support(self.window, "count")
+
         blocks, obj = self._create_blocks()
         results = []
         for b in blocks:
@@ -1639,11 +1644,8 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            raise NotImplementedError(
-                f"cov is not supported with using a BaseIndexer subclasses. "
-                f"You can use .apply() with cov."
-            )
+        self._validate_baseindexer_support(self.window, "cov")
+
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -1787,11 +1789,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            raise NotImplementedError(
-                f"corr is not supported with using a BaseIndexer subclasses. "
-                f"You can use .apply() with corr."
-            )
+        self._validate_baseindexer_support(self.window, "corr")
+
         if other is None:
             other = self._selected_obj
             # only default unset
