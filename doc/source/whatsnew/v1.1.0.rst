@@ -115,6 +115,67 @@ Backwards incompatible API changes
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
 - Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
+
+``MultiIndex.get_indexer`` interprets `method` argument differently
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='backfill'`` or ``method='pad'`` to the behavior before pandas 0.23.0. In particular, MultiIndexes are treated as a list of tuples and padding or backfilling is done with respect to the ordering of these lists of tuples (:issue:`29896`).
+
+As an example of this, given:
+
+.. ipython:: python
+
+        df = pd.DataFrame({
+            'a': [0, 0, 0, 0],
+            'b': [0, 2, 3, 4],
+            'c': ['A', 'B', 'C', 'D'],
+        }).set_index(['a', 'b'])
+        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
+
+The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*:
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='backfill')
+    Out[1]:
+          c
+    0 -1  A
+       0  A
+       1  D
+       3  A
+       4  A
+       5  C
+
+*pandas <0.23, >= 1.1.0*
+
+.. ipython:: python
+
+        df.reindex(mi_2, method='backfill')
+
+And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='pad')
+    Out[1]:
+            c
+    0 -1  NaN
+       0  NaN
+       1    D
+       3  NaN
+       4    A
+       5    C
+
+*pandas < 0.23, >= 1.1.0*
+
+.. ipython:: python
+
+        df.reindex(mi_2, method='pad')
+
 -
 
 .. _whatsnew_110.api_breaking.indexing_raises_key_errors:
@@ -406,50 +467,6 @@ MultiIndex
         right = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
-
-- Bug in :meth:`MultiIndex.get_indexer` incorrectly handling use of pad and backfill options.  This is a regression introduced in pandas 0.23.0 (:issue:`29896`)
-
-*pandas >= 0.23, < 1.1.0*
-
-.. code-block:: python
-
-    >>> df = pd.DataFrame({
-    ...     'a': [0, 0, 0, 0],
-    ...     'b': [0, 2, 3, 4],
-    ...     'c': ['A', 'B', 'C', 'D'],
-    ... }).set_index(['a', 'b'])
-    >>> mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
-    >>>
-    >>> df.reindex(mi_2, method="backfill")
-          c
-    0 -1  A
-       0  A
-       1  D
-       3  A
-       4  A
-       5  C
-    >>>
-    >>> df.reindex(mi_2, method="pad")
-            c
-    0 -1  NaN
-       0  NaN
-       1    D
-       3  NaN
-       4    A
-       5    C
-
-*pandas 1.1.0*:
-
-.. ipython:: python
-
-        df = pd.DataFrame({
-            'a': [0, 0, 0, 0],
-            'b': [0, 2, 3, 4],
-            'c': ['A', 'B', 'C', 'D'],
-        }).set_index(['a', 'b'])
-        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
-        df.reindex(mi_2, method='backfill')
-        df.reindex(mi_2, method='pad')
 
 -
 
