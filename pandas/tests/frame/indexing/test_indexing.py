@@ -1701,42 +1701,6 @@ class TestDataFrameIndexing:
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
 
-    def test_reindex_with_multi_index(self):
-        # https://github.com/pandas-dev/pandas/issues/29896
-        # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
-        df = pd.DataFrame(
-            {"a": [0] * 7, "b": list(range(7)), "c": list(range(7))}
-        ).set_index(["a", "b"])
-        new_index = [0.5, 2.0, 5.0, 5.8]
-        new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
-
-        # reindexing w/o a `method` value
-        reindexed = df.reindex(new_multi_index)
-        expected = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [np.nan, 2.0, 5.0, np.nan]}
-        ).set_index(["a", "b"])
-        tm.assert_frame_equal(expected, reindexed)
-
-        # reindexing with backfilling
-        expected = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [1, 2, 5, 6]}
-        ).set_index(["a", "b"])
-        reindexed_with_backfilling = df.reindex(new_multi_index, method="bfill")
-        tm.assert_frame_equal(expected, reindexed_with_backfilling)
-
-        reindexed_with_backfilling = df.reindex(new_multi_index, method="backfill")
-        tm.assert_frame_equal(expected, reindexed_with_backfilling)
-
-        # reindexing with padding
-        expected = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [0, 2, 5, 5]}
-        ).set_index(["a", "b"])
-        reindexed_with_padding = df.reindex(new_multi_index, method="pad")
-        tm.assert_frame_equal(expected, reindexed_with_padding)
-
-        reindexed_with_padding = df.reindex(new_multi_index, method="ffill")
-        tm.assert_frame_equal(expected, reindexed_with_padding)
-
     def test_reindex_subclass(self):
         # https://github.com/pandas-dev/pandas/issues/31925
         class MyDataFrame(DataFrame):
