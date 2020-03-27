@@ -334,7 +334,7 @@ def test_union_sort_other_empty_sort(slice_):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="`warn` if statement is not working properly")
+@pytest.mark.xfail(reason="`warn` if statement is not working properly", strict=False)
 def test_union_sort_other_incomparable():
     # https://github.com/pandas-dev/pandas/issues/24959
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
