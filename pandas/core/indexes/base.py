@@ -3849,7 +3849,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data.view(np.ndarray)
+        vals = self._data.view(np.ndarray)
+        vals.setflags(write=False)
+        return vals
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
