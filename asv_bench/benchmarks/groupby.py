@@ -626,4 +626,28 @@ class TransformNaN:
         self.df_nans.groupby("key").transform("first")
 
 
+class TransformEngine:
+
+    params = (
+        [np.sum, lambda x: np.sum(x) + 5],
+        ["cython", "numba"],
+    )
+    param_names = ["function", "engine"]
+
+    def setup(self, function, engine):
+        N = 10 ** 3
+        arr = 100 * np.random.random(N)
+        data = DataFrame(
+            {0: ["a", "a", "b", "b", "a"] * N, 1: [1.0, 2.0, 3.0, 4.0, 5.0] * N},
+            columns=[0, 1],
+        )
+        self.grouper = data.groupby(0)
+
+    def time_series(self, function, engine):
+        self.grouper[0].transform(function, engine=engine)
+
+    def time_dataframe(self, function, engine):
+        self.grouper.transform(function, engine=engine)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
