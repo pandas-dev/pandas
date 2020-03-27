@@ -55,7 +55,6 @@ from pandas.core.window.indexers import (
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
 
-
 # GH 32865: These functions work correctly with a BaseIndexer subclass
 BASEINDEXER_WHITELIST = {"mean", "sum", "median", "kurt", "quantile"}
 
