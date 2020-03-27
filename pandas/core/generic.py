@@ -1723,7 +1723,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @Appender(items.__doc__)
+    @doc(items)
     def iteritems(self):
         return self.items()
 
@@ -10222,7 +10222,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.core.window import EWM, Expanding, Rolling, Window
 
-        @Appender(Rolling.__doc__)
+        @doc(Rolling)
         def rolling(
             self,
             window,
@@ -10260,14 +10260,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.rolling = rolling
 
-        @Appender(Expanding.__doc__)
+        @doc(Expanding)
         def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
 
-        @Appender(EWM.__doc__)
+        @doc(EWM)
         def ewm(
             self,
             com=None,
