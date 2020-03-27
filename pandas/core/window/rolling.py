@@ -404,8 +404,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if isinstance(self.window, BaseIndexer):
             if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
                 raise NotImplementedError(
-                    f"{func_name} is not supported with using a BaseIndexer subclasses. "
-                    f"You can use .apply() with {func_name}."
+                    f"{func_name} is not supported with using a BaseIndexer "
+                    f"subclasses. You can use .apply() with {func_name}."
                 )
             return self.window
         if self.is_freq_type:
