@@ -56,6 +56,10 @@ from pandas.core.window.indexers import (
 from pandas.core.window.numba_ import generate_numba_apply_func
 
 
+# GH 32865: These functions work correctly with a BaseIndexer subclass
+BASEINDEXER_WHITELIST = {"mean", "sum", "median", "kurt", "quantile"}
+
+
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
     _attributes: List[str] = [
         "window",
@@ -391,11 +395,18 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self, window: int) -> BaseIndexer:
+    def _get_window_indexer(
+        self, window: int, func_name: Union[Callable, str]
+    ) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
+            if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
+                raise NotImplementedError(
+                    f"{func_name} is not supported with using a BaseIndexer subclasses. "
+                    f"You can use .apply() with {func_name}."
+                )
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -441,7 +452,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        window_indexer = self._get_window_indexer(window)
+        window_indexer = self._get_window_indexer(window, name)
 
         results = []
         exclude: List[Scalar] = []
@@ -1173,7 +1184,11 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-
+        if isinstance(self.window, BaseIndexer):
+            raise NotImplementedError(
+                f"count is not supported with using a BaseIndexer subclasses. "
+                f"You can use .apply() with count."
+            )
         blocks, obj = self._create_blocks()
         results = []
         for b in blocks:
@@ -1627,6 +1642,11 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            raise NotImplementedError(
+                f"cov is not supported with using a BaseIndexer subclasses. "
+                f"You can use .apply() with cov."
+            )
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -1770,6 +1790,11 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            raise NotImplementedError(
+                f"corr is not supported with using a BaseIndexer subclasses. "
+                f"You can use .apply() with corr."
+            )
         if other is None:
             other = self._selected_obj
             # only default unset
