@@ -555,13 +555,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
-        left = self.left.copy(deep=True)
-        left._values[key] = value_left
-        self._left = left
+        left_data = self.left._data.copy()
+        left_data[key] = value_left
+        self._left = self.left._shallow_copy(left_data)
 
-        right = self.right.copy(deep=True)
-        right._values[key] = value_right
-        self._right = right
+        right_data = self.right._data.copy()
+        right_data[key] = value_right
+        self._right = self.right._shallow_copy(right_data)
 
     def __eq__(self, other):
         # ensure pandas array for list-like and eliminate non-interval scalars
