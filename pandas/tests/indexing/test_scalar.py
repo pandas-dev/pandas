@@ -355,16 +355,18 @@ def test_iat_series_with_period_index():
 
 def test_tuple_indexed_series_at_get():
     # GH 26989
-    # Series.at works with MultiIndex
+    # Series.at works with index of tuples
     series = Series([1, 2], index=[(1, 2), (3, 4)])
+    assert series.index.nlevels == 1
     assert series.at[1, 2] == 1
 
 
 def test_tuple_indexed_series_at_set():
     # GH 26989
-    # Series.at works with MultiIndex
+    # Series.at works with index of tuples
     series = Series([1, 2], index=[(1, 2), (3, 4)])
     series.at[1, 2] = 3
+    assert series.index.nlevels == 1
     assert series.at[1, 2] == 3
 
 
@@ -372,6 +374,7 @@ def test_multiindex_series_at_get():
     # GH 26989
     # Series.at works with MultiIndex
     series = Series([1, 2], index=[[1, 2], [3, 4]])
+    assert series.index.nlevels == 2
     assert series.at[1, 3] == 1
     assert series.loc[1, 3] == 1
 
@@ -380,6 +383,7 @@ def test_multiindex_series_at_set():
     # GH 26989
     # Series.at works with MultiIndex
     series = Series([1, 2], index=[[1, 2], [3, 4]])
+    assert series.index.nlevels == 2
     series.at[1, 3] = 3
     assert series.at[1, 3] == 3
     series.loc[1, 3] = 4
