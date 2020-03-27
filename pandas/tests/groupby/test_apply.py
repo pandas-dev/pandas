@@ -866,3 +866,24 @@ def test_apply_function_returns_numpy_array():
         [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_adds_a_row():
+    # GH: 33058
+    df = pd.DataFrame(
+        {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
+    )
+
+    def fn(x):
+        x.col2[x.index[-1]] = 0
+        return x.col2
+
+    result = df.groupby(["col1"], as_index=False).apply(fn)
+    expected = pd.Series(
+        [1, 2, 0, 4, 5, 0],
+        index=pd.MultiIndex.from_tuples(
+            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
+        ),
+        name="col2",
+    )
+    tm.assert_series_equal(result, expected)
