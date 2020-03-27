@@ -654,6 +654,20 @@ class Block(PandasObject):
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
+    def should_store(self, value: ArrayLike) -> bool:
+        """
+        Should we set self.values[indexer] = value inplace or do we need to cast?
+
+        Parameters
+        ----------
+        value : np.ndarray or ExtensionArray
+
+        Returns
+        -------
+        bool
+        """
+        return is_dtype_equal(value.dtype, self.dtype)
+
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
@@ -1747,10 +1761,7 @@ class ExtensionBlock(Block):
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
-        values = np.asarray(self.values)
-        if values.ndim == self.ndim - 1:
-            values = values.reshape((1,) + values.shape)
-        return values
+        return np.asarray(self.values).reshape(self.shape)
 
     def array_values(self) -> ExtensionArray:
         return self.values
@@ -2016,11 +2027,6 @@ class FloatBlock(FloatOrComplexBlock):
         )
         return formatter.get_result_as_array()
 
-    def should_store(self, value: ArrayLike) -> bool:
-        # when inserting a column should not coerce integers to floats
-        # unnecessarily
-        return issubclass(value.dtype.type, np.floating) and value.dtype == self.dtype
-
 
 class ComplexBlock(FloatOrComplexBlock):
     __slots__ = ()
@@ -2053,9 +2059,6 @@ class IntBlock(NumericBlock):
             )
         return is_integer(element)
 
-    def should_store(self, value: ArrayLike) -> bool:
-        return is_integer_dtype(value) and value.dtype == self.dtype
-
 
 class DatetimeLikeBlockMixin:
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
@@ -2063,9 +2066,6 @@ class DatetimeLikeBlockMixin:
     @property
     def _holder(self):
         return DatetimeArray
-
-    def should_store(self, value):
-        return is_dtype_equal(self.dtype, value.dtype)
 
     @property
     def fill_value(self):
@@ -2076,14 +2076,16 @@ class DatetimeLikeBlockMixin:
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
-            values = self.values.ravel()
-            result = self._holder(values).astype(object)
-            return result.reshape(self.values.shape)
+            # DTA/TDA constructor and astype can handle 2D
+            return self._holder(self.values).astype(object)
         return self.values
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
         return self.array_values()
+
+    def array_values(self):
+        return self._holder._simple_new(self.values)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
@@ -2211,12 +2213,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         self.values[locs] = values
 
-    def external_values(self):
-        return np.asarray(self.values.astype("datetime64[ns]", copy=False))
-
-    def array_values(self) -> ExtensionArray:
-        return DatetimeArray._simple_new(self.values)
-
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2229,7 +2225,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
-    should_store = DatetimeBlock.should_store
+    should_store = Block.should_store
+    array_values = ExtensionBlock.array_values
 
     @property
     def _holder(self):
@@ -2288,14 +2285,16 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if is_object_dtype(dtype):
             values = values.astype(object)
 
-        values = np.asarray(values)
+        # TODO(EA2D): reshape unnecessary with 2D EAs
+        # Ensure that our shape is correct for DataFrame.
+        # ExtensionArrays are always 1-D, even in a DataFrame when
+        # the analogous NumPy-backed column would be a 2-D ndarray.
+        return np.asarray(values).reshape(self.shape)
 
-        if self.ndim == 2:
-            # Ensure that our shape is correct for DataFrame.
-            # ExtensionArrays are always 1-D, even in a DataFrame when
-            # the analogous NumPy-backed column would be a 2-D ndarray.
-            values = values.reshape(1, -1)
-        return values
+    def external_values(self):
+        # NB: this is different from np.asarray(self.values), since that
+        #  return an object-dtype ndarray of Timestamps.
+        return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -2462,12 +2461,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         )
         return rvalues
 
-    def external_values(self):
-        return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
-
-    def array_values(self) -> ExtensionArray:
-        return TimedeltaArray._simple_new(self.values)
-
 
 class BoolBlock(NumericBlock):
     __slots__ = ()
@@ -2479,11 +2472,6 @@ class BoolBlock(NumericBlock):
         if tipo is not None:
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
-
-    def should_store(self, value: ArrayLike) -> bool:
-        return issubclass(value.dtype.type, np.bool_) and not is_extension_array_dtype(
-            value
-        )
 
     def replace(
         self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
@@ -2571,15 +2559,6 @@ class ObjectBlock(Block):
 
     def _can_hold_element(self, element: Any) -> bool:
         return True
-
-    def should_store(self, value: ArrayLike) -> bool:
-        return not (
-            issubclass(
-                value.dtype.type,
-                (np.integer, np.floating, np.complexfloating, np.datetime64, np.bool_),
-            )
-            or is_extension_array_dtype(value)
-        )
 
     def replace(
         self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
@@ -2811,6 +2790,8 @@ class CategoricalBlock(ExtensionBlock):
     _can_hold_na = True
     _concatenator = staticmethod(concat_categorical)
 
+    should_store = Block.should_store
+
     def __init__(self, values, placement, ndim=None):
         # coerce to categorical if we can
         values = extract_array(values)
@@ -2820,9 +2801,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    def should_store(self, arr: ArrayLike):
-        return isinstance(arr, self._holder) and is_dtype_equal(self.dtype, arr.dtype)
 
     def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
