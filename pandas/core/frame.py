@@ -4801,17 +4801,15 @@ class DataFrame(NDFrame):
                 k, kind=kind, ascending=ascending, na_position=na_position
             )
 
-        new_data = self._data.take(
-            indexer, axis=self._get_block_manager_axis(axis), verify=False
-        )
+        result = self.take(indexer, axis=axis)
 
         if ignore_index:
-            new_data.axes[1] = ibase.default_index(len(indexer))
+            result.index = range(len(indexer))
 
         if inplace:
-            return self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            return result.__finalize__(self)
 
     def sort_index(
         self,
