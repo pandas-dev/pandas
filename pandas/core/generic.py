@@ -8978,7 +8978,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return new_obj.__finalize__(self)
 
     def tshift(
-        self: FrameOrSeries, periods: int = 1, freq=None, axis=0
+        self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
     ) -> FrameOrSeries:
         """
         Shift the time index, using the index's frequency if available.
@@ -9020,22 +9020,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(freq, str):
             freq = to_offset(freq)
 
-        block_axis = self._get_block_manager_axis(axis)
+        axis = self._get_axis_number(axis)
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
-            if freq == orig_freq:
-                new_data = self._data.copy()
-                new_data.axes[block_axis] = index.shift(periods)
-            elif orig_freq is not None:
+            if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
                 raise ValueError(
                     f"Given freq {freq.rule_code} does not match "
                     f"PeriodIndex freq {orig_freq.rule_code}"
                 )
+            new_ax = index.shift(periods)
         else:
-            new_data = self._data.copy()
-            new_data.axes[block_axis] = index.shift(periods, freq)
+            new_ax = index.shift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self)
+        result = self.copy()
+        result.set_axis(new_ax, axis, inplace=True)
+        return result.__finalize__(self)
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
