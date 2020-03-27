@@ -396,7 +396,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
     def _get_window_indexer(
-        self, window: int, func_name: Union[Callable, str]
+        self, window: int, func_name: Optional[str]
     ) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
