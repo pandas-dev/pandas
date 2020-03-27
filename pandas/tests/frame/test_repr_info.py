@@ -17,9 +17,6 @@ import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
-# Segregated collection of methods that require the BlockManager internal data
-# structure
-
 
 class TestDataFrameReprInfoEtc:
     def test_repr_empty(self):

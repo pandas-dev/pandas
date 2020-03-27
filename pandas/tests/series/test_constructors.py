@@ -1124,9 +1124,9 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_mapping(self, non_mapping_dict_subclass):
+    def test_constructor_mapping(self, non_dict_mapping_subclass):
         # GH 29788
-        ndm = non_mapping_dict_subclass({3: "three"})
+        ndm = non_dict_mapping_subclass({3: "three"})
         result = Series(ndm)
         expected = Series(["three"], index=[3])
 
