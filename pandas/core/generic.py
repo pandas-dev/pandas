@@ -9024,6 +9024,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
             if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
                 raise ValueError(
                     f"Given freq {freq.rule_code} does not match "
                     f"PeriodIndex freq {orig_freq.rule_code}"
