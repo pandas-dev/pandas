@@ -1883,7 +1883,7 @@ Name: Max Speed, dtype: float64
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
         if inplace:
-            self._update_inplace(result._data)
+            self._update_inplace(result)
             return None
         else:
             return result
@@ -3003,7 +3003,7 @@ Name: Max Speed, dtype: float64
             result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
-            self._update_inplace(result._data)
+            self._update_inplace(result)
         else:
             return result.__finalize__(self)
 
@@ -3181,7 +3181,7 @@ Name: Max Speed, dtype: float64
             result.index = ibase.default_index(len(result))
 
         if inplace:
-            self._update_inplace(result._data)
+            self._update_inplace(result)
         else:
             return result.__finalize__(self)
 
@@ -4511,7 +4511,7 @@ Name: Max Speed, dtype: float64
         if self._can_hold_na:
             result = remove_na_arraylike(self)
             if inplace:
-                self._update_inplace(result._data)
+                self._update_inplace(result)
             else:
                 return result
         else:
