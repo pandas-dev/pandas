@@ -292,6 +292,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         raise NotImplementedError
 
     # ----------------------------------------------------------------------
+    # Internals
+
+    @property
+    def _data(self):
+        warnings.warn(
+            "_data is a deprecated alias for _mgr; pretty please "
+            "do not use it directly."
+        )
+        return self._mgr
+
+    # ----------------------------------------------------------------------
     # Axis
     _AXIS_ALIASES = {"rows": 0}
     _AXIS_IALIASES = {0: "rows"}
@@ -5164,12 +5175,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # Note: obj.x will always call obj.__getattribute__('x') prior to
         # calling obj.__getattr__('x').
-        if name == "_data":
-            warnings.warn(
-                "_data is deprecated in favor of _mgr.  You should not "
-                "access this directly."
-            )
-            return self._mgr
         if (
             name in self._internal_names_set
             or name in self._metadata
