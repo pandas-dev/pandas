@@ -223,7 +223,14 @@ def merge_ordered(
 
     Examples
     --------
-    >>> A
+    >>> df1 = pd.DataFrame(
+    ...     {
+    ...         "key": ["a", "c", "e", "a", "c", "e"],
+    ...         "lvalue": [1, 2, 3, 1, 2, 3],
+    ...         "group": ["a", "a", "a", "b", "b", "b"]
+    ...     }
+    ... )
+    >>> df1
           key  lvalue group
     0   a       1     a
     1   c       2     a
@@ -232,24 +239,25 @@ def merge_ordered(
     4   c       2     b
     5   e       3     b
 
-    >>> B
-        Key  rvalue
-    0     b       1
-    1     c       2
-    2     d       3
+    >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
+    >>> df2
+          key  rvalue
+    0   b       1
+    1   c       2
+    2   d       3
 
-    >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-      group key  lvalue  rvalue
-    0     a   a       1     NaN
-    1     a   b       1     1.0
-    2     a   c       2     2.0
-    3     a   d       2     3.0
-    4     a   e       3     3.0
-    5     b   a       1     NaN
-    6     b   b       1     1.0
-    7     b   c       2     2.0
-    8     b   d       2     3.0
-    9     b   e       3     3.0
+    >>> merge_ordered(df1, df2, fill_method="ffill", left_by="group")
+      key  lvalue group  rvalue
+    0   a       1     a     NaN
+    1   b       1     a     1.0
+    2   c       2     a     2.0
+    3   d       2     a     3.0
+    4   e       3     a     3.0
+    5   a       1     b     NaN
+    6   b       1     b     1.0
+    7   c       2     b     2.0
+    8   d       2     b     3.0
+    9   e       3     b     3.0
     """
 
     def _merger(x, y):
@@ -370,15 +378,14 @@ def merge_asof(
 
     Examples
     --------
-    >>> left = pd.DataFrame({'a': [1, 5, 10], 'left_val': ['a', 'b', 'c']})
+    >>> left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
-    >>> right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
-    ...                       'right_val': [1, 2, 3, 6, 7]})
+    >>> right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
     >>> right
        a  right_val
     0  1          1
@@ -387,25 +394,25 @@ def merge_asof(
     3  6          6
     4  7          7
 
-    >>> pd.merge_asof(left, right, on='a')
+    >>> pd.merge_asof(left, right, on="a")
         a left_val  right_val
     0   1        a          1
     1   5        b          3
     2  10        c          7
 
-    >>> pd.merge_asof(left, right, on='a', allow_exact_matches=False)
+    >>> pd.merge_asof(left, right, on="a", allow_exact_matches=False)
         a left_val  right_val
     0   1        a        NaN
     1   5        b        3.0
     2  10        c        7.0
 
-    >>> pd.merge_asof(left, right, on='a', direction='forward')
+    >>> pd.merge_asof(left, right, on="a", direction="forward")
         a left_val  right_val
     0   1        a        1.0
     1   5        b        6.0
     2  10        c        NaN
 
-    >>> pd.merge_asof(left, right, on='a', direction='nearest')
+    >>> pd.merge_asof(left, right, on="a", direction="nearest")
         a left_val  right_val
     0   1        a          1
     1   5        b          6
@@ -413,15 +420,14 @@ def merge_asof(
 
     We can use indexed DataFrames as well.
 
-    >>> left = pd.DataFrame({'left_val': ['a', 'b', 'c']}, index=[1, 5, 10])
+    >>> left = pd.DataFrame({"left_val": ["a", "b", "c"]}, index=[1, 5, 10])
     >>> left
        left_val
     1         a
     5         b
     10        c
 
-    >>> right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7]},
-    ...                      index=[1, 2, 3, 6, 7])
+    >>> right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
     >>> right
        right_val
     1          1
@@ -438,6 +444,32 @@ def merge_asof(
 
     Here is a real-world times-series example
 
+    >>> quotes = pd.DataFrame(
+    ...     {
+    ...         "time": [
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.030"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.041"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.049"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.072"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.075")
+    ...         ],
+    ...         "ticker": [
+    ...                "GOOG",
+    ...                "MSFT",
+    ...                "MSFT",
+    ...                "MSFT",
+    ...                "GOOG",
+    ...                "AAPL",
+    ...                "GOOG",
+    ...                "MSFT"
+    ...            ],
+    ...            "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
+    ...            "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...     }
+    ... )
     >>> quotes
                          time ticker     bid     ask
     0 2016-05-25 13:30:00.023   GOOG  720.50  720.93
@@ -449,6 +481,20 @@ def merge_asof(
     6 2016-05-25 13:30:00.072   GOOG  720.50  720.88
     7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
+    >>> trades = pd.DataFrame(
+    ...        {
+    ...            "time": [
+    ...                pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.038"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048")
+    ...            ],
+    ...            "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
+    ...            "price": [51.95, 51.95, 720.77, 720.92, 98.0],
+    ...            "quantity": [75, 155, 100, 100, 100]
+    ...        }
+    ...    )
     >>> trades
                          time ticker   price  quantity
     0 2016-05-25 13:30:00.023   MSFT   51.95        75
@@ -459,9 +505,7 @@ def merge_asof(
 
     By default we are taking the asof of the quotes
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker')
+    >>> pd.merge_asof(trades, quotes, on="time", by="ticker")
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
@@ -471,10 +515,9 @@ def merge_asof(
 
     We only asof within 2ms between the quote time and the trade time
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker',
-    ...                       tolerance=pd.Timedelta('2ms'))
+    >>> pd.merge_asof(
+    ...     trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+    ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
     1 2016-05-25 13:30:00.038   MSFT   51.95       155     NaN     NaN
@@ -486,11 +529,14 @@ def merge_asof(
     and we exclude exact matches on time. However *prior* data will
     propagate forward
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker',
-    ...                       tolerance=pd.Timedelta('10ms'),
-    ...                       allow_exact_matches=False)
+    >>> pd.merge_asof(
+    ...     trades,
+    ...     quotes,
+    ...     on="time",
+    ...     by="ticker",
+    ...     tolerance=pd.Timedelta("10ms"),
+    ...     allow_exact_matches=False
+    ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
