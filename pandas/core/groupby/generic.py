@@ -161,6 +161,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
+    _numba_func_cache = {}
+
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
@@ -502,7 +504,9 @@ class SeriesGroupBy(GroupBy):
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
-            func = jit_user_function(func, nopython, nogil, parallel)
+            numba_func = self._numba_func_cache.get(
+                func, jit_user_function(func, nopython, nogil, parallel)
+            )
 
         klass = type(self._selected_obj)
 
@@ -511,7 +515,9 @@ class SeriesGroupBy(GroupBy):
             object.__setattr__(group, "name", name)
             if engine == "numba":
                 values, index, _ = split_for_numba(group)
-                res = func(values, index, *args)
+                res = numba_func(values, index, *args)
+                if func not in self._numba_func_cache:
+                    self._numba_func_cache[func] = numba_func
             else:
                 res = func(group, *args, **kwargs)
 
@@ -840,6 +846,8 @@ class SeriesGroupBy(GroupBy):
 class DataFrameGroupBy(GroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
+
+    _numba_func_cache = {}
 
     _agg_see_also_doc = dedent(
         """
@@ -1393,7 +1401,9 @@ class DataFrameGroupBy(GroupBy):
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func, include_columns=True)
-            func = jit_user_function(func, nopython, nogil, parallel)
+            numba_func = self._numba_func_cache.get(
+                func, jit_user_function(func, nopython, nogil, parallel)
+            )
         else:
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
@@ -1402,7 +1412,9 @@ class DataFrameGroupBy(GroupBy):
 
             if engine == "numba":
                 values, index, columns = split_for_numba(group)
-                res = func(values, index, columns, *args)
+                res = numba_func(values, index, columns, *args)
+                if func not in self._numba_func_cache:
+                    self._numba_func_cache[func] = numba_func
                 # Return the result as a DataFrame for concatenation later
                 res = DataFrame(res, index=group.index, columns=group.columns)
             else:
