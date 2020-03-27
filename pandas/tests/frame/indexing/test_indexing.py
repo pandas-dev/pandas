@@ -1424,6 +1424,24 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match="same size"):
             float_frame.lookup(["a", "b", "c"], ["a"])
 
+    def test_lookup_requires_unique_axes(self):
+        # GH#33041 raise with a helpful error message
+        df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
+
+        rows = [0, 1]
+        cols = ["A", "A"]
+
+        # homogeneous-dtype case
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.T.lookup(cols, rows)
+
+        # heterogeneous dtype
+        df["B"] = 0
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
