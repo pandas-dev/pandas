@@ -636,7 +636,6 @@ class TransformEngine:
 
     def setup(self, function, engine):
         N = 10 ** 3
-        arr = 100 * np.random.random(N)
         data = DataFrame(
             {0: ["a", "a", "b", "b", "a"] * N, 1: [1.0, 2.0, 3.0, 4.0, 5.0] * N},
             columns=[0, 1],
