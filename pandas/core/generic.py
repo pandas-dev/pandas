@@ -6835,27 +6835,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if axis == 0:
-            ax = self._info_axis_name
-            _maybe_transposed_self = self
-        elif axis == 1:
-            _maybe_transposed_self = self.T
+            ax = self._info_axis_number
+            df = self
+        else:
+            df = self.T
             ax = 1
 
-        ax = _maybe_transposed_self._get_axis_number(ax)
+        alt_ax = self._get_block_manager_axis(ax)
 
-        if _maybe_transposed_self.ndim == 2:
-            alt_ax = 1 - ax
-        else:
-            alt_ax = ax
-
-        if isinstance(_maybe_transposed_self.index, MultiIndex) and method != "linear":
+        if isinstance(df.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if _maybe_transposed_self._data.get_dtype_counts().get("object") == len(
-            _maybe_transposed_self.T
-        ):
+        if df.ndim == 2 and np.all(df.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -6865,9 +6858,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))
+            index = np.arange(len(df._get_axis(alt_ax)))
         else:
-            index = _maybe_transposed_self._get_axis(alt_ax)
+            index = df._get_axis(alt_ax)
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)
@@ -6888,7 +6881,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = _maybe_transposed_self._data
+        data = df._data
         new_data = data.interpolate(
             method=method,
             axis=ax,
@@ -6901,15 +6894,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             **kwargs,
         )
 
+        result = self._constructor(new_data)
+        if axis == 1:
+            result = result.T
         if inplace:
-            if axis == 1:
-                new_data = self._constructor(new_data).T._data
-            self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            res = self._constructor(new_data).__finalize__(self)
-            if axis == 1:
-                res = res.T
-            return res
+            return result.__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
