@@ -1073,14 +1073,14 @@ def test_escapechar(all_parsers):
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
-"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals serie","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
+"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
     parser = all_parsers
     result = parser.read_csv(
         StringIO(data), escapechar="\\", quotechar='"', encoding="utf-8"
     )
 
-    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie'
+    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals series'
 
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
@@ -2116,3 +2116,13 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     parser = all_parsers
     df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
     tm.assert_frame_equal(df, ref[:nrows])
+
+
+def test_no_header_two_extra_columns(all_parsers):
+    # GH 26218
+    column_names = ["one", "two", "three"]
+    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
+    stream = StringIO("foo,bar,baz,bam,blah")
+    parser = all_parsers
+    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    tm.assert_frame_equal(df, ref)

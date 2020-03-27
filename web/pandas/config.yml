@@ -127,7 +127,7 @@ sponsors:
     url: https://chanzuckerberg.com/
     logo: /static/img/partners/czi.svg
     kind: regular
-    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintainance, improve extension types, and a efficient string type."
+    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
   inkind:  # not included in active so they don't appear in the home page
   - name: "OVH"
     url: https://us.ovhcloud.com/
