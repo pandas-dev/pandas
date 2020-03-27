@@ -418,10 +418,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # The ensure_index call aabove ensures we have an Index object
             self._data.set_axis(axis, labels)
 
-    def _update_inplace(self, result, **kwargs):
-        # we want to call the generic version and not the IndexOpsMixin
-        return generic.NDFrame._update_inplace(self, result, **kwargs)
-
     # ndarray compatibility
     @property
     def dtype(self) -> DtypeObj:
@@ -1809,7 +1805,7 @@ Name: Max Speed, dtype: float64
         result = super().unique()
         return result
 
-    def drop_duplicates(self, keep="first", inplace=False) -> "Series":
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
         Return Series with duplicate values removed.
 
@@ -1884,7 +1880,13 @@ Name: Max Speed, dtype: float64
         5     hippo
         Name: animal, dtype: object
         """
-        return super().drop_duplicates(keep=keep, inplace=inplace)
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = super().drop_duplicates(keep=keep)
+        if inplace:
+            self._update_inplace(result._data)
+            return None
+        else:
+            return result
 
     def duplicated(self, keep="first") -> "Series":
         """
@@ -3001,7 +3003,7 @@ Name: Max Speed, dtype: float64
             result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
-            self._update_inplace(result)
+            self._update_inplace(result._data)
         else:
             return result.__finalize__(self)
 
@@ -3179,7 +3181,7 @@ Name: Max Speed, dtype: float64
             result.index = ibase.default_index(len(result))
 
         if inplace:
-            self._update_inplace(result)
+            self._update_inplace(result._data)
         else:
             return result.__finalize__(self)
 
@@ -4509,7 +4511,7 @@ Name: Max Speed, dtype: float64
         if self._can_hold_na:
             result = remove_na_arraylike(self)
             if inplace:
-                self._update_inplace(result)
+                self._update_inplace(result._data)
             else:
                 return result
         else:

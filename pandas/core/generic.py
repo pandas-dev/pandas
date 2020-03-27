@@ -3892,7 +3892,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 obj = obj._drop_axis(labels, axis, level=level, errors=errors)
 
         if inplace:
-            self._update_inplace(obj)
+            self._update_inplace(obj._data)
         else:
             return obj
 
@@ -3951,12 +3951,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
+    def _update_inplace(
+        self, result: BlockManager, verify_is_copy: bool_t = True
+    ) -> None:
         """
         Replace self internals with result.
 
         Parameters
         ----------
+        result : BlockManager
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
@@ -3965,7 +3968,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._reset_cache()
         self._clear_item_cache()
-        self._data = getattr(result, "_data", result)
+        self._data = result
         self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self: FrameOrSeries, prefix: str) -> FrameOrSeries:
@@ -6107,7 +6110,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-                new_data = self.where(self.notna(), value)
+                new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 
@@ -7244,7 +7247,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result[mask] = np.nan
 
         if inplace:
-            self._update_inplace(result)
+            self._update_inplace(result._data)
         else:
             return result
 

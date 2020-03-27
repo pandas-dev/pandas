@@ -3049,7 +3049,7 @@ class DataFrame(NDFrame):
             new_data = self[res]
 
         if inplace:
-            self._update_inplace(new_data)
+            self._update_inplace(new_data._data)
         else:
             return new_data
 
@@ -4629,7 +4629,7 @@ class DataFrame(NDFrame):
         result = self.loc(axis=axis)[mask]
 
         if inplace:
-            self._update_inplace(result)
+            self._update_inplace(result._data)
         else:
             return result
 
