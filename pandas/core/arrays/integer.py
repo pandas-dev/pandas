@@ -27,6 +27,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
+from pandas.core.algorithms import _factorize_array
 import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -481,7 +482,16 @@ class IntegerArray(BaseMaskedArray):
     def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.
-        return self.to_numpy(na_value=np.nan), np.nan
+        return self.to_numpy(dtype=float, na_value=np.nan), np.nan
+
+    def factorize2(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+        arr = self._data
+        mask = self._mask
+
+        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+
+        uniques = IntegerArray(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques
 
     def _values_for_argsort(self) -> np.ndarray:
         """

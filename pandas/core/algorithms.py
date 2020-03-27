@@ -455,7 +455,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None
+    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -473,6 +473,10 @@ def _factorize_array(
         parameter when you know that you don't have any values pandas would
         consider missing in the array (NaN for float data, iNaT for
         datetimes, etc.).
+    mask : ndarray[bool], optional
+        If not None, the mask is used as indicator for missing values
+        (True = missing, False = valid) instead of `na_value` or
+        condition "val != val".
 
     Returns
     -------
@@ -482,7 +486,9 @@ def _factorize_array(
     hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
-    uniques, codes = table.factorize(values, na_sentinel=na_sentinel, na_value=na_value)
+    uniques, codes = table.factorize(
+        values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
+    )
 
     codes = ensure_platform_int(codes)
     return codes, uniques
