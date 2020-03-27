@@ -742,9 +742,17 @@ class Block(PandasObject):
                 regex=regex,
                 convert=convert,
             )
-            return [
-                inner_elem.convert() for elem in block_replaced for inner_elem in elem
-            ]
+            blocks_converted = []
+            for ls_elem in block_replaced:
+                # If a replace was executed block_replaced is list of lists,
+                # if no replace was necessary block_replaced is only a list
+                if is_list_like(ls_elem):
+                    blocks_converted.extend(
+                        [sub_block.convert() for sub_block in ls_elem]
+                    )
+                else:
+                    blocks_converted.extend([ls_elem.convert()])
+            return blocks_converted
 
         values = self.values
         if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):

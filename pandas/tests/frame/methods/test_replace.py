@@ -22,6 +22,25 @@ def mix_abc() -> Dict[str, List[Union[float, str]]]:
 
 
 class TestDataFrameReplace:
+    def test_replace_without_type_cast(self):
+        # PH: 32988: Fix unwanted type casting while replacing
+        result = (
+            pd.DataFrame(np.eye(2))
+            .replace(to_replace=[None, -np.inf, np.inf], value=pd.NA)
+            .dtypes
+        )
+        expected = pd.Series([np.float64, np.float64])
+        tm.assert_series_equal(result, expected)
+
+        result = pd.DataFrame(np.eye(2)).replace(
+            to_replace=[None, -np.inf, np.inf, 1.0], value=pd.NA
+        )
+        expected_dtypes = pd.Series([np.float64, np.float64])
+
+        expected = pd.DataFrame({0: [np.nan, 0.0], 1: [0.0, np.nan]})
+        tm.assert_series_equal(result.dtypes, expected_dtypes)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame["A"][:5] = np.nan
         datetime_frame["A"][-5:] = np.nan
