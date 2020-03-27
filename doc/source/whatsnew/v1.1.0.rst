@@ -314,7 +314,7 @@ Conversion
 Strings
 ^^^^^^^
 
-- Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
+-
 -
 
 
@@ -400,6 +400,8 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+
 
 Reshaping
 ^^^^^^^^^
@@ -420,6 +422,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
+- Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
 
 
 Sparse
