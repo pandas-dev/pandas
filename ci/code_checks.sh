@@ -325,6 +325,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### DOCSTRINGS ###
