@@ -4936,25 +4936,10 @@ class DataFrame(NDFrame):
 
         # apply key to each level separately and create a new index
         if isinstance(labels, ABCMultiIndex):
-            if level is not None:
-                if isinstance(level, str) or isinstance(level, int):
-                    sort_levels = [level]
-                else:
-                    sort_levels = level
-            else:
-                sort_levels = labels.names
-
-            labels = MultiIndex.from_arrays(
-                [
-                    ensure_key_mapped(labels.get_level_values(level), key)
-                    if level in sort_levels
-                    else labels.get_level_values(level)
-                    for level in labels.names
-                ]
-            )
+            labels = labels.apply_key(key, level=level)
         else:
             labels = ensure_key_mapped(labels, key)
-
+            
         # make sure that the axis is lexsorted to start
         # if not we need to reconstruct to get the correct indexer
         labels = labels._sort_levels_monotonic()

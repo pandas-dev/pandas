@@ -383,8 +383,8 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
         result = df.sort_index(
-            level=list("abc"),
-            key=lambda x: x.str.lower() if x.dtype == "object" else -x,
+            level=list("abc"), # can refer to names
+            key=lambda x: x.str.lower() if x.name in ['a', 'c'] else -x,
         )
 
         expected = DataFrame(
