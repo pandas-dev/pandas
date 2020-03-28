@@ -1,6 +1,6 @@
 import abc
 import datetime
-from io import BytesIO
+from io import BytesIO, IOBase
 import os
 from textwrap import fill
 
@@ -778,6 +778,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self.save()
 
 
+def _is_ods_stream(stream):
+    stream.seek(0)
+    is_ods = False
+    if stream.read(4) == b"PK\003\004":
+        stream.seek(30)
+        is_ods = stream.read(54) == b"mimetype" \
+            b"application/vnd.oasis.opendocument.spreadsheet"
+    stream.seek(0)
+    return is_ods
+
+
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
@@ -816,9 +827,12 @@ class ExcelFile:
     def __init__(self, path_or_io, engine=None):
         if engine is None:
             engine = "xlrd"
-            if isinstance(path_or_io, str):
-                ext = os.path.splitext(path_or_io)[-1][1:]
-                if ext == "ods":
+            if isinstance(path_or_io, IOBase):
+                if _is_ods_stream(path_or_io):
+                    engine = "odf"
+            else:
+                ext = os.path.splitext(str(path_or_io))[-1]
+                if ext == ".ods":
                     engine = "odf"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
