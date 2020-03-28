@@ -135,7 +135,7 @@ def create_single_mgr(typestr, num_rows=None):
 
     return SingleBlockManager(
         create_block(typestr, placement=slice(0, num_rows), item_shape=()),
-        np.arange(num_rows),
+        Index(np.arange(num_rows)),
     )
 
 

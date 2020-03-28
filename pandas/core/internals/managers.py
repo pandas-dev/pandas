@@ -1515,25 +1515,14 @@ class SingleBlockManager(BlockManager):
     def __init__(
         self,
         block: Block,
-        axis: Union[Index, List[Index]],
+        axis: Index,
         do_integrity_check: bool = False,
         fastpath: bool = False,
     ):
         assert isinstance(block, Block), type(block)
+        assert isinstance(axis, Index), type(axis)
 
-        if isinstance(axis, list):
-            if len(axis) != 1:
-                raise ValueError(
-                    "cannot create SingleBlockManager with more than 1 axis"
-                )
-            axis = axis[0]
-
-        # passed from constructor, single block, single axis
-        if fastpath:
-            self.axes = [axis]
-        else:
-            self.axes = [ensure_index(axis)]
-
+        self.axes = [axis]
         self.blocks = tuple([block])
 
     @classmethod
@@ -1633,7 +1622,9 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
+    def concat(
+        self, to_concat: List["SingleBlockManager"], new_axis: Index
+    ) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
@@ -1649,6 +1640,7 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
+        assert isinstance(new_axis, Index), new_axis
         non_empties = [x for x in to_concat if len(x) > 0]
 
         # check if all series are of the same block type:
