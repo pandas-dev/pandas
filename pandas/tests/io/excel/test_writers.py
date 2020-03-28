@@ -54,7 +54,9 @@ def set_engine(engine, ext):
         pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
-        pytest.param(".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]),
+        pytest.param(
+            ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
+        ),
         pytest.param(".ods", marks=td.skip_if_no("odf")),
     ],
 )
@@ -295,10 +297,24 @@ class TestRoundTrip:
 @pytest.mark.parametrize(
     "engine,ext",
     [
-        pytest.param("openpyxl", ".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param("openpyxl", ".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param("xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
-        pytest.param("xlsxwriter", ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]),
+        pytest.param(
+            "openpyxl",
+            ".xlsx",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "openpyxl",
+            ".xlsm",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
+        ),
+        pytest.param(
+            "xlsxwriter",
+            ".xlsx",
+            marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
+        ),
         pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
     ],
 )
@@ -337,6 +353,7 @@ class TestExcelWriter:
                 pd.read_excel(xl, "0")
         else:
             import xlrd
+
             msg = "No sheet named <'0'>"
             with pytest.raises(xlrd.XLRDError, match=msg):
                 pd.read_excel(xl, sheet_name="0")

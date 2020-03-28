@@ -783,8 +783,10 @@ def _is_ods_stream(stream):
     is_ods = False
     if stream.read(4) == b"PK\003\004":
         stream.seek(30)
-        is_ods = stream.read(54) == b"mimetype" \
+        is_ods = (
+            stream.read(54) == b"mimetype"
             b"application/vnd.oasis.opendocument.spreadsheet"
+        )
     stream.seek(0)
     return is_ods
 
