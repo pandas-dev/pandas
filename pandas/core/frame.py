@@ -2091,10 +2091,23 @@ class DataFrame(NDFrame):
     @Substitution(klass="DataFrame")
     @Appender(_shared_docs["to_markdown"])
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: Optional[bool] = None,
+        **kwargs,
     ) -> Optional[str]:
+        if index is not None and "showindex" in kwargs:
+            warnings.warn(
+                "Index and showindex are aliases. Setting them both "
+                "causes undefined behaviour and could be "
+                "subjected to changes in the future.",
+                UserWarning,
+                stacklevel=3,
+            )
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
+        kwargs.setdefault("showindex", True if index is None else index)
         tabulate = import_optional_dependency("tabulate")
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
