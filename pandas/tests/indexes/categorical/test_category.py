@@ -192,7 +192,8 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(list("aabbc"), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with pytest.raises((IndexError, ValueError)):
+        msg = "index 10 is out of bounds for axis 0 with size 6"
+        with pytest.raises((IndexError, ValueError), match=msg):
             # Either depending on NumPy version
             ci.delete(10)
 

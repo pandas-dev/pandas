@@ -349,7 +349,8 @@ class Base:
 
         if not isinstance(indices, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
             # GH 10791
-            with pytest.raises(AttributeError):
+            msg = r"'(.*Index)' object has no attribute 'freq'"
+            with pytest.raises(AttributeError, match=msg):
                 indices.freq
 
     def test_take_invalid_kwargs(self):
@@ -537,9 +538,11 @@ class Base:
         assert result.equals(expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
+        length = len(indices)
+        msg = r"delete\(\) missing 1 required positional argument: 'loc'"
+        with pytest.raises(TypeError, match=msg):
             # either depending on numpy version
-            indices.delete(len(indices))
+            indices.delete()
 
     def test_equals(self, indices):
         if isinstance(indices, IntervalIndex):
@@ -787,13 +790,14 @@ class Base:
         # GH18368
         index = self.create_index()
 
-        with pytest.raises(ValueError):
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
             index.putmask(np.ones(len(index) + 1, np.bool), 1)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             index.putmask(np.ones(len(index) - 1, np.bool), 1)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             index.putmask("foo", 1)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -859,13 +863,11 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
-    def test_contains_requires_hashable_raises(self):
+    @pytest.mark.parametrize("value", [[], {}])
+    def test_contains_requires_hashable_raises(self, value):
         idx = self.create_index()
         with pytest.raises(TypeError, match="unhashable type"):
-            [] in idx
-
-        with pytest.raises(TypeError):
-            {} in idx._engine
+            value in idx
 
     def test_copy_copies_cache(self):
         # GH32898
