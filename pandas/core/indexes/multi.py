@@ -2170,13 +2170,14 @@ class MultiIndex(Index):
                 sort_levels = [level]
             else:
                 sort_levels = level
+
+            sort_levels = [self._get_level_number(lev) for lev in sort_levels]
         else:
             sort_levels = range(self.nlevels)
 
-        sort_levels = [self._get_level_number(lev) for lev in sort_levels]
         mapped = [
-            ensure_key_mapped(self.get_level_values(level), key)
-            if level in sort_levels else self.get_level_values(level)
+            ensure_key_mapped(self._get_level_values(level), key)
+            if level in sort_levels else self._get_level_values(level)
             for level in range(self.nlevels)
         ]
 
