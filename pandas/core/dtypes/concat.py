@@ -114,9 +114,20 @@ def concat_compat(to_concat, axis: int = 0):
     elif "sparse" in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    all_empty = all(not is_nonempty(x) for x in to_concat)
-    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
+    non_empties = [x for x in to_concat if is_nonempty(x)]
+    all_empty = not len(non_empties)
+    if non_empties and axis == 0:
+        to_concat = non_empties
+
+    single_dtype = len({x.dtype for x in to_concat}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+
+    if any_ea and axis == 1:
         to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+
+    elif any_ea and single_dtype and axis == 0:
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
 
     if all_empty:
         # we have all empties, but may need to coerce the result dtype to
