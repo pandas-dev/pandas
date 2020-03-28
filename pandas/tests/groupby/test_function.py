@@ -1650,7 +1650,13 @@ def test_apply_to_nullable_integer_returns_float(values, function):
 @pytest.mark.parametrize("function", ["first", "last", "min", "max"])
 def test_aggregate_extension_array_keeps_dtype(values, function):
     df = pd.DataFrame({"a": [1, 2], "b": values})
-    grouped = df.groupby("a")["b"]
-    result = getattr(grouped, function)()
-    expected = pd.Series(values, name="b", index=pd.Int64Index([1, 2], name="a"))
+    grouped = df.groupby("a")
+    idx = pd.Int64Index([1, 2], name="a")
+
+    result = getattr(grouped["b"], function)()
+    expected = pd.Series(values, name="b", index=idx)
     tm.assert_series_equal(result, expected)
+
+    result = grouped.agg({"b": function})
+    expected = pd.DataFrame({"b": values}, index=idx)
+    tm.assert_frame_equal(result, expected)
