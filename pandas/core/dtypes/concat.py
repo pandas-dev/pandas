@@ -97,6 +97,9 @@ def concat_compat(to_concat, axis: int = 0):
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
+    non_empties = [x for x in to_concat if is_nonempty(x)]
+    if non_empties and axis == 0:
+        to_concat = non_empties
 
     typs = get_dtype_kinds(to_concat)
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
@@ -114,11 +117,7 @@ def concat_compat(to_concat, axis: int = 0):
     elif "sparse" in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    non_empties = [x for x in to_concat if is_nonempty(x)]
     all_empty = not len(non_empties)
-    if non_empties and axis == 0:
-        to_concat = non_empties
-
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 

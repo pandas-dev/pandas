@@ -1649,17 +1649,8 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        non_empties = [x for x in to_concat if len(x) > 0]
 
-        # check if all series are of the same block type:
-        if len(non_empties) > 0:
-            # Note: doing this here instead of in concat_compat fixes a
-            #  test in test for concating two category-dtype Series
-            #  one of which is empty (and with no categories)
-            blocks = [obj.blocks[0] for obj in non_empties]
-        else:
-            blocks = [obj.blocks[0] for obj in to_concat]
-
+        blocks = [obj.blocks[0] for obj in to_concat]
         values = concat_compat([x.values for x in blocks])
 
         new_block = make_block(values, placement=slice(0, len(values), 1))
