@@ -1638,12 +1638,19 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([True, False], dtype="boolean"),
+        pd.array([1, 2], dtype="Int64"),
+        pd.to_datetime(["2020-01-01", "2020-02-01"]),
+        pd.TimedeltaIndex([1, 2], unit="D"),
+    ],
+)
 @pytest.mark.parametrize("function", ["first", "last", "min", "max"])
-def test_aggregate_nullable_boolean_keeps_dtype(function):
-    df = pd.DataFrame({"a": [1, 2], "b": pd.array([True, False], dtype="boolean")})
+def test_aggregate_extension_array_keeps_dtype(values, function):
+    df = pd.DataFrame({"a": [1, 2], "b": values})
     grouped = df.groupby("a")["b"]
     result = getattr(grouped, function)()
-    expected = pd.Series(
-        [True, False], dtype="boolean", name="b", index=pd.Int64Index([1, 2], name="a")
-    )
+    expected = pd.Series(values, name="b", index=pd.Int64Index([1, 2], name="a"))
     tm.assert_series_equal(result, expected)
