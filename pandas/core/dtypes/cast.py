@@ -278,9 +278,8 @@ def maybe_cast_result(
         if is_extension_array_dtype(dtype) and dtype.kind != "M":
             # The result may be of any type, cast back to original
             # type if it's compatible.
-            if len(result):
-                cls = dtype.construct_array_type()
-                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            cls = dtype.construct_array_type()
+            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
         elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
             result = maybe_downcast_to_dtype(result, dtype)
