@@ -8,11 +8,10 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, period_range, read_csv
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-from pandas import period_range, Series
 
 
 def test_repr():
@@ -2059,7 +2058,7 @@ def test_groups_repr_truncates(max_seq_items, expected):
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
 
-        
+
 def test_groupby_period_index():
     periods = 2
     index = period_range(start='2018-01', periods=periods, freq='M')
