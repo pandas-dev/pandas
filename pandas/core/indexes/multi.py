@@ -2177,10 +2177,11 @@ class MultiIndex(Index):
 
         mapped = [
             ensure_key_mapped(self._get_level_values(level), key)
-            if level in sort_levels else self._get_level_values(level)
+            if level in sort_levels
+            else self._get_level_values(level)
             for level in range(self.nlevels)
         ]
-    
+
         labels = MultiIndex.from_arrays(mapped)
 
         return labels
