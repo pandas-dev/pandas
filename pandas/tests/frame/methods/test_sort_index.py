@@ -384,7 +384,7 @@ class TestDataFrameSortIndexKey:
 
         result = df.sort_index(
             level=list("abc"),  # can refer to names
-            key=lambda x: x.str.lower() if x.name in ['a', 'c'] else -x,
+            key=lambda x: x.str.lower() if x.name in ["a", "c"] else -x,
         )
 
         expected = DataFrame(
