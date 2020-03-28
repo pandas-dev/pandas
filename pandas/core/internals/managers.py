@@ -1673,7 +1673,7 @@ class SingleBlockManager(BlockManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes):
+def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
     try:
         if len(blocks) == 1 and not isinstance(blocks[0], Block):
             # if blocks[0] is of length 0, return empty blocks
@@ -1694,10 +1694,15 @@ def create_block_manager_from_blocks(blocks, axes):
     except ValueError as e:
         blocks = [getattr(b, "values", b) for b in blocks]
         tot_items = sum(b.shape[0] for b in blocks)
-        construction_error(tot_items, blocks[0].shape[1:], axes, e)
+        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
-def create_block_manager_from_arrays(arrays, names, axes):
+def create_block_manager_from_arrays(
+    arrays, names: Index, axes: List[Index]
+) -> BlockManager:
+    assert isinstance(names, Index)
+    assert isinstance(axes, list)
+    assert all(isinstance(x, Index) for x in axes)
 
     try:
         blocks = form_blocks(arrays, names, axes)
@@ -1705,7 +1710,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
         mgr._consolidate_inplace()
         return mgr
     except ValueError as e:
-        construction_error(len(arrays), arrays[0].shape, axes, e)
+        raise construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
 def construction_error(tot_items, block_shape, axes, e=None):
@@ -1720,23 +1725,25 @@ def construction_error(tot_items, block_shape, axes, e=None):
     if len(implied) <= 2:
         implied = implied[::-1]
 
+    # We return the exception object instead of raising it so that we
+    #  can raise it in the caller; mypy plays better with that
     if passed == implied and e is not None:
-        raise e
+        return e
     if block_shape[0] == 0:
-        raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+        return ValueError("Empty data passed with indices specified.")
+    return ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------
 
 
-def form_blocks(arrays, names, axes):
+def form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = defaultdict(list)
+    items_dict: Dict[str, List] = defaultdict(list)
     extra_locs = []
 
-    names_idx = ensure_index(names)
+    names_idx = names
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -1754,7 +1761,7 @@ def form_blocks(arrays, names, axes):
         block_type = get_block_type(v)
         items_dict[block_type.__name__].append((i, k, v))
 
-    blocks = []
+    blocks: List[Block] = []
     if len(items_dict["FloatBlock"]):
         float_blocks = _multi_blockify(items_dict["FloatBlock"])
         blocks.extend(float_blocks)

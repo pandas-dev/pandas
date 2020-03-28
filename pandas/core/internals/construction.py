@@ -29,7 +29,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCIndexClass,
-    ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -44,7 +43,7 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
-from pandas.core.internals import (
+from pandas.core.internals.managers import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
@@ -53,12 +52,16 @@ from pandas.core.internals import (
 # BlockManager Interface
 
 
-def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, verify_integrity=True):
+def arrays_to_mgr(
+    arrays, arr_names, index, columns, dtype=None, verify_integrity: bool = True
+):
     """
     Segregate Series based on type and coerce into matrices.
 
     Needs to handle a lot of exceptional cases.
     """
+    arr_names = ensure_index(arr_names)
+
     if verify_integrity:
         # figure out the index, if necessary
         if index is None:
@@ -74,6 +77,8 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, verify_integrit
     # from BlockManager perspective
     axes = [columns, index]
 
+    assert isinstance(columns, Index), type(columns)
+    assert isinstance(index, Index), type(index)
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
@@ -163,7 +168,8 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             values = [values]
 
         if columns is None:
-            columns = list(range(len(values)))
+            columns = Index(range(len(values)))
+
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
@@ -209,6 +215,8 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     else:
         block_values = [values]
 
+    assert isinstance(columns, Index), type(columns)
+    assert isinstance(index, Index), type(index)
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
@@ -635,12 +643,7 @@ def sanitize_index(data, index: Index):
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass):
-        pass
-    elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
-        data = data._values
-
-    elif isinstance(data, np.ndarray):
+    if isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
