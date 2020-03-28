@@ -463,12 +463,9 @@ def test_agg_cython_category_not_implemented_fallback():
     df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
     df["col_cat"] = df["col_num"].astype("category")
 
-    result = df.groupby("col_num")["col_cat"].first()
+    result = df.groupby("col_num").col_cat.first()
     expected = pd.Series(
-        [1, 2, 3],
-        dtype="category",
-        index=pd.Index([1, 2, 3], name="col_num"),
-        name="col_cat",
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
     )
     tm.assert_series_equal(result, expected)
 
