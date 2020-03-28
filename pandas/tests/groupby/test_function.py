@@ -1636,3 +1636,14 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     result = groups.agg([function])
     expected.columns = MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("function", ["first", "last", "min", "max"])
+def test_aggregate_nullable_boolean_keeps_dtype(function):
+    df = pd.DataFrame({"a": [1, 2], "b": pd.array([True, False], dtype="boolean")})
+    grouped = df.groupby("a")["b"]
+    result = getattr(grouped, function)()
+    expected = pd.Series(
+        [True, False], dtype="boolean", name="b", index=pd.Int64Index([1, 2], name="a")
+    )
+    tm.assert_series_equal(result, expected)
