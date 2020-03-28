@@ -540,9 +540,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))),
-            axes[0],
-            fastpath=True,
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
         )
 
     def isna(self, func) -> "BlockManager":
@@ -1007,7 +1005,6 @@ class BlockManager(PandasObject):
                 values, placement=slice(0, len(values)), ndim=1
             ),
             self.axes[1],
-            fastpath=True,
         )
 
     def delete(self, item):
@@ -1513,11 +1510,7 @@ class SingleBlockManager(BlockManager):
     __slots__ = ()
 
     def __init__(
-        self,
-        block: Block,
-        axis: Index,
-        do_integrity_check: bool = False,
-        fastpath: bool = False,
+        self, block: Block, axis: Index, do_integrity_check: bool = False,
     ):
         assert isinstance(block, Block), type(block)
         assert isinstance(axis, Index), type(axis)
@@ -1534,7 +1527,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False, fastpath=True)
+        return cls(blocks[0], axes[0], do_integrity_check=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
@@ -1542,7 +1535,7 @@ class SingleBlockManager(BlockManager):
         Constructor for if we have an array that is not yet a Block.
         """
         block = make_block(array, placement=slice(0, len(index)), ndim=1)
-        return cls(block, index, fastpath=True)
+        return cls(block, index)
 
     def _post_setstate(self):
         pass
@@ -1568,7 +1561,7 @@ class SingleBlockManager(BlockManager):
         blk = self._block
         array = blk._slice(slobj)
         block = blk.make_block_same_class(array, placement=range(len(array)))
-        return type(self)(block, self.index[slobj], fastpath=True)
+        return type(self)(block, self.index[slobj])
 
     @property
     def index(self) -> Index:
@@ -1640,7 +1633,6 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        assert isinstance(new_axis, Index), new_axis
         non_empties = [x for x in to_concat if len(x) > 0]
 
         # check if all series are of the same block type:

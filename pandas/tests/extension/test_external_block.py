@@ -38,7 +38,7 @@ def test_concat_series():
     values = np.arange(3, dtype="int64")
     block = CustomBlock(values, placement=slice(0, 3))
     mgr = SingleBlockManager(block, pd.RangeIndex(3))
-    s = pd.Series(mgr, pd.RangeIndex(3), fastpath=True)
+    s = pd.Series(mgr, pd.RangeIndex(3))
 
     res = pd.concat([s, s])
     assert isinstance(res._data.blocks[0], CustomBlock)
