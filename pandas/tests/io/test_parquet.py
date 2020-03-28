@@ -1,7 +1,6 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
-import locale
 import os
 from warnings import catch_warnings
 
@@ -484,11 +483,6 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    # GH#33077 2020-03-27
-    @pytest.mark.xfail(
-        locale.getlocale()[0] == "zh_CN",
-        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
-    )
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
