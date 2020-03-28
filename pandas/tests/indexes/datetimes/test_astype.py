@@ -22,27 +22,32 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], name="idx")
 
         result = idx.astype(object)
-        expected = Index([Timestamp("2016-05-16")] + [NaT] * 3, dtype=object)
+        expected = Index(
+            [Timestamp("2016-05-16")] + [NaT] * 3, dtype=object, name="idx"
+        )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(int)
         expected = Int64Index(
-            [1463356800000000000] + [-9223372036854775808] * 3, dtype=np.int64
+            [1463356800000000000] + [-9223372036854775808] * 3,
+            dtype=np.int64,
+            name="idx",
         )
         tm.assert_index_equal(result, expected)
 
-        rng = date_range("1/1/2000", periods=10)
+        rng = date_range("1/1/2000", periods=10, name="idx")
         result = rng.astype("i8")
-        tm.assert_index_equal(result, Index(rng.asi8))
+        tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_uint(self):
-        arr = date_range("2000", periods=2)
+        arr = date_range("2000", periods=2, name="idx")
         expected = pd.UInt64Index(
-            np.array([946684800000000000, 946771200000000000], dtype="uint64")
+            np.array([946684800000000000, 946771200000000000], dtype="uint64"),
+            name="idx",
         )
 
         tm.assert_index_equal(arr.astype("uint64"), expected)
@@ -148,7 +153,7 @@ class TestDatetimeIndex:
 
     def test_astype_datetime64(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], name="idx")
 
         result = idx.astype("datetime64[ns]")
         tm.assert_index_equal(result, idx)
@@ -158,10 +163,12 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, idx)
         assert result is idx
 
-        idx_tz = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], tz="EST")
+        idx_tz = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], tz="EST", name="idx")
         result = idx_tz.astype("datetime64[ns]")
         expected = DatetimeIndex(
-            ["2016-05-16 05:00:00", "NaT", "NaT", "NaT"], dtype="datetime64[ns]"
+            ["2016-05-16 05:00:00", "NaT", "NaT", "NaT"],
+            dtype="datetime64[ns]",
+            name="idx",
         )
         tm.assert_index_equal(result, expected)
 
@@ -273,8 +280,8 @@ class TestDatetimeIndex:
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
         val = [pd.Timestamp("2018-01-01", tz=tz).value]
-        result = pd.Index(val).astype(dtype)
-        expected = pd.DatetimeIndex(["2018-01-01"], tz=tz)
+        result = pd.Index(val, name="idx").astype(dtype)
+        expected = pd.DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
@@ -292,10 +299,11 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
         expected = pd.CategoricalIndex(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
+            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)],
+            name="idx",
         )
         tm.assert_index_equal(result, expected)
 
@@ -305,9 +313,9 @@ class TestAstype:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
-        expected = pd.Index(np.array([True, True]))
+        expected = pd.Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)
