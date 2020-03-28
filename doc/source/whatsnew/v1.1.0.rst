@@ -168,6 +168,32 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     ...
     KeyError: Timestamp('1970-01-01 00:00:00')
 
+:meth:`DataFrame.merge` preserves right frame's row order
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
+
+.. ipython:: python
+
+    left_df = pd.DataFrame({'animal': ['dog', 'pig'], 'max_speed': [40, 11]})
+    right_df = pd.DataFrame({'animal': ['quetzal', 'pig'], 'max_speed': [80, 11]})
+    left_df
+    right_df
+
+*Previous behavior*:
+
+.. code-block:: python
+
+    >>> left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
+        animal  max_speed
+    0      pig         11
+    1  quetzal         80
+
+*New behavior*:
+
+.. ipython:: python
+
+    left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.api_breaking.assignment_to_multiple_columns:
@@ -229,6 +255,8 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
+- Performance improvement in :meth:`Series.sum` for nullable (integer and boolean) dtypes (:issue:`30982`).
+
 
 .. ---------------------------------------------------------------------------
 
@@ -288,7 +316,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
 -
 
 
@@ -310,6 +338,9 @@ Indexing
 - Bug in :meth:`DataFrame.iloc.__setitem__` on a :class:`DataFrame` with duplicate columns incorrectly setting values for all matching columns (:issue:`15686`, :issue:`22036`)
 - Bug in :meth:`DataFrame.loc:` and :meth:`Series.loc` with a :class:`DatetimeIndex`, :class:`TimedeltaIndex`, or :class:`PeriodIndex` incorrectly allowing lookups of non-matching datetime-like dtypes (:issue:`32650`)
 - Bug in :meth:`Series.__getitem__` indexing with non-standard scalars, e.g. ``np.dtype`` (:issue:`32684`)
+- Fix to preserve the ability to index with the "nearest" method with xarray's CFTimeIndex, an :class:`Index` subclass (`pydata/xarray#3751 <https://github.com/pydata/xarray/issues/3751>`_, :issue:`32905`).
+- Bug in :class:`Index` constructor where an unhelpful error message was raised for ``numpy`` scalars (:issue:`33017`)
+- Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
 
 Missing
 ^^^^^^^
@@ -371,6 +402,8 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+
 
 Reshaping
 ^^^^^^^^^
@@ -383,6 +416,7 @@ Reshaping
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
 - :meth:`DataFrame.pivot` can now take lists for ``index`` and ``columns`` arguments (:issue:`21425`)
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
+- Bug where :meth:`Index.astype` would lose the name attribute when converting from ``Float64Index`` to ``Int64Index``, or when casting to an ``ExtensionArray`` dtype (:issue:`32013`)
 - :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame or a sequence containing Dataframe (:issue:`31413`)
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 - Bug on inplace operation of a Series that was adding a column to the DataFrame from where it was originally dropped from (using inplace=True) (:issue:`30484`)
@@ -390,6 +424,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
+- Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
 
 
 Sparse
