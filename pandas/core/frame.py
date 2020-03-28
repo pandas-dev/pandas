@@ -4801,7 +4801,7 @@ class DataFrame(NDFrame):
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                keys = [Series(k) for k in keys]
+                keys = [Series(k, name=name) for (k, name) in zip(keys, by)]
 
             indexer = lexsort_indexer(
                 keys, orders=ascending, na_position=na_position, key=key
@@ -4887,7 +4887,8 @@ class DataFrame(NDFrame):
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
-            ``Index`` and return an ``Index`` of the same shape.
+            ``Index`` and return an ``Index`` of the same shape. For MultiIndex
+            inputs, the key is applied *per level*.
 
             .. versionadded:: 1.0.0
 
@@ -4932,7 +4933,27 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
-        labels = ensure_key_mapped(labels, key)
+
+        # apply key to each level separately and create a new index
+        if isinstance(labels, ABCMultiIndex):
+            if level is not None:
+                if isinstance(level, str) or isinstance(level, int):
+                    sort_levels = [level]
+                else:
+                    sort_levels = level
+            else:
+                sort_levels = labels.names
+
+            labels = MultiIndex.from_arrays(
+                [
+                    ensure_key_mapped(labels.get_level_values(level), key)
+                    if level in sort_levels
+                    else labels.get_level_values(level)
+                    for level in labels.names
+                ]
+            )
+        else:
+            labels = ensure_key_mapped(labels, key)
 
         # make sure that the axis is lexsorted to start
         # if not we need to reconstruct to get the correct indexer

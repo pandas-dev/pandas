@@ -327,16 +327,18 @@ class TestDataFrameSortIndexKey:
             {"a": [3, 1, 2], "b": [0, 0, 0], "c": [0, 1, 2], "d": list("abc")}
         ).set_index(list("abc"))
 
-        result = df.sort_index(level=list("ba"), key=lambda x: x.get_level_values(0))
+        result = df.sort_index(level=list("ac"), key=lambda x: x)
 
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [0, 0, 0], "c": [1, 2, 0], "d": list("bca")}
         ).set_index(list("abc"))
         tm.assert_frame_equal(result, expected)
 
-        result = df.sort_index(level=list("ba"), key=lambda x: x.get_level_values(2))
+        result = df.sort_index(level=list("ac"), key=lambda x: -x)
+        expected = DataFrame(
+            {"a": [3, 2, 1], "b": [0, 0, 0], "c": [0, 2, 1], "d": list("acb")}
+        ).set_index(list("abc"))
 
-        expected = df
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_key(self):  # issue 27237
@@ -366,6 +368,29 @@ class TestDataFrameSortIndexKey:
 
         result = df.sort_index(key=lambda x: 2 * x)
         tm.assert_frame_equal(result, df)
+
+    def test_sort_multi_index_key_str(self):
+        # GH 25775, testing that sorting by index works with a multi-index.
+        df = DataFrame(
+            {"a": ["B", "a", "C"], "b": [0, 1, 0], "c": list("abc"), "d": [0, 1, 2]}
+        ).set_index(list("abc"))
+
+        result = df.sort_index(level="a", key=lambda x: x.str.lower())
+
+        expected = DataFrame(
+            {"a": ["a", "B", "C"], "b": [1, 0, 0], "c": list("bac"), "d": [1, 0, 2]}
+        ).set_index(list("abc"))
+        tm.assert_frame_equal(result, expected)
+
+        result = df.sort_index(
+            level=list("abc"),
+            key=lambda x: x.str.lower() if x.dtype == "object" else -x,
+        )
+
+        expected = DataFrame(
+            {"a": ["a", "B", "C"], "b": [1, 0, 0], "c": list("bac"), "d": [1, 0, 2]}
+        ).set_index(list("abc"))
+        tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
