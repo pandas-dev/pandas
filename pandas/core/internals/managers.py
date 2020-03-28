@@ -2023,9 +2023,8 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type(
-                [ju.block for ju in join_units], placement=placement
-            )
+            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
+            b.mgr_locs = placement
         else:
             b = make_block(
                 concatenate_join_units(join_units, concat_axis, copy=copy),
