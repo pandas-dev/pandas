@@ -1255,6 +1255,16 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.slow
+    def test_plot_scatter_with_s(self):
+        # this refers to GH 32904
+        df = DataFrame(
+                np.random.random((10,3))*100,
+                columns=['a', 'b', 'c'],
+                )
+
+        _check_plot_works(df.plot.scatter(x='a', y='b', s='c'))
+
+    @pytest.mark.slow
     def test_plot_scatter_with_c(self):
         df = DataFrame(
             randn(6, 4),
