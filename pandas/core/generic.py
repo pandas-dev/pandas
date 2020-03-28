@@ -6431,7 +6431,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
 
-        Compare the behavior of ``s.replace({'a': None})`` and
+        Compare the behavior of ``s.replace({{'a': None}})`` and
         ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
 
@@ -6439,8 +6439,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         When one uses a dict as the `to_replace` value, it is like the
         value(s) in the dict are equal to the `value` parameter.
-        ``s.replace({'a': None})`` is equivalent to
-        ``s.replace(to_replace={'a': None}, value=None, method=None)``:
+        ``s.replace({{'a': None}})`` is equivalent to
+        ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
 
         >>> s.replace({{'a': None}})
         0      10
