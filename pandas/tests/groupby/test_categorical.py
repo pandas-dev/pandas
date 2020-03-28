@@ -1380,3 +1380,11 @@ def test_groupby_agg_non_numeric():
 
     result = df.groupby([1, 2, 1]).nunique()
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupy_first_returns_categorical():
+    # GH 28641: Issue mentioned in first comment.
+    df = pd.DataFrame({"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()})
+    result = df.groupby("A")["B"].first()
+    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    tm.assert_series_equal(result, expected)
