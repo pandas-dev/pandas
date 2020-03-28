@@ -33,6 +33,20 @@ def test_mutability(index):
         index[0] = index[0]
 
 
+def test_values_mutability(index):
+    if not len(index):
+        return
+    with pytest.raises(ValueError):
+        index.values[0] = index[0]
+
+
+def test_array_mutability(index):
+    if not len(index):
+        return
+    with pytest.raises(ValueError):
+        index.array[0] = index[0]
+
+
 def test_wrong_number_names(index):
     names = index.nlevels * ["apple", "banana", "carrot"]
     with pytest.raises(ValueError, match="^Length"):
