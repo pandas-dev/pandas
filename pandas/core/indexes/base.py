@@ -1951,7 +1951,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether or not the index values only consist of dates.
         """
-        return is_datetime_array(ensure_object(self._values))
+        return self.inferred_type in [
+            "datetime64",
+            "datetime",
+            "date",
+            "timedelta64",
+            "timedelta",
+            "period",
+        ]
 
     # --------------------------------------------------------------------
     # Pickle Methods

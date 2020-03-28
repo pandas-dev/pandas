@@ -1160,6 +1160,16 @@ class TestIndex(Base):
     def test_is_all_dates(self, indices, expected):
         assert indices.is_all_dates is expected
 
+    @pytest.mark.parametrize(
+        "index",
+        ["datetime", "datetime-tz", "period", "timedelta", "empty"],
+        indirect=["index"],
+    )
+    def test_is_all_dates_consistency(self, index):
+        # GH 19204
+        non_date = pd.Index(["not a date"])
+        assert index.is_all_dates == index.append(non_date)[:-1].is_all_dates
+
     def test_summary(self, indices):
         self._check_method_works(Index._summary, indices)
 
