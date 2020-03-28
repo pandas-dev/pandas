@@ -3860,7 +3860,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(array, np.ndarray):
             from pandas.core.arrays.numpy_ import PandasArray
 
-            array = PandasArray(array)
+            array = PandasArray(self.values)
         return array
 
     @property
