@@ -94,6 +94,16 @@ class SharedTests:
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
+    @pytest.mark.parametrize("fill_value", [2, 2.0, pd.Timestamp.now().time])
+    def test_take_fill_raises(self, fill_value):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+
+        arr = self.array_cls._simple_new(data, freq="D")
+
+        msg = f"'fill_value' should be a {self.dtype}. Got '{fill_value}'"
+        with pytest.raises(ValueError, match=msg):
+            arr.take([0, 1], allow_fill=True, fill_value=fill_value)
+
     def test_take_fill(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
@@ -107,21 +117,6 @@ class SharedTests:
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
         assert result[0] is pd.NaT
-
-        value = 2
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
-        with pytest.raises(ValueError, match=msg):
-            arr.take([0, 1], allow_fill=True, fill_value=value)
-
-        value = 2.0
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
-        with pytest.raises(ValueError, match=msg):
-            arr.take([0, 1], allow_fill=True, fill_value=value)
-
-        value = pd.Timestamp.now().time
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'"
-        with pytest.raises(ValueError, match=msg):
-            arr.take([0, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -796,20 +791,8 @@ def test_casting_nat_setitem_array(array, casting_nats):
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
     msg = (
-        r"'value' should be a 'Timestamp', 'NaT', or array of those. "
-        r"Got 'timedelta64' instead.|"
-        r"'value' should be a 'Timedelta', 'NaT', or array of those. "
-        r"Got 'datetime64' instead.|"
-        r"'value' should be a 'Timedelta', 'NaT', or array of those. "
-        r"Got 'int' instead.|"
-        r"'value' should be a 'Timestamp', 'NaT', or array of those. "
-        r"Got 'int' instead.|"
-        r"'value' should be a 'Period', 'NaT', or array of those. "
-        r"Got 'datetime64' instead.|"
-        r"'value' should be a 'Period', 'NaT', or array of those. "
-        r"Got 'timedelta64' instead.|"
-        r"'value' should be a 'Period', 'NaT', or array of those. "
-        r"Got 'int' instead."
+        "'value' should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "Got '(timedelta64|datetime64|int)' instead."
     )
 
     for nat in non_casting_nats:
