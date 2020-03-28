@@ -775,7 +775,13 @@ def test_aggregate_mixed_types():
 
 def test_aggregate_categorical_lost_index():
     # GH: 28641
-    result = pd.DataFrame({"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}).groupby("A").agg({"B": "min"})
+    result = (
+        pd.DataFrame(
+            {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
+        )
+        .groupby("A")
+        .agg({"B": "min"})
+    )
     expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
     tm.assert_frame_equal(result, expected)
 
