@@ -30,7 +30,7 @@ class TestTimedeltaIndexDelete:
             assert result.name == expected.name
             assert result.freq == expected.freq
 
-        with pytest.raises((IndexError, ValueError)):
+        with tm.external_error_raised((IndexError, ValueError)):
             # either depending on numpy version
             idx.delete(5)
 
