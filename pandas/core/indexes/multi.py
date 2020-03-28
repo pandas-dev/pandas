@@ -2180,7 +2180,7 @@ class MultiIndex(Index):
             if level in sort_levels else self._get_level_values(level)
             for level in range(self.nlevels)
         ]
-
+    
         labels = MultiIndex.from_arrays(mapped)
 
         return labels

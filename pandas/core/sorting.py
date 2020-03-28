@@ -331,9 +331,9 @@ def ensure_key_mapped(values, key: Optional[Callable]):
     key : Optional[Callable], key to be called on the values array
     """
     if not key:
-        return values
+        return values.copy()
 
-    result = key(values)
+    result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
             "User-provided `key` function much not change the shape of the array."

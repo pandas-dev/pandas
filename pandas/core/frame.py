@@ -4934,8 +4934,6 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
 
-        # breakpoint()
-
         # apply key to each level separately and create a new index
         if isinstance(labels, ABCMultiIndex):
             labels = labels.apply_key(key, level=level)
