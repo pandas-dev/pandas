@@ -19,7 +19,6 @@ from pandas import (
     PeriodIndex,
     Series,
     TimedeltaIndex,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
@@ -622,18 +621,6 @@ class TestSeriesDatetimeValues:
         result = s.dt.date
         assert result[0] == result[2]
 
-    def test_between(self):
-        s = Series(bdate_range("1/1/2000", periods=20).astype(object))
-        s[::2] = np.nan
-
-        result = s[s.between(s[3], s[17])]
-        expected = s[3:18].dropna()
-        tm.assert_series_equal(result, expected)
-
-        result = s[s.between(s[3], s[17], inclusive=False)]
-        expected = s[5:16].dropna()
-        tm.assert_series_equal(result, expected)
-
     def test_date_tz(self):
         # GH11757
         rng = pd.DatetimeIndex(
@@ -644,15 +631,6 @@ class TestSeriesDatetimeValues:
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
         tm.assert_series_equal(s.dt.date, expected)
         tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
-
-    def test_datetime_understood(self):
-        # Ensures it doesn't fail to create the right series
-        # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
-        offset = pd.offsets.DateOffset(days=6)
-        result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
-        tm.assert_series_equal(result, expected)
 
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Timestamp, date_range, offsets
 import pandas._testing as tm
 
 randn = np.random.randn
@@ -19,6 +19,24 @@ class TestDatetimeIndex:
         index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
         unpickled = tm.round_trip_pickle(index)
         tm.assert_index_equal(index, unpickled)
+
+    def test_pickle(self):
+
+        # GH#4606
+        p = tm.round_trip_pickle(NaT)
+        assert p is NaT
+
+        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
+        idx_p = tm.round_trip_pickle(idx)
+        assert idx_p[0] == idx[0]
+        assert idx_p[1] is NaT
+        assert idx_p[2] == idx[2]
+
+        # GH#11002
+        # don't infer freq
+        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
+        idx_p = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(idx, idx_p)
 
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
@@ -85,13 +103,6 @@ class TestDatetimeIndex:
         dates = ["2013-01-05", "2013-02-02", "2013-03-02", "2013-04-06"]
         expected = DatetimeIndex(dates, freq="WOM-1SAT")
         tm.assert_index_equal(result, expected)
-
-    def test_hash_error(self):
-        index = date_range("20010101", periods=10)
-        with pytest.raises(
-            TypeError, match=f"unhashable type: '{type(index).__name__}'"
-        ):
-            hash(index)
 
     def test_stringified_slice_with_tz(self):
         # GH#2658
@@ -407,3 +418,11 @@ class TestDatetimeIndex:
             ((2018,), range(1, 7)), names=[name, name]
         )
         tm.assert_index_equal(index, exp_index)
+
+    def test_split_non_utc(self):
+        # GH 14042
+        indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
+        result = np.split(indices, indices_or_sections=[])[0]
+        expected = indices.copy()
+        expected._set_freq(None)
+        tm.assert_index_equal(result, expected)

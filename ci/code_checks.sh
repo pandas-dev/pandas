@@ -102,9 +102,17 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:{msg}" .
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
     else
-        $BASE_DIR/scripts/validate_string_concatenation.py .
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for strings with wrong placed spaces' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -267,11 +275,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests generic.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Doctests groupby.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -280,14 +283,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/tools/datetimes.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/reshape/concat.py \
-        pandas/core/reshape/pivot.py \
-        pandas/core/reshape/reshape.py \
-        pandas/core/reshape/tile.py \
-        pandas/core/reshape/melt.py \
-        -k"-crosstab -pivot_table -cut"
+    MSG='Doctests reshaping functions' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
@@ -311,6 +308,21 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests base.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/base.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests construction.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/construction.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests generic.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/generic.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### DOCSTRINGS ###
@@ -318,6 +330,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03, SA05)' ; echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03,SA05
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
+    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

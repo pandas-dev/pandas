@@ -238,8 +238,8 @@ def read_sql_table(
     meta = MetaData(con, schema=schema)
     try:
         meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError(f"Table {table_name} not found")
+    except sqlalchemy.exc.InvalidRequestError as err:
+        raise ValueError(f"Table {table_name} not found") from err
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -685,7 +685,7 @@ class SQLTable(PandasObject):
             try:
                 temp.reset_index(inplace=True)
             except ValueError as err:
-                raise ValueError(f"duplicate name in index/columns: {err}")
+                raise ValueError(f"duplicate name in index/columns: {err}") from err
         else:
             temp = self.frame
 
@@ -705,8 +705,16 @@ class SQLTable(PandasObject):
                 else:
                     # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype("M8[us]").astype(object)
+            elif b.is_timedelta:
+                # numpy converts this to an object array of integers,
+                #  whereas b.astype(object).values would convert to
+                #  object array of Timedeltas
+                d = b.values.astype(object)
             else:
-                d = np.array(b.get_values(), dtype=object)
+                # TODO(2DEA): astype-first can be avoided with 2D EAs
+                # astype on the block instead of values to ensure we
+                #  get the right shape
+                d = b.astype(object).values
 
             # replace NaN with None
             if b._can_hold_na:
@@ -1387,8 +1395,8 @@ _SQL_TYPES = {
 def _get_unicode_name(name):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
-    except UnicodeError:
-        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'")
+    except UnicodeError as err:
+        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'") from err
     return uname
 
 

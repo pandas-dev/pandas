@@ -331,6 +331,8 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
+        # GH#32571 check_less_precise is needed on apparently-random
+        #  py37-npdev builds and OSX-PY36-min_version builds
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
             "sum",
@@ -875,11 +877,6 @@ class TestDataFrameAnalytics:
         expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="casts to object-dtype and then tries to add timestamps",
-        raises=TypeError,
-        strict=True,
-    )
     def test_mean_datetimelike_numeric_only_false(self):
         df = pd.DataFrame(
             {
@@ -913,8 +910,8 @@ class TestDataFrameAnalytics:
 
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
@@ -922,14 +919,14 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
@@ -937,7 +934,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 

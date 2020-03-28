@@ -2,11 +2,12 @@
 Concat routines.
 """
 
-from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
+from collections import abc
+from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -32,7 +33,7 @@ from pandas.core.internals import concatenate_block_managers
 
 @overload
 def concat(
-    objs: Union[Iterable["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
+    objs: Union[Iterable["DataFrame"], Mapping[Label, "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -48,9 +49,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -65,9 +64,7 @@ def concat(
 
 
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -89,7 +86,7 @@ def concat(
     Parameters
     ----------
     objs : a sequence or mapping of Series or DataFrame objects
-        If a dict is passed, the sorted keys will be used as the `keys`
+        If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
@@ -319,7 +316,7 @@ class _Concatenator:
                 "Only can inner (intersect) or outer (union) join the other axis"
             )
 
-        if isinstance(objs, dict):
+        if isinstance(objs, abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]
@@ -536,7 +533,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Optional[Hashable]] = [None] * len(self.objs)
+                names: List[Label] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
@@ -620,8 +617,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             for key, index in zip(hlevel, indexes):
                 try:
                     i = level.get_loc(key)
-                except KeyError:
-                    raise ValueError(f"Key {key} not in level {level}")
+                except KeyError as err:
+                    raise ValueError(f"Key {key} not in level {level}") from err
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))

@@ -338,7 +338,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
-    if rlocs == []:
+    if not rlocs:
         # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name="__placeholder__")
     else:
@@ -363,7 +363,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             for i in range(len(clocs)):
                 val = clocs[i]
                 result = result.unstack(val, fill_value=fill_value)
-                clocs = [v if i > v else v - 1 for v in clocs]
+                clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
 
@@ -541,9 +541,9 @@ def stack(frame, level=-1, dropna=True):
         )
 
     if frame._is_homogeneous_type:
-        # For homogeneous EAs, frame.values will coerce to object. So
+        # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
-        dtypes = list(frame.dtypes.values)
+        dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
         if is_extension_array_dtype(dtype):
@@ -554,11 +554,11 @@ def stack(frame, level=-1, dropna=True):
             new_values = _reorder_for_extension_array_stack(new_values, N, K)
         else:
             # homogeneous, non-EA
-            new_values = frame.values.ravel()
+            new_values = frame._values.ravel()
 
     else:
         # non-homogeneous
-        new_values = frame.values.ravel()
+        new_values = frame._values.ravel()
 
     if dropna:
         mask = notna(new_values)
@@ -985,12 +985,7 @@ def _get_dummies_1d(
     if prefix is None:
         dummy_cols = levels
     else:
-
-        # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level) -> str:
-            return f"{prefix}{prefix_sep}{level}"
-
-        dummy_cols = [_make_col_name(prefix, prefix_sep, level) for level in levels]
+        dummy_cols = [f"{prefix}{prefix_sep}{level}" for level in levels]
 
     index: Optional[Index]
     if isinstance(data, Series):

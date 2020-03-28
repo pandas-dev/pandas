@@ -16,7 +16,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
-    read_csv
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -1774,7 +1774,7 @@ def test_tuple_as_grouping():
         }
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"('a', 'b')"):
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
@@ -2069,12 +2069,12 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
 
 def test_groupby_period_index():
-    periods=2
-    index = period_range(start='2018-01', periods=periods, freq='M')
+    periods = 2
+    index = period_range(start="2018-01", periods=periods, freq="M")
     period_series = Series(range(periods), index=index)
-    period_series.index.name = 'Month'
+    period_series.index.name = "Month"
     result = period_series.groupby(period_series.index.month).sum()
 
-    expected = pd.Series(range(0,periods), index=range(1,periods+1))
+    expected = pd.Series(range(0, periods), index=range(1, periods + 1))
     expected.index.name = period_series.index.name
     tm.assert_series_equal(result, expected)

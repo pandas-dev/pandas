@@ -2,10 +2,19 @@ import warnings
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, intp_t,
-                    float64_t, float32_t,
-                    int64_t, int32_t, int16_t, int8_t,
-                    uint64_t, uint32_t, uint16_t, uint8_t
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    intp_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
 )
 cnp.import_array()
 
@@ -115,8 +124,6 @@ cdef class IndexEngine:
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[intp_t, ndim=1] found
-            int count
 
         indexer = self._get_index_values() == val
         return self._unpack_bool_indexer(indexer, val)
@@ -366,7 +373,7 @@ cdef class ObjectEngine(IndexEngine):
 
 cdef class DatetimeEngine(Int64Engine):
 
-    cdef _get_box_dtype(self):
+    cdef str _get_box_dtype(self):
         return 'M8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
@@ -456,7 +463,7 @@ cdef class DatetimeEngine(Int64Engine):
 
 cdef class TimedeltaEngine(DatetimeEngine):
 
-    cdef _get_box_dtype(self):
+    cdef str _get_box_dtype(self):
         return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
