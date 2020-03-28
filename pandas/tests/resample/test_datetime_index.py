@@ -124,7 +124,7 @@ def test_resample_integerarray():
     expected = Series(
         [1, 4, 7],
         index=pd.date_range("1/1/2000", periods=3, freq="3T"),
-        dtype="float64",
+        dtype="Int64",
     )
     tm.assert_series_equal(result, expected)
 
