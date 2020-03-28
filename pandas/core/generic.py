@@ -1903,6 +1903,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Buffer to write to. If None, the output is returned as a string.
     mode : str, optional
         Mode in which file is opened.
+    index : bool, optional
+        Whether to print index (row) labels.
     **kwargs
         These parameters will be passed to `tabulate`.
 
