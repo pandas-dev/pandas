@@ -628,13 +628,10 @@ class TransformNaN:
 
 class TransformEngine:
 
-    params = (
-        [np.sum, lambda x: np.sum(x) + 5],
-        ["cython", "numba"],
-    )
-    param_names = ["function", "engine"]
+    params = ["cython", "numba"]
+    param_names = ["engine"]
 
-    def setup(self, function, engine):
+    def setup(self, engine):
         N = 10 ** 3
         data = DataFrame(
             {0: ["a", "a", "b", "b", "a"] * N, 1: [1.0, 2.0, 3.0, 4.0, 5.0] * N},
@@ -642,10 +639,16 @@ class TransformEngine:
         )
         self.grouper = data.groupby(0)
 
-    def time_series(self, function, engine):
+    def time_series(self, engine):
+        def function(values, index):
+            return values * 5
+
         self.grouper[0].transform(function, engine=engine)
 
-    def time_dataframe(self, function, engine):
+    def time_dataframe(self, engine):
+        def function(values, index, columns):
+            return values * 5
+
         self.grouper.transform(function, engine=engine)
 
 
