@@ -436,7 +436,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed bug where :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` would return floats when applied to nullable Booleans (:issue:`33071`)
 -
 
 
