@@ -2145,13 +2145,13 @@ class MultiIndex(Index):
     def apply_key(self, key, level=None):
         """
         Returns a new MultiIndex in which key has been applied
-        to all levels specified in level (or all levels if level 
+        to all levels specified in level (or all levels if level
         is None). Used to sort MultiIndex.
 
         Parameters
         ----------
         key : Callable
-            Function that takes a Series and returns a Series of 
+            Function that takes a Series and returns a Series of
             the same shape, usually passed by sort_index.
         level : list-like, int or str, default None
             Level or list of levels to apply the key function to.
