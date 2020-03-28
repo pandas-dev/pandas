@@ -1649,6 +1649,8 @@ def test_apply_to_nullable_integer_returns_float(values, function):
 )
 @pytest.mark.parametrize("function", ["first", "last", "min", "max"])
 def test_aggregate_extension_array_keeps_dtype(values, function):
+    # https://github.com/pandas-dev/pandas/issues/33071
+    # https://github.com/pandas-dev/pandas/issues/32194
     df = pd.DataFrame({"a": [1, 2], "b": values})
     grouped = df.groupby("a")
     idx = pd.Int64Index([1, 2], name="a")
