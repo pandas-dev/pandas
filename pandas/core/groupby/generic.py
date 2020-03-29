@@ -1687,8 +1687,7 @@ class DataFrameGroupBy(GroupBy):
         -------
         DataFrame
         """
-        idx_name = output.get("idx_name")
-        output.pop("idx_name", None)
+        idx_name = output.pop("idx_name", None)
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index([key.label for key in output], name=idx_name)
 
@@ -1722,8 +1721,7 @@ class DataFrameGroupBy(GroupBy):
         -------
         DataFrame
         """
-        idx_name = output.get("idx_name")
-        output.pop("idx_name", None)
+        idx_name = output.pop("idx_name", None)
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index([key.label for key in output], name=idx_name)
 
