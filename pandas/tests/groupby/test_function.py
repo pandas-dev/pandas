@@ -1636,29 +1636,3 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     result = groups.agg([function])
     expected.columns = MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "values",
-    [
-        pd.array([True, False], dtype="boolean"),
-        pd.array([1, 2], dtype="Int64"),
-        pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.TimedeltaIndex([1, 2], unit="D"),
-    ],
-)
-@pytest.mark.parametrize("function", ["first", "last", "min", "max"])
-def test_aggregate_extension_array_keeps_dtype(values, function):
-    # https://github.com/pandas-dev/pandas/issues/33071
-    # https://github.com/pandas-dev/pandas/issues/32194
-    df = pd.DataFrame({"a": [1, 2], "b": values})
-    grouped = df.groupby("a")
-    idx = pd.Int64Index([1, 2], name="a")
-
-    result = getattr(grouped["b"], function)()
-    expected = pd.Series(values, name="b", index=idx)
-    tm.assert_series_equal(result, expected)
-
-    result = grouped.agg({"b": function})
-    expected = pd.DataFrame({"b": values}, index=idx)
-    tm.assert_frame_equal(result, expected)
