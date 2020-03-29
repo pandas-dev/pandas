@@ -39,6 +39,6 @@ class TestJoin:
     def test_join_mismatched_freq_raises(self):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = fr".*Input has different freq=2D from PeriodIndex\(freq=D\)"
+        msg = r".*Input has different freq=2D from PeriodIndex\(freq=D\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             index.join(index3)

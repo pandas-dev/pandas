@@ -59,7 +59,7 @@ class TestPeriodIndex:
         didx = pd.date_range(start="2013/01/01", freq="D", periods=400)
         pidx = period_range(start="2013/01/01", freq="D", periods=400)
 
-        msg = f"slice indices must be integers or None or have an __index__ method"
+        msg = "slice indices must be integers or None or have an __index__ method"
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = [
@@ -89,7 +89,7 @@ class TestPeriodIndex:
         # GH#6716
         didx = pd.date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
-        msg = f"slice indices must be integers or None or have an __index__ method"
+        msg = "slice indices must be integers or None or have an __index__ method"
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError

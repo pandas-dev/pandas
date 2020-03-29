@@ -148,7 +148,7 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = fr"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
+        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             index.union(index2, sort=sort)
 
@@ -181,12 +181,12 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = fr"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
+        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             index.intersection(index2, sort=sort)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = fr"Input has different freq=2D from PeriodIndex\(freq=D\)"
+        msg = r"Input has different freq=2D from PeriodIndex\(freq=D\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             index.intersection(index3, sort=sort)
 
