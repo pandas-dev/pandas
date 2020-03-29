@@ -4680,7 +4680,7 @@ class DataFrame(NDFrame):
 
         result = self[-duplicated]
         if ignore_index:
-            result.index = range(len(result))
+            result.index = ibase.default_index(len(result))
 
         if inplace:
             self._update_inplace(result._data)
