@@ -4804,7 +4804,7 @@ class DataFrame(NDFrame):
         result = self.take(indexer, axis=axis)
 
         if ignore_index:
-            result.index = range(len(indexer))
+            result.index = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(result)
