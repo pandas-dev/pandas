@@ -11,6 +11,7 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 """
 
 import argparse
+import ast
 import os
 import sys
 import token
@@ -83,23 +84,34 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     -----
     GH #23922
     """
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
+    contents = file_obj.read()
+    tree = ast.parse(contents)
 
-    for counter, current_token in enumerate(tokens, start=1):
-        if not (current_token.type == token.NAME and current_token.string == "raises"):
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
             continue
-        for next_token in tokens[counter:]:
-            if next_token.type == token.NAME and next_token.string == "match":
-                break
-            # token.NEWLINE refers to the end of a logical line
-            # unlike token.NL or "\n" which represents a newline
-            if next_token.type == token.NEWLINE:
+
+        try:
+            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
+                continue
+        except AttributeError:
+            continue
+
+        if not node.keywords:
+            yield (
+                node.lineno,
+                "Bare pytests raise have been found. "
+                "Please pass in the argument 'match' as well the exception.",
+            )
+        else:
+            # Means that there are arguments that are being passed in,
+            # now we validate that `match` is one of the passed in arguments
+            if not any(keyword.arg == "match" for keyword in node.keywords):
                 yield (
-                    current_token.start[0],
+                    node.lineno,
                     "Bare pytests raise have been found. "
                     "Please pass in the argument 'match' as well the exception.",
                 )
-                break
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
