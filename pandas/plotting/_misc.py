@@ -32,7 +32,7 @@ def register():
     Register pandas formatters and converters with matplotlib.
 
     This function modifies the global ``matplotlib.units.registry``
-    dictionary. Pandas adds custom converters for
+    dictionary. pandas adds custom converters for
 
     * pd.Timestamp
     * pd.Period
@@ -43,7 +43,7 @@ def register():
 
     See Also
     --------
-    deregister_matplotlib_converters : Remove pandas’ formatters and converters.
+    deregister_matplotlib_converters : Remove pandas formatters and converters.
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register()
@@ -51,7 +51,7 @@ def register():
 
 def deregister():
     """
-    Remove pandas' formatters and converters.
+    Remove pandas formatters and converters.
 
     Removes the custom converters added by :func:`register`. This
     attempts to set the state of the registry back to the state before
@@ -62,7 +62,7 @@ def deregister():
 
     See Also
     --------
-    register_matplotlib_converters : Register pandas formatters and fonverters
+    register_matplotlib_converters : Register pandas formatters and converters
         with matplotlib.
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -156,7 +156,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     Parameters
     ----------
     frame : `DataFrame`
-        Pandas object holding the data.
+        pandas object holding the data.
     class_column : str
         Column name containing the name of the data point category.
     ax : :class:`matplotlib.axes.Axes`, optional
@@ -271,7 +271,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Parameters
     ----------
     series : pandas.Series
-        Pandas Series from where to get the samplings for the bootstrapping.
+        pandas Series from where to get the samplings for the bootstrapping.
     fig : matplotlib.figure.Figure, default None
         If given, it will use the `fig` reference for plotting instead of
         creating a new one with default parameters.

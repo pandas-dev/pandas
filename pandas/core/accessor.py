@@ -281,27 +281,21 @@ def _register_accessor(name, cls):
     return decorator
 
 
-@doc(
-    _register_accessor, klass="DataFrame",
-)
+@doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
-@doc(
-    _register_accessor, klass="Series",
-)
+@doc(_register_accessor, klass="Series")
 def register_series_accessor(name):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
-@doc(
-    _register_accessor, klass="Index",
-)
+@doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
     from pandas import Index
 
