@@ -846,14 +846,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
-        elif isinstance(value, np.ndarray):
+        elif is_list_like(value) and not isinstance(value, type(self)):
+            value = array(value)
+
             if not type(self)._is_recognized_dtype(value):
                 raise TypeError(
                     "searchsorted requires compatible dtype or scalar, "
                     f"not {type(value).__name__}"
                 )
-            value = type(self)(value)
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
@@ -905,7 +905,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         index = Index(
             cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
         )
-        return Series(result.values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name)
 
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map

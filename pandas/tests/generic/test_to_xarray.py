@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
@@ -9,21 +7,9 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
-try:
-    import xarray
-
-    _XARRAY_INSTALLED = True
-except ImportError:
-    _XARRAY_INSTALLED = False
-
 
 class TestDataFrameToXArray:
-    @pytest.mark.skipif(
-        not _XARRAY_INSTALLED
-        or _XARRAY_INSTALLED
-        and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
-        reason="xarray >= 0.10.0 required",
-    )
+    @td.skip_if_no("xarray", "0.10.0")
     def test_to_xarray_index_types(self, indices):
         if isinstance(indices, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
@@ -106,12 +92,7 @@ class TestDataFrameToXArray:
 
 
 class TestSeriesToXArray:
-    @pytest.mark.skipif(
-        not _XARRAY_INSTALLED
-        or _XARRAY_INSTALLED
-        and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
-        reason="xarray >= 0.10.0 required",
-    )
+    @td.skip_if_no("xarray", "0.10.0")
     def test_to_xarray_index_types(self, indices):
         if isinstance(indices, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
