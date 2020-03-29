@@ -839,7 +839,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        io.formats.style.Styler
+        io.formats.style.Styler : Helps style a DataFrame or Series according to the
+            data with HTML and CSS.
         """
         from pandas.io.formats.style import Styler
 
