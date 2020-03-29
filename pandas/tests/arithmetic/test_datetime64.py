@@ -1118,7 +1118,7 @@ class TestDatetime64Arithmetic:
                 [
                     r"unsupported operand type\(s\) for \+: "
                     "'(Timestamp|DatetimeArray)' and 'datetime.time'",
-                    "ufunc 'add' cannot use operands with types "
+                    "ufunc (add|'add') cannot use operands with types "
                     r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
                 ]
             )
