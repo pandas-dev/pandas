@@ -192,7 +192,7 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(list("aabbc"), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with pytest.raises((IndexError, ValueError)):
+        with tm.external_error_raised((IndexError, ValueError)):
             # Either depending on NumPy version
             ci.delete(10)
 
