@@ -436,6 +436,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # Additional Methods
 
+    def astype(self, dtype, copy=True):
+        if dtype is self.dtype:
+            return self.copy() if copy else self
+        return super().astype(dtype, copy=copy)
+
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value=lib.no_default
     ) -> np.ndarray:

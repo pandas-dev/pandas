@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion, Label
 
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas import DataFrame, Index, MultiIndex, Series
@@ -456,12 +457,13 @@ class _Concatenator:
             # stack blocks
             if self.axis == 0:
                 name = com.consensus_name_attr(self.objs)
-
-                mgr = self.objs[0]._data.concat(
-                    [x._data for x in self.objs], self.new_axes
-                )
                 cons = self.objs[0]._constructor
-                return cons(mgr, name=name).__finalize__(self, method="concat")
+
+                arrs = [ser._values for ser in self.objs]
+
+                res = concat_compat(arrs, axis=0)
+                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:

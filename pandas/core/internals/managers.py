@@ -1633,31 +1633,6 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
-        """
-        Concatenate a list of SingleBlockManagers into a single
-        SingleBlockManager.
-
-        Used for pd.concat of Series objects with axis=0.
-
-        Parameters
-        ----------
-        to_concat : list of SingleBlockManagers
-        new_axis : Index of the result
-
-        Returns
-        -------
-        SingleBlockManager
-        """
-
-        blocks = [obj.blocks[0] for obj in to_concat]
-        values = concat_compat([x.values for x in blocks])
-
-        new_block = make_block(values, placement=slice(0, len(values), 1))
-
-        mgr = SingleBlockManager(new_block, new_axis)
-        return mgr
-
 
 # --------------------------------------------------------------------
 # Constructor Helpers
