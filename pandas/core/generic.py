@@ -8919,7 +8919,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2     0     0     0
         3    10    13    17
         4    20    23    27
-    """
+        """
         if periods == 0:
             return self.copy()
 
