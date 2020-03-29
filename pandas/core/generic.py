@@ -1732,7 +1732,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @Appender(items.__doc__)
+    @doc(items)
     def iteritems(self):
         return self.items()
 
@@ -9255,7 +9255,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_convert(ax, tz)
 
-        result = self._constructor(self._mgr, copy=copy)
+        result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -9424,7 +9424,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self._constructor(self._mgr, copy=copy)
+        result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -10233,7 +10233,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.core.window import EWM, Expanding, Rolling, Window
 
-        @Appender(Rolling.__doc__)
+        @doc(Rolling)
         def rolling(
             self,
             window,
@@ -10271,14 +10271,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.rolling = rolling
 
-        @Appender(Expanding.__doc__)
+        @doc(Expanding)
         def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
 
-        @Appender(EWM.__doc__)
+        @doc(EWM)
         def ewm(
             self,
             com=None,

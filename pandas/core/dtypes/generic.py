@@ -71,11 +71,3 @@ ABCExtensionArray = create_pandas_abc_type(
     ("extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"),
 )
 ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",))
-
-
-class _ABCGeneric(type):
-    def __instancecheck__(cls, inst) -> bool:
-        return hasattr(inst, "_mgr")
-
-
-ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
