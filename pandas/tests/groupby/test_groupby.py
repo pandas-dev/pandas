@@ -2057,3 +2057,19 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_groupby_column_index_name_lost():
+    # GH: 29764 groupby loses index sometimes
+    df = pd.DataFrame([[1]], columns=pd.Index(["a"], name="idx"))
+    result = df.groupby([1]).sum()
+    expected = pd.DataFrame([1], columns=pd.Index(["a"], name="idx"), index=[1])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1]).any()
+    expected = pd.DataFrame([True], columns=pd.Index(["a"], name="idx"), index=[1])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1]).shift()
+    expected = pd.DataFrame([np.nan], columns=pd.Index(["a"], name="idx"), index=[0])
+    tm.assert_frame_equal(result, expected)

@@ -2235,8 +2235,12 @@ class GroupBy(_GroupBy):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: Dict[base.OutputKey, np.ndarray, str:str] = {}
         base_func = getattr(libgroupby, how)
+        from pandas.core.groupby.generic import DataFrameGroupBy
+
+        if isinstance(self, DataFrameGroupBy):
+            output["idx_name"] = self.dtypes.columns.name
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
