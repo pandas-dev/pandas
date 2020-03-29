@@ -7,8 +7,8 @@
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
-structures. Here's how to create some of the objects used in the examples from
-the previous section:
+structures. To begin, let's create some example objects like we did in
+the :ref:`10 minutes to pandas <10min>` section:
 
 .. ipython:: python
 
