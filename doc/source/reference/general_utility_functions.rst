@@ -30,6 +30,13 @@ Testing functions
    testing.assert_index_equal
    testing.assert_extension_array_equal
 
+Bug report function
+-------------------
+.. autosummary::
+   :toctree: api/
+
+   show_versions
+
 Exceptions and warnings
 -----------------------
 .. autosummary::
