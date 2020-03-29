@@ -1,4 +1,4 @@
-from typing import Hashable, List, Tuple, Union
+from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 
 import numpy as np
 
@@ -28,6 +28,9 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import Index, InvalidIndexError
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa:F401
 
 # "null slice"
 _NS = slice(None, None)
@@ -2108,7 +2111,7 @@ def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
     return tuple(_tup)
 
 
-def convert_to_index_sliceable(obj, key):
+def convert_to_index_sliceable(obj: "DataFrame", key):
     """
     If we are index sliceable, then return my slicer, otherwise return None.
     """
@@ -2119,7 +2122,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, str):
 
         # we are an actual column
-        if key in obj._data.items:
+        if key in obj.columns:
             return None
 
         # We might have a datetimelike string that we can translate to a

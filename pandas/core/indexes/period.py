@@ -149,6 +149,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _infer_as_myclass = True
 
     _data: PeriodArray
+    freq: DateOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True

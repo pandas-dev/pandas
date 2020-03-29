@@ -74,7 +74,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import maybe_convert_indices, unpack_1tuple
+from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
@@ -435,7 +435,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        # DataFrame compatibility
+        return self.dtype
 
     @property
     def name(self) -> Label:
@@ -828,15 +829,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
-
-        if is_categorical_dtype(self):
-            # https://github.com/pandas-dev/pandas/issues/20664
-            # TODO: remove when the default Categorical.take behavior changes
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
-            kwargs = {"allow_fill": False}
-        else:
-            kwargs = {}
-        new_values = self._values.take(indices, **kwargs)
+        new_values = self._values.take(indices)
 
         return self._constructor(
             new_values, index=new_index, fastpath=True
