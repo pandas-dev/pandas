@@ -42,6 +42,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_extension_array_dtype,
     is_datetime64_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -2241,6 +2242,8 @@ class GroupBy(_GroupBy):
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
+            if is_extension_array_dtype(values.dtype) and is_integer_dtype(values.dtype):
+                values = values.to_numpy(dtype=cython_dtype, na_value=np.nan)
 
             if aggregate:
                 result_sz = ngroups
