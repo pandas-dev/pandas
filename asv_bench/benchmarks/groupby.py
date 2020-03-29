@@ -639,17 +639,29 @@ class TransformEngine:
         )
         self.grouper = data.groupby(0)
 
-    def time_series(self, engine):
+    def time_series_numba(self, engine):
         def function(values, index):
             return values * 5
 
-        self.grouper[0].transform(function, engine=engine)
+        self.grouper[0].transform(function, engine='numba')
 
-    def time_dataframe(self, engine):
+    def time_series_cython(self, engine):
+        def function(values):
+            return values * 5
+
+        self.grouper[0].transform(function, engine='cython')
+
+    def time_dataframe_numba(self, engine):
         def function(values, index, columns):
             return values * 5
 
-        self.grouper.transform(function, engine=engine)
+        self.grouper.transform(function, engine='numba')
+
+    def time_dataframe_cython(self, engine):
+        def function(values):
+            return values * 5
+
+        self.grouper.transform(function, engine='cython')
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
