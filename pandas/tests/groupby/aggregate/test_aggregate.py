@@ -717,18 +717,19 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_key():
+@pytest.mark.parametrize(
+    "kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}]
+)
+def test_groupby_aggregate_empty_key(kwargs):
     # GH: 32580
     df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
-    result = df.groupby("a").agg({"c": ["min"]})
-    result_2 = df.groupby("a").agg({"b": [], "c": ["min"]})
+    result = df.groupby("a").agg(kwargs)
     expected = pd.DataFrame(
         [1, 4],
         index=pd.Index([1, 2], dtype="int64", name="a"),
         columns=pd.MultiIndex.from_tuples([["c", "min"]]),
     )
     tm.assert_frame_equal(result, expected)
-    tm.assert_frame_equal(result, result_2)
 
 
 def test_groupby_aggregate_empty_key_empty_return():
