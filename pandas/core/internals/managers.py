@@ -1649,21 +1649,11 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        non_empties = [x for x in to_concat if len(x) > 0]
 
-        # check if all series are of the same block type:
-        if len(non_empties) > 0:
-            blocks = [obj.blocks[0] for obj in non_empties]
-            if len({b.dtype for b in blocks}) == 1:
-                new_block = blocks[0].concat_same_type(blocks)
-            else:
-                values = [x.values for x in blocks]
-                values = concat_compat(values)
-                new_block = make_block(values, placement=slice(0, len(values), 1))
-        else:
-            values = [x._block.values for x in to_concat]
-            values = concat_compat(values)
-            new_block = make_block(values, placement=slice(0, len(values), 1))
+        blocks = [obj.blocks[0] for obj in to_concat]
+        values = concat_compat([x.values for x in blocks])
+
+        new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
         return mgr
