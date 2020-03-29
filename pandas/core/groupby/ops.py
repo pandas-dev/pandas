@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -837,10 +838,21 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self) -> "List[grouper.Grouping]":
+        codes, _, _ = self.group_info
+
+        if self.indexer is not None and len(self.indexer) != len(codes):
+            groupers = self.levels
+        else:
+            groupers = [self.result_index._constructor(
+                Categorical.from_codes(self.codes_info, self.result_index))]
+
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
-            for lvl, name in zip(self.levels, self.names)
+            for lvl, name in zip(groupers, self.names)
         ]
+
+    def __iter__(self):
+        return iter(self.groupings[0].grouper)
 
     def agg_series(self, obj: Series, func):
         # Caller is responsible for checking ngroups != 0
