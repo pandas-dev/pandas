@@ -901,30 +901,24 @@ class BlockManager(PandasObject):
 
         return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc: int):
+    def fast_xs(self, loc: int) -> ArrayLike:
         """
-        get a cross sectional for a given location in the
-        items ; handle dups
+        Return the array corresponding to `frame.iloc[loc]`.
 
-        return the result, is *could* be a view in the case of a
-        single block
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        items = self.items
-
-        # non-unique (GH4726)
-        if not items.is_unique:
-            result = self._interleave()
-            if self.ndim == 2:
-                result = result.T
-            return result[loc]
-
-        # unique
         dtype = _interleaved_dtype(self.blocks)
 
-        n = len(items)
+        n = len(self)
         if is_extension_array_dtype(dtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
@@ -1649,21 +1643,11 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        non_empties = [x for x in to_concat if len(x) > 0]
 
-        # check if all series are of the same block type:
-        if len(non_empties) > 0:
-            blocks = [obj.blocks[0] for obj in non_empties]
-            if len({b.dtype for b in blocks}) == 1:
-                new_block = blocks[0].concat_same_type(blocks)
-            else:
-                values = [x.values for x in blocks]
-                values = concat_compat(values)
-                new_block = make_block(values, placement=slice(0, len(values), 1))
-        else:
-            values = [x._block.values for x in to_concat]
-            values = concat_compat(values)
-            new_block = make_block(values, placement=slice(0, len(values), 1))
+        blocks = [obj.blocks[0] for obj in to_concat]
+        values = concat_compat([x.values for x in blocks])
+
+        new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
         return mgr
