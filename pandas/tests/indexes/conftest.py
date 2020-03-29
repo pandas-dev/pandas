@@ -1,7 +1,5 @@
 import pytest
 
-import pandas._testing as tm
-
 
 @pytest.fixture(params=[None, False])
 def sort(request):
@@ -18,9 +16,3 @@ def sort(request):
         in in the Index setops methods.
     """
     return request.param
-
-
-@pytest.fixture
-def string_index():
-    """ Simple string index fixture """
-    return tm.makeStringIndex(100)
