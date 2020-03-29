@@ -59,6 +59,7 @@ class TestPeriodIndex:
         didx = pd.date_range(start="2013/01/01", freq="D", periods=400)
         pidx = period_range(start="2013/01/01", freq="D", periods=400)
 
+        msg = "slice indices must be integers or None or have an __index__ method"
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = [
@@ -69,7 +70,7 @@ class TestPeriodIndex:
                 "2013/02/01 09:00",
             ]
             for v in values:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -81,13 +82,14 @@ class TestPeriodIndex:
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
             for v in invalid:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
     def test_range_slice_seconds(self):
         # GH#6716
         didx = pd.date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        msg = "slice indices must be integers or None or have an __index__ method"
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
@@ -99,7 +101,7 @@ class TestPeriodIndex:
                 "2013/02/01 09:00",
             ]
             for v in values:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
