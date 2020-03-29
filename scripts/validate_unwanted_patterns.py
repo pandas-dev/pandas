@@ -84,23 +84,6 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     -----
     GH #23922
     """
-
-    def get_fqdn(node: ast.AST) -> Optional[str]:
-        names: List[str] = []
-
-        while True:
-            if isinstance(node, ast.Name):
-                names.append(node.id)
-                break
-
-            if isinstance(node, ast.Attribute):
-                names.append(node.attr)
-                node = node.value
-            else:
-                return None
-
-        return ".".join(reversed(names))
-
     contents = file_obj.read()
     tree = ast.parse(contents)
 
@@ -108,7 +91,10 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
         if not isinstance(node, ast.Call):
             continue
 
-        if not get_fqdn(node.func) == "pytest.raises":
+        try:
+            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
+                continue
+        except AttributeError:
             continue
 
         if not node.keywords:
