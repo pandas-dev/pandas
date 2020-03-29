@@ -335,7 +335,7 @@ When defined, the frequency of the time series is provided by the
     <ul class="task-bullet">
         <li>
 
-Make a plot of the daily median :math:`NO_2` value in each of the stations.
+Make a plot of the daily mean :math:`NO_2` value in each of the stations.
 
 .. ipython:: python
     :okwarning:

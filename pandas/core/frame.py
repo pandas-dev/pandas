@@ -2300,7 +2300,7 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
-    @Appender(info.__doc__)
+    @doc(info)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ) -> None:
@@ -4680,7 +4680,7 @@ class DataFrame(NDFrame):
 
         result = self[-duplicated]
         if ignore_index:
-            result.index = range(len(result))
+            result.index = ibase.default_index(len(result))
 
         if inplace:
             self._update_inplace(result)
