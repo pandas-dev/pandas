@@ -100,6 +100,8 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessHour",
     "BusinessDay",
     "DateOffset",
+    "ExtensionDtype",
+    "ExtensionArray",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
