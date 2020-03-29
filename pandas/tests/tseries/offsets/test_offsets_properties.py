@@ -46,7 +46,7 @@ gen_date_range = st.builds(
     pd.date_range,
     start=st.datetimes(
         # TODO: Choose the min/max values more systematically
-        min_value=Timestamp(1900, 1, 1).to_pydatetime(),
+        min_value=Timestamp(2000, 1, 1).to_pydatetime(),
         max_value=Timestamp(2100, 1, 1).to_pydatetime(),
     ),
     periods=st.integers(min_value=2, max_value=100),
