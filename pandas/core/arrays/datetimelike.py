@@ -14,7 +14,7 @@ from pandas._typing import DatetimeLikeScalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
@@ -770,7 +770,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _values_for_argsort(self):
         return self._data
 
-    @Appender(ExtensionArray.shift.__doc__)
+    @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
         if not self.size or periods == 0:
             return self.copy()
