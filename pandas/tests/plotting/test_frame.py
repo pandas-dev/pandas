@@ -1306,7 +1306,6 @@ class TestDataFramePlots(TestPlotBase):
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
 
-    @pytest.mark.slow
     def test_plot_scatter_with_s(self):
         # this refers to GH 32904
         df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
