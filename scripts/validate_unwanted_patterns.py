@@ -16,7 +16,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Optional, Tuple
+from typing import IO, Callable, Iterable, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
 
