@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _is_numpy_dev
-
 import pandas as pd
 from pandas import MultiIndex, Series
 import pandas._testing as tm
@@ -339,8 +337,7 @@ def test_union_sort_other_incomparable():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    warn = None if _is_numpy_dev else RuntimeWarning
-    with tm.assert_produces_warning(warn):
+    with tm.assert_produces_warning(RuntimeWarning):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
