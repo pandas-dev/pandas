@@ -312,7 +312,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
-- Bug in :func:`to_datetime` with ``infer_datetime_format=True`` where timezone names (e.g. ``UTC``) would not be parsed correctly (:issue:``)
+- Bug in :func:`to_datetime` with ``infer_datetime_format=True`` where timezone names (e.g. ``UTC``) would not be parsed correctly (:issue:`33133`)
 -
 
 
