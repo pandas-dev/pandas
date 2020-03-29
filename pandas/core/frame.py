@@ -2300,7 +2300,7 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
-    @Appender(info.__doc__)
+    @doc(info)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ) -> None:
@@ -3525,6 +3525,9 @@ class DataFrame(NDFrame):
         n = len(row_labels)
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
+        if not (self.index.is_unique and self.columns.is_unique):
+            # GH#33041
+            raise ValueError("DataFrame.lookup requires unique index and columns")
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
@@ -4675,21 +4678,15 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         duplicated = self.duplicated(subset, keep=keep)
 
+        result = self[-duplicated]
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
         if inplace:
-            (inds,) = np.asarray(-duplicated).nonzero()
-            new_data = self._data.take(inds)
-
-            if ignore_index:
-                new_data.axes[1] = ibase.default_index(len(inds))
-            self._update_inplace(new_data)
+            self._update_inplace(result._data)
+            return None
         else:
-            result = self[-duplicated]
-
-            if ignore_index:
-                result.index = ibase.default_index(len(result))
             return result
-
-        return None
 
     def duplicated(
         self,

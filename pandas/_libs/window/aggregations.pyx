@@ -846,7 +846,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, res, prev
-        bint err = 0
+        bint err = False
         int ret = 0
         skiplist_t *sl
         Py_ssize_t i, j

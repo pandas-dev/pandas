@@ -1723,7 +1723,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @Appender(items.__doc__)
+    @doc(items)
     def iteritems(self):
         return self.items()
 
@@ -6835,27 +6835,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if axis == 0:
-            ax = self._info_axis_name
-            _maybe_transposed_self = self
-        elif axis == 1:
-            _maybe_transposed_self = self.T
-            ax = 1
-
-        ax = _maybe_transposed_self._get_axis_number(ax)
-
-        if _maybe_transposed_self.ndim == 2:
-            alt_ax = 1 - ax
+            df = self
         else:
-            alt_ax = ax
+            df = self.T
 
-        if isinstance(_maybe_transposed_self.index, MultiIndex) and method != "linear":
+        if isinstance(df.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if _maybe_transposed_self._data.get_dtype_counts().get("object") == len(
-            _maybe_transposed_self.T
-        ):
+        if df.ndim == 2 and np.all(df.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -6865,9 +6854,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))
+            index = np.arange(len(df.index))
         else:
-            index = _maybe_transposed_self._get_axis(alt_ax)
+            index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)
@@ -6888,10 +6877,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = _maybe_transposed_self._data
+        data = df._data
         new_data = data.interpolate(
             method=method,
-            axis=ax,
+            axis=self._info_axis_number,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
@@ -6901,15 +6890,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             **kwargs,
         )
 
+        result = self._constructor(new_data)
+        if axis == 1:
+            result = result.T
         if inplace:
-            if axis == 1:
-                new_data = self._constructor(new_data).T._data
-            self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            res = self._constructor(new_data).__finalize__(self)
-            if axis == 1:
-                res = res.T
-            return res
+            return result.__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
@@ -8978,7 +8965,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return new_obj.__finalize__(self)
 
     def tshift(
-        self: FrameOrSeries, periods: int = 1, freq=None, axis=0
+        self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
     ) -> FrameOrSeries:
         """
         Shift the time index, using the index's frequency if available.
@@ -9020,22 +9007,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(freq, str):
             freq = to_offset(freq)
 
-        block_axis = self._get_block_manager_axis(axis)
+        axis = self._get_axis_number(axis)
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
-            if freq == orig_freq:
-                new_data = self._data.copy()
-                new_data.axes[block_axis] = index.shift(periods)
-            elif orig_freq is not None:
+            if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
                 raise ValueError(
                     f"Given freq {freq.rule_code} does not match "
                     f"PeriodIndex freq {orig_freq.rule_code}"
                 )
+            new_ax = index.shift(periods)
         else:
-            new_data = self._data.copy()
-            new_data.axes[block_axis] = index.shift(periods, freq)
+            new_ax = index.shift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self)
+        result = self.copy()
+        result.set_axis(new_ax, axis, inplace=True)
+        return result.__finalize__(self)
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
@@ -9244,7 +9231,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_convert(ax, tz)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -9413,7 +9400,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self._constructor(self._data, copy=copy)
+        result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
@@ -10222,7 +10209,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.core.window import EWM, Expanding, Rolling, Window
 
-        @Appender(Rolling.__doc__)
+        @doc(Rolling)
         def rolling(
             self,
             window,
@@ -10260,14 +10247,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.rolling = rolling
 
-        @Appender(Expanding.__doc__)
+        @doc(Expanding)
         def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
 
-        @Appender(EWM.__doc__)
+        @doc(EWM)
         def ewm(
             self,
             com=None,
