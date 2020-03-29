@@ -627,11 +627,7 @@ class TransformNaN:
 
 
 class TransformEngine:
-
-    params = ["cython", "numba"]
-    param_names = ["engine"]
-
-    def setup(self, engine):
+    def setup(self):
         N = 10 ** 3
         data = DataFrame(
             {0: ["a", "a", "b", "b", "a"] * N, 1: [1.0, 2.0, 3.0, 4.0, 5.0] * N},
@@ -639,29 +635,29 @@ class TransformEngine:
         )
         self.grouper = data.groupby(0)
 
-    def time_series_numba(self, engine):
+    def time_series_numba(self):
         def function(values, index):
             return values * 5
 
-        self.grouper[0].transform(function, engine='numba')
+        self.grouper[1].transform(function, engine="numba")
 
-    def time_series_cython(self, engine):
+    def time_series_cython(self):
         def function(values):
             return values * 5
 
-        self.grouper[0].transform(function, engine='cython')
+        self.grouper[1].transform(function, engine="cython")
 
-    def time_dataframe_numba(self, engine):
+    def time_dataframe_numba(self):
         def function(values, index, columns):
             return values * 5
 
-        self.grouper.transform(function, engine='numba')
+        self.grouper.transform(function, engine="numba")
 
-    def time_dataframe_cython(self, engine):
+    def time_dataframe_cython(self):
         def function(values):
             return values * 5
 
-        self.grouper.transform(function, engine='cython')
+        self.grouper.transform(function, engine="cython")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
