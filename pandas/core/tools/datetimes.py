@@ -260,7 +260,7 @@ def _convert_listlike_datetimes(
     Parameters
     ----------
     arg : list, tuple, ndarray, Series, Index
-        date to be parced
+        date to be parsed
     name : object
         None or string for the Index name
     tz : object
