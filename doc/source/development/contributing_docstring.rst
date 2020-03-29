@@ -160,7 +160,7 @@ backticks. The following are considered inline code:
 
 .. _docstring.short_summary:
 
-Section 1: Short summary
+Section 1: short summary
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The short summary is a single sentence that expresses what the function does in
@@ -228,7 +228,7 @@ infinitive verb.
 
 .. _docstring.extended_summary:
 
-Section 2: Extended summary
+Section 2: extended summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The extended summary provides details on what the function does. It should not
@@ -259,7 +259,7 @@ their use cases, if it is not too generic.
 
 .. _docstring.parameters:
 
-Section 3: Parameters
+Section 3: parameters
 ~~~~~~~~~~~~~~~~~~~~~
 
 The details of the parameters will be added in this section. This section has
@@ -424,7 +424,7 @@ For axis, the convention is to use something like:
 
 .. _docstring.returns:
 
-Section 4: Returns or Yields
+Section 4: returns or yields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If the method returns a value, it will be documented in this section. Also
@@ -505,7 +505,7 @@ If the method yields its value:
 
 .. _docstring.see_also:
 
-Section 5: See Also
+Section 5: see also
 ~~~~~~~~~~~~~~~~~~~
 
 This section is used to let users know about pandas functionality
@@ -583,7 +583,7 @@ For example:
 
 .. _docstring.notes:
 
-Section 6: Notes
+Section 6: notes
 ~~~~~~~~~~~~~~~~
 
 This is an optional section used for notes about the implementation of the
@@ -597,7 +597,7 @@ This section follows the same format as the extended summary section.
 
 .. _docstring.examples:
 
-Section 7: Examples
+Section 7: examples
 ~~~~~~~~~~~~~~~~~~~
 
 This is one of the most important sections of a docstring, despite being

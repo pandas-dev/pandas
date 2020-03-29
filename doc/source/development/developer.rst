@@ -62,7 +62,7 @@ for each column, *including the index columns*. This has JSON form:
 
 See below for the detailed specification for these.
 
-Index Metadata Descriptors
+Index metadata descriptors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``RangeIndex`` can be stored as metadata only, not requiring serialization. The
@@ -89,7 +89,7 @@ with other column names) a disambiguating name with pattern matching
 columns, ``name`` attribute is always stored in the column descriptors as
 above.
 
-Column Metadata
+Column metadata
 ~~~~~~~~~~~~~~~
 
 ``pandas_type`` is the logical type of the column, and is one of:

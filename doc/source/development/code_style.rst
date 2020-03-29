@@ -18,7 +18,7 @@ consistent code format throughout the project. For details see the
 Patterns
 ========
 
-foo.__class__
+Foo.class
 -------------
 
 
@@ -47,7 +47,7 @@ String formatting
 Concatenated strings
 --------------------
 
-f-strings
+F-strings
 ~~~~~~~~~
 
 pandas uses f-strings formatting instead of '%' and '.format()' string formatters.

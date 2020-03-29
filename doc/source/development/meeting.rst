@@ -1,7 +1,7 @@
 .. _meeting:
 
 ==================
-Developer Meetings
+Developer meetings
 ==================
 
 We hold regular developer meetings on the second Wednesday
