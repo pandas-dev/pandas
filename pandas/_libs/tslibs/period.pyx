@@ -1555,9 +1555,9 @@ class IncompatibleFrequency(ValueError):
 
 cdef class _Period:
 
-    # cdef readonly:
-    #    int64_t ordinal
-    #    object freq
+    cdef readonly:
+        int64_t ordinal
+        object freq
 
     _typ = 'period'
 

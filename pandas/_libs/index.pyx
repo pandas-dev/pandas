@@ -21,6 +21,7 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
+from pandas._libs.tslibs import Period
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
@@ -28,7 +29,6 @@ from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timedelta, period as periodlib
-from pandas._libs.tslibs.period cimport _Period
 from pandas._libs.missing import checknull
 
 
@@ -477,7 +477,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, _Period):
+        if isinstance(scalar, Period):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)
