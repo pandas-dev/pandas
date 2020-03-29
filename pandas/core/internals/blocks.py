@@ -2802,19 +2802,6 @@ class CategoricalBlock(ExtensionBlock):
     def _holder(self):
         return Categorical
 
-    def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        if slicer is not None:
-            # Categorical is always one dimension
-            values = values[slicer]
-        mask = isna(values)
-        values = np.array(values, dtype="object")
-        values[mask] = na_rep
-
-        # we are expected to return a 2-d ndarray
-        return values.reshape(1, len(values))
-
     def concat_same_type(self, to_concat, placement=None):
         """
         Concatenate list of single blocks of the same type.
