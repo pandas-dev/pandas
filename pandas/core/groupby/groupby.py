@@ -2239,7 +2239,7 @@ class GroupBy(_GroupBy):
         base_func = getattr(libgroupby, how)
         obj = self._selected_obj
         if isinstance(obj, DataFrame):
-            output["idx_name"] = getattr(getattr(obj, "columns"), "name")
+            output["idx_name"] = obj.columns.name
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name

@@ -2073,3 +2073,21 @@ def test_groupby_column_index_name_lost():
     result = df.groupby([1]).shift()
     expected = pd.DataFrame([np.nan], columns=pd.Index(["a"], name="idx"), index=[0])
     tm.assert_frame_equal(result, expected)
+
+    df = pd.DataFrame(
+        [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
+        columns=pd.Index(["type", "a", "b"], name="idx"),
+    )
+    result = df.groupby(["type"])[["a", "b"]].ffill()
+    expected = pd.DataFrame(
+        [[1.0, -1.0], [1.0, -1.0], [2.0, -2.0]],
+        columns=pd.Index(["a", "b"], name="idx"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["type"])[["a", "b"]].bfill()
+    expected = pd.DataFrame(
+        [[1.0, -1.0], [2.0, -2.0], [2.0, -2.0]],
+        columns=pd.Index(["a", "b"], name="idx"),
+    )
+    tm.assert_frame_equal(result, expected)
