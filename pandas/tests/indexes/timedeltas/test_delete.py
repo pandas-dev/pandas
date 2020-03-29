@@ -1,5 +1,3 @@
-import pytest
-
 from pandas import TimedeltaIndex, timedelta_range
 import pandas._testing as tm
 
