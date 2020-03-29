@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.blocks import (
@@ -426,7 +427,7 @@ class BlockManager(PandasObject):
 
                 for k, obj in aligned_args.items():
                     axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
+                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
@@ -552,6 +553,7 @@ class BlockManager(PandasObject):
             align_keys = ["other", "cond"]
         else:
             align_keys = ["cond"]
+            kwargs["other"] = extract_array(kwargs["other"], extract_numpy=True)
 
         return self.apply("where", align_keys=align_keys, **kwargs)
 
@@ -567,6 +569,7 @@ class BlockManager(PandasObject):
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
 
         return self.apply(
             "putmask",
