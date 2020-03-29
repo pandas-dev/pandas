@@ -123,3 +123,7 @@ class BaseDtypeTests(BaseExtensionTests):
         # still testing as good practice to have this working (and it is the
         # only case we can test in general)
         assert dtype._get_common_dtype([dtype]) == dtype
+
+    def test_astype_empty_dataframe(self, dtype):
+        empty_dataframe = pd.DataFrame()
+        assert empty_dataframe.astype(dtype) == empty_dataframe
