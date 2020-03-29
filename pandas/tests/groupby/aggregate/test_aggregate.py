@@ -717,9 +717,7 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}]
-)
+@pytest.mark.parametrize("kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}])
 def test_groupby_aggregate_empty_key(kwargs):
     # GH: 32580
     df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
