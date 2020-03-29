@@ -341,8 +341,7 @@ class TestTimeConversionFormats:
 
         result = pd.to_datetime(dates, format=fmt, utc=True)
         expected = pd.DatetimeIndex(expected_dates)
-        tm.assert_equal(result, expected)
-        assert result.dtype._tz is pytz.UTC
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "offset", ["+0", "-1foo", "UTCbar", ":10", "+01:000:01", ""]

@@ -63,7 +63,7 @@ For more on working with fold, see :ref:`Fold subsection <timeseries.fold>` in t
 Parsing timezone-aware format with different timezones in to_datetime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`to_datetime` now supports parsing formats containing timezone names (``%Z``) and UTC offsets (``%z``) from different timezones then converting them to UTC by setting ``utc=True``. This would returns a ``DatetimeIndex`` with timezone at UTC as opposed to an ``Index`` with ``object`` dtype if ``utc=True`` is not set (:issue:`32792`).
+:func:`to_datetime` now supports parsing formats containing timezone names (``%Z``) and UTC offsets (``%z``) from different timezones then converting them to UTC by setting ``utc=True``. This would return a :class:`DatetimeIndex` with timezone at UTC as opposed to an :class:`Index` with ``object`` dtype if ``utc=True`` is not set (:issue:`32792`).
 
 For example:
 
