@@ -1100,7 +1100,7 @@ class TestDatetime64Arithmetic:
             msg = "|".join(
                 [
                     "cannot subtract DatetimeArray from ndarray",
-                    "ufunc 'subtract' cannot use operands with types "
+                    "ufunc (subtract|'subtract') cannot use operands with types "
                     r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
                 ]
             )
