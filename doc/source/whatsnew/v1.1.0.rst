@@ -403,6 +403,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+- Bug in :meth:`DataFrame.groupby` does not always maintain column index name for some functions (:issue:`29764`)
 
 
 Reshaping
