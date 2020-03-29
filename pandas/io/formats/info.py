@@ -265,7 +265,8 @@ def info(
         else:
             _verbose_repr()
 
-    counts = data._mgr.get_dtype_counts()
+    # groupby dtype.name to collect e.g. Categorical columns
+    counts = data.dtypes.value_counts().groupby(lambda x: x.name).sum()
     dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
     lines.append(f"dtypes: {', '.join(dtypes)}")
 
