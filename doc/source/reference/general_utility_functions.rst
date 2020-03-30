@@ -30,13 +30,6 @@ Testing functions
    testing.assert_index_equal
    testing.assert_extension_array_equal
 
-Bug report function
--------------------
-.. autosummary::
-   :toctree: api/
-
-   show_versions
-
 Exceptions and warnings
 -----------------------
 .. autosummary::
@@ -115,3 +108,11 @@ Scalar introspection
     api.types.is_re
     api.types.is_re_compilable
     api.types.is_scalar
+
+Bug report function
+-------------------
+.. autosummary::
+   :toctree: api/
+
+   show_versions
+

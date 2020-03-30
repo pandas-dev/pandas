@@ -89,7 +89,7 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
 
 def show_versions(as_json: Union[str, bool] = False) -> None:
     """
-    Provides useful information, important for bug reports.
+    Provide useful information, important for bug reports.
 
     It comprises info about hosting operation system, pandas version,
     and versions of other installed relative packages.
