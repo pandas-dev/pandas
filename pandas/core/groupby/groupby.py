@@ -37,7 +37,7 @@ from pandas._typing import FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
@@ -1421,7 +1421,7 @@ class GroupBy(_GroupBy):
         """
         return self._apply_to_column_groupbys(lambda x: x._cython_agg_general("ohlc"))
 
-    @Appender(DataFrame.describe.__doc__)
+    @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with _group_selection_context(self):
             result = self.apply(lambda x: x.describe(**kwargs))
@@ -2514,7 +2514,7 @@ class GroupBy(_GroupBy):
 GroupBy._add_numeric_operations()
 
 
-@Appender(GroupBy.__doc__)
+@doc(GroupBy)
 def get_groupby(
     obj: NDFrame,
     by: Optional[_KeysArgType] = None,
