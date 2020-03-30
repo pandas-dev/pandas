@@ -833,3 +833,38 @@ def test_to_numpy_extra(array):
     assert result[0] == result[1]
 
     tm.assert_equal(array, original)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.to_datetime(["2020-01-01", "2020-02-01"]),
+        pd.TimedeltaIndex([1, 2], unit="D"),
+        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+    ],
+)
+@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
+def test_searchsorted_datetimelike_with_listlike(values, klass):
+    # https://github.com/pandas-dev/pandas/issues/32762
+    result = values.searchsorted(klass(values))
+    expected = np.array([0, 1], dtype=result.dtype)
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.to_datetime(["2020-01-01", "2020-02-01"]),
+        pd.TimedeltaIndex([1, 2], unit="D"),
+        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+    ],
+)
+@pytest.mark.parametrize(
+    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+)
+def test_searchsorted_datetimelike_with_listlike_invalid_dtype(values, arg):
+    # https://github.com/pandas-dev/pandas/issues/32762
+    msg = "[Unexpected type|Cannot compare]"
+    with pytest.raises(TypeError, match=msg):
+        values.searchsorted(arg)
