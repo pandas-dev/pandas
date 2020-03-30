@@ -135,7 +135,7 @@ def create_single_mgr(typestr, num_rows=None):
 
     return SingleBlockManager(
         create_block(typestr, placement=slice(0, num_rows), item_shape=()),
-        np.arange(num_rows),
+        Index(np.arange(num_rows)),
     )
 
 
@@ -1297,3 +1297,11 @@ def test_interleave_non_unique_cols():
     assert df_unique.values.shape == df.values.shape
     tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
     tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
+
+
+def test_single_block_manager_fastpath_deprecated():
+    # GH#33092
+    ser = pd.Series(range(3))
+    blk = ser._data.blocks[0]
+    with tm.assert_produces_warning(FutureWarning):
+        SingleBlockManager(blk, ser.index, fastpath=True)

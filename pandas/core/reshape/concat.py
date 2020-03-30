@@ -458,7 +458,7 @@ class _Concatenator:
                 name = com.consensus_name_attr(self.objs)
 
                 mgr = self.objs[0]._data.concat(
-                    [x._data for x in self.objs], self.new_axes
+                    [x._data for x in self.objs], self.new_axes[0]
                 )
                 cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")
