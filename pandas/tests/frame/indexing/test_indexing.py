@@ -854,15 +854,6 @@ class TestDataFrameIndexing:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_delitem_corner(self, float_frame):
-        f = float_frame.copy()
-        del f["D"]
-        assert len(f.columns) == 3
-        with pytest.raises(KeyError, match=r"^'D'$"):
-            del f["D"]
-        del f["B"]
-        assert len(f.columns) == 2
-
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
