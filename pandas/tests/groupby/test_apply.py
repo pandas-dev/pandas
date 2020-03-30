@@ -719,8 +719,7 @@ def test_groupby_quantile_nullable_integer(q):
     df = pd.DataFrame(
         {"a": ["x"] * 100 + ["y"] * 100, "b": pd.array(list(values) * 2, dtype="Int64")}
     )
-    grouped = df.groupby("a")["b"]
-    result = grouped.quantile(q)
+    result = df.groupby("a")["b"].quantile(q)
 
     if isinstance(q, list):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
