@@ -408,6 +408,9 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
+        with pytest.raises(ValueError, match="should be a bool or an iterable"):
+            axes = df.plot(subplots=123)
+
     def test_groupby_boxplot_sharey(self):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharey can now be switched check whether the right
@@ -3300,9 +3303,34 @@ class TestDataFramePlots(TestPlotBase):
         assert len(axes) == 3  # 2 groups + single column a
 
         expected_labels = (["b", "e"], ["c", "d"], ["a"])
-        for i in range(3):
-            self._check_legend_labels(axes[i], labels=expected_labels[i])
-            assert len(axes[i].lines) == len(expected_labels[i])
+        for ax, labels in zip(axes, expected_labels):
+            self._check_legend_labels(ax, labels=labels)
+            assert len(ax.lines) == len(labels)
+
+    @pytest.mark.parametrize(
+        "subplots",
+        [
+            "a",  # iterable of non-iterable
+            (1,),  # iterable of non-iterable
+            ("a",),  # iterable of strings
+        ],
+    )
+    def test_group_subplot_bad_input(self, subplots):
+        # Make sure error is raised when subplots is not a properly
+        # formatted iterable. Only iterables of iterables are permitted, and
+        # entries should not be strings.
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = pd.DataFrame(d)
+
+        with pytest.raises(ValueError, match="each entry should be a list/tuple"):
+            df.plot(subplots=subplots)
+
+    def test_group_subplot_invalid_columns(self):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = pd.DataFrame(d)
+
+        with pytest.raises(ValueError, match="invalid names: {'bad_name'}"):
+            df.plot(subplots=[("a", "bad_name")])
 
     def test_missing_markers_legend(self):
         # 14958

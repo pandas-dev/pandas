@@ -116,6 +116,8 @@ class MPLPlot:
         self.sort_columns = sort_columns
 
         self.subplots = subplots
+        if not isinstance(self.subplots, (bool, Iterable)):
+            raise ValueError("subplots should be a bool or an iterable")
         if isinstance(self.subplots, Iterable):
             # subplots is a list of tuples where each tuple is a group of
             # columns to be grouped together (one ax per group).
@@ -129,8 +131,24 @@ class MPLPlot:
             # This way, we can handle self.subplots in a homogeneous manner
             # later.
             # TODO: also accept indexes instead of just names?
-            # TODO: we're potentially messing with the order of the axes here
+
+            if any(
+                not isinstance(group, Iterable) or isinstance(group, str)
+                for group in subplots
+            ):
+                raise ValueError(
+                    "When subplots is an iterable, each entry "
+                    "should be a list/tuple of column names "
+                    "or column indices."
+                )
             cols_in_groups = {col for group in self.subplots for col in group}
+            bad_columns = {col for col in cols_in_groups if col not in data.columns}
+            if bad_columns:
+                raise ValueError(
+                    "Subplots contains the following column(s) "
+                    f"which are invalid names: {bad_columns}"
+                )
+
             cols_remaining = set(data.columns) - cols_in_groups
 
             subplots = []
