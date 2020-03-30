@@ -4,6 +4,7 @@ import itertools
 import operator
 import re
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+import warnings
 
 import numpy as np
 
@@ -540,9 +541,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))),
-            axes[0],
-            fastpath=True,
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
         )
 
     def isna(self, func) -> "BlockManager":
@@ -1001,7 +1000,6 @@ class BlockManager(PandasObject):
                 values, placement=slice(0, len(values)), ndim=1
             ),
             self.axes[1],
-            fastpath=True,
         )
 
     def delete(self, item):
@@ -1509,25 +1507,22 @@ class SingleBlockManager(BlockManager):
     def __init__(
         self,
         block: Block,
-        axis: Union[Index, List[Index]],
+        axis: Index,
         do_integrity_check: bool = False,
-        fastpath: bool = False,
+        fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
+        assert isinstance(axis, Index), type(axis)
 
-        if isinstance(axis, list):
-            if len(axis) != 1:
-                raise ValueError(
-                    "cannot create SingleBlockManager with more than 1 axis"
-                )
-            axis = axis[0]
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The `fastpath` keyword is deprecated and will be removed "
+                "in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
-        # passed from constructor, single block, single axis
-        if fastpath:
-            self.axes = [axis]
-        else:
-            self.axes = [ensure_index(axis)]
-
+        self.axes = [axis]
         self.blocks = tuple([block])
 
     @classmethod
@@ -1539,7 +1534,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False, fastpath=True)
+        return cls(blocks[0], axes[0], do_integrity_check=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
@@ -1547,7 +1542,7 @@ class SingleBlockManager(BlockManager):
         Constructor for if we have an array that is not yet a Block.
         """
         block = make_block(array, placement=slice(0, len(index)), ndim=1)
-        return cls(block, index, fastpath=True)
+        return cls(block, index)
 
     def _post_setstate(self):
         pass
@@ -1573,7 +1568,7 @@ class SingleBlockManager(BlockManager):
         blk = self._block
         array = blk._slice(slobj)
         block = blk.make_block_same_class(array, placement=range(len(array)))
-        return type(self)(block, self.index[slobj], fastpath=True)
+        return type(self)(block, self.index[slobj])
 
     @property
     def index(self) -> Index:
@@ -1627,7 +1622,9 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
+    def concat(
+        self, to_concat: List["SingleBlockManager"], new_axis: Index
+    ) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
