@@ -260,7 +260,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     return mangled_aggspec
 
 
-def _relabel_result(result, reordered_result, func, columns, order):
+def _relabel_result(result, func, columns, order):
     """Internal function to reorder result if relabelling for dataframe.agg."""
 
     reordered_indexes = [
@@ -271,10 +271,10 @@ def _relabel_result(result, reordered_result, func, columns, order):
     # The reason is self._aggregate outputs different type of result if
     # any column is only used once in aggregation
     mask = isinstance(result, ABCDataFrame) and np.any(result.isna())
-
+    reordered_result_in_dict = {}
     for col, fun in func.items():
         s = result[col][::-1].dropna() if mask else result[col]
         s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result[col] = s.reindex(columns)
+        reordered_result_in_dict[col] = s.reindex(columns)
         idx = idx + len(fun)
-    return reordered_result
+    return reordered_result_in_dict

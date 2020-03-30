@@ -6782,8 +6782,8 @@ Wild         185.0
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
             # keep the order of new columns occurrence unchanged
-            reordered_result = DataFrame(index=columns)
-            result = _relabel_result(result, reordered_result, func, columns, order)
+            result_in_dict = _relabel_result(result, func, columns, order)
+            result = DataFrame(result_in_dict, index=columns)
 
         return result
 
