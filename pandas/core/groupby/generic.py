@@ -907,7 +907,7 @@ class DataFrameGroupBy(GroupBy):
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
 
-        relabeling, func, columns, order = reconstruct_func(func, *args, **kwargs)
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
