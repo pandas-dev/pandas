@@ -346,7 +346,9 @@ class TestDataFrameAnalytics:
             "sum", np.sum, float_frame_with_na, skipna_alternative=np.nansum
         )
         assert_stat_op_calc("mean", np.mean, float_frame_with_na, check_dates=True)
-        assert_stat_op_calc("product", np.prod, float_frame_with_na)
+        assert_stat_op_calc(
+            "product", np.prod, float_frame_with_na, skipna_alternative=np.nanprod
+        )
 
         assert_stat_op_calc("mad", mad, float_frame_with_na)
         assert_stat_op_calc("var", var, float_frame_with_na)
