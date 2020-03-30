@@ -119,6 +119,43 @@ class MPLPlot:
         if not isinstance(self.subplots, (bool, Iterable)):
             raise ValueError("subplots should be a bool or an iterable")
         if isinstance(self.subplots, Iterable):
+
+            supported_kinds = (
+                "line",
+                "bar",
+                "barh",
+                "hist",
+                "kde",
+                "density",
+                "area",
+                "pie",
+            )
+            if self._kind not in supported_kinds:
+                raise ValueError(
+                    "When subplots is an iterable, kind must be "
+                    f"one of {', '.join(supported_kinds)}. Got {self._kind}"
+                )
+
+            if any(
+                not isinstance(group, Iterable) or isinstance(group, str)
+                for group in subplots
+            ):
+                raise ValueError(
+                    "When subplots is an iterable, each entry "
+                    "should be a list/tuple of column names "
+                    "or column indices."
+                )
+
+            cols_in_groups = {col for group in self.subplots for col in group}
+            cols_remaining = set(data.columns) - cols_in_groups
+            bad_columns = cols_in_groups - set(data.columns)
+
+            if bad_columns:
+                raise ValueError(
+                    "Subplots contains the following column(s) "
+                    f"which are invalid names: {bad_columns}"
+                )
+
             # subplots is a list of tuples where each tuple is a group of
             # columns to be grouped together (one ax per group).
             # we consolidate the subplots list such that:
@@ -131,25 +168,6 @@ class MPLPlot:
             # This way, we can handle self.subplots in a homogeneous manner
             # later.
             # TODO: also accept indexes instead of just names?
-
-            if any(
-                not isinstance(group, Iterable) or isinstance(group, str)
-                for group in subplots
-            ):
-                raise ValueError(
-                    "When subplots is an iterable, each entry "
-                    "should be a list/tuple of column names "
-                    "or column indices."
-                )
-            cols_in_groups = {col for group in self.subplots for col in group}
-            bad_columns = {col for col in cols_in_groups if col not in data.columns}
-            if bad_columns:
-                raise ValueError(
-                    "Subplots contains the following column(s) "
-                    f"which are invalid names: {bad_columns}"
-                )
-
-            cols_remaining = set(data.columns) - cols_in_groups
 
             subplots = []
             index = list(data.columns).index

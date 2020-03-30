@@ -3289,7 +3289,10 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError):
             df.plot()
 
-    def test_group_subplot(self):
+    @pytest.mark.parametrize(
+        "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
+    )
+    def test_group_subplot(self, kind):
         d = {
             "a": np.arange(10),
             "b": np.arange(10) + 1,
@@ -3299,13 +3302,15 @@ class TestDataFramePlots(TestPlotBase):
         }
         df = pd.DataFrame(d)
 
-        axes = df.plot(subplots=[("b", "e"), ("c", "d")], legend=True)
+        axes = df.plot(subplots=[("b", "e"), ("c", "d")], kind=kind)
         assert len(axes) == 3  # 2 groups + single column a
 
         expected_labels = (["b", "e"], ["c", "d"], ["a"])
         for ax, labels in zip(axes, expected_labels):
-            self._check_legend_labels(ax, labels=labels)
-            assert len(ax.lines) == len(labels)
+            if kind != "pie":
+                self._check_legend_labels(ax, labels=labels)
+            if kind == "line":
+                assert len(ax.lines) == len(labels)
 
     @pytest.mark.parametrize(
         "subplots",
@@ -3325,12 +3330,21 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match="each entry should be a list/tuple"):
             df.plot(subplots=subplots)
 
-    def test_group_subplot_invalid_columns(self):
+    def test_group_subplot_invalid_column_name(self):
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = pd.DataFrame(d)
 
         with pytest.raises(ValueError, match="invalid names: {'bad_name'}"):
             df.plot(subplots=[("a", "bad_name")])
+
+    @pytest.mark.parametrize("kind", ("box", "scatter", "hexbin"))
+    def test_group_subplot_invalid_kind(self, kind):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = pd.DataFrame(d)
+        with pytest.raises(
+            ValueError, match="When subplots is an iterable, kind must be one of"
+        ):
+            df.plot(subplots=[("a", "b")], kind=kind)
 
     def test_missing_markers_legend(self):
         # 14958
