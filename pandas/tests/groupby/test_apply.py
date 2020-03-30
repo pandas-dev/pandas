@@ -725,12 +725,12 @@ def test_groupby_quantile_nullable_integer(q):
 
     if isinstance(q, list):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
-        np_result = list(np.quantile(values[~na_mask], q=q))
+        true_quantiles = [25.25, 49.5, 73.75]
     else:
         idx = pd.Index(["x", "y"], name="a")
-        np_result = [np.quantile(values[~na_mask], q=q)]
+        true_quantiles = [49.5]
 
-    expected = pd.Series(np_result * 2, index=idx, name="b")
+    expected = pd.Series(true_quantiles * 2, index=idx, name="b")
     tm.assert_series_equal(result, expected)
 
 
