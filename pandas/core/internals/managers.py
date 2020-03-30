@@ -4,6 +4,7 @@ import itertools
 import operator
 import re
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+import warnings
 
 import numpy as np
 
@@ -1504,10 +1505,22 @@ class SingleBlockManager(BlockManager):
     __slots__ = ()
 
     def __init__(
-        self, block: Block, axis: Index, do_integrity_check: bool = False,
+        self,
+        block: Block,
+        axis: Index,
+        do_integrity_check: bool = False,
+        fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
         assert isinstance(axis, Index), type(axis)
+
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The `fastpath` keyword is deprecated and will be removed "
+                "in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
         self.axes = [axis]
         self.blocks = tuple([block])
