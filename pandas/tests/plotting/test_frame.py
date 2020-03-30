@@ -3296,8 +3296,13 @@ class TestDataFramePlots(TestPlotBase):
         }
         df = pd.DataFrame(d)
 
-        ax = df.plot(subplots=[("b", "e"), ("c", "d")])
-        assert len(ax) == 3  # 2 groups + single column a
+        axes = df.plot(subplots=[("b", "e"), ("c", "d")], legend=True)
+        assert len(axes) == 3  # 2 groups + single column a
+
+        expected_labels = (["b", "e"], ["c", "d"], ["a"])
+        for i in range(3):
+            self._check_legend_labels(axes[i], labels=expected_labels[i])
+            assert len(axes[i].lines) == len(expected_labels[i])
 
     def test_missing_markers_legend(self):
         # 14958
