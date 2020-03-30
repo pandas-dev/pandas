@@ -6769,7 +6769,7 @@ Wild         185.0
     def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = reconstruct_func(func, *args, **kwargs)
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result = None
         try:

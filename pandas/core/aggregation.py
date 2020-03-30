@@ -18,7 +18,7 @@ from pandas.core.indexes.api import Index
 
 
 def reconstruct_func(
-    func: Optional[Union[List, Dict]], *args, **kwargs
+    func: Optional[Union[List, Dict]], **kwargs
 ) -> Tuple[bool, Optional[Union[List, Dict]], Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
