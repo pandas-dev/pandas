@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
+    is_categorical_dtype,
     is_dataclass,
     is_datetime64_any_dtype,
     is_dict_like,
@@ -7998,8 +7999,15 @@ Wild         185.0
         if not self._is_homogeneous_type:
             # try to avoid self.values call
 
-            # try by-column first
-            if filter_type is None and axis == 0 and len(self) > 0:
+            if self.dtypes.apply(is_categorical_dtype).any():
+                # GH#32950 Fall through to operating on self.values, since
+                #  operating column-wise will fail on Categorical.median
+                #  (TODO: only on some builds, not clear why)
+                pass
+
+            elif filter_type is None and axis == 0 and len(self) > 0:
+                # operate column-wise
+
                 # numeric_only must be None here, as other cases caught above
                 # require len(self) > 0 bc frame_apply messes up empty prod/sum
 
