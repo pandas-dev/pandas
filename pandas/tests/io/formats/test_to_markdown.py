@@ -69,7 +69,7 @@ def test_index(index, showindex):
 
     if "index" in kwargs and "showindex" in kwargs:
         msg = "Index and showindex are aliases"
-        with pytest.warns(UserWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.to_markdown(**kwargs)
     else:
         # only one or none is set

@@ -2098,13 +2098,8 @@ class DataFrame(NDFrame):
         **kwargs,
     ) -> Optional[str]:
         if index is not None and "showindex" in kwargs:
-            warnings.warn(
-                "Index and showindex are aliases. Setting them both "
-                "causes undefined behaviour and could be "
-                "subjected to changes in the future.",
-                UserWarning,
-                stacklevel=3,
-            )
+            raise ValueError("Index and showindex are aliases, please choose one")
+
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
         kwargs.setdefault("showindex", True if index is None else index)
