@@ -374,6 +374,11 @@ class TestDataFrameMissingData:
         df = DataFrame({"cats": cat, "vals": val})
         with tm.assert_produces_warning(None):
             median = df.median()
+
+        # GH#32950 check that we got the right expected median
+        exmed = Series({"cats": 2.0, "vals": np.nan})
+        tm.assert_series_equal(median, exmed)
+
         res = df.fillna(median)
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp}, dtype="category")
