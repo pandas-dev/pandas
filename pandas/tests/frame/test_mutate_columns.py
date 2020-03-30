@@ -1,16 +1,14 @@
-import re
-
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 # Column add, remove, delete.
 
 
 class TestDataFrameMutateColumns:
-    def test_insert_error_msmgs(self):
+    def test_setitem_error_msmgs(self):
 
         # GH 7432
         df = DataFrame(
@@ -30,7 +28,7 @@ class TestDataFrameMutateColumns:
         with pytest.raises(TypeError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
-    def test_insert_benchmark(self):
+    def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5
@@ -41,18 +39,12 @@ class TestDataFrameMutateColumns:
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K), index=range(N))
         tm.assert_frame_equal(df, expected)
 
-    def test_insert(self):
+    def test_setitem_different_dtype(self):
         df = DataFrame(
             np.random.randn(5, 3), index=np.arange(5), columns=["c", "b", "a"]
         )
-
         df.insert(0, "foo", df["a"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "b", "a"]))
-        tm.assert_series_equal(df["a"], df["foo"], check_names=False)
-
         df.insert(2, "bar", df["c"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "bar", "b", "a"]))
-        tm.assert_almost_equal(df["c"], df["bar"], check_names=False)
 
         # diff dtype
 
@@ -82,105 +74,10 @@ class TestDataFrameMutateColumns:
         )
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(ValueError, match="already exists"):
-            df.insert(1, "a", df["b"])
-        msg = "cannot insert c, already exists"
-        with pytest.raises(ValueError, match=msg):
-            df.insert(1, "c", df["b"])
-
-        df.columns.name = "some_name"
-        # preserve columns name field
-        df.insert(0, "baz", df["c"])
-        assert df.columns.name == "some_name"
-
+    def test_setitem_empty_columns(self):
         # GH 13522
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
         exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
         tm.assert_frame_equal(df, exp)
-
-    def test_delitem(self, float_frame):
-        del float_frame["A"]
-        assert "A" not in float_frame
-
-    def test_delitem_multiindex(self):
-        midx = MultiIndex.from_product([["A", "B"], [1, 2]])
-        df = DataFrame(np.random.randn(4, 4), columns=midx)
-        assert len(df.columns) == 4
-        assert ("A",) in df.columns
-        assert "A" in df.columns
-
-        result = df["A"]
-        assert isinstance(result, DataFrame)
-        del df["A"]
-
-        assert len(df.columns) == 2
-
-        # A still in the levels, BUT get a KeyError if trying
-        # to delete
-        assert ("A",) not in df.columns
-        with pytest.raises(KeyError, match=re.escape("('A',)")):
-            del df[("A",)]
-
-        # behavior of dropped/deleted MultiIndex levels changed from
-        # GH 2770 to GH 19027: MultiIndex no longer '.__contains__'
-        # levels which are dropped/deleted
-        assert "A" not in df.columns
-        with pytest.raises(KeyError, match=re.escape("('A',)")):
-            del df["A"]
-
-    def test_pop(self, float_frame):
-        float_frame.columns.name = "baz"
-
-        float_frame.pop("A")
-        assert "A" not in float_frame
-
-        float_frame["foo"] = "bar"
-        float_frame.pop("foo")
-        assert "foo" not in float_frame
-        assert float_frame.columns.name == "baz"
-
-        # gh-10912: inplace ops cause caching issue
-        a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"], index=["X", "Y"])
-        b = a.pop("B")
-        b += 1
-
-        # original frame
-        expected = DataFrame([[1, 3], [4, 6]], columns=["A", "C"], index=["X", "Y"])
-        tm.assert_frame_equal(a, expected)
-
-        # result
-        expected = Series([2, 5], index=["X", "Y"], name="B") + 1
-        tm.assert_series_equal(b, expected)
-
-    def test_pop_non_unique_cols(self):
-        df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
-        df.columns = ["a", "b", "a"]
-
-        res = df.pop("a")
-        assert type(res) == DataFrame
-        assert len(res) == 2
-        assert len(df.columns) == 1
-        assert "b" in df.columns
-        assert "a" not in df.columns
-        assert len(df.index) == 2
-
-    def test_insert_column_bug_4032(self):
-
-        # GH4032, inserting a column and renaming causing errors
-        df = DataFrame({"b": [1.1, 2.2]})
-        df = df.rename(columns={})
-        df.insert(0, "a", [1, 2])
-
-        result = df.rename(columns={})
-        str(result)
-        expected = DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
-        tm.assert_frame_equal(result, expected)
-        df.insert(0, "c", [1.3, 2.3])
-
-        result = df.rename(columns={})
-        str(result)
-
-        expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
-        tm.assert_frame_equal(result, expected)

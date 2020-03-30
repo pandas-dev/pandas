@@ -31,9 +31,11 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 from pandas._typing import FrameOrSeries
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
+    maybe_cast_result,
+    maybe_cast_result_dtype,
     maybe_convert_objects,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
@@ -526,7 +528,7 @@ class SeriesGroupBy(GroupBy):
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
-            out = self._try_cast(out, self.obj)
+            out = maybe_cast_result(out, self.obj, how=func_nm)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -631,7 +633,7 @@ class SeriesGroupBy(GroupBy):
         result = Series(res, index=ri, name=self._selection_name)
         return self._reindex_output(result, fill_value=0)
 
-    @Appender(Series.describe.__doc__)
+    @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
@@ -1072,8 +1074,10 @@ class DataFrameGroupBy(GroupBy):
             assert not isinstance(result, DataFrame)
 
             if result is not no_result:
-                # see if we can cast the block back to the original dtype
-                result = maybe_downcast_numeric(result, block.dtype)
+                # see if we can cast the block to the desired dtype
+                # this may not be the original dtype
+                dtype = maybe_cast_result_dtype(block.dtype, how)
+                result = maybe_downcast_numeric(result, dtype)
 
                 if block.is_extension and isinstance(result, np.ndarray):
                     # e.g. block.values was an IntegerArray
@@ -1175,7 +1179,7 @@ class DataFrameGroupBy(GroupBy):
 
             else:
                 if cast:
-                    result[item] = self._try_cast(result[item], data)
+                    result[item] = maybe_cast_result(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1460,7 +1464,7 @@ class DataFrameGroupBy(GroupBy):
             # TODO: we have no test cases that get here with EA dtypes;
             #  try_cast may not be needed if EAs never get here
             if cast:
-                res = self._try_cast(res, obj.iloc[:, i])
+                res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
 
         return DataFrame._from_arrays(output, columns=result.columns, index=obj.index)

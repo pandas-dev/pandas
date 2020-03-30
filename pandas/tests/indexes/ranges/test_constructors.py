@@ -37,21 +37,6 @@ class TestRangeIndexConstructors:
         with pytest.raises(TypeError, match=msg):
             RangeIndex(name="Foo")
 
-        # invalid args
-        for i in [
-            Index(["a", "b"]),
-            Series(["a", "b"]),
-            np.array(["a", "b"]),
-            [],
-            "foo",
-            datetime(2000, 1, 1, 0, 0),
-            np.arange(0, 10),
-            np.array([1]),
-            [1],
-        ]:
-            with pytest.raises(TypeError):
-                RangeIndex(i)
-
         # we don't allow on a bare Index
         msg = (
             r"Index\(\.\.\.\) must be called with a collection of some "
@@ -59,6 +44,29 @@ class TestRangeIndexConstructors:
         )
         with pytest.raises(TypeError, match=msg):
             Index(0, 1000)
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            Index(["a", "b"]),
+            Series(["a", "b"]),
+            np.array(["a", "b"]),
+            [],
+            np.arange(0, 10),
+            np.array([1]),
+            [1],
+        ],
+    )
+    def test_constructor_additional_invalid_args(self, args):
+        msg = f"Value needs to be a scalar value, was type {type(args).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(args)
+
+    @pytest.mark.parametrize("args", ["foo", datetime(2000, 1, 1, 0, 0)])
+    def test_constructor_invalid_args_wrong_type(self, args):
+        msg = f"Wrong type {type(args)} for value {args}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(args)
 
     def test_constructor_same(self):
 
@@ -81,7 +89,7 @@ class TestRangeIndexConstructors:
 
     def test_constructor_range(self):
 
-        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        msg = "Value needs to be a scalar value, was type range"
         with pytest.raises(TypeError, match=msg):
             result = RangeIndex(range(1, 5, 2))
 

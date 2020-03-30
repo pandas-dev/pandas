@@ -854,15 +854,6 @@ class TestDataFrameIndexing:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_delitem_corner(self, float_frame):
-        f = float_frame.copy()
-        del f["D"]
-        assert len(f.columns) == 3
-        with pytest.raises(KeyError, match=r"^'D'$"):
-            del f["D"]
-        del f["B"]
-        assert len(f.columns) == 2
-
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
@@ -1423,6 +1414,24 @@ class TestDataFrameIndexing:
 
         with pytest.raises(ValueError, match="same size"):
             float_frame.lookup(["a", "b", "c"], ["a"])
+
+    def test_lookup_requires_unique_axes(self):
+        # GH#33041 raise with a helpful error message
+        df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
+
+        rows = [0, 1]
+        cols = ["A", "A"]
+
+        # homogeneous-dtype case
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.T.lookup(cols, rows)
+
+        # heterogeneous dtype
+        df["B"] = 0
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
 
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
