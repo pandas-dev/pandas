@@ -15,7 +15,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (
@@ -3835,7 +3835,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @Appender(IndexOpsMixin.array.__doc__)  # type: ignore
+    @doc(IndexOpsMixin.array)  # type: ignore
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -3876,7 +3876,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._values
 
-    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
 
