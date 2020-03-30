@@ -58,6 +58,7 @@ def test_no_buf(capsys):
 @pytest.mark.parametrize("index", [True, False, None])
 @pytest.mark.parametrize("showindex", [True, False, None])
 def test_index(index, showindex):
+    # GH 32667
     kwargs = {}
     if index is not None:
         kwargs["index"] = index

@@ -71,6 +71,7 @@ Other enhancements
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
+- :meth:`DataFrame.to_markdown` will now accept ``index`` argument as an alias for tabulate's ``showindex`` (:issue:`32667`)
 -
 
 .. ---------------------------------------------------------------------------
