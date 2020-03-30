@@ -1,5 +1,4 @@
 from collections import defaultdict
-from functools import partial
 import itertools
 import operator
 import re
@@ -1457,14 +1456,13 @@ class BlockManager(PandasObject):
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
 
-    def unstack(self, unstacker_func, fill_value) -> "BlockManager":
+    def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
         Return a BlockManager with all blocks unstacked..
 
         Parameters
         ----------
-        unstacker_func : callable
-            A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+        unstacker : reshape._Unstacker
         fill_value : Any
             fill_value for newly introduced missing values.
 
@@ -1472,19 +1470,16 @@ class BlockManager(PandasObject):
         -------
         unstacked : BlockManager
         """
-        n_rows = self.shape[-1]
-        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
-        new_columns = dummy.get_new_columns()
-        new_index = dummy.get_new_index()
+        new_columns = unstacker.get_new_columns(self.items)
+        new_index = unstacker.new_index
+
         new_blocks: List[Block] = []
         columns_mask: List[np.ndarray] = []
 
         for blk in self.blocks:
+            blk_cols = self.items[blk.mgr_locs.indexer]
             blocks, mask = blk._unstack(
-                partial(unstacker_func, value_columns=self.items[blk.mgr_locs.indexer]),
-                new_columns,
-                n_rows,
-                fill_value,
+                unstacker, new_columns, fill_value, value_columns=blk_cols,
             )
 
             new_blocks.extend(blocks)
