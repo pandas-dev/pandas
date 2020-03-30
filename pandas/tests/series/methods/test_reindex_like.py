@@ -26,24 +26,16 @@ def test_reindex_like(datetime_series):
 
 
 def test_reindex_like_nearest():
-    s = Series(np.arange(10, dtype="int64"))
+    ser = Series(np.arange(10, dtype="int64"))
+
     target = [0.1, 0.9, 1.5, 2.0]
-    result = s.reindex(target, method="nearest")
+    other = ser.reindex(target, method="nearest")
     expected = Series(np.around(target).astype("int64"), target)
+
+    result = ser.reindex_like(other, method="nearest")
     tm.assert_series_equal(expected, result)
 
-    result = s.reindex_like(result, method="nearest")
+    result = ser.reindex_like(other, method="nearest", tolerance=1)
     tm.assert_series_equal(expected, result)
-
-    result = s.reindex_like(result, method="nearest", tolerance=1)
-    tm.assert_series_equal(expected, result)
-    result = s.reindex_like(result, method="nearest", tolerance=[1, 2, 3, 4])
-    tm.assert_series_equal(expected, result)
-
-    result = s.reindex(target, method="nearest", tolerance=0.2)
-    expected = Series([0, 1, np.nan, 2], target)
-    tm.assert_series_equal(expected, result)
-
-    result = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
-    expected = Series([0, np.nan, np.nan, 2], target)
+    result = ser.reindex_like(other, method="nearest", tolerance=[1, 2, 3, 4])
     tm.assert_series_equal(expected, result)
