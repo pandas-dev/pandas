@@ -715,7 +715,6 @@ def test_groupby_quantile_nullable_integer(q):
     # https://github.com/pandas-dev/pandas/issues/33136
     values = np.arange(100, dtype=float)
     values[::3] = np.nan
-    na_mask = np.isnan(values)
 
     df = pd.DataFrame(
         {"a": ["x"] * 100 + ["y"] * 100, "b": pd.array(list(values) * 2, dtype="Int64")}
