@@ -424,7 +424,9 @@ class BlockManager(PandasObject):
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         axis = obj._info_axis_number
-                        kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
+                        kwargs[k] = obj.reindex(
+                            b_items, axis=axis, copy=align_copy
+                        )._values
                     else:
                         # We should have an ndarray or ExtensionArray
                         if obj.ndim == 2:
