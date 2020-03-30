@@ -580,9 +580,6 @@ cdef class TextReader:
             self.parser.quotechar = ord(quote_char)
 
     cdef _make_skiprow_set(self):
-        cdef:
-            int64_t i
-
         if util.is_integer_object(self.skiprows):
             parser_set_skipfirstnrows(self.parser, self.skiprows)
         elif not callable(self.skiprows):
