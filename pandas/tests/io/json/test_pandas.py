@@ -44,7 +44,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.empty_frame = DataFrame()
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.intframe = _intframe.copy()
@@ -53,8 +52,6 @@ class TestPandasContainer:
         self.categorical = _cat_frame.copy()
 
         yield
-
-        del self.empty_frame
 
         del self.frame
         del self.frame2
@@ -226,12 +223,12 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy):
-        data = self.empty_frame.to_json(orient=orient)
+    def test_roundtrip_empty(self, orient, convert_axes, numpy, empty_frame):
+        data = empty_frame.to_json(orient=orient)
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
-        expected = self.empty_frame.copy()
+        expected = empty_frame.copy()
 
         # TODO: both conditions below are probably bugs
         if convert_axes:
