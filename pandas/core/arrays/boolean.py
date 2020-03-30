@@ -27,6 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.array_algos import masked_reductions
 from pandas.core.indexers import check_array_indexer
 
 from .masked import BaseMaskedArray
@@ -696,6 +697,9 @@ class BooleanArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
+        if name == "sum":
+            return masked_reductions.sum(data, mask, skipna=skipna, **kwargs)
+
         # coerce to a nan-aware float if needed
         if self._hasna:
             data = self.to_numpy("float64", na_value=np.nan)
@@ -707,7 +711,7 @@ class BooleanArray(BaseMaskedArray):
             return libmissing.NA
 
         # if we have numeric op that would result in an int, coerce to int if possible
-        if name in ["sum", "prod"] and notna(result):
+        if name == "prod" and notna(result):
             int_result = np.int64(result)
             if int_result == result:
                 result = int_result

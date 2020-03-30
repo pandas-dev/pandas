@@ -33,9 +33,9 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCDatetimeArray,
     ABCExtensionArray,
-    ABCGeneric,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
@@ -151,7 +151,7 @@ def _isna_new(obj):
         ),
     ):
         return _isna_ndarraylike(obj)
-    elif isinstance(obj, ABCGeneric):
+    elif isinstance(obj, ABCDataFrame):
         return obj._constructor(obj._data.isna(func=isna))
     elif isinstance(obj, list):
         return _isna_ndarraylike(np.asarray(obj, dtype=object))
@@ -182,7 +182,7 @@ def _isna_old(obj):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
-    elif isinstance(obj, ABCGeneric):
+    elif isinstance(obj, ABCDataFrame):
         return obj._constructor(obj._data.isna(func=_isna_old))
     elif isinstance(obj, list):
         return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
