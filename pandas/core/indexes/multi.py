@@ -21,7 +21,7 @@ from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
@@ -986,19 +986,41 @@ class MultiIndex(Index):
     def _constructor(self):
         return MultiIndex.from_tuples
 
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is not None:
-            names = kwargs.pop("names", kwargs.pop("name", self.names))
-            # discards freq
-            kwargs.pop("freq", None)
-            return MultiIndex.from_tuples(values, names=names, **kwargs)
+    @doc(Index._shallow_copy)
+    def _shallow_copy(
+        self,
+        values=None,
+        name=lib.no_default,
+        levels=None,
+        codes=None,
+        dtype=None,
+        sortorder=None,
+        names=lib.no_default,
+        _set_identity: bool = True,
+    ):
+        if names is not lib.no_default and name is not lib.no_default:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif names is lib.no_default:
+            names = name if name is not lib.no_default else self.names
 
-        result = self.copy(**kwargs)
+        if values is not None:
+            assert levels is None and codes is None and dtype is None
+            return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
+
+        levels = levels if levels is not None else self.levels
+        codes = codes if codes is not None else self.codes
+
+        result = MultiIndex(
+            levels=levels,
+            codes=codes,
+            dtype=dtype,
+            sortorder=sortorder,
+            names=names,
+            verify_integrity=False,
+            _set_identity=_set_identity,
+        )
         result._cache = self._cache.copy()
-        # GH32669
-        if "levels" in result._cache:
-            del result._cache["levels"]
+        result._cache.pop("levels", None)  # GH32669
         return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
@@ -1056,17 +1078,13 @@ class MultiIndex(Index):
                 levels = deepcopy(self.levels)
             if codes is None:
                 codes = deepcopy(self.codes)
-        else:
-            if levels is None:
-                levels = self.levels
-            if codes is None:
-                codes = self.codes
-        return MultiIndex(
+
+        return self._shallow_copy(
             levels=levels,
             codes=codes,
             names=names,
+            dtype=dtype,
             sortorder=self.sortorder,
-            verify_integrity=False,
             _set_identity=_set_identity,
         )
 
@@ -1080,7 +1098,7 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    @Appender(Index.__contains__.__doc__)
+    @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -1101,7 +1119,7 @@ class MultiIndex(Index):
 
         return any(f(l) for l in self._inferred_type_levels)
 
-    @Appender(Index.memory_usage.__doc__)
+    @doc(Index.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
@@ -1333,7 +1351,7 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._get_grouper_for_level.__doc__)
+    @doc(Index._get_grouper_for_level)
     def _get_grouper_for_level(self, mapper, level):
         indexer = self.codes[level]
         level_index = self.levels[level]
@@ -1444,7 +1462,7 @@ class MultiIndex(Index):
         """ return a list of the inferred types, one for each level """
         return [i.inferred_type for i in self.levels]
 
-    @Appender(Index.duplicated.__doc__)
+    @doc(Index.duplicated)
     def duplicated(self, keep="first"):
         shape = map(len, self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
@@ -1457,7 +1475,7 @@ class MultiIndex(Index):
         """
         raise NotImplementedError("isna is not defined for MultiIndex")
 
-    @Appender(Index.dropna.__doc__)
+    @doc(Index.dropna)
     def dropna(self, how="any"):
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
@@ -1530,7 +1548,7 @@ class MultiIndex(Index):
         values = self._get_level_values(level)
         return values
 
-    @Appender(Index.unique.__doc__)
+    @doc(Index.unique)
     def unique(self, level=None):
 
         if level is None:
@@ -3243,9 +3261,13 @@ class MultiIndex(Index):
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
-        uniq_tuples = lib.fast_unique_multiple(
-            [self._values, other._ndarray_values], sort=sort
-        )
+        if not is_object_dtype(other.dtype):
+            raise NotImplementedError(
+                "Can only union MultiIndex with MultiIndex or Index of tuples, "
+                "try mi.to_flat_index().union(other) instead."
+            )
+
+        uniq_tuples = lib.fast_unique_multiple([self._values, other._values], sort=sort)
 
         return MultiIndex.from_arrays(
             zip(*uniq_tuples), sortorder=0, names=result_names
@@ -3279,10 +3301,20 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        lvals = self._values
-        rvals = other._ndarray_values
+        if not is_object_dtype(other.dtype):
+            # The intersection is empty
+            # TODO: we have no tests that get here
+            return MultiIndex(
+                levels=self.levels,
+                codes=[[]] * self.nlevels,
+                names=result_names,
+                verify_integrity=False,
+            )
 
-        uniq_tuples = None  # flag whether _inner_indexer was succesful
+        lvals = self._values
+        rvals = other._values
+
+        uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
                 uniq_tuples = self._inner_indexer(lvals, rvals)[0]
@@ -3391,7 +3423,7 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
@@ -3466,7 +3498,7 @@ class MultiIndex(Index):
         names = self.names if self.names == other.names else None
         return MultiIndex.from_tuples(joined, names=names)
 
-    @Appender(Index.isin.__doc__)
+    @doc(Index.isin)
     def isin(self, values, level=None):
         if level is None:
             values = MultiIndex.from_tuples(values, names=self.names)._values

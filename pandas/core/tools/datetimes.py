@@ -229,13 +229,12 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
     -------
     tz_result : Index-like of parsed dates with timezone
     """
-    if tz is not None:
-        raise ValueError(
-            "Cannot pass a tz argument when parsing strings with timezone information."
-        )
     tz_results = np.array(
         [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
     )
+    if tz is not None:
+        # Convert to the same tz
+        tz_results = np.array([tz_result.tz_convert(tz) for tz_result in tz_results])
     from pandas import Index
 
     return Index(tz_results, name=name)
@@ -260,7 +259,7 @@ def _convert_listlike_datetimes(
     Parameters
     ----------
     arg : list, tuple, ndarray, Series, Index
-        date to be parced
+        date to be parsed
     name : object
         None or string for the Index name
     tz : object
@@ -565,7 +564,7 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like
+    arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

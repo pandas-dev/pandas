@@ -2,13 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.internals import BlockManager, SingleBlockManager
-from pandas.core.internals.blocks import Block, NonConsolidatableMixIn
+from pandas.core.internals import BlockManager
+from pandas.core.internals.blocks import ExtensionBlock
 
 
-class CustomBlock(NonConsolidatableMixIn, Block):
+class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
+    _can_hold_na = False
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -30,17 +31,6 @@ def df():
     blocks = blocks + (custom_block,)
     block_manager = BlockManager(blocks, [pd.Index(["a", "b"]), df1.index])
     return pd.DataFrame(block_manager)
-
-
-def test_concat_series():
-    # GH17728
-    values = np.arange(3, dtype="int64")
-    block = CustomBlock(values, placement=slice(0, 3))
-    mgr = SingleBlockManager(block, pd.RangeIndex(3))
-    s = pd.Series(mgr, pd.RangeIndex(3), fastpath=True)
-
-    res = pd.concat([s, s])
-    assert isinstance(res._data.blocks[0], CustomBlock)
 
 
 def test_concat_dataframe(df):
