@@ -87,6 +87,7 @@ Other enhancements
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
+- :meth:`DataFrame.plot` will now allow for the ``subplots`` parameter to be a list of tuples so that columns may be grouped together in the same plot. (:issue:`29944`)
 -
 
 .. ---------------------------------------------------------------------------
