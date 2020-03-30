@@ -153,7 +153,7 @@ def frame(index, _series_name, _static_values):
 
 
 @pytest.fixture
-def empty_frame(series):
+def empty_frame_dti(series):
     """
     Fixture for parametrization of empty DataFrame with date_range,
     period_range and timedelta_range indexes
