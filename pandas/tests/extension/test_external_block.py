@@ -17,9 +17,8 @@ class CustomBlock(ExtensionBlock):
         always 1D in this custom Block
         """
         values = np.concatenate([blk.values for blk in to_concat])
-        return self.make_block_same_class(
-            values, placement=placement or slice(0, len(values), 1)
-        )
+        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
+        return self.make_block_same_class(values, placement=placement)
 
 
 @pytest.fixture
