@@ -44,7 +44,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.intframe = _intframe.copy()
         self.tsframe = _tsframe.copy()
@@ -53,7 +52,6 @@ class TestPandasContainer:
 
         yield
 
-        del self.frame
         del self.frame2
         del self.intframe
         del self.tsframe
@@ -123,19 +121,19 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
-    def test_frame_default_orient(self):
-        assert self.frame.to_json() == self.frame.to_json(orient="columns")
+    def test_frame_default_orient(self, float_frame):
+        assert float_frame.to_json() == float_frame.to_json(orient="columns")
 
     @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_simple(self, orient, convert_axes, numpy, dtype):
-        data = self.frame.to_json(orient=orient)
+    def test_roundtrip_simple(self, orient, convert_axes, numpy, dtype, float_frame):
+        data = float_frame.to_json(orient=orient)
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
 
-        expected = self.frame.copy()
+        expected = float_frame
 
         assert_json_roundtrip_equal(result, expected, orient)
 
@@ -735,10 +733,10 @@ class TestPandasContainer:
         result = read_json(df.to_json())
         tm.assert_frame_equal(result, df)
 
-    def test_path(self):
+    def test_path(self, float_frame):
         with tm.ensure_clean("test.json") as path:
             for df in [
-                self.frame,
+                float_frame,
                 self.frame2,
                 self.intframe,
                 self.tsframe,
