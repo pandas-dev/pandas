@@ -267,7 +267,7 @@ cdef class TextReader:
 
     cdef:
         parser_t *parser
-        object file_handle, na_fvalues
+        object na_fvalues
         object true_values, false_values
         object handle
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
@@ -601,7 +601,6 @@ cdef class TextReader:
 
     cdef _setup_parser_source(self, source):
         cdef:
-            int status
             void *ptr
 
         self.parser.cb_io = NULL
@@ -687,7 +686,6 @@ cdef class TextReader:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count
             char *word
             object name, old_name
-            int status
             uint64_t hr, data_line = 0
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
@@ -837,9 +835,6 @@ cdef class TextReader:
         """
         rows=None --> read all rows
         """
-        cdef:
-            int status
-
         if self.low_memory:
             # Conserve intermediate space
             columns = self._read_low_memory(rows)
@@ -888,7 +883,9 @@ cdef class TextReader:
         return _concatenate_chunks(chunks)
 
     cdef _tokenize_rows(self, size_t nrows):
-        cdef int status
+        cdef:
+            int status
+
         with nogil:
             status = tokenize_nrows(self.parser, nrows)
 
@@ -1331,7 +1328,8 @@ cdef:
 
 
 def _ensure_encoded(list lst):
-    cdef list result = []
+    cdef:
+        list result = []
     for x in lst:
         if isinstance(x, str):
             x = PyUnicode_AsUTF8String(x)
@@ -1458,7 +1456,7 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
                         bint na_filter, kh_str_starts_t *na_hashset,
                         char *encoding):
     cdef:
-        int error, na_count = 0
+        int na_count = 0
         Py_ssize_t i, size, lines
         coliter_t it
         const char *word = NULL
@@ -1517,7 +1515,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
                           char *encoding):
     "Convert column data into codes, categories"
     cdef:
-        int error, na_count = 0
+        int na_count = 0
         Py_ssize_t i, size, lines
         coliter_t it
         const char *word = NULL
@@ -1581,7 +1579,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
                    int64_t line_end, int64_t width):
     cdef:
-        const char *word = NULL
         char *data
         ndarray result
 
@@ -1767,7 +1764,6 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        khiter_t k
 
     coliter_setup(&it, parser, col, line_start)
 
@@ -1870,9 +1866,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
         Py_ssize_t lines
         uint8_t *data
         ndarray result
-
         uint8_t NA = na_values[np.bool_]
-        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
