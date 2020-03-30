@@ -723,15 +723,16 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
-    def _col_idx_to_axis_idx(self, i):
+    def _col_idx_to_axis_idx(self, col_idx):
+        """Return the index of the axis where the column at col_idx should be plotted"""
         if isinstance(self.subplots, list):
-            # Some columns are be grouped together in the same ax
+            # Subplots is a list: some columns are be grouped together in the same ax
             for group_idx, group in enumerate(self.subplots):
-                if i in group:
+                if col_idx in group:
                     return group_idx
         else:
-            # One ax per column
-            return i
+            # subplots is True: one ax per column
+            return col_idx
 
     def _get_ax(self, i):
         # get the twinx ax if appropriate
