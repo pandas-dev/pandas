@@ -8,7 +8,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, period_range, read_csv
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
@@ -2060,8 +2060,9 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
 
 def test_groupby_period_index():
+    # GH 32108
     periods = 2
-    index = period_range(start='2018-01', periods=periods, freq='M')
+    index = pd.period_range(start='2018-01', periods=periods, freq='M')
     periodSerie = Series(range(periods), index=index)
     periodSerie.index.name = 'Month'
     result = periodSerie.groupby(periodSerie.index.month).sum()
