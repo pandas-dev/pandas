@@ -39,7 +39,7 @@ If you would prefer to keep the ``NA`` values you can manually fill them with ``
 
 .. _boolean.kleene:
 
-Kleene Logical Operations
+Kleene logical operations
 -------------------------
 
 :class:`arrays.BooleanArray` implements `Kleene Logic`_ (sometimes called three-value logic) for

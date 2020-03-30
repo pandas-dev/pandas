@@ -75,7 +75,7 @@ Exponentially-weighted moving window functions
    EWM.corr
    EWM.cov
 
-Window Indexer
+Window indexer
 --------------
 .. currentmodule:: pandas
 

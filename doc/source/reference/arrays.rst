@@ -3,7 +3,7 @@
 .. _api.arrays:
 
 =============
-Pandas arrays
+pandas arrays
 =============
 
 .. currentmodule:: pandas
