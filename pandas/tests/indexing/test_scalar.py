@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, period_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -302,3 +302,12 @@ def test_iat_dont_wrap_object_datetimelike():
         assert result is ser2[1]
         assert isinstance(result, timedelta)
         assert not isinstance(result, Timedelta)
+
+
+def test_iat_series_with_period_index():
+    # GH 4390, iat incorrectly indexing
+    index = period_range("1/1/2001", periods=10)
+    ser = Series(np.random.randn(10), index=index)
+    expected = ser[index[0]]
+    result = ser.iat[0]
+    assert expected == result
