@@ -1,5 +1,5 @@
 import abc
-from datetime import date, datetime, timedelta
+import datetime
 from io import BytesIO
 import os
 from textwrap import fill
@@ -28,15 +28,15 @@ from pandas.io.excel._util import (
     _pop_header_name,
     get_writer,
 )
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
 _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
 
-Support both `xls` and `xlsx` file extensions from a local filesystem or URL.
-Support an option to read a single sheet or a list of sheets.
+Supports `xls`, `xlsx`, `xlsm`, `xlsb`, and `odf` file extensions
+read from a local filesystem or URL. Supports an option to read
+a single sheet or a list of sheets.
 
 Parameters
 ----------
@@ -204,8 +204,8 @@ DataFrame or dict of DataFrames
 
 See Also
 --------
-to_excel : Write DataFrame to an Excel file.
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_excel : Write DataFrame to an Excel file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -364,6 +364,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def load_workbook(self, filepath_or_buffer):
+        pass
+
+    def close(self):
         pass
 
     @property
@@ -627,8 +630,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
-                except KeyError:
-                    raise ValueError(f"No engine for filetype: '{ext}'")
+                except KeyError as err:
+                    raise ValueError(f"No engine for filetype: '{ext}'") from err
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -720,7 +723,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return sheet_name
 
     def _value_with_fmt(self, val):
-        """Convert numpy types to Python types for the Excel writers.
+        """
+        Convert numpy types to Python types for the Excel writers.
 
         Parameters
         ----------
@@ -740,11 +744,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
-        elif isinstance(val, datetime):
+        elif isinstance(val, datetime.datetime):
             fmt = self.datetime_format
-        elif isinstance(val, date):
+        elif isinstance(val, datetime.date):
             fmt = self.date_format
-        elif isinstance(val, timedelta):
+        elif isinstance(val, datetime.timedelta):
             val = val.total_seconds() / float(86400)
             fmt = "0"
         else:
@@ -754,14 +758,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @classmethod
     def check_extension(cls, ext):
-        """checks that path's extension against the Writer's supported
-        extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
+        """
+        checks that path's extension against the Writer's supported
+        extensions.  If it isn't supported, raises UnsupportedFiletypeError.
+        """
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine"
-            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
 
@@ -789,15 +793,21 @@ class ExcelFile:
         If a string or path object, expected to be a path to xls, xlsx or odf file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Acceptable values are None, ``xlrd``, ``openpyxl``,  ``odf``, or ``pyxlsb``.
         Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
     from pandas.io.excel._openpyxl import _OpenpyxlReader
     from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._pyxlsb import _PyxlsbReader
 
-    _engines = {"xlrd": _XlrdReader, "openpyxl": _OpenpyxlReader, "odf": _ODFReader}
+    _engines = {
+        "xlrd": _XlrdReader,
+        "openpyxl": _OpenpyxlReader,
+        "odf": _ODFReader,
+        "pyxlsb": _PyxlsbReader,
+    }
 
     def __init__(self, io, engine=None):
         if engine is None:
@@ -888,14 +898,7 @@ class ExcelFile:
 
     def close(self):
         """close io if necessary"""
-        if self.engine == "openpyxl":
-            # https://stackoverflow.com/questions/31416842/
-            #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-            wb = self.book
-            wb._archive.close()
-
-        if hasattr(self.io, "close"):
-            self.io.close()
+        self._reader.close()
 
     def __enter__(self):
         return self

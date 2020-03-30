@@ -10,22 +10,30 @@ from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
 import pandas._testing as tm
 
 
+@pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
+def where_frame(request, float_string_frame, mixed_float_frame, mixed_int_frame):
+    if request.param == "default":
+        return DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
+    if request.param == "float_string":
+        return float_string_frame
+    if request.param == "mixed_float":
+        return mixed_float_frame
+    if request.param == "mixed_int":
+        return mixed_int_frame
+
+
+def _safe_add(df):
+    # only add to the numeric items
+    def is_ok(s):
+        return (
+            issubclass(s.dtype.type, (np.integer, np.floating)) and s.dtype != "uint8"
+        )
+
+    return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s) for c, s in df.items()))
+
+
 class TestDataFrameIndexingWhere:
-    def test_where(self, float_string_frame, mixed_float_frame, mixed_int_frame):
-        default_frame = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
-
-        def _safe_add(df):
-            # only add to the numeric items
-            def is_ok(s):
-                return (
-                    issubclass(s.dtype.type, (np.integer, np.floating))
-                    and s.dtype != "uint8"
-                )
-
-            return DataFrame(
-                dict((c, s + 1) if is_ok(s) else (c, s) for c, s in df.items())
-            )
-
+    def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
             rs = df.where(cond, other1)
@@ -40,19 +48,16 @@ class TestDataFrameIndexingWhere:
                 assert (rs.dtypes == df.dtypes).all()
 
         # check getting
-        for df in [
-            default_frame,
-            float_string_frame,
-            mixed_float_frame,
-            mixed_int_frame,
-        ]:
-            if df is float_string_frame:
-                with pytest.raises(TypeError):
-                    df > 0
-                continue
-            cond = df > 0
-            _check_get(df, cond)
+        df = where_frame
+        if df is float_string_frame:
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
+                df > 0
+            return
+        cond = df > 0
+        _check_get(df, cond)
 
+    def test_where_upcasting(self):
         # upcasting case (GH # 2794)
         df = DataFrame(
             {
@@ -78,6 +83,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
+    def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -107,27 +113,31 @@ class TestDataFrameIndexingWhere:
             if check_dtypes and not isinstance(other, np.ndarray):
                 assert (rs.dtypes == df.dtypes).all()
 
-        for df in [float_string_frame, mixed_float_frame, mixed_int_frame]:
-            if df is float_string_frame:
-                with pytest.raises(TypeError):
-                    df > 0
-                continue
+        df = where_frame
+        if df is float_string_frame:
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
+                df > 0
+            return
 
-            # other is a frame
-            cond = (df > 0)[1:]
-            _check_align(df, cond, _safe_add(df))
+        # other is a frame
+        cond = (df > 0)[1:]
+        _check_align(df, cond, _safe_add(df))
 
-            # check other is ndarray
-            cond = df > 0
-            _check_align(df, cond, (_safe_add(df).values))
+        # check other is ndarray
+        cond = df > 0
+        _check_align(df, cond, (_safe_add(df).values))
 
-            # integers are upcast, so don't check the dtypes
-            cond = df > 0
-            check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
-            _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
+        # integers are upcast, so don't check the dtypes
+        cond = df > 0
+        check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
+        _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
+    def test_where_invalid(self):
         # invalid conditions
-        df = default_frame
+        df = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
+        cond = df > 0
+
         err1 = (df + 1).values[0:2, :]
         msg = "other must be the same shape as self when an ndarray"
         with pytest.raises(ValueError, match=msg):
@@ -144,7 +154,9 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
+    def test_where_set(self, where_frame, float_string_frame):
         # where inplace
+
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
             econd = cond.reindex_like(df).fillna(True)
@@ -160,27 +172,24 @@ class TestDataFrameIndexingWhere:
                         v = np.dtype("float64")
                     assert dfi[k].dtype == v
 
-        for df in [
-            default_frame,
-            float_string_frame,
-            mixed_float_frame,
-            mixed_int_frame,
-        ]:
-            if df is float_string_frame:
-                with pytest.raises(TypeError):
-                    df > 0
-                continue
+        df = where_frame
+        if df is float_string_frame:
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
+                df > 0
+            return
 
-            cond = df > 0
-            _check_set(df, cond)
+        cond = df > 0
+        _check_set(df, cond)
 
-            cond = df >= 0
-            _check_set(df, cond)
+        cond = df >= 0
+        _check_set(df, cond)
 
-            # aligning
-            cond = (df >= 0)[1:]
-            _check_set(df, cond)
+        # aligning
+        cond = (df >= 0)[1:]
+        _check_set(df, cond)
 
+    def test_where_series_slicing(self):
         # GH 10218
         # test DataFrame.where with Series slicing
         df = DataFrame({"a": range(3), "b": range(4, 7)})
@@ -352,7 +361,8 @@ class TestDataFrameIndexingWhere:
         )
 
         stamp = datetime(2013, 1, 3)
-        with pytest.raises(TypeError):
+        msg = "'>' not supported between instances of 'float' and 'datetime.datetime'"
+        with pytest.raises(TypeError, match=msg):
             df > stamp
 
         result = df[df.iloc[:, :-1] > stamp]
@@ -387,7 +397,8 @@ class TestDataFrameIndexingWhere:
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
         df = pd.DataFrame(columns=["a"])
-        cond = df.applymap(lambda x: x > 0)
+        cond = df
+        assert (cond.dtypes == object).all()
 
         result = df.where(cond)
         tm.assert_frame_equal(result, df)
@@ -580,3 +591,40 @@ class TestDataFrameIndexingWhere:
         )
         result = df1.where(mask, df2)
         tm.assert_frame_equal(exp, result)
+
+    def test_df_where_change_dtype(self):
+        # GH#16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, False], [False, False, True]])
+
+        result = df.where(mask)
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [np.nan, np.nan, 5]], columns=list("ABC")
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    def test_df_where_with_category(self, kwargs):
+        # GH#16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, False], [False, False, True]])
+
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        result = df.where(mask, **kwargs)
+        A = pd.Categorical([0, np.nan], categories=[0, 3])
+        B = pd.Categorical([np.nan, np.nan], categories=[1, 4])
+        C = pd.Categorical([np.nan, 5], categories=[2, 5])
+        expected = DataFrame({"A": A, "B": B, "C": C})
+
+        tm.assert_frame_equal(result, expected)
+
+        # Check Series.where while we're here
+        result = df.A.where(mask[:, 0], **kwargs)
+        expected = Series(A, name="A")
+
+        tm.assert_series_equal(result, expected)

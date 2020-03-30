@@ -149,7 +149,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     influence of all dimensions.
 
     More info available at the `original article
-    <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
     describing RadViz.
 
     Parameters
@@ -294,6 +294,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
+    This example draws a basic bootstap plot for a Series.
 
     .. plot::
             :context: close-figs
@@ -358,7 +359,7 @@ def parallel_coordinates(
     --------
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                        '/pandas/tests/data/csv/iris.csv')
+                        '/pandas/tests/data/iris.csv')
     >>> pd.plotting.parallel_coordinates(
             df, 'Name',
             color=('#556270', '#4ECDC4', '#C7F464'))

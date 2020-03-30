@@ -195,7 +195,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "pandas_sphinx_theme"
+html_theme = "pydata_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -209,6 +209,7 @@ html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
+    "google_analytics_id": "UA-27880019-2",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -229,6 +230,11 @@ html_logo = "../../web/pandas/static/img/pandas.svg"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_css_files = [
+    "css/getting_started.css",
+    "css/pandas.css",
+]
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -408,7 +414,7 @@ if pattern is None:
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("http://www.statsmodels.org/devel/", None),
+        "statsmodels": ("https://www.statsmodels.org/devel/", None),
     }
 
 # extlinks alias
@@ -625,10 +631,10 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return f"http://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
+        return f"https://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
     else:
         return (
-            f"http://github.com/pandas-dev/pandas/blob/"
+            f"https://github.com/pandas-dev/pandas/blob/"
             f"v{pandas.__version__}/pandas/{fn}{linespec}"
         )
 
@@ -695,7 +701,7 @@ def rstjinja(app, docname, source):
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
-    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # https://www.ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
     # Make sure we're outputting HTML
     if app.builder.format != "html":
         return

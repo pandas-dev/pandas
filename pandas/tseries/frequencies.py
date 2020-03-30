@@ -4,7 +4,6 @@ from typing import Dict, Optional
 import warnings
 
 import numpy as np
-from pytz import AmbiguousTimeError
 
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
@@ -20,7 +19,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -96,19 +95,19 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     Examples
     --------
-    >>> to_offset('5min')
+    >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset('1D1H')
+    >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(('W', 2))
+    >>> to_offset(("W", 2))
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, 'B'))
+    >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
@@ -141,20 +140,18 @@ def to_offset(freq) -> Optional[DateOffset]:
                         delta = offset
                     else:
                         delta = delta + offset
-        except ValueError:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except ValueError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     else:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(libfreqs.opattern, freq)
-            if splitted[-1] != "" and not splitted[-1].isspace():
+            split = re.split(libfreqs.opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
-            for sep, stride, name in zip(
-                splitted[0::4], splitted[1::4], splitted[2::4]
-            ):
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = libfreqs._lite_rule_alias.get(name) or name
@@ -173,8 +170,8 @@ def to_offset(freq) -> Optional[DateOffset]:
                     delta = offset
                 else:
                     delta = delta + offset
-        except (ValueError, TypeError):
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except (ValueError, TypeError) as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     if delta is None:
         raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
@@ -223,9 +220,9 @@ def _get_offset(name: str) -> DateOffset:
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
             offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
         # cache
         _offset_map[name] = offset
 
@@ -250,9 +247,14 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     Returns
     -------
     str or None
-        None if no discernible frequency
-        TypeError if the index is not datetime-like
-        ValueError if there are less than three values.
+        None if no discernible frequency.
+
+    Raises
+    ------
+    TypeError
+        If the index is not datetime-like.
+    ValueError
+        If there are fewer than three values.
     """
     import pandas as pd
 
@@ -270,7 +272,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_arraylike(index):
+    if is_period_dtype(index):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
@@ -285,13 +287,10 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
-        index = index.values
+        index = index._values
 
     if not isinstance(index, pd.DatetimeIndex):
-        try:
-            index = pd.DatetimeIndex(index)
-        except AmbiguousTimeError:
-            index = pd.DatetimeIndex(index.asi8)
+        index = pd.DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -304,13 +303,13 @@ class _FrequencyInferer:
 
     def __init__(self, index, warn: bool = True):
         self.index = index
-        self.values = index.asi8
+        self.i8values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.values = tz_convert(self.values, UTC, index.tz)
+                self.i8values = tz_convert(self.i8values, UTC, index.tz)
 
         self.warn = warn
 
@@ -323,10 +322,12 @@ class _FrequencyInferer:
 
     @cache_readonly
     def deltas(self):
-        return unique_deltas(self.values)
+        return unique_deltas(self.i8values)
 
     @cache_readonly
     def deltas_asi8(self):
+        # NB: we cannot use self.i8values here because we may have converted
+        #  the tz in __init__
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
@@ -334,13 +335,13 @@ class _FrequencyInferer:
         return len(self.deltas) == 1
 
     @cache_readonly
-    def is_unique_asi8(self):
+    def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
     def get_freq(self) -> Optional[str]:
         """
         Find the appropriate frequency string to describe the inferred
-        frequency of self.values
+        frequency of self.i8values
 
         Returns
         -------
@@ -392,11 +393,11 @@ class _FrequencyInferer:
 
     @cache_readonly
     def fields(self):
-        return build_field_sarray(self.values)
+        return build_field_sarray(self.i8values)
 
     @cache_readonly
     def rep_stamp(self):
-        return Timestamp(self.values[0])
+        return Timestamp(self.i8values[0])
 
     def month_position_check(self):
         return libresolution.month_position_check(self.fields, self.index.dayofweek)
@@ -490,6 +491,7 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> Optional[str]:
+        # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():

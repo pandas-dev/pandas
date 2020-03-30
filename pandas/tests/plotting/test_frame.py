@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
@@ -2352,6 +2350,23 @@ class TestDataFramePlots(TestPlotBase):
             # Color contains invalid key results in ValueError
             df.plot.box(color=dict(boxes="red", xxxx="blue"))
 
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd_plot_box(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.plot.box(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
+
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
         import cycler
@@ -3311,6 +3326,16 @@ class TestDataFramePlots(TestPlotBase):
 
         self._check_legend_labels(ax, labels=["A", "B", "C"])
         self._check_legend_marker(ax, expected_markers=[".", ".", "."])
+
+    def test_colors_of_columns_with_same_name(self):
+        # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
+        # Creating a DataFrame with duplicate column labels and testing colors of them.
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
+        df_concat = pd.concat([df, df1], axis=1)
+        result = df_concat.plot()
+        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+            assert legend.get_color() == line.get_color()
 
 
 def _generate_4_axes_via_gridspec():

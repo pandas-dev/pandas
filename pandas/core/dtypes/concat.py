@@ -1,5 +1,5 @@
 """
-Utility functions related to concat
+Utility functions related to concat.
 """
 
 import numpy as np
@@ -38,7 +38,6 @@ def get_dtype_kinds(l):
     -------
     a set of kinds that exist in this list of arrays
     """
-
     typs = set()
     for arr in l:
 
@@ -85,7 +84,6 @@ def concat_compat(to_concat, axis: int = 0):
     -------
     a single array, preserving the combined dtypes
     """
-
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x) -> bool:
@@ -99,6 +97,9 @@ def concat_compat(to_concat, axis: int = 0):
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
+    non_empties = [x for x in to_concat if is_nonempty(x)]
+    if non_empties and axis == 0:
+        to_concat = non_empties
 
     typs = get_dtype_kinds(to_concat)
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
@@ -116,9 +117,16 @@ def concat_compat(to_concat, axis: int = 0):
     elif "sparse" in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    all_empty = all(not is_nonempty(x) for x in to_concat)
-    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
+    all_empty = not len(non_empties)
+    single_dtype = len({x.dtype for x in to_concat}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+
+    if any_ea and axis == 1:
         to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+
+    elif any_ea and single_dtype and axis == 0:
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
 
     if all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -138,7 +146,8 @@ def concat_compat(to_concat, axis: int = 0):
 
 
 def concat_categorical(to_concat, axis: int = 0):
-    """Concatenate an object/categorical array of arrays, each of which is a
+    """
+    Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
     Parameters
@@ -153,7 +162,6 @@ def concat_categorical(to_concat, axis: int = 0):
     Categorical
         A single array, preserving the combined dtypes
     """
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -218,13 +226,11 @@ def union_categoricals(
 
     Notes
     -----
-
     To learn more about categories, see `link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
-
     >>> from pandas.api.types import union_categoricals
 
     If you want to combine categoricals that do not necessarily have
@@ -261,6 +267,8 @@ def union_categoricals(
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> union_categoricals([a, b])
+    Traceback (most recent call last):
+        ...
     TypeError: to union ordered Categoricals, all categories must be the same
 
     New in version 0.20.0
@@ -379,7 +387,6 @@ def concat_datetime(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-
     if typs is None:
         typs = get_dtype_kinds(to_concat)
 
@@ -464,7 +471,6 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-
     from pandas.core.arrays import SparseArray
 
     fill_values = [x.fill_value for x in to_concat if isinstance(x, SparseArray)]

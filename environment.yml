@@ -26,6 +26,7 @@ dependencies:
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
+  - gitdb2=2.0.6  # GH-32060
   - sphinx
 
   # documentation (jupyter notebooks)
@@ -100,8 +101,9 @@ dependencies:
   - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
+  - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - pip:
-    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+    - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc

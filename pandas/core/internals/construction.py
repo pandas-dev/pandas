@@ -36,7 +36,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
-from pandas.core.construction import sanitize_array
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -53,32 +53,34 @@ from pandas.core.internals import (
 # BlockManager Interface
 
 
-def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
+def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, verify_integrity=True):
     """
     Segregate Series based on type and coerce into matrices.
 
     Needs to handle a lot of exceptional cases.
     """
-    # figure out the index, if necessary
-    if index is None:
-        index = extract_index(arrays)
-    else:
-        index = ensure_index(index)
+    if verify_integrity:
+        # figure out the index, if necessary
+        if index is None:
+            index = extract_index(arrays)
+        else:
+            index = ensure_index(index)
 
-    # don't force copy because getting jammed in an ndarray anyway
-    arrays = _homogenize(arrays, index, dtype)
+        # don't force copy because getting jammed in an ndarray anyway
+        arrays = _homogenize(arrays, index, dtype)
+
+        columns = ensure_index(columns)
 
     # from BlockManager perspective
-    axes = [ensure_index(columns), index]
+    axes = [columns, index]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
-
     # essentially process a record array then fill it
     fill_value = data.fill_value
     fdata = ma.getdata(data)
@@ -143,7 +145,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     ):
 
         if not hasattr(values, "dtype"):
-            values = prep_ndarray(values, copy=copy)
+            values = _prep_ndarray(values, copy=copy)
             values = values.ravel()
         elif copy:
             values = values.copy()
@@ -166,7 +168,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
-    values = prep_ndarray(values, copy=copy)
+    values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None:
         if not is_dtype_equal(values.dtype, dtype):
@@ -257,7 +259,7 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True) -> np.ndarray:
+def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
@@ -430,6 +432,33 @@ def _get_axes(N, K, index, columns):
     return index, columns
 
 
+def dataclasses_to_dicts(data):
+    """    Converts a list of dataclass instances to a list of dictionaries
+
+    Parameters
+    ----------
+    data : List[Type[dataclass]]
+
+    Returns
+    --------
+    list_dict : List[dict]
+
+    Examples
+    --------
+    >>> @dataclass
+    >>> class Point:
+    ...     x: int
+    ...     y: int
+
+    >>> dataclasses_to_dicts([Point(1,2), Point(2,3)])
+    [{"x":1,"y":2},{"x":2,"y":3}]
+
+    """
+    from dataclasses import asdict
+
+    return list(map(asdict, data))
+
+
 # ---------------------------------------------------------------------
 # Conversion of Inputs to Arrays
 
@@ -520,7 +549,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = com.values_from_object(s)
+        values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
@@ -535,7 +564,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
-    """Convert list of dicts to numpy arrays
+    """
+    Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
     - for OrderedDict and dicts, the column names match
@@ -555,7 +585,6 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
-
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
@@ -598,29 +627,23 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 # Series-Based
 
 
-def sanitize_index(data, index, copy=False):
+def sanitize_index(data, index: Index):
     """
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
-
-    if index is None:
-        return data
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass) and not copy:
+    if isinstance(data, ABCIndexClass):
         pass
     elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
         data = data._values
-        if copy:
-            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=copy)
+            data = sanitize_array(data, index, copy=False)
 
     return data

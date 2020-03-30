@@ -345,7 +345,7 @@ class TestTake:
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(11045376, 11360736, (5, 3)) * 100000000000
+        arr = np.random.randint(11_045_376, 11_360_736, (5, 3)) * 100_000_000_000
         arr = arr.view(dtype="datetime64[ns]")
         indexer = [0, 2, -1, 1, -1]
 
@@ -452,7 +452,7 @@ class TestExtensionTake:
         tm.assert_numpy_array_equal(arr, result)
 
         msg = (
-            r"cannot do a non-empty take from an empty axes.|"
+            "cannot do a non-empty take from an empty axes.|"
             "indices are out-of-bounds"
         )
         with pytest.raises(IndexError, match=msg):

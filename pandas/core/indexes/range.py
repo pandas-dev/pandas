@@ -1,15 +1,17 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Optional, Union
+from typing import Any, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
+from pandas._typing import Label
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -93,7 +95,7 @@ class RangeIndex(Int64Index):
         # RangeIndex
         if isinstance(start, RangeIndex):
             start = start._range
-            return cls._simple_new(start, dtype=dtype, name=name)
+            return cls._simple_new(start, name=name)
 
         # validate the arguments
         if com.all_none(start, stop, step):
@@ -111,10 +113,10 @@ class RangeIndex(Int64Index):
             raise ValueError("Step must not be zero")
 
         rng = range(start, stop, step)
-        return cls._simple_new(rng, dtype=dtype, name=name)
+        return cls._simple_new(rng, name=name)
 
     @classmethod
-    def from_range(cls, data, name=None, dtype=None):
+    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -129,17 +131,17 @@ class RangeIndex(Int64Index):
             )
 
         cls._validate_dtype(dtype)
-        return cls._simple_new(data, dtype=dtype, name=name)
+        return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name=None, dtype=None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Label = None) -> "RangeIndex":
         result = object.__new__(cls)
 
         assert isinstance(values, range)
 
         result._range = values
         result.name = name
-
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -166,7 +168,7 @@ class RangeIndex(Int64Index):
         return self._cached_data
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
 
     def _get_data_as_items(self):
@@ -332,7 +334,7 @@ class RangeIndex(Int64Index):
     def has_duplicates(self) -> bool:
         return False
 
-    def __contains__(self, key: Union[int, np.integer]) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             key = ensure_python_int(key)
@@ -340,15 +342,15 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
-    @Appender(_index_shared_docs["get_loc"])
+    @doc(Int64Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None and tolerance is None:
             if is_integer(key) or (is_float(key) and key.is_integer()):
                 new_key = int(key)
                 try:
                     return self._range.index(new_key)
-                except ValueError:
-                    raise KeyError(key)
+                except ValueError as err:
+                    raise KeyError(key) from err
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -384,23 +386,25 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
-    @Appender(_index_shared_docs["_shallow_copy"])
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is None:
-            name = kwargs.get("name", self.name)
-            return self._simple_new(self._range, name=name)
-        else:
-            kwargs.setdefault("name", self.name)
-            return self._int64index._shallow_copy(values, **kwargs)
+    @doc(Int64Index._shallow_copy)
+    def _shallow_copy(self, values=None, name: Label = no_default):
+        name = self.name if name is no_default else name
 
-    @Appender(ibase._index_shared_docs["copy"])
+        if values is None:
+            result = self._simple_new(self._range, name=name)
+            result._cache = self._cache.copy()
+            return result
+        else:
+            return Int64Index._simple_new(values, name=name)
+
+    @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
         self._validate_dtype(dtype)
         if name is None:
             name = self.name
         return self.from_range(self._range, name=name)
 
-    def _minmax(self, meth):
+    def _minmax(self, meth: str):
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -409,19 +413,19 @@ class RangeIndex(Int64Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna=True, *args, **kwargs) -> int:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, axis=None, skipna=True, *args, **kwargs) -> int:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -441,7 +445,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -519,12 +523,12 @@ class RangeIndex(Int64Index):
             new_index = new_index.sort_values()
         return new_index
 
-    def _min_fitting_element(self, lower_limit):
+    def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
         no_steps = -(-(lower_limit - self.start) // abs(self.step))
         return self.start + abs(self.step) * no_steps
 
-    def _max_fitting_element(self, upper_limit):
+    def _max_fitting_element(self, upper_limit: int) -> int:
         """Returns the largest element smaller than or equal to the limit"""
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
@@ -615,7 +619,7 @@ class RangeIndex(Int64Index):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
-    @Appender(_index_shared_docs["join"])
+    @doc(Int64Index.join)
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         if how == "outer" and self is not other:
             # note: could return RangeIndex in more circumstances
@@ -693,10 +697,10 @@ class RangeIndex(Int64Index):
             new_key = int(key)
             try:
                 return self._range[new_key]
-            except IndexError:
+            except IndexError as err:
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {len(self)}"
-                )
+                ) from err
         elif is_scalar(key):
             raise IndexError(
                 "only integers, slices (`:`), "

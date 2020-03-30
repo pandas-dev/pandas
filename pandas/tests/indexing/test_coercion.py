@@ -297,7 +297,8 @@ class TestSetitemCoercion(CoercionBase):
 
         if exp_dtype is IndexError:
             temp = obj.copy()
-            with pytest.raises(exp_dtype):
+            msg = "index 5 is out of bounds for axis 0 with size 4"
+            with pytest.raises(exp_dtype, match=msg):
                 temp[5] = 5
         else:
             exp_index = pd.Index(list("abcd") + [val])
@@ -943,7 +944,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     for tz in ["UTC", "US/Eastern"]:
         # to test tz => different tz replacement
-        key = "datetime64[ns, {0}]".format(tz)
+        key = f"datetime64[ns, {tz}]"
         rep[key] = [
             pd.Timestamp("2011-01-01", tz=tz),
             pd.Timestamp("2011-01-03", tz=tz),
@@ -1017,9 +1018,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ):
 
             if compat.is_platform_32bit() or compat.is_platform_windows():
-                pytest.skip(
-                    "32-bit platform buggy: {0} -> {1}".format(from_key, to_key)
-                )
+                pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index, name="yyy", dtype=from_key)

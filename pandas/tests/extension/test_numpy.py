@@ -248,6 +248,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Fails creating expected
         super().test_repeat(data, repeats, as_series, use_numpy)
 
+    @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
+    def test_diff(self, data, periods):
+        return super().test_diff(data, periods)
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
@@ -391,6 +395,56 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_scalar_key_sequence_raise(self, data):
         # Failed: DID NOT RAISE <class 'ValueError'>
         super().test_setitem_scalar_key_sequence_raise(data)
+
+    # TODO: there is some issue with PandasArray, therefore,
+    #   skip the setitem test for now, and fix it later (GH 31446)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series):
+        super().test_setitem_mask(data, mask, box_in_series)
+
+    @skip_nested
+    def test_setitem_mask_raises(self, data, box_in_series):
+        super().test_setitem_mask_raises(data, box_in_series)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array(self, data, idx, box_in_series):
+        super().test_setitem_integer_array(data, idx, box_in_series)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "idx, box_in_series",
+        [
+            ([0, 1, 2, pd.NA], False),
+            pytest.param([0, 1, 2, pd.NA], True, marks=pytest.mark.xfail),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+        ],
+        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
+    )
+    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
+        super().test_setitem_integer_with_missing_raises(data, idx, box_in_series)
+
+    @skip_nested
+    def test_setitem_slice(self, data, box_in_series):
+        super().test_setitem_slice(data, box_in_series)
+
+    @skip_nested
+    def test_setitem_loc_iloc_slice(self, data):
+        super().test_setitem_loc_iloc_slice(data)
 
 
 @skip_nested

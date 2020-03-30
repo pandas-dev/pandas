@@ -1220,13 +1220,17 @@ class TestConcatenate:
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_dict(self):
-        frames = {
-            "foo": DataFrame(np.random.randn(4, 3)),
-            "bar": DataFrame(np.random.randn(4, 3)),
-            "baz": DataFrame(np.random.randn(4, 3)),
-            "qux": DataFrame(np.random.randn(4, 3)),
-        }
+    @pytest.mark.parametrize("mapping", ["mapping", "dict"])
+    def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
+        constructor = dict if mapping == "dict" else non_dict_mapping_subclass
+        frames = constructor(
+            {
+                "foo": DataFrame(np.random.randn(4, 3)),
+                "bar": DataFrame(np.random.randn(4, 3)),
+                "baz": DataFrame(np.random.randn(4, 3)),
+                "qux": DataFrame(np.random.randn(4, 3)),
+            }
+        )
 
         sorted_keys = list(frames.keys())
 
@@ -1849,8 +1853,8 @@ class TestConcatenate:
             def __getitem__(self, index):
                 try:
                     return {0: df1, 1: df2}[index]
-                except KeyError:
-                    raise IndexError
+                except KeyError as err:
+                    raise IndexError from err
 
         tm.assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
 
@@ -2750,3 +2754,17 @@ def test_concat_sparse():
     )
     result = pd.concat([a, a], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+def test_concat_copy_index(test_series, axis):
+    # GH 29879
+    if test_series:
+        ser = Series([1, 2])
+        comb = concat([ser, ser], axis=axis, copy=True)
+        assert comb.index is not ser.index
+    else:
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        comb = concat([df, df], axis=axis, copy=True)
+        assert comb.index is not df.index
+        assert comb.columns is not df.columns

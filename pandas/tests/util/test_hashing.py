@@ -178,23 +178,6 @@ def test_multiindex_objects():
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
 
-    # _hashed_values and hash_pandas_object(..., index=False) equivalency.
-    expected = hash_pandas_object(mi, index=False).values
-    result = mi._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = hash_pandas_object(recons, index=False).values
-    result = recons._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = mi._hashed_values
-    result = recons._hashed_values
-
-    # Values should match, but in different order.
-    tm.assert_numpy_array_equal(np.sort(result), np.sort(expected))
-
 
 @pytest.mark.parametrize(
     "obj",

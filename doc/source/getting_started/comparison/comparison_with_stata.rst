@@ -673,6 +673,6 @@ Disk vs memory
 Pandas and Stata both operate exclusively in memory. This means that the size of
 data able to be loaded in pandas is limited by your machine's memory.
 If out of core processing is needed, one possibility is the
-`dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
+`dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_
 library, which provides a subset of pandas functionality for an
 on-disk ``DataFrame``.

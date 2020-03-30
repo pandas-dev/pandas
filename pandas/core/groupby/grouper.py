@@ -27,6 +27,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -76,7 +77,6 @@ class Grouper:
 
     Examples
     --------
-
     Syntactic sugar for ``df.groupby('A')``
 
     >>> df.groupby(Grouper(key='A'))
@@ -129,7 +129,6 @@ class Grouper:
         -------
         a tuple of binner, grouper, obj (possibly sorted)
         """
-
         self._set_grouper(obj)
         self.grouper, _, self.obj = get_grouper(
             self.obj,
@@ -562,10 +561,11 @@ def get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
         if not _is_label_like(key):
-            items = obj._data.items
+            # items -> .columns for DataFrame, .index for Series
+            items = obj.axes[-1]
             try:
                 items.get_loc(key)
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
                 # TypeError shows up here if we pass e.g. Int64Index
                 return False
 
