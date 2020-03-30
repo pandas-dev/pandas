@@ -19,6 +19,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -30,29 +31,6 @@ from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
-
-
-def try_cast_to_ea(cls_or_instance, obj, dtype=None):
-    """
-    Call to `_from_sequence` that returns the object unchanged on Exception.
-
-    Parameters
-    ----------
-    cls_or_instance : ExtensionArray subclass or instance
-    obj : arraylike
-        Values to pass to cls._from_sequence
-    dtype : ExtensionDtype, optional
-
-    Returns
-    -------
-    ExtensionArray or obj
-    """
-    try:
-        result = cls_or_instance._from_sequence(obj, dtype=dtype)
-    except Exception:
-        # We can't predict what downstream EA constructors may raise
-        result = obj
-    return result
 
 
 class ExtensionArray:
@@ -1214,7 +1192,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = try_cast_to_ea(self, arr)
+                    res = maybe_cast_to_extension_array(type(self), arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

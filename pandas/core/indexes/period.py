@@ -10,7 +10,7 @@ from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
 from pandas._typing import DtypeObj, Label
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -149,6 +149,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _infer_as_myclass = True
 
     _data: PeriodArray
+    freq: DateOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -327,7 +328,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         period = weakref.ref(self)
         return self._engine_type(period, len(self))
 
-    @Appender(Index.__contains__.__doc__)
+    @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -405,7 +406,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return result
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True, how="start"):
         dtype = pandas_dtype(dtype)
 
