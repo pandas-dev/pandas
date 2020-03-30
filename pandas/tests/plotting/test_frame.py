@@ -3289,6 +3289,7 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError):
             df.plot()
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
     )
