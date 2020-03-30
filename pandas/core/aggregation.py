@@ -7,6 +7,8 @@ from collections import defaultdict
 from functools import partial
 from typing import Any, DefaultDict, Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
+
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -268,7 +270,7 @@ def _relabel_result(result, reordered_result, func, columns, order):
 
     # The reason is self._aggregate outputs different type of result if
     # any column is only used once in aggregation
-    mask = isinstance(result, ABCDataFrame) and result.isna().any().any()
+    mask = isinstance(result, ABCDataFrame) and np.any(result.isna())
 
     for col, fun in func.items():
         s = result[col][::-1].dropna() if mask else result[col]
