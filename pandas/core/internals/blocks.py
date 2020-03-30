@@ -2814,7 +2814,9 @@ class CategoricalBlock(ExtensionBlock):
         1. Change Categorical._concat_same_type to use union_categoricals
         2. Delete this method.
         """
-        values = self._holder._concat_same_type([blk.values for blk in to_concat])
+        values = self._concatenator(
+            [blk.values for blk in to_concat], axis=self.ndim - 1
+        )
         placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
         # not using self.make_block_same_class as values can be object dtype
         return self.make_block(
