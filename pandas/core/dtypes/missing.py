@@ -33,9 +33,9 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCDatetimeArray,
     ABCExtensionArray,
-    ABCGeneric,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
@@ -153,8 +153,8 @@ def _isna_new(obj):
         ),
     ):
         return _isna_ndarraylike(obj)
-    elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.isna(func=isna))
+    elif isinstance(obj, ABCDataFrame):
+        return obj.isna()
     elif isinstance(obj, list):
         return _isna_ndarraylike(np.asarray(obj, dtype=object))
     elif hasattr(obj, "__array__"):
@@ -184,8 +184,8 @@ def _isna_old(obj):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
-    elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.isna(func=_isna_old))
+    elif isinstance(obj, ABCDataFrame):
+        return obj.isna()
     elif isinstance(obj, list):
         return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
     elif hasattr(obj, "__array__"):
@@ -231,8 +231,7 @@ def _isna_ndarraylike(obj):
     if not is_extension:
         # Avoid accessing `.values` on things like
         # PeriodIndex, which may be expensive.
-        #values = extract_array(obj, extract_numpy=True)
-        values = getattr(obj, "values", obj)
+        values = getattr(obj, "_values", obj)
     else:
         values = obj
 
@@ -273,7 +272,7 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
-    values = getattr(obj, "values", obj)
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_string_dtype(dtype):
