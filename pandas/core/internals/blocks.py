@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import functools
 import inspect
 import re
 from typing import Any, List
@@ -1420,18 +1419,15 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
         """
         Return a list of unstacked blocks of self
 
         Parameters
         ----------
-        unstacker_func : callable
-            Partially applied unstacker.
+        unstacker : reshape._Unstacker
         new_columns : Index
             All columns of the unstacked BlockManager.
-        n_rows : int
-            Only used in ExtensionBlock._unstack
         fill_value : int
             Only used in ExtensionBlock._unstack
 
@@ -1442,10 +1438,11 @@ class Block(PandasObject):
         mask : array_like of bool
             The mask of columns of `blocks` we should keep.
         """
-        unstacker = unstacker_func(self.values.T)
-        new_items = unstacker.get_new_columns()
+        new_items = unstacker.get_new_columns(value_columns)
         new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
+        new_values, mask = unstacker.get_new_values(
+            self.values.T, fill_value=fill_value
+        )
 
         mask = mask.any(0)
         new_values = new_values.T[mask]
@@ -1654,38 +1651,6 @@ class ExtensionBlock(Block):
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
-
-    def _get_unstack_items(self, unstacker, new_columns):
-        """
-        Get the placement, values, and mask for a Block unstack.
-
-        This is shared between ObjectBlock and ExtensionBlock. They
-        differ in that ObjectBlock passes the values, while ExtensionBlock
-        passes the dummy ndarray of positions to be used by a take
-        later.
-
-        Parameters
-        ----------
-        unstacker : pandas.core.reshape.reshape._Unstacker
-        new_columns : Index
-            All columns of the unstacked BlockManager.
-
-        Returns
-        -------
-        new_placement : ndarray[int]
-            The placement of the new columns in `new_columns`.
-        new_values : Union[ndarray, ExtensionArray]
-            The first return value from _Unstacker.get_new_values.
-        mask : ndarray[bool]
-            The second return value from _Unstacker.get_new_values.
-        """
-        # shared with ExtensionBlock
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
-
-        mask = mask.any(0)
-        return new_placement, new_values, mask
 
     def _maybe_coerce_values(self, values):
         """
@@ -1917,20 +1882,20 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
         # a `take` on the actual values.
+        n_rows = self.shape[-1]
         dummy_arr = np.arange(n_rows)
-        dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
-        unstacker = dummy_unstacker(dummy_arr)
 
-        new_placement, new_values, mask = self._get_unstack_items(
-            unstacker, new_columns
-        )
+        new_items = unstacker.get_new_columns(value_columns)
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
+        mask = mask.any(0)
 
         blocks = [
             self.make_block_same_class(
