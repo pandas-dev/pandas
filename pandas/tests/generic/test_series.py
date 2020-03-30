@@ -22,15 +22,6 @@ class TestSeries(Generic):
         s.rename(str.lower)
 
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
-    def test_set_axis_name(self, func):
-        s = Series([1, 2, 3], index=["a", "b", "c"])
-        name = "foo"
-
-        result = methodcaller(func, name)(s)
-        assert s.index.name is None
-        assert result.index.name == name
-
-    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
         s = Series(
             [11, 21, 31],
