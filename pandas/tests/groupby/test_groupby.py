@@ -2062,9 +2062,9 @@ def test_groups_repr_truncates(max_seq_items, expected):
 def test_groupby_period_index():
     # GH 32108
     periods = 2
-    index = pd.period_range(start='2018-01', periods=periods, freq='M')
+    index = pd.period_range(start="2018-01", periods=periods, freq="M")
     periodSerie = Series(range(periods), index=index)
-    periodSerie.index.name = 'Month'
+    periodSerie.index.name = "Month"
     result = periodSerie.groupby(periodSerie.index.month).sum()
 
     expected = pd.Series(range(0, periods), index=range(1, periods + 1))
