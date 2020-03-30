@@ -899,30 +899,24 @@ class BlockManager(PandasObject):
 
         return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc: int):
+    def fast_xs(self, loc: int) -> ArrayLike:
         """
-        get a cross sectional for a given location in the
-        items ; handle dups
+        Return the array corresponding to `frame.iloc[loc]`.
 
-        return the result, is *could* be a view in the case of a
-        single block
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        items = self.items
-
-        # non-unique (GH4726)
-        if not items.is_unique:
-            result = self._interleave()
-            if self.ndim == 2:
-                result = result.T
-            return result[loc]
-
-        # unique
         dtype = _interleaved_dtype(self.blocks)
 
-        n = len(items)
+        n = len(self)
         if is_extension_array_dtype(dtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
