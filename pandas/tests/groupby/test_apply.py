@@ -710,6 +710,30 @@ def test_apply_with_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("q", [0.5, [0.25, 0.5, 0.75]])
+def test_groupby_quantile_nullable_integer(q):
+    # https://github.com/pandas-dev/pandas/issues/33136
+    values = np.arange(100, dtype=float)
+    values[::3] = np.nan
+    na_mask = np.isnan(values)
+
+    df = pd.DataFrame(
+        {"a": ["x"] * 100 + ["y"] * 100, "b": pd.array(list(values) * 2, dtype="Int64")}
+    )
+    grouped = df.groupby("a")["b"]
+    result = grouped.quantile(q)
+
+    if isinstance(q, list):
+        idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
+        np_result = list(np.quantile(values[~na_mask], q=q))
+    else:
+        idx = pd.Index(["x", "y"], name="a")
+        np_result = [np.quantile(values[~na_mask], q=q)]
+
+    expected = pd.Series(np_result * 2, index=idx, name="b")
+    tm.assert_series_equal(result, expected)
+
+
 def test_func_returns_object():
     # GH 28652
     df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
