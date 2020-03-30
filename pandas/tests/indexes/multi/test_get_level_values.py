@@ -102,4 +102,4 @@ def test_get_level_values_when_periods():
     idx2 = MultiIndex.from_arrays(
         [idx._get_level_values(level) for level in range(idx.nlevels)]
     )
-    assert all(x.is_monotonic for x in idx2.levels) is True
+    assert all(x.is_monotonic for x in idx2.levels)
