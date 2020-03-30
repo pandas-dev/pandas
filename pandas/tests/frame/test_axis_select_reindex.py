@@ -165,11 +165,6 @@ class TestDataFrameSelectReindex:
         smaller = int_frame.reindex(columns=["A", "B"])
         assert smaller["A"].dtype == np.int64
 
-    def test_reindex_like(self, float_frame):
-        other = float_frame.reindex(index=float_frame.index[:10], columns=["C", "B"])
-
-        tm.assert_frame_equal(other, float_frame.reindex_like(other))
-
     def test_reindex_columns(self, float_frame):
         new_frame = float_frame.reindex(columns=["A", "B", "E"])
 

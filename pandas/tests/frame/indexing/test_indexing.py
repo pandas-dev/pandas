@@ -1648,11 +1648,6 @@ class TestDataFrameIndexing:
         actual = df.reindex(target, method=method)
         tm.assert_frame_equal(expected, actual)
 
-        actual = df.reindex_like(df, method=method, tolerance=0)
-        tm.assert_frame_equal(df, actual)
-        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-        tm.assert_frame_equal(df, actual)
-
         actual = df.reindex(target, method=method, tolerance=1)
         tm.assert_frame_equal(expected, actual)
         actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
@@ -1672,17 +1667,6 @@ class TestDataFrameIndexing:
         )
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
-
-    def test_reindex_subclass(self):
-        # https://github.com/pandas-dev/pandas/issues/31925
-        class MyDataFrame(DataFrame):
-            pass
-
-        expected = DataFrame()
-        df = MyDataFrame()
-        result = df.reindex_like(expected)
-
-        tm.assert_frame_equal(result, expected)
 
     def test_reindex_methods_nearest_special(self):
         df = pd.DataFrame({"x": list(range(5))})
