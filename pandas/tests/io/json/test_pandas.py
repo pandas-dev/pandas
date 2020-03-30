@@ -19,7 +19,6 @@ _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
-_frame2 = DataFrame(_seriesd, columns=["D", "C", "B", "A"])
 _intframe = DataFrame({k: v.astype(np.int64) for k, v in _seriesd.items()})
 
 _tsframe = DataFrame(_tsd)
@@ -44,7 +43,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.frame2 = _frame2.copy()
         self.intframe = _intframe.copy()
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
@@ -52,7 +50,6 @@ class TestPandasContainer:
 
         yield
 
-        del self.frame2
         del self.intframe
         del self.tsframe
         del self.mixed_frame
@@ -737,7 +734,6 @@ class TestPandasContainer:
         with tm.ensure_clean("test.json") as path:
             for df in [
                 float_frame,
-                self.frame2,
                 self.intframe,
                 self.tsframe,
                 self.mixed_frame,
