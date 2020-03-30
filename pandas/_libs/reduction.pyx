@@ -1,5 +1,4 @@
 from copy import copy
-from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
 from cpython.ref cimport Py_INCREF
