@@ -1862,10 +1862,15 @@ class TestToDatetimeInferFormat:
             pd.to_datetime(s, infer_datetime_format=True, cache=cache),
         )
 
-    def test_infer_datetime_format_tz_name(self):
-        s = pd.Series(["2019-02-02 08:07:13 UTC"])
+    @pytest.mark.parametrize(
+        "tz_name, offset", [("UTC", 0), ("UTC-3", 180), ("UTC+3", -180)]
+    )
+    def test_infer_datetime_format_tz_name(self, tz_name, offset):
+        s = pd.Series([f"2019-02-02 08:07:13 {tz_name}"])
         result = to_datetime(s, infer_datetime_format=True)
-        expected = pd.Series([pd.Timestamp("2019-02-02 08:07:13").tz_localize("UTC")])
+        expected = pd.Series(
+            [pd.Timestamp("2019-02-02 08:07:13").tz_localize(pytz.FixedOffset(offset))]
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
