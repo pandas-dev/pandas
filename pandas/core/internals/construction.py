@@ -3,6 +3,7 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
+from typing import Tuple
 
 import numpy as np
 import numpy.ma as ma
@@ -73,12 +74,13 @@ def arrays_to_mgr(
         arrays = _homogenize(arrays, index, dtype)
 
         columns = ensure_index(columns)
+    else:
+        columns = ensure_index(columns)
+        index = ensure_index(index)
 
     # from BlockManager perspective
     axes = [columns, index]
 
-    assert isinstance(columns, Index), type(columns)
-    assert isinstance(index, Index), type(index)
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
@@ -215,8 +217,6 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     else:
         block_values = [values]
 
-    assert isinstance(columns, Index), type(columns)
-    assert isinstance(index, Index), type(index)
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
@@ -424,7 +424,7 @@ def get_names_from_index(data):
     return index
 
 
-def _get_axes(N, K, index, columns):
+def _get_axes(N, K, index, columns) -> Tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 

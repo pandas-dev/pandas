@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 
@@ -1724,7 +1724,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
 def form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict: Dict[str, List] = defaultdict(list)
+    items_dict: DefaultDict[str, List] = defaultdict(list)
     extra_locs = []
 
     names_idx = names
