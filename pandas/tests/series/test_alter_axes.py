@@ -53,39 +53,3 @@ class TestSeriesAlterAxes:
         s = Series(range(10))
         s.index = idx
         assert s.index.is_all_dates
-
-    def test_set_axis_inplace_axes(self, axis_series):
-        # GH14636
-        ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
-
-        expected = ser.copy()
-        expected.index = list("abcd")
-
-        # inplace=True
-        # The FutureWarning comes from the fact that we would like to have
-        # inplace default to False some day
-        result = ser.copy()
-        result.set_axis(list("abcd"), axis=axis_series, inplace=True)
-        tm.assert_series_equal(result, expected)
-
-    def test_set_axis_inplace(self):
-        # GH14636
-
-        s = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
-
-        expected = s.copy()
-        expected.index = list("abcd")
-
-        # inplace=False
-        result = s.set_axis(list("abcd"), axis=0, inplace=False)
-        tm.assert_series_equal(expected, result)
-
-        # omitting the "axis" parameter
-        with tm.assert_produces_warning(None):
-            result = s.set_axis(list("abcd"), inplace=False)
-        tm.assert_series_equal(result, expected)
-
-        # wrong values for the "axis" parameter
-        for axis in [2, "foo"]:
-            with pytest.raises(ValueError, match="No axis named"):
-                s.set_axis(list("abcd"), axis=axis, inplace=False)
