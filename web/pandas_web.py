@@ -101,7 +101,8 @@ class Preprocessors:
                     body_position = summary.index(title) + len(title)
                 except ValueError:
                     raise ValueError(
-                        f'Blog post {fname} should have a markdown header corresponding to its "Title" element "{title}"'
+                        f'Blog post "{fname}" should have a markdown header '
+                        f'corresponding to its "Title" element "{title}"'
                     )
                 summary = " ".join(summary[body_position:].split(" ")[:30])
                 posts.append(

@@ -42,7 +42,7 @@ There was a fair amount of representation across pandas experience and frequeny 
 ![png]({{ base_url }}/static/img/blog/2019-user-survey/2019_5_0.png)
 
 
-We included a few questions that were also asked in the [Python Developers Survey](https://www.jetbrains.com/research/python-developers-survey-2018/) so we could compare Pandas' population to Python's. 
+We included a few questions that were also asked in the [Python Developers Survey](https://www.jetbrains.com/research/python-developers-survey-2018/) so we could compare Pandas' population to Python's.
 
 90% of our respondents use Python as a primary language (compared with 84% from the PSF survey).
 

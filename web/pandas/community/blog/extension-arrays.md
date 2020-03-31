@@ -155,9 +155,9 @@ To summarize:
    reference back to the data.
 - `.to_numpy()` is *always* a NumPy array, so you can reliably call
    ndarray-specific methods on it.
-   
+
 You shouldn't ever need `.values` anymore.
- 
+
 ## Possible Future Paths
 
 Extension Arrays open up quite a few exciting opportunities. Currently, pandas
@@ -190,7 +190,7 @@ These new goodies are all available in the recently released pandas 0.24.
 conda:
 
     conda install -c conda-forge pandas
-    
+
 pip:
 
     pip install --upgrade pandas
