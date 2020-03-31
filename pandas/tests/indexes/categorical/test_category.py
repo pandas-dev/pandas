@@ -442,18 +442,6 @@ class TestCategoricalIndex(Base):
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
 
-    def test_fillna_categorical(self):
-        # GH 11343
-        idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name="x")
-        # fill by value in categories
-        exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name="x")
-        tm.assert_index_equal(idx.fillna(1.0), exp)
-
-        # fill by value not in categories raises ValueError
-        msg = "fill value must be in categories"
-        with pytest.raises(ValueError, match=msg):
-            idx.fillna(2.0)
-
     @pytest.mark.parametrize(
         "dtype, engine_type",
         [
