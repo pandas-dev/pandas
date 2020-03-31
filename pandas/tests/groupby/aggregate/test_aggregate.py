@@ -773,11 +773,12 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-def test_aggregate_categorical_lost_index():
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_aggregate_categorical_lost_index(func: str):
     # GH: 28641 groupby drops index, when grouping over categorical column with min/max
     ds = pd.Series(["b"], dtype="category").cat.as_ordered()
     df = pd.DataFrame({"A": [1997], "B": ds})
-    result = df.groupby("A").agg({"B": "min"})
+    result = df.groupby("A").agg({"B": func})
     expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
     tm.assert_frame_equal(result, expected)
 
@@ -785,6 +786,7 @@ def test_aggregate_categorical_lost_index():
 @pytest.mark.xfail(reason="Not implemented.")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
+    # GH 31256
     # This is currently failing to cast back to Int64Dtype.
     # The presence of the NA causes two problems
     # 1. NA is not an instance of Int64Dtype.type (numpy.int64)
