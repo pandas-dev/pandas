@@ -42,6 +42,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_bool_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -1862,9 +1863,13 @@ class GroupBy(_GroupBy):
                 )
 
             inference = None
-            if is_integer_dtype(vals):
+            if is_integer_dtype(vals.dtype):
+                if is_extension_array_dtype(vals.dtype):
+                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = np.int64
-            elif is_datetime64_dtype(vals):
+            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
+                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
                 vals = np.asarray(vals).astype(np.float)
 
@@ -2242,10 +2247,6 @@ class GroupBy(_GroupBy):
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
-            if is_extension_array_dtype(values.dtype) and is_integer_dtype(
-                values.dtype
-            ):
-                values = values.to_numpy(dtype=cython_dtype, na_value=np.nan)
 
             if aggregate:
                 result_sz = ngroups
