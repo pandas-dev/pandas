@@ -1791,7 +1791,9 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 Use `origin` or `offset` to adjust the start of the bins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed timestamp with the argument ``origin``.
+.. versionadded:: 1.1.0
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed timestamp with the argument ``origin``.
 
 For example:
 
@@ -1820,7 +1822,7 @@ Here we can see that, when using ``origin``, the result after 1/15/2000 are iden
    ts[middle:end].resample("2711min", origin=origin).sum()
 
 
-If needed you can just adjust the bins with an offset that would be added to the default ``origin``.
+If needed you can just adjust the bins with an ``offset`` that would be added to the default ``origin``.
 Those two examples are equivalent for this time series:
 
 .. ipython:: python

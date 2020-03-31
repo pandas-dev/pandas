@@ -1359,14 +1359,18 @@ class TimeGrouper(Grouper):
         self.origin = Timestamp(origin) if origin is not None else None
         self.offset = Timedelta(offset) if offset is not None else None
         if base and isinstance(freq, Tick):
-            # this conversion handle the default behavior of base
-            # and the special case of GH #10530
+            # this conversion handle the default behavior of base and the
+            # special case of GH #10530. Indeed in case when dealing with
+            # a TimedeltaIndex base was treated as a 'pure' offset even though
+            # the default behavior of base was equivalent of a modulo on
+            # freq_nanos.
             self.offset = Timedelta(base * freq.nanos // freq.n)
 
         # always sort time groupers
         kwargs["sort"] = True
 
         if isinstance(loffset, str):
+            # loffset is deprecated since v1.1.0 (GH #31809)
             loffset = to_offset(loffset)
         self.loffset = loffset
 
@@ -1693,8 +1697,8 @@ def _get_timestamp_range_edges(
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(freq, Tick):
-        is_idx_tz_aware = first.tzinfo is not None or last.tzinfo is not None
-        if origin is not None and origin.tzinfo is None and is_idx_tz_aware:
+        is_idx_tz_aware = first.tz is not None or last.tz is not None
+        if origin is not None and origin.tz is None and is_idx_tz_aware:
             raise ValueError(
                 "The origin must be timezone aware when the index "
                 "of the resampled data is."

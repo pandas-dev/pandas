@@ -168,6 +168,7 @@ class Grouper:
     2000-01-18 15:10:00    30
     2000-01-19 11:41:00    33
     Freq: 1231T, dtype: int64
+
     >>> ts.groupby(pd.Grouper(freq="2711min")).sum()
     2000-01-10 00:00:00     9
     2000-01-11 21:11:00    21
@@ -176,6 +177,7 @@ class Grouper:
     2000-01-17 12:44:00    57
     2000-01-19 09:55:00    33
     Freq: 2711T, dtype: int64
+
     >>> ts.groupby(pd.Grouper(freq="2711min", origin=pd.Timestamp("1970-01-01"))).sum()
     2000-01-08 11:44:00     0
     2000-01-10 08:55:00     9
@@ -195,6 +197,7 @@ class Grouper:
     2000-01-15 17:33:00    45
     2000-01-17 14:44:00    90
     Freq: 2711T, dtype: int64
+
     >>> ts.groupby(pd.Grouper(freq="2711min", offset="2h")).sum()
     2000-01-10 02:00:00     9
     2000-01-11 23:11:00    21

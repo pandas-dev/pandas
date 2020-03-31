@@ -57,7 +57,6 @@ def test_deprecating_on_loffset_and_base():
         df.resample("3T", loffset="0s").sum()
 
 
-# old tests from test_base.py:
 @all_ts
 @pytest.mark.parametrize("arg", ["mean", {"value": "mean"}, ["mean"]])
 def test_resample_loffset_arg_type(frame, create_index, arg):
@@ -82,7 +81,6 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
     tm.assert_frame_equal(result_agg, expected)
 
 
-# old tests from test_datetime_index.py
 @pytest.mark.parametrize(
     "loffset", [timedelta(minutes=1), "1min", Minute(1), np.timedelta64(1, "m")]
 )
@@ -180,7 +178,6 @@ def test_resample_float_base():
     tm.assert_series_equal(result, expected)
 
 
-# old tests from test_period_index.py
 @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
 @pytest.mark.parametrize("agg_arg", ["mean", {"value": "mean"}, ["mean"]])
 def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
@@ -246,7 +243,6 @@ def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, off
     tm.assert_series_equal(result, expected)
 
 
-# tests from test_timedelta.py
 def test_resample_base_with_timedeltaindex():
     # GH 10530
     rng = timedelta_range(start="0s", periods=25, freq="s")
