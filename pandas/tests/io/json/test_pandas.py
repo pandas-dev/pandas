@@ -19,7 +19,6 @@ _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
-_intframe = DataFrame({k: v.astype(np.int64) for k, v in _seriesd.items()})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -43,14 +42,12 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.intframe = _intframe.copy()
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
         yield
 
-        del self.intframe
         del self.tsframe
         del self.mixed_frame
 
@@ -137,12 +134,12 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_intframe(self, orient, convert_axes, numpy, dtype):
-        data = self.intframe.to_json(orient=orient)
+    def test_roundtrip_intframe(self, orient, convert_axes, numpy, dtype, int_frame):
+        data = int_frame.to_json(orient=orient)
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
-        expected = self.intframe.copy()
+        expected = int_frame
         if (
             numpy
             and (is_platform_32bit() or is_platform_windows())
@@ -730,11 +727,11 @@ class TestPandasContainer:
         result = read_json(df.to_json())
         tm.assert_frame_equal(result, df)
 
-    def test_path(self, float_frame):
+    def test_path(self, float_frame, int_frame):
         with tm.ensure_clean("test.json") as path:
             for df in [
                 float_frame,
-                self.intframe,
+                int_frame,
                 self.tsframe,
                 self.mixed_frame,
             ]:
