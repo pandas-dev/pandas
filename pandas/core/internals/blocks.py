@@ -1796,12 +1796,16 @@ class ExtensionBlock(Block):
                 raise AssertionError(
                     "invalid slicing for a 1-ndim ExtensionArray", first
                 )
-            elif not (first == slice(None) or first == slice(1)):
-                # TODO(EA2D): wont be necessary with 2D EAs
-                # Since self.shape[0] is always 1, the slicer[0] must be
-                #  either slice(None) or slice(1)
-                raise AssertionError("invalid slicing for a 1-ndim categorical", first)
-            slicer = slicer[1]
+            # GH#32959 only full-slicers along fake-dim0 are valid
+            # TODO(EA2D): wont be necessary with 2D EAs
+            new_locs = self.mgr_locs[first]
+            if len(new_locs):
+                # effectively slice(None)
+                slicer = slicer[1]
+            else:
+                raise AssertionError(
+                    "invalid slicing for a 1-ndim ExtensionArray", slicer
+                )
 
         return self.values[slicer]
 

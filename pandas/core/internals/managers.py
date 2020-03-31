@@ -1331,6 +1331,10 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
+                if blk.is_extension:
+                    # GH#32959 EABlock would fail since we cant make 0-width
+                    if sllen == 0:
+                        return []
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_tuple[0] is None:
