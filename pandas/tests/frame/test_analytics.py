@@ -21,9 +21,9 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-from pandas.conftest import empty_frame
 
 
 def assert_stat_op_calc(
@@ -755,10 +755,10 @@ class TestDataFrameAnalytics:
         assert df["off2"].dtype == "timedelta64[ns]"
 
     def test_sum_corner(self):
-        empty_frame= empty_frame()
+        empty_frame_ = empty_frame()
 
-        axis0 = empty_frame.sum(0)
-        axis1 = empty_frame.sum(1)
+        axis0 = empty_frame_.sum(0)
+        axis1 = empty_frame_.sum(1)
         assert isinstance(axis0, Series)
         assert isinstance(axis1, Series)
         assert len(axis0) == 0

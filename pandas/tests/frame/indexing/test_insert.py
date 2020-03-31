@@ -59,7 +59,7 @@ class TestDataFrameInsert:
 
     def test_insert_with_columns_dups(self):
         # GH#14291
-        df= empty_frame()
+        df = empty_frame()
         df.insert(0, "A", ["g", "h", "i"], allow_duplicates=True)
         df.insert(0, "A", ["d", "e", "f"], allow_duplicates=True)
         df.insert(0, "A", ["a", "b", "c"], allow_duplicates=True)

@@ -54,7 +54,7 @@ class TestDataFrameReshape:
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")
-        expected= empty_frame()
+        expected = empty_frame()
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):

@@ -75,7 +75,7 @@ class TestDataFrameApply:
 
     def test_apply_empty(self, float_frame):
         # empty
-        empty_frame= empty_frame()
+        empty_frame = empty_frame()
 
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
@@ -100,7 +100,7 @@ class TestDataFrameApply:
 
     def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
-        empty_frame= empty_frame()
+        empty_frame = empty_frame()
 
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type="expand")
@@ -761,7 +761,7 @@ class TestInferOutputShape:
         tm.assert_series_equal(result, expected)
 
         # GH 18775
-        df= empty_frame()
+        df = empty_frame()
         df["author"] = ["X", "Y", "Z"]
         df["publisher"] = ["BBC", "NBC", "N24"]
         df["date"] = pd.to_datetime(

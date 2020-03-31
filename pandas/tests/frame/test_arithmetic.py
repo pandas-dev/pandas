@@ -991,13 +991,13 @@ class TestFrameArithmeticUnsorted:
         # corner cases
 
         # empty
-        plus_empty = float_frame + DataFrame()
+        plus_empty = float_frame + empty_frame()
         assert np.isnan(plus_empty.values).all()
 
-        empty_plus= empty_frame() + float_frame
+        empty_plus = empty_frame() + float_frame
         assert np.isnan(empty_plus.values).all()
 
-        empty_empty= empty_frame() + DataFrame()
+        empty_empty = empty_frame() + empty_frame()
         assert empty_empty.empty
 
         # out of order
@@ -1117,7 +1117,7 @@ class TestFrameArithmeticUnsorted:
             tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
 
-        result= empty_frame() * 2
+        result = empty_frame() * 2
         assert result.index.equals(DataFrame().index)
         assert len(result.columns) == 0
 

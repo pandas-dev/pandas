@@ -20,7 +20,7 @@ class TestCounting:
         tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_empty(self):
-        ge= empty_frame().groupby(level=0)
+        ge = empty_frame().groupby(level=0)
         se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
@@ -95,7 +95,7 @@ class TestCounting:
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_empty(self):
-        ge= empty_frame().groupby(level=0)
+        ge = empty_frame().groupby(level=0)
         se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float

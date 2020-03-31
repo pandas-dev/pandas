@@ -21,6 +21,7 @@ from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
 from pandas.conftest import empty_frame
 
+
 # Segregated collection of methods that require the BlockManager internal data
 # structure
 
@@ -346,7 +347,7 @@ class TestDataFrameBlockInternals:
         assert copy._data is not float_string_frame._data
 
     def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame= empty_frame()
+        empty_frame_ = empty_frame()
 
         unpickled = tm.round_trip_pickle(float_string_frame)
         tm.assert_frame_equal(float_string_frame, unpickled)
@@ -355,7 +356,7 @@ class TestDataFrameBlockInternals:
         float_string_frame._data.ndim
 
         # empty
-        unpickled = tm.round_trip_pickle(empty_frame)
+        unpickled = tm.round_trip_pickle(empty_frame_)
         repr(unpickled)
 
         # tz frame

@@ -123,7 +123,7 @@ class TestDataFrameFilter:
         tm.assert_frame_equal(df.filter(regex=name), expected)
 
     def test_filter_corner(self):
-        empty= empty_frame()
+        empty = empty_frame()
 
         result = empty.filter([])
         tm.assert_frame_equal(result, empty)

@@ -1455,7 +1455,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # GH 8056
         s = Series(dtype=np.float64)
         s_expected = s
-        df1= empty_frame()
+        df1 = empty_frame()
         df1_expected = df1
         df2 = DataFrame(columns=["a"])
         df2["a"] = df2["a"].astype("float64")
@@ -1496,7 +1496,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
     def test_moment_functions_zero_length_pairwise(self):
 
-        df1= empty_frame()
+        df1 = empty_frame()
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
         df2["a"] = df2["a"].astype("float64")
 

@@ -212,7 +212,7 @@ class TestDatetimeIndex:
             lambda x: np.datetime64(x),
         ]:
 
-            df= empty_frame()
+            df = empty_frame()
             df.loc[conv(dt1), "one"] = 100
             df.loc[conv(dt2), "one"] = 200
 

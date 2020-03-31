@@ -24,7 +24,7 @@ class TestDataFrameCount:
         expected = Series(0, index=df.columns)
         tm.assert_series_equal(result, expected)
 
-        df= empty_frame()
+        df = empty_frame()
         result = df.count()
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)

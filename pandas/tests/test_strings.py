@@ -10,8 +10,9 @@ from pandas._libs import lib
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
-import pandas.core.strings as strings
 from pandas.conftest import empty_frame
+import pandas.core.strings as strings
+
 
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
@@ -1928,7 +1929,7 @@ class TestStringMethods:
 
     def test_empty_str_methods_to_frame(self):
         empty = Series(dtype=str)
-        empty_df= empty_frame()
+        empty_df = empty_frame()
         tm.assert_frame_equal(empty_df, empty.str.partition("a"))
         tm.assert_frame_equal(empty_df, empty.str.rpartition("a"))
 

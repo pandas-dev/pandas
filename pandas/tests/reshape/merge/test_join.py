@@ -378,7 +378,7 @@ class TestJoin:
 
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3
-        x= empty_frame()
+        x = empty_frame()
         x.join(DataFrame([3], index=[0], columns=["A"]), how="outer")
 
     def test_join_unconsolidated(self):

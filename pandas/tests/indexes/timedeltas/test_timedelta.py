@@ -172,7 +172,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_append_numpy_bug_1681(self):
 
         td = timedelta_range("1 days", "10 days", freq="2D")
-        a= empty_frame()
+        a = empty_frame()
         c = DataFrame({"A": "foo", "B": td}, index=td)
         str(c)
 
