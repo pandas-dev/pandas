@@ -472,11 +472,11 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
 @pytest.mark.parametrize(
     "func,expected",
     [
-        ("min", [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, np.nan]),
-        ("max", [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 9.0, np.nan]),
+        ("min", [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan]),
+        ("max", [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan]),
     ],
 )
-def test_rolling_forward_window_min(constructor, func, expected):
+def test_rolling_forward_window(constructor, func, expected):
     # GH 32865
     class ForwardIndexer(BaseIndexer):
         def get_window_bounds(self, num_values, min_periods, center, closed):
@@ -492,6 +492,7 @@ def test_rolling_forward_window_min(constructor, func, expected):
             return start, end
 
     values = np.arange(10)
+    values[5] = 100.0
 
     indexer = ForwardIndexer(window_size=3)
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
