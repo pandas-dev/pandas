@@ -43,8 +43,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 
-#from pandas.core.construction import extract_array
-
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
 

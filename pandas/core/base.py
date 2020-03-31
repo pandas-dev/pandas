@@ -32,7 +32,7 @@ from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
-from pandas.core.construction import create_series_with_explicit_dtype, extract_array
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
@@ -1144,9 +1144,7 @@ class IndexOpsMixin:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)
-            values = getattr(values, "values", values)
-            #values = extract_array(values, extract_numpy=True)
+            values = self.astype(object)._values
             if na_action == "ignore":
 
                 def map_f(values, f):
