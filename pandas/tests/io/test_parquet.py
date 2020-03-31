@@ -561,7 +561,7 @@ class TestParquetPyArrow(Base):
             {
                 # Arrow does not yet support struct in writing to Parquet (ARROW-1644)
                 # "c": pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2), (3, 4)]),
-                "d": pd.period_range("2012-01-01", periods=3, freq="D"),
+                "d": pd.period_range("2012-01-01", periods=3, freq="D")
             }
         )
         check_round_trip(df, pa)

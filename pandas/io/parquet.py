@@ -105,9 +105,7 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, path, compression=compression, **kwargs,
-            )
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)

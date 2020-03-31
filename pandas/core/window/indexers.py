@@ -35,7 +35,7 @@ class BaseIndexer:
     """Base class for window bounds calculations."""
 
     def __init__(
-        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs,
+        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs
     ):
         """
         Parameters
@@ -100,7 +100,7 @@ class VariableWindowIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array,
+            num_values, self.window_size, min_periods, center, closed, self.index_array
         )
 
 

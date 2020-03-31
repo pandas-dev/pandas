@@ -101,11 +101,11 @@ def test_css_side_shorthands(shorthand, expansions):
     top, right, bottom, left = expansions
 
     assert_resolves(
-        f"{shorthand}: 1pt", {top: "1pt", right: "1pt", bottom: "1pt", left: "1pt"},
+        f"{shorthand}: 1pt", {top: "1pt", right: "1pt", bottom: "1pt", left: "1pt"}
     )
 
     assert_resolves(
-        f"{shorthand}: 1pt 4pt", {top: "1pt", right: "4pt", bottom: "1pt", left: "4pt"},
+        f"{shorthand}: 1pt 4pt", {top: "1pt", right: "4pt", bottom: "1pt", left: "4pt"}
     )
 
     assert_resolves(
@@ -191,9 +191,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {"font-size": relative_to}
-    assert_resolves(
-        f"font-size: {size}", {"font-size": resolved}, inherited=inherited,
-    )
+    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
 
 
 @pytest.mark.parametrize(
@@ -227,6 +225,4 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {"font-size": relative_to}
-    assert_resolves(
-        f"font-size: {size}", {"font-size": resolved}, inherited=inherited,
-    )
+    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)

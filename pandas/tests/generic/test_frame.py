@@ -278,9 +278,7 @@ class TestToXArray:
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
         expected.columns.name = None
-        tm.assert_frame_equal(
-            result.to_dataframe(), expected,
-        )
+        tm.assert_frame_equal(result.to_dataframe(), expected)
 
     @td.skip_if_no("xarray", min_version="0.7.0")
     def test_to_xarray(self):

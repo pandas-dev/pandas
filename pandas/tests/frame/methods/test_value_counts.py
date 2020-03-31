@@ -77,8 +77,7 @@ def test_data_frame_value_counts_single_col_default():
 
     result = df.value_counts()
     expected = pd.Series(
-        data=[2, 1, 1],
-        index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"]),
+        data=[2, 1, 1], index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"])
     )
 
     tm.assert_series_equal(result, expected)

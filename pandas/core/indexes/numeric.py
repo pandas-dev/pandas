@@ -462,7 +462,7 @@ class Float64Index(NumericIndex):
     def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
+                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex)
             )
             for obj in [self, other]
         )

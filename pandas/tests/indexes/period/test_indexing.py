@@ -757,11 +757,7 @@ class TestIndexing:
             idx.get_indexer(target, "nearest", tolerance="1 day"),
             np.array([0, 1, 1], dtype=np.intp),
         )
-        tol_raw = [
-            Timedelta("1 hour"),
-            Timedelta("1 hour"),
-            np.timedelta64(1, "D"),
-        ]
+        tol_raw = [Timedelta("1 hour"), Timedelta("1 hour"), np.timedelta64(1, "D")]
         tm.assert_numpy_array_equal(
             idx.get_indexer(
                 target, "nearest", tolerance=[np.timedelta64(x) for x in tol_raw]

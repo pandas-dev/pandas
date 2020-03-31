@@ -406,7 +406,7 @@ class TestDataFrameReshape:
         result = df.unstack(unstack_idx)
 
         expected = pd.DataFrame(
-            expected_values, columns=expected_columns, index=expected_index,
+            expected_values, columns=expected_columns, index=expected_index
         )
         tm.assert_frame_equal(result, expected)
 

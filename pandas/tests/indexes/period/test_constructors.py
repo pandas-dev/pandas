@@ -49,11 +49,7 @@ class TestPeriodIndex:
     )
     def test_index_object_dtype(self, values_constructor):
         # Index(periods, dtype=object) is an Index (not an PeriodIndex)
-        periods = [
-            Period("2011-01", freq="M"),
-            NaT,
-            Period("2011-03", freq="M"),
-        ]
+        periods = [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")]
         values = values_constructor(periods)
         result = Index(values, dtype=object)
 

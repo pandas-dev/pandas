@@ -153,9 +153,7 @@ class TestComparison:
         expected = self.elementwise_comparison(op, array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_interval(
-        self, op, array, interval_constructor,
-    ):
+    def test_compare_list_like_interval(self, op, array, interval_constructor):
         # same endpoints
         other = interval_constructor(array.left, array.right)
         result = op(array, other)

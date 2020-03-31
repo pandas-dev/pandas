@@ -230,9 +230,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
 
-    # Check if pandas is referenced as pandas, not *pandas* or Pandas
+    # Check if pandas is referenced as pandas, not *pandas*,Pandas or PANDAS
     MSG='Checking if the pandas word reference is always used lowercase (pandas,not Pandas or PANDAS' ; echo  $MSG
-    invgrep -nr '*pandas*|Pandas' web/* doc/*
+    invgrep -R '*pandas*|Pandas|PANDAS' web/* doc/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 

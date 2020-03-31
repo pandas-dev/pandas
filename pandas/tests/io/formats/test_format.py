@@ -2388,8 +2388,7 @@ class TestSeriesFormatting:
 
             # object dtype, longer than unicode repr
             s = Series(
-                [1, 22, 3333, 44444],
-                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
+                [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
             )
             expected = (
                 "1                          1\n"

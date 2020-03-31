@@ -283,8 +283,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
                 op(data, other)
 
     @pytest.mark.parametrize(
-        "categories",
-        [["a", "b"], [0, 1], [pd.Timestamp("2019"), pd.Timestamp("2020")]],
+        "categories", [["a", "b"], [0, 1], [pd.Timestamp("2019"), pd.Timestamp("2020")]]
     )
     def test_not_equal_with_na(self, categories):
         # https://github.com/pandas-dev/pandas/issues/32276

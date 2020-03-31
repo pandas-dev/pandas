@@ -61,7 +61,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.

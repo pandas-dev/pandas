@@ -97,7 +97,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -117,7 +117,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390

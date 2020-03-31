@@ -94,7 +94,7 @@ def should_series_dispatch(left, right, op):
 
 
 def dispatch_to_extension_op(
-    op, left: Union[ABCExtensionArray, np.ndarray], right: Any,
+    op, left: Union[ABCExtensionArray, np.ndarray], right: Any
 ):
     """
     Assume that left or right is a Series backed by an ExtensionArray,

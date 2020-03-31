@@ -27,13 +27,11 @@ class TestLoc(Base):
 
         # out of range label
         self.check_result(
-            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError,
+            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError
         )
         self.check_result("loc", "f", typs=["floats"], fails=KeyError)
         self.check_result("loc", "f", typs=["floats"], fails=KeyError)
-        self.check_result(
-            "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
-        )
+        self.check_result("loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError)
         self.check_result("loc", 20, typs=["labels"], fails=KeyError)
         self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
@@ -44,26 +42,24 @@ class TestLoc(Base):
         pass
 
     def test_loc_getitem_label_list_with_missing(self):
+        self.check_result("loc", [0, 1, 2], typs=["empty"], fails=KeyError)
         self.check_result(
-            "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
-        )
-        self.check_result(
-            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError,
+            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError
         )
 
         self.check_result(
-            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError,
+            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError
         )
 
         # GH 17758 - MultiIndex and missing keys
         self.check_result(
-            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError,
+            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError
         )
 
     def test_loc_getitem_label_list_fails(self):
         # fails
         self.check_result(
-            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError,
+            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError
         )
 
     def test_loc_getitem_label_array_like(self):
@@ -93,18 +89,14 @@ class TestLoc(Base):
         )
 
         self.check_result(
-            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError,
+            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError
         )
 
-        self.check_result(
-            "loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError,
-        )
-        self.check_result(
-            "loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError,
-        )
+        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError)
+        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError)
 
         self.check_result(
-            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
+            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError
         )
 
 
@@ -654,8 +646,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                 (1, ["A", "B", "C"]),
                 np.array([7, 8, 9], dtype=np.int64),
                 pd.DataFrame(
-                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]],
-                    columns=["A", "B", "C"],
+                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]], columns=["A", "B", "C"]
                 ),
             ),
             (
