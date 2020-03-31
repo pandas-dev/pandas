@@ -867,7 +867,6 @@ class Base:
         with pytest.raises(TypeError):
             {} in idx._engine
 
-    @pytest.mark.skip("currently causes bugs (see #32669)")
     def test_copy_copies_cache(self):
         # GH32898
         idx = self.create_index()
@@ -881,7 +880,6 @@ class Base:
         for key, val in idx._cache.items():
             assert copy._cache[key] is val, key
 
-    @pytest.mark.skip("currently causes bugs (see #32669)")
     def test_shallow_copy_copies_cache(self):
         # GH32669
         idx = self.create_index()
