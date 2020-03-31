@@ -10,7 +10,7 @@ import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 from pandas.core.window import Rolling
-from pandas.tests.window.common import Base
+from pandas.tests.window.common import Base, ForwardIndexer
 
 
 class TestRolling(Base):
@@ -464,4 +464,17 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
 
     result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_forward_window_min(constructor):
+    # GH 32865
+    values = np.arange(10)
+    expected_min = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, np.nan]
+
+    indexer = ForwardIndexer(window_size=3)
+    rolling = constructor(values).rolling(window=indexer, min_periods=2)
+    result = rolling.min()
+    expected = constructor(rolling.apply(lambda x: min(x)))
     tm.assert_equal(result, expected)
