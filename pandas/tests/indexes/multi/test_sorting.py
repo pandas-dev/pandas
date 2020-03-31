@@ -105,7 +105,11 @@ def test_unsortedindex():
     expected = df.iloc[0]
     tm.assert_series_equal(result, expected)
 
-    with pytest.raises(UnsortedIndexError):
+    msg = (
+        r"MultiIndex slicing requires the index to be lexsorted: "
+        r"slicing on levels \[1\], lexsort depth 0"
+    )
+    with pytest.raises(UnsortedIndexError, match=msg):
         df.loc(axis=0)["z", slice("a")]
     df.sort_index(inplace=True)
     assert len(df.loc(axis=0)["z", :]) == 2
@@ -124,7 +128,8 @@ def test_unsortedindex_doc_examples():
     with tm.assert_produces_warning(PerformanceWarning):
         dfm.loc[(1, "z")]
 
-    with pytest.raises(UnsortedIndexError):
+    msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(1\)"
+    with pytest.raises(UnsortedIndexError, match=msg):
         dfm.loc[(0, "y"):(1, "z")]
 
     assert not dfm.index.is_lexsorted()

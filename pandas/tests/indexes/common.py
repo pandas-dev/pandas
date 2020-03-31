@@ -539,10 +539,10 @@ class Base:
         assert result.name == expected.name
 
         length = len(indices)
-        msg = r"delete\(\) missing 1 required positional argument: 'loc'"
-        with pytest.raises(TypeError, match=msg):
+        msg = f"index {length} is out of bounds for axis 0 with size {length}"
+        with pytest.raises(IndexError, match=msg):
             # either depending on numpy version
-            indices.delete()
+            indices.delete(length)
 
     def test_equals(self, indices):
         if isinstance(indices, IntervalIndex):
@@ -863,11 +863,22 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
-    @pytest.mark.parametrize("value", [[], {}])
-    def test_contains_requires_hashable_raises(self, value):
+    def test_contains_requires_hashable_raises(self):
         idx = self.create_index()
-        with pytest.raises(TypeError, match="unhashable type"):
-            value in idx
+
+        msg = "unhashable type: 'list'"
+        with pytest.raises(TypeError, match=msg):
+            [] in idx
+
+        msg = (
+            r"unhashable type: 'dict'|"
+            r"must be real number, not dict|"
+            r"an integer is required|"
+            r"\{\}|"
+            r"pandas\._libs\.interval\.IntervalTree' is not iterable"
+        )
+        with pytest.raises(TypeError, match=msg):
+            {} in idx._engine
 
     def test_copy_copies_cache(self):
         # GH32898
