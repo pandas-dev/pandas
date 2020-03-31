@@ -1383,7 +1383,7 @@ def test_groupby_agg_non_numeric():
 
 
 def test_groupy_first_returns_categorical():
-    # GH 28641: Issue mentioned in first comment.
+    # GH 28641: groupby drops index, when grouping over categorical column with first
     df = pd.DataFrame(
         {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
     )
