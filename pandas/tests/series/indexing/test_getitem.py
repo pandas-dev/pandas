@@ -15,6 +15,12 @@ import pandas._testing as tm
 
 class TestSeriesGetitemScalars:
 
+    # TODO: better name/GH ref?
+    def test_getitem_regression(self):
+        ser = Series(range(5), index=list(range(5)))
+        result = ser[list(range(5))]
+        tm.assert_series_equal(result, ser)
+
     # ------------------------------------------------------------------
     # Series with DatetimeIndex
 
