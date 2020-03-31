@@ -33,7 +33,7 @@ from pandas._libs.tslibs.offsets import (
     shift_month,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.inference import is_list_like
 
@@ -1188,11 +1188,12 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = "business_start"
 
 
+@doc(bound="bound")
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
-    Increments between %(bound)s of month dates.
+    Increments between {bound} of month dates.
 
     Parameters
     ----------
@@ -1284,14 +1285,12 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
-@Substitution(bound="end")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="end")
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBM"
 
 
-@Substitution(bound="beginning")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="beginning")
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     _prefix = "CBMS"
 
