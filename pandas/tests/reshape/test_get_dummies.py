@@ -228,7 +228,7 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_str(self, df, sparse):
-        # not that you sheould do this...
+        # not that you should do this...
         result = get_dummies(df, prefix="bad", sparse=sparse)
         bad_columns = ["bad_a", "bad_b", "bad_b", "bad_c"]
         expected = DataFrame(
