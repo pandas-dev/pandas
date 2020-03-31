@@ -40,6 +40,14 @@ class TestSeriesSearchSorted:
         assert is_scalar(res)
         assert res == 1
 
+    def test_searchsorted_datetime64_scalar_mixed_timezones(self):
+        # GH 30086
+        ser = Series(date_range("20120101", periods=10, freq="2D", tz="UTC"))
+        val = Timestamp("20120102", tz="America/New_York")
+        res = ser.searchsorted(val)
+        assert is_scalar(res)
+        assert res == 1
+
     def test_searchsorted_datetime64_list(self):
         ser = Series(date_range("20120101", periods=10, freq="2D"))
         vals = [Timestamp("20120102"), Timestamp("20120104")]
