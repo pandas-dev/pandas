@@ -25,8 +25,6 @@ _cat_frame.index = pd.CategoricalIndex(cat, name="E")
 _cat_frame["E"] = list(reversed(cat))
 _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
 
-_mixed_frame = _frame.copy()
-
 
 def assert_json_roundtrip_equal(result, expected, orient):
     if orient == "records" or orient == "values":
@@ -40,12 +38,9 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
         yield
-
-        del self.mixed_frame
 
     def test_frame_double_encoded_labels(self, orient):
         df = DataFrame(
@@ -729,7 +724,6 @@ class TestPandasContainer:
                 float_frame,
                 int_frame,
                 datetime_frame,
-                self.mixed_frame,
             ]:
                 df.to_json(path)
                 read_json(path)
