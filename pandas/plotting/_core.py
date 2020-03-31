@@ -1471,7 +1471,9 @@ class PlotAccessor(PandasObject):
         s : str, scalar or array_like, optional
             The size of each point. Possible values are:
 
-            - A string with the name of the column to use for marker's size.
+            - A string with the name of the column to be used for marker's size.
+            .. versionchanged:: 1.1.0
+            plot.scatter acccepts a string with the name of a column.
 
             - A single scalar so all points have the same size.
 
