@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime
 import operator
+import re
 
 import numpy as np
 import pytest

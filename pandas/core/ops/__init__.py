@@ -356,19 +356,20 @@ def operate_blockwise(left, right, array_op):
                 # Reset mgr_locs to correspond to our original DataFrame
                 nblocs = locs.as_array[nb.mgr_locs.indexer]
                 nb.mgr_locs = nblocs
-                assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
-                assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
+                # Assertions are disabled for performance, but should hold:
+                #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
+                #  assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
 
             res_blks.extend(nbs)
 
-    slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
-    nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
-    assert nlocs == len(left.columns), (nlocs, len(left.columns))
-    assert len(slocs) == nlocs, (len(slocs), nlocs)
-    assert slocs == set(range(nlocs)), slocs
+    # Assertions are disabled for performance, but should hold:
+    #  slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
+    #  nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
+    #  assert nlocs == len(left.columns), (nlocs, len(left.columns))
+    #  assert len(slocs) == nlocs, (len(slocs), nlocs)
+    #  assert slocs == set(range(nlocs)), slocs
 
-    # TODO: once this is working, pass do_integrity_check=False
-    new_mgr = type(rmgr)(res_blks, axes=rmgr.axes)
+    new_mgr = type(rmgr)(res_blks, axes=rmgr.axes, do_integrity_check=False)
     return new_mgr
 
 
