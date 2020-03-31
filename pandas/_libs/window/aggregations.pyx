@@ -1068,21 +1068,6 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
         # The original impl didn't deal with variable window sizes
         # So the code was optimized for that
 
-        for i in range(starti[0], endi[0]):
-            ai = init_mm(values[i], &nobs, is_max)
-
-            # Discard previous entries if we find new min or max
-            if is_max:
-                while not Q.empty() and ((ai >= values[Q.back()]) or
-                                         values[Q.back()] != values[Q.back()]):
-                    Q.pop_back()
-            else:
-                while not Q.empty() and ((ai <= values[Q.back()]) or
-                                         values[Q.back()] != values[Q.back()]):
-                    Q.pop_back()
-            Q.push_back(i)
-            W.push_back(i)
-
         # first window's size
         curr_win_size = endi[0] - starti[0]
         # GH 32865
