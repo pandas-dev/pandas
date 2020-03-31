@@ -63,7 +63,7 @@ class TestDataFrameReprInfoEtc:
         repr(no_index)
 
         # no columns or index
-        DataFrame().info(buf=buf)
+        empty_frame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)

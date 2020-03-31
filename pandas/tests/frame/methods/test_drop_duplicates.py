@@ -193,7 +193,7 @@ def test_drop_duplicates_tuple():
 @pytest.mark.parametrize(
     "df",
     [
-        DataFrame(),
+        empty_frame(),
         DataFrame(columns=[]),
         DataFrame(columns=["A", "B", "C"]),
         DataFrame(index=[]),

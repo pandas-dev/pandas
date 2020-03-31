@@ -44,7 +44,7 @@ class TestGet:
     @pytest.mark.parametrize(
         "df",
         [
-            DataFrame(),
+            empty_frame(),
             DataFrame(columns=list("AB")),
             DataFrame(columns=list("AB"), index=range(3)),
         ],
@@ -842,7 +842,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_scalars_no_index(self):
         # GH16823 / 17894
-        df = DataFrame()
+        df = empty_frame()
         df["foo"] = 1
         expected = DataFrame(columns=["foo"]).astype(np.int64)
         tm.assert_frame_equal(df, expected)
@@ -1669,7 +1669,7 @@ class TestDataFrameIndexing:
         class MyDataFrame(DataFrame):
             pass
 
-        expected = DataFrame()
+        expected = empty_frame()
         df = MyDataFrame()
         result = df.reindex_like(expected)
 

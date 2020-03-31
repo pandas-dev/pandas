@@ -62,7 +62,7 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "constructor",
         [
-            lambda: DataFrame(),
+            lambda: empty_frame(),
             lambda: DataFrame(None),
             lambda: DataFrame({}),
             lambda: DataFrame(()),
@@ -78,7 +78,7 @@ class TestDataFrameConstructors:
         ],
     )
     def test_empty_constructor(self, constructor):
-        expected = DataFrame()
+        expected = empty_frame()
         result = constructor()
         assert len(result.index) == 0
         assert len(result.columns) == 0
@@ -1774,7 +1774,7 @@ class TestDataFrameConstructors:
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
 
         expected = DataFrame({"a": i.to_series().reset_index(drop=True)})
-        df = DataFrame()
+        df = empty_frame()
         df["a"] = i
         tm.assert_frame_equal(df, expected)
 

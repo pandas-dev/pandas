@@ -391,7 +391,7 @@ def test_to_html_justify(justify, datapath):
 )
 def test_to_html_invalid_justify(justify):
     # GH 17527
-    df = DataFrame()
+    df = empty_frame()
     msg = "Invalid value for justify parameter"
 
     with pytest.raises(ValueError, match=msg):
@@ -439,7 +439,7 @@ def test_to_html_index(datapath):
 
 @pytest.mark.parametrize("classes", ["sortable draggable", ["sortable", "draggable"]])
 def test_to_html_with_classes(classes, datapath):
-    df = DataFrame()
+    df = empty_frame()
     expected = expected_html(datapath, "with_classes")
     result = df.to_html(classes=classes)
     assert result == expected
@@ -718,7 +718,7 @@ def test_ignore_display_max_colwidth(method, expected, max_colwidth):
 @pytest.mark.parametrize("classes", [True, 0])
 def test_to_html_invalid_classes_type(classes):
     # GH 25608
-    df = DataFrame()
+    df = empty_frame()
     msg = "classes must be a string, list, or tuple"
 
     with pytest.raises(TypeError, match=msg):

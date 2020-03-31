@@ -117,7 +117,7 @@ class TestStyler:
         # it worked?
 
     def test_render_empty_dfs(self):
-        empty_df = DataFrame()
+        empty_df = empty_frame()
         es = Styler(empty_df)
         es.render()
         # An index but no columns

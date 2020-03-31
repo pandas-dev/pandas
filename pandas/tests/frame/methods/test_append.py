@@ -9,7 +9,7 @@ import pandas._testing as tm
 class TestDataFrameAppend:
     def test_append_empty_list(self):
         # GH 28769
-        df = DataFrame()
+        df = empty_frame()
         result = df.append([])
         expected = df
         tm.assert_frame_equal(result, expected)
@@ -96,29 +96,29 @@ class TestDataFrameAppend:
     def test_append_empty_dataframe(self):
 
         # Empty df append empty df
-        df1 = DataFrame()
-        df2 = DataFrame()
+        df1 = empty_frame()
+        df2 = empty_frame()
         result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Non-empty df append empty df
         df1 = DataFrame(np.random.randn(5, 2))
-        df2 = DataFrame()
+        df2 = empty_frame()
         result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Empty df with columns append empty df
         df1 = DataFrame(columns=["bar", "foo"])
-        df2 = DataFrame()
+        df2 = empty_frame()
         result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Non-Empty df with columns append empty df
         df1 = DataFrame(np.random.randn(5, 2), columns=["bar", "foo"])
-        df2 = DataFrame()
+        df2 = empty_frame()
         result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
@@ -130,7 +130,7 @@ class TestDataFrameAppend:
         # can sometimes infer the correct type
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(5))
-        df2 = DataFrame()
+        df2 = empty_frame()
         result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)

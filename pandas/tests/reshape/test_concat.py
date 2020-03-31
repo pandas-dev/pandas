@@ -796,7 +796,7 @@ class TestAppend:
         )
 
     def test_append_empty(self, float_frame):
-        empty = DataFrame()
+        empty = empty_frame()
 
         appended = float_frame.append(empty)
         tm.assert_frame_equal(float_frame, appended)
@@ -1528,7 +1528,7 @@ class TestConcatenate:
         df = DataFrame(
             dict(A=range(10000)), index=date_range("20130101", periods=10000, freq="s")
         )
-        empty = DataFrame()
+        empty = empty_frame()
         result = concat([df, empty], axis=1)
         tm.assert_frame_equal(result, df)
         result = concat([empty, df], axis=1)

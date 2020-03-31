@@ -885,7 +885,7 @@ class _TestSQLApi(PandasSQLTest):
         res1 = sql.read_sql_query("select * from test_chunksize", self.conn)
 
         # reading the query in chunks with read_sql_query
-        res2 = DataFrame()
+        res2 = empty_frame()
         i = 0
         sizes = [5, 5, 5, 5, 2]
 
@@ -900,7 +900,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # reading the query in chunks with read_sql_query
         if self.mode == "sqlalchemy":
-            res3 = DataFrame()
+            res3 = empty_frame()
             i = 0
             sizes = [5, 5, 5, 5, 2]
 

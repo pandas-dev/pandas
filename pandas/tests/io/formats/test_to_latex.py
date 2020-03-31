@@ -79,7 +79,7 @@ class TestToLatex:
         assert withindex_result == withindex_expected
 
     def test_to_latex_empty(self):
-        df = DataFrame()
+        df = empty_frame()
         result = df.to_latex()
         expected = r"""\begin{tabular}{l}
 \toprule

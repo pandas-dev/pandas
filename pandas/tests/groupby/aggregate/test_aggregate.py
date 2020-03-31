@@ -223,7 +223,7 @@ def test_aggregate_item_by_item(df):
     def aggfun(ser):
         return ser.size
 
-    result = DataFrame().groupby(df.A).agg(aggfun)
+    result = empty_frame().groupby(df.A).agg(aggfun)
     assert isinstance(result, DataFrame)
     assert len(result) == 0
 

@@ -5,7 +5,7 @@ import pandas._testing as tm
 class TestDataFrameCount:
     def test_count(self):
         # corner case
-        frame = DataFrame()
+        frame = empty_frame()
         ct1 = frame.count(1)
         assert isinstance(ct1, Series)
 
@@ -23,7 +23,7 @@ class TestDataFrameCount:
         expected = Series(0, index=df.columns)
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame()
+        df = empty_frame()
         result = df.count()
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)
