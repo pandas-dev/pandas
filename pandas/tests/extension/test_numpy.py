@@ -130,18 +130,7 @@ skip_nested = pytest.mark.usefixtures("skip_numpy_object")
 
 
 class BaseNumPyTests:
-    @classmethod
-    def assert_series_equal(cls, left, right, *args, **kwargs):
-        # FIXME: kludge because we are patching is_extension_array_dtype
-        #  with monkeypatch, needed for test_loc_iloc_frame_single_dtype
-        #  in the object-dtype case
-        ld = left.dtype
-        rd = right.dtype
-        if isinstance(ld, PandasDtype) and ld.numpy_dtype == object:
-            if isinstance(rd, np.dtype) and rd == object:
-                # Call these close enough
-                left = left.astype(rd)
-        tm.assert_series_equal(left, right, *args, **kwargs)
+    pass
 
 
 class TestCasting(BaseNumPyTests, base.BaseCastingTests):
@@ -180,6 +169,12 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     def test_take_series(self, data):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_take_series(data)
+
+    def test_loc_iloc_frame_single_dtype(self, data):
+        if data.dtype.numpy_dtype == object:
+            # GH#33125
+            pytest.xfail(reason="astype doesn't recognize data.dtype")
+        super().test_loc_iloc_frame_single_dtype(data)
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
