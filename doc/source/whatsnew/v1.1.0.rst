@@ -253,6 +253,7 @@ Deprecations
 - Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
+- The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
 
 .. ---------------------------------------------------------------------------
 
@@ -405,7 +406,7 @@ I/O
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 - Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
-
+- Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
 
 Plotting
 ^^^^^^^^
