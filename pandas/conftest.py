@@ -552,9 +552,7 @@ def int_frame():
 
     [30 rows x 4 columns]
     """
-    df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
-    # force these all to int64 to avoid platform testing issues
-    return DataFrame({c: s for c, s in df.items()}, dtype=np.int64)
+    return DataFrame(tm.getSeriesData()).astype("int64")
 
 
 @pytest.fixture
