@@ -7,8 +7,8 @@ import pytest
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
-from pandas.tests.frame.common import _check_mixed_float
 from pandas.conftest import empty_frame
+from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestDataFrameMissingData:

@@ -12,9 +12,9 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
-from pandas.conftest import empty_frame
 
 
 @pytest.fixture
@@ -75,12 +75,12 @@ class TestDataFrameApply:
 
     def test_apply_empty(self, float_frame):
         # empty
-        empty_frame = empty_frame()
+        empty_frame_ = empty_frame()
 
-        applied = empty_frame.apply(np.sqrt)
+        applied = empty_frame_.apply(np.sqrt)
         assert applied.empty
 
-        applied = empty_frame.apply(np.mean)
+        applied = empty_frame_.apply(np.mean)
         assert applied.empty
 
         no_rows = float_frame[:0]

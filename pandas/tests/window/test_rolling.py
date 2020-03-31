@@ -9,9 +9,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
-from pandas.conftest import empty_frame
 
 
 class TestRolling(Base):

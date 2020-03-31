@@ -28,10 +28,10 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
-from pandas.conftest import empty_frame
 
 
 @pytest.fixture(params=[True, False])

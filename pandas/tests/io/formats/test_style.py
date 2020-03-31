@@ -12,8 +12,8 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 from pandas.conftest import empty_frame
+from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
 class TestStyler:

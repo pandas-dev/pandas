@@ -11,11 +11,11 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna, notna
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base, ConsistencyBase
 
 import pandas.tseries.offsets as offsets
-from pandas.conftest import empty_frame
 
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")

@@ -42,10 +42,9 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-
+from pandas.conftest import empty_frame
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table
-from pandas.conftest import empty_frame
 
 try:
     import sqlalchemy

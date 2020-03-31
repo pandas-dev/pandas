@@ -1,6 +1,5 @@
 import numpy as np
 
-from pandas import DataFrame
 import pandas._testing as tm
 from pandas.conftest import empty_frame
 

@@ -6,7 +6,7 @@ from pandas.conftest import empty_frame
 class TestDataFrameCount:
     def test_count(self):
         # corner case
-        frame= empty_frame()
+        frame = empty_frame()
         ct1 = frame.count(1)
         assert isinstance(ct1, Series)
 

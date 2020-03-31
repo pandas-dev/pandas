@@ -16,9 +16,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 from ..datetimelike import DatetimeLike
-from pandas.conftest import empty_frame
 
 randn = np.random.randn
 
