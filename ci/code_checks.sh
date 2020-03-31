@@ -308,6 +308,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests ops' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/ops/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests base.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/base.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
