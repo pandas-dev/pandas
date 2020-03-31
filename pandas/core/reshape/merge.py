@@ -596,7 +596,11 @@ class _MergeOperation:
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
-        self.axis = axis
+
+        # bm_axis -> the axis on the BlockManager
+        self.bm_axis = axis
+        # axis --> the axis on the Series/DataFrame
+        self.axis = 1 - axis if self.left.ndim == 2 else 0
 
         self.on = com.maybe_make_list(on)
         self.left_on = com.maybe_make_list(left_on)
@@ -664,18 +668,17 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        ldata, rdata = self.left._mgr, self.right._mgr
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -864,8 +867,8 @@ class _MergeOperation:
         )
 
     def _get_join_info(self):
-        left_ax = self.left._mgr.axes[self.axis]
-        right_ax = self.right._mgr.axes[self.axis]
+        left_ax = self.left.axes[self.axis]
+        right_ax = self.right.axes[self.axis]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1478,12 +1481,10 @@ class _OrderedMerge(_MergeOperation):
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        # this is a bit kludgy
-        ldata, rdata = self.left._mgr, self.right._mgr
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         if self.fill_method == "ffill":
@@ -1497,7 +1498,7 @@ class _OrderedMerge(_MergeOperation):
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
