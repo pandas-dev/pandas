@@ -97,13 +97,13 @@ def test_notimplemented_functions(func):
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
-    "func,expected",
+    "func,alt_func,expected",
     [
-        ("min", [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan]),
-        ("max", [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan]),
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan]),
+        ("max", np.max, [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan]),
     ],
 )
-def test_rolling_forward_window(constructor, func, expected):
+def test_rolling_forward_window(constructor, func, alt_func, expected):
     # GH 32865
     class ForwardIndexer(BaseIndexer):
         def get_window_bounds(self, num_values, min_periods, center, closed):
@@ -126,3 +126,5 @@ def test_rolling_forward_window(constructor, func, expected):
     result = getattr(rolling, func)()
     expected = constructor(expected)
     tm.assert_equal(result, expected)
+    expected2 = constructor(rolling.apply(lambda x: alt_func(x)))
+    tm.assert_equal(result, expected2)
