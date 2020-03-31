@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -1038,24 +1038,6 @@ class BlockManager(PandasObject):
             b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
         )
         self._rebuild_blknos_and_blklocs()
-
-    def set(self, item: Label, value):
-        """
-        Set new item in-place.
-
-        Notes
-        -----
-        Does not consolidate.
-        Adds new Block if not contained in the current items Index.
-        """
-        try:
-            loc = self.items.get_loc(item)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self.insert(len(self.items), item, value)
-            return
-
-        self.iset(loc, value)
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """

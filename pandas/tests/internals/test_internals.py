@@ -361,8 +361,8 @@ class TestBlockManager:
     def test_set(self):
         mgr = create_mgr("a,b,c: int", item_shape=(3,))
 
-        mgr.set("d", np.array(["foo"] * 3))
-        mgr.set("b", np.array(["bar"] * 3))
+        mgr.insert(len(mgr.items), "d", np.array(["foo"] * 3))
+        mgr.iset(1, np.array(["bar"] * 3))
         tm.assert_numpy_array_equal(mgr.get("a").internal_values(), np.array([0] * 3))
         tm.assert_numpy_array_equal(
             mgr.get("b").internal_values(), np.array(["bar"] * 3, dtype=np.object_)
@@ -373,19 +373,19 @@ class TestBlockManager:
         )
 
     def test_set_change_dtype(self, mgr):
-        mgr.set("baz", np.zeros(N, dtype=bool))
+        mgr.insert(len(mgr.items), "baz", np.zeros(N, dtype=bool))
 
-        mgr.set("baz", np.repeat("foo", N))
+        mgr.iset(mgr.items.get_loc("baz"), np.repeat("foo", N))
         assert mgr.get("baz").dtype == np.object_
 
         mgr2 = mgr.consolidate()
-        mgr2.set("baz", np.repeat("foo", N))
+        mgr2.iset(mgr2.items.get_loc("baz"), np.repeat("foo", N))
         assert mgr2.get("baz").dtype == np.object_
 
-        mgr2.set("quux", tm.randn(N).astype(int))
+        mgr2.insert(len(mgr2.items), "quux", tm.randn(N).astype(int))
         assert mgr2.get("quux").dtype == np.int_
 
-        mgr2.set("quux", tm.randn(N))
+        mgr2.iset(mgr2.items.get_loc("quux"), tm.randn(N))
         assert mgr2.get("quux").dtype == np.float_
 
     def test_copy(self, mgr):
@@ -512,9 +512,9 @@ class TestBlockManager:
 
         # convert
         mgr = create_mgr("a,b,foo: object; f: i8; g: f8")
-        mgr.set("a", np.array(["1"] * N, dtype=np.object_))
-        mgr.set("b", np.array(["2."] * N, dtype=np.object_))
-        mgr.set("foo", np.array(["foo."] * N, dtype=np.object_))
+        mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
+        mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
+        mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(numeric=True)
         assert new_mgr.get("a").dtype == np.int64
         assert new_mgr.get("b").dtype == np.float64
@@ -525,9 +525,9 @@ class TestBlockManager:
         mgr = create_mgr(
             "a,b,foo: object; f: i4; bool: bool; dt: datetime; i: i8; g: f8; h: f2"
         )
-        mgr.set("a", np.array(["1"] * N, dtype=np.object_))
-        mgr.set("b", np.array(["2."] * N, dtype=np.object_))
-        mgr.set("foo", np.array(["foo."] * N, dtype=np.object_))
+        mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
+        mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
+        mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(numeric=True)
         assert new_mgr.get("a").dtype == np.int64
         assert new_mgr.get("b").dtype == np.float64
@@ -615,11 +615,11 @@ class TestBlockManager:
         assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.set("f", tm.randn(N))
-        mgr.set("d", tm.randn(N))
-        mgr.set("b", tm.randn(N))
-        mgr.set("g", tm.randn(N))
-        mgr.set("h", tm.randn(N))
+        mgr.iset(mgr.items.get_loc("f"), tm.randn(N))
+        mgr.iset(mgr.items.get_loc("d"), tm.randn(N))
+        mgr.iset(mgr.items.get_loc("b"), tm.randn(N))
+        mgr.iset(mgr.items.get_loc("g"), tm.randn(N))
+        mgr.iset(mgr.items.get_loc("h"), tm.randn(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
@@ -657,7 +657,7 @@ class TestBlockManager:
             "str: object; bool: bool; obj: object; dt: datetime",
             item_shape=(3,),
         )
-        mgr.set("obj", np.array([1, 2, 3], dtype=np.object_))
+        mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
 
         numeric = mgr.get_numeric_data()
         tm.assert_index_equal(
@@ -668,7 +668,7 @@ class TestBlockManager:
         )
 
         # Check sharing
-        numeric.set("float", np.array([100.0, 200.0, 300.0]))
+        numeric.iset(numeric.items.get_loc("float"), np.array([100.0, 200.0, 300.0]))
         tm.assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
@@ -677,7 +677,9 @@ class TestBlockManager:
         tm.assert_index_equal(
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
-        numeric2.set("float", np.array([1000.0, 2000.0, 3000.0]))
+        numeric2.iset(
+            numeric2.items.get_loc("float"), np.array([1000.0, 2000.0, 3000.0])
+        )
         tm.assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
@@ -688,7 +690,7 @@ class TestBlockManager:
             "str: object; bool: bool; obj: object; dt: datetime",
             item_shape=(3,),
         )
-        mgr.set("obj", np.array([True, False, True], dtype=np.object_))
+        mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
         tm.assert_index_equal(bools.items, pd.Index(["bool"]))
@@ -696,14 +698,14 @@ class TestBlockManager:
             mgr.get("bool").internal_values(), bools.get("bool").internal_values()
         )
 
-        bools.set("bool", np.array([True, False, True]))
+        bools.iset(0, np.array([True, False, True]))
         tm.assert_numpy_array_equal(
             mgr.get("bool").internal_values(), np.array([True, False, True])
         )
 
         # Check sharing
         bools2 = mgr.get_bool_data(copy=True)
-        bools2.set("bool", np.array([False, True, False]))
+        bools2.iset(0, np.array([False, True, False]))
         tm.assert_numpy_array_equal(
             mgr.get("bool").internal_values(), np.array([True, False, True])
         )
