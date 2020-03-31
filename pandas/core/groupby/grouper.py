@@ -151,72 +151,63 @@ class Grouper:
 
     If you want to adjust the start of the bins based on a fixed timestamp:
 
-    >>> start, end = "1/10/2000 02:00:00", "1/20/2000 02:00"
-    >>> rng = pd.date_range(start, end, freq="1231min")
+    >>> start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+    >>> rng = pd.date_range(start, end, freq="7min")
     >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     >>> ts
-    2000-01-10 02:00:00     0
-    2000-01-10 22:31:00     3
-    2000-01-11 19:02:00     6
-    2000-01-12 15:33:00     9
-    2000-01-13 12:04:00    12
-    2000-01-14 08:35:00    15
-    2000-01-15 05:06:00    18
-    2000-01-16 01:37:00    21
-    2000-01-16 22:08:00    24
-    2000-01-17 18:39:00    27
-    2000-01-18 15:10:00    30
-    2000-01-19 11:41:00    33
-    Freq: 1231T, dtype: int64
+    2000-10-01 23:30:00     0
+    2000-10-01 23:37:00     3
+    2000-10-01 23:44:00     6
+    2000-10-01 23:51:00     9
+    2000-10-01 23:58:00    12
+    2000-10-02 00:05:00    15
+    2000-10-02 00:12:00    18
+    2000-10-02 00:19:00    21
+    2000-10-02 00:26:00    24
+    Freq: 7T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="2711min")).sum()
-    2000-01-10 00:00:00     9
-    2000-01-11 21:11:00    21
-    2000-01-13 18:22:00    33
-    2000-01-15 15:33:00    45
-    2000-01-17 12:44:00    57
-    2000-01-19 09:55:00    33
-    Freq: 2711T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq="17min")).sum()
+    2000-10-01 23:14:00     0
+    2000-10-01 23:31:00     9
+    2000-10-01 23:48:00    21
+    2000-10-02 00:05:00    54
+    2000-10-02 00:22:00    24
+    Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="2711min", origin=pd.Timestamp("1970-01-01"))).sum()
-    2000-01-08 11:44:00     0
-    2000-01-10 08:55:00     9
-    2000-01-12 06:06:00    21
-    2000-01-14 03:17:00    33
-    2000-01-16 00:28:00    72
-    2000-01-17 21:39:00    63
-    Freq: 2711T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq="17min", origin=pd.Timestamp("1970-01-01"))).sum()
+    2000-10-01 23:18:00     0
+    2000-10-01 23:35:00    18
+    2000-10-01 23:52:00    27
+    2000-10-02 00:09:00    39
+    2000-10-02 00:26:00    24
+    Freq: 17T, dtype: int64
 
-    If you want to adjust the start of the bins with an offset, the two following
-    lines are equivalent:
+    If you want to adjust the start of the bins with an `offset` Timedelta, the two
+    following lines are equivalent:
 
-    >>> ts.groupby(pd.Grouper(freq="2711min", origin="1/10/2000 02:00:00")).sum()
-    2000-01-10 02:00:00     9
-    2000-01-11 23:11:00    21
-    2000-01-13 20:22:00    33
-    2000-01-15 17:33:00    45
-    2000-01-17 14:44:00    90
-    Freq: 2711T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq="17min", origin=start)).sum()
+    2000-10-01 23:30:00     9
+    2000-10-01 23:47:00    21
+    2000-10-02 00:04:00    54
+    2000-10-02 00:21:00    24
+    Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="2711min", offset="2h")).sum()
-    2000-01-10 02:00:00     9
-    2000-01-11 23:11:00    21
-    2000-01-13 20:22:00    33
-    2000-01-15 17:33:00    45
-    2000-01-17 14:44:00    90
-    Freq: 2711T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq="17min", offset=pd.Timedelta("23h30min"))).sum()
+    2000-10-01 23:30:00     9
+    2000-10-01 23:47:00    21
+    2000-10-02 00:04:00    54
+    2000-10-02 00:21:00    24
+    Freq: 17T, dtype: int64
 
-    To replace the use of the deprecated `base` argument:
-    >>> # ts.groupby(pd.Grouper(freq="2711min", base=2)).sum()
-    >>> #   becomes:
-    >>> ts.groupby(pd.Grouper(freq="2711min", offset="2min")).sum()
-    2000-01-10 00:02:00     9
-    2000-01-11 21:13:00    21
-    2000-01-13 18:24:00    33
-    2000-01-15 15:35:00    45
-    2000-01-17 12:46:00    57
-    2000-01-19 09:57:00    33
-    Freq: 2711T, dtype: int64
+    To replace the use of the deprecated `base` argument, you can now use `offset`,
+    in this example it is equivalent to have `base=2`:
+    >>> ts.groupby(pd.Grouper(freq="17min", offset="2min")).sum()
+    2000-10-01 23:16:00     0
+    2000-10-01 23:33:00     9
+    2000-10-01 23:50:00    36
+    2000-10-02 00:07:00    39
+    2000-10-02 00:24:00    24
+    Freq: 17T, dtype: int64
     """
 
     _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")

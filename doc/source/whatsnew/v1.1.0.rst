@@ -165,13 +165,23 @@ For example:
 
 .. ipython:: python
 
-    start, end = "1/10/2000 02:00:00", "1/20/2000 02:00"
-    middle = "1/15/2000 02:00"
-    rng = pd.date_range(start, end, freq="1231min")
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+    middle = "2000-10-02 00:00:00"
+    rng = pd.date_range(start, end, freq="7min")
     ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     ts
-    ts.resample("2711min").sum()
-    ts.resample("2711min", origin="1970-01-01").sum()
+
+Resample with the default behavior (origin is 2000-10-01 00:00:00):
+
+.. ipython:: python
+
+    ts.resample("17min").sum()
+
+Resample using a fixed origin:
+
+.. ipython:: python
+
+    ts.resample("17min", origin="1970-01-01").sum()
 
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
@@ -180,24 +190,29 @@ Those two examples are equivalent for this time series:
 
 .. ipython:: python
 
-    ts.resample("2711min", origin="1/10/2000 02:00:00").sum()
-    ts.resample("2711min", offset="2h").sum()
+    ts.resample("17min", origin=start).sum()
+    ts.resample("17min", offset=pd.Timedelta("23h30min")).sum()
 
 The argument ``base`` is now deprecated in favor of ``offset``. (:issue:`31809`)
 
 .. ipython:: python
+    :okwarning:
 
-    # ts.resample("2711min", base=2).sum()
-    #   becomes:
-    ts.resample("2711min", offset="2min").sum()
+    ts.resample("17min", base=2).sum()
+
+becomes:
+
+.. ipython:: python
+
+    ts.resample("17min", offset="2min").sum()
 
 The argument ``loffset`` is now deprecated. You should now add an offset to the index DataFrame after being resampled. (:issue:`31809`)
 
 .. ipython:: python
 
     from pandas.tseries.frequencies import to_offset
-    loffset = "8H"
-    ts_out = ts.resample("2711min").sum()
+    loffset = "19min"
+    ts_out = ts.resample("17min").sum()
     ts_out.index = ts_out.index + to_offset(loffset)
     ts_out
 
