@@ -7895,7 +7895,13 @@ Wild         185.0
 
         # Mask NaNs: Mask rows or columns where the index level is NaN, and all
         # values in the DataFrame that are NaN
-        values_mask = notna(frame.values)
+        if frame._is_mixed_type:
+            # Since we have mixed types, calling notna(frame.values) might
+            # upcast everything to object
+            values_mask = notna(frame).values
+        else:
+            # But use the speedup when we have homogeneous dtypes
+            values_mask = notna(frame.values)
 
         index_mask = notna(count_axis.get_level_values(level=level))
         if axis == 1:
