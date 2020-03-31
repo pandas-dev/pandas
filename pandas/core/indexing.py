@@ -2019,7 +2019,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
         key = list(self._convert_key(key, is_setter=True))
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
-        
+
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
