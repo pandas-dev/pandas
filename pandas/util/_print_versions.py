@@ -88,6 +88,20 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
 
 
 def show_versions(as_json: Union[str, bool] = False) -> None:
+    """
+    Provide useful information, important for bug reports.
+
+    It comprises info about hosting operation system, pandas version,
+    and versions of other installed relative packages.
+
+    Parameters
+    ----------
+    as_json : str or bool, default False
+        * If False, outputs info in a human readable form to the console.
+        * If str, it will be considered as a path to a file.
+          Info will be written to that file in JSON format.
+        * If True, outputs info in JSON format to the console.
+    """
     sys_info = _get_sys_info()
     deps = _get_dependency_info()
 
