@@ -525,6 +525,7 @@ def index_or_series_obj(request):
 def empty_frame():
     return DataFrame()
 
+
 @pytest.fixture
 def int_frame():
     """
