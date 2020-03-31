@@ -796,7 +796,7 @@ before plotting.
 
 .. _visualization.tools:
 
-Plotting Tools
+Plotting tools
 --------------
 
 These functions can be imported from ``pandas.plotting``
@@ -1045,7 +1045,7 @@ for more information.
 
 .. _visualization.formatting:
 
-Plot Formatting
+Plot formatting
 ---------------
 
 Setting the plot style

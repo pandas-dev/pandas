@@ -140,7 +140,7 @@ More information can be found in the `ipython documentation
 
 .. _options.frequently_used:
 
-Frequently Used Options
+Frequently used options
 -----------------------
 The following is a walk-through of the more frequently used display options.
 
