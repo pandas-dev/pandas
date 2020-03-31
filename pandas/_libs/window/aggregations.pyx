@@ -1051,7 +1051,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                             bint is_max):
     cdef:
         numeric ai
-        int64_t i, close_offset, curr_win_size
+        int64_t i, k, close_offset, curr_win_size
         Py_ssize_t nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
@@ -1083,40 +1083,38 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
             Q.push_back(i)
             W.push_back(i)
 
-        # if right is open then the first window is empty
-        close_offset = 0 if endi[0] > starti[0] else 1
         # first window's size
         curr_win_size = endi[0] - starti[0]
-
-        for i in range(endi[0], endi[N-1]):
+        # GH 32865
+        # Anchor output index to values index to provide custom
+        # BaseIndexer support
+        for i in range(1, N):
             if not Q.empty() and curr_win_size > 0:
-                output[i-1+close_offset] = calc_mm(
-                    minp, nobs, values[Q.front()])
+                output[i - 1] = calc_mm(minp, nobs, values[Q.front()])
             else:
-                output[i-1+close_offset] = NaN
+                output[i - 1] = NaN
 
-            ai = init_mm(values[i], &nobs, is_max)
+            curr_win_size = endi[i] - starti[i]
+            for k in range(endi[i - 1], endi[i]):
+                ai = init_mm(values[k], &nobs, is_max)
+                # Discard previous entries if we find new min or max
+                if is_max:
+                    while not Q.empty() and ((ai >= values[Q.back()]) or
+                                             values[Q.back()] != values[Q.back()]):
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ((ai <= values[Q.back()]) or
+                                             values[Q.back()] != values[Q.back()]):
+                        Q.pop_back()
+                Q.push_back(k)
+                W.push_back(k)
 
-            # Discard previous entries if we find new min or max
-            if is_max:
-                while not Q.empty() and ((ai >= values[Q.back()]) or
-                                         values[Q.back()] != values[Q.back()]):
-                    Q.pop_back()
-            else:
-                while not Q.empty() and ((ai <= values[Q.back()]) or
-                                         values[Q.back()] != values[Q.back()]):
-                    Q.pop_back()
-
-            # Maintain window/nobs retention
-            curr_win_size = endi[i + close_offset] - starti[i + close_offset]
-            while not Q.empty() and Q.front() <= i - curr_win_size:
+            # Discard entries outside and left of current window
+            while not Q.empty() and Q.front() <= starti[i] - 1:
                 Q.pop_front()
-            while not W.empty() and W.front() <= i - curr_win_size:
+            while not W.empty() and W.front() <= starti[i] - 1:
                 remove_mm(values[W.front()], &nobs)
                 W.pop_front()
-
-            Q.push_back(i)
-            W.push_back(i)
 
         if not Q.empty() and curr_win_size > 0:
             output[N-1] = calc_mm(minp, nobs, values[Q.front()])
