@@ -629,11 +629,8 @@ def test_timedelta_assignment():
     s = s.reindex(s.index.insert(0, "A"))
     tm.assert_series_equal(s, Series([np.nan, Timedelta("1 days")], index=["A", "B"]))
 
-    result = s.fillna(timedelta(1))
-    expected = Series(Timedelta("1 days"), index=["A", "B"])
-    tm.assert_series_equal(result, expected)
-
     s.loc["A"] = timedelta(1)
+    expected = Series(Timedelta("1 days"), index=["A", "B"])
     tm.assert_series_equal(s, expected)
 
     # GH 14155
