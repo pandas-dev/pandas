@@ -2589,7 +2589,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    d
     dtype: category
     Categories (3, object): [b, c, d]
-
     """
 
     def __init__(self, data):
