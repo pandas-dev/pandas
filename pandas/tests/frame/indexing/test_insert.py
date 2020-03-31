@@ -56,7 +56,7 @@ class TestDataFrameInsert:
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_insert_with_columns_dups(self):
+    def test_insert_with_columns_dups(self, empty_frame):
         # GH#14291
         df = empty_frame
         df.insert(0, "A", ["g", "h", "i"], allow_duplicates=True)

@@ -224,7 +224,7 @@ class TestCrosstab:
         )
         tm.assert_index_equal(res.columns, m)
 
-    def test_crosstab_no_overlap(self):
+    def test_crosstab_no_overlap(self, empty_frame):
         # GS 10291
 
         s1 = Series([1, 2, 3], index=[1, 2, 3])

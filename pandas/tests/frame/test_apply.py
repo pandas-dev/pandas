@@ -74,8 +74,6 @@ class TestDataFrameApply:
 
     def test_apply_empty(self, float_frame, empty_frame):
         # empty
-        empty_frame = empty_frame
-
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
 
@@ -1352,7 +1350,7 @@ class TestDataFrameAggregate:
             ),
         ),
     )
-    def test_agg_cython_table(self, df, func, expected, axis):
+    def test_agg_cython_table(self, df, func, expected, axis, empty_frame):
         # GH 21224
         # test reducing functions in
         # pandas.core.base.SelectionMixin._cython_table
@@ -1363,7 +1361,7 @@ class TestDataFrameAggregate:
         "df, func, expected",
         chain(
             tm.get_cython_table_params(
-                empty_frame, [("cumprod", empty_frame), ("cumsum", empty_frame)]
+                DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
             ),
             tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),

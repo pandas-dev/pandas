@@ -397,14 +397,14 @@ class TestPartialSetting:
         tm.assert_frame_equal(f(), expected)
 
         def f():
-            df = empty_frame
+            df = empty_frame.copy()
             df["foo"] = Series(df.index)
             return df
 
         tm.assert_frame_equal(f(), expected)
 
         def f():
-            df = empty_frame
+            df = empty_frame.copy()
             df["foo"] = df.index
             return df
 

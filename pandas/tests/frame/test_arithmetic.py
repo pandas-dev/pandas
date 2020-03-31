@@ -958,7 +958,9 @@ class TestFrameArithmeticUnsorted:
         exp = DataFrame({"A": [np.nan, 3, np.nan]}, index=base)
         tm.assert_frame_equal(df1 + df2, exp)
 
-    def test_combineFrame(self, empty_frame, float_frame, mixed_float_frame, mixed_int_frame):
+    def test_combineFrame(
+        self, empty_frame, float_frame, mixed_float_frame, mixed_int_frame
+    ):
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]

@@ -123,7 +123,7 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
-    def test_append_dtypes(self):
+    def test_append_dtypes(self, empty_frame):
 
         # GH 5754
         # row appends of different dtypes (so need to do by-item)
