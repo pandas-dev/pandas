@@ -1,16 +1,44 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
+from datetime import datetime
 
 import numpy as np
+import pytest
+
+from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import Series, period_range
+from pandas import Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 
 
 class TestSeriesGetitemScalars:
-    pass
+
+    # ------------------------------------------------------------------
+    # Series with DatetimeIndex
+
+    @pytest.mark.parametrize("tzstr", ["Europe/Berlin", "dateutil/Europe/Berlin"])
+    def test_getitem_pydatetime_tz(self, tzstr):
+        tz = timezones.maybe_get_tz(tzstr)
+
+        index = date_range(
+            start="2012-12-24 16:00", end="2012-12-24 18:00", freq="H", tz=tzstr
+        )
+        ts = Series(index=index, data=index.hour)
+        time_pandas = Timestamp("2012-12-24 17:00", tz=tzstr)
+
+        dt = datetime(2012, 12, 24, 17, 0)
+        time_datetime = conversion.localize_pydatetime(dt, tz)
+        assert ts[time_pandas] == ts[time_datetime]
+
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_string_index_alias_tz_aware(self, tz):
+        rng = date_range("1/1/2000", periods=10, tz=tz)
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ser["1/3/2000"]
+        tm.assert_almost_equal(result, ser[2])
 
 
 class TestSeriesGetitemSlices:
@@ -29,6 +57,19 @@ class TestSeriesGetitemSlices:
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 
+    # FutureWarning from NumPy.
+    @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
+    def test_getitem_median_slice_bug(self):
+        index = date_range("20090415", "20090519", freq="2B")
+        s = Series(np.random.randn(13), index=index)
+
+        indexer = [slice(6, 7, None)]
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#31299
+            result = s[indexer]
+        expected = s[indexer[0]]
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesGetitemListLike:
     def test_getitem_intlist_intindex_periodvalues(self):
@@ -42,3 +83,12 @@ class TestSeriesGetitemListLike:
         )
         tm.assert_series_equal(result, exp)
         assert result.dtype == "Period[D]"
+
+
+def test_getitem_generator(string_series):
+    gen = (x > 0 for x in string_series)
+    result = string_series[gen]
+    result2 = string_series[iter(string_series > 0)]
+    expected = string_series[string_series > 0]
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result2, expected)
