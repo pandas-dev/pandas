@@ -149,6 +149,18 @@ class TestGrouping:
             df.index = list(reversed(df.index.tolist()))
             df.groupby(list("abcde")).apply(lambda x: x)
 
+    def test_grouper_period_index(self):
+        # GH 32108
+        periods = 2
+        index = pd.period_range(start="2018-01", periods=periods, freq="M")
+        periodSerie = pd.Series(range(periods), index=index)
+        periodSerie.index.name = "Month"
+        result = periodSerie.groupby(periodSerie.index.month).sum()
+
+        expected = pd.Series(range(0, periods), index=range(1, periods + 1))
+        expected.index.name = periodSerie.index.name
+        tm.assert_series_equal(result, expected)
+
     def test_grouper_multilevel_freq(self):
 
         # GH 7885
