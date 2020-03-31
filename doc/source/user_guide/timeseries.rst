@@ -1793,7 +1793,7 @@ Use `origin` or `offset` to adjust the start of the bins
 
 .. versionadded:: 1.1.0
 
-The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed timestamp with the argument ``origin``.
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divide a day evenly (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed timestamp with the argument ``origin``.
 
 For example:
 

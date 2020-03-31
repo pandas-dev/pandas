@@ -84,8 +84,8 @@ class Grouper:
             See: :class:`DataFrame.resample`
 
     origin : pd.Timestamp, default None
-        The timestamp on which to adjust the grouping. It must be timezone
-        aware if the index of the resampled data is. If None is passed, the
+        The timestamp on which to adjust the grouping. The timezone of the
+        timestamp must match the timezone of the index. If None is passed, the
         first day of the time series at midnight is used.
 
         .. versionadded:: 1.1.0

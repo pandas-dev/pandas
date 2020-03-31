@@ -191,7 +191,7 @@ The argument ``base`` is now deprecated in favor of ``offset``. (:issue:`31809`)
     #   becomes:
     ts.resample("2711min", offset="2min").sum()
 
-The argument ``loffset`` is now deprecated. (:issue:`31809`)
+The argument ``loffset`` is now deprecated. You should now add an offset to the index DataFrame after being resampled. (:issue:`31809`)
 
 .. ipython:: python
 

@@ -1638,8 +1638,7 @@ def _validate_resample_deprecated_args(offset=None, base=None, loffset=None, **k
 
     if loffset is not None:
         warnings.warn(
-            "'loffset' in .resample() and in Grouper() is deprecated.\n"
-            "Here an example to have the same behavior than loffset:\n\n"
+            "'loffset' in .resample() and in Grouper() is deprecated.\n\n"
             '>>> df.resample(freq="3s", loffset="8H")\n'
             "\nbecomes:\n\n"
             ">>> from pandas.tseries.frequencies import to_offset\n"
@@ -1699,10 +1698,7 @@ def _get_timestamp_range_edges(
     if isinstance(freq, Tick):
         is_idx_tz_aware = first.tz is not None or last.tz is not None
         if origin is not None and origin.tz is None and is_idx_tz_aware:
-            raise ValueError(
-                "The origin must be timezone aware when the index "
-                "of the resampled data is."
-            )
+            raise ValueError("The origin must have the same timezone as the index.")
 
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
@@ -1750,8 +1746,8 @@ def _get_period_range_edges(first, last, freq, closed="left", origin=None, offse
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     origin : pd.Timestamp, default None
-        The timestamp on which to adjust the grouping. It must be timezone
-        aware if the index of the resampled data is. If None is passed, the
+        The timestamp on which to adjust the grouping. The timezone of the
+        timestamp must match the timezone of the index. If None is passed, the
         first day of the time series at midnight is used.
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.

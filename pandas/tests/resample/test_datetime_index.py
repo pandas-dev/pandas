@@ -756,7 +756,7 @@ def test_resample_origin():
 
 def test_resample_origin_with_tz():
     # GH 31809
-    msg = "The origin must be timezone aware when the index of the resampled data is."
+    msg = "The origin must have the same timezone as the index."
 
     tz = "Europe/Paris"
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s", tz=tz)
