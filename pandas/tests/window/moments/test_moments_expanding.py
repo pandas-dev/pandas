@@ -283,11 +283,11 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             lambda x: x.expanding(min_periods=5).apply(sum, raw=True),
         ],
     )
-    def test_moment_functions_zero_length(self, f):
+    def test_moment_functions_zero_length(self, f, empty_frame):
         # GH 8056
         s = Series(dtype=np.float64)
         s_expected = s
-        df1 = DataFrame()
+        df1 = empty_frame
         df1_expected = df1
         df2 = DataFrame(columns=["a"])
         df2["a"] = df2["a"].astype("float64")
@@ -309,9 +309,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
         ],
     )
-    def test_moment_functions_zero_length_pairwise(self, f):
+    def test_moment_functions_zero_length_pairwise(self, f, empty_frame):
 
-        df1 = DataFrame()
+        df1 = empty_frame
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
         df2["a"] = df2["a"].astype("float64")
 

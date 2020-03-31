@@ -121,7 +121,7 @@ def test_mangled_unnamed_placeholders(all_parsers):
 
     # This test recursively updates `df`.
     for i in range(3):
-        expected = DataFrame()
+        expected = empty_frame
 
         for j in range(i + 1):
             expected["Unnamed: 0" + ".1" * j] = [0, 1, 2]

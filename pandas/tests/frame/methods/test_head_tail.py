@@ -25,6 +25,6 @@ def test_head_tail(float_frame):
     tm.assert_frame_equal(df.head(-1), df.iloc[:-1])
     tm.assert_frame_equal(df.tail(-1), df.iloc[1:])
     # test empty dataframe
-    empty_df = DataFrame()
+    empty_df = empty_frame
     tm.assert_frame_equal(empty_df.tail(), empty_df)
     tm.assert_frame_equal(empty_df.head(), empty_df)

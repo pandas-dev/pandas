@@ -194,7 +194,7 @@ def test_multiindex_objects():
         Index([1, 2, 3]),
         Index([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
-        DataFrame(),
+        empty_frame,
         tm.makeMissingDataframe(),
         tm.makeMixedDataFrame(),
         tm.makeTimeDataFrame(),

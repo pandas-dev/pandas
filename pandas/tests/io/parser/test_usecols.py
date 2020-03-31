@@ -406,9 +406,9 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_usecols(all_parsers):
+def test_empty_usecols(all_parsers, empty_frame):
     data = "a,b,c\n1,2,3\n4,5,6"
-    expected = DataFrame()
+    expected = empty_frame
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), usecols=set())

@@ -503,7 +503,7 @@ class TestReaders:
     # GH6403
     def test_read_excel_blank(self, read_ext):
         actual = pd.read_excel("blank" + read_ext, "Sheet1")
-        tm.assert_frame_equal(actual, DataFrame())
+        tm.assert_frame_equal(actual, empty_frame)
 
     def test_read_excel_blank_with_header(self, read_ext):
         expected = DataFrame(columns=["col_1", "col_2"])

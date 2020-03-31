@@ -310,7 +310,7 @@ def test_indices_concatenation_order():
     def f2(x):
         y = x[(x.b % 2) == 1] ** 2
         if y.empty:
-            return DataFrame()
+            return empty_frame
         else:
             y = y.set_index(["b", "c"])
             return y

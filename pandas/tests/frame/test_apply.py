@@ -72,9 +72,9 @@ class TestDataFrameApply:
         result = df.apply(lambda x: x, axis=1)
         tm.assert_frame_equal(result, df)
 
-    def test_apply_empty(self, float_frame):
+    def test_apply_empty(self, float_frame, empty_frame):
         # empty
-        empty_frame = DataFrame()
+        empty_frame = empty_frame
 
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
@@ -97,10 +97,8 @@ class TestDataFrameApply:
         result = expected.apply(lambda x: x["a"], axis=1)
         tm.assert_frame_equal(expected, result)
 
-    def test_apply_with_reduce_empty(self):
+    def test_apply_with_reduce_empty(self, empty_frame):
         # reduce with an empty DataFrame
-        empty_frame = DataFrame()
-
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type="expand")
         tm.assert_frame_equal(result, empty_frame)
@@ -740,7 +738,7 @@ class TestInferOutputShape:
         result = df.apply(np.fft.rfft, axis=0)
         assert result.shape == (6, 2)
 
-    def test_with_dictlike_columns(self):
+    def test_with_dictlike_columns(self, empty_frame):
         # GH 17602
         df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         result = df.apply(lambda x: {"s": x["a"] + x["b"]}, axis=1)
@@ -760,7 +758,7 @@ class TestInferOutputShape:
         tm.assert_series_equal(result, expected)
 
         # GH 18775
-        df = DataFrame()
+        df = empty_frame
         df["author"] = ["X", "Y", "Z"]
         df["publisher"] = ["BBC", "NBC", "N24"]
         df["date"] = pd.to_datetime(
@@ -1365,7 +1363,7 @@ class TestDataFrameAggregate:
         "df, func, expected",
         chain(
             tm.get_cython_table_params(
-                DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
+                empty_frame, [("cumprod", empty_frame), ("cumsum", empty_frame)]
             ),
             tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),

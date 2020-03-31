@@ -1450,11 +1450,11 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
             assert result.dtypes[0] == np.dtype("f8")
 
-    def test_moment_functions_zero_length(self):
+    def test_moment_functions_zero_length(self, empty_frame):
         # GH 8056
         s = Series(dtype=np.float64)
         s_expected = s
-        df1 = DataFrame()
+        df1 = empty_frame
         df1_expected = df1
         df2 = DataFrame(columns=["a"])
         df2["a"] = df2["a"].astype("float64")
@@ -1493,9 +1493,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                 # scipy needed for rolling_window
                 continue
 
-    def test_moment_functions_zero_length_pairwise(self):
+    def test_moment_functions_zero_length_pairwise(self, empty_frame):
 
-        df1 = DataFrame()
+        df1 = empty_frame
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
         df2["a"] = df2["a"].astype("float64")
 

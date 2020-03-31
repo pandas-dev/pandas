@@ -165,7 +165,7 @@ class TestJSONNormalize:
 
     def test_empty_array(self):
         result = json_normalize([])
-        expected = DataFrame()
+        expected = empty_frame
         tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):

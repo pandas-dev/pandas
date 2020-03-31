@@ -247,11 +247,11 @@ class TestRolling(Base):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("roller", ["1s", 1])
-    def tests_empty_df_rolling(self, roller):
+    def tests_empty_df_rolling(self, roller, empty_frame):
         # GH 15819 Verifies that datetime and integer rolling windows can be
         # applied to empty DataFrames
-        expected = DataFrame()
-        result = DataFrame().rolling(roller).sum()
+        expected = empty_frame
+        result = empty_frame.rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
         # Verifies that datetime and integer rolling windows can be applied to

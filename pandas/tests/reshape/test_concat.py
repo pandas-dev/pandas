@@ -795,8 +795,8 @@ class TestAppend:
             mixed_appended2.reindex(columns=["A", "B", "C", "D"]),
         )
 
-    def test_append_empty(self, float_frame):
-        empty = DataFrame()
+    def test_append_empty(self, empty_frame, float_frame):
+        empty = empty_frame
 
         appended = float_frame.append(empty)
         tm.assert_frame_equal(float_frame, appended)
@@ -1507,7 +1507,7 @@ class TestConcatenate:
         # it works
         concat([df1, df2], sort=sort)
 
-    def test_handle_empty_objects(self, sort):
+    def test_handle_empty_objects(self, sort, empty_frame):
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
 
         baz = df[:5].copy()
@@ -1528,7 +1528,7 @@ class TestConcatenate:
         df = DataFrame(
             dict(A=range(10000)), index=date_range("20130101", periods=10000, freq="s")
         )
-        empty = DataFrame()
+        empty = empty_frame
         result = concat([df, empty], axis=1)
         tm.assert_frame_equal(result, df)
         result = concat([empty, df], axis=1)

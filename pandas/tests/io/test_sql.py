@@ -877,7 +877,7 @@ class _TestSQLApi(PandasSQLTest):
         constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
         assert constraint_sentence in create_sql
 
-    def test_chunksize_read(self):
+    def test_chunksize_read(self, empty_frame):
         df = DataFrame(np.random.randn(22, 5), columns=list("abcde"))
         df.to_sql("test_chunksize", self.conn, index=False)
 
@@ -885,7 +885,7 @@ class _TestSQLApi(PandasSQLTest):
         res1 = sql.read_sql_query("select * from test_chunksize", self.conn)
 
         # reading the query in chunks with read_sql_query
-        res2 = DataFrame()
+        res2 = empty_frame
         i = 0
         sizes = [5, 5, 5, 5, 2]
 
@@ -900,7 +900,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # reading the query in chunks with read_sql_query
         if self.mode == "sqlalchemy":
-            res3 = DataFrame()
+            res3 = empty_frame
             i = 0
             sizes = [5, 5, 5, 5, 2]
 

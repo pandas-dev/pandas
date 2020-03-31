@@ -117,8 +117,8 @@ class TestDataFrameMisc:
             assert key not in dir(df)
         assert isinstance(df.__getitem__("A"), pd.DataFrame)
 
-    def test_not_hashable(self):
-        empty_frame = DataFrame()
+    def test_not_hashable(self, empty_frame):
+        empty_frame = empty_frame
 
         df = DataFrame([1])
         msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
@@ -161,8 +161,8 @@ class TestDataFrameMisc:
         with pytest.raises(ValueError, match=msg):
             float_frame._get_agg_axis(2)
 
-    def test_nonzero(self, float_frame, float_string_frame):
-        empty_frame = DataFrame()
+    def test_nonzero(self, float_frame, float_string_frame, empty_frame):
+        empty_frame = empty_frame
         assert empty_frame.empty
 
         assert not float_frame.empty
@@ -414,7 +414,7 @@ class TestDataFrameMisc:
         for k, v in series.items():
             assert v.name == k
 
-    def test_empty_nonzero(self):
+    def test_empty_nonzero(self, empty_frame):
         df = DataFrame([1, 2, 3])
         assert not df.empty
         df = DataFrame(index=[1], columns=[1])
@@ -423,7 +423,7 @@ class TestDataFrameMisc:
         assert df.empty
         assert df.T.empty
         empty_frames = [
-            DataFrame(),
+            empty_frame,
             DataFrame(index=[1]),
             DataFrame(columns=[1]),
             DataFrame({1: []}),

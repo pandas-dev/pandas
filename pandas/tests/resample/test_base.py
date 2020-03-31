@@ -81,9 +81,9 @@ def test_resample_interpolate(frame):
     )
 
 
-def test_raises_on_non_datetimelike_index():
+def test_raises_on_non_datetimelike_index(empty_frame):
     # this is a non datetimelike index
-    xp = DataFrame()
+    xp = empty_frame
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
         "but got an instance of 'Index'"

@@ -63,12 +63,12 @@ class TestExpanding(Base):
             ),
         ],
     )
-    def test_empty_df_expanding(self, expander):
+    def test_empty_df_expanding(self, expander, empty_frame):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
 
-        expected = DataFrame()
-        result = DataFrame().expanding(expander).sum()
+        expected = empty_frame
+        result = empty_frame.expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
 
         # Verifies that datetime and integer expanding windows can be applied

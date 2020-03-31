@@ -77,8 +77,8 @@ class TestDataFrameConstructors:
             lambda: DataFrame(data=range(0)),
         ],
     )
-    def test_empty_constructor(self, constructor):
-        expected = DataFrame()
+    def test_empty_constructor(self, constructor, empty_frame):
+        expected = empty_frame
         result = constructor()
         assert len(result.index) == 0
         assert len(result.columns) == 0
@@ -1648,7 +1648,7 @@ class TestDataFrameConstructors:
         with pytest.raises(TypeError, match=msg):
             DataFrame("a", [1, 2], ["a", "c"], float)
 
-    def test_constructor_with_datetimes(self):
+    def test_constructor_with_datetimes(self, empty_frame):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
         datetime64name = np.dtype("M8[ns]").name
@@ -1774,7 +1774,7 @@ class TestDataFrameConstructors:
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
 
         expected = DataFrame({"a": i.to_series().reset_index(drop=True)})
-        df = DataFrame()
+        df = empty_frame
         df["a"] = i
         tm.assert_frame_equal(df, expected)
 

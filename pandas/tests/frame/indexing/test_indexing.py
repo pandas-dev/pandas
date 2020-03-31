@@ -32,7 +32,7 @@ _slice_msg = "slice indices must be integers or None or have an __index__ method
 
 
 class TestGet:
-    def test_get(self, float_frame):
+    def test_get(self, empty_frame, float_frame):
         b = float_frame.get("B")
         tm.assert_series_equal(b, float_frame["B"])
 
@@ -44,7 +44,7 @@ class TestGet:
     @pytest.mark.parametrize(
         "df",
         [
-            DataFrame(),
+            empty_frame,
             DataFrame(columns=list("AB")),
             DataFrame(columns=list("AB"), index=range(3)),
         ],
@@ -840,9 +840,9 @@ class TestDataFrameIndexing:
         expected = pd.DataFrame(columns=["A"], index=index)
         tm.assert_index_equal(result.index, expected.index)
 
-    def test_setitem_scalars_no_index(self):
+    def test_setitem_scalars_no_index(self, empty_frame):
         # GH16823 / 17894
-        df = DataFrame()
+        df = empty_frame
         df["foo"] = 1
         expected = DataFrame(columns=["foo"]).astype(np.int64)
         tm.assert_frame_equal(df, expected)
@@ -1664,12 +1664,12 @@ class TestDataFrameIndexing:
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
 
-    def test_reindex_subclass(self):
+    def test_reindex_subclass(self, empty_frame):
         # https://github.com/pandas-dev/pandas/issues/31925
         class MyDataFrame(DataFrame):
             pass
 
-        expected = DataFrame()
+        expected = empty_frame
         df = MyDataFrame()
         result = df.reindex_like(expected)
 

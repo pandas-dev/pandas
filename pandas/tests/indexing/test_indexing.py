@@ -150,7 +150,7 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
-    def test_inf_upcast(self):
+    def test_inf_upcast(self, empty_frame):
         # GH 16957
         # We should be able to use np.inf as a key
         # np.inf should cause an index to convert to float
@@ -169,7 +169,7 @@ class TestFancy:
         tm.assert_index_equal(result, expected)
 
         # Test with np.inf in columns
-        df = DataFrame()
+        df = empty_frame
         df.loc[0, 0] = 1
         df.loc[1, 1] = 2
         df.loc[0, np.inf] = 3
@@ -554,7 +554,7 @@ class TestFancy:
 
         tm.assert_frame_equal(result, df)
 
-    def test_string_slice(self):
+    def test_string_slice(self, empty_frame):
         # GH 14424
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
@@ -566,7 +566,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
-        df = DataFrame()
+        df = empty_frame
         assert not df.index.is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]

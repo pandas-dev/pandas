@@ -236,7 +236,7 @@ class TestDatetimeIndex:
     def test_append_numpy_bug_1681(self):
         # another datetime64 bug
         dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
-        a = DataFrame()
+        a = empty_frame
         c = DataFrame({"A": "foo", "B": dr}, index=dr)
 
         result = a.append(c)

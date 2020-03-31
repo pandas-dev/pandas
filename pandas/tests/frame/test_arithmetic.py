@@ -958,7 +958,7 @@ class TestFrameArithmeticUnsorted:
         exp = DataFrame({"A": [np.nan, 3, np.nan]}, index=base)
         tm.assert_frame_equal(df1 + df2, exp)
 
-    def test_combineFrame(self, float_frame, mixed_float_frame, mixed_int_frame):
+    def test_combineFrame(self, empty_frame, float_frame, mixed_float_frame, mixed_int_frame):
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]
@@ -990,13 +990,13 @@ class TestFrameArithmeticUnsorted:
         # corner cases
 
         # empty
-        plus_empty = float_frame + DataFrame()
+        plus_empty = float_frame + empty_frame
         assert np.isnan(plus_empty.values).all()
 
-        empty_plus = DataFrame() + float_frame
+        empty_plus = empty_frame + float_frame
         assert np.isnan(empty_plus.values).all()
 
-        empty_empty = DataFrame() + DataFrame()
+        empty_empty = empty_frame + empty_frame
         assert empty_empty.empty
 
         # out of order
@@ -1106,7 +1106,7 @@ class TestFrameArithmeticUnsorted:
         result = frame.mul(ts, axis="index")
         assert len(result) == len(ts)
 
-    def test_combineFunc(self, float_frame, mixed_float_frame):
+    def test_combineFunc(self, empty_frame, float_frame, mixed_float_frame):
         result = float_frame * 2
         tm.assert_numpy_array_equal(result.values, float_frame.values * 2)
 
@@ -1116,7 +1116,7 @@ class TestFrameArithmeticUnsorted:
             tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
 
-        result = DataFrame() * 2
+        result = empty_frame * 2
         assert result.index.equals(DataFrame().index)
         assert len(result.columns) == 0
 
