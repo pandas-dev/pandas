@@ -80,14 +80,19 @@ class Preprocessors:
         posts = []
         # posts from the file system
         if context["blog"]["posts_path"]:
-            posts_path = os.path.join(context["source_path"],
-                                      *context["blog"]["posts_path"].split("/"))
+            posts_path = os.path.join(
+                context["source_path"], *context["blog"]["posts_path"].split("/")
+            )
             for fname in os.listdir(posts_path):
                 if fname.startswith("index."):
                     continue
-                link = (f"/{context['blog']['posts_path']}"
-                        f"/{os.path.splitext(fname)[0]}.html")
-                md = markdown.Markdown(extensions=context["main"]["markdown_extensions"])
+                link = (
+                    f"/{context['blog']['posts_path']}"
+                    f"/{os.path.splitext(fname)[0]}.html"
+                )
+                md = markdown.Markdown(
+                    extensions=context["main"]["markdown_extensions"]
+                )
                 with open(os.path.join(posts_path, fname)) as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
@@ -95,13 +100,17 @@ class Preprocessors:
                 try:
                     body_position = summary.index(title) + len(title)
                 except ValueError:
-                    raise ValueError(f'Blog post {fname} should have a markdown header corresponding to its "Title" element "{title}"')
+                    raise ValueError(
+                        f'Blog post {fname} should have a markdown header corresponding to its "Title" element "{title}"'
+                    )
                 summary = " ".join(summary[body_position:].split(" ")[:30])
                 posts.append(
                     {
                         "title": title,
                         "author": context["blog"]["author"],
-                        "published": datetime.datetime.strptime(md.Meta["date"][0], "%Y-%m-%d"),
+                        "published": datetime.datetime.strptime(
+                            md.Meta["date"][0], "%Y-%m-%d"
+                        ),
                         "feed": context["blog"]["feed_name"],
                         "link": link,
                         "description": summary,
