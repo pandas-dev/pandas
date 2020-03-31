@@ -1519,23 +1519,25 @@ def test_quantile_missing_group_values_correct_results():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("q", [0.5, [0.25, 0.5, 0.75]])
-def test_groupby_quantile_nullable_integer(q):
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([1, 0, None] * 2, dtype="Int64"),
+        pd.array([True, False, None] * 2, dtype="boolean"),
+    ],
+)
+@pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
+def test_groupby_quantile_nullable_array(values, q):
     # https://github.com/pandas-dev/pandas/issues/33136
-    values = np.arange(100, dtype=float)
-    values[::3] = np.nan
-
-    df = pd.DataFrame(
-        {"a": ["x"] * 100 + ["y"] * 100, "b": pd.array(list(values) * 2, dtype="Int64")}
-    )
+    df = pd.DataFrame({"a": ["x"] * 3 + ["y"] * 3, "b": values})
     result = df.groupby("a")["b"].quantile(q)
 
     if isinstance(q, list):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
-        true_quantiles = [25.25, 49.5, 73.75]
+        true_quantiles = [0.0, 0.5, 1.0]
     else:
         idx = pd.Index(["x", "y"], name="a")
-        true_quantiles = [49.5]
+        true_quantiles = [0.5]
 
     expected = pd.Series(true_quantiles * 2, index=idx, name="b")
     tm.assert_series_equal(result, expected)
