@@ -1051,7 +1051,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                             bint is_max):
     cdef:
         numeric ai
-        int64_t i, k, close_offset, curr_win_size
+        int64_t i, close_offset, curr_win_size
         Py_ssize_t nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
@@ -1088,14 +1088,12 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
         # first window's size
         curr_win_size = endi[0] - starti[0]
 
-        k = 0
         for i in range(endi[0], endi[N-1]):
             if not Q.empty() and curr_win_size > 0:
-                output[k] = calc_mm(
+                output[i-1+close_offset] = calc_mm(
                     minp, nobs, values[Q.front()])
             else:
-                output[k] = NaN
-            k += 1
+                output[i-1+close_offset] = NaN
 
             ai = init_mm(values[i], &nobs, is_max)
 
@@ -1121,9 +1119,9 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
             W.push_back(i)
 
         if not Q.empty() and curr_win_size > 0:
-            output[k] = calc_mm(minp, nobs, values[Q.front()])
+            output[N-1] = calc_mm(minp, nobs, values[Q.front()])
         else:
-            output[k] = NaN
+            output[N-1] = NaN
 
     return output
 
