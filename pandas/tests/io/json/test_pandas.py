@@ -16,11 +16,9 @@ from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
 import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
-_tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 
-_tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
 cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
 _cat_frame.index = pd.CategoricalIndex(cat, name="E")
@@ -42,13 +40,11 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
         yield
 
-        del self.tsframe
         del self.mixed_frame
 
     def test_frame_double_encoded_labels(self, orient):
@@ -233,13 +229,13 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_timestamp(self, orient, convert_axes, numpy):
+    def test_roundtrip_timestamp(self, orient, convert_axes, numpy, datetime_frame):
         # TODO: improve coverage with date_format parameter
-        data = self.tsframe.to_json(orient=orient)
+        data = datetime_frame.to_json(orient=orient)
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
-        expected = self.tsframe.copy()
+        expected = datetime_frame.copy()
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
@@ -727,23 +723,23 @@ class TestPandasContainer:
         result = read_json(df.to_json())
         tm.assert_frame_equal(result, df)
 
-    def test_path(self, float_frame, int_frame):
+    def test_path(self, float_frame, int_frame, datetime_frame):
         with tm.ensure_clean("test.json") as path:
             for df in [
                 float_frame,
                 int_frame,
-                self.tsframe,
+                datetime_frame,
                 self.mixed_frame,
             ]:
                 df.to_json(path)
                 read_json(path)
 
-    def test_axis_dates(self, datetime_series):
+    def test_axis_dates(self, datetime_series, datetime_frame):
 
         # frame
-        json = self.tsframe.to_json()
+        json = datetime_frame.to_json()
         result = read_json(json)
-        tm.assert_frame_equal(result, self.tsframe)
+        tm.assert_frame_equal(result, datetime_frame)
 
         # series
         json = datetime_series.to_json()
@@ -751,10 +747,10 @@ class TestPandasContainer:
         tm.assert_series_equal(result, datetime_series, check_names=False)
         assert result.name is None
 
-    def test_convert_dates(self, datetime_series):
+    def test_convert_dates(self, datetime_series, datetime_frame):
 
         # frame
-        df = self.tsframe.copy()
+        df = datetime_frame
         df["date"] = Timestamp("20130101")
 
         json = df.to_json()
@@ -834,8 +830,8 @@ class TestPandasContainer:
             ("20130101 20:43:42.123456789", "ns"),
         ],
     )
-    def test_date_format_frame(self, date, date_unit):
-        df = self.tsframe.copy()
+    def test_date_format_frame(self, date, date_unit, datetime_frame):
+        df = datetime_frame
 
         df["date"] = Timestamp(date)
         df.iloc[1, df.columns.get_loc("date")] = pd.NaT
@@ -850,8 +846,8 @@ class TestPandasContainer:
         expected["date"] = expected["date"].dt.tz_localize("UTC")
         tm.assert_frame_equal(result, expected)
 
-    def test_date_format_frame_raises(self):
-        df = self.tsframe.copy()
+    def test_date_format_frame_raises(self, datetime_frame):
+        df = datetime_frame
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
             df.to_json(date_format="iso", date_unit="foo")
@@ -887,8 +883,8 @@ class TestPandasContainer:
             ts.to_json(date_format="iso", date_unit="foo")
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-    def test_date_unit(self, unit):
-        df = self.tsframe.copy()
+    def test_date_unit(self, unit, datetime_frame):
+        df = datetime_frame
         df["date"] = Timestamp("20130101 20:43:42")
         dl = df.columns.get_loc("date")
         df.iloc[1, dl] = Timestamp("19710101 20:43:42")
