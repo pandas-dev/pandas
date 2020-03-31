@@ -163,7 +163,7 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_empty_array(self):
+    def test_empty_array(self, empty_frame):
         result = json_normalize([])
         expected = empty_frame
         tm.assert_frame_equal(result, expected)

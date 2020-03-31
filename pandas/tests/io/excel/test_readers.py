@@ -501,7 +501,7 @@ class TestReaders:
         tm.assert_contains_all(expected_keys, dfs.keys())
 
     # GH6403
-    def test_read_excel_blank(self, read_ext):
+    def test_read_excel_blank(self, read_ext, empty_frame):
         actual = pd.read_excel("blank" + read_ext, "Sheet1")
         tm.assert_frame_equal(actual, empty_frame)
 

@@ -649,7 +649,7 @@ def test_gb_apply_list_of_unequal_len_arrays():
     df_grouped.apply(lambda x: noddy(x.value, x.weight))
 
 
-def test_groupby_apply_all_none():
+def test_groupby_apply_all_none(empty_frame):
     # Tests to make sure no errors if apply function returns all None
     # values. Issue 9684.
     test_df = DataFrame({"groups": [0, 0, 1, 1], "random_vars": [8, 7, 4, 5]})

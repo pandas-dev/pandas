@@ -45,7 +45,7 @@ class TestDataFrameReprInfoEtc:
 
         repr(biggie)
 
-    def test_repr(self, float_frame):
+    def test_repr(self, empty_frame, float_frame):
         buf = StringIO()
 
         # small one

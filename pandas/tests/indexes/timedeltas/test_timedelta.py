@@ -168,7 +168,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
-    def test_append_numpy_bug_1681(self):
+    def test_append_numpy_bug_1681(self, empty_frame):
 
         td = timedelta_range("1 days", "10 days", freq="2D")
         a = empty_frame

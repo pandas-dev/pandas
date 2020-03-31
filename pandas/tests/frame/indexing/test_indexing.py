@@ -44,7 +44,7 @@ class TestGet:
     @pytest.mark.parametrize(
         "df",
         [
-            empty_frame,
+            DataFrame(),
             DataFrame(columns=list("AB")),
             DataFrame(columns=list("AB"), index=range(3)),
         ],

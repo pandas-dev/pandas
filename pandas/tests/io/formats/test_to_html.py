@@ -716,7 +716,7 @@ def test_ignore_display_max_colwidth(method, expected, max_colwidth):
 
 
 @pytest.mark.parametrize("classes", [True, 0])
-def test_to_html_invalid_classes_type(classes):
+def test_to_html_invalid_classes_type(classes, empty_frame):
     # GH 25608
     df = empty_frame
     msg = "classes must be a string, list, or tuple"

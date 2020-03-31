@@ -344,8 +344,7 @@ class TestDataFrameBlockInternals:
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = empty_frame
+    def test_pickle(self, empty_frame, float_string_frame, timezone_frame):
 
         unpickled = tm.round_trip_pickle(float_string_frame)
         tm.assert_frame_equal(float_string_frame, unpickled)

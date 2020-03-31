@@ -111,7 +111,7 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
         parser.read_csv(StringIO(data), names=names)
 
 
-def test_mangled_unnamed_placeholders(all_parsers):
+def test_mangled_unnamed_placeholders(all_parsers, empty_frame):
     # xref gh-13017
     orig_key = "0"
     parser = all_parsers

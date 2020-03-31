@@ -50,7 +50,7 @@ class TestDataFrameReshape:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot("a", "b", "c")
 
-    def test_pivot_empty(self):
+    def test_pivot_empty(self, empty_frame):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")
         expected = empty_frame

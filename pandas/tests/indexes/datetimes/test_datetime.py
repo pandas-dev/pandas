@@ -233,7 +233,7 @@ class TestDatetimeIndex:
         result = monthly_group.mean()
         assert isinstance(result.index[0], tuple)
 
-    def test_append_numpy_bug_1681(self):
+    def test_append_numpy_bug_1681(self, empty_frame):
         # another datetime64 bug
         dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
         a = empty_frame

@@ -1926,7 +1926,7 @@ class TestStringMethods:
         table = str.maketrans("a", "b")
         tm.assert_series_equal(empty_str, empty.str.translate(table))
 
-    def test_empty_str_methods_to_frame(self):
+    def test_empty_str_methods_to_frame(self, empty_frame):
         empty = Series(dtype=str)
         empty_df = empty_frame
         tm.assert_frame_equal(empty_df, empty.str.partition("a"))

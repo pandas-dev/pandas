@@ -198,7 +198,7 @@ class TestDatetimeIndex:
         df.loc[mask, "C"] = df.loc[mask].index
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_datetime(self):
+    def test_loc_setitem_datetime(self, empty_frame):
 
         # GH 9516
         dt1 = Timestamp("20130101 09:00:00")

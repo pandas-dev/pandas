@@ -7,7 +7,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameRound:
-    def test_round(self):
+    def test_round(self, empty_frame):
         # GH#2665
 
         # Test that rounding an empty DataFrame does nothing

@@ -34,7 +34,7 @@ class Base:
         "multi",
     }
 
-    def setup_method(self, method):
+    def setup_method(self, method, empty_frame):
 
         self.series_ints = Series(np.random.rand(4), index=np.arange(0, 8, 2))
         self.frame_ints = DataFrame(

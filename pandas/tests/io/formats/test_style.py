@@ -116,7 +116,7 @@ class TestStyler:
         s.render()
         # it worked?
 
-    def test_render_empty_dfs(self):
+    def test_render_empty_dfs(self, empty_frame):
         empty_df = empty_frame
         es = Styler(empty_df)
         es.render()

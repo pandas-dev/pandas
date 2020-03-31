@@ -4,7 +4,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-def test_head_tail(float_frame):
+def test_head_tail(empty_frame, float_frame):
     tm.assert_frame_equal(float_frame.head(), float_frame[:5])
     tm.assert_frame_equal(float_frame.tail(), float_frame[-5:])
 

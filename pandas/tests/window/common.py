@@ -148,7 +148,7 @@ def _create_consistency_data():
 
     def create_dataframes():
         return [
-            empty_frame,
+            DataFrame(),
             DataFrame(columns=["a"]),
             DataFrame(columns=["a", "a"]),
             DataFrame(columns=["a", "b"]),

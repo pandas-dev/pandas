@@ -375,7 +375,7 @@ class TestJoin:
         expected = _join_by_hand(df1, df2)
         tm.assert_frame_equal(joined, expected)
 
-    def test_join_empty_bug(self):
+    def test_join_empty_bug(self, empty_frame):
         # generated an exception in 0.4.3
         x = empty_frame
         x.join(DataFrame([3], index=[0], columns=["A"]), how="outer")

@@ -171,7 +171,7 @@ class TestDataFrameIsIn:
         result = df1.isin(df2)
         tm.assert_frame_equal(result, expected)
 
-    def test_isin_empty_datetimelike(self):
+    def test_isin_empty_datetimelike(self, empty_frame):
         # GH#15473
         df1_ts = DataFrame({"date": pd.to_datetime(["2014-01-01", "2014-01-02"])})
         df1_td = DataFrame({"date": [pd.Timedelta(1, "s"), pd.Timedelta(2, "s")]})

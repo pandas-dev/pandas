@@ -165,7 +165,7 @@ class TestDataFrameMissingData:
         with pytest.raises(TypeError, match="supplying multiple axes"):
             inp.dropna(how="all", axis=(0, 1), inplace=True)
 
-    def test_dropna_tz_aware_datetime(self):
+    def test_dropna_tz_aware_datetime(self, empty_frame):
         # GH13407
         df = empty_frame
         dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())

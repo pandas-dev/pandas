@@ -24,7 +24,7 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    def test_combine_first(self, float_frame):
+    def test_combine_first(self, empty_frame, float_frame):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 

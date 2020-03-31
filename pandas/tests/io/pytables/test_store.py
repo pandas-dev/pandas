@@ -2388,7 +2388,7 @@ class TestHDFStore:
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
 
     @td.xfail_non_writeable
-    def test_empty_series_frame(self, setup_path):
+    def test_empty_series_frame(self, setup_path, empty_frame):
         s0 = Series(dtype=object)
         s1 = Series(name="myseries", dtype=object)
         df0 = empty_frame

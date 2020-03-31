@@ -199,7 +199,7 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
-def test_aggregate_item_by_item(df):
+def test_aggregate_item_by_item(df, empty_frame):
     grouped = df.groupby("A")
 
     aggfun = lambda ser: ser.size
