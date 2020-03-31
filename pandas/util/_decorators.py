@@ -245,7 +245,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+class doc:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -265,37 +265,36 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         The string which would be used to format docstring template.
     """
 
-    def decorator(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable:
-            return func(*args, **kwargs)
+    def __init__(self, *args: Union[str, Callable], **kwargs: str) -> None:
+        self.appenders = args
+        self.substitution = kwargs
 
+    def __call__(self, func: F) -> F:
         # collecting docstring and docstring templates
         docstring_components: List[Union[str, Callable]] = []
         if func.__doc__:
             docstring_components.append(dedent(func.__doc__))
 
-        for arg in args:
-            if hasattr(arg, "_docstring_components"):
-                docstring_components.extend(arg._docstring_components)  # type: ignore
-            elif isinstance(arg, str) or arg.__doc__:
-                docstring_components.append(arg)
+        for appender in self.appenders:
+            if hasattr(appender, "_docstring_components"):
+                docstring_components.extend(
+                    appender._docstring_components  # type: ignore
+                )
+            elif isinstance(appender, str) or appender.__doc__:
+                docstring_components.append(appender)
 
         # formatting templates and concatenating docstring
-        wrapper.__doc__ = "".join(
+        func.__doc__ = "".join(
             [
-                arg.format(**kwargs)
-                if isinstance(arg, str)
-                else dedent(arg.__doc__ or "")
-                for arg in docstring_components
+                component.format(**self.substitution)
+                if isinstance(component, str)
+                else dedent(component.__doc__ or "")
+                for component in docstring_components
             ]
         )
 
-        wrapper._docstring_components = docstring_components  # type: ignore
-
-        return cast(F, wrapper)
-
-    return decorator
+        func._docstring_components = docstring_components  # type: ignore
+        return func
 
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
