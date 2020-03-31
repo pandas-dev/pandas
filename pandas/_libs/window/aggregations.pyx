@@ -1051,7 +1051,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                             bint is_max):
     cdef:
         numeric ai
-        int64_t i, k, close_offset, curr_win_size
+        int64_t i, k, close_offset, curr_win_size, start
         Py_ssize_t nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
@@ -1088,14 +1088,15 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
         # GH 32865
         # Anchor output index to values index to provide custom
         # BaseIndexer support
-        for i in range(1, N):
-            if not Q.empty() and curr_win_size > 0:
-                output[i - 1] = calc_mm(minp, nobs, values[Q.front()])
-            else:
-                output[i - 1] = NaN
+        for i in range(N):
 
             curr_win_size = endi[i] - starti[i]
-            for k in range(endi[i - 1], endi[i]):
+            if i == 0:
+                start = starti[i]
+            else:
+                start = endi[i - 1]
+
+            for k in range(start, endi[i]):
                 ai = init_mm(values[k], &nobs, is_max)
                 # Discard previous entries if we find new min or max
                 if is_max:
@@ -1116,10 +1117,11 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                 remove_mm(values[W.front()], &nobs)
                 W.pop_front()
 
-        if not Q.empty() and curr_win_size > 0:
-            output[N-1] = calc_mm(minp, nobs, values[Q.front()])
-        else:
-            output[N-1] = NaN
+            # Save output based on index in input value array
+            if not Q.empty() and curr_win_size > 0:
+                output[i] = calc_mm(minp, nobs, values[Q.front()])
+            else:
+                output[i] = NaN
 
     return output
 
