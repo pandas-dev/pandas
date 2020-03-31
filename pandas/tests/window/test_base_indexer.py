@@ -83,7 +83,7 @@ def test_win_type_not_implemented():
 
 
 @pytest.mark.parametrize(
-    "func", ["min", "max", "std", "var", "count", "skew", "cov", "corr"]
+    "func", ["std", "var", "count", "skew", "cov", "corr"]
 )
 def test_notimplemented_functions(func):
     # GH 32865
