@@ -31,29 +31,6 @@ from pandas.tseries.offsets import BDay
 _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
-class TestGet:
-    def test_get(self, empty_frame, float_frame):
-        b = float_frame.get("B")
-        tm.assert_series_equal(b, float_frame["B"])
-
-        assert float_frame.get("foo") is None
-        tm.assert_series_equal(
-            float_frame.get("foo", float_frame["B"]), float_frame["B"]
-        )
-
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
-        ],
-    )
-    def test_get_none(self, df):
-        # see gh-5652
-        assert df.get(None) is None
-
-
 class TestDataFrameIndexing:
     def test_getitem(self, float_frame):
         # Slicing
@@ -1639,11 +1616,6 @@ class TestDataFrameIndexing:
         actual = df.reindex(target, method=method)
         tm.assert_frame_equal(expected, actual)
 
-        actual = df.reindex_like(df, method=method, tolerance=0)
-        tm.assert_frame_equal(df, actual)
-        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-        tm.assert_frame_equal(df, actual)
-
         actual = df.reindex(target, method=method, tolerance=1)
         tm.assert_frame_equal(expected, actual)
         actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
@@ -1663,17 +1635,6 @@ class TestDataFrameIndexing:
         )
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
-
-    def test_reindex_subclass(self, empty_frame):
-        # https://github.com/pandas-dev/pandas/issues/31925
-        class MyDataFrame(DataFrame):
-            pass
-
-        expected = empty_frame
-        df = MyDataFrame()
-        result = df.reindex_like(expected)
-
-        tm.assert_frame_equal(result, expected)
 
     def test_reindex_methods_nearest_special(self):
         df = pd.DataFrame({"x": list(range(5))})
