@@ -658,7 +658,7 @@ def test_groupby_apply_all_none():
         pass
 
     result = test_df.groupby("groups").apply(test_func)
-    expected = DataFrame()
+    expected= empty_frame()
     tm.assert_frame_equal(result, expected)
 
 

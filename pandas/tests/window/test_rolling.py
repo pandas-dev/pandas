@@ -250,8 +250,8 @@ class TestRolling(Base):
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be
         # applied to empty DataFrames
-        expected = DataFrame()
-        result = DataFrame().rolling(roller).sum()
+        expected= empty_frame()
+        result= empty_frame().rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
         # Verifies that datetime and integer rolling windows can be applied to

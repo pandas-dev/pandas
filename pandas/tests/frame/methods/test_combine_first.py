@@ -73,7 +73,7 @@ class TestDataFrameCombineFirst:
         comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
-        comb = DataFrame().combine_first(float_frame)
+        comb= empty_frame().combine_first(float_frame)
         tm.assert_frame_equal(comb, float_frame)
 
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))

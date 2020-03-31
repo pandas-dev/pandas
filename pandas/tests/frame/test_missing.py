@@ -167,7 +167,7 @@ class TestDataFrameMissingData:
 
     def test_dropna_tz_aware_datetime(self):
         # GH13407
-        df = DataFrame()
+        df= empty_frame()
         dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())
         dt2 = datetime.datetime(2015, 2, 2, tzinfo=dateutil.tz.tzutc())
         df["Time"] = [dt1]

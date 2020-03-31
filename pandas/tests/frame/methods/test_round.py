@@ -11,7 +11,7 @@ class TestDataFrameRound:
         # GH#2665
 
         # Test that rounding an empty DataFrame does nothing
-        df = DataFrame()
+        df= empty_frame()
         tm.assert_frame_equal(df, df.round())
 
         # Here's the test frame we'll be working with

@@ -176,7 +176,7 @@ class TestDataFrameIsIn:
         df1_ts = DataFrame({"date": pd.to_datetime(["2014-01-01", "2014-01-02"])})
         df1_td = DataFrame({"date": [pd.Timedelta(1, "s"), pd.Timedelta(2, "s")]})
         df2 = DataFrame({"date": []})
-        df3 = DataFrame()
+        df3= empty_frame()
 
         expected = DataFrame({"date": [False, False]})
 

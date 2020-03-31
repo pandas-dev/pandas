@@ -89,7 +89,7 @@ class Base:
         self.series_ts_rev = Series(np.random.randn(4), index=dates_rev)
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4), index=dates_rev)
 
-        self.frame_empty = DataFrame()
+        self.frame_empty= empty_frame()
         self.series_empty = Series(dtype=object)
 
         # form agglomerates

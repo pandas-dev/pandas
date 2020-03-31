@@ -118,7 +118,7 @@ class TestDataFrameMisc:
         assert isinstance(df.__getitem__("A"), pd.DataFrame)
 
     def test_not_hashable(self):
-        empty_frame = DataFrame()
+        empty_frame= empty_frame()
 
         df = DataFrame([1])
         msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
@@ -162,7 +162,7 @@ class TestDataFrameMisc:
             float_frame._get_agg_axis(2)
 
     def test_nonzero(self, float_frame, float_string_frame):
-        empty_frame = DataFrame()
+        empty_frame= empty_frame()
         assert empty_frame.empty
 
         assert not float_frame.empty

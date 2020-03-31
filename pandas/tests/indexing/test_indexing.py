@@ -169,7 +169,7 @@ class TestFancy:
         tm.assert_index_equal(result, expected)
 
         # Test with np.inf in columns
-        df = DataFrame()
+        df= empty_frame()
         df.loc[0, 0] = 1
         df.loc[1, 1] = 2
         df.loc[0, np.inf] = 3
@@ -566,7 +566,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
-        df = DataFrame()
+        df= empty_frame()
         assert not df.index.is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
