@@ -23,6 +23,7 @@ from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import operator
 import os
+from typing import List
 
 from dateutil.tz import tzlocal, tzutc
 import hypothesis
@@ -31,6 +32,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
+from pandas._typing import Dtype
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -309,7 +311,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_mapping_dict_subclass():
+def non_dict_mapping_subclass():
     """
     Fixture for a non-mapping dictionary subclass.
     """
@@ -416,6 +418,10 @@ def indices(request):
     return indices_dict[request.param].copy()
 
 
+# Needed to generate cartesian product of indices
+index_fixture2 = indices
+
+
 # ----------------------------------------------------------------
 # Series'
 # ----------------------------------------------------------------
@@ -515,6 +521,69 @@ def index_or_series_obj(request):
 # ----------------------------------------------------------------
 # DataFrames
 # ----------------------------------------------------------------
+@pytest.fixture
+def empty_frame():
+    return DataFrame()
+
+
+@pytest.fixture
+def int_frame():
+    """
+    Fixture for DataFrame of ints with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']
+
+                A  B  C  D
+    vpBeWjM651  1  0  1  0
+    5JyxmrP1En -1  0  0  0
+    qEDaoD49U2 -1  1  0  0
+    m66TkTfsFe  0  0  0  0
+    EHPaNzEUFm -1  0 -1  0
+    fpRJCevQhi  2  0  0  0
+    OlQvnmfi3Q  0  0 -2  0
+    ...        .. .. .. ..
+    uB1FPlz4uP  0  0  0  1
+    EcSe6yNzCU  0  0 -1  0
+    L50VudaiI8 -1  1 -2  0
+    y3bpw4nwIp  0 -1  0  0
+    H0RdLLwrCT  1  1  0  0
+    rY82K0vMwm  0  0  0  0
+    1OPIUjnkjk  2  0  0  0
+
+    [30 rows x 4 columns]
+    """
+    return DataFrame(tm.getSeriesData()).astype("int64")
+
+
+@pytest.fixture
+def datetime_frame():
+    """
+    Fixture for DataFrame of floats with DatetimeIndex
+
+    Columns are ['A', 'B', 'C', 'D']
+
+                       A         B         C         D
+    2000-01-03 -1.122153  0.468535  0.122226  1.693711
+    2000-01-04  0.189378  0.486100  0.007864 -1.216052
+    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
+    2000-01-06  0.430050  0.894352  0.090719  0.036939
+    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
+    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
+    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
+    ...              ...       ...       ...       ...
+    2000-02-03  1.642618 -0.579288  0.046005  1.385249
+    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
+    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
+    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
+    2000-02-09  1.377373  0.398619  1.008453 -0.928207
+    2000-02-10  0.473194 -0.636677  0.984058  0.511519
+    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
+
+    [30 rows x 4 columns]
+    """
+    return DataFrame(tm.getTimeSeriesData())
+
+
 @pytest.fixture
 def float_frame():
     """
@@ -798,14 +867,14 @@ def utc_fixture(request):
 
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
 SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
-FLOAT_DTYPES = [float, "float32", "float64"]
-COMPLEX_DTYPES = [complex, "complex64", "complex128"]
-STRING_DTYPES = [str, "str", "U"]
+FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
 DATETIME64_DTYPES = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES = ["timedelta64[ns]", "m8[ns]"]

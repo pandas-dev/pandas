@@ -272,7 +272,7 @@ the right thing:
 
 .. _reshaping.melt:
 
-Reshaping by Melt
+Reshaping by melt
 -----------------
 
 .. image:: ../_static/reshaping_melt.png
