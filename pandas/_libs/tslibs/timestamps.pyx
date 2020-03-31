@@ -5,8 +5,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from datetime import time as datetime_time, timedelta
-from cpython.datetime cimport (datetime, PyDateTime_Check,
+from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
                                PyTZInfo_Check, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
@@ -33,7 +32,7 @@ from pandas._libs.tslibs.tzconversion import (
 
 # ----------------------------------------------------------------------
 # Constants
-_zero_time = datetime_time(0, 0)
+_zero_time = time(0, 0)
 _no_input = object()
 
 # ----------------------------------------------------------------------
@@ -879,8 +878,7 @@ default 'raise'
             raise ValueError('Cannot infer offset with only one time.')
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
-        if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, timedelta):
+        if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
                 "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"

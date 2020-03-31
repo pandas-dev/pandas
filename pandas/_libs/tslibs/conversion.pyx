@@ -8,8 +8,7 @@ cnp.import_array()
 import pytz
 
 # stdlib datetime imports
-from datetime import time as datetime_time
-from cpython.datetime cimport (datetime, tzinfo,
+from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -284,7 +283,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
-        ts = datetime.combine(ts, datetime_time())
+        ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "
