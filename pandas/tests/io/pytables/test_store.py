@@ -12,6 +12,7 @@ import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
+from pandas.conftest import empty_frame
 
 import pandas as pd
 from pandas import (

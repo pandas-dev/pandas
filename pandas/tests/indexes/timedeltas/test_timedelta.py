@@ -18,6 +18,7 @@ from pandas import (
 import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
+from pandas.conftest import empty_frame
 
 randn = np.random.randn
 

@@ -13,6 +13,7 @@ from pandas import DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
+from pandas.conftest import empty_frame
 
 
 def test_groupby_agg_no_extra_calls():

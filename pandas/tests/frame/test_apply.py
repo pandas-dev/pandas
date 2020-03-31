@@ -14,6 +14,7 @@ from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
+from pandas.conftest import empty_frame
 
 
 @pytest.fixture

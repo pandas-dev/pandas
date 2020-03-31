@@ -23,6 +23,7 @@ from pandas import (
 import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
+from pandas.conftest import empty_frame
 
 
 def assert_stat_op_calc(

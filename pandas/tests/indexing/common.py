@@ -5,8 +5,7 @@ import numpy as np
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
 import pandas._testing as tm
-
-
+from pandas.conftest import empty_frame
 def _mklbl(prefix, n):
     return [f"{prefix}{i}" for i in range(n)]
 

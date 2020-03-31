@@ -11,6 +11,7 @@ from pandas._libs.tslib import Timestamp
 
 from pandas import DataFrame, Index
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "

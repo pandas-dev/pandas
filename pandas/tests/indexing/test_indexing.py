@@ -15,6 +15,7 @@ import pandas._testing as tm
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
+from pandas.conftest import empty_frame
 
 # ------------------------------------------------------------------------
 # Indexing test cases

@@ -45,6 +45,7 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.conftest import empty_frame
 
 try:
     import sqlalchemy

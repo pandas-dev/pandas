@@ -12,6 +12,7 @@ from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
+from pandas.conftest import empty_frame
 
 # -------------------------------------------------------------------
 # Comparisons

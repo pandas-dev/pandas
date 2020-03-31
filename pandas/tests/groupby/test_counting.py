@@ -5,6 +5,7 @@ import pytest
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 class TestCounting:

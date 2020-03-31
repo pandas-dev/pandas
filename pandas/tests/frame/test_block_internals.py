@@ -19,6 +19,7 @@ import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
+from pandas.conftest import empty_frame
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

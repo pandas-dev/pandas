@@ -10,6 +10,7 @@ from pandas import DataFrame, Index, MultiIndex, option_context
 import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
+from pandas.conftest import empty_frame
 
 lorem_ipsum = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "

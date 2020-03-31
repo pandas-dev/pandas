@@ -7,6 +7,7 @@ from pandas import DataFrame, Index, Series, json_normalize
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
+from pandas.conftest import empty_frame
 
 
 @pytest.fixture

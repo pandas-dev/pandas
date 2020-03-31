@@ -2,6 +2,7 @@ import numpy as np
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 def test_head_tail(float_frame):

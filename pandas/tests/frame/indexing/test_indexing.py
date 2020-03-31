@@ -26,6 +26,7 @@ import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
+from pandas.conftest import empty_frame
 
 # We pass through a TypeError raised by numpy
 _slice_msg = "slice indices must be integers or None or have an __index__ method"

@@ -31,6 +31,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray, SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.conftest import empty_frame
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [

@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
 import pandas.core.strings as strings
-
+from pandas.conftest import empty_frame
 
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):

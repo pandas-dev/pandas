@@ -8,6 +8,7 @@ import pytest
 
 from pandas import DataFrame, Index
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 class TestDataFrameInsert:

@@ -3,6 +3,7 @@ import pytest
 
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, Series, crosstab
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 class TestCrosstab:

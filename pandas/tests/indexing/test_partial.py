@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 class TestPartialSetting:

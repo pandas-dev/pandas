@@ -8,6 +8,7 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.window import Expanding
 from pandas.tests.window.common import Base
+from pandas.conftest import empty_frame
 
 
 class TestExpanding(Base):

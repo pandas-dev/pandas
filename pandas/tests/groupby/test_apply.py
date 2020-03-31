@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 def test_apply_issues():

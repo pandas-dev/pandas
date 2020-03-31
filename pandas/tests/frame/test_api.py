@@ -11,6 +11,7 @@ from pandas.util._test_decorators import async_mark
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 class TestDataFrameMisc:

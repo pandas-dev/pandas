@@ -9,6 +9,7 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 
 @pytest.mark.parametrize("kwargs", [dict(), dict(mangle_dupe_cols=True)])

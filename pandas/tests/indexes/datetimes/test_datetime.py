@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Timestamp, date_range, offsets
 import pandas._testing as tm
+from pandas.conftest import empty_frame
 
 randn = np.random.randn
 
