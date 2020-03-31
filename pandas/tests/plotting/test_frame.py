@@ -1311,7 +1311,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
 
         ax = df.plot.scatter(x="a", y="b", s="c")
-        assert (df["c"].values == ax.collections[0].get_sizes()).all()
+        tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
