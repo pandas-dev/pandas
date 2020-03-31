@@ -26,15 +26,6 @@ class TestSeriesPeriod:
         tm.assert_series_equal(s.isna(), Series([False, True]))
         tm.assert_series_equal(s.notna(), Series([True, False]))
 
-    def test_fillna(self):
-        # GH 13737
-        s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
-
-        res = s.fillna(pd.Period("2012-01", freq="M"))
-        exp = Series([pd.Period("2011-01", freq="M"), pd.Period("2012-01", freq="M")])
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == "Period[M]"
-
     def test_dropna(self):
         # GH 13737
         s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])

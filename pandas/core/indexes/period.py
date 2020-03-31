@@ -149,6 +149,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _infer_as_myclass = True
 
     _data: PeriodArray
+    freq: DateOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -323,8 +324,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @cache_readonly
     def _engine(self):
-        # To avoid a reference cycle, pass a weakref of self to _engine_type.
-        period = weakref.ref(self)
+        # To avoid a reference cycle, pass a weakref of self._values to _engine_type.
+        period = weakref.ref(self._values)
         return self._engine_type(period, len(self))
 
     @doc(Index.__contains__)

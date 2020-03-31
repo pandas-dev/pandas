@@ -1,9 +1,9 @@
 from collections import defaultdict
-from functools import partial
 import itertools
 import operator
 import re
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+import warnings
 
 import numpy as np
 
@@ -540,9 +540,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))),
-            axes[0],
-            fastpath=True,
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
         )
 
     def isna(self, func) -> "BlockManager":
@@ -901,30 +899,24 @@ class BlockManager(PandasObject):
 
         return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc: int):
+    def fast_xs(self, loc: int) -> ArrayLike:
         """
-        get a cross sectional for a given location in the
-        items ; handle dups
+        Return the array corresponding to `frame.iloc[loc]`.
 
-        return the result, is *could* be a view in the case of a
-        single block
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        items = self.items
-
-        # non-unique (GH4726)
-        if not items.is_unique:
-            result = self._interleave()
-            if self.ndim == 2:
-                result = result.T
-            return result[loc]
-
-        # unique
         dtype = _interleaved_dtype(self.blocks)
 
-        n = len(items)
+        n = len(self)
         if is_extension_array_dtype(dtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
@@ -1007,7 +999,6 @@ class BlockManager(PandasObject):
                 values, placement=slice(0, len(values)), ndim=1
             ),
             self.axes[1],
-            fastpath=True,
         )
 
     def delete(self, item):
@@ -1465,14 +1456,13 @@ class BlockManager(PandasObject):
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
 
-    def unstack(self, unstacker_func, fill_value) -> "BlockManager":
+    def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
         Return a BlockManager with all blocks unstacked..
 
         Parameters
         ----------
-        unstacker_func : callable
-            A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+        unstacker : reshape._Unstacker
         fill_value : Any
             fill_value for newly introduced missing values.
 
@@ -1480,19 +1470,16 @@ class BlockManager(PandasObject):
         -------
         unstacked : BlockManager
         """
-        n_rows = self.shape[-1]
-        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
-        new_columns = dummy.get_new_columns()
-        new_index = dummy.get_new_index()
+        new_columns = unstacker.get_new_columns(self.items)
+        new_index = unstacker.new_index
+
         new_blocks: List[Block] = []
         columns_mask: List[np.ndarray] = []
 
         for blk in self.blocks:
+            blk_cols = self.items[blk.mgr_locs.indexer]
             blocks, mask = blk._unstack(
-                partial(unstacker_func, value_columns=self.items[blk.mgr_locs.indexer]),
-                new_columns,
-                n_rows,
-                fill_value,
+                unstacker, new_columns, fill_value, value_columns=blk_cols,
             )
 
             new_blocks.extend(blocks)
@@ -1515,25 +1502,22 @@ class SingleBlockManager(BlockManager):
     def __init__(
         self,
         block: Block,
-        axis: Union[Index, List[Index]],
+        axis: Index,
         do_integrity_check: bool = False,
-        fastpath: bool = False,
+        fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
+        assert isinstance(axis, Index), type(axis)
 
-        if isinstance(axis, list):
-            if len(axis) != 1:
-                raise ValueError(
-                    "cannot create SingleBlockManager with more than 1 axis"
-                )
-            axis = axis[0]
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The `fastpath` keyword is deprecated and will be removed "
+                "in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
-        # passed from constructor, single block, single axis
-        if fastpath:
-            self.axes = [axis]
-        else:
-            self.axes = [ensure_index(axis)]
-
+        self.axes = [axis]
         self.blocks = tuple([block])
 
     @classmethod
@@ -1545,7 +1529,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False, fastpath=True)
+        return cls(blocks[0], axes[0], do_integrity_check=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
@@ -1553,7 +1537,7 @@ class SingleBlockManager(BlockManager):
         Constructor for if we have an array that is not yet a Block.
         """
         block = make_block(array, placement=slice(0, len(index)), ndim=1)
-        return cls(block, index, fastpath=True)
+        return cls(block, index)
 
     def _post_setstate(self):
         pass
@@ -1579,7 +1563,7 @@ class SingleBlockManager(BlockManager):
         blk = self._block
         array = blk._slice(slobj)
         block = blk.make_block_same_class(array, placement=range(len(array)))
-        return type(self)(block, self.index[slobj], fastpath=True)
+        return type(self)(block, self.index[slobj])
 
     @property
     def index(self) -> Index:
@@ -1633,7 +1617,9 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
+    def concat(
+        self, to_concat: List["SingleBlockManager"], new_axis: Index
+    ) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
@@ -1649,21 +1635,11 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        non_empties = [x for x in to_concat if len(x) > 0]
 
-        # check if all series are of the same block type:
-        if len(non_empties) > 0:
-            blocks = [obj.blocks[0] for obj in non_empties]
-            if len({b.dtype for b in blocks}) == 1:
-                new_block = blocks[0].concat_same_type(blocks)
-            else:
-                values = [x.values for x in blocks]
-                values = concat_compat(values)
-                new_block = make_block(values, placement=slice(0, len(values), 1))
-        else:
-            values = [x._block.values for x in to_concat]
-            values = concat_compat(values)
-            new_block = make_block(values, placement=slice(0, len(values), 1))
+        blocks = [obj.blocks[0] for obj in to_concat]
+        values = concat_compat([x.values for x in blocks])
+
+        new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
         return mgr
@@ -2023,9 +1999,8 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type(
-                [ju.block for ju in join_units], placement=placement
-            )
+            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
+            b.mgr_locs = placement
         else:
             b = make_block(
                 concatenate_join_units(join_units, concat_axis, copy=copy),
