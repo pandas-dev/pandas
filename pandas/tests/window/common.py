@@ -5,7 +5,6 @@ from numpy.random import randn
 
 from pandas import DataFrame, Series, bdate_range, notna
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
 
 N, K = 100, 10
 
@@ -385,18 +384,3 @@ def check_binary_ew_min_periods(name, min_periods, A, B):
         Series([1.0]), Series([1.0]), 50, name=name, min_periods=min_periods
     )
     tm.assert_series_equal(result, Series([np.NaN]))
-
-
-class ForwardIndexer(BaseIndexer):
-    # GH 32865
-    def get_window_bounds(self, num_values, min_periods, center, closed):
-        start = np.empty(num_values, dtype=np.int64)
-        end = np.empty(num_values, dtype=np.int64)
-        for i in range(num_values):
-            if i + min_periods <= num_values:
-                start[i] = i
-                end[i] = min(i + self.window_size, num_values)
-            else:
-                start[i] = i
-                end[i] = i + 1
-        return start, end

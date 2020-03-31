@@ -82,9 +82,7 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize(
-    "func", ["std", "var", "count", "skew", "cov", "corr"]
-)
+@pytest.mark.parametrize("func", ["std", "var", "count", "skew", "cov", "corr"])
 def test_notimplemented_functions(func):
     # GH 32865
     class CustomIndexer(BaseIndexer):

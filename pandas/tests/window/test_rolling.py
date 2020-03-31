@@ -9,8 +9,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
+from pandas.api.indexers import BaseIndexer
 from pandas.core.window import Rolling
-from pandas.tests.window.common import Base, ForwardIndexer
+from pandas.tests.window.common import Base
 
 
 class TestRolling(Base):
@@ -468,13 +469,32 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
 
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_rolling_forward_window_min(constructor):
+@pytest.mark.parametrize(
+    "func,expected",
+    [
+        ("min", [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, np.nan]),
+        ("max", [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 9.0, np.nan]),
+    ],
+)
+def test_rolling_forward_window_min(constructor, func, expected):
     # GH 32865
+    class ForwardIndexer(BaseIndexer):
+        def get_window_bounds(self, num_values, min_periods, center, closed):
+            start = np.empty(num_values, dtype=np.int64)
+            end = np.empty(num_values, dtype=np.int64)
+            for i in range(num_values):
+                if i + min_periods <= num_values:
+                    start[i] = i
+                    end[i] = min(i + self.window_size, num_values)
+                else:
+                    start[i] = i
+                    end[i] = i + 1
+            return start, end
+
     values = np.arange(10)
-    expected_min = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, np.nan]
 
     indexer = ForwardIndexer(window_size=3)
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
-    result = rolling.min()
-    expected = constructor(rolling.apply(lambda x: min(x)))
+    result = getattr(rolling, func)()
+    expected = constructor(expected)
     tm.assert_equal(result, expected)
