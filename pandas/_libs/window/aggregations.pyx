@@ -1051,7 +1051,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                             bint is_max):
     cdef:
         numeric ai
-        int64_t i, k, close_offset, curr_win_size, start
+        int64_t i, k, curr_win_size, start
         Py_ssize_t nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
