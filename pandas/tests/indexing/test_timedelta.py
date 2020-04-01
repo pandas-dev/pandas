@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 
 class TestTimedeltaIndexing:
-    def test_boolean_indexing(self):
+    def test_loc_setitem_bool_mask(self):
         # GH 14946
         df = pd.DataFrame({"x": range(10)})
         df.index = pd.to_timedelta(range(10), unit="s")
@@ -17,7 +17,9 @@ class TestTimedeltaIndexing:
             [10, 10, 10, 3, 4, 5, 6, 7, 8, 9],
         ]
         for cond, data in zip(conditions, expected_data):
-            result = df.assign(x=df.mask(cond, 10).astype("int64"))
+            result = df.copy()
+            result.loc[cond, "x"] = 10
+
             expected = pd.DataFrame(
                 data,
                 index=pd.to_timedelta(range(10), unit="s"),
