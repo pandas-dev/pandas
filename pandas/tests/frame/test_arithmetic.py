@@ -1033,9 +1033,8 @@ class TestFrameArithmeticUnsorted:
         assert "E" in larger_added
         assert np.isnan(larger_added["E"]).all()
 
-        # no upcast needed
         added = mixed_float_frame + series
-        _check_mixed_float(added)
+        assert np.all(added.dtypes == series.dtype)
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
