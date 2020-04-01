@@ -1,6 +1,6 @@
 ---
 
-name: Documentation Improvment
+name: Documentation Improvement
 about: Report wrong or missing documentation
 title: "DOC:"
 labels: ""
@@ -20,4 +20,3 @@ labels: ""
 #### Suggested fix for documentation
 
 [this should explain the suggested fix and **why** it's better than the existing documentation]
-
