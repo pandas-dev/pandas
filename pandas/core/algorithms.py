@@ -700,7 +700,7 @@ def value_counts(
         result = result.sort_index()
 
         # if we are dropna and we have NO values
-        if dropna and (result.values == 0).all():
+        if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
         # normalizing is by len of all (regardless of dropna)
@@ -713,7 +713,7 @@ def value_counts(
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
-            counts = result.values
+            counts = result._values
 
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
@@ -823,7 +823,7 @@ def mode(values, dropna: bool = True) -> "Series":
     # categorical is a fast-path
     if is_categorical_dtype(values):
         if isinstance(values, Series):
-            return Series(values.values.mode(dropna=dropna), name=values.name)
+            return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
     if dropna and needs_i8_conversion(values.dtype):

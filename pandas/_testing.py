@@ -2662,3 +2662,34 @@ def external_error_raised(
     import pytest
 
     return pytest.raises(expected_exception, match=None)
+
+
+cython_table = pd.core.base.SelectionMixin._cython_table.items()
+
+
+def get_cython_table_params(ndframe, func_names_and_expected):
+    """
+    Combine frame, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    ndframe : DataFrame or Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value.
+
+    Returns
+    -------
+    list
+        List of three items (DataFrame, function, expected result)
+    """
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((ndframe, func_name, expected))
+        results += [
+            (ndframe, func, expected)
+            for func, name in cython_table
+            if name == func_name
+        ]
+    return results
