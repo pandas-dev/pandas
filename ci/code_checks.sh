@@ -287,18 +287,12 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests datetimes.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/tools/datetimes.py
+    MSG='Doctests tools' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/reshape/concat.py \
-        pandas/core/reshape/pivot.py \
-        pandas/core/reshape/reshape.py \
-        pandas/core/reshape/tile.py \
-        pandas/core/reshape/melt.py \
-        -k"-crosstab -pivot_table -cut"
+    MSG='Doctests reshaping functions' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
@@ -332,6 +326,14 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests computation' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/computation/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 

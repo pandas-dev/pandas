@@ -8,8 +8,7 @@ cnp.import_array()
 import pytz
 
 # stdlib datetime imports
-from datetime import time as datetime_time
-from cpython.datetime cimport (datetime, tzinfo,
+from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -284,7 +283,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
-        ts = datetime.combine(ts, datetime_time())
+        ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "
@@ -595,8 +594,12 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     obj.tzinfo = tz
 
 
-cdef inline bint _infer_tsobject_fold(_TSObject obj, ndarray[int64_t] trans,
-                                      int64_t[:] deltas, int32_t pos):
+cdef inline bint _infer_tsobject_fold(
+    _TSObject obj,
+    const int64_t[:] trans,
+    const int64_t[:] deltas,
+    int32_t pos,
+):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
     to 1 if necessary.
@@ -738,7 +741,7 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(int64_t[:] stamps, tzinfo tz):
+cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
     """
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight) for the
@@ -818,7 +821,7 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(int64_t[:] stamps, object tz=None):
+def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone

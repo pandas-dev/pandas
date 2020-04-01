@@ -31,29 +31,6 @@ from pandas.tseries.offsets import BDay
 _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
-class TestGet:
-    def test_get(self, float_frame):
-        b = float_frame.get("B")
-        tm.assert_series_equal(b, float_frame["B"])
-
-        assert float_frame.get("foo") is None
-        tm.assert_series_equal(
-            float_frame.get("foo", float_frame["B"]), float_frame["B"]
-        )
-
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
-        ],
-    )
-    def test_get_none(self, df):
-        # see gh-5652
-        assert df.get(None) is None
-
-
 class TestDataFrameIndexing:
     def test_getitem(self, float_frame):
         # Slicing
@@ -854,15 +831,6 @@ class TestDataFrameIndexing:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_delitem_corner(self, float_frame):
-        f = float_frame.copy()
-        del f["D"]
-        assert len(f.columns) == 3
-        with pytest.raises(KeyError, match=r"^'D'$"):
-            del f["D"]
-        del f["B"]
-        assert len(f.columns) == 2
-
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
@@ -1424,6 +1392,24 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match="same size"):
             float_frame.lookup(["a", "b", "c"], ["a"])
 
+    def test_lookup_requires_unique_axes(self):
+        # GH#33041 raise with a helpful error message
+        df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
+
+        rows = [0, 1]
+        cols = ["A", "A"]
+
+        # homogeneous-dtype case
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.T.lookup(cols, rows)
+
+        # heterogeneous dtype
+        df["B"] = 0
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
@@ -1630,11 +1616,6 @@ class TestDataFrameIndexing:
         actual = df.reindex(target, method=method)
         tm.assert_frame_equal(expected, actual)
 
-        actual = df.reindex_like(df, method=method, tolerance=0)
-        tm.assert_frame_equal(df, actual)
-        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-        tm.assert_frame_equal(df, actual)
-
         actual = df.reindex(target, method=method, tolerance=1)
         tm.assert_frame_equal(expected, actual)
         actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
@@ -1654,17 +1635,6 @@ class TestDataFrameIndexing:
         )
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
-
-    def test_reindex_subclass(self):
-        # https://github.com/pandas-dev/pandas/issues/31925
-        class MyDataFrame(DataFrame):
-            pass
-
-        expected = DataFrame()
-        df = MyDataFrame()
-        result = df.reindex_like(expected)
-
-        tm.assert_frame_equal(result, expected)
 
     def test_reindex_methods_nearest_special(self):
         df = pd.DataFrame({"x": list(range(5))})

@@ -441,6 +441,93 @@ class TestGetLoc:
         expected = slice(2, 4, None)
         assert idx.get_loc((np.nan, 1)) == expected
 
+    def test_get_loc_duplicates2(self):
+        # TODO: de-duplicate with test_get_loc_duplicates above?
+        index = MultiIndex(
+            levels=[["D", "B", "C"], [0, 26, 27, 37, 57, 67, 75, 82]],
+            codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+            names=["tag", "day"],
+        )
+
+        assert index.get_loc("D") == slice(0, 3)
+
+
+class TestWhere:
+    def test_where(self):
+        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+
+        msg = r"\.where is not supported for MultiIndex operations"
+        with pytest.raises(NotImplementedError, match=msg):
+            i.where(True)
+
+    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+    def test_where_array_like(self, klass):
+        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+        cond = [False, True]
+        msg = r"\.where is not supported for MultiIndex operations"
+        with pytest.raises(NotImplementedError, match=msg):
+            i.where(klass(cond))
+
+
+class TestContains:
+    def test_contains_top_level(self):
+        midx = MultiIndex.from_product([["A", "B"], [1, 2]])
+        assert "A" in midx
+        assert "A" not in midx._engine
+
+    def test_contains_with_nat(self):
+        # MI with a NaT
+        mi = MultiIndex(
+            levels=[["C"], pd.date_range("2012-01-01", periods=5)],
+            codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+            names=[None, "B"],
+        )
+        assert ("C", pd.Timestamp("2012-01-01")) in mi
+        for val in mi.values:
+            assert val in mi
+
+    def test_contains(self, idx):
+        assert ("foo", "two") in idx
+        assert ("bar", "two") not in idx
+        assert None not in idx
+
+    def test_contains_with_missing_value(self):
+        # GH#19132
+        idx = MultiIndex.from_arrays([[1, np.nan, 2]])
+        assert np.nan in idx
+
+        idx = MultiIndex.from_arrays([[1, 2], [np.nan, 3]])
+        assert np.nan not in idx
+        assert (1, np.nan) in idx
+
+    def test_multiindex_contains_dropped(self):
+        # GH#19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
+        idx = MultiIndex.from_product([[1, 2], [3, 4]])
+        assert 2 in idx
+        idx = idx.drop(2)
+
+        # drop implementation keeps 2 in the levels
+        assert 2 in idx.levels[0]
+        # but it should no longer be in the index itself
+        assert 2 not in idx
+
+        # also applies to strings
+        idx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+        assert "a" in idx
+        idx = idx.drop("a")
+        assert "a" in idx.levels[0]
+        assert "a" not in idx
+
+    def test_contains_td64_level(self):
+        # GH#24570
+        tx = pd.timedelta_range("09:30:00", "16:00:00", freq="30 min")
+        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
+        assert tx[0] in idx
+        assert "element_not_exit" not in idx
+        assert "0 day 09:30:00" in idx
+
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
