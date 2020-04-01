@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series
+from pandas import Categorical, DataFrame, Index, Series, Timestamp, date_range
 import pandas._testing as tm
 
 # Column add, remove, delete.
@@ -84,3 +84,29 @@ class TestDataFrameMutateColumns:
         df["X"] = ["x", "y", "z"]
         exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
         tm.assert_frame_equal(df, exp)
+
+    def test_setitem_dt64_index_empty_columns(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        df = DataFrame(index=np.arange(len(rng)))
+
+        df["A"] = rng
+        assert df["A"].dtype == np.dtype("M8[ns]")
+
+    def test_setitem_timestamp_empty_columns(self):
+        # GH#19843
+        df = DataFrame(index=range(3))
+        df["now"] = Timestamp("20130101", tz="UTC")
+
+        expected = DataFrame(
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_wrong_length_categorical_dtype_raises(self):
+        # GH#29523
+        cat = Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
+        df = DataFrame(range(10), columns=["bar"])
+
+        msg = "Length of values does not match length of index"
+        with pytest.raises(ValueError, match=msg):
+            df["foo"] = cat
