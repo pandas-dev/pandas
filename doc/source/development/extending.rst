@@ -95,7 +95,7 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-Class:~pandas.API.extensions.ExtensionDtype
+:class:`~pandas.api.extensions.ExtensionDtype`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
@@ -115,7 +115,7 @@ example ``'category'`` is a registered string accessor for the ``CategoricalDtyp
 
 See the `extension dtype dtypes`_ for more on how to register dtypes.
 
-Class:~pandas.API.extensions.ExtensionArray
+:class:`~pandas.api.extensions.ExtensionArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
@@ -139,7 +139,7 @@ and comments contain guidance for properly implementing the interface.
 
 .. _extending.extension.operator:
 
-Class:~pandas.API.extensions.ExtensionArray operator support
+:class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0

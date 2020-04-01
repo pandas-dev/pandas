@@ -177,6 +177,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
                 and len(line) == len(previous_line)
+                and previous_line[0] != ':'
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
             previous_line = line
@@ -233,6 +234,8 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     for filename in find_rst_files(source_paths):
         for title, line_number in find_titles(filename):
+            if ":class" in title:
+                print(title)
             if title != correct_title_capitalization(title):
                 print(
                     f"""{filename}:{line_number}:{err_msg} "{title}" to "{
