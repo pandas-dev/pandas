@@ -2549,7 +2549,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     dtype: category
     Categories (5, object): [a, b, c, d, e]
 
-
     >>> s.cat.remove_categories(["a", "c"])
     0    NaN
     1      b
