@@ -11,7 +11,7 @@ labels: ""
 
 - [ ] I have confirmed this bug exists on the latest version of pandas.
 
-- [ ] I have confirmed this bug exists on the master branch of pandas.
+- [ ] (optinal) I have confirmed this bug exists on the master branch of pandas.
 
 ---
 
