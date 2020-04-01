@@ -266,6 +266,7 @@ Performance improvements
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
 - Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 - Performance improvement in flex arithmetic ops between :class:`DataFrame` and :class:`Series` with ``axis=0`` (:issue:`31296`)
+- Performance improvement in arithmetic operations between :class:`DataFrame` and :class:`Series` (:issue:`32997`)
 - The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
   avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
   existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
