@@ -2560,7 +2560,8 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     dtype: category
     Categories (1, object): [b]
 
-    >>> s.cat.remove_unused_categories()
+    >>> s1 = s.cat.add_categories(["d", "e"])
+    >>> s1.cat.remove_unused_categories()
     0    a
     1    b
     2    b
