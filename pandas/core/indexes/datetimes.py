@@ -11,7 +11,7 @@ from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -454,7 +454,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=_NS_DTYPE)
+        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
 
         for i, v in enumerate(self):
             s = v
