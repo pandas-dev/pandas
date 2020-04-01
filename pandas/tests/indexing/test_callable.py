@@ -17,14 +17,10 @@ class TestIndexingCallable:
         res = df.loc[lambda x: x.A > 2]
         tm.assert_frame_equal(res, df.loc[df.A > 2])
 
-        res = df.loc[
-            lambda x: x.A > 2,
-        ]  # noqa: E231
+        res = df.loc[lambda x: x.A > 2,]  # noqa: E231
         tm.assert_frame_equal(res, df.loc[df.A > 2,])  # noqa: E231
 
-        res = df.loc[
-            lambda x: x.A > 2,
-        ]  # noqa: E231
+        res = df.loc[lambda x: x.A > 2,]  # noqa: E231
         tm.assert_frame_equal(res, df.loc[df.A > 2,])  # noqa: E231
 
         res = df.loc[lambda x: x.B == "b", :]
@@ -94,9 +90,7 @@ class TestIndexingCallable:
         res = df.loc[lambda x: ["A", "C"]]
         tm.assert_frame_equal(res, df.loc[["A", "C"]])
 
-        res = df.loc[
-            lambda x: ["A", "C"],
-        ]  # noqa: E231
+        res = df.loc[lambda x: ["A", "C"],]  # noqa: E231
         tm.assert_frame_equal(res, df.loc[["A", "C"],])  # noqa: E231
 
         res = df.loc[lambda x: ["A", "C"], :]

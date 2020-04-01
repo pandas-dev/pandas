@@ -86,7 +86,7 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
     ):
 
         cls._validate_dtype(dtype)

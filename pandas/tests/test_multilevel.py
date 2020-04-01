@@ -2144,7 +2144,7 @@ class TestSorted(Base):
         # GH 22797
         # Try to respect order of keys given for MultiIndex.loc
         kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
-        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs,)
+        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs)
         exp_index = MultiIndex.from_arrays(expected)
         if dim == "index":
             res = df.loc[keys, :]

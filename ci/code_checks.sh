@@ -237,6 +237,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
+
+    # Check if pandas is referenced as pandas, not *pandas*,Pandas or PANDAS
+    MSG='Checking if the pandas word reference is always used lowercase (pandas,not Pandas or PANDAS' ; echo  $MSG
+    invgrep -R '*pandas*|Pandas|PANDAS' web/* doc/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###

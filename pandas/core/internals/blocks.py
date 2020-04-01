@@ -1631,9 +1631,7 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values[:] = values
 
-    def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
-    ) -> List["Block"]:
+    def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
         """
         See Block.putmask.__doc__
         """
@@ -1816,7 +1814,7 @@ class ExtensionBlock(Block):
         return super().diff(n, axis)
 
     def shift(
-        self, periods: int, axis: int = 0, fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.

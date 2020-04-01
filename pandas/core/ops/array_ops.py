@@ -257,7 +257,7 @@ def _can_broadcast(lvalues, rvalues) -> bool:
 
 
 def comparison_op(
-    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
+    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None
 ) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.

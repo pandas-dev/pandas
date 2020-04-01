@@ -100,7 +100,7 @@ def test_pow_special(value, asarray):
 
 
 @pytest.mark.parametrize(
-    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)],
+    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)]
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_special(value, asarray):
@@ -117,9 +117,7 @@ def test_rpow_special(value, asarray):
     assert result == value
 
 
-@pytest.mark.parametrize(
-    "value", [-1, -1.0, np.int_(-1), np.float_(-1)],
-)
+@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float_(-1)])
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_minus_one(value, asarray):
     if asarray:
@@ -182,9 +180,7 @@ def test_logical_not():
     assert ~NA is NA
 
 
-@pytest.mark.parametrize(
-    "shape", [(3,), (3, 3), (1, 2, 3)],
-)
+@pytest.mark.parametrize("shape", [(3,), (3, 3), (1, 2, 3)])
 def test_arithmetic_ndarray(shape, all_arithmetic_functions):
     op = all_arithmetic_functions
     a = np.zeros(shape)

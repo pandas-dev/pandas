@@ -1546,5 +1546,5 @@ def test_missing_parse_dates_column_raises(
     msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(
-            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates,
+            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
         )

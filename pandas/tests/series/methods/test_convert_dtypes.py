@@ -90,7 +90,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): np.dtype("O"),
+                    ): np.dtype("O")
                 },
             ),
             (
@@ -112,7 +112,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): np.dtype("float"),
+                    ): np.dtype("float")
                 },
             ),
             (
@@ -129,7 +129,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): np.dtype("O"),
+                    ): np.dtype("O")
                 },
             ),
             (
@@ -186,7 +186,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): pd.CategoricalDtype(),
+                    ): pd.CategoricalDtype()
                 },
             ),
             (
@@ -198,7 +198,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): pd.DatetimeTZDtype(tz="UTC"),
+                    ): pd.DatetimeTZDtype(tz="UTC")
                 },
             ),
             (
@@ -210,17 +210,17 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): np.dtype("datetime64[ns]"),
+                    ): np.dtype("datetime64[ns]")
                 },
             ),
             (
                 pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
                 object,
                 {
-                    ((True,), (True, False), (True, False), (True, False),): np.dtype(
+                    ((True,), (True, False), (True, False), (True, False)): np.dtype(
                         "datetime64[ns]"
                     ),
-                    ((False,), (True, False), (True, False), (True, False),): np.dtype(
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
                         "O"
                     ),
                 },
@@ -234,7 +234,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): pd.PeriodDtype("M"),
+                    ): pd.PeriodDtype("M")
                 },
             ),
             (
@@ -246,7 +246,7 @@ class TestSeriesConvertDtypes:
                         (True, False),
                         (True, False),
                         (True, False),
-                    ): pd.IntervalDtype("int64"),
+                    ): pd.IntervalDtype("int64")
                 },
             ),
         ],

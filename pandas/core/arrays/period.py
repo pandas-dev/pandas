@@ -606,7 +606,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return new_data
 
     def _addsub_int_array(
-        self, other: np.ndarray, op: Callable[[Any, Any], Any],
+        self, other: np.ndarray, op: Callable[[Any, Any], Any]
     ) -> "PeriodArray":
         """
         Add or subtract array of integers; equivalent to applying

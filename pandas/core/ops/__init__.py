@@ -80,14 +80,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {
-    "eq",
-    "ne",
-    "lt",
-    "gt",
-    "le",
-    "ge",
-}
+COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -385,9 +378,7 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
-def _construct_result(
-    left: ABCSeries, result: ArrayLike, index: ABCIndexClass, name,
-):
+def _construct_result(left: ABCSeries, result: ArrayLike, index: ABCIndexClass, name):
     """
     Construct an appropriately-labelled Series from the result of an op.
 

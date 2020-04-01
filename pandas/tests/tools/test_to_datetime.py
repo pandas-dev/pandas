@@ -602,7 +602,7 @@ class TestToDatetime:
             pd.to_datetime(dts_with_oob, errors="coerce", cache=cache),
             pd.DatetimeIndex(
                 [Timestamp(dts_with_oob[0]).asm8, Timestamp(dts_with_oob[1]).asm8] * 30
-                + [pd.NaT],
+                + [pd.NaT]
             ),
         )
 

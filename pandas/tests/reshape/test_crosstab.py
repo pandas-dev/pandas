@@ -350,11 +350,10 @@ class TestCrosstab:
         tm.assert_frame_equal(crosstab(df.a, df.b, normalize="index"), row_normal)
         tm.assert_frame_equal(crosstab(df.a, df.b, normalize="columns"), col_normal)
         tm.assert_frame_equal(
-            crosstab(df.a, df.b, normalize=1),
-            crosstab(df.a, df.b, normalize="columns"),
+            crosstab(df.a, df.b, normalize=1), crosstab(df.a, df.b, normalize="columns")
         )
         tm.assert_frame_equal(
-            crosstab(df.a, df.b, normalize=0), crosstab(df.a, df.b, normalize="index"),
+            crosstab(df.a, df.b, normalize=0), crosstab(df.a, df.b, normalize="index")
         )
 
         row_normal_margins = DataFrame(
@@ -377,7 +376,7 @@ class TestCrosstab:
             crosstab(df.a, df.b, normalize="index", margins=True), row_normal_margins
         )
         tm.assert_frame_equal(
-            crosstab(df.a, df.b, normalize="columns", margins=True), col_normal_margins,
+            crosstab(df.a, df.b, normalize="columns", margins=True), col_normal_margins
         )
         tm.assert_frame_equal(
             crosstab(df.a, df.b, normalize=True, margins=True), all_normal_margins

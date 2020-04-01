@@ -1364,7 +1364,7 @@ def test_groupby_agg_categorical_columns(func, expected_values):
     result = df.groupby("groups").agg(func)
 
     expected = pd.DataFrame(
-        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups")
     )
     tm.assert_frame_equal(result, expected)
 

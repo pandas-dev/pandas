@@ -124,7 +124,7 @@ class _IntegerDtype(ExtensionDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy: bool = False,) -> "IntegerArray":
+def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
     """
     Infer and return an integer array of the values.
 
@@ -168,7 +168,7 @@ def safe_cast(values, dtype, copy: bool):
 
 
 def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False,
+    values, dtype, mask=None, copy: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask

@@ -181,9 +181,7 @@ class TestFloatIndexers:
         expected = 3
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_scalar_integer(self, index_func, klass):
 
@@ -425,9 +423,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[l]
 
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_slice_integer_frame_getitem(self, index_func):
 
         # similar to above, but on the getitem dim (of a DataFrame)
@@ -486,9 +482,7 @@ class TestFloatIndexers:
                 s[l]
 
     @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_float_slice_getitem_with_integer_index_raises(self, l, index_func):
 
         # similar to above, but on the getitem dim (of a DataFrame)

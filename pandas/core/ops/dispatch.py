@@ -76,3 +76,36 @@ def should_series_dispatch(left, right, op):
         return True
 
     return False
+
+
+def dispatch_to_extension_op(
+    op, left: Union[ABCExtensionArray, np.ndarray], right: Any
+):
+    """
+    Assume that left or right is a Series backed by an ExtensionArray,
+    apply the operator defined by op.
+
+    Parameters
+    ----------
+    op : binary operator
+    left : ExtensionArray or np.ndarray
+    right : object
+
+    Returns
+    -------
+    ExtensionArray or np.ndarray
+        2-tuple of these if op is divmod or rdivmod
+    """
+    # NB: left and right should already be unboxed, so neither should be
+    #  a Series or Index.
+
+    if left.dtype.kind in "mM" and isinstance(left, np.ndarray):
+        # We need to cast datetime64 and timedelta64 ndarrays to
+        #  DatetimeArray/TimedeltaArray.  But we avoid wrapping others in
+        #  PandasArray as that behaves poorly with e.g. IntegerArray.
+        left = array(left)
+
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+    res_values = op(left, right)
+    return res_values

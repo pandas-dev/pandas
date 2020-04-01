@@ -292,10 +292,7 @@ class Styler:
 
             # ... except maybe the last for columns.names
             name = self.data.columns.names[r]
-            cs = [
-                BLANK_CLASS if name is None else INDEX_NAME_CLASS,
-                f"level{r}",
-            ]
+            cs = [BLANK_CLASS if name is None else INDEX_NAME_CLASS, f"level{r}"]
             name = BLANK_VALUE if name is None else name
             row_es.append(
                 {
@@ -309,11 +306,7 @@ class Styler:
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
-                    cs = [
-                        COL_HEADING_CLASS,
-                        f"level{r}",
-                        f"col{c}",
-                    ]
+                    cs = [COL_HEADING_CLASS, f"level{r}", f"col{c}"]
                     cs.extend(
                         cell_context.get("col_headings", {}).get(r, {}).get(c, [])
                     )
@@ -357,11 +350,7 @@ class Styler:
         for r, idx in enumerate(self.data.index):
             row_es = []
             for c, value in enumerate(rlabels[r]):
-                rid = [
-                    ROW_HEADING_CLASS,
-                    f"level{c}",
-                    f"row{r}",
-                ]
+                rid = [ROW_HEADING_CLASS, f"level{c}", f"row{r}"]
                 es = {
                     "type": "th",
                     "is_visible": (_is_visible(r, c, idx_lengths) and not hidden_index),

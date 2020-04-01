@@ -1308,7 +1308,7 @@ def _zero_out_fperr(arg):
 
 @disallow("M8", "m8")
 def nancorr(
-    a: np.ndarray, b: np.ndarray, method="pearson", min_periods: Optional[int] = None,
+    a: np.ndarray, b: np.ndarray, method="pearson", min_periods: Optional[int] = None
 ):
     """
     a, b: ndarrays

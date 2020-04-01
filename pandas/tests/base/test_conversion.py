@@ -187,7 +187,7 @@ class TestToIterable:
             PeriodArray,
             pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
         ),
-        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval",),
+        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         # This test is currently failing for datetime64[ns] and timedelta64[ns].
         # The NumPy type system is sufficient for representing these types, so
         # we just use NumPy for Series / DataFrame columns of these types (so
@@ -289,10 +289,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (
-            pd.core.arrays.integer_array([0, np.nan]),
-            np.array([0, pd.NA], dtype=object),
-        ),
+        (pd.core.arrays.integer_array([0, np.nan]), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
