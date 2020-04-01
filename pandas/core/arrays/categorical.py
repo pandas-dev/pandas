@@ -2242,18 +2242,20 @@ class Categorical(ExtensionArray, PandasObject):
         An unordered Categorical will return categories in the
         order of appearance.
 
-        >>> pd.Categorical(list('baabc'))
-        [b, a, a, b, c]
-        Categories (3, object): [a, b, c]
+        >>> pd.Categorical(list("baabc")).unique()
+        [b, a, c]
+        Categories (3, object): [b, a, c]
 
-        >>> pd.Categorical(list('baabc'), categories=list('abc'))
-        [b, a, a, b, c]
-        Categories (3, object): [a, b, c]
+        >>> pd.Categorical(list("baabc"), categories=list("abc")).unique()
+        [b, a, c]
+        Categories (3, object): [b, a, c]
 
         An ordered Categorical preserves the category ordering.
 
-        >>> pd.Categorical(list('baabc'), categories=list('abc'), ordered=True)
-        [b, a, a, b, c]
+        >>> pd.Categorical(
+        ...     list("baabc"), categories=list("abc"), ordered=True
+        ... ).unique()
+        [b, a, c]
         Categories (3, object): [a < b < c]
         """
         # unlike np.unique, unique1d does not sort
