@@ -11,7 +11,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
-    offsets
+    offsets,
 )
 import pandas._testing as tm
 
