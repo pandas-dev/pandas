@@ -102,9 +102,17 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:{msg}" .
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
     else
-        $BASE_DIR/scripts/validate_string_concatenation.py .
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for strings with wrong placed spaces' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -280,14 +288,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/tools/datetimes.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/reshape/concat.py \
-        pandas/core/reshape/pivot.py \
-        pandas/core/reshape/reshape.py \
-        pandas/core/reshape/tile.py \
-        pandas/core/reshape/melt.py \
-        -k"-crosstab -pivot_table -cut"
+    MSG='Doctests reshaping functions' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
@@ -321,6 +323,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 

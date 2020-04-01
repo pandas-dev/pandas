@@ -1,48 +1,33 @@
 """
 Functions for defining unary operations.
 """
-from typing import Any, Union
+from typing import Any
 
-import numpy as np
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_object_dtype,
-    is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
-
-from pandas.core.construction import array
+from pandas.core.dtypes.generic import ABCExtensionArray
 
 
-def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
+def should_extension_dispatch(left: ArrayLike, right: Any) -> bool:
     """
-    Identify cases where Series operation should use dispatch_to_extension_op.
+    Identify cases where Series operation should dispatch to ExtensionArray method.
 
     Parameters
     ----------
-    left : Series
+    left : np.ndarray or ExtensionArray
     right : object
 
     Returns
     -------
     bool
     """
-    if (
-        is_extension_array_dtype(left.dtype)
-        or is_datetime64_dtype(left.dtype)
-        or is_timedelta64_dtype(left.dtype)
-    ):
-        return True
-
-    if not is_scalar(right) and is_extension_array_dtype(right):
-        # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-        return True
-
-    return False
+    return isinstance(left, ABCExtensionArray) or isinstance(right, ABCExtensionArray)
 
 
 def should_series_dispatch(left, right, op):

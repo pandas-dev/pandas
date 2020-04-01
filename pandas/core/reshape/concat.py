@@ -2,6 +2,7 @@
 Concat routines.
 """
 
+from collections import abc
 from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
@@ -85,7 +86,7 @@ def concat(
     Parameters
     ----------
     objs : a sequence or mapping of Series or DataFrame objects
-        If a dict is passed, the sorted keys will be used as the `keys`
+        If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
@@ -315,7 +316,7 @@ class _Concatenator:
                 "Only can inner (intersect) or outer (union) join the other axis"
             )
 
-        if isinstance(objs, dict):
+        if isinstance(objs, abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]
@@ -457,7 +458,7 @@ class _Concatenator:
                 name = com.consensus_name_attr(self.objs)
 
                 mgr = self.objs[0]._data.concat(
-                    [x._data for x in self.objs], self.new_axes
+                    [x._data for x in self.objs], self.new_axes[0]
                 )
                 cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")

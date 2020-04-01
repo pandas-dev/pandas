@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -15,7 +15,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (
@@ -249,7 +249,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _cache: Dict[str, Any]
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -396,10 +395,10 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional")
             return cls._simple_new(subarr, name)
 
-        elif hasattr(data, "__array__"):
-            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         elif data is None or is_scalar(data):
             raise cls._scalar_data_error(data)
+        elif hasattr(data, "__array__"):
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
@@ -464,8 +463,7 @@ class Index(IndexOpsMixin, PandasObject):
         # _index_data is a (temporary?) fix to ensure that the direct data
         # manipulation we do in `_libs/reduction.pyx` continues to work.
         # We need access to the actual ndarray, since we're messing with
-        # data buffers and strides. We don't re-use `_ndarray_values`, since
-        # we actually set this value too.
+        # data buffers and strides.
         result._index_data = values
         result._name = name
         result._cache = {}
@@ -625,7 +623,8 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._ndarray_values.ravel(order=order)
+        values = self._get_engine_target()
+        return values.ravel(order=order)
 
     def view(self, cls=None):
 
@@ -671,7 +670,7 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), dtype=dtype, copy=copy)
+            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
             casted = self.values.astype(dtype, copy=copy)
@@ -3050,8 +3049,9 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        left_distances = np.abs(self[left_indexer] - target)
-        right_distances = np.abs(self[right_indexer] - target)
+        target_values = target._values
+        left_distances = np.abs(self._values[left_indexer] - target_values)
+        right_distances = np.abs(self._values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3060,13 +3060,16 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     def _filter_indexer_tolerance(
-        self, target: "Index", indexer: np.ndarray, tolerance
+        self,
+        target: Union["Index", np.ndarray, ExtensionArray],
+        indexer: np.ndarray,
+        tolerance,
     ) -> np.ndarray:
-        distance = abs(self.values[indexer] - target)
+        distance = abs(self._values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
@@ -3832,7 +3835,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @Appender(IndexOpsMixin.array.__doc__)  # type: ignore
+    @doc(IndexOpsMixin.array)  # type: ignore
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -3846,29 +3849,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The best array representation.
 
-        This is an ndarray or ExtensionArray. This differs from
-        ``_ndarray_values``, which always returns an ndarray.
+        This is an ndarray or ExtensionArray.
 
-        Both ``_values`` and ``_ndarray_values`` are consistent between
-        ``Series`` and ``Index`` (except for datetime64[ns], which returns
-        a DatetimeArray for _values on the Index, but ndarray[M8ns] on the
-        Series).
+        ``_values`` are consistent between``Series`` and ``Index``.
 
         It may differ from the public '.values' method.
 
-        index             | values          | _values       | _ndarray_values |
-        ----------------- | --------------- | ------------- | --------------- |
-        Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
-        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
-        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
+        index             | values          | _values       |
+        ----------------- | --------------- | ------------- |
+        Index             | ndarray         | ndarray       |
+        CategoricalIndex  | Categorical     | Categorical   |
+        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
+        PeriodIndex       | ndarray[object] | PeriodArray   |
+        IntervalIndex     | IntervalArray   | IntervalArray |
 
         See Also
         --------
         values
-        _ndarray_values
         """
         return self._data
 
@@ -3878,7 +3876,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._values
 
-    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
 
@@ -5151,7 +5149,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        # Note: this method is overriden by all ExtensionIndex subclasses,
+        # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         arr = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values

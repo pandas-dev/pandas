@@ -19,7 +19,11 @@ from pandas.util._decorators import (
 )
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype, maybe_infer_to_datetimelike
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    maybe_cast_to_extension_array,
+    maybe_infer_to_datetimelike,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -47,11 +51,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
-from pandas.core.arrays.base import (
-    ExtensionArray,
-    _extension_array_shared_docs,
-    try_cast_to_ea,
-)
+from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -450,10 +450,6 @@ class Categorical(ExtensionArray, PandasObject):
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self.codes
 
     @property
     def _constructor(self) -> Type["Categorical"]:
@@ -2567,22 +2563,17 @@ def _get_codes_for_values(values, categories):
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if dtype_equal:
-        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
-        # the underlying numpy array. gh-22702
-        values = getattr(values, "_ndarray_values", values)
-        categories = getattr(categories, "_ndarray_values", categories)
-    elif is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
         cls = categories.dtype.construct_array_type()
-        values = try_cast_to_ea(cls, values)
+        values = maybe_cast_to_extension_array(cls, values)
         if not isinstance(values, cls):
             # exception raised in _from_sequence
             values = ensure_object(values)
             categories = ensure_object(categories)
-    else:
+    elif not dtype_equal:
         values = ensure_object(values)
         categories = ensure_object(categories)
 

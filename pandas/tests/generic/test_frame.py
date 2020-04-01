@@ -1,24 +1,14 @@
 from copy import deepcopy
-from distutils.version import LooseVersion
 from operator import methodcaller
 
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
 
 from .test_generic import Generic
-
-try:
-    import xarray
-
-    _XARRAY_INSTALLED = True
-except ImportError:
-    _XARRAY_INSTALLED = False
 
 
 class TestDataFrame(Generic):
@@ -236,6 +226,7 @@ class TestDataFrame2:
 
         with pytest.raises(TypeError, match=msg):
             ts.fillna(0, in_place=True)
+<<<<<<< HEAD
 
 
 class TestToXArray:
@@ -318,3 +309,5 @@ class TestToXArray:
         expected["f"] = expected["f"].astype(object)
         expected.columns.name = None
         tm.assert_frame_equal(result, expected, check_index_type=False)
+=======
+>>>>>>> master

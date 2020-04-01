@@ -244,11 +244,11 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         # TODO(extension)
         # if we have allow Index to hold an ExtensionArray
         # this is easier
-        index = value_counts.index.values.astype(object)
+        index = value_counts.index._values.astype(object)
 
         # if we want nans, count the mask
         if dropna:
-            counts = value_counts.values
+            counts = value_counts._values
         else:
             counts = np.empty(len(value_counts) + 1, dtype="int64")
             counts[:-1] = value_counts
