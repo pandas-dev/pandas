@@ -238,7 +238,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
     </ul>
 
 .. warning::
-    There is also a :meth:`~Series.str.replace` methods available to replace a
+    There is also a :meth:`~Series.str.replace` method available to replace a
     specific set of characters. However, when having a mapping of multiple
     values, this would become:
 

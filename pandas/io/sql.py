@@ -313,7 +313,7 @@ def read_sql_query(
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
@@ -978,7 +978,8 @@ class SQLTable(PandasObject):
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
-                if col.tz is not None:
+                # GH 26761 or an Index with date-like data e.g. 9999-01-01
+                if getattr(col, "tz", None) is not None:
                     return TIMESTAMP(timezone=True)
             return DateTime
         if col_type == "timedelta64":

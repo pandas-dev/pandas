@@ -1097,6 +1097,17 @@ def test_loc_datetimelike_mismatched_dtypes():
         df["a"].loc[tdi]
 
 
+def test_loc_with_period_index_indexer():
+    # GH#4125
+    idx = pd.period_range("2002-01", "2003-12", freq="M")
+    df = pd.DataFrame(np.random.randn(24, 10), index=idx)
+    tm.assert_frame_equal(df, df.loc[idx])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+
+
 def test_loc_setitem_df_datetime64tz_column_with_index():
     df = pd.DataFrame(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz="UTC"), columns=["data"]
