@@ -107,7 +107,8 @@ class TestTimeSeries:
         assert df.resample("D").asfreq().index.freq == "D"
 
     def test_period_dateoffset_conversion(self):
-        ts = pd.date_range('1/1/2012', periods=4, freq=pd.offsets.BQuarterEnd())
+        # GH5091
+        ts = pd.date_range("1/1/2012", periods=4, freq=pd.offsets.BQuarterEnd())
         per = ts.to_period()
         ts_per = per.to_timestamp()
 
