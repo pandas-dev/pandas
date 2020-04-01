@@ -254,7 +254,7 @@ Deprecations
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
-- The ``squeeze`` keyword in the ``groupby``function is deprecated and will be removed in a future version (:issue:`32380`)
+- The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 
 .. ---------------------------------------------------------------------------
 
