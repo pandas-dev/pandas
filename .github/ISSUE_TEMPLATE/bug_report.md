@@ -1,8 +1,17 @@
 ---
+
 name: Bug Report
 about: Create a bug report to help us improve pandas
 title: "BUG:"
 labels: ""
+
+---
+
+- [ ] I have checked that issue has not already been reported.
+
+- [ ] I have confirmed this bug exists on the latest version of pandas.
+
+- [ ] I have confirmed this bug exists on the master branch of pandas.
 
 ---
 
@@ -18,10 +27,6 @@ labels: ""
 #### Problem description
 
 [this should explain **why** the current behaviour is a problem and why the expected output is a better solution]
-
-**Note**: We receive a lot of issues on our GitHub tracker, so it is very possible that your issue has been posted before. Please check first before submitting so that we do not have to handle and close duplicates!
-
-**Note**: Many problems can be resolved by simply upgrading `pandas` to the latest version. Before submitting, please check if that solution works for you. If possible, you may want to check if `master` addresses this issue, but that is not necessary.
 
 #### Expected Output
 
