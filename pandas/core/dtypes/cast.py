@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
+    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -275,12 +276,13 @@ def maybe_cast_result(
     dtype = maybe_cast_result_dtype(dtype, how)
 
     if not is_scalar(result):
-        if is_extension_array_dtype(dtype) and dtype.kind != "M":
-            # The result may be of any type, cast back to original
-            # type if it's compatible.
-            if len(result) and isinstance(result[0], dtype.type):
-                cls = dtype.construct_array_type()
-                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+        if (
+            is_extension_array_dtype(dtype)
+            and dtype.kind != "M"
+            and not is_categorical_dtype(dtype)
+        ):
+            cls = dtype.construct_array_type()
+            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
         elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
             result = maybe_downcast_to_dtype(result, dtype)
