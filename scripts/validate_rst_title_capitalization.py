@@ -175,7 +175,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
                 and len(line) == len(previous_line)
-                and previous_line[0] != ':'
+                and previous_line[0] != ":"
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
             previous_line = line
