@@ -29,4 +29,3 @@ You can subscribe to this calendar with the following links:
 
 Additionally, we'll sometimes have one-off meetings on specific topics.
 These will be published on the same calendar.
-

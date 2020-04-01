@@ -6,7 +6,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 import pandas._testing as tm
 
 
@@ -258,3 +258,162 @@ class TestDataFrameDrop:
         # GH# 21494
         with pytest.raises(KeyError, match="not found in axis"):
             pd.DataFrame(index=index).drop(drop_labels)
+
+    def test_mixed_depth_drop(self):
+        arrays = [
+            ["a", "top", "top", "routine1", "routine1", "routine2"],
+            ["", "OD", "OD", "result1", "result2", "result1"],
+            ["", "wx", "wy", "", "", ""],
+        ]
+
+        tuples = sorted(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
+
+        result = df.drop("a", axis=1)
+        expected = df.drop([("a", "", "")], axis=1)
+        tm.assert_frame_equal(expected, result)
+
+        result = df.drop(["top"], axis=1)
+        expected = df.drop([("top", "OD", "wx")], axis=1)
+        expected = expected.drop([("top", "OD", "wy")], axis=1)
+        tm.assert_frame_equal(expected, result)
+
+        result = df.drop(("top", "OD", "wx"), axis=1)
+        expected = df.drop([("top", "OD", "wx")], axis=1)
+        tm.assert_frame_equal(expected, result)
+
+        expected = df.drop([("top", "OD", "wy")], axis=1)
+        expected = df.drop("top", axis=1)
+
+        result = df.drop("result1", level=1, axis=1)
+        expected = df.drop(
+            [("routine1", "result1", ""), ("routine2", "result1", "")], axis=1
+        )
+        tm.assert_frame_equal(expected, result)
+
+    def test_drop_multiindex_other_level_nan(self):
+        # GH#12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_nonunique(self):
+        df = DataFrame(
+            [
+                ["x-a", "x", "a", 1.5],
+                ["x-a", "x", "a", 1.2],
+                ["z-c", "z", "c", 3.1],
+                ["x-a", "x", "a", 4.1],
+                ["x-b", "x", "b", 5.1],
+                ["x-b", "x", "b", 4.1],
+                ["x-b", "x", "b", 2.2],
+                ["y-a", "y", "a", 1.2],
+                ["z-b", "z", "b", 2.1],
+            ],
+            columns=["var1", "var2", "var3", "var4"],
+        )
+
+        grp_size = df.groupby("var1").size()
+        drop_idx = grp_size.loc[grp_size == 1]
+
+        idf = df.set_index(["var1", "var2", "var3"])
+
+        # it works! GH#2101
+        result = idf.drop(drop_idx.index, level=0).reset_index()
+        expected = df[-df.var1.isin(drop_idx.index)]
+
+        result.index = expected.index
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_level(self):
+        index = MultiIndex(
+            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+            names=["first", "second"],
+        )
+        frame = DataFrame(
+            np.random.randn(10, 3),
+            index=index,
+            columns=Index(["A", "B", "C"], name="exp"),
+        )
+
+        result = frame.drop(["bar", "qux"], level="first")
+        expected = frame.iloc[[0, 1, 2, 5, 6]]
+        tm.assert_frame_equal(result, expected)
+
+        result = frame.drop(["two"], level="second")
+        expected = frame.iloc[[0, 2, 3, 6, 7, 9]]
+        tm.assert_frame_equal(result, expected)
+
+        result = frame.T.drop(["bar", "qux"], axis=1, level="first")
+        expected = frame.iloc[[0, 1, 2, 5, 6]].T
+        tm.assert_frame_equal(result, expected)
+
+        result = frame.T.drop(["two"], axis=1, level="second")
+        expected = frame.iloc[[0, 2, 3, 6, 7, 9]].T
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_level_nonunique_datetime(self):
+        # GH#12701
+        idx = Index([2, 3, 4, 4, 5], name="id")
+        idxdt = pd.to_datetime(
+            [
+                "201603231400",
+                "201603231500",
+                "201603231600",
+                "201603231600",
+                "201603231700",
+            ]
+        )
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)
+        df["tstamp"] = idxdt
+        df = df.set_index("tstamp", append=True)
+        ts = Timestamp("201603231600")
+        assert df.index.is_unique is False
+
+        result = df.drop(ts, level="tstamp")
+        expected = df.loc[idx != 4]
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [Series, DataFrame])
+    def test_drop_tz_aware_timestamp_across_dst(self, box):
+        # GH#21761
+        start = Timestamp("2017-10-29", tz="Europe/Berlin")
+        end = Timestamp("2017-10-29 04:00:00", tz="Europe/Berlin")
+        index = pd.date_range(start, end, freq="15min")
+        data = box(data=[1] * len(index), index=index)
+        result = data.drop(start)
+        expected_start = Timestamp("2017-10-29 00:15:00", tz="Europe/Berlin")
+        expected_idx = pd.date_range(expected_start, end, freq="15min")
+        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        tm.assert_equal(result, expected)
+
+    def test_drop_preserve_names(self):
+        index = MultiIndex.from_arrays(
+            [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
+        )
+
+        df = DataFrame(np.random.randn(6, 3), index=index)
+
+        result = df.drop([(0, 2)])
+        assert result.index.names == ("one", "two")
