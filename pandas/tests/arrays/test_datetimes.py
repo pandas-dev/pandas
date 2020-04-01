@@ -374,6 +374,13 @@ class TestDatetimeArray:
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
 
+    def test_pandasarray_in_datetimearray(self):
+        # GH 24615
+        expected = pd.array([1, 2], dtype="datetime64[ns]")
+        result = pd.arrays.DatetimeArray(pd.array([1, 2], dtype="datetime64[ns]"))
+
+        tm.assert_datetime_array_equal(expected, result)
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
