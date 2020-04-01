@@ -462,7 +462,7 @@ class _BaseOffset:
 
     def _validate_n(self, n):
         """
-        Require that `n` be a nonzero integer.
+        Require that `n` be an integer.
 
         Parameters
         ----------
