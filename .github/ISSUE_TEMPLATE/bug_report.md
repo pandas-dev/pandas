@@ -3,7 +3,7 @@
 name: Bug Report
 about: Create a bug report to help us improve pandas
 title: "BUG:"
-labels: "Bug"
+labels: "Bug, Needs Triage"
 
 ---
 

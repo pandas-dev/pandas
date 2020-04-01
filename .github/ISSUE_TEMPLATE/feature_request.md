@@ -3,7 +3,7 @@
 name: Feature Request
 about: Suggest an idea for pandas
 title: "ENH:"
-labels: "Enhancement"
+labels: "Enhancement, Needs Triage"
 
 ---
 
