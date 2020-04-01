@@ -830,6 +830,7 @@ def _guess_datetime_format(
         (('second',), '%S', 2),
         (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
+        (('tzinfo',), '%Z', 0),
     ]
 
     if dayfirst:
