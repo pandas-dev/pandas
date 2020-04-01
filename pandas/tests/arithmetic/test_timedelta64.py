@@ -650,9 +650,9 @@ class TestAddSubNaTMasking:
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
         # TODO: Make raised error message more informative and test
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             pd.to_timedelta(106580, "D") + Timestamp("2000")
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
         _NaT = int(pd.NaT) + 1

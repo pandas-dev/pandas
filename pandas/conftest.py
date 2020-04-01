@@ -522,6 +522,11 @@ def index_or_series_obj(request):
 # DataFrames
 # ----------------------------------------------------------------
 @pytest.fixture
+def empty_frame():
+    return DataFrame()
+
+
+@pytest.fixture
 def float_frame():
     """
     Fixture for DataFrame of floats with index of unique strings
