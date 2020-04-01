@@ -15,6 +15,10 @@ labels: ""
 
 [this should provide a description of the feature request, e.g. "`DataFrame.foo` should get a new parameter `bar` that [...]", try to write a docstring for the desired feature]
 
+#### API breaking implications
+
+[this should provide a description of how this feature will affect the API]
+
 #### Describe alternatives you've considered
 
 [this should provide a description of any alternative solutions or features you've considered]
