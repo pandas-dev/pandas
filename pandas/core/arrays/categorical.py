@@ -2505,81 +2505,100 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(list("aabc")).astype("category")
+    >>> s = pd.Series(list("abbccc")).astype("category")
     >>> s
     0    a
-    1    a
+    1    b
     2    b
     3    c
+    4    c
+    5    c
     dtype: category
     Categories (3, object): [a, b, c]
 
     >>> s.cat.categories
     Index(['a', 'b', 'c'], dtype='object')
 
-    >>> s.cat.rename_categories(list("abc"))
+    >>> s.cat.rename_categories(list("cba"))
+    0    c
+    1    b
+    2    b
+    3    a
+    4    a
+    5    a
+    dtype: category
+    Categories (3, object): [c, b, a]
+
+    >>> s.cat.reorder_categories(list("cba"))
     0    a
-    1    a
+    1    b
     2    b
     3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [c, b, a]
+
+    >>> s.cat.add_categories(["d", "e"])
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (5, object): [a, b, c, d, e]
+
+
+    >>> s.cat.remove_categories(["a", "c"])
+    0    NaN
+    1      b
+    2      b
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: category
+    Categories (1, object): [b]
+
+    >>> s.cat.remove_unused_categories()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
     dtype: category
     Categories (3, object): [a, b, c]
 
-    >>> s.cat.reorder_categories(list("cdb"))
-    0    b
-    1    b
-    2    c
-    3    d
-    dtype: category
-    Categories (3, object): [c, d, b]
-
-    >>> s.cat.add_categories(["e", "f"])
-    0    b
-    1    b
-    2    c
-    3    d
-    dtype: category
-    Categories (5, object): [b, c, d, e, f]
-
-    >>> s.cat.remove_categories(['d'])
-    0      b
-    1      b
-    2      c
-    3    NaN
-    dtype: category
-    Categories (2, object): [b, c]
-
-    >>> s.cat.remove_unused_categories()
-    0    b
-    1    b
-    2    c
-    3    d
-    dtype: category
-    Categories (3, object): [b, c, d]
-
     >>> s.cat.set_categories(list("abcde"))
-    0    b
+    0    a
     1    b
-    2    c
-    3    d
+    2    b
+    3    c
+    4    c
+    5    c
     dtype: category
     Categories (5, object): [a, b, c, d, e]
 
     >>> s.cat.as_ordered()
-    0    b
+    0    a
     1    b
-    2    c
-    3    d
+    2    b
+    3    c
+    4    c
+    5    c
     dtype: category
-    Categories (3, object): [b < c < d]
+    Categories (3, object): [a < b < c]
 
     >>> s.cat.as_unordered()
-    0    b
+    0    a
     1    b
-    2    c
-    3    d
+    2    b
+    3    c
+    4    c
+    5    c
     dtype: category
-    Categories (3, object): [b, c, d]
+    Categories (3, object): [a, b, c]
     """
 
     def __init__(self, data):
