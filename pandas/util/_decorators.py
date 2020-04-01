@@ -245,7 +245,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-class doc:
+def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -265,17 +265,13 @@ class doc:
         The string which would be used to format docstring template.
     """
 
-    def __init__(self, *args: Union[str, Callable], **kwargs: str) -> None:
-        self.appenders = args
-        self.substitution = kwargs
-
-    def __call__(self, func: F) -> F:
+    def decorator(func: F) -> F:
         # collecting docstring and docstring templates
         docstring_components: List[Union[str, Callable]] = []
         if func.__doc__:
             docstring_components.append(dedent(func.__doc__))
 
-        for appender in self.appenders:
+        for appender in args:
             if hasattr(appender, "_docstring_components"):
                 docstring_components.extend(
                     appender._docstring_components  # type: ignore
@@ -286,7 +282,7 @@ class doc:
         # formatting templates and concatenating docstring
         func.__doc__ = "".join(
             [
-                component.format(**self.substitution)
+                component.format(**kwargs)
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
                 for component in docstring_components
@@ -295,6 +291,8 @@ class doc:
 
         func._docstring_components = docstring_components  # type: ignore
         return func
+
+    return decorator
 
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
