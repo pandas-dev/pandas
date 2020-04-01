@@ -2231,6 +2231,12 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         unique values : ``Categorical``
 
+        See Also
+        --------
+        unique
+        CategoricalIndex.unique
+        Series.unique
+
         Examples
         --------
         An unordered Categorical will return categories in the
@@ -2249,12 +2255,6 @@ class Categorical(ExtensionArray, PandasObject):
         >>> pd.Categorical(list('baabc'), categories=list('abc'), ordered=True)
         [b, a, a, b, c]
         Categories (3, object): [a < b < c]
-
-        See Also
-        --------
-        unique
-        CategoricalIndex.unique
-        Series.unique
         """
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
