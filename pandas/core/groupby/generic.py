@@ -1253,9 +1253,7 @@ class DataFrameGroupBy(GroupBy):
 
             if isinstance(v, (np.ndarray, Index, Series)):
                 if isinstance(v, Series):
-                    applied_index = self._selected_obj._get_axis(self.axis)
                     all_indexed_same = all_indexes_same([x.index for x in values])
-                    singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                     if not all_indexed_same:
                         # GH 8467
