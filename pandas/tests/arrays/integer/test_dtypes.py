@@ -34,7 +34,10 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, int)
+    if op == "sum":
+        assert isinstance(result, np.int64)
+    else:
+        assert isinstance(result, int)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

@@ -166,7 +166,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @classmethod
     def _simple_new(cls, values: np.ndarray, freq=None, **kwargs) -> "PeriodArray":
         # alias for PeriodArray.__init__
-        assert isinstance(values, np.ndarray) and values.dtype == "i8"
+        assertion_msg = "Should be numpy array of type i8"
+        assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -817,6 +818,7 @@ def period_array(
     Integers that look like years are handled
 
     >>> period_array([2000, 2001, 2002], freq='D')
+    <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
