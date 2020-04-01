@@ -2250,13 +2250,11 @@ class Categorical(ExtensionArray, PandasObject):
         [b, a, a, b, c]
         Categories (3, object): [a < b < c]
 
-
         See Also
         --------
         unique
         CategoricalIndex.unique
         Series.unique
-
         """
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
