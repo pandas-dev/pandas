@@ -778,9 +778,9 @@ class TestCategoricalIndex:
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
+    def test_loc_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
-        cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+        cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
         sl = slice(idx_values[0], idx_values[1])
 

@@ -114,14 +114,14 @@ class TestCategoricalAnalytics:
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
-    def test_searchsorted(self, ordered_fixture):
+    def test_searchsorted(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
         cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=ordered_fixture,
+            ordered=ordered,
         )
         ser = Series(cat)
 
