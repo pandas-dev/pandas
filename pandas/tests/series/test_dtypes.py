@@ -311,9 +311,10 @@ class TestSeriesDtypes:
 
         # invalid conversion (these are NOT a dtype)
         msg = (
-            r"invalid type <class 'pandas\.core\.arrays\.categorical\."
-            "Categorical'> for astype"
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
         )
+
         for invalid in [
             lambda x: x.astype(Categorical),
             lambda x: x.astype("object").astype(Categorical),
