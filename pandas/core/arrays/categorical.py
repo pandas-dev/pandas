@@ -2517,15 +2517,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.categories
     Index(['a', 'b', 'c'], dtype='object')
 
-    >>> s.cat.categories = list("bcd")
-    >>> s
-    0    b
-    1    b
-    2    c
-    3    d
-    dtype: category
-    Categories (3, object): [b, c, d]
-
     >>> s.cat.rename_categories(list("abc"))
     0    a
     1    a
