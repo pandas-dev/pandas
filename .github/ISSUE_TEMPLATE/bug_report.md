@@ -7,11 +7,11 @@ labels: ""
 
 ---
 
-- [ ] I have checked that issue has not already been reported.
+- [ ] I have checked that this issue has not already been reported.
 
 - [ ] I have confirmed this bug exists on the latest version of pandas.
 
-- [ ] (optinal) I have confirmed this bug exists on the master branch of pandas.
+- [ ] (optional) I have confirmed this bug exists on the master branch of pandas.
 
 ---
 
