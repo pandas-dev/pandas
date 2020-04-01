@@ -16,10 +16,17 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Tuple
+from typing import IO, Callable, Iterable, List, Set, Tuple
 
 FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
 PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
+
+PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
+    "_extension_array_shared_docs",
+    "_index_shared_docs",
+    "_merge_doc",
+    "_shared_docs",
+}
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
@@ -138,8 +145,13 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
         if not (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)):
             continue
 
-        if any(mod.name.split(".")[-1].startswith("_") for mod in node.names):
-            yield (node.lineno, "Use of private function across modules found.")
+        for module in node.names:
+            module_name = module.name.split(".")[-1]
+            if module_name in PRIVATE_IMPORTS_TO_IGNORE:
+                continue
+
+            if module_name.startswith("_"):
+                yield (node.lineno, f"Import of internal function {repr(module_name)}")
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
