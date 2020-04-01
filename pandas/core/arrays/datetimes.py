@@ -922,9 +922,10 @@ default 'raise'
         ...                               '2018-10-28 02:36:00',
         ...                               '2018-10-28 03:46:00']))
         >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
-        0   2015-03-29 03:00:00+02:00
-        1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, Europe/Warsaw]
+        0   2018-10-28 01:20:00+02:00
+        1   2018-10-28 02:36:00+02:00
+        2   2018-10-28 03:46:00+01:00
+        dtype: datetime64[ns, CET]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
@@ -935,15 +936,17 @@ default 'raise'
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         0   2015-03-29 03:00:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, 'Europe/Warsaw']
+        dtype: datetime64[ns, Europe/Warsaw]
+
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, 'Europe/Warsaw']
+        dtype: datetime64[ns, Europe/Warsaw]
+
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, 'Europe/Warsaw']
+        dtype: datetime64[ns, Europe/Warsaw]
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
