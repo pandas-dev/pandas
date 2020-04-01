@@ -76,7 +76,6 @@ class Resampler(_GroupBy, ShallowMixin):
         self.sort = True
         self.axis = axis
         self.kind = kind
-        self.squeeze = False
         self.group_keys = True
         self.as_index = True
         self.exclusions = set()

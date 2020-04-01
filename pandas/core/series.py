@@ -22,6 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs.lib import no_default
 from pandas._typing import Axis, DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -1646,10 +1647,20 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = False,
+        squeeze: bool = no_default,
         observed: bool = False,
     ) -> "SeriesGroupBy":
         from pandas.core.groupby.generic import SeriesGroupBy
+
+        if squeeze is not no_default:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter in pd.groupby is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -1663,7 +1674,6 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
         )
 

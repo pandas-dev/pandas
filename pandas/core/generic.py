@@ -7419,6 +7419,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         squeeze : bool, default False
             Reduce the dimensionality of the return type if possible,
             otherwise return a consistent type.
+            deprecated:: 1.1.0
+            
         observed : bool, default False
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
