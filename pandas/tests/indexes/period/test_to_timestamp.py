@@ -10,8 +10,8 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
-    period_range,
     offsets,
+    period_range,
 )
 import pandas._testing as tm
 
