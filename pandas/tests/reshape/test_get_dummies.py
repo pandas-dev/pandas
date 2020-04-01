@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series, get_dummies
+from pandas import Categorical, CategoricalIndex, DataFrame, Series, get_dummies
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
@@ -31,11 +31,11 @@ class TestGetDummies:
             return np.uint8
         return dtype
 
-    def test_raises_on_dtype_object(self, df):
+    def test_get_dummies_raises_on_dtype_object(self, df):
         with pytest.raises(ValueError):
             get_dummies(df, dtype="object")
 
-    def test_basic(self, sparse, dtype):
+    def test_get_dummies_basic(self, sparse, dtype):
         s_list = list("abc")
         s_series = Series(s_list)
         s_series_index = Series(s_list, list("ABC"))
@@ -56,7 +56,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, sparse=sparse, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    def test_basic_types(self, sparse, dtype):
+    def test_get_dummies_basic_types(self, sparse, dtype):
         # GH 10531
         s_list = list("abc")
         s_series = Series(s_list)
@@ -106,7 +106,7 @@ class TestGetDummies:
         result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
-    def test_just_na(self, sparse):
+    def test_get_dummies_just_na(self, sparse):
         just_na_list = [np.nan]
         just_na_series = Series(just_na_list)
         just_na_series_index = Series(just_na_list, index=["A"])
@@ -123,7 +123,7 @@ class TestGetDummies:
         assert res_series.index.tolist() == [0]
         assert res_series_index.index.tolist() == ["A"]
 
-    def test_include_na(self, sparse, dtype):
+    def test_get_dummies_include_na(self, sparse, dtype):
         s = ["a", "b", np.nan]
         res = get_dummies(s, sparse=sparse, dtype=dtype)
         exp = DataFrame(
@@ -152,7 +152,7 @@ class TestGetDummies:
         )
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
-    def test_unicode(self, sparse):
+    def test_get_dummies_unicode(self, sparse):
         # See GH 6885 - get_dummies chokes on unicode values
         import unicodedata
 
@@ -175,7 +175,7 @@ class TestGetDummies:
             dtype=np.uint8,
         )
         if sparse:
-            expected = pd.DataFrame(
+            expected = DataFrame(
                 {
                     "A_a": SparseArray([1, 0, 1], dtype="uint8"),
                     "A_b": SparseArray([0, 1, 0], dtype="uint8"),
@@ -223,7 +223,7 @@ class TestGetDummies:
         cols = ["from_A_a", "from_A_b", "from_B_b", "from_B_c"]
         expected = expected[["C"] + cols]
 
-        typ = SparseArray if sparse else pd.Series
+        typ = SparseArray if sparse else Series
         expected[cols] = expected[cols].apply(lambda x: typ(x))
         tm.assert_frame_equal(result, expected)
 
@@ -242,11 +242,11 @@ class TestGetDummies:
             # https://github.com/pandas-dev/pandas/issues/14427
             expected = pd.concat(
                 [
-                    pd.Series([1, 2, 3], name="C"),
-                    pd.Series([1, 0, 1], name="bad_a", dtype="Sparse[uint8]"),
-                    pd.Series([0, 1, 0], name="bad_b", dtype="Sparse[uint8]"),
-                    pd.Series([1, 1, 0], name="bad_b", dtype="Sparse[uint8]"),
-                    pd.Series([0, 0, 1], name="bad_c", dtype="Sparse[uint8]"),
+                    Series([1, 2, 3], name="C"),
+                    Series([1, 0, 1], name="bad_a", dtype="Sparse[uint8]"),
+                    Series([0, 1, 0], name="bad_b", dtype="Sparse[uint8]"),
+                    Series([1, 1, 0], name="bad_b", dtype="Sparse[uint8]"),
+                    Series([0, 0, 1], name="bad_c", dtype="Sparse[uint8]"),
                 ],
                 axis=1,
             )
@@ -267,7 +267,7 @@ class TestGetDummies:
         expected[["C"]] = df[["C"]]
         if sparse:
             cols = ["from_A_a", "from_A_b"]
-            expected[cols] = expected[cols].astype(pd.SparseDtype("uint8", 0))
+            expected[cols] = expected[cols].astype(SparseDtype("uint8", 0))
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_sep(self, df, sparse):
@@ -286,7 +286,7 @@ class TestGetDummies:
         expected = expected[["C", "A..a", "A..b", "B..b", "B..c"]]
         if sparse:
             cols = ["A..a", "A..b", "B..b", "B..c"]
-            expected[cols] = expected[cols].astype(pd.SparseDtype("uint8", 0))
+            expected[cols] = expected[cols].astype(SparseDtype("uint8", 0))
 
         tm.assert_frame_equal(result, expected)
 
@@ -323,7 +323,7 @@ class TestGetDummies:
         columns = ["from_A_a", "from_A_b", "from_B_b", "from_B_c"]
         expected[columns] = expected[columns].astype(np.uint8)
         if sparse:
-            expected[columns] = expected[columns].astype(pd.SparseDtype("uint8", 0))
+            expected[columns] = expected[columns].astype(SparseDtype("uint8", 0))
 
         tm.assert_frame_equal(result, expected)
 
@@ -359,7 +359,7 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_with_categorical(self, df, sparse, dtype):
-        df["cat"] = pd.Categorical(["x", "y", "y"])
+        df["cat"] = Categorical(["x", "y", "y"])
         result = get_dummies(df, sparse=sparse, dtype=dtype).sort_index(axis=1)
         if sparse:
             arr = SparseArray
@@ -386,30 +386,30 @@ class TestGetDummies:
         "get_dummies_kwargs,expected",
         [
             (
-                {"data": pd.DataFrame(({"ä": ["a"]}))},
-                pd.DataFrame({"ä_a": [1]}, dtype=np.uint8),
+                {"data": DataFrame(({"ä": ["a"]}))},
+                DataFrame({"ä_a": [1]}, dtype=np.uint8),
             ),
             (
-                {"data": pd.DataFrame({"x": ["ä"]})},
-                pd.DataFrame({"x_ä": [1]}, dtype=np.uint8),
+                {"data": DataFrame({"x": ["ä"]})},
+                DataFrame({"x_ä": [1]}, dtype=np.uint8),
             ),
             (
-                {"data": pd.DataFrame({"x": ["a"]}), "prefix": "ä"},
-                pd.DataFrame({"ä_a": [1]}, dtype=np.uint8),
+                {"data": DataFrame({"x": ["a"]}), "prefix": "ä"},
+                DataFrame({"ä_a": [1]}, dtype=np.uint8),
             ),
             (
-                {"data": pd.DataFrame({"x": ["a"]}), "prefix_sep": "ä"},
-                pd.DataFrame({"xäa": [1]}, dtype=np.uint8),
+                {"data": DataFrame({"x": ["a"]}), "prefix_sep": "ä"},
+                DataFrame({"xäa": [1]}, dtype=np.uint8),
             ),
         ],
     )
     def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
-        # GH22084 pd.get_dummies incorrectly encodes unicode characters
+        # GH22084 get_dummies incorrectly encodes unicode characters
         # in dataframe column names
         result = get_dummies(**get_dummies_kwargs)
         tm.assert_frame_equal(result, expected)
 
-    def test_basic_drop_first(self, sparse):
+    def test_get_dummies_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list("abc")
@@ -430,7 +430,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_one_level(self, sparse):
+    def test_get_dummies_basic_drop_first_one_level(self, sparse):
         # Test the case that categorical variable only has one level.
         s_list = list("aaa")
         s_series = Series(s_list)
@@ -448,7 +448,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_NA(self, sparse):
+    def test_get_dummies_basic_drop_first_NA(self, sparse):
         # Test NA handling together with drop_first
         s_NA = ["a", "b", np.nan]
         res = get_dummies(s_NA, drop_first=True, sparse=sparse)
@@ -481,7 +481,7 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_drop_first_with_categorical(self, df, sparse, dtype):
-        df["cat"] = pd.Categorical(["x", "y", "y"])
+        df["cat"] = Categorical(["x", "y", "y"])
         result = get_dummies(df, drop_first=True, sparse=sparse)
         expected = DataFrame(
             {"C": [1, 2, 3], "A_b": [0, 1, 0], "B_c": [0, 0, 1], "cat_y": [0, 1, 1]}
@@ -521,24 +521,24 @@ class TestGetDummies:
         expected = expected[["C", "A_b", "B_c"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_int_int(self):
+    def test_get_dummies_int_int(self):
         data = Series([1, 2, 1])
-        result = pd.get_dummies(data)
+        result = get_dummies(data)
         expected = DataFrame([[1, 0], [0, 1], [1, 0]], columns=[1, 2], dtype=np.uint8)
         tm.assert_frame_equal(result, expected)
 
-        data = Series(pd.Categorical(["a", "b", "a"]))
-        result = pd.get_dummies(data)
+        data = Series(Categorical(["a", "b", "a"]))
+        result = get_dummies(data)
         expected = DataFrame(
-            [[1, 0], [0, 1], [1, 0]], columns=pd.Categorical(["a", "b"]), dtype=np.uint8
+            [[1, 0], [0, 1], [1, 0]], columns=Categorical(["a", "b"]), dtype=np.uint8
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_int_df(self, dtype):
+    def test_get_dummies_int_df(self, dtype):
         data = DataFrame(
             {
                 "A": [1, 2, 1],
-                "B": pd.Categorical(["a", "b", "a"]),
+                "B": Categorical(["a", "b", "a"]),
                 "C": [1, 2, 1],
                 "D": [1.0, 2.0, 1.0],
             }
@@ -549,22 +549,22 @@ class TestGetDummies:
             columns=columns,
         )
         expected[columns[2:]] = expected[columns[2:]].astype(dtype)
-        result = pd.get_dummies(data, columns=["A", "B"], dtype=dtype)
+        result = get_dummies(data, columns=["A", "B"], dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_preserve_categorical_dtype(self, dtype):
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_dataframe_dummies_preserve_categorical_dtype(self, dtype, ordered):
         # GH13854
-        for ordered in [False, True]:
-            cat = pd.Categorical(list("xy"), categories=list("xyz"), ordered=ordered)
-            result = get_dummies(cat, dtype=dtype)
+        cat = Categorical(list("xy"), categories=list("xyz"), ordered=ordered)
+        result = get_dummies(cat, dtype=dtype)
 
-            data = np.array([[1, 0, 0], [0, 1, 0]], dtype=self.effective_dtype(dtype))
-            cols = pd.CategoricalIndex(
-                cat.categories, categories=cat.categories, ordered=ordered
-            )
-            expected = DataFrame(data, columns=cols, dtype=self.effective_dtype(dtype))
+        data = np.array([[1, 0, 0], [0, 1, 0]], dtype=self.effective_dtype(dtype))
+        cols = CategoricalIndex(
+            cat.categories, categories=cat.categories, ordered=ordered
+        )
+        expected = DataFrame(data, columns=cols, dtype=self.effective_dtype(dtype))
 
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("sparse", [True, False])
     def test_get_dummies_dont_sparsify_all_columns(self, sparse):
@@ -593,10 +593,10 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     def test_get_dummies_all_sparse(self):
-        df = pd.DataFrame({"A": [1, 2]})
-        result = pd.get_dummies(df, columns=["A"], sparse=True)
+        df = DataFrame({"A": [1, 2]})
+        result = get_dummies(df, columns=["A"], sparse=True)
         dtype = SparseDtype("uint8", 0)
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A_1": SparseArray([1, 0], dtype=dtype),
                 "A_2": SparseArray([0, 1], dtype=dtype),
@@ -607,7 +607,7 @@ class TestGetDummies:
     @pytest.mark.parametrize("values", ["baz"])
     def test_get_dummies_with_string_values(self, values):
         # issue #28383
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "bar": [1, 2, 3, 4, 5, 6],
                 "foo": ["one", "one", "one", "two", "two", "two"],
@@ -619,26 +619,4 @@ class TestGetDummies:
         msg = "Input must be a list-like for parameter `columns`"
 
         with pytest.raises(TypeError, match=msg):
-            pd.get_dummies(df, columns=values)
-
-
-class TestCategoricalReshape:
-    def test_reshaping_multi_index_categorical(self):
-
-        cols = ["ItemA", "ItemB", "ItemC"]
-        data = {c: tm.makeTimeDataFrame() for c in cols}
-        df = pd.concat({c: data[c].stack() for c in data}, axis="columns")
-        df.index.names = ["major", "minor"]
-        df["str"] = "foo"
-
-        df["category"] = df["str"].astype("category")
-        result = df["category"].unstack()
-
-        dti = df.index.levels[0]
-        c = Categorical(["foo"] * len(dti))
-        expected = DataFrame(
-            {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
-            columns=Index(list("ABCD"), name="minor"),
-            index=dti.rename("major"),
-        )
-        tm.assert_frame_equal(result, expected)
+            get_dummies(df, columns=values)
