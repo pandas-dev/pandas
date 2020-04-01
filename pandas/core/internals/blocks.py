@@ -871,8 +871,10 @@ class Block(PandasObject):
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
+            is_ea_value = True
             arr_value = value
         else:
+            is_ea_value = False
             arr_value = np.array(value)
 
         if transpose:
@@ -899,6 +901,11 @@ class Block(PandasObject):
             # we need to create a new categorical block
             values[indexer] = value
             return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
+        elif exact_match and is_ea_value:
+            # GH#?32395 if we're going to replace the values entirely, just
+            #  substitute in the new array
+            return self.make_block(arr_value)
 
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype

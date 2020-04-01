@@ -1095,3 +1095,38 @@ def test_loc_datetimelike_mismatched_dtypes():
 
     with pytest.raises(KeyError, match=msg):
         df["a"].loc[tdi]
+
+
+def test_loc_setitem_df_datetime64tz_column_with_index():
+    df = pd.DataFrame(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz="UTC"), columns=["data"]
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[df.index, "data"] = df["data"]
+
+    tm.assert_frame_equal(df, df2)
+
+
+def test_loc_setitem_df_datetime64tz_column_without_index():
+    df = pd.DataFrame(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz="UTC"), columns=["data"]
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[:, "data"] = df["data"]
+    tm.assert_series_equal(df.data, df2.data)
+
+
+def test_loc_setitem_series_datetime64tz_with_index():
+    s1 = pd.Series(pd.date_range("2020-01-01", "2020-01-06", 6, tz="UTC"), name="data")
+    s2 = pd.Series(index=s1.index, dtype=np.object, name="data")
+    s2.loc[s1.index] = s1
+
+    tm.assert_series_equal(s2, s1)
+
+
+def test_loc_setitem_series_datetime64tz_without_index():
+    s1 = pd.Series(pd.date_range("2020-01-01", "2020-01-06", 6, tz="UTC"), name="data")
+    s2 = pd.Series(index=s1.index, dtype=np.object, name="data")
+    s2.loc[:] = s1
+
+    tm.assert_series_equal(s2, s1)
