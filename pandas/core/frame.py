@@ -5818,11 +5818,20 @@ Wild         185.0
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
 
+        if squeeze is not False:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter in pd.groupby is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
-
-        return DataFrameGroupBy(
+        grouped = DataFrameGroupBy(
             obj=self,
             keys=by,
             axis=axis,
@@ -5830,9 +5839,9 @@ Wild         185.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
         )
+        return grouped
 
     _shared_docs[
         "pivot"
