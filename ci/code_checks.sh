@@ -271,8 +271,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py \
-        -k"-nonzero -reindex -searchsorted -to_dict"
+    pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests groupby.py' ; echo $MSG
