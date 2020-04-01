@@ -1604,9 +1604,9 @@ default 'raise'
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
                       dtype='datetime64[ns]', freq='A-DEC')
         >>> idx.is_leap_year
-        array([ True, False, False], dtype=bool)
+        array([ True, False, False])
 
-        >>> dates = pd.Series(idx)
+        >>> dates_series = pd.Series(idx)
         >>> dates_series
         0   2012-12-31
         1   2013-12-31

@@ -270,6 +270,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/frame.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests indexes' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py \
         -k"-nonzero -reindex -searchsorted -to_dict"
@@ -288,9 +292,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/indexes/interval.py \
-        pandas/core/arrays/interval.py
+    pytest -q --doctest-modules pandas/core/arrays/interval.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays'; echo $MSG
