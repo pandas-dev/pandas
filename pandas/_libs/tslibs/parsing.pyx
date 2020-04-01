@@ -477,7 +477,7 @@ cdef dateutil_parse(
     str timestr,
     object default,
     bint ignoretz=False,
-    tzinfos=None,
+    object tzinfos=None,
     dayfirst=None,
     yearfirst=None,
 ):
