@@ -2233,7 +2233,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        unique
+        pandas.unique
         CategoricalIndex.unique
         Series.unique
 
