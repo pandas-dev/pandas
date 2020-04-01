@@ -99,3 +99,11 @@ class TestToTimestamp:
 
         result = index.to_timestamp()
         assert result[0] == Timestamp("1/1/2012")
+
+    def test_period_dateoffset_conversion(self):
+        # GH5091
+        expected = date_range("1/1/2012", periods=4, freq=offsets.BQuarterEnd())
+        per = expected.to_period()
+        result = per.to_timestamp()
+
+        tm.assert_index_equal(result, expected)
