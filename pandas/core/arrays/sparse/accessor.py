@@ -120,15 +120,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-        >>> s
-        0    3.0
-        1    NaN
-        2    1.0
-        3    3.0
-        4    NaN
-        5    NaN
-        dtype: float64
-
         >>> s.index = pd.MultiIndex.from_tuples(
         ...     [
         ...         (1, 2, "a", 0),
