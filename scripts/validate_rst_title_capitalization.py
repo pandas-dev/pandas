@@ -10,12 +10,11 @@ Usage::
 
 """
 import argparse
-import sys
-import re
-import os
-from typing import Tuple, Generator, List
 import glob
-
+import os
+import re
+import sys
+from typing import Generator, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
