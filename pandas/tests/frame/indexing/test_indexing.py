@@ -392,16 +392,6 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
-        # where dtype conversions
-        # GH 3733
-        df = DataFrame(data=np.random.randn(100, 50))
-        df = df.where(df > 0)  # create nans
-        bools = df > 0
-        mask = isna(df)
-        expected = bools.astype(float).mask(mask)
-        result = bools.mask(mask)
-        tm.assert_frame_equal(result, expected)
-
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
 

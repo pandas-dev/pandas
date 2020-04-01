@@ -60,7 +60,7 @@ class TestTimedeltaIndexing:
         tm.assert_series_equal(sliced, expected)
 
     @pytest.mark.parametrize("value", [None, pd.NaT, np.nan])
-    def test_masked_setitem(self, value):
+    def test_setitem_mask_na_value_td64(self, value):
         # issue (#18586)
         series = pd.Series([0, 1, 2], dtype="timedelta64[ns]")
         series[series == series[0]] = value
