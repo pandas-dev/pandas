@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
@@ -1307,6 +1305,13 @@ class TestDataFramePlots(TestPlotBase):
         # later.
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
+
+    def test_plot_scatter_with_s(self):
+        # this refers to GH 32904
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
+
+        ax = df.plot.scatter(x="a", y="b", s="c")
+        tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})

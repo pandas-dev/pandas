@@ -11,6 +11,7 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    array,
     date_range,
     timedelta_range,
 )
@@ -41,21 +42,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_pickle_compat_construction(self):
         pass
-
-    def test_fillna_timedelta(self):
-        # GH 11343
-        idx = pd.TimedeltaIndex(["1 day", pd.NaT, "3 day"])
-
-        exp = pd.TimedeltaIndex(["1 day", "2 day", "3 day"])
-        tm.assert_index_equal(idx.fillna(pd.Timedelta("2 day")), exp)
-
-        exp = pd.TimedeltaIndex(["1 day", "3 hour", "3 day"])
-        idx.fillna(pd.Timedelta("3 hour"))
-
-        exp = pd.Index(
-            [pd.Timedelta("1 day"), "x", pd.Timedelta("3 day")], dtype=object
-        )
-        tm.assert_index_equal(idx.fillna("x"), exp)
 
     def test_isin(self):
 
@@ -110,6 +96,26 @@ class TestTimedeltaIndex(DatetimeLike):
         assert ordered[::-1].is_monotonic
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
+
+    @pytest.mark.parametrize("klass", [list, np.array, array, Series])
+    def test_searchsorted_different_argument_classes(self, klass):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        result = idx.searchsorted(klass(idx))
+        expected = np.arange(len(idx), dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = idx._data.searchsorted(klass(idx))
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "arg",
+        [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2],
+    )
+    def test_searchsorted_invalid_argument_dtype(self, arg):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        msg = "searchsorted requires compatible dtype"
+        with pytest.raises(TypeError, match=msg):
+            idx.searchsorted(arg)
 
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
