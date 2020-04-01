@@ -13,7 +13,7 @@ labels: ""
 
 #### Describe the solution you'd like
 
-[this should provide a description of the feature request, e.g. "`DataFrame.foo` should get a new parameter `bar` that [...]"]
+[this should provide a description of the feature request, e.g. "`DataFrame.foo` should get a new parameter `bar` that [...]", try to write a docstring for the desired feature]
 
 #### Describe alternatives you've considered
 
