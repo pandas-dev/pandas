@@ -16,30 +16,24 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_string_dtype,
     is_string_like_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
-    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.inference import is_list_like
 
@@ -139,17 +133,7 @@ def _isna_new(obj):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(
-        obj,
-        (
-            ABCSeries,
-            np.ndarray,
-            ABCIndexClass,
-            ABCExtensionArray,
-            ABCDatetimeArray,
-            ABCTimedeltaArray,
-        ),
-    ):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -158,7 +142,7 @@ def _isna_new(obj):
     elif hasattr(obj, "__array__"):
         return _isna_ndarraylike(np.asarray(obj))
     else:
-        return obj is None
+        return False
 
 
 def _isna_old(obj):
@@ -189,7 +173,7 @@ def _isna_old(obj):
     elif hasattr(obj, "__array__"):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
-        return obj is None
+        return False
 
 
 _isna = _isna_new
@@ -224,37 +208,14 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    is_extension = is_extension_array_dtype(obj)
-
-    if not is_extension:
-        # Avoid accessing `.values` on things like
-        # PeriodIndex, which may be expensive.
-        values = getattr(obj, "_values", obj)
-    else:
-        values = obj
-
+    is_extension = is_extension_array_dtype(obj.dtype)
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_extension:
-        if isinstance(obj, (ABCIndexClass, ABCSeries)):
-            values = obj._values
-        else:
-            values = obj
         result = values.isna()
-    elif isinstance(obj, ABCDatetimeArray):
-        return obj.isna()
     elif is_string_dtype(dtype):
-        # Working around NumPy ticket 1542
-        shape = values.shape
-
-        if is_string_like_dtype(dtype):
-            # object array of strings
-            result = np.zeros(values.shape, dtype=bool)
-        else:
-            # object array of non-strings
-            result = np.empty(shape, dtype=bool)
-            vec = libmissing.isnaobj(values.ravel())
-            result[...] = vec.reshape(shape)
+        result = _isna_string_dtype(values, dtype, old=False)
 
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
@@ -274,17 +235,9 @@ def _isna_ndarraylike_old(obj):
     dtype = values.dtype
 
     if is_string_dtype(dtype):
-        # Working around NumPy ticket 1542
-        shape = values.shape
+        result = _isna_string_dtype(values, dtype, old=True)
 
-        if is_string_like_dtype(dtype):
-            result = np.zeros(values.shape, dtype=bool)
-        else:
-            result = np.empty(shape, dtype=bool)
-            vec = libmissing.isnaobj_old(values.ravel())
-            result[:] = vec.reshape(shape)
-
-    elif is_datetime64_dtype(dtype):
+    elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
     else:
@@ -293,6 +246,24 @@ def _isna_ndarraylike_old(obj):
     # box
     if isinstance(obj, ABCSeries):
         result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
+
+    return result
+
+
+def _isna_string_dtype(values: np.ndarray, dtype: np.dtype, old: bool) -> np.ndarray:
+    # Working around NumPy ticket 1542
+    shape = values.shape
+
+    if is_string_like_dtype(dtype):
+        result = np.zeros(values.shape, dtype=bool)
+    else:
+        result = np.empty(shape, dtype=bool)
+        if old:
+            vec = libmissing.isnaobj_old(values.ravel())
+        else:
+            vec = libmissing.isnaobj(values.ravel())
+
+        result[...] = vec.reshape(shape)
 
     return result
 
@@ -556,12 +527,7 @@ def na_value_for_dtype(dtype, compat: bool = True):
 
     if is_extension_array_dtype(dtype):
         return dtype.na_value
-    if (
-        is_datetime64_dtype(dtype)
-        or is_datetime64tz_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-        or is_period_dtype(dtype)
-    ):
+    if needs_i8_conversion(dtype):
         return NaT
     elif is_float_dtype(dtype):
         return np.nan
