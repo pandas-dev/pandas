@@ -1575,7 +1575,7 @@ class Categorical(ExtensionArray, PandasObject):
             a ``Categorical`` and return an object with the same shape
             as the input.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------

@@ -281,7 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
     ) -> "Index":
 
         from pandas.core.indexes.range import RangeIndex
@@ -4372,7 +4372,7 @@ class Index(IndexOpsMixin, PandasObject):
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------

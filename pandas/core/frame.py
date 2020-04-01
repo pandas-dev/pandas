@@ -4885,7 +4885,7 @@ class DataFrame(NDFrame):
             ``Index`` and return an ``Index`` of the same shape. For MultiIndex
             inputs, the key is applied *per level*.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------

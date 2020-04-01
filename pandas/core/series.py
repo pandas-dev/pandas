@@ -2858,7 +2858,7 @@ Name: Max Speed, dtype: float64
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return an array-like.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3104,7 +3104,7 @@ Name: Max Speed, dtype: float64
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------

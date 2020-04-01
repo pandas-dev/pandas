@@ -4131,7 +4131,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             ``Series`` and return a Series with the same shape as the input.
             It will be applied to each column in `by` independently.
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -8668,7 +8668,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._data.putmask(
-                mask=cond, new=other, align=align, axis=block_axis,
+                mask=cond, new=other, align=align, axis=block_axis
             )
             self._update_inplace(new_data)
 
