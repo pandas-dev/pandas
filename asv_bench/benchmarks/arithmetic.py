@@ -60,8 +60,11 @@ class OpWithFillValue:
         self.df = df
         self.ser = ser
 
-    def time_op_with_fill_value_no_nas(self):
-        self.df.add(self.ser, fill_value=4)
+    def time_frame_op_with_fill_value_no_nas(self):
+        self.df.add(self.df, fill_value=4)
+
+    def time_series_op_with_fill_value_no_nas(self):
+        self.ser.add(self.ser, fill_value=4)
 
 
 class MixedFrameWithSeriesAxis0:
