@@ -11,11 +11,20 @@ Usage::
 """
 import argparse
 import glob
+<<<<<<< HEAD
 import os
 import re
 import sys
 from typing import Generator, List, Tuple
 
+||||||| 49bc8d8c9
+
+=======
+import os
+import re
+import sys
+from typing import Generator, List, Tuple
+>>>>>>> upstream_main_pandas/master
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
