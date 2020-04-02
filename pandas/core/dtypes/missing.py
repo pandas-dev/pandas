@@ -11,8 +11,8 @@ from pandas._libs.tslibs import NaT, iNaT
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
     is_complex_dtype,
@@ -482,9 +482,9 @@ def _infer_fill_value(val):
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ["datetime", "datetime64"]:
-            return np.array("NaT", dtype=_NS_DTYPE)
+            return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
-            return np.array("NaT", dtype=_TD_DTYPE)
+            return np.array("NaT", dtype=TD64NS_DTYPE)
     return np.nan
 
 

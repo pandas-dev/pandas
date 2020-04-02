@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
+from pandas.core.arrays.categorical import Categorical, contains, recode_for_categories
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -540,7 +540,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 # we have the same codes
                 codes = target.codes
             else:
-                codes = _recode_for_categories(
+                codes = recode_for_categories(
                     target.codes, target.categories, self._values.categories
                 )
         else:

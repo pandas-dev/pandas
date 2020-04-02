@@ -44,7 +44,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -1944,7 +1944,7 @@ def _factorize_keys(
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
-            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)

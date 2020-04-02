@@ -44,8 +44,8 @@ from pandas._libs.tslibs.tzconversion cimport (
 # ----------------------------------------------------------------------
 # Constants
 
-NS_DTYPE = np.dtype('M8[ns]')
-TD_DTYPE = np.dtype('m8[ns]')
+DT64NS_DTYPE = np.dtype('M8[ns]')
+TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
 # ----------------------------------------------------------------------
@@ -105,11 +105,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype=NS_DTYPE)
+    result = np.empty(shape, dtype=DT64NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
-        result = arr.view(NS_DTYPE)
+        result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
         return result
@@ -145,7 +145,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     result : ndarray with dtype timedelta64[ns]
 
     """
-    return arr.astype(TD_DTYPE, copy=copy)
+    return arr.astype(TD64NS_DTYPE, copy=copy)
     # TODO: check for overflows when going from a lower-resolution to nanos
 
 

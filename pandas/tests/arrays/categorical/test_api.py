@@ -5,7 +5,7 @@ import pytest
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 import pandas._testing as tm
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -504,7 +504,7 @@ class TestPrivateCategoricalAPI:
         expected = np.asanyarray(expected, dtype=np.int8)
         old = Index(old)
         new = Index(new)
-        result = _recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_recode_to_categories_large(self):
@@ -513,5 +513,5 @@ class TestPrivateCategoricalAPI:
         old = Index(codes)
         expected = np.arange(N - 1, -1, -1, dtype=np.int16)
         new = Index(expected)
-        result = _recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
