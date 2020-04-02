@@ -11,20 +11,10 @@ Usage::
 """
 import argparse
 import glob
-<<<<<<< HEAD
 import os
 import re
 import sys
 from typing import Generator, List, Tuple
-
-||||||| 49bc8d8c9
-
-=======
-import os
-import re
-import sys
-from typing import Generator, List, Tuple
->>>>>>> upstream_main_pandas/master
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -133,6 +123,10 @@ def correct_title_capitalization(title: str) -> str:
         Correctly capitalized heading.
     """
 
+    # Skip modification no matter what if title begins by ":" to exclude specific syntax that is needed to build links.
+    if title[0] == ":":
+        return title
+
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
@@ -184,7 +178,6 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
                 and len(line) == len(previous_line)
-                and previous_line[0] != ":"
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
             previous_line = line
