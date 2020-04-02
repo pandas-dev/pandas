@@ -720,7 +720,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Return index locations of index values at particular time of day
+        Return index locations of values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -736,7 +736,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_between_time, DataFrame.at_time
+        indexer_between_time : Get index locations of values between particular
+            times of day.
+        DataFrame.at_time : Select values at particular time of day.
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
@@ -777,7 +779,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_at_time, DataFrame.between_time
+        indexer_at_time : Get index locations of values at particular time of day.
+        DataFrame.between_time : Select values between particular times of day.
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
