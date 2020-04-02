@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
@@ -1307,6 +1305,13 @@ class TestDataFramePlots(TestPlotBase):
         # later.
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
+
+    def test_plot_scatter_with_s(self):
+        # this refers to GH 32904
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
+
+        ax = df.plot.scatter(x="a", y="b", s="c")
+        tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
@@ -3315,6 +3320,16 @@ class TestDataFramePlots(TestPlotBase):
 
         self._check_legend_labels(ax, labels=["A", "B", "C"])
         self._check_legend_marker(ax, expected_markers=[".", ".", "."])
+
+    def test_colors_of_columns_with_same_name(self):
+        # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
+        # Creating a DataFrame with duplicate column labels and testing colors of them.
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
+        df_concat = pd.concat([df, df1], axis=1)
+        result = df_concat.plot()
+        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+            assert legend.get_color() == line.get_color()
 
 
 def _generate_4_axes_via_gridspec():

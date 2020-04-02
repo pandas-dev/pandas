@@ -1,8 +1,16 @@
 import numbers
 from operator import le, lt
 
-from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
-                             PyObject_RichCompare)
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+)
+
 
 import cython
 from cython import Py_ssize_t
@@ -10,9 +18,16 @@ from cython import Py_ssize_t
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    NPY_QUICKSORT,
+    PyArray_ArgSort,
+    PyArray_Take,
+    float32_t,
+    float64_t,
+    int32_t,
+    int64_t,
     ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+    uint64_t,
+)
 cnp.import_array()
 
 
@@ -481,8 +496,7 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def intervals_to_interval_bounds(ndarray intervals,
-                                 bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     """
     Parameters
     ----------
@@ -502,14 +516,14 @@ def intervals_to_interval_bounds(ndarray intervals,
     """
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan

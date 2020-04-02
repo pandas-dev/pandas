@@ -36,7 +36,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
-from pandas.core.construction import sanitize_array
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -53,23 +53,26 @@ from pandas.core.internals import (
 # BlockManager Interface
 
 
-def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
+def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, verify_integrity=True):
     """
     Segregate Series based on type and coerce into matrices.
 
     Needs to handle a lot of exceptional cases.
     """
-    # figure out the index, if necessary
-    if index is None:
-        index = extract_index(arrays)
-    else:
-        index = ensure_index(index)
+    if verify_integrity:
+        # figure out the index, if necessary
+        if index is None:
+            index = extract_index(arrays)
+        else:
+            index = ensure_index(index)
 
-    # don't force copy because getting jammed in an ndarray anyway
-    arrays = _homogenize(arrays, index, dtype)
+        # don't force copy because getting jammed in an ndarray anyway
+        arrays = _homogenize(arrays, index, dtype)
+
+        columns = ensure_index(columns)
 
     # from BlockManager perspective
-    axes = [ensure_index(columns), index]
+    axes = [columns, index]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
@@ -429,6 +432,33 @@ def _get_axes(N, K, index, columns):
     return index, columns
 
 
+def dataclasses_to_dicts(data):
+    """    Converts a list of dataclass instances to a list of dictionaries
+
+    Parameters
+    ----------
+    data : List[Type[dataclass]]
+
+    Returns
+    --------
+    list_dict : List[dict]
+
+    Examples
+    --------
+    >>> @dataclass
+    >>> class Point:
+    ...     x: int
+    ...     y: int
+
+    >>> dataclasses_to_dicts([Point(1,2), Point(2,3)])
+    [{"x":1,"y":2},{"x":2,"y":3}]
+
+    """
+    from dataclasses import asdict
+
+    return list(map(asdict, data))
+
+
 # ---------------------------------------------------------------------
 # Conversion of Inputs to Arrays
 
@@ -519,7 +549,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = com.values_from_object(s)
+        values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)

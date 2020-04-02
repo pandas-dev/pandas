@@ -188,46 +188,6 @@ def test_getitem_box_float64(datetime_series):
     assert isinstance(value, np.float64)
 
 
-@pytest.mark.parametrize(
-    "arr",
-    [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
-)
-def test_get(arr):
-    # GH 21260
-    s = Series(arr, index=[2 * i for i in range(len(arr))])
-    assert s.get(4) == s.iloc[2]
-
-    result = s.get([4, 6])
-    expected = s.iloc[[2, 3]]
-    tm.assert_series_equal(result, expected)
-
-    result = s.get(slice(2))
-    expected = s.iloc[[0, 1]]
-    tm.assert_series_equal(result, expected)
-
-    assert s.get(-1) is None
-    assert s.get(s.index.max() + 1) is None
-
-    s = Series(arr[:6], index=list("abcdef"))
-    assert s.get("c") == s.iloc[2]
-
-    result = s.get(slice("b", "d"))
-    expected = s.iloc[[1, 2, 3]]
-    tm.assert_series_equal(result, expected)
-
-    result = s.get("Z")
-    assert result is None
-
-    assert s.get(4) == s.iloc[4]
-    assert s.get(-1) == s.iloc[-1]
-    assert s.get(len(s)) is None
-
-    # GH 21257
-    s = pd.Series(arr)
-    s2 = s[::2]
-    assert s2.get(1) is None
-
-
 def test_series_box_timestamp():
     rng = pd.date_range("20090415", "20090519", freq="B")
     ser = Series(rng)
@@ -669,11 +629,8 @@ def test_timedelta_assignment():
     s = s.reindex(s.index.insert(0, "A"))
     tm.assert_series_equal(s, Series([np.nan, Timedelta("1 days")], index=["A", "B"]))
 
-    result = s.fillna(timedelta(1))
-    expected = Series(Timedelta("1 days"), index=["A", "B"])
-    tm.assert_series_equal(result, expected)
-
     s.loc["A"] = timedelta(1)
+    expected = Series(Timedelta("1 days"), index=["A", "B"])
     tm.assert_series_equal(s, expected)
 
     # GH 14155
@@ -923,3 +880,15 @@ def test_getitem_2d_no_warning():
     series = pd.Series([1, 2, 3], index=[1, 2, 3])
     with tm.assert_produces_warning(None):
         series[:, None]
+
+
+def test_getitem_unrecognized_scalar():
+    # GH#32684 a scalar key that is not recognized by lib.is_scalar
+
+    # a series that might be produced via `frame.dtypes`
+    ser = pd.Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+
+    key = ser.index[1]
+
+    result = ser[key]
+    assert result == 2

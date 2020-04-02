@@ -1,16 +1,17 @@
 """
 datetimelike delegation
 """
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_arraylike,
     is_integer_dtype,
     is_list_like,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -21,9 +22,12 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
+
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    def __init__(self, data, orig):
+    def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -45,12 +49,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        else:
-            if is_period_arraylike(data):
-                # TODO: use to_period_array
-                return PeriodArray(data, copy=False)
-            if is_datetime_arraylike(data):
-                return DatetimeIndex(data, copy=False, name=self.name)
+        elif is_period_dtype(data):
+            return PeriodArray(data, copy=False)
 
         raise TypeError(
             f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -137,7 +137,7 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return the data as an array of native Python datetime objects.
 
@@ -209,7 +209,7 @@ class TimedeltaProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return an array of native `datetime.timedelta` objects.
 
@@ -271,7 +271,7 @@ class TimedeltaProperties(Properties):
         2     0      0        0        2             0             0            0
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
-        """  # noqa: E501
+        """
         return self._get_values().components.set_index(self._parent.index)
 
     @property
@@ -303,7 +303,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data):
+    def __new__(cls, data: "Series"):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
@@ -321,7 +321,7 @@ class CombinedDatetimelikeProperties(
                 orig.array,
                 name=orig.name,
                 copy=False,
-                dtype=orig.values.categories.dtype,
+                dtype=orig._values.categories.dtype,
             )
 
         if is_datetime64_dtype(data.dtype):
@@ -330,9 +330,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_arraylike(data):
+        elif is_period_dtype(data):
             return PeriodProperties(data, orig)
-        elif is_datetime_arraylike(data):
-            return DatetimeProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")

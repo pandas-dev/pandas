@@ -351,10 +351,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
     def parse_dates_safe(dates, delta=False, year=False, days=False):
         d = {}
-        if is_datetime64_dtype(dates.values):
+        if is_datetime64_dtype(dates.dtype):
             if delta:
                 time_delta = dates - stata_epoch
-                d["delta"] = time_delta.values.astype(np.int64) // 1000  # microseconds
+                d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 # ignore since mypy reports that DatetimeIndex has no year/month
                 date_index = DatetimeIndex(dates)
@@ -368,7 +368,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
         elif infer_dtype(dates, skipna=False) == "datetime":
             if delta:
-                delta = dates.values - stata_epoch
+                delta = dates._values - stata_epoch
 
                 def f(x: datetime.timedelta) -> float:
                     return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
@@ -377,8 +377,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = v(delta)
             if year:
                 year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month.values // 100
-                d["month"] = year_month.values - d["year"] * 100
+                d["year"] = year_month._values // 100
+                d["month"] = year_month._values - d["year"] * 100
             if days:
 
                 def g(x: datetime.datetime) -> int:
@@ -1161,8 +1161,8 @@ class StataReader(StataParser, abc.Iterator):
                 return typ
             try:
                 return self.TYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata types [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata types [{typ}]") from err
 
         typlist = [f(x) for x in raw_typlist]
 
@@ -1171,8 +1171,8 @@ class StataReader(StataParser, abc.Iterator):
                 return str(typ)
             try:
                 return self.DTYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata dtype [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
         dtyplist = [g(x) for x in raw_typlist]
 
@@ -1296,14 +1296,14 @@ class StataReader(StataParser, abc.Iterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_types = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata types [{invalid_types}]")
+            raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_dtypes = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]")
+            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:
             self.varlist = [
@@ -1672,7 +1672,7 @@ the string values returned are correct."""
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.nonzero(missing._ndarray_values)[0]
+                missing_loc = np.nonzero(np.asarray(missing))[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=np.object)
                 for j, um in enumerate(umissing):
@@ -1761,7 +1761,7 @@ the string values returned are correct."""
                         categories.append(category)  # Partially labeled
                 try:
                     cat_data.categories = categories
-                except ValueError:
+                except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
@@ -1777,7 +1777,7 @@ value_labels.
 The repeated labels are:
 {repeats}
 """
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
                 cat_series = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_series))
@@ -1956,7 +1956,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1998,7 +1998,7 @@ def _dtype_to_default_stata_fmt(
         if force_strl:
             return "%9s"
     if dtype.type == np.object_:
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return "%9s"
@@ -2151,7 +2151,7 @@ class StataWriter(StataParser):
                         "It is not possible to export "
                         "int64-based categorical data to Stata."
                     )
-                values = data[col].cat.codes.values.copy()
+                values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
                 if values.max() >= get_base_missing_value(dtype):
@@ -2384,7 +2384,7 @@ supported types."""
                 encoded = self.data[col].str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
-                    max_len_string_array(ensure_object(encoded.values))
+                    max_len_string_array(ensure_object(encoded._values))
                     <= self._max_string_length
                 ):
                     self.data[col] = encoded
@@ -2650,7 +2650,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize
@@ -3143,11 +3143,11 @@ class StataWriter117(StataWriter):
                     raise ValueError("Variable labels must be 80 characters or fewer")
                 try:
                     encoded = label.encode(self._encoding)
-                except UnicodeEncodeError:
+                except UnicodeEncodeError as err:
                     raise ValueError(
                         "Variable labels must contain only characters that "
                         f"can be encoded in {self._encoding}"
-                    )
+                    ) from err
 
                 bio.write(_pad_bytes_new(encoded, vl_len + 1))
             else:

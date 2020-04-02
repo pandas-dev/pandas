@@ -441,6 +441,99 @@ class TestGetLoc:
         expected = slice(2, 4, None)
         assert idx.get_loc((np.nan, 1)) == expected
 
+    def test_get_loc_duplicates2(self):
+        # TODO: de-duplicate with test_get_loc_duplicates above?
+        index = MultiIndex(
+            levels=[["D", "B", "C"], [0, 26, 27, 37, 57, 67, 75, 82]],
+            codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+            names=["tag", "day"],
+        )
+
+        assert index.get_loc("D") == slice(0, 3)
+
+
+class TestWhere:
+    def test_where(self):
+        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+
+        msg = r"\.where is not supported for MultiIndex operations"
+        with pytest.raises(NotImplementedError, match=msg):
+            i.where(True)
+
+    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+    def test_where_array_like(self, klass):
+        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+        cond = [False, True]
+        msg = r"\.where is not supported for MultiIndex operations"
+        with pytest.raises(NotImplementedError, match=msg):
+            i.where(klass(cond))
+
+
+class TestContains:
+    def test_contains_top_level(self):
+        midx = MultiIndex.from_product([["A", "B"], [1, 2]])
+        assert "A" in midx
+        assert "A" not in midx._engine
+
+    def test_contains_with_nat(self):
+        # MI with a NaT
+        mi = MultiIndex(
+            levels=[["C"], pd.date_range("2012-01-01", periods=5)],
+            codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+            names=[None, "B"],
+        )
+        assert ("C", pd.Timestamp("2012-01-01")) in mi
+        for val in mi.values:
+            assert val in mi
+
+    def test_contains(self, idx):
+        assert ("foo", "two") in idx
+        assert ("bar", "two") not in idx
+        assert None not in idx
+
+    def test_contains_with_missing_value(self):
+        # GH#19132
+        idx = MultiIndex.from_arrays([[1, np.nan, 2]])
+        assert np.nan in idx
+
+        idx = MultiIndex.from_arrays([[1, 2], [np.nan, 3]])
+        assert np.nan not in idx
+        assert (1, np.nan) in idx
+
+    def test_multiindex_contains_dropped(self):
+        # GH#19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
+        idx = MultiIndex.from_product([[1, 2], [3, 4]])
+        assert 2 in idx
+        idx = idx.drop(2)
+
+        # drop implementation keeps 2 in the levels
+        assert 2 in idx.levels[0]
+        # but it should no longer be in the index itself
+        assert 2 not in idx
+
+        # also applies to strings
+        idx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+        assert "a" in idx
+        idx = idx.drop("a")
+        assert "a" in idx.levels[0]
+        assert "a" not in idx
+
+    def test_contains_td64_level(self):
+        # GH#24570
+        tx = pd.timedelta_range("09:30:00", "16:00:00", freq="30 min")
+        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
+        assert tx[0] in idx
+        assert "element_not_exit" not in idx
+        assert "0 day 09:30:00" in idx
+
+    @pytest.mark.slow
+    def test_large_mi_contains(self):
+        # GH#10645
+        result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
+        assert not (10 ** 6, 0) in result
+
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
@@ -498,3 +591,41 @@ def test_slice_indexer_with_missing_value(index_arr, expected, start_idx, end_id
     idx = MultiIndex.from_arrays(index_arr)
     result = idx.slice_indexer(start=start_idx, end=end_idx)
     assert result == expected
+
+
+def test_pyint_engine():
+    # GH#18519 : when combinations of codes cannot be represented in 64
+    # bits, the index underlying the MultiIndex engine works with Python
+    # integers, rather than uint64.
+    N = 5
+    keys = [
+        tuple(l)
+        for l in [
+            [0] * 10 * N,
+            [1] * 10 * N,
+            [2] * 10 * N,
+            [np.nan] * N + [2] * 9 * N,
+            [0] * N + [2] * 9 * N,
+            [np.nan] * N + [2] * 8 * N + [0] * N,
+        ]
+    ]
+    # Each level contains 4 elements (including NaN), so it is represented
+    # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
+    # 64 bit engine and truncating the first levels, the fourth and fifth
+    # keys would collide; if truncating the last levels, the fifth and
+    # sixth; if rotating bits rather than shifting, the third and fifth.
+
+    for idx in range(len(keys)):
+        index = MultiIndex.from_tuples(keys)
+        assert index.get_loc(keys[idx]) == idx
+
+        expected = np.arange(idx + 1, dtype=np.intp)
+        result = index.get_indexer([keys[i] for i in expected])
+        tm.assert_numpy_array_equal(result, expected)
+
+    # With missing key:
+    idces = range(len(keys))
+    expected = np.array([-1] + list(idces), dtype=np.intp)
+    missing = tuple([0, 1] * 5 * N)
+    result = index.get_indexer([missing] + [keys[i] for i in idces])
+    tm.assert_numpy_array_equal(result, expected)
