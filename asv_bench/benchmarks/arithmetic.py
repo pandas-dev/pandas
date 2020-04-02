@@ -50,6 +50,23 @@ class IntFrameWithScalar:
         op(self.df, scalar)
 
 
+class OpWithFillValue:
+    def setup(self):
+        # GH#31300
+        arr = np.arange(10 ** 6)
+        df = DataFrame({"A": arr})
+        ser = df["A"]
+
+        self.df = df
+        self.ser = ser
+
+    def time_frame_op_with_fill_value_no_nas(self):
+        self.df.add(self.df, fill_value=4)
+
+    def time_series_op_with_fill_value_no_nas(self):
+        self.ser.add(self.ser, fill_value=4)
+
+
 class MixedFrameWithSeriesAxis0:
     params = [
         [
