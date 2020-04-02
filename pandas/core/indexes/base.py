@@ -15,7 +15,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (
@@ -203,10 +203,14 @@ class Index(IndexOpsMixin, PandasObject):
     --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
-    MultiIndex : A multi-level, or hierarchical, Index.
+    MultiIndex : A multi-level, or hierarchical Index.
     IntervalIndex : An Index of :class:`Interval` s.
-    DatetimeIndex, TimedeltaIndex, PeriodIndex
-    Int64Index, UInt64Index,  Float64Index
+    DatetimeIndex : Index of datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    Int64Index : A special case of :class:`Index` with purely integer labels.
+    UInt64Index : A special case of :class:`Index` with purely unsigned integer labels.
+    Float64Index : A special case of :class:`Index` with purely float labels.
 
     Notes
     -----
@@ -533,10 +537,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Remove tz so Index will try non-DatetimeIndex inference
         attributes.pop("tz", None)
         return Index(values, **attributes)
-
-    def _update_inplace(self, result, **kwargs):
-        # guard when called from IndexOpsMixin
-        raise TypeError("Index can't be updated inplace")
 
     def is_(self, other) -> bool:
         """
@@ -3835,7 +3835,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @Appender(IndexOpsMixin.array.__doc__)  # type: ignore
+    @doc(IndexOpsMixin.array)  # type: ignore
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -3876,7 +3876,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._values
 
-    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
 
