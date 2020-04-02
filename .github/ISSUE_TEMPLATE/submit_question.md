@@ -9,7 +9,7 @@ labels: "Usage Question, Needs Triage"
 
 - [ ] I have searched the [[pandas] tag](https://stackoverflow.com/questions/tagged/pandas) on StackOverflow for similar questions.
 
-- [ ] I have asked my usage related question on [StackOverflow].
+- [ ] I have asked my usage related question on [StackOverflow](https://stackoverflow.com).
 
 ---
 
