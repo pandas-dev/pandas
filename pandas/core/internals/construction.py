@@ -3,13 +3,13 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Dict, Iterable, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Dtype, Scalar
+from pandas._typing import Dtype, Label, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -535,7 +535,7 @@ def _list_to_arrays(
 
 def _list_of_series_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[list, Iterable]:
+) -> Tuple[List[Label], Iterable[Label]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -570,7 +570,7 @@ def _list_of_series_to_arrays(
 
 def _list_of_dict_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[list, Iterable]:
+) -> Tuple[List[Label], Iterable[Label]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -608,8 +608,8 @@ def _list_of_dict_to_arrays(
 
 
 def _validate_or_indexify_columns(
-    content: list, columns: Union[list, None]
-) -> Iterable:
+    content: List, columns: Union[Iterable[Label], None]
+) -> Iterable[Label]:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
 
@@ -664,8 +664,8 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list, coerce_float: bool = False, dtype: Optional[Dtype] = None
-) -> list:
+    content: List[Label], coerce_float: bool = False, dtype: Optional[Dtype] = None
+) -> List[Label]:
     """Internal function ot convert object array.
 
     Parameters
