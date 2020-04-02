@@ -589,6 +589,13 @@ class IntegerArray(BaseMaskedArray):
 
         if name == "cumsum":
             return IntegerArray(values.cumsum(dtype=dtype_max), mask)
+        elif name == "cumprod":
+            return IntegerArray(values.cumprod(dtype=dtype_max), mask)
+        elif name == "cummax":
+            return np.maximum.accumulate(IntegerArray(values, mask))
+        elif name == "cummin":
+            return np.minimum.accumulate(IntegerArray(values, mask))
+
         # # cumsum impute with 0 just add, afterwards replace again if needed
         # # cumprod replace nan by 1, cumprod the, maybe float here necessary?
         # # cummax, impute by min value np.maximum accumulate. Replace again
