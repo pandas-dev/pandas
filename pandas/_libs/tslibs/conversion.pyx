@@ -8,8 +8,7 @@ cnp.import_array()
 import pytz
 
 # stdlib datetime imports
-from datetime import time as datetime_time
-from cpython.datetime cimport (datetime, tzinfo,
+from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -45,8 +44,8 @@ from pandas._libs.tslibs.tzconversion cimport (
 # ----------------------------------------------------------------------
 # Constants
 
-NS_DTYPE = np.dtype('M8[ns]')
-TD_DTYPE = np.dtype('m8[ns]')
+DT64NS_DTYPE = np.dtype('M8[ns]')
+TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
 # ----------------------------------------------------------------------
@@ -106,11 +105,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype=NS_DTYPE)
+    result = np.empty(shape, dtype=DT64NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
-        result = arr.view(NS_DTYPE)
+        result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
         return result
@@ -146,7 +145,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     result : ndarray with dtype timedelta64[ns]
 
     """
-    return arr.astype(TD_DTYPE, copy=copy)
+    return arr.astype(TD64NS_DTYPE, copy=copy)
     # TODO: check for overflows when going from a lower-resolution to nanos
 
 
@@ -284,7 +283,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
-        ts = datetime.combine(ts, datetime_time())
+        ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "

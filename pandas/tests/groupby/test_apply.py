@@ -868,6 +868,20 @@ def test_apply_function_returns_numpy_array():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
+)
+def test_apply_function_index_return(function):
+    # GH: 22541
+    df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
+    result = df.groupby("id").apply(function)
+    expected = pd.Series(
+        [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
+        index=pd.Index([1, 2, 3], name="id"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_apply_function_with_indexing():
     # GH: 33058
     df = pd.DataFrame(
