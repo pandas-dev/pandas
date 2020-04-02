@@ -18,7 +18,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
@@ -1748,7 +1748,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(int_blocks)
 
     if len(items_dict["DatetimeBlock"]):
-        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], _NS_DTYPE)
+        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], DT64NS_DTYPE)
         blocks.extend(datetime_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
