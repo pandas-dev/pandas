@@ -94,7 +94,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         >>> a = pd.array([True, False, pd.NA], dtype="boolean")
         >>> a.to_numpy()
-        array([True, False, NA], dtype=object)
+        array([True, False, <NA>], dtype=object)
 
         When no missing values are present, an equivalent dtype can be used.
 
@@ -110,7 +110,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         >>> a = pd.array([True, False, pd.NA], dtype="boolean")
         >>> a
         <BooleanArray>
-        [True, False, NA]
+        [True, False, <NA>]
         Length: 3, dtype: boolean
 
         >>> a.to_numpy(dtype="bool")

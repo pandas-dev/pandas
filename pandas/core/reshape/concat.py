@@ -395,7 +395,7 @@ class _Concatenator:
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
-            axis = 1 if axis == 0 else 0
+            axis = DataFrame._get_block_manager_axis(axis)
 
         self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
@@ -436,7 +436,8 @@ class _Concatenator:
                 self.objs.append(obj)
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
-        self.axis = axis
+        self.bm_axis = axis
+        self.axis = 1 - self.bm_axis if self._is_frame else 0
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
@@ -454,7 +455,7 @@ class _Concatenator:
         if self._is_series:
 
             # stack blocks
-            if self.axis == 0:
+            if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
 
                 mgr = self.objs[0]._data.concat(
@@ -477,21 +478,22 @@ class _Concatenator:
         else:
             mgrs_indexers = []
             for obj in self.objs:
-                mgr = obj._data
                 indexers = {}
                 for ax, new_labels in enumerate(self.new_axes):
-                    if ax == self.axis:
+                    # ::-1 to convert BlockManager ax to DataFrame ax
+                    if ax == self.bm_axis:
                         # Suppress reindexing on concat axis
                         continue
 
-                    obj_labels = mgr.axes[ax]
+                    # 1-ax to convert BlockManager axis to DataFrame axis
+                    obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
                 mgrs_indexers.append((obj._data, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=self.copy
+                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
             if not self.copy:
                 new_data._consolidate_inplace()
@@ -500,7 +502,7 @@ class _Concatenator:
             return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
-        if self._is_series and self.axis == 1:
+        if self._is_series and self.bm_axis == 1:
             return 2
         else:
             return self.objs[0].ndim
@@ -508,7 +510,7 @@ class _Concatenator:
     def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
         return [
-            self._get_concat_axis() if i == self.axis else self._get_comb_axis(i)
+            self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)
             for i in range(ndim)
         ]
 
@@ -527,7 +529,7 @@ class _Concatenator:
         Return index to be used along concatenation axis.
         """
         if self._is_series:
-            if self.axis == 0:
+            if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
                 idx = ibase.default_index(len(self.objs))
@@ -555,7 +557,7 @@ class _Concatenator:
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
-            indexes = [x._data.axes[self.axis] for x in self.objs]
+            indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
             idx = ibase.default_index(sum(len(i) for i in indexes))
