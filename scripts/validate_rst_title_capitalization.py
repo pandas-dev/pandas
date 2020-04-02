@@ -123,7 +123,8 @@ def correct_title_capitalization(title: str) -> str:
         Correctly capitalized heading.
     """
 
-    # Skip modification no matter what if title begins by ":" to exclude specific syntax that is needed to build links.
+    # Skip modification no matter what if title begins by ":" to exclude specific
+    # syntax that is needed to build links.
     if title[0] == ":":
         return title
 
