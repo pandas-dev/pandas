@@ -14,7 +14,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -231,7 +231,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[str]:
+    def names(self) -> List[Label]:
         return [ping.name for ping in self.groupings]
 
     def size(self) -> Series:
@@ -431,7 +431,7 @@ class BaseGrouper:
     def _cython_operation(
         self,
         kind: str,
-        values: np.ndarray,
+        values: ArrayLike,
         how: str,
         axis: int,
         min_count: int = -1,
