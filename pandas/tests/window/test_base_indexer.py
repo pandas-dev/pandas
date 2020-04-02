@@ -108,7 +108,7 @@ def test_rolling_forward_window(constructor, func, alt_func, expected):
     class ForwardIndexer(BaseIndexer):
         def get_window_bounds(self, num_values, min_periods, center, closed):
             start = np.arange(num_values, dtype="int64")
-            end_s = start[:-self.window_size] + self.window_size
+            end_s = start[: -self.window_size] + self.window_size
             end_e = np.full(self.window_size, num_values, dtype="int64")
             end = np.concatenate([end_s, end_e])
 
