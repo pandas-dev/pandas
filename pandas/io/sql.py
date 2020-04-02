@@ -694,7 +694,7 @@ class SQLTable(PandasObject):
         data_list = [None] * ncols
 
         for i in range(len(temp.columns)):
-            ser = temp.iloc[:, i]
+            ser = temp._ixs(i, axis=1)  # i.e. temp.iloc[:, i]
             vals = ser._values
             if vals.dtype.kind == "M":
                 d = vals.to_pydatetime()
