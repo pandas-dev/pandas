@@ -34,7 +34,16 @@ class Factorize:
     params = [
         [True, False],
         [True, False],
-        ["int", "uint", "float", "string", "datetime64[ns]", "datetime64[ns, tz]"],
+        [
+            "int",
+            "uint",
+            "float",
+            "string",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
+            "Int64",
+            "boolean",
+        ],
     ]
     param_names = ["unique", "sort", "dtype"]
 
@@ -49,13 +58,21 @@ class Factorize:
             "datetime64[ns, tz]": pd.date_range(
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
             ),
+            "Int64": pd.array(np.arange(N), dtype="Int64"),
+            "boolean": pd.array(np.random.randint(0, 2, N), dtype="boolean"),
         }[dtype]
         if not unique:
             data = data.repeat(5)
         self.idx = data
+        if dtype in ("Int64", "boolean") and sort:
+            # sort is not a keyword on EAs
+            raise NotImplementedError
 
     def time_factorize(self, unique, sort, dtype):
-        self.idx.factorize(sort=sort)
+        if sort:
+            self.idx.factorize(sort=sort)
+        else:
+            self.idx.factorize()
 
 
 class Duplicated:
