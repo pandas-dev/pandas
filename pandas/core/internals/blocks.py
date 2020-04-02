@@ -307,9 +307,6 @@ class Block(PandasObject):
     def dtype(self):
         return self.values.dtype
 
-    def merge(self, other):
-        return _merge_blocks([self, other])
-
     def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
@@ -2901,32 +2898,6 @@ def _block_shape(values, ndim=1, shape=None):
             # We can't, and don't need to, reshape.
             values = values.reshape(tuple((1,) + shape))
     return values
-
-
-def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
-
-    if len(blocks) == 1:
-        return blocks[0]
-
-    if _can_consolidate:
-
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
-        # FIXME: optimization potential in case all mgrs contain slices and
-        # combination of those slices is a slice, too.
-        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
-
-        argsort = np.argsort(new_mgr_locs)
-        new_values = new_values[argsort]
-        new_mgr_locs = new_mgr_locs[argsort]
-
-        return make_block(new_values, placement=new_mgr_locs)
-
-    # no merge
-    return blocks
 
 
 def _safe_reshape(arr, new_shape):
