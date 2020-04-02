@@ -9,7 +9,6 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 from collections import abc
 from datetime import datetime
-from io import BytesIO
 import struct
 import warnings
 
