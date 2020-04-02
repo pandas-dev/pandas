@@ -373,7 +373,7 @@ class TestPartialSetting:
 
         # partially set with an empty object
         # frame
-        df = empty_frame
+        df = empty_frame.copy()
 
         with pytest.raises(ValueError):
             df.loc[1] = 1
@@ -436,9 +436,9 @@ class TestPartialSetting:
         expected["foo"] = expected["foo"].astype("float64")
         tm.assert_frame_equal(f(), expected)
 
-        df = empty_frame
+        df = empty_frame.copy()
         tm.assert_index_equal(df.columns, Index([], dtype=object))
-        df2 = empty_frame
+        df2 = empty_frame.copy()
         df2[1] = Series([1], index=["foo"])
         df.loc[:, 1] = Series([1], index=["foo"])
         tm.assert_frame_equal(df, DataFrame([[1]], index=["foo"], columns=[1]))
