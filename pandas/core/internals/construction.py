@@ -3,7 +3,7 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -535,7 +535,7 @@ def _list_to_arrays(
 
 def _list_of_series_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Axes[Label]]:
+) -> Tuple[List[Any], Axes[Union[str, int]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -570,7 +570,7 @@ def _list_of_series_to_arrays(
 
 def _list_of_dict_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Axes[Label]]:
+) -> Tuple[List[Any], Axes[Union[str, int]]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -608,8 +608,8 @@ def _list_of_dict_to_arrays(
 
 
 def _validate_or_indexify_columns(
-    content: List, columns: Union[Axes[Label], None]
-) -> Axes[Label]:
+    content: List, columns: Union[Axes[Union[str, int]], None]
+) -> Axes[Union[str, int]]:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
 
