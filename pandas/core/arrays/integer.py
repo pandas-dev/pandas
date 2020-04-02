@@ -28,6 +28,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import _factorize_array
+from pandas.core.array_algos import masked_reductions
 import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -570,6 +571,9 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
+        if name == "sum":
+            return masked_reductions.sum(data, mask, skipna=skipna, **kwargs)
+
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)
         if self._hasna:
@@ -587,7 +591,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"]:
+        elif name in ["min", "max", "prod"]:
             # GH#31409 more performant than casting-then-checking
             result = com.cast_scalar_indexer(result)
 

@@ -479,7 +479,6 @@ cdef class PeriodEngine(Int64Engine):
             return scalar.value
         if isinstance(scalar, Period):
             # NB: we assume that we have the correct freq here.
-            # TODO: potential optimize by checking for _Period?
             return scalar.ordinal
         raise TypeError(scalar)
 
