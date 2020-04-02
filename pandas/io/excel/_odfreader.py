@@ -200,6 +200,6 @@ class _ODFReader(_BaseExcelReader):
                     value.append(fragment.data)
                 elif isinstance(fragment, Element):
                     if fragment.qname == text_s:
-                        spaces = int(fragment.attributes.get((TEXTNS, 'c'), 1))
-                    value.append(' ' * spaces)
-        return ''.join(value)
+                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
+                    value.append(" " * spaces)
+        return "".join(value)
