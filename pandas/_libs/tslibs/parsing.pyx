@@ -478,8 +478,8 @@ cdef dateutil_parse(
     object default,
     bint ignoretz=False,
     object tzinfos=None,
-    dayfirst=None,
-    yearfirst=None,
+    bint dayfirst=False,
+    bint yearfirst=False,
 ):
     """ lifted from dateutil to get resolution"""
 
