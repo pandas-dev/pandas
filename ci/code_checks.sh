@@ -274,8 +274,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    MSG='Doctests groupby' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests tools' ; echo $MSG
