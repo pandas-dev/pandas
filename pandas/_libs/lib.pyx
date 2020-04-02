@@ -4,6 +4,7 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
+import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -286,7 +287,11 @@ def fast_unique_multiple(list arrays, sort: bool = True):
         try:
             uniques.sort()
         except TypeError:
-            # TODO: RuntimeWarning?
+            warnings.warn(
+                "The values in the array are unorderable. "
+                "Pass `sort=False` to suppress this warning.",
+                RuntimeWarning,
+            )
             pass
 
     return uniques
