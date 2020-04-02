@@ -295,7 +295,7 @@ Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
 `official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
 
-Use an ENV_DIR of your choice. We'll use ~\<span class="x x-first x-last">\</span>virtualenvs\\pandas-dev where
+Use an ENV_DIR of your choice. We'll use ~\\virtualenvs\\pandas-dev where
 '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
 %USERPROFILE% (cmd.exe) environment variable. Any parent directories
 should already exist.
