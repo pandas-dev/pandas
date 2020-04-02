@@ -98,7 +98,6 @@ class Grouper:
     Falcon    200
     Parrot     10
 
-
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
