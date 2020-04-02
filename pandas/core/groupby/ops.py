@@ -429,13 +429,7 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self,
-        kind: str,
-        values: ArrayLike,
-        how: str,
-        axis: int,
-        min_count: int = -1,
-        **kwargs,
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs,
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
