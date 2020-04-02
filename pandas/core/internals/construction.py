@@ -9,7 +9,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axes, Dtype, Label, Scalar
+from pandas._typing import Dtype, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -518,7 +518,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Axes[Label]]:
+) -> Tuple[List[Any], Union[Index, List]]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
@@ -535,7 +535,7 @@ def _list_to_arrays(
 
 def _list_of_series_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Axes[Union[str, int]]]:
+) -> Tuple[List[Any], Union[Index, List]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -570,7 +570,7 @@ def _list_of_series_to_arrays(
 
 def _list_of_dict_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Axes[Union[str, int]]]:
+) -> Tuple[List[Any], Union[Index, List]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -608,8 +608,8 @@ def _list_of_dict_to_arrays(
 
 
 def _validate_or_indexify_columns(
-    content: List, columns: Union[Axes[Union[str, int]], None]
-) -> Axes[Union[str, int]]:
+    content: List, columns: Union[Index, List, None]
+) -> Union[Index, List]:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
 
