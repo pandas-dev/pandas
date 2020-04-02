@@ -34,7 +34,7 @@ class Base:
         "multi",
     }
 
-    def setup_method(self, empty_frame, method):
+    def setup_method(self, method):
 
         self.series_ints = Series(np.random.rand(4), index=np.arange(0, 8, 2))
         self.frame_ints = DataFrame(
@@ -89,7 +89,7 @@ class Base:
         self.series_ts_rev = Series(np.random.randn(4), index=dates_rev)
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4), index=dates_rev)
 
-        self.frame_empty = empty_frame
+        self.frame_empty = DataFrame()
         self.series_empty = Series(dtype=object)
 
         # form agglomerates
