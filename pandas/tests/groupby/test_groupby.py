@@ -94,11 +94,6 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="GH#32380; the squeeze option will be "
-    "deprecated, so the DataFrame won't be converted "
-    "to a Series."
-)
 def test_groupby_return_type():
 
     # GH2893, return a reduced type
@@ -2065,26 +2060,3 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
-
-
-@pytest.mark.parametrize("param", [True, False])
-def test_groupy_squeeze_is_deprecated(param):
-    # GH 32380: Deprecate the squeeze option in groupby
-    df = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 1, "val2": 27},
-            {"val1": 1, "val2": 12},
-        ]
-    )
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.groupby("val1", squeeze=param).apply(func)
-    assert isinstance(result, DataFrame)
-
-    with tm.assert_produces_warning(FutureWarning):
-        df["val1"].groupby(["a", "b", "a", "b"], squeeze=False)

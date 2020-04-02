@@ -369,6 +369,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
+        squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
     ):
@@ -390,6 +391,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
+        self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
 
@@ -2519,6 +2521,7 @@ def get_groupby(
     as_index: bool = True,
     sort: bool = True,
     group_keys: bool = True,
+    squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
 ) -> GroupBy:
@@ -2546,6 +2549,7 @@ def get_groupby(
         as_index=as_index,
         sort=sort,
         group_keys=group_keys,
+        squeeze=squeeze,
         observed=observed,
         mutated=mutated,
     )

@@ -18,11 +18,11 @@ from typing import (
 import warnings
 
 import numpy as np
+from pandas._libs.lib import no_default
 
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._libs.lib import no_default
 from pandas._typing import Axis, DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -1661,6 +1661,8 @@ Name: Max Speed, dtype: float64
                 FutureWarning,
                 stacklevel=2,
             )
+        else:
+            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -1674,6 +1676,7 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
+            squeeze=squeeze,
             observed=observed,
         )
 
