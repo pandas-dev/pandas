@@ -171,7 +171,7 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
         elif cell_type == "string":
-            return str(cell)
+            return self._get_cell_string_value(cell)
         elif cell_type == "currency":
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
@@ -182,3 +182,24 @@ class _ODFReader(_BaseExcelReader):
             return pd.to_datetime(str(cell)).time()
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
+
+    def _get_cell_string_value(self, cell):
+        from odf.element import Text, Element
+        from odf.text import S, P
+        from odf.namespaces import TEXTNS
+
+        text_p = P().qname
+        text_s = S().qname
+
+        p = cell.childNodes[0]
+
+        value = []
+        if p.qname == text_p:
+            for k, fragment in enumerate(p.childNodes):
+                if isinstance(fragment, Text):
+                    value.append(fragment.data)
+                elif isinstance(fragment, Element):
+                    if fragment.qname == text_s:
+                        spaces = int(fragment.attributes.get((TEXTNS, 'c'), 1))
+                    value.append(' ' * spaces)
+        return ''.join(value)
