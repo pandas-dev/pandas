@@ -173,7 +173,7 @@ class BinOp(ops.BinOp):
 
     def generate(self, v) -> str:
         """ create and return the op string for this TermValue """
-        val = v.tobytes(self.encoding)
+        val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
     def convert_value(self, v) -> "TermValue":
