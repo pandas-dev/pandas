@@ -85,6 +85,15 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
 
 
 class TestCategoricalIndexing:
+    def test_getitem_slice(self):
+        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
+        sliced = cat[3]
+        assert sliced == "d"
+
+        sliced = cat[3:5]
+        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
+        tm.assert_categorical_equal(sliced, expected)
+
     def test_getitem_listlike(self):
 
         # GH 9469
