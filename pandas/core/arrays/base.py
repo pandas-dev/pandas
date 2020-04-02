@@ -19,9 +19,10 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -30,29 +31,6 @@ from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
-
-
-def try_cast_to_ea(cls_or_instance, obj, dtype=None):
-    """
-    Call to `_from_sequence` that returns the object unchanged on Exception.
-
-    Parameters
-    ----------
-    cls_or_instance : ExtensionArray subclass or instance
-    obj : arraylike
-        Values to pass to cls._from_sequence
-    dtype : ExtensionDtype, optional
-
-    Returns
-    -------
-    ExtensionArray or obj
-    """
-    try:
-        result = cls_or_instance._from_sequence(obj, dtype=dtype)
-    except Exception:
-        # We can't predict what downstream EA constructors may raise
-        result = obj
-    return result
 
 
 class ExtensionArray:
@@ -93,7 +71,6 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
-    _ndarray_values
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -356,7 +333,9 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
 
@@ -590,7 +569,7 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
         """
         Shift values by desired number.
 
@@ -727,7 +706,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ABCExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
         """
         Encode the extension array as an enumerated type.
 
@@ -832,7 +811,7 @@ class ExtensionArray:
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> ABCExtensionArray:
+    ) -> "ExtensionArray":
         """
         Take elements from an array.
 
@@ -921,7 +900,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self) -> ABCExtensionArray:
+    def copy(self) -> "ExtensionArray":
         """
         Return a copy of the array.
 
@@ -931,7 +910,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+    def view(self, dtype=None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -942,8 +921,8 @@ class ExtensionArray:
 
         Returns
         -------
-        ExtensionArray
-            A view of the :class:`ExtensionArray`.
+        ExtensionArray or np.ndarray
+            A view on the :class:`ExtensionArray`'s data.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
@@ -1001,7 +980,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def ravel(self, order="C") -> ABCExtensionArray:
+    def ravel(self, order="C") -> "ExtensionArray":
         """
         Return a flattened view on this array.
 
@@ -1022,8 +1001,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence[ABCExtensionArray]
-    ) -> ABCExtensionArray:
+        cls, to_concat: Sequence["ExtensionArray"]
+    ) -> "ExtensionArray":
         """
         Concatenate multiple array.
 
@@ -1043,22 +1022,6 @@ class ExtensionArray:
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
     _can_hold_na = True
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
 
     def _reduce(self, name, skipna=True, **kwargs):
         """
@@ -1198,7 +1161,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
-        >>> __add__ = cls._create_method(operator.add)
+            __add__ = cls._create_method(operator.add)
 
         in the class definition of MyExtensionArray to create the operator
         for addition, that will be based on the operator implementation
@@ -1229,7 +1192,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = try_cast_to_ea(self, arr)
+                    res = maybe_cast_to_extension_array(type(self), arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
