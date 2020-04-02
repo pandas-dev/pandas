@@ -135,7 +135,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         start = np.arange(num_values, dtype="int64")
-        end_s = start[:-self.window_size] + self.window_size
+        end_s = start[: -self.window_size] + self.window_size
         end_e = np.full(self.window_size, num_values, dtype="int64")
         end = np.concatenate([end_s, end_e])
 
