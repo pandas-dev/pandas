@@ -245,13 +245,13 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[Callable], Callable]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
     This decorator will add a variable "_docstring_components" to the wrapped
-    function to keep track the original docstring template for potential usage.
+    callable to keep track the original docstring template for potential usage.
     If it should be consider as a template, it will be saved as a string.
     Otherwise, it will be saved as callable, and later user __doc__ and dedent
     to get docstring.
@@ -260,16 +260,16 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     ----------
     *args : str or callable
         The string / docstring / docstring template to be appended in order
-        after default docstring under function.
+        after default docstring under callable.
     **kwags : str
         The string which would be used to format docstring template.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(call: Callable) -> Callable:
         # collecting docstring and docstring templates
         docstring_components: List[Union[str, Callable]] = []
-        if func.__doc__:
-            docstring_components.append(dedent(func.__doc__))
+        if call.__doc__:
+            docstring_components.append(dedent(call.__doc__))
 
         for appender in args:
             if hasattr(appender, "_docstring_components"):
@@ -280,7 +280,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
                 docstring_components.append(appender)
 
         # formatting templates and concatenating docstring
-        func.__doc__ = "".join(
+        call.__doc__ = "".join(
             [
                 component.format(**kwargs)
                 if isinstance(component, str)
@@ -289,8 +289,8 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
             ]
         )
 
-        func._docstring_components = docstring_components  # type: ignore
-        return func
+        call._docstring_components = docstring_components  # type: ignore
+        return call
 
     return decorator
 
