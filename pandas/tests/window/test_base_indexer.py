@@ -107,15 +107,11 @@ def test_rolling_forward_window(constructor, func, alt_func, expected):
     # GH 32865
     class ForwardIndexer(BaseIndexer):
         def get_window_bounds(self, num_values, min_periods, center, closed):
-            start = np.empty(num_values, dtype=np.int64)
-            end = np.empty(num_values, dtype=np.int64)
-            for i in range(num_values):
-                if i + min_periods <= num_values:
-                    start[i] = i
-                    end[i] = min(i + self.window_size, num_values)
-                else:
-                    start[i] = i
-                    end[i] = i + 1
+            start = np.arange(num_values, dtype="int64")
+            end_s = start[:-self.window_size] + self.window_size
+            end_e = np.full(self.window_size, num_values, dtype="int64")
+            end = np.concatenate([end_s, end_e])
+
             return start, end
 
     values = np.arange(10)
