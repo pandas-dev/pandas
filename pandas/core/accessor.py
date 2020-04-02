@@ -211,7 +211,9 @@ def _register_accessor(name, cls):
 
     See Also
     --------
-    {others}
+    register_dataframe_accessor : Register a custom accessor on DataFrame objects.
+    register_series_accessor : Register a custom accessor on Series objects.
+    register_index_accessor : Register a custom accessor on Index objects.
 
     Notes
     -----
@@ -279,33 +281,21 @@ def _register_accessor(name, cls):
     return decorator
 
 
-@doc(
-    _register_accessor,
-    klass="DataFrame",
-    others="register_series_accessor, register_index_accessor",
-)
+@doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
-@doc(
-    _register_accessor,
-    klass="Series",
-    others="register_dataframe_accessor, register_index_accessor",
-)
+@doc(_register_accessor, klass="Series")
 def register_series_accessor(name):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
-@doc(
-    _register_accessor,
-    klass="Index",
-    others="register_dataframe_accessor, register_series_accessor",
-)
+@doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
     from pandas import Index
 
