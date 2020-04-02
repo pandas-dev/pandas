@@ -346,17 +346,6 @@ def qcut(
         quantiles = q
     bins = algos.quantile(x, quantiles)
 
-    # Added code
-    # ------------------------------
-    unique_bins = set(bins)
-
-    for i, b in enumerate(bins):
-        if(b in unique_bins):
-            unique_bins.remove(b)
-        else:
-            bins[i] = np.nextafter(x[x > bins[i]].min(), bins[i])
-    # ------------------------------
-
     fac, bins = _bins_to_cuts(
         x,
         bins,
@@ -400,7 +389,19 @@ def _bins_to_cuts(
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
         else:
-            bins = unique_bins
+            if len(unique_bins) == 1:
+                raise ValueError(
+                    f"Bin edges must be unique: {repr(bins)}.\n"
+                )
+            bins[0] = bins[0] - 1
+            for i in range(1, len(bins)):
+                if i - 2 < 0:
+                    bins[i] = np.nextafter(bins[i], bins[i] - 1)
+                else:
+                    bins[i - 1] = (bins[i - 2] + bins[i]) / 2
+            unique_bins = algos.unique(bins)
+            if len(unique_bins) < len(bins) and len(bins) != 2:
+                bins = unique_bins
 
     side = "left" if right else "right"
     ids = ensure_int64(bins.searchsorted(x, side=side))
