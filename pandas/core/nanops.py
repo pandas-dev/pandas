@@ -1332,30 +1332,23 @@ def nancorr(
 
 
 def get_corr_func(method):
-    if method in ["kendall", "spearman"]:
-        from scipy.stats import kendalltau, spearmanr
-    elif method in ["pearson"]:
-        pass
+    if method == "kendall":
+        from scipy.stats import kendalltau
+
+        return lambda a, b: kendalltau(a, b)[0]
+    elif method == "spearman":
+        from scipy.stats import spearmanr
+
+        return lambda a, b: spearmanr(a, b)[0]
+    elif method == "pearson":
+        return lambda a, b: np.corrcoef(a, b)[0, 1]
     elif callable(method):
         return method
     else:
         raise ValueError(
-            f"Unknown method '{method}', expected one of 'kendall', 'spearman'"
+            f"Unknown method '{method}', expected one of "
+            "'kendall', 'spearman', 'pearson', or callable"
         )
-
-    def _pearson(a, b):
-        return np.corrcoef(a, b)[0, 1]
-
-    def _kendall(a, b):
-        # kendallttau returns a tuple of the tau statistic and pvalue
-        rs = kendalltau(a, b)
-        return rs[0]
-
-    def _spearman(a, b):
-        return spearmanr(a, b)[0]
-
-    _cor_methods = {"pearson": _pearson, "kendall": _kendall, "spearman": _spearman}
-    return _cor_methods[method]
 
 
 @disallow("M8", "m8")
