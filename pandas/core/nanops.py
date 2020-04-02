@@ -1335,13 +1335,23 @@ def get_corr_func(method):
     if method == "kendall":
         from scipy.stats import kendalltau
 
-        return lambda a, b: kendalltau(a, b)[0]
+        def func(a, b):
+            return kendalltau(a, b)[0]
+
+        return func
     elif method == "spearman":
         from scipy.stats import spearmanr
 
-        return lambda a, b: spearmanr(a, b)[0]
+        def func(a, b):
+            return spearmanr(a, b)[0]
+
+        return func
     elif method == "pearson":
-        return lambda a, b: np.corrcoef(a, b)[0, 1]
+
+        def func(a, b):
+            return np.corrcoef(a, b)[0, 1]
+
+        return func
     elif callable(method):
         return method
     else:
