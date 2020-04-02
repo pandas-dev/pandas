@@ -95,15 +95,6 @@ class TestCategoricalIndex:
         result = s[cats[0]]
         assert result == expected
 
-    def test_slicing_directly(self):
-        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
-        sliced = cat[3]
-        assert sliced == "d"
-        sliced = cat[3:5]
-        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
-        tm.assert_numpy_array_equal(sliced._codes, expected._codes)
-        tm.assert_index_equal(sliced.categories, expected.categories)
-
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
         reversed = cat[::-1]
