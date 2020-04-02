@@ -27,7 +27,6 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import _factorize_array
 from pandas.core.array_algos import masked_reductions
 import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
@@ -367,10 +366,6 @@ class IntegerArray(BaseMaskedArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype, copy)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> "IntegerArray":
-        return integer_array(values, dtype=original.dtype)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
@@ -479,20 +474,6 @@ class IntegerArray(BaseMaskedArray):
 
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
-
-    def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
-        # TODO: https://github.com/pandas-dev/pandas/issues/30037
-        # use masked algorithms, rather than object-dtype / np.nan.
-        return self.to_numpy(dtype=float, na_value=np.nan), np.nan
-
-    def factorize2(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "IntegerArray"]:
-        arr = self._data
-        mask = self._mask
-
-        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
-
-        uniques = IntegerArray(uniques, np.zeros(len(uniques), dtype=bool))
-        return codes, uniques
 
     def _values_for_argsort(self) -> np.ndarray:
         """

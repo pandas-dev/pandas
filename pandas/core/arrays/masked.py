@@ -1,14 +1,15 @@
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.algorithms import take
+from pandas.core.algorithms import _factorize_array, take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
@@ -216,6 +217,18 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         data = data.copy()
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
+
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        arr = self._data
+        mask = self._mask
+
+        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+
+        # the hashtables don't handle all different types of bits
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques
 
     def value_counts(self, dropna: bool = True) -> "Series":
         """

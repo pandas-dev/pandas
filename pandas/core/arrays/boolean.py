@@ -83,6 +83,10 @@ class BooleanDtype(ExtensionDtype):
     def kind(self) -> str:
         return "b"
 
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        return np.dtype("bool")
+
     @classmethod
     def construct_array_type(cls) -> Type["BooleanArray"]:
         """
@@ -313,15 +317,6 @@ class BooleanArray(BaseMaskedArray):
 
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
-
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
-        data = self._data.astype("int8")
-        data[self._mask] = -1
-        return data, -1
-
-    @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
-        return cls._from_sequence(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 

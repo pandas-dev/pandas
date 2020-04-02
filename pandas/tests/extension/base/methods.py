@@ -133,6 +133,8 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)
+        assert len(uniques_1) == len(pd.unique(uniques_1))
+        assert uniques_1.dtype == data_for_grouping.dtype
 
     def test_factorize_empty(self, data):
         codes, uniques = pd.factorize(data[:0])
