@@ -2521,7 +2521,7 @@ class DataFrame(NDFrame):
                 new_values, index=self.columns, columns=self.index
             )
 
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="transpose")
 
     @property
     def T(self) -> "DataFrame":
@@ -2662,7 +2662,7 @@ class DataFrame(NDFrame):
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns
                 )
-                result = result.__finalize__(self)
+                result = result.__finalize__(self, method="_getitem_multilevel")
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
@@ -4480,7 +4480,7 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "DataFrame":
         result = self._constructor(self._data.isna(func=isna))
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self) -> "DataFrame":
@@ -4808,7 +4808,7 @@ class DataFrame(NDFrame):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
@@ -4944,7 +4944,7 @@ class DataFrame(NDFrame):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def value_counts(
         self,

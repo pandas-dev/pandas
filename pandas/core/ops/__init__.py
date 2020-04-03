@@ -413,7 +413,7 @@ def _construct_result(
     # We do not pass dtype to ensure that the Series constructor
     #  does inference in the case where `result` has object-dtype.
     out = left._constructor(result, index=index)
-    out = out.__finalize__(left)
+    out = out.__finalize__(left, method="_construct_result")
 
     # Set the result's name after __finalize__ is called because __finalize__
     #  would set it back to self.name

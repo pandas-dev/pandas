@@ -2342,7 +2342,7 @@ class MultiIndex(Index):
         new_index = self[loc]
         new_index = maybe_droplevels(new_index, key)
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
-        return new_ser.__finalize__(series)
+        return new_ser.__finalize__(series, method="_get_values_for_loc")
 
     def _convert_listlike_indexer(self, keyarr):
         """

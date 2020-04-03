@@ -144,7 +144,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
     if values.dtype == orig_dtype and inplace:
         return
 
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
+    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(
+        self, method="_single_replace"
+    )
 
     if inplace:
         self._update_inplace(result)
@@ -588,7 +590,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(self)
+        return self._constructor(new_values, *new_axes).__finalize__(
+            self, method="swapaxes"
+        )
 
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
@@ -991,7 +995,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._update_inplace(result)
             return None
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="rename")
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
     def rename_axis(self, mapper=lib.no_default, **kwargs):
@@ -1357,7 +1361,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         new_data = self._data.apply(operator.invert)
-        result = self._constructor(new_data).__finalize__(self)
+        result = self._constructor(new_data).__finalize__(self, method="__invert__")
         return result
 
     def __nonzero__(self):
@@ -1802,7 +1806,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # ptp also requires the item_from_zerodim
             return result
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(self)
+        return self._constructor(result, **d).__finalize__(
+            self, method="__array_wrap__"
+        )
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -3360,7 +3366,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._data.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self, method="take")
 
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
@@ -3567,7 +3573,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
-        result = result.__finalize__(self)
+        result = result.__finalize__(self, method="_slice")
 
         # this could be a view
         # but only in a single-dtyped view sliceable case
@@ -4433,7 +4439,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # perform the reindex on the axes
         return self._reindex_axes(
             axes, level, limit, tolerance, method, fill_value, copy
-        ).__finalize__(self)
+        ).__finalize__(self, method="reindex")
 
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
@@ -4506,7 +4512,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy and new_data is self._data:
             new_data = new_data.copy()
 
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(
+            self, method="_reindex_with_indexers"
+        )
 
     def filter(
         self: FrameOrSeries,
@@ -5132,7 +5140,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Attribute access
 
     def __finalize__(
-        self: FrameOrSeries, other, method=None, **kwargs
+        self: FrameOrSeries, other, method: Optional[str] = None, **kwargs
     ) -> FrameOrSeries:
         """
         Propagate metadata from other to self.
@@ -5268,7 +5276,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
-            return self._constructor(cons_data).__finalize__(self)
+            return self._constructor(cons_data).__finalize__(
+                self, method="_consolidate"
+            )
 
     @property
     def _is_mixed_type(self) -> bool_t:
@@ -5297,10 +5307,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data()).__finalize__(self)
+        return self._constructor(self._data.get_numeric_data()).__finalize__(
+            self, method="_get_numeric_data"
+        )
 
     def _get_bool_data(self):
-        return self._constructor(self._data.get_bool_data()).__finalize__(self)
+        return self._constructor(self._data.get_bool_data()).__finalize__(
+            self, method="_get_bool_data"
+        )
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5427,7 +5441,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Internal ONLY
         """
         return {
-            k: self._constructor(v).__finalize__(self)
+            k: self._constructor(v).__finalize__(self, mehtod="_to_dict_of_blocks")
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
@@ -5567,7 +5581,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             # else, only a single dtype is given
             new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
-            return self._constructor(new_data).__finalize__(self)
+            return self._constructor(new_data).__finalize__(self, method="_astype")
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -5680,7 +5694,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: object
         """
         data = self._data.copy(deep=deep)
-        return self._constructor(data).__finalize__(self)
+        return self._constructor(data).__finalize__(self, method="copy")
 
     def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
         return self.copy(deep=deep)
@@ -5739,7 +5753,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 coerce=coerce,
                 copy=copy,
             )
-        ).__finalize__(self)
+        ).__finalize__(self, method="_convert")
 
     def infer_objects(self: FrameOrSeries) -> FrameOrSeries:
         """
@@ -5788,7 +5802,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._data.convert(
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
-        ).__finalize__(self)
+        ).__finalize__(self, method="infer_objects")
 
     def convert_dtypes(
         self: FrameOrSeries,
@@ -6115,7 +6129,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="fillna")
 
     def ffill(
         self: FrameOrSeries,
@@ -6631,7 +6645,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="replace")
 
     _shared_docs[
         "interpolate"
@@ -6897,7 +6911,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="interpolate")
 
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
@@ -7135,11 +7149,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self: FrameOrSeries) -> FrameOrSeries:
-        return isna(self).__finalize__(self)
+        return isna(self).__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self: FrameOrSeries) -> FrameOrSeries:
-        return isna(self).__finalize__(self)
+        return isna(self).__finalize__(self, method="isnull")
 
     _shared_docs[
         "notna"
@@ -7205,11 +7219,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notna(self: FrameOrSeries) -> FrameOrSeries:
-        return notna(self).__finalize__(self)
+        return notna(self).__finalize__(self, method="notna")
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
-        return notna(self).__finalize__(self)
+        return notna(self).__finalize__(self, method="notnull")
 
     def _clip_with_scalar(self, lower, upper, inplace: bool_t = False):
         if (lower is not None and np.any(isna(lower))) or (
@@ -8223,7 +8237,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 pct=pct,
             )
             ranks = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks.__finalize__(self)
+            return ranks.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True
@@ -8430,7 +8444,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     left.index = join_index
                     right.index = join_index
 
-        return left.__finalize__(self), right.__finalize__(other)
+        return (
+            left.__finalize__(self, method="_align_frame"),
+            right.__finalize__(other, method="_align_frame"),
+        )
 
     def _align_series(
         self,
@@ -8514,7 +8531,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         left.index = join_index
                         right.index = join_index
 
-        return left.__finalize__(self), right.__finalize__(other)
+        return (
+            left.__finalize__(self, method="_align_series"),
+            right.__finalize__(other, method="_align_series"),
+        )
 
     def _where(
         self,
@@ -8655,7 +8675,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 axis=block_axis,
             )
             result = self._constructor(new_data)
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="_where")
 
     _shared_docs[
         "where"
@@ -8927,7 +8947,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return self.tshift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self, method="shift")
 
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
@@ -8964,7 +8984,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         shifted_axis = self._get_axis(axis)[islicer]
         new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
 
-        return new_obj.__finalize__(self)
+        return new_obj.__finalize__(self, method="slice_shift")
 
     def tshift(
         self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
@@ -9024,7 +9044,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy()
         result.set_axis(new_ax, axis, inplace=True)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tshift")
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
@@ -9235,7 +9255,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tz_convert")
 
     def tz_localize(
         self: FrameOrSeries,
@@ -9404,7 +9424,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tz_localize")
 
     # ----------------------------------------------------------------------
     # Numeric Methods
@@ -11183,7 +11203,7 @@ def _make_cum_function(
 
         d = self._construct_axes_dict()
         d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self)
+        return self._constructor(result, **d).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
