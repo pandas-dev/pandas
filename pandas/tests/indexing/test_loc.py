@@ -1123,9 +1123,18 @@ def test_loc_setitem_df_datetime64tz_slice():
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
     )
     df2 = pd.DataFrame(index=df.index)
-    expected = pd.DataFrame([pd.Timestamp("2020-01-01", tz=timezone.utc), pd.Timestamp("2020-01-02", tz=timezone.utc),
-                             pd.Timestamp("2020-01-03", tz=timezone.utc), pd.NaT, pd.NaT, pd.NaT], columns=["data"],
-                            dtype="object")
+    expected = pd.DataFrame(
+        [
+            pd.Timestamp("2020-01-01", tz=timezone.utc),
+            pd.Timestamp("2020-01-02", tz=timezone.utc),
+            pd.Timestamp("2020-01-03", tz=timezone.utc),
+            pd.NaT,
+            pd.NaT,
+            pd.NaT,
+        ],
+        columns=["data"],
+        dtype="object",
+    )
     df2.loc[df.index[:3], "data"] = df["data"][:3]
     tm.assert_frame_equal(df2, expected)
 
@@ -1153,9 +1162,16 @@ def test_loc_setitem_series_datetime64tz_slice():
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
     )
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    expected = pd.Series([*pd.date_range("2020-01-01", "2020-01-03", 3, tz=timezone.utc), np.nan, np.nan, np.nan],
-                         name="data",
-                         dtype="object")
+    expected = pd.Series(
+        [
+            *pd.date_range("2020-01-01", "2020-01-03", 3, tz=timezone.utc),
+            np.nan,
+            np.nan,
+            np.nan,
+        ],
+        name="data",
+        dtype="object",
+    )
     s2.loc[s1.index[:3]] = s1[:3]
     tm.assert_series_equal(expected, s2)
 
@@ -1170,36 +1186,28 @@ def test_loc_setitem_series_datetime64tz_without_index():
 
 
 def test_loc_setitem_series_timedelta64_full_with_index():
-    s1 = pd.Series(
-        pd.timedelta_range(start='1 day', periods=4), name="data"
-    )
+    s1 = pd.Series(pd.timedelta_range(start="1 day", periods=4), name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
     s2.loc[s1.index] = s1
     tm.assert_series_equal(s1, s2)
 
 
 def test_loc_setitem_df_period_full_column_with_index():
-    df = pd.DataFrame(
-        pd.period_range(start='2020Q1', periods=5), columns=["data"]
-    )
+    df = pd.DataFrame(pd.period_range(start="2020Q1", periods=5), columns=["data"])
     df2 = pd.DataFrame(index=df.index)
     df2.loc[df.index, "data"] = df["data"]
     tm.assert_frame_equal(df, df2)
 
 
 def test_loc_setitem_series_interval_full_with_index():
-    s1 = pd.Series(
-        pd.interval_range(start=0, end=5), name="data"
-    )
+    s1 = pd.Series(pd.interval_range(start=0, end=5), name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
     s2.loc[s1.index] = s1
     tm.assert_series_equal(s1, s2)
 
 
 def test_loc_setitem_df_sparse_full_column_with_index():
-    df = pd.DataFrame(
-        np.random.randn(100), columns=["data"]
-    )
+    df = pd.DataFrame(np.random.randn(100), columns=["data"])
     df.iloc[5:95] = np.nan
     df = df.astype(pd.SparseDtype("int", np.nan))
     df2 = pd.DataFrame(index=df.index)
@@ -1208,39 +1216,39 @@ def test_loc_setitem_df_sparse_full_column_with_index():
 
 
 def test_loc_setitem_series_categorical_full_with_index():
-    s1 = pd.Series(
-        pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data"
-    )
+    s1 = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
     s2.loc[s1.index] = s1
     tm.assert_series_equal(s1, s2)
 
 
 def test_loc_setitem_series_categorical_slice():
-    s1 = pd.Series(
-        pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data"
-    )
+    s1 = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    expected = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [np.nan] * 10), name="data", dtype=object)
+    expected = pd.Series(
+        pd.Categorical([1] * 10 + [2] * 5 + [np.nan] * 10), name="data", dtype=object
+    )
     s2.loc[s1.index[:15]] = s1[:15]
     tm.assert_series_equal(expected, s2)
 
 
 def test_loc_setitem_df_interval_slice():
-    df = pd.DataFrame(
-        pd.interval_range(start=0, end=5), columns=["data"]
-    )
+    df = pd.DataFrame(pd.interval_range(start=0, end=5), columns=["data"])
     df2 = pd.DataFrame(index=df.index)
-    expected = pd.DataFrame([*pd.interval_range(start=0, end=3), np.nan, np.nan], columns=["data"])
+    expected = pd.DataFrame(
+        [*pd.interval_range(start=0, end=3), np.nan, np.nan], columns=["data"]
+    )
     df2.loc[df.index[:3], "data"] = df["data"][:3]
     tm.assert_frame_equal(df2, expected)
 
 
 def test_loc_setitem_series_period_slice():
-    s1 = pd.Series(
-        pd.period_range(start='2020Q1', periods=5), name="data"
-    )
+    s1 = pd.Series(pd.period_range(start="2020Q1", periods=5), name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    expected = pd.Series([*pd.period_range(start='2020Q1', periods=3), np.nan, np.nan], name="data", dtype=object)
+    expected = pd.Series(
+        [*pd.period_range(start="2020Q1", periods=3), np.nan, np.nan],
+        name="data",
+        dtype=object,
+    )
     s2.loc[s1.index[:3]] = s1[:3]
     tm.assert_series_equal(expected, s2)
