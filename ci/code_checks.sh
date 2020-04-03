@@ -266,37 +266,7 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests indexes' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/indexes/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests tools' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/tools/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/reshape/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests arrays'; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests dtypes'; echo $MSG
-    pytest -q --doctest-modules pandas/core/dtypes/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    # Individual files
 
     MSG='Doctests base.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/base.py
@@ -306,17 +276,52 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/construction.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests frame.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/frame.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests series.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/series.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Directories
+
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests computation' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/computation/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests dtypes'; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests indexes' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests reshaping functions' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tools' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests tseries' ; echo $MSG
     pytest -q --doctest-modules pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests computation' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/computation/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### DOCSTRINGS ###
