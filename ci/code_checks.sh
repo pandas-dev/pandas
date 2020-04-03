@@ -284,10 +284,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests groupby' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -304,6 +300,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests dtypes'; echo $MSG
     pytest -q --doctest-modules pandas/core/dtypes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests groupby' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests indexes' ; echo $MSG
