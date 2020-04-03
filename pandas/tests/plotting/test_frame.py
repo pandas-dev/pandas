@@ -2041,12 +2041,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            _check_plot_works(df.plot, color=custom_colors)
-
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
@@ -2097,14 +2091,6 @@ class TestDataFramePlots(TestPlotBase):
         for ax, c in zip(axes, list(custom_colors)):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
-
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            # _check_plot_works adds an ax so catch warning. see GH #13188
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(df.plot, color=custom_colors, subplots=True)
 
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         for cmap in ["jet", cm.jet]:
