@@ -18,8 +18,8 @@ consistent code format throughout the project. For details see the
 Patterns
 ========
 
-foo.__class__
--------------
+Using foo.__class__
+-------------------
 
 
 pandas uses 'type(foo)' instead 'foo.__class__' as it is making the code more
@@ -47,8 +47,8 @@ String formatting
 Concatenated strings
 --------------------
 
-f-strings
-~~~~~~~~~
+Using f-strings
+~~~~~~~~~~~~~~~
 
 pandas uses f-strings formatting instead of '%' and '.format()' string formatters.
 

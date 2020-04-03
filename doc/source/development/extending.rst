@@ -139,7 +139,7 @@ and comments contain guidance for properly implementing the interface.
 
 .. _extending.extension.operator:
 
-:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+:class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
