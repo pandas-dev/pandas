@@ -5,7 +5,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import TYPE_CHECKING, Any, DefaultDict, Hashable, List, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, DefaultDict, Hashable, Sequence, Tuple
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -13,7 +13,7 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    import numpy as np
+    import numpy as np  # noqa: F401
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
