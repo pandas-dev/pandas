@@ -53,6 +53,7 @@ def _minmax(func, values: np.ndarray, mask: np.ndarray, skipna: bool = True):
 
     Parameters
     ----------
+    func : np.min or np.max
     values : np.ndarray
         Numpy array with the values (can be of any dtype that support the
         operation).
