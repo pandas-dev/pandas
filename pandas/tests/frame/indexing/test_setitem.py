@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 # Column add, remove, delete.
@@ -12,14 +12,17 @@ class TestDataFrameMutateColumns:
 
         # GH 7432
         df = DataFrame(
-            {"foo": ["a", "b", "c"], "bar": [1, 2, 3], "baz": ["d", "e", "f"]}
-        ).set_index("foo")
-        s = DataFrame(
-            {"foo": ["a", "b", "c", "a"], "fiz": ["g", "h", "i", "j"]}
-        ).set_index("foo")
+            {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
+            index=Index(["a", "b", "c"], name="foo"),
+        )
+        ser = Series(
+            ["g", "h", "i", "j"],
+            index=Index(["a", "b", "c", "a"], name="foo"),
+            name="fiz",
+        )
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
-            df["newcol"] = s
+            df["newcol"] = ser
 
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
