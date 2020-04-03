@@ -183,7 +183,11 @@ class _ODFReader(_BaseExcelReader):
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
 
-    def _get_cell_string_value(self, cell):
+    def _get_cell_string_value(self, cell) -> str:
+        """
+        Find and decode OpenDocument text:s tags that represent
+        a run length encoded sequence of space characters.
+        """
         from odf.element import Text, Element
         from odf.text import S, P
         from odf.namespaces import TEXTNS
