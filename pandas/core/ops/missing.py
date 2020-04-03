@@ -72,7 +72,7 @@ def fill_zeros(result, x, y):
 
 def mask_zero_div_zero(x, y, result):
     """
-    Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
+    Set results of  0 // 0 to np.nan, regardless of the dtypes
     of the numerator or the denominator.
 
     Parameters
@@ -83,7 +83,8 @@ def mask_zero_div_zero(x, y, result):
 
     Returns
     -------
-    filled_result : ndarray
+    ndarray
+        The filled result.
 
     Examples
     --------
