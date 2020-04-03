@@ -456,10 +456,10 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             indexed = data._constructor(
-                data[values].values, index=index, columns=values
+                data[values]._values, index=index, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values].values, index=index)
+            indexed = data._constructor_sliced(data[values]._values, index=index)
     return indexed.unstack(columns)
 
 

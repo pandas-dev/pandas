@@ -11,7 +11,7 @@ from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -287,7 +287,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import _is_dates_only
 
-        return _is_dates_only(self.values) and self.tz is None
+        return self.tz is None and _is_dates_only(self._values)
 
     def __reduce__(self):
 
@@ -454,7 +454,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=_NS_DTYPE)
+        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
 
         for i, v in enumerate(self):
             s = v
@@ -720,7 +720,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Return index locations of index values at particular time of day
+        Return index locations of values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -736,7 +736,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_between_time, DataFrame.at_time
+        indexer_between_time : Get index locations of values between particular
+            times of day.
+        DataFrame.at_time : Select values at particular time of day.
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
@@ -777,7 +779,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_at_time, DataFrame.between_time
+        indexer_at_time : Get index locations of values at particular time of day.
+        DataFrame.between_time : Select values between particular times of day.
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
