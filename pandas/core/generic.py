@@ -7420,7 +7420,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Reduce the dimensionality of the return type if possible,
             otherwise return a consistent type.
 
-            deprecated:: 2.0
+            deprecated:: 1.1.0
 
         observed : bool, default False
             This only applies if any of the groupers are Categoricals.

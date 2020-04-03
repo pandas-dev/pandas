@@ -1655,7 +1655,7 @@ Name: Max Speed, dtype: float64
         if squeeze is not no_default:
             warnings.warn(
                 (
-                    "The `squeeze` parameter in pd.groupby is deprecated and "
+                    "The `squeeze` parameter is deprecated and "
                     "will be removed in a future version."
                 ),
                 FutureWarning,
