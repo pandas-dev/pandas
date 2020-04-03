@@ -2005,6 +2005,8 @@ class GroupBy(_GroupBy):
 
         Essentially this is equivalent to
 
+        .. code-block:: python
+
             self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
 
         Parameters
