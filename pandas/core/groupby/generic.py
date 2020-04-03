@@ -31,7 +31,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 from pandas._typing import FrameOrSeries
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
     maybe_cast_result,
@@ -661,7 +661,7 @@ class SeriesGroupBy(GroupBy):
         result = Series(res, index=ri, name=self._selection_name)
         return self._reindex_output(result, fill_value=0)
 
-    @Appender(Series.describe.__doc__)
+    @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:

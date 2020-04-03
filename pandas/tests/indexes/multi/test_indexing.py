@@ -500,6 +500,40 @@ class TestContains:
         assert np.nan not in idx
         assert (1, np.nan) in idx
 
+    def test_multiindex_contains_dropped(self):
+        # GH#19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
+        idx = MultiIndex.from_product([[1, 2], [3, 4]])
+        assert 2 in idx
+        idx = idx.drop(2)
+
+        # drop implementation keeps 2 in the levels
+        assert 2 in idx.levels[0]
+        # but it should no longer be in the index itself
+        assert 2 not in idx
+
+        # also applies to strings
+        idx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+        assert "a" in idx
+        idx = idx.drop("a")
+        assert "a" in idx.levels[0]
+        assert "a" not in idx
+
+    def test_contains_td64_level(self):
+        # GH#24570
+        tx = pd.timedelta_range("09:30:00", "16:00:00", freq="30 min")
+        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
+        assert tx[0] in idx
+        assert "element_not_exit" not in idx
+        assert "0 day 09:30:00" in idx
+
+    @pytest.mark.slow
+    def test_large_mi_contains(self):
+        # GH#10645
+        result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
+        assert not (10 ** 6, 0) in result
+
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
