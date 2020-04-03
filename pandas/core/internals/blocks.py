@@ -27,8 +27,8 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     is_bool_dtype,
     is_categorical,
     is_categorical_dtype,
@@ -50,7 +50,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_categorical, concat_datetime
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -182,21 +182,6 @@ class Block(PandasObject):
     def is_datelike(self) -> bool:
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
-
-    def is_categorical_astype(self, dtype) -> bool:
-        """
-        validate that we have a astypeable to categorical,
-        returns a boolean if we are a categorical
-        """
-        if dtype is Categorical or dtype is CategoricalDtype:
-            # this is a pd.Categorical, but is not
-            # a valid type for astypeing
-            raise TypeError(f"invalid type {dtype} for astype")
-
-        elif is_categorical_dtype(dtype):
-            return True
-
-        return False
 
     def external_values(self):
         """
@@ -565,7 +550,7 @@ class Block(PandasObject):
             raise TypeError(msg)
 
         # may need to convert to categorical
-        if self.is_categorical_astype(dtype):
+        if is_categorical_dtype(dtype):
 
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
@@ -2096,7 +2081,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         Overridden by DatetimeTZBlock.
         """
-        if values.dtype != _NS_DTYPE:
+        if values.dtype != DT64NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
 
         if isinstance(values, DatetimeArray):
@@ -2368,7 +2353,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     fill_value = np.timedelta64("NaT", "ns")
 
     def __init__(self, values, placement, ndim=None):
-        if values.dtype != _TD_DTYPE:
+        if values.dtype != TD64NS_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
         if isinstance(values, TimedeltaArray):
             values = values._data

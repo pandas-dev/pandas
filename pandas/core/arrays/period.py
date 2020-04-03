@@ -23,7 +23,7 @@ from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
+    TD64NS_DTYPE,
     ensure_object,
     is_datetime64_dtype,
     is_float_dtype,
@@ -718,10 +718,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         elif isinstance(other, np.ndarray):
             # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == "m"
-            if other.dtype != _TD_DTYPE:
+            if other.dtype != TD64NS_DTYPE:
                 # i.e. non-nano unit
                 # TODO: disallow unit-less timedelta64
-                other = other.astype(_TD_DTYPE)
+                other = other.astype(TD64NS_DTYPE)
             nanos = other.view("i8")
         else:
             # TimedeltaArray/Index
@@ -818,6 +818,7 @@ def period_array(
     Integers that look like years are handled
 
     >>> period_array([2000, 2001, 2002], freq='D')
+    <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
