@@ -608,7 +608,7 @@ def _list_of_dict_to_arrays(
 
 
 def _validate_or_indexify_columns(
-    content: List, columns: Union[Index, List[Axis], None]
+    content: List, columns: Union[Index, List, None]
 ) -> Union[Index, List[Axis]]:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
