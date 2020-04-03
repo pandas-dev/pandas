@@ -1,7 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from itertools import product, starmap
 import operator
 import warnings
@@ -1032,6 +1032,8 @@ class TestDatetime64Arithmetic:
             np.array([2.0, 3.0]),
             # GH#13078 datetime +/- Period is invalid
             pd.Period("2011-01-01", freq="D"),
+            # https://github.com/pandas-dev/pandas/issues/10329
+            time(1, 2, 3),
         ],
     )
     @pytest.mark.parametrize("dti_freq", [None, "D"])
@@ -1068,6 +1070,60 @@ class TestDatetime64Arithmetic:
             ]
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
+
+    def test_dt64arr_addsub_time_objects_raises(self, box_with_array, tz_naive_fixture):
+        # https://github.com/pandas-dev/pandas/issues/10329
+
+        tz = tz_naive_fixture
+
+        obj1 = pd.date_range("2012-01-01", periods=3, tz=tz)
+        obj2 = [time(i, i, i) for i in range(3)]
+
+        obj1 = tm.box_expected(obj1, box_with_array)
+        obj2 = tm.box_expected(obj2, box_with_array)
+
+        with warnings.catch_warnings(record=True):
+            # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+            # applied to Series or DatetimeIndex
+            # we aren't testing that here, so ignore.
+            warnings.simplefilter("ignore", PerformanceWarning)
+
+            # If `x + y` raises, then `y + x` should raise here as well
+
+            msg = (
+                r"unsupported operand type\(s\) for -: "
+                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
+            )
+            with pytest.raises(TypeError, match=msg):
+                obj1 - obj2
+
+            msg = "|".join(
+                [
+                    "cannot subtract DatetimeArray from ndarray",
+                    "ufunc (subtract|'subtract') cannot use operands with types "
+                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                obj2 - obj1
+
+            msg = (
+                r"unsupported operand type\(s\) for \+: "
+                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
+            )
+            with pytest.raises(TypeError, match=msg):
+                obj1 + obj2
+
+            msg = "|".join(
+                [
+                    r"unsupported operand type\(s\) for \+: "
+                    "'(Timestamp|DatetimeArray)' and 'datetime.time'",
+                    "ufunc (add|'add') cannot use operands with types "
+                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                obj2 + obj1
 
 
 class TestDatetime64DateOffsetArithmetic:
