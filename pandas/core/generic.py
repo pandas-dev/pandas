@@ -8071,7 +8071,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         offset : str, DateOffset, dateutil.relativedelta
             The offset length of the data that will be selected. For instance,
-            '1M' will display all the rows having their index within the first month.
+            '3D' will display all the rows having their index within the last 3 days.
 
         Returns
         -------
