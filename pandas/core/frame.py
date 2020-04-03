@@ -23,6 +23,7 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Optional,
     Sequence,
@@ -2575,7 +2576,7 @@ class DataFrame(NDFrame):
         """
         return self._data.iget_values(i)
 
-    def _iter_arrays(self):
+    def _iter_arrays(self) -> Iterator[Union[np.ndarray, ExtensionArray]]:
         """
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
