@@ -102,6 +102,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.base import ExtensionDtype
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
@@ -7967,7 +7968,10 @@ Wild         185.0
             constructor = self._constructor
 
         def f(x):
-            return op(x, axis=axis, skipna=skipna, **kwds)
+            if isinstance(x.dtype, ExtensionDtype):
+                return x._values._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(x, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
             if filter_type is None:
@@ -8000,7 +8004,7 @@ Wild         185.0
             return df._reduce_columns(blk_func)
 
         # if numeric_only is not None and axis in [0, 1]:
-        if axis in [0, 1]:
+        if numeric_only is not None and axis in [0, 1]:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
@@ -8044,11 +8048,11 @@ Wild         185.0
             #     #  why it is necessary in this case and this case alone
             #     out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
-        else:
-            # axis is None
-            return f(self.values)
+        # else:
+        #     # axis is None
+        #     return f(self.values)
 
-        if not self._is_homogeneous_type:
+        if True: #not self._is_homogeneous_type:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
