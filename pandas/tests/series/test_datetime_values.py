@@ -65,7 +65,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result):
+            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -74,6 +74,8 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
+            elif isinstance(a, pd.DataFrame):
+                tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
 
