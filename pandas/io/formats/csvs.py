@@ -132,7 +132,7 @@ class CSVFormatter:
 
         # preallocate data 2d list
         self.blocks = self.obj._data.blocks
-        ncols = sum(b.shape[0] for b in self.blocks)
+        ncols = self.obj.shape[-1]
         self.data = [None] * ncols
 
         if chunksize is None:
@@ -327,10 +327,13 @@ class CSVFormatter:
 
         # create the data for a chunk
         slicer = slice(start_i, end_i)
-        for i in range(len(self.blocks)):
-            b = self.blocks[i]
+
+        df = self.obj.iloc[slicer]
+        blocks = df._data.blocks
+
+        for i in range(len(blocks)):
+            b = blocks[i]
             d = b.to_native_types(
-                slicer=slicer,
                 na_rep=self.na_rep,
                 float_format=self.float_format,
                 decimal=self.decimal,
