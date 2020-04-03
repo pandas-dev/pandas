@@ -969,6 +969,11 @@ class DataFrameGroupBy(GroupBy):
             result = result.iloc[:, order]
             result.columns = columns
 
+        # GH 32240: The groupby function lost the result values if the as_index=False
+        # option was set and the relabeling flag was true, because the order and
+        # columns variables do not consider the columns previously set as index.
+        # Changing the order of relabeling and reseting the index solves this.
+
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
