@@ -48,7 +48,8 @@ class TestDatetimeIndex:
         # GH 32740
         rng_a = date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
         rng_b = date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
-        result1, result2 = rng_a.reindex(rng_b, method='nearest', tolerance=timedelta(seconds=20))
+        result1, result2 = rng_a.reindex(rng_b, method='nearest',
+            tolerance=timedelta(seconds=20))
         expected_list1 = [
             '2010-01-01 00:00:00',
             '2010-01-01 01:05:27.272727272',
@@ -72,14 +73,16 @@ class TestDatetimeIndex:
             '2010-01-01 20:43:38.181818181',
             '2010-01-01 21:49:05.454545454',
             '2010-01-01 22:54:32.727272727',
-            '2010-01-02 00:00:00']
+            '2010-01-02 00:00:00'
+        ]
         expected1 = DatetimeIndex(
             expected_list1, dtype="datetime64[ns, UTC]", freq=None,
         )
         expected2 = np.array([
             0, -1, -1, -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, 23])
+            -1, -1, -1, -1, -1, 23
+        ])
         tm.assert_index_equal(result1, expected1)
         assert (result2==expected2).all()
 
