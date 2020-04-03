@@ -45,7 +45,8 @@ class TestDatetimeIndex:
         assert str(index.reindex(np.array([]))[0].tz) == "US/Eastern"
 
     def test_reindex_with_same_tz(self):
-        # GH32740
+        # GH 32740
+        from datetime import timedelta
         rng_a = date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
         rng_b = date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
         rng, _ = rng_a.reindex(rng_b, method='nearest', tolerance=timedelta(seconds=20))
