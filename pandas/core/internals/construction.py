@@ -537,7 +537,7 @@ def _list_to_arrays(
 
 
 def _list_of_series_to_arrays(
-    data: List[Scalar],
+    data: List,
     columns: Union[Index, List],
     coerce_float: bool = False,
     dtype: Optional[Dtype] = None,
@@ -575,7 +575,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List[Scalar],
+    data: List,
     columns: Union[Index, List],
     coerce_float: bool = False,
     dtype: Optional[Dtype] = None,
