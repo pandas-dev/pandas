@@ -718,8 +718,8 @@ class TestDateRangeTZ:
 
     def test_date_range_same_tz_reindex(self):
         # GH 32740
-        a = pd.date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
-        b = pd.date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
+        a = date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
+        b = date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
         msg = (
             "date range convertion must have same timezone"
         )
