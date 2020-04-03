@@ -518,7 +518,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Union[Index, List]]:
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
@@ -535,7 +535,7 @@ def _list_to_arrays(
 
 def _list_of_series_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Union[Index, List[Axis]]]:
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -570,7 +570,7 @@ def _list_of_series_to_arrays(
 
 def _list_of_dict_to_arrays(
     data, columns, coerce_float=False, dtype=None
-) -> Tuple[List[Any], Union[Index, List[Axis]]]:
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -664,8 +664,8 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[Any], coerce_float: bool = False, dtype: Optional[Dtype] = None
-) -> List[Any]:
+    content: List[Scalar], coerce_float: bool = False, dtype: Optional[Dtype] = None
+) -> List[Scalar]:
     """Internal function ot convert object array.
 
     Parameters
