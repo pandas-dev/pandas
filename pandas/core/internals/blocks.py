@@ -651,12 +651,10 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
 
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 
@@ -1715,11 +1713,9 @@ class ExtensionBlock(Block):
     def array_values(self) -> ExtensionArray:
         return self.values
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
         values = self.values
-        if slicer is not None:
-            values = values[slicer]
         mask = isna(values)
 
         values = np.asarray(values.astype(object))
@@ -1937,18 +1933,10 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self,
-        slicer=None,
-        na_rep="",
-        float_format=None,
-        decimal=".",
-        quoting=None,
-        **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
     ):
-        """ convert to our native types format, slicing if desired """
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
 
         # see gh-13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
@@ -2131,16 +2119,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
-    ):
+    def to_native_types(self, na_rep=None, date_format=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
         i8values = self.values.view("i8")
-
-        if slicer is not None:
-            values = values[..., slicer]
-            i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
 
@@ -2387,11 +2369,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep=None, quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
 
         rvalues = np.empty(values.shape, dtype=object)
