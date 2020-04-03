@@ -271,12 +271,15 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py \
-        -k"-nonzero -reindex -searchsorted -to_dict"
+    pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests groupby.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests indexes' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexes/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests tools' ; echo $MSG
@@ -285,10 +288,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests reshaping functions' ; echo $MSG
     pytest -q --doctest-modules pandas/core/reshape/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests interval classes' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/indexes/interval.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays'; echo $MSG
@@ -332,7 +331,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
-    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst
+    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst $BASE_DIR/doc/source/reference
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
