@@ -63,7 +63,7 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
