@@ -2243,7 +2243,14 @@ Name: Max Speed, dtype: float64
         klass="Series",
         extra_params="",
         other_klass="Dataframe",
-        examples="Difference with previous row\n\n>>> s = pd.Series([1, 1, 2, 3, 5, 8])\n>>> s.diff()\n0    NaN\n1    0.0\n2    1.0\n3    1.0\n4    2.0\n5    3.0\ndtype: float64\n\nDifference with 3rd previous row\n\n>>> s.diff(periods=3)\n0    NaN\n1    NaN\n2    NaN\n3    2.0\n4    4.0\n5    6.0\ndtype: float64\n\nDifference with following row\n\n>>> s.diff(periods=-1)\n0    0.0\n1   -1.0\n2   -1.0\n3   -2.0\n4   -3.0\n5    NaN\ndtype: float64\n\nOverflow for input dtype\n\n>>> s = pd.Series([1, 0], dtype=np.uint8)\n>>> s.diff()\n0      NaN\n1    255.0\ndtype: float64",
+        examples="Difference with previous row\n\n>>> s = pd.Series([1, 1, 2, 3, "
+        "5, 8])\n>>> s.diff()\n0    NaN\n1    0.0\n2    1.0\n3    1.0\n4    2.0\n"
+        "5    3.0\ndtype: float64\n\nDifference with 3rd previous row\n\n>>> s.di"
+        "ff(periods=3)\n0    NaN\n1    NaN\n2    NaN\n3    2.0\n4    4.0\n5    6."
+        "0\ndtype: float64\n\nDifference with following row\n\n>>> s.diff(periods"
+        "=-1)\n0    0.0\n1   -1.0\n2   -1.0\n3   -2.0\n4   -3.0\n5    NaN\ndtype:"
+        " float64\n\nOverflow for input dtype\n\n>>> s = pd.Series([1, 0], dtype="
+        "np.uint8)\n>>> s.diff()\n0      NaN\n1    255.0\ndtype: float64",
     )
     def diff(self, periods=1) -> "Series":
         """
