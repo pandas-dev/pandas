@@ -783,10 +783,9 @@ def test_aggregate_categorical_lost_index(func: str):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
+@pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
-    # GH 31256
     # This is currently failing to cast back to Int64Dtype.
     # The presence of the NA causes two problems
     # 1. NA is not an instance of Int64Dtype.type (numpy.int64)
