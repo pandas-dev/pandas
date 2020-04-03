@@ -84,7 +84,7 @@ class TestDatetimeIndex:
             -1, -1, -1, -1, -1, 23
         ])
         tm.assert_index_equal(result1, expected1)
-        assert (result2==expected2).all()
+        assert (result2 == expected2).all()
 
     def test_time_loc(self):  # GH8667
         from datetime import time
