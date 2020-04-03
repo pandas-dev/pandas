@@ -4,18 +4,38 @@ hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
+from typing import List, Protocol
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas._typing import FrameOrSeries
+
 
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
+
+class Groupable(Protocol):
+
+    # TODO: These probably shouldn't both be FrameOrSeries
+    def __init__(self, subset: FrameOrSeries, groupby: FrameOrSeries, parent: "Groupable", **kwargs): ...
+
+    @property
+    def obj(self) -> FrameOrSeries: ...
+
+    @property
+    def _attributes(self) -> List[str]: ...
+
+    @property
+    def _groupby(self) -> FrameOrSeries: ...
+
+    def _reset_cache(self) -> None: ...
+    
 
 class GroupByMixin:
     """
     Provide the groupby facilities to the mixed object.
     """
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self: Groupable, key, ndim, subset=None):
         """
         Sub-classes to define. Return a sliced object.
 
