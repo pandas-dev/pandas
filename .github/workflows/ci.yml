@@ -125,68 +125,32 @@ jobs:
     - name: Check ipython directive errors
       run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
-    - name: Merge website and docs
-      run: |
-        mkdir -p pandas_web/docs
-        cp -r web/build/* pandas_web/
-        cp -r doc/build/html/* pandas_web/docs/
-      if: github.event_name == 'push'
-
     - name: Install Rclone
       run: sudo apt install rclone -y
       if: github.event_name == 'push'
 
     - name: Set up Rclone
       run: |
-        RCLONE_CONFIG_PATH=$HOME/.config/rclone/rclone.conf
-        mkdir -p `dirname $RCLONE_CONFIG_PATH`
-        echo "[ovh_cloud_pandas_web]" > $RCLONE_CONFIG_PATH
-        echo "type = swift" >> $RCLONE_CONFIG_PATH
-        echo "env_auth = false" >> $RCLONE_CONFIG_PATH
-        echo "auth_version = 3" >> $RCLONE_CONFIG_PATH
-        echo "auth = https://auth.cloud.ovh.net/v3/" >> $RCLONE_CONFIG_PATH
-        echo "endpoint_type = public" >> $RCLONE_CONFIG_PATH
-        echo "tenant_domain = default" >> $RCLONE_CONFIG_PATH
-        echo "tenant = 2977553886518025" >> $RCLONE_CONFIG_PATH
-        echo "domain = default" >> $RCLONE_CONFIG_PATH
-        echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
-        echo "key = ${{ secrets.ovh_object_store_key }}" >> $RCLONE_CONFIG_PATH
-        echo "region = BHS" >> $RCLONE_CONFIG_PATH
+        CONF=$HOME/.config/rclone/rclone.conf
+        mkdir -p `dirname $CONF`
+        echo "[ovh_host]" > $CONF
+        echo "type = swift" >> $CONF
+        echo "env_auth = false" >> $CONF
+        echo "auth_version = 3" >> $CONF
+        echo "auth = https://auth.cloud.ovh.net/v3/" >> $CONF
+        echo "endpoint_type = public" >> $CONF
+        echo "tenant_domain = default" >> $CONF
+        echo "tenant = 2977553886518025" >> $CONF
+        echo "domain = default" >> $CONF
+        echo "user = w4KGs3pmDxpd" >> $CONF
+        echo "key = ${{ secrets.ovh_object_store_key }}" >> $CONF
+        echo "region = BHS" >> $CONF
       if: github.event_name == 'push'
 
     - name: Sync web with OVH
-      run: rclone sync pandas_web ovh_cloud_pandas_web:dev
+      run: rclone sync --exclude pandas-docs/** web/build ovh_host:prod
       if: github.event_name == 'push'
 
-    - name: Create git repo to upload the built docs to GitHub pages
-      run: |
-        cd pandas_web
-        git init
-        touch .nojekyll
-        echo "dev.pandas.io" > CNAME
-        printf "User-agent: *\nDisallow: /" > robots.txt
-        git add --all .
-        git config user.email "pandas-dev@python.org"
-        git config user.name "pandas-bot"
-        git commit -m "pandas web and documentation in master"
-      if: github.event_name == 'push'
-
-    # For this task to work, next steps are required:
-    # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`)
-    # 2. Go to https://github.com/pandas-dev/pandas/settings/secrets
-    # 3. Click on "Add a new secret"
-    # 4. Name: "github_pagas_ssh_key", Value: <Content of the private ssh key>
-    # 5. The public key needs to be upladed to https://github.com/pandas-dev/pandas-dev.github.io/settings/keys
-    - name: Install GitHub pages ssh deployment key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.github_pages_ssh_key }}
-        known_hosts: 'github.com,192.30.252.128 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=='
-      if: github.event_name == 'push'
-
-    - name: Publish web and docs to GitHub pages
-      run: |
-        cd pandas_web
-        git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
-        git push -f origin master || true
+    - name: Sync dev docs with OVH
+      run: rclone sync doc/build/html ovh_host:prod/pandas-docs/dev
       if: github.event_name == 'push'

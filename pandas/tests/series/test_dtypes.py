@@ -296,24 +296,25 @@ class TestSeriesDtypes:
         # array conversion
         tm.assert_almost_equal(np.array(s), np.array(s.values))
 
-        # valid conversion
-        for valid in [
-            lambda x: x.astype("category"),
-            lambda x: x.astype(CategoricalDtype()),
-            lambda x: x.astype("object").astype("category"),
-            lambda x: x.astype("object").astype(CategoricalDtype()),
-        ]:
+        tm.assert_series_equal(s.astype("category"), s)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), s)
 
-            result = valid(s)
-            # compare series values
-            # internal .categories can't be compared because it is sorted
-            tm.assert_series_equal(result, s, check_categorical=False)
+        roundtrip_expected = s.cat.set_categories(
+            s.cat.categories.sort_values()
+        ).cat.remove_unused_categories()
+        tm.assert_series_equal(
+            s.astype("object").astype("category"), roundtrip_expected
+        )
+        tm.assert_series_equal(
+            s.astype("object").astype(CategoricalDtype()), roundtrip_expected
+        )
 
         # invalid conversion (these are NOT a dtype)
         msg = (
-            r"invalid type <class 'pandas\.core\.arrays\.categorical\."
-            "Categorical'> for astype"
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
         )
+
         for invalid in [
             lambda x: x.astype(Categorical),
             lambda x: x.astype("object").astype(Categorical),

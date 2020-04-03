@@ -11,7 +11,7 @@ from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -858,7 +858,7 @@ class Resampler(_GroupBy, ShallowMixin):
         nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof)
 
-    @Appender(GroupBy.size.__doc__)
+    @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
         if not len(self.ax):
@@ -871,7 +871,7 @@ class Resampler(_GroupBy, ShallowMixin):
             result = Series([], index=result.index, dtype="int64", name=name)
         return result
 
-    @Appender(GroupBy.count.__doc__)
+    @doc(GroupBy.count)
     def count(self):
         result = self._downsample("count")
         if not len(self.ax):
@@ -1422,13 +1422,15 @@ class TimeGrouper(Grouper):
         # because replace() will swallow the nanosecond part
         # thus last bin maybe slightly before the end if the end contains
         # nanosecond part and lead to `Values falls after last bin` error
+        # GH 25758: If DST lands at midnight (e.g. 'America/Havana'), user feedback
+        # has noted that ambiguous=True provides the most sensible result
         binner = labels = date_range(
             freq=self.freq,
             start=first,
             end=last,
             tz=ax.tz,
             name=ax.name,
-            ambiguous="infer",
+            ambiguous=True,
             nonexistent="shift_forward",
         )
 
@@ -1596,7 +1598,7 @@ class TimeGrouper(Grouper):
 def _take_new_index(obj, indexer, new_index, axis=0):
 
     if isinstance(obj, ABCSeries):
-        new_values = algos.take_1d(obj.values, indexer)
+        new_values = algos.take_1d(obj._values, indexer)
         return obj._constructor(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, ABCDataFrame):
         if axis == 1:

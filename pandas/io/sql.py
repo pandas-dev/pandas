@@ -313,7 +313,7 @@ def read_sql_query(
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
@@ -705,8 +705,16 @@ class SQLTable(PandasObject):
                 else:
                     # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype("M8[us]").astype(object)
+            elif b.is_timedelta:
+                # numpy converts this to an object array of integers,
+                #  whereas b.astype(object).values would convert to
+                #  object array of Timedeltas
+                d = b.values.astype(object)
             else:
-                d = np.array(b.get_values(), dtype=object)
+                # TODO(2DEA): astype-first can be avoided with 2D EAs
+                # astype on the block instead of values to ensure we
+                #  get the right shape
+                d = b.astype(object).values
 
             # replace NaN with None
             if b._can_hold_na:
@@ -970,7 +978,8 @@ class SQLTable(PandasObject):
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
-                if col.tz is not None:
+                # GH 26761 or an Index with date-like data e.g. 9999-01-01
+                if getattr(col, "tz", None) is not None:
                     return TIMESTAMP(timezone=True)
             return DateTime
         if col_type == "timedelta64":
