@@ -1360,9 +1360,15 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
         table = SQLTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
@@ -1493,9 +1499,13 @@ class SQLiteTable(SQLTable):
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
-
+        if self.schema:
+            schema_to_add = self.schema + "."
+        else:
+            schema_to_add = ""
         create_stmts = [
             "CREATE TABLE "
+            + schema_to_add
             + escape(self.name)
             + " (\n"
             + ",\n  ".join(create_tbl_stmts)
@@ -1750,14 +1760,20 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
         table = SQLiteTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None, schema=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1778,4 +1794,6 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
 
     """
     pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(
+        frame, name, keys=keys, dtype=dtype, schema=schema
+    )

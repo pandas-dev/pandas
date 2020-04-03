@@ -99,6 +99,7 @@ Other enhancements
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`)
+- :meth:`get_schema` will now allow a schema kwarg that will add a schema into the create table statement (:issue:`28486`)
 -
 
 .. ---------------------------------------------------------------------------

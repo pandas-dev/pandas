@@ -855,6 +855,12 @@ class _TestSQLApi(PandasSQLTest):
         create_sql = sql.get_schema(self.test_frame1, "test", con=self.conn)
         assert "CREATE" in create_sql
 
+    def test_get_schema_with_schema(self):
+        create_sql = sql.get_schema(
+            self.test_frame1, "test", con=self.conn, schema="pypi"
+        )
+        assert "CREATE TABLE pypi." in create_sql
+
     def test_get_schema_dtypes(self):
         float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
         dtype = sqlalchemy.Integer if self.mode == "sqlalchemy" else "INTEGER"
