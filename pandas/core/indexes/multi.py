@@ -762,10 +762,26 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two'),
-                                            (3, 'one'), (3, 'two')],
-                                            names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples(
+        ...     [
+        ...         (1, "one"),
+        ...         (1, "two"),
+        ...         (2, "one"),
+        ...         (2, "two"),
+        ...         (3, "one"),
+        ...         (3, "two")
+        ...     ],
+        ...     names=["foo", "bar"]
+        ... )
+        >>> idx
+        MultiIndex([(1, 'one'),
+            (1, 'two'),
+            (2, 'one'),
+            (2, 'two'),
+            (3, 'one'),
+            (3, 'two')],
+           names=['foo', 'bar'])
+
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
                     ('a', 2),
@@ -798,10 +814,12 @@ class MultiIndex(Index):
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
-                    ('a', 2),
-                    ('b', 1),
-                    ('b', 2)],
-                   names=['foo', 'bar'])
+            ('a', 2),
+            ('b', 1),
+            ('b', 2),
+            ('c', 1),
+            ('c', 2)],
+           names=['foo', 'bar'])
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
@@ -907,11 +925,16 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'),
-                                             (1, 'two'),
-                                             (2, 'one'),
-                                             (2, 'two')],
-                                            names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples(
+        ...     [(1, "one"), (1, "two"), (2, "one"), (2, "two")], names=["foo", "bar"]
+        ... )
+        >>> idx
+        MultiIndex([(1, 'one'),
+            (1, 'two'),
+            (2, 'one'),
+            (2, 'two')],
+           names=['foo', 'bar'])
+
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
         MultiIndex([(2, 'one'),
                     (1, 'one'),
@@ -2751,8 +2774,7 @@ class MultiIndex(Index):
         (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
 
         >>> mi.get_loc_level('e', level='B')
-        (array([False,  True, False], dtype=bool),
-        Index(['b'], dtype='object', name='A'))
+        (array([False,  True, False]), Index(['b'], dtype='object', name='A'))
 
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
@@ -3275,7 +3297,46 @@ class MultiIndex(Index):
         -------
         Index
 
-        >>> index.union(index2)
+        Examples
+        --------
+        >>> idx1 = pd.MultiIndex.from_arrays(
+        ...     [[1, 1, 2, 2], ["Red", "Blue", "Red", "Blue"]]
+        ... )
+        >>> idx1
+        MultiIndex([(1,  'Red'),
+            (1, 'Blue'),
+            (2,  'Red'),
+            (2, 'Blue')],
+           )
+        >>> idx2 = pd.MultiIndex.from_arrays(
+        ...     [[3, 3, 2, 2], ["Red", "Green", "Red", "Green"]]
+        ... )
+        >>> idx2
+        MultiIndex([(3,   'Red'),
+            (3, 'Green'),
+            (2,   'Red'),
+            (2, 'Green')],
+           )
+
+        >>> idx1.union(idx2)
+        MultiIndex([(1,  'Blue'),
+            (1,   'Red'),
+            (2,  'Blue'),
+            (2, 'Green'),
+            (2,   'Red'),
+            (3, 'Green'),
+            (3,   'Red')],
+           )
+
+        >>> idx1.union(idx2, sort=False)
+        MultiIndex([(1,   'Red'),
+            (1,  'Blue'),
+            (2,   'Red'),
+            (2,  'Blue'),
+            (3,   'Red'),
+            (3, 'Green'),
+            (2, 'Green')],
+           )
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
