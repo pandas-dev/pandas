@@ -18,7 +18,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
@@ -43,7 +43,6 @@ from pandas.core.internals.blocks import (
     ExtensionBlock,
     ObjectValuesExtensionBlock,
     _extend_blocks,
-    _merge_blocks,
     _safe_reshape,
     get_block_type,
     make_block,
@@ -1748,7 +1747,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(int_blocks)
 
     if len(items_dict["DatetimeBlock"]):
-        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], _NS_DTYPE)
+        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], DT64NS_DTYPE)
         blocks.extend(datetime_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
@@ -1891,10 +1890,38 @@ def _consolidate(blocks):
     new_blocks = []
     for (_can_consolidate, dtype), group_blocks in grouper:
         merged_blocks = _merge_blocks(
-            list(group_blocks), dtype=dtype, _can_consolidate=_can_consolidate
+            list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
         new_blocks = _extend_blocks(merged_blocks, new_blocks)
     return new_blocks
+
+
+def _merge_blocks(
+    blocks: List[Block], dtype: DtypeObj, can_consolidate: bool
+) -> List[Block]:
+
+    if len(blocks) == 1:
+        return blocks
+
+    if can_consolidate:
+
+        if dtype is None:
+            if len({b.dtype for b in blocks}) != 1:
+                raise AssertionError("_merge_blocks are invalid!")
+
+        # TODO: optimization potential in case all mgrs contain slices and
+        # combination of those slices is a slice, too.
+        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
+        new_values = np.vstack([b.values for b in blocks])
+
+        argsort = np.argsort(new_mgr_locs)
+        new_values = new_values[argsort]
+        new_mgr_locs = new_mgr_locs[argsort]
+
+        return [make_block(new_values, placement=new_mgr_locs)]
+
+    # can't consolidate --> no merge
+    return blocks
 
 
 def _compare_or_regex_search(a, b, regex=False):
