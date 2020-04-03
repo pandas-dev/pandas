@@ -716,12 +716,6 @@ class TestDateRangeTZ:
 
         assert stamp == rng[1]
 
-    def test_date_range_same_tz_reindex(self):
-        # GH 32740
-        a = date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
-        b = date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
-        a.reindex(b, method='nearest', tolerance=timedelta(seconds=20))
-
 
 class TestGenRangeGeneration:
     def test_generate(self):
