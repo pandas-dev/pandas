@@ -2242,7 +2242,7 @@ Name: Max Speed, dtype: float64
     @doc(
         klass="Series",
         extra_params="",
-        other_klass="Dataframe",
+        other_klass="DataFrame",
         examples="Difference with previous row\n\n>>> s = pd.Series([1, 1, 2, 3, "
         "5, 8])\n>>> s.diff()\n0    NaN\n1    0.0\n2    1.0\n3    1.0\n4    2.0\n"
         "5    3.0\ndtype: float64\n\nDifference with 3rd previous row\n\n>>> s.di"
