@@ -310,7 +310,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/indexes/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests reshaping functions' ; echo $MSG
+    MSG='Doctests ops' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/ops/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests reshape' ; echo $MSG
     pytest -q --doctest-modules pandas/core/reshape/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
