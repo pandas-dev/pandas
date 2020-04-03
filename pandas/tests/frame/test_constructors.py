@@ -1081,7 +1081,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
-    def test_constructor_inequal_length_nested_list_column(self):
+    def test_constructor_unequal_length_nested_list_column(self):
         # GH 32173
         arrays = [list("abcd"), list("cde")]
 

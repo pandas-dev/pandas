@@ -517,7 +517,10 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_to_arrays(
-    data, columns, coerce_float=False, dtype=None
+    data: List[Scalar],
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
@@ -534,7 +537,10 @@ def _list_to_arrays(
 
 
 def _list_of_series_to_arrays(
-    data, columns, coerce_float=False, dtype=None
+    data: List[Scalar],
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
@@ -569,7 +575,10 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data, columns, coerce_float=False, dtype=None
+    data: List[Scalar],
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     """
     Convert list of dicts to numpy arrays
@@ -610,12 +619,13 @@ def _list_of_dict_to_arrays(
 def _validate_or_indexify_columns(
     content: List, columns: Union[Index, List, None]
 ) -> Union[Index, List[Axis]]:
-    """If columns is None, make numbers as column names; If not None, validate if
-    columns are valid in length.
+    """
+    If columns is None, make numbers as column names; Otherwise, validate that
+    columns have valid length.
 
     Parameters
     ----------
-    content: list of processed data records
+    content: list of data
     columns: Iterable or None
 
     Returns
@@ -625,11 +635,12 @@ def _validate_or_indexify_columns(
 
     Raises
     ------
-    1. When content is not composed of list of lists, and if length of columns
-        is not equal to length of content.
-    2. When content is list of lists, but length of each sub-list is not equal
-    3. When content is list of lists, but length of sub-list is not equal to
-        length of content
+    1. AssertionError when content is not composed of list of lists, and if
+        length of columns is not equal to length of content.
+    2. ValueError when content is list of lists, but length of each sub-list
+        is not equal
+    3. ValueError when content is list of lists, but length of sub-list is
+        not equal to length of content
     """
     if columns is None:
         columns = ibase.default_index(len(content))
@@ -666,7 +677,8 @@ def _validate_or_indexify_columns(
 def _convert_object_array(
     content: List[Scalar], coerce_float: bool = False, dtype: Optional[Dtype] = None
 ) -> List[Scalar]:
-    """Internal function ot convert object array.
+    """
+    Internal function ot convert object array.
 
     Parameters
     ----------
@@ -676,7 +688,7 @@ def _convert_object_array(
 
     Returns
     -------
-    arrays: list of converted arrays
+    arrays: casted content if not object dtype, otherwise return as is in list.
     """
     # provide soft conversion of object dtypes
     def convert(arr):
