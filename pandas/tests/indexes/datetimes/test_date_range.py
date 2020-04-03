@@ -720,11 +720,7 @@ class TestDateRangeTZ:
         # GH 32740
         a = date_range('2010-01-01', '2010-01-02', periods=24, tz='utc')
         b = date_range('2010-01-01', '2010-01-02', periods=23, tz='utc')
-        msg = (
-            "date range convertion must have same timezone"
-        )
-        with pytest.raises(ValueError, match=msg):
-            a.reindex(b, method='nearest', tolerance=timedelta(seconds=20))
+        a.reindex(b, method='nearest', tolerance=timedelta(seconds=20))
 
 
 class TestGenRangeGeneration:
