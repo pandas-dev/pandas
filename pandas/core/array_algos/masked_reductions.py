@@ -47,40 +47,41 @@ def sum(
             return np.sum(values, where=~mask)
 
 
-def _minmax(func):
-    def reduction(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
-        """
-        Reduction for 1D masked array.
+def _minmax(func, values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+    """
+    Reduction for 1D masked array.
 
-        Parameters
-        ----------
-        values : np.ndarray
-            Numpy array with the values (can be of any dtype that support the
-            operation).
-        mask : np.ndarray
-            Boolean numpy array (True values indicate missing values).
-        skipna : bool, default True
-            Whether to skip NA.
-        """
-        if not skipna:
-            if mask.any():
-                return libmissing.NA
-            else:
-                if values.size:
-                    return func(values)
-                else:
-                    # min/max with empty array raise in numpy, pandas returns NA
-                    return libmissing.NA
+    Parameters
+    ----------
+    values : np.ndarray
+        Numpy array with the values (can be of any dtype that support the
+        operation).
+    mask : np.ndarray
+        Boolean numpy array (True values indicate missing values).
+    skipna : bool, default True
+        Whether to skip NA.
+    """
+    if not skipna:
+        if mask.any():
+            return libmissing.NA
         else:
-            subset = values[~mask]
-            if subset.size:
-                return func(values[~mask])
+            if values.size:
+                return func(values)
             else:
                 # min/max with empty array raise in numpy, pandas returns NA
                 return libmissing.NA
+    else:
+        subset = values[~mask]
+        if subset.size:
+            return func(values[~mask])
+        else:
+            # min/max with empty array raise in numpy, pandas returns NA
+            return libmissing.NA
 
-    return reduction
+
+def min(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+    return _minmax(np.min, values=values, mask=mask, skipna=skipna)
 
 
-min = _minmax(np.min)
-max = _minmax(np.max)
+def max(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+    return _minmax(np.max, values=values, mask=mask, skipna=skipna)
