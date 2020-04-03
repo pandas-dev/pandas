@@ -2131,8 +2131,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    # TODO: should na_rep default to "NaT"?
-    def to_native_types(self, slicer=None, na_rep=None, date_format=None, **kwargs):
+    def to_native_types(self, slicer=None, na_rep="NaT", date_format=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
         if slicer is not None:
