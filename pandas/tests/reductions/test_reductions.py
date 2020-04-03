@@ -70,15 +70,16 @@ class TestReductions:
         [
             ("object", 2.0),
             ("float64", 2.0),
-            ("Int64", 2),
             ("datetime64[ns]", datetime(2011, 11, 1)),
+            ("Int64", 2),
+            ("boolean", True),
         ],
     )
     def test_nanminmax(self, opname, dtype, val, index_or_series):
         # GH#7261
         klass = index_or_series
 
-        if dtype == "Int64" and klass == pd.Index:
+        if dtype in ["Int64", "boolean"] and klass == pd.Index:
             pytest.skip("EAs can't yet be stored in an index")
 
         def check_missing(res):
