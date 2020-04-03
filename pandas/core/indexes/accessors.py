@@ -219,6 +219,40 @@ class DatetimeProperties(Properties):
     def freq(self):
         return self._get_values().inferred_freq
 
+    @property
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> pd.Series(["2020-01-01"], dtype="datetime64[D]").dt.isocalendar
+           year  week  day
+        0  2020     1    3
+        >>> ser = pd.Series(["2010-01-01", pd.NaT], dtype="datetime64[D]")
+        >>> ser.dt.isocalendar
+             year  week  day
+        0  2009.0  53.0  5.0
+        1     NaN   NaN  NaN
+        >>> pd.Series(["2019-12-31"], dtype="datetime64[D]").dt.isocalendar.week
+        0    1
+        Name: week, dtype: int32
+        """
+        return self._get_values().isocalendar.set_index(self._parent.index)
+
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"

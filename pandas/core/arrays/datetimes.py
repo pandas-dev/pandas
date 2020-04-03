@@ -182,7 +182,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "microsecond",
         "nanosecond",
     ]
-    _other_ops = ["date", "time", "timetz"]
+    _other_ops = ["date", "time", "timetz", "isocalendar"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = [
         "to_period",
@@ -1233,6 +1233,48 @@ default 'raise'
             timestamps = self.asi8
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
+
+    @property
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+        >>> idx.isocalendar
+           year  week  day
+        0  2019    52    7
+        1  2020     1    1
+        2  2020     1    2
+        3  2020     1    3
+        >>> idx.isocalendar.week
+        0    52
+        1     1
+        2     1
+        3     1
+        Name: week, dtype: int32
+        """
+        from pandas import DataFrame
+
+        sarray = fields.build_isocalendar_sarray(self.asi8)
+        iso_calendar_array = self._maybe_mask_results(
+            sarray, fill_value=np.nan, convert=[(n, "<f8") for n in sarray.dtype.names]
+        )
+        return DataFrame(iso_calendar_array)
 
     year = _field_accessor(
         "year",

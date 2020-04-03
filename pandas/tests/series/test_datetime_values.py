@@ -665,3 +665,23 @@ class TestSeriesDatetimeValues:
             dtype=object,
         )
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "input_series, expected_output, expected_type",
+        [
+            [["2020-01-01"], [[2020, 1, 3]], "int32"],
+            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]], "float64"],
+            [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]], "int32"],
+            [
+                ["2010-01-01", pd.NaT],
+                [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]],
+                "float64",
+            ],
+        ],
+    )
+    def test_isocalendar(self, input_series, expected_output, expected_type):
+        ser = pd.Series(input_series, dtype="datetime64[D]")
+        expected_frame = pd.DataFrame(
+            expected_output, columns=["year", "week", "day"]
+        ).astype(expected_type)
+        tm.assert_frame_equal(ser.dt.isocalendar, expected_frame)
