@@ -58,7 +58,7 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     >>> pd.to_timedelta('1 days 06:05:01.00003')
     Timedelta('1 days 06:05:01.000030')
     >>> pd.to_timedelta('15.5us')
-    Timedelta('0 days 00:00:00.000015')
+    Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
