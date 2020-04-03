@@ -1345,6 +1345,12 @@ class TestDataFrameConstructors:
         expected = DataFrame(lists)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_tuple_of_lists(self):
+        # GH 32776
+        result = DataFrame(tuple([[1], [2]]))
+        expected = DataFrame([[1], [2]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_tuples(self):
         result = DataFrame({"A": [(1, 2), (3, 4)]})
         expected = DataFrame({"A": Series([(1, 2), (3, 4)])})
