@@ -10,12 +10,11 @@ Usage::
 
 """
 import argparse
-import sys
-import re
-import os
-from typing import Tuple, Generator, List
 import glob
-
+import os
+import re
+import sys
+from typing import Generator, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -46,6 +45,60 @@ CAPITALIZATION_EXCEPTIONS = {
     "NumFOCUS",
     "sklearn",
     "Docker",
+    "PeriodIndex",
+    "NA",
+    "NaN",
+    "ValueError",
+    "BooleanArray",
+    "KeyError",
+    "API",
+    "FAQ",
+    "IO",
+    "TimedeltaIndex",
+    "DatetimeIndex",
+    "IntervalIndex",
+    "CategoricalIndex",
+    "GroupBy",
+    "SPSS",
+    "ORC",
+    "R",
+    "HDF5",
+    "HDFStore",
+    "CDay",
+    "CBMonthBegin",
+    "CBMonthEnd",
+    "BMonthBegin",
+    "BMonthEnd",
+    "BDay",
+    "FY5253Quarter",
+    "FY5253",
+    "YearBegin",
+    "YearEnd",
+    "BYearBegin",
+    "BYearEnd",
+    "YearOffset",
+    "QuarterBegin",
+    "QuarterEnd",
+    "BQuarterBegin",
+    "BQuarterEnd",
+    "QuarterOffset",
+    "LastWeekOfMonth",
+    "WeekOfMonth",
+    "SemiMonthBegin",
+    "SemiMonthEnd",
+    "SemiMonthOffset",
+    "CustomBusinessMonthBegin",
+    "CustomBusinessMonthEnd",
+    "BusinessMonthBegin",
+    "BusinessMonthEnd",
+    "MonthBegin",
+    "MonthEnd",
+    "MonthOffset",
+    "CustomBusinessHour",
+    "CustomBusinessDay",
+    "BusinessHour",
+    "BusinessDay",
+    "DateOffset",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -69,6 +122,11 @@ def correct_title_capitalization(title: str) -> str:
     str
         Correctly capitalized heading.
     """
+
+    # Skip modification no matter what if title begins by ":" to exclude specific
+    # syntax that is needed to build links.
+    if title[0] == ":":
+        return title
 
     # Strip all non-word characters from the beginning of the title to the
     # first word character.

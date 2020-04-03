@@ -4,7 +4,7 @@ import pandas as pd
 import pandas._testing as tm
 
 
-class TestDatetimeIndex:
+class TestDatetimeIndexFillNA:
     @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
     def test_fillna_datetime64(self, tz):
         # GH 11343
