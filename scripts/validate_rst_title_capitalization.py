@@ -14,7 +14,7 @@ import glob
 import os
 import re
 import sys
-from typing import Iterator, List, Tuple
+from typing import Iterable, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -148,7 +148,7 @@ def correct_title_capitalization(title: str) -> str:
     return correct_title
 
 
-def find_titles(rst_file: str) -> Iterator[Tuple[str, int]]:
+def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
     """
     Algorithm to identify particular text that should be considered headings in an
     RST file.
@@ -184,7 +184,7 @@ def find_titles(rst_file: str) -> Iterator[Tuple[str, int]]:
             previous_line = line
 
 
-def find_rst_files(source_paths: List[str]) -> Iterator[str]:
+def find_rst_files(source_paths: List[str]) -> Iterable[str]:
     """
     Given the command line arguments of directory paths, this method
     yields the strings of the .rst file directories that these paths contain.
