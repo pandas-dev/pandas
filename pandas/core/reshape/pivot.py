@@ -151,7 +151,9 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+        _table = table.fillna(fill_value, downcast="infer")
+        assert _table is not None  # needed for mypy
+        table = _table
 
     if margins:
         if dropna:
@@ -460,10 +462,10 @@ def pivot(
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             indexed = data._constructor(
-                data[values].values, index=mi_index, columns=values
+                data[values]._values, index=mi_index, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values].values, index=mi_index)
+            indexed = data._constructor_sliced(data[values]._values, index=mi_index)
     return indexed.unstack(columns)
 
 
@@ -637,8 +639,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         axis_subs = {0: "index", 1: "columns"}
         try:
             normalize = axis_subs[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
 
@@ -653,8 +655,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         try:
             f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
         table = f(table)
         table = table.fillna(0)

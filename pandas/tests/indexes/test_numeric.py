@@ -118,7 +118,7 @@ class TestFloat64Index(Numeric):
     def float_index(self):
         return Float64Index([0.0, 2.5, 5.0, 7.5, 10.0])
 
-    def create_index(self):
+    def create_index(self) -> Float64Index:
         return Float64Index(np.arange(5, dtype="float64"))
 
     def test_repr_roundtrip(self, indices):
@@ -506,7 +506,8 @@ class TestFloat64Index(Numeric):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
 
@@ -645,12 +646,9 @@ class NumericInt(Numeric):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
-
-    def test_slice_keep_name(self):
-        idx = self._holder([1, 2], name="asdf")
-        assert idx.name == idx[1:].name
 
 
 class TestInt64Index(NumericInt):
@@ -663,7 +661,7 @@ class TestInt64Index(NumericInt):
     def indices(self, request):
         return Int64Index(request.param)
 
-    def create_index(self):
+    def create_index(self) -> Int64Index:
         # return Int64Index(np.arange(5, dtype="int64"))
         return Int64Index(range(0, 20, 2))
 
@@ -801,7 +799,7 @@ class TestUInt64Index(NumericInt):
         large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
         return UInt64Index(large)
 
-    def create_index(self):
+    def create_index(self) -> UInt64Index:
         # compat with shared Int64/Float64 tests; use index_large for UInt64 only tests
         return UInt64Index(np.arange(5, dtype="uint64"))
 

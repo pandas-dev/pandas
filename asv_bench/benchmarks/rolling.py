@@ -11,7 +11,7 @@ class Methods:
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
@@ -72,7 +72,7 @@ class ExpandingMethods:
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, dtype, method):
         N = 10 ** 5
@@ -86,7 +86,7 @@ class ExpandingMethods:
 class EWMMethods:
 
     params = (["DataFrame", "Series"], [10, 1000], ["int", "float"], ["mean", "std"])
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
@@ -104,7 +104,7 @@ class VariableWindowMethods(Methods):
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5

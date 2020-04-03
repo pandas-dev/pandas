@@ -175,6 +175,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     ----------
     categories : sequence, optional
         Must be unique, and must not contain any nulls.
+        The categories are stored in an Index,
+        and if an index is provided the dtype of that index will be used.
     ordered : bool or None, default False
         Whether or not this categorical is treated as a ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
@@ -192,7 +194,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    Categorical : Represent a categorical variable in classic R / S-plus fashion.
 
     Notes
     -----
@@ -210,6 +212,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     3    NaN
     dtype: category
     Categories (2, object): [b < a]
+
+    An empty CategoricalDtype with a specific dtype can be created
+    by providing an empty index. As follows,
+
+    >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
+    dtype('<M8[ns]')
     """
 
     # TODO: Document public vs. private API
@@ -459,7 +467,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             _combine_hash_arrays,
             hash_tuples,
         )
-        from pandas.core.dtypes.common import is_datetime64tz_dtype, _NS_DTYPE
+        from pandas.core.dtypes.common import is_datetime64tz_dtype, DT64NS_DTYPE
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -479,7 +487,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             if is_datetime64tz_dtype(categories.dtype):
                 # Avoid future warning.
-                categories = categories.astype(_NS_DTYPE)
+                categories = categories.astype(DT64NS_DTYPE)
 
             cat_array = hash_array(np.asarray(categories), categorize=False)
         if ordered:
@@ -550,7 +558,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if not fastpath:
 
             if categories.hasnans:
-                raise ValueError("Categorial categories cannot be null")
+                raise ValueError("Categorical categories cannot be null")
 
             if not categories.is_unique:
                 raise ValueError("Categorical categories must be unique")
@@ -1040,8 +1048,8 @@ class IntervalDtype(PandasExtensionDtype):
 
             try:
                 subtype = pandas_dtype(subtype)
-            except TypeError:
-                raise TypeError("could not construct IntervalDtype")
+            except TypeError as err:
+                raise TypeError("could not construct IntervalDtype") from err
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
