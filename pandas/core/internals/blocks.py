@@ -2366,26 +2366,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, na_rep=None, quoting=None, **kwargs):
+    def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
-        values = self.values
-        mask = isna(values)
-
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = "NaT"
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
-
-        # FIXME:
-        # should use the formats.format.Timedelta64Formatter here
-        # to figure what format to pass to the Timedelta
-        # e.g. to not show the decimals say
-        rvalues.flat[imask] = np.array(
-            [Timedelta(val)._repr_base(format="all") for val in values.ravel()[imask]],
-            dtype=object,
-        )
-        return rvalues
+        tda = self.array_values()
+        return tda._format_native_types(na_rep, **kwargs)
 
 
 class BoolBlock(NumericBlock):
