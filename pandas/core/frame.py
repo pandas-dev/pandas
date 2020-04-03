@@ -2568,6 +2568,21 @@ class DataFrame(NDFrame):
 
             return result
 
+    def _ixs_values(self, i: int) -> Union[np.ndarray, ExtensionArray]:
+        """
+        Get the values of the ith column (ndarray or ExtensionArray, as stored
+        in the Block)
+        """
+        return self._data.iget_values(i)
+
+    def _iter_arrays(self):
+        """
+        Iterate over the arrays of all columns in order.
+        This returns the values as stored in the Block (ndarray or ExtensionArray).
+        """
+        for i in range(len(self.columns)):
+            yield self._ixs_values(i)
+
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
@@ -7926,8 +7941,12 @@ Wild         185.0
 
         assert filter_type is None or filter_type == "bool", filter_type
 
-        dtype_is_dt = self.dtypes.apply(
-            lambda x: is_datetime64_any_dtype(x) or is_period_dtype(x)
+        dtype_is_dt = np.array(
+            [
+                is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
+                for values in self._iter_arrays()
+            ],
+            dtype=bool,
         )
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
