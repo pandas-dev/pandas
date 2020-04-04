@@ -565,9 +565,7 @@ class BaseGrouper:
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
 
-        if is_integer_dtype(orig_values.dtype) and is_extension_array_dtype(
-            orig_values.dtype
-        ):
+        if is_extension_array_dtype(orig_values.dtype):
             result = maybe_cast_result(result=result, obj=orig_values, how=how)
 
         return result, names
