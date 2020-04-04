@@ -5,7 +5,6 @@ dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -15,6 +14,7 @@ dependencies:
   - pytz
   - pip
   - pip:
+    - cython>=0.29.16
     - "git+git://github.com/dateutil/dateutil.git"
     - "-f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
     - "--pre"
