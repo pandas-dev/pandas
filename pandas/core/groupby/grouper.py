@@ -2,8 +2,8 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-import warnings
 from typing import Dict, Hashable, List, Optional, Tuple
+import warnings
 
 import numpy as np
 
