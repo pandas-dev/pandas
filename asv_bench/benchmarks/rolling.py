@@ -177,7 +177,7 @@ class ForwardWindowMethods:
     def setup(self, constructor, window_size, dtype, method):
         N = 10 ** 5
         arr = np.random.random(N).astype(dtype)
-        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size)
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=window_size)
         self.roll = getattr(pd, constructor)(arr).rolling(window=indexer)
 
     def time_rolling(self, constructor, window_size, dtype, method):
