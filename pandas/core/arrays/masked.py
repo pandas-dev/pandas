@@ -226,7 +226,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
         # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)  # type: ignore
         uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques
 
