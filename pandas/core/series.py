@@ -3999,7 +3999,11 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
-    @doc(NDFrame.transform, klass=_shared_doc_kwargs["klass"], axis=_shared_doc_kwargs["axis"])
+    @doc(
+        NDFrame.transform,
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(self, func, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
