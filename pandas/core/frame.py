@@ -4709,7 +4709,7 @@ class DataFrame(NDFrame):
         TH  Yum Yum   cup     4.0
         ID  Indomie   cup     3.5
 
-        To remove drop duplicates and keep last occurences, use ``keep``
+        To remove duplicates and keep last occurences, use ``keep``
 
         >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
             brand style  rating
