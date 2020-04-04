@@ -62,7 +62,9 @@ class _PyxlsbReader(_BaseExcelReader):
 
         return cell.v
 
-    def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self, sheet, convert_float: bool, header, skiprows, nrows
+    ) -> List[List[Scalar]]:
         return [
             [self._convert_cell(c, convert_float) for c in r]
             for r in sheet.rows(sparse=False)

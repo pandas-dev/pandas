@@ -94,11 +94,11 @@ class _ODFReader(_BaseExcelReader):
             if nrows is not None:
                 if header > 1:
                     header -= 1
-                    data.append([])
+                    table.append([])
                     continue
                 elif skiprows > 0:
                     skiprows -= 1
-                    data.append([])
+                    table.append([])
                     continue
                 if nrows >= 0:
                     nrows -= 1
