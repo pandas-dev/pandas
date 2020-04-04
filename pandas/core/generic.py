@@ -5057,44 +5057,45 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     _shared_docs["aggregate"] = dedent(
         """
-    Aggregate using one or more operations over the specified axis.
-    %(versionadded)s
-    Parameters
-    ----------
-    func : function, str, list or dict
-        Function to use for aggregating the data. If a function, must either
-        work when passed a {klass} or when passed to {klass}.apply.
+        Aggregate using one or more operations over the specified axis.
+        {versionadded}
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a {klass} or when passed to {klass}.apply.
 
-        Accepted combinations are:
+            Accepted combinations are:
 
-        - function
-        - string function name
-        - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-        - dict of axis labels -> functions, function names or list of such.
-    %(axis)s
-    *args
-        Positional arguments to pass to `func`.
-    **kwargs
-        Keyword arguments to pass to `func`.
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        {axis}
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
 
-    Returns
-    -------
-    scalar, Series or DataFrame
+        Returns
+        -------
+        scalar, Series or DataFrame
 
-        The return can be:
+            The return can be:
 
-        * scalar : when Series.agg is called with single function
-        * Series : when DataFrame.agg is called with a single function
-        * DataFrame : when DataFrame.agg is called with several functions
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
 
-        Return scalar, Series or DataFrame.
-    %(see_also)s
-    Notes
-    -----
-    `agg` is an alias for `aggregate`. Use the alias.
+            Return scalar, Series or DataFrame.
+        {see_also}
+        Notes
+        -----
+        `agg` is an alias for `aggregate`. Use the alias.
 
-    A passed user-defined-function will be passed a Series for evaluation.
-    %(examples)s"""
+        A passed user-defined-function will be passed a Series for evaluation.
+        {examples}
+        """
     )
 
     # ----------------------------------------------------------------------
