@@ -314,10 +314,7 @@ class TestEvalNumexprPandas:
 
             # direct numpy comparison
             expected = self.ne.evaluate(f"nlhs {op} ghs")
-            if np.issubdtype(result.values.dtype, np.floating):
-                tm.assert_almost_equal(result.values, expected)
-            else:
-                tm.assert_numpy_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
     # modulus, pow, and floor division require special casing
 
