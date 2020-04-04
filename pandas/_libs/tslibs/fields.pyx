@@ -15,7 +15,7 @@ from pandas._libs.tslibs.ccalendar import (
     get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS)
 from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year, get_iso_calendar)
+    get_day_of_year, get_iso_calendar, iso_calendar_t)
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
     td64_to_tdstruct)
@@ -683,7 +683,7 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
         Py_ssize_t i, count = len(dtindex)
         npy_datetimestruct dts
         ndarray[int32_t] iso_years, iso_weeks, days
-        (int32_t, int32_t, int32_t) ret_val
+        iso_calendar_t ret_val
 
     sa_dtype = [
         ("year", "i4"),

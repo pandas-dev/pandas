@@ -159,7 +159,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef (int32_t, int32_t, int32_t) get_iso_calendar(int year, int month, int day) nogil:
+cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
     """
     Return the year, week, and day of year corresponding to ISO 8601
 
