@@ -135,7 +135,7 @@ def create_single_mgr(typestr, num_rows=None):
 
     return SingleBlockManager(
         create_block(typestr, placement=slice(0, num_rows), item_shape=()),
-        np.arange(num_rows),
+        Index(np.arange(num_rows)),
     )
 
 
@@ -231,21 +231,6 @@ class TestBlock:
         assert self.fblock.shape == self.fblock.values.shape
         assert self.fblock.dtype == self.fblock.values.dtype
         assert len(self.fblock) == len(self.fblock.values)
-
-    def test_merge(self):
-        avals = tm.randn(2, 10)
-        bvals = tm.randn(2, 10)
-
-        ref_cols = Index(["e", "a", "b", "d", "f"])
-
-        ablock = make_block(avals, ref_cols.get_indexer(["e", "b"]))
-        bblock = make_block(bvals, ref_cols.get_indexer(["a", "d"]))
-        merged = ablock.merge(bblock)
-        tm.assert_numpy_array_equal(
-            merged.mgr_locs.as_array, np.array([0, 1, 2, 3], dtype=np.int64)
-        )
-        tm.assert_numpy_array_equal(merged.values[[0, 2]], np.array(avals))
-        tm.assert_numpy_array_equal(merged.values[[1, 3]], np.array(bvals))
 
     def test_copy(self):
         cop = self.fblock.copy()
@@ -1306,3 +1291,11 @@ def test_interleave_non_unique_cols():
     assert df_unique.values.shape == df.values.shape
     tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
     tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
+
+
+def test_single_block_manager_fastpath_deprecated():
+    # GH#33092
+    ser = pd.Series(range(3))
+    blk = ser._data.blocks[0]
+    with tm.assert_produces_warning(FutureWarning):
+        SingleBlockManager(blk, ser.index, fastpath=True)
