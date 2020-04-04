@@ -1272,7 +1272,9 @@ default 'raise'
 
         sarray = fields.build_isocalendar_sarray(self.asi8)
         iso_calendar_array = self._maybe_mask_results(
-            sarray, fill_value=np.nan, convert=[(n, "<f8") for n in sarray.dtype.names]
+            sarray,
+            fill_value=(np.nan, np.nan, np.nan),
+            convert=[(n, "<f8") for n in sarray.dtype.names],
         )
         return DataFrame(iso_calendar_array, columns=["year", "week", "day"])
 
