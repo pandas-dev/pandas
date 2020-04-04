@@ -54,13 +54,14 @@ cdef:
     float64_t FP_ERR = 1e-13
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
-    dict tiebreakers = {
-        "average": TIEBREAK_AVERAGE,
-        "min": TIEBREAK_MIN,
-        "max": TIEBREAK_MAX,
-        "first": TIEBREAK_FIRST,
-        "dense": TIEBREAK_DENSE,
-    }
+
+tiebreakers = {
+    "average": TIEBREAK_AVERAGE,
+    "min": TIEBREAK_MIN,
+    "max": TIEBREAK_MAX,
+    "first": TIEBREAK_FIRST,
+    "dense": TIEBREAK_DENSE,
+}
 
 
 cdef inline bint are_diff(object left, object right):
