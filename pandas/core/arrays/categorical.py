@@ -2463,7 +2463,8 @@ class Categorical(ExtensionArray, PandasObject):
                 if new_value in cat.categories:
                     value_index = categories.index(new_value)
                     cat._codes[cat._codes == index] = value_index
-                    cat.remove_categories(replace_value, inplace=True)
+                    if new_value != replace_value:
+                        cat.remove_categories(replace_value, inplace=True)
                 else:
                     categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)

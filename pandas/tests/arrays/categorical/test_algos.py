@@ -64,6 +64,7 @@ def test_isin_cats():
     [
         ("b", "c", ["a", "c"], "Categorical.categories are different"),
         ("c", "d", ["a", "b"], None),
+        ("a", "a", ["a", "b"], None),
         ("b", None, ["a", None], "Categorical.categories length are different"),
     ],
 )
