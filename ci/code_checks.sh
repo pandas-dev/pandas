@@ -326,6 +326,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/tools/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests window' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/window/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests tseries' ; echo $MSG
     pytest -q --doctest-modules pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
