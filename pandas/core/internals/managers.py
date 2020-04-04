@@ -2,7 +2,7 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -18,7 +18,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
@@ -43,7 +43,6 @@ from pandas.core.internals.blocks import (
     ExtensionBlock,
     ObjectValuesExtensionBlock,
     _extend_blocks,
-    _merge_blocks,
     _safe_reshape,
     get_block_type,
     make_block,
@@ -342,7 +341,7 @@ class BlockManager(PandasObject):
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
             if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
-                construction_error(tot_items, block.shape[1:], self.axes)
+                raise construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
             raise AssertionError(
                 "Number of manager items must equal union of "
@@ -1622,7 +1621,7 @@ class SingleBlockManager(BlockManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes):
+def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
     try:
         if len(blocks) == 1 and not isinstance(blocks[0], Block):
             # if blocks[0] is of length 0, return empty blocks
@@ -1643,10 +1642,15 @@ def create_block_manager_from_blocks(blocks, axes):
     except ValueError as e:
         blocks = [getattr(b, "values", b) for b in blocks]
         tot_items = sum(b.shape[0] for b in blocks)
-        construction_error(tot_items, blocks[0].shape[1:], axes, e)
+        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
-def create_block_manager_from_arrays(arrays, names, axes):
+def create_block_manager_from_arrays(
+    arrays, names: Index, axes: List[Index]
+) -> BlockManager:
+    assert isinstance(names, Index)
+    assert isinstance(axes, list)
+    assert all(isinstance(x, Index) for x in axes)
 
     try:
         blocks = form_blocks(arrays, names, axes)
@@ -1654,7 +1658,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
         mgr._consolidate_inplace()
         return mgr
     except ValueError as e:
-        construction_error(len(arrays), arrays[0].shape, axes, e)
+        raise construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
 def construction_error(tot_items, block_shape, axes, e=None):
@@ -1669,23 +1673,25 @@ def construction_error(tot_items, block_shape, axes, e=None):
     if len(implied) <= 2:
         implied = implied[::-1]
 
+    # We return the exception object instead of raising it so that we
+    #  can raise it in the caller; mypy plays better with that
     if passed == implied and e is not None:
-        raise e
+        return e
     if block_shape[0] == 0:
-        raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+        return ValueError("Empty data passed with indices specified.")
+    return ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------
 
 
-def form_blocks(arrays, names, axes):
+def form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = defaultdict(list)
+    items_dict: DefaultDict[str, List] = defaultdict(list)
     extra_locs = []
 
-    names_idx = ensure_index(names)
+    names_idx = names
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -1703,7 +1709,7 @@ def form_blocks(arrays, names, axes):
         block_type = get_block_type(v)
         items_dict[block_type.__name__].append((i, k, v))
 
-    blocks = []
+    blocks: List[Block] = []
     if len(items_dict["FloatBlock"]):
         float_blocks = _multi_blockify(items_dict["FloatBlock"])
         blocks.extend(float_blocks)
@@ -1721,7 +1727,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(int_blocks)
 
     if len(items_dict["DatetimeBlock"]):
-        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], _NS_DTYPE)
+        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], DT64NS_DTYPE)
         blocks.extend(datetime_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
@@ -1864,10 +1870,38 @@ def _consolidate(blocks):
     new_blocks = []
     for (_can_consolidate, dtype), group_blocks in grouper:
         merged_blocks = _merge_blocks(
-            list(group_blocks), dtype=dtype, _can_consolidate=_can_consolidate
+            list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
         new_blocks = _extend_blocks(merged_blocks, new_blocks)
     return new_blocks
+
+
+def _merge_blocks(
+    blocks: List[Block], dtype: DtypeObj, can_consolidate: bool
+) -> List[Block]:
+
+    if len(blocks) == 1:
+        return blocks
+
+    if can_consolidate:
+
+        if dtype is None:
+            if len({b.dtype for b in blocks}) != 1:
+                raise AssertionError("_merge_blocks are invalid!")
+
+        # TODO: optimization potential in case all mgrs contain slices and
+        # combination of those slices is a slice, too.
+        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
+        new_values = np.vstack([b.values for b in blocks])
+
+        argsort = np.argsort(new_mgr_locs)
+        new_values = new_values[argsort]
+        new_mgr_locs = new_mgr_locs[argsort]
+
+        return [make_block(new_values, placement=new_mgr_locs)]
+
+    # can't consolidate --> no merge
+    return blocks
 
 
 def _compare_or_regex_search(a, b, regex=False):

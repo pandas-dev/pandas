@@ -194,7 +194,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    Categorical : Represent a categorical variable in classic R / S-plus fashion.
 
     Notes
     -----
@@ -467,7 +467,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             _combine_hash_arrays,
             hash_tuples,
         )
-        from pandas.core.dtypes.common import is_datetime64tz_dtype, _NS_DTYPE
+        from pandas.core.dtypes.common import is_datetime64tz_dtype, DT64NS_DTYPE
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -487,7 +487,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             if is_datetime64tz_dtype(categories.dtype):
                 # Avoid future warning.
-                categories = categories.astype(_NS_DTYPE)
+                categories = categories.astype(DT64NS_DTYPE)
 
             cat_array = hash_array(np.asarray(categories), categorize=False)
         if ordered:

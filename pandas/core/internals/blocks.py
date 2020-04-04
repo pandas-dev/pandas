@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
+from pandas._libs import NaT, Timestamp, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -27,8 +27,8 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     is_bool_dtype,
     is_categorical,
     is_categorical_dtype,
@@ -50,7 +50,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_categorical, concat_datetime
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -183,21 +183,6 @@ class Block(PandasObject):
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
 
-    def is_categorical_astype(self, dtype) -> bool:
-        """
-        validate that we have a astypeable to categorical,
-        returns a boolean if we are a categorical
-        """
-        if dtype is Categorical or dtype is CategoricalDtype:
-            # this is a pd.Categorical, but is not
-            # a valid type for astypeing
-            raise TypeError(f"invalid type {dtype} for astype")
-
-        elif is_categorical_dtype(dtype):
-            return True
-
-        return False
-
     def external_values(self):
         """
         The array that Series.values returns (public attribute).
@@ -321,9 +306,6 @@ class Block(PandasObject):
     @property
     def dtype(self):
         return self.values.dtype
-
-    def merge(self, other):
-        return _merge_blocks([self, other])
 
     def concat_same_type(self, to_concat):
         """
@@ -565,7 +547,7 @@ class Block(PandasObject):
             raise TypeError(msg)
 
         # may need to convert to categorical
-        if self.is_categorical_astype(dtype):
+        if is_categorical_dtype(dtype):
 
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
@@ -666,12 +648,10 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
 
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 
@@ -1730,11 +1710,9 @@ class ExtensionBlock(Block):
     def array_values(self) -> ExtensionArray:
         return self.values
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
         values = self.values
-        if slicer is not None:
-            values = values[slicer]
         mask = isna(values)
 
         values = np.asarray(values.astype(object))
@@ -1952,18 +1930,10 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self,
-        slicer=None,
-        na_rep="",
-        float_format=None,
-        decimal=".",
-        quoting=None,
-        **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
     ):
-        """ convert to our native types format, slicing if desired """
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
 
         # see gh-13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
@@ -2096,7 +2066,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         Overridden by DatetimeTZBlock.
         """
-        if values.dtype != _NS_DTYPE:
+        if values.dtype != DT64NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
 
         if isinstance(values, DatetimeArray):
@@ -2146,27 +2116,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
-    ):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        i8values = self.values.view("i8")
+    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
+        """ convert to our native types format """
+        dta = self.array_values()
 
-        if slicer is not None:
-            values = values[..., slicer]
-            i8values = i8values[..., slicer]
-
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(values, date_format)
-
-        result = tslib.format_array_from_datetime(
-            i8values.ravel(),
-            tz=getattr(self.values, "tz", None),
-            format=fmt,
-            na_rep=na_rep,
-        ).reshape(i8values.shape)
+        result = dta._format_native_types(
+            na_rep=na_rep, date_format=date_format, **kwargs
+        )
         return np.atleast_2d(result)
 
     def set(self, locs, values):
@@ -2368,7 +2324,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     fill_value = np.timedelta64("NaT", "ns")
 
     def __init__(self, values, placement, ndim=None):
-        if values.dtype != _TD_DTYPE:
+        if values.dtype != TD64NS_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
         if isinstance(values, TimedeltaArray):
             values = values._data
@@ -2402,11 +2358,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep=None, quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
 
         rvalues = np.empty(values.shape, dtype=object)
@@ -2916,32 +2870,6 @@ def _block_shape(values, ndim=1, shape=None):
             # We can't, and don't need to, reshape.
             values = values.reshape(tuple((1,) + shape))
     return values
-
-
-def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
-
-    if len(blocks) == 1:
-        return blocks[0]
-
-    if _can_consolidate:
-
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
-        # FIXME: optimization potential in case all mgrs contain slices and
-        # combination of those slices is a slice, too.
-        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
-
-        argsort = np.argsort(new_mgr_locs)
-        new_values = new_values[argsort]
-        new_mgr_locs = new_mgr_locs[argsort]
-
-        return make_block(new_values, placement=new_mgr_locs)
-
-    # no merge
-    return blocks
 
 
 def _safe_reshape(arr, new_shape):

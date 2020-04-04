@@ -7,8 +7,8 @@ import numpy as np
 from pandas._libs import tslib, tslibs
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -293,7 +293,7 @@ def union_categoricals(
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical
-    from pandas.core.arrays.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError("No Categoricals to union")
@@ -325,7 +325,7 @@ def union_categoricals(
             new_codes = np.concatenate([c.codes for c in to_union])
         else:
             codes = [first.codes] + [
-                _recode_for_categories(other.codes, other.categories, first.categories)
+                recode_for_categories(other.codes, other.categories, first.categories)
                 for other in to_union[1:]
             ]
             new_codes = np.concatenate(codes)
@@ -348,7 +348,7 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            _recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories) for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:
@@ -401,7 +401,7 @@ def concat_datetime(to_concat, axis=0, typs=None):
 
         if "datetime" in typs:
             to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
-            return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
+            return _concatenate_2d(to_concat, axis=axis).view(DT64NS_DTYPE)
         else:
             # when to_concat has different tz, len(typs) > 1.
             # thus no need to care
@@ -409,7 +409,7 @@ def concat_datetime(to_concat, axis=0, typs=None):
 
     elif "timedelta" in typs:
         return _concatenate_2d([x.view(np.int64) for x in to_concat], axis=axis).view(
-            _TD_DTYPE
+            TD64NS_DTYPE
         )
 
     elif any(typ.startswith("period") for typ in typs):
@@ -423,7 +423,7 @@ def _convert_datetimelike_to_object(x):
     # coerce datetimelike array to object dtype
 
     # if dtype is of datetimetz or timezone
-    if x.dtype.kind == _NS_DTYPE.kind:
+    if x.dtype.kind == DT64NS_DTYPE.kind:
         if getattr(x, "tz", None) is not None:
             x = np.asarray(x.astype(object))
         else:
@@ -431,7 +431,7 @@ def _convert_datetimelike_to_object(x):
             x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(), box="timestamp")
             x = x.reshape(shape)
 
-    elif x.dtype == _TD_DTYPE:
+    elif x.dtype == TD64NS_DTYPE:
         shape = x.shape
         x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
         x = x.reshape(shape)
