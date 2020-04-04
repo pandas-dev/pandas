@@ -46,6 +46,7 @@ from pandas.core.window.common import (
     calculate_center_offset,
     calculate_min_periods,
     get_weighted_roll_func,
+    validate_baseindexer_support,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -196,7 +197,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _get_win_type(self, kwargs: Dict):
         """
-        Exists for compatibility, overriden by subclass Window.
+        Exists for compatibility, overridden by subclass Window.
 
         Parameters
         ----------
@@ -391,11 +392,12 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self, window: int) -> BaseIndexer:
+    def _get_window_indexer(self, window: int, func_name: Optional[str]) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support(func_name)
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -441,7 +443,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        window_indexer = self._get_window_indexer(window)
+        window_indexer = self._get_window_indexer(window, name)
 
         results = []
         exclude: List[Scalar] = []
@@ -1173,6 +1175,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("count")
 
         blocks, obj = self._create_blocks()
         results = []
@@ -1627,6 +1631,9 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("cov")
+
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -1770,6 +1777,9 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("corr")
+
         if other is None:
             other = self._selected_obj
             # only default unset
