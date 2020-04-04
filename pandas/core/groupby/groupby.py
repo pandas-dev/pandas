@@ -17,6 +17,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Generic,
     Hashable,
     Iterable,
     List,
@@ -24,6 +25,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -353,13 +355,16 @@ _KeysArgType = Union[
 ]
 
 
-class _GroupBy(PandasObject, SelectionMixin):
+_GroupByT = TypeVar("_GroupByT", bound="NDFrame")
+
+
+class _GroupBy(Generic[_GroupByT], PandasObject, SelectionMixin):
     _group_selection = None
     _apply_whitelist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
-        obj: NDFrame,
+        obj: _GroupByT,
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
@@ -995,7 +1000,7 @@ b  2""",
         return filtered
 
 
-class GroupBy(_GroupBy):
+class GroupBy(_GroupBy[_GroupByT]):
     """
     Class for grouping and aggregating relational data.
 
