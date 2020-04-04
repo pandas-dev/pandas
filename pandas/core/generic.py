@@ -8984,7 +8984,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2  4  5
         3  6  7
         4  8  9
-        >>> m = df %% 3 == 0
+        >>> m = df % 3 == 0
         >>> df.where(m, -df)
            A  B
         0  0 -1
