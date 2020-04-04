@@ -1,9 +1,9 @@
 from datetime import time
-from typing import List
+from typing import List, Sequence
 
 import numpy as np
 
-from pandas._typing import Scalar
+from pandas._typing import Scalar, Union
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
@@ -49,7 +49,10 @@ class _XlrdReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.sheet_by_index(index)
 
-    def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
+    def get_sheet_data(
+        self, sheet, convert_float, header: Union[int, Sequence[int]],
+        skiprows: Union[int, Sequence[int]], nrows: int
+    ) -> List[List[Scalar]]:
         from xlrd import (
             xldate,
             XL_CELL_DATE,
