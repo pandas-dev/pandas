@@ -20,7 +20,7 @@ def data():
         ([pd.NA], False, True, pd.NA, pd.NA),
         ([], False, True, False, True),
         ([True, True], True, True, True, True),
-        ([False, False], False, False, False, False)
+        ([False, False], False, False, False, False),
     ],
 )
 def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
