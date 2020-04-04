@@ -4344,7 +4344,12 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
-    @doc(NDFrame.reindex, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.reindex,
+         klass=_shared_doc_kwargs["klass"],
+         axes=_shared_doc_kwargs["axes"],
+         optional_labels=_shared_doc_kwargs["optional_labels"],
+         optional_axis=_shared_doc_kwargs["optional_axis"],
+         )
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 

@@ -4219,7 +4219,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes=_shared_doc_kwargs["axes"],
+        optional_labels="",
+        optional_axis="",
+    )
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
         Conform {klass} to new index with optional filling logic.
@@ -4230,12 +4235,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        %(optional_labels)s
-        %(axes)s : array-like, optional
+        {optional_labels}
+        {axes} : array-like, optional
             New labels / index to conform to, should be specified using
             keywords. Preferably an Index object to avoid duplicating data.
-        %(optional_axis)s
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+        {optional_axis}
+        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -4282,7 +4287,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={'index', 'columns'}, ...)``
+        * ``(labels, axis={{'index', 'columns'}}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -4290,8 +4295,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Create a dataframe with some fictional data.
 
         >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
-        >>> df = pd.DataFrame({'http_status': [200, 200, 404, 404, 301],
-        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
+        >>> df = pd.DataFrame({{'http_status': [200, 200, 404, 404, 301],
+        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]}},
         ...                   index=index)
         >>> df
                    http_status  response_time
@@ -4362,7 +4367,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         of dates).
 
         >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
-        >>> df2 = pd.DataFrame({"prices": [100, 101, np.nan, 100, 89, 88]},
+        >>> df2 = pd.DataFrame({{"prices": [100, 101, np.nan, 100, 89, 88]}},
         ...                    index=date_index)
         >>> df2
                     prices
