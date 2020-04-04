@@ -1903,29 +1903,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # I/O Methods
 
-    _shared_docs[
-        "to_markdown"
-    ] = """
-    Print {klass} in Markdown-friendly format.
-
-    .. versionadded:: 1.0.0
-
-    Parameters
-    ----------
-    buf : str, Path or StringIO-like, optional, default None
-        Buffer to write to. If None, the output is returned as a string.
-    mode : str, optional
-        Mode in which file is opened.
-    **kwargs
-        These parameters will be passed to `tabulate \
-            <https://pypi.org/project/tabulate>`_.
-
-    Returns
-    -------
-    str
-        {klass} in Markdown-friendly format.
-    """
-
     @doc(klass="object")
     def to_excel(
         self,
@@ -4242,6 +4219,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    @doc(klass=_shared_doc_kwargs["klass"])
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
         Conform {klass} to new index with optional filling logic.

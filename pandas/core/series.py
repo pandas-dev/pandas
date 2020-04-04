@@ -1410,8 +1410,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    @Appender(
+    @doc(NDFrame.to_markdown, klass="Series")
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+    ) -> Optional[str]:
         """
+        Print {klass} in Markdown-friendly format.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened.
+        **kwargs
+            These parameters will be passed to `tabulate`.
+
+        Returns
+        -------
+        str
+            {klass} in Markdown-friendly format.
+
         Examples
         --------
         >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
@@ -1438,12 +1459,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-    )
-    @Substitution(klass="Series")
-    @Appender(generic._shared_docs["to_markdown"])
-    def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
-    ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
     # ----------------------------------------------------------------------
@@ -4194,7 +4209,11 @@ Keep all original rows and also all original values
         """
         return False
 
-    @doc(NDFrame.align, **_shared_doc_kwargs)
+    @doc(
+        NDFrame.align,
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def align(
         self,
         other,
@@ -4325,8 +4344,7 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.reindex.__doc__)
+    @doc(NDFrame.reindex, klass=_shared_doc_kwargs["klass"])
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 
@@ -4455,7 +4473,7 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
-    @doc(NDFrame.replace, **_shared_doc_kwargs)
+    @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])
     def replace(
         self,
         to_replace=None,
@@ -4474,7 +4492,7 @@ Keep all original rows and also all original values
             method=method,
         )
 
-    @doc(NDFrame.shift, **_shared_doc_kwargs)
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -4695,19 +4713,19 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
         return super().isna()
 
-    @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
         return super().isnull()
 
-    @Appender(generic._shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> "Series":
         return super().notna()
 
-    @Appender(generic._shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> "Series":
         return super().notnull()
 
