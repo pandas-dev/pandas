@@ -246,12 +246,12 @@ class MPLPlot:
         Create data for iteration if `by` is assigned, and it is used in both
         hist and boxplot.
         """
-        data = self.data
+        iter_data = self.data
         if self.by is not None:
             # select sub-columns based on the value of first level of MI
-            cols = data.columns.levels[0]
+            cols = self.data.columns.levels[0]
             iter_data = {
-                col: data.loc[:, data.columns.get_level_values(0) == col]
+                col: self.data.loc[:, self.data.columns.get_level_values(0) == col]
                 for col in cols
             }
         return iter_data
