@@ -6,6 +6,7 @@ from datetime import timedelta
 from functools import partial
 import operator
 from typing import Any, Optional, Tuple
+import warnings
 
 import numpy as np
 
@@ -308,8 +309,13 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
+        with warnings.catch_warnings():
+            # suppress warnings from numpy about element-wise comparison
+            warnings.simplefilter("ignore", DeprecationWarning)
+            with np.errstate(all="ignore"):
+                res_values = na_arithmetic_op(
+                    lvalues, rvalues, op, str_rep, is_cmp=True
+                )
 
     return res_values
 
