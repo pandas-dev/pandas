@@ -1336,6 +1336,7 @@ class TestDataFrameConstructors:
             (((), ()), [(), ()]),
             (((), ()), [[], []]),
             (([], []), [[], []]),
+            (([1], [2]), [[1], [2]]),  # GH 32776
             (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
         ],
     )
@@ -1343,12 +1344,6 @@ class TestDataFrameConstructors:
         # GH 25691
         result = DataFrame(tuples)
         expected = DataFrame(lists)
-        tm.assert_frame_equal(result, expected)
-
-    def test_constructor_tuple_of_lists(self):
-        # GH 32776
-        result = DataFrame(tuple([[1], [2]]))
-        expected = DataFrame([[1], [2]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_tuples(self):
