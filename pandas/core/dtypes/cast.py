@@ -74,7 +74,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.api.extensions import ExtensionArray
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
