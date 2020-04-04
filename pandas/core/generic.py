@@ -7301,6 +7301,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Same type as calling object with the values outside the
             clip boundaries replaced.
 
+        See Also
+        --------
+        Series.clip : Trim values at input threshold in series.
+        DataFrame.clip : Trim values at input threshold in dataframe.
+        numpy.clip : Clip (limit) the values in an array.
+
         Examples
         --------
         >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
