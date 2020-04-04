@@ -427,7 +427,7 @@ class MPLPlot:
         if self.by is not None:
             self.subplots = True
             grouped_data = data.groupby(self.by)
-            data = self._transform_grouped_data(grouped_data)
+            data = self._reformat_grouped_data(grouped_data)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
