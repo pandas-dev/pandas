@@ -18,8 +18,6 @@ from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
     concatenate_block_managers,
-    create_block_manager_from_arrays,
-    create_block_manager_from_blocks,
 )
 
 __all__ = [
@@ -40,6 +38,4 @@ __all__ = [
     "BlockManager",
     "SingleBlockManager",
     "concatenate_block_managers",
-    "create_block_manager_from_arrays",
-    "create_block_manager_from_blocks",
 ]
