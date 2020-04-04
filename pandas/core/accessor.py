@@ -257,12 +257,13 @@ def _register_accessor(name, cls):
 
     Back in an interactive IPython session:
 
-        >>> ds = pd.DataFrame({{'longitude': np.linspace(0, 10),
-        ...                    'latitude': np.linspace(0, 20)}})
-        >>> ds.geo.center
-        (5.0, 10.0)
-        >>> ds.geo.plot()
-        # plots data on a map
+        .. code-block:: ipython
+
+            In [1]: ds = pd.DataFrame({{"longitude": np.linspace(0, 10),
+               ...:                    "latitude": np.linspace(0, 20)}})
+            In [2]: ds.geo.center
+            Out[2]: (5.0, 10.0)
+            In [3]: ds.geo.plot()  # plots data on a map
     """
 
     def decorator(accessor):
