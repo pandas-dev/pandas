@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame, Series
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
+from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
 from pandas.core.window.indexers import ExpandingIndexer
 
 
@@ -105,19 +105,10 @@ def test_notimplemented_functions(func):
 )
 def test_rolling_forward_window(constructor, func, alt_func, expected):
     # GH 32865
-    class ForwardIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
-            start = np.arange(num_values, dtype="int64")
-            end_s = start[: -self.window_size] + self.window_size
-            end_e = np.full(self.window_size, num_values, dtype="int64")
-            end = np.concatenate([end_s, end_e])
-
-            return start, end
-
     values = np.arange(10)
     values[5] = 100.0
 
-    indexer = ForwardIndexer(window_size=3)
+    indexer = FixedForwardWindowIndexer(window_size=3)
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
     result = getattr(rolling, func)()
     expected = constructor(expected)
