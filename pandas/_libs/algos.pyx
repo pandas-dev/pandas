@@ -426,9 +426,6 @@ def _validate_limit(nobs: int, limit=None) -> int:
     int
         The limit.
     """
-    cdef:
-        int lim
-
     if limit is None:
         lim = nobs
     else:
