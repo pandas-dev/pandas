@@ -269,16 +269,7 @@ class MPLPlot:
         if fillna is not None:
             data = data.fillna(fillna)
 
-        iter_data = data
-        if self.by is not None:
-            # select sub-columns based on the value of first level of MI
-            cols = data.columns.levels[0]
-            iter_data = {
-                col: data.loc[:, data.columns.get_level_values(0) == col]
-                for col in cols
-            }
-
-        for col, values in iter_data.items():
+        for col, values in data.items():
             if keep_index is True:
                 yield col, values
             else:

@@ -78,11 +78,24 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
+    def _create_iter_data(self):
+        """Create data for iteration if `by` is assigned"""
+        data = self.data
+        if self.by is not None:
+            # select sub-columns based on the value of first level of MI
+            cols = data.columns.levels[0]
+            iter_data = {
+                col: data.loc[:, data.columns.get_level_values(0) == col]
+                for col in cols
+            }
+        return iter_data
+
     def _make_plot(self):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
+        data = self._create_iter_data()
 
-        for i, (label, y) in enumerate(self._iter_data()):
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
