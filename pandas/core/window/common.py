@@ -323,3 +323,13 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
         return cfunc(arg, window, min_periods)
 
     return func
+
+
+def validate_baseindexer_support(func_name: Optional[str]) -> None:
+    # GH 32865: These functions work correctly with a BaseIndexer subclass
+    BASEINDEXER_WHITELIST = {"min", "max", "mean", "sum", "median", "kurt", "quantile"}
+    if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
+        raise NotImplementedError(
+            f"{func_name} is not supported with using a BaseIndexer "
+            f"subclasses. You can use .apply() with {func_name}."
+        )
