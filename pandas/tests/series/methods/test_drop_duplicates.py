@@ -69,12 +69,12 @@ class TestSeriesDropDuplicates:
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"],
     )
-    def test_drop_duplicates_categorical_non_bool(self, dtype, ordered_fixture):
+    def test_drop_duplicates_categorical_non_bool(self, dtype, ordered):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         # Test case 1
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
-        tc1 = Series(Categorical(input1, categories=cat_array, ordered=ordered_fixture))
+        tc1 = Series(Categorical(input1, categories=cat_array, ordered=ordered))
         if dtype == "datetime64[D]":
             # pre-empty flaky xfail, tc1 values are seemingly-random
             if not (np.array(tc1) == input1).all():
@@ -103,7 +103,7 @@ class TestSeriesDropDuplicates:
 
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
-        tc2 = Series(Categorical(input2, categories=cat_array, ordered=ordered_fixture))
+        tc2 = Series(Categorical(input2, categories=cat_array, ordered=ordered))
         if dtype == "datetime64[D]":
             # pre-empty flaky xfail, tc2 values are seemingly-random
             if not (np.array(tc2) == input2).all():
@@ -130,12 +130,10 @@ class TestSeriesDropDuplicates:
         sc.drop_duplicates(keep=False, inplace=True)
         tm.assert_series_equal(sc, tc2[~expected])
 
-    def test_drop_duplicates_categorical_bool(self, ordered_fixture):
+    def test_drop_duplicates_categorical_bool(self, ordered):
         tc = Series(
             Categorical(
-                [True, False, True, False],
-                categories=[True, False],
-                ordered=ordered_fixture,
+                [True, False, True, False], categories=[True, False], ordered=ordered,
             )
         )
 
