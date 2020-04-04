@@ -1253,7 +1253,7 @@ def _maybe_null_out(
     result: np.ndarray,
     axis: Optional[int],
     mask: Optional[np.ndarray],
-    shape: Tuple,
+    shape: Tuple[int, ...],
     min_count: int = 1,
 ) -> float:
     """
@@ -1275,14 +1275,41 @@ def _maybe_null_out(
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
     elif result is not NaT:
-        if mask is not None:
-            null_mask = mask.size - mask.sum()
-        else:
-            null_mask = np.prod(shape)
-        if null_mask < min_count:
+        if check_below_min_count(shape, mask, min_count):
             result = np.nan
 
     return result
+
+
+def check_below_min_count(
+    shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
+):
+    """
+    Check for the `min_count` keyword. Returns True if below `min_count` (when
+    missing value should be returned from the reduction).
+
+    Parameters
+    ----------
+    shape : tuple
+        The shape of the values (`values.shape`).
+    mask : ndarray or None
+        Boolean numpy array (typically of same shape as `shape`) or None.
+    min_count : int
+        Keyword passed through from sum/prod call.
+
+    Returns
+    -------
+    bool
+    """
+    if min_count > 0:
+        if mask is None:
+            # no missing values, only check size
+            non_nulls = np.prod(shape)
+        else:
+            non_nulls = mask.size - mask.sum()
+        if non_nulls < min_count:
+            return True
+    return False
 
 
 def _zero_out_fperr(arg):
@@ -1328,7 +1355,7 @@ def get_corr_func(method):
         return method
     else:
         raise ValueError(
-            f"Unkown method '{method}', expected one of 'kendall', 'spearman'"
+            f"Unknown method '{method}', expected one of 'kendall', 'spearman'"
         )
 
     def _pearson(a, b):
@@ -1524,7 +1551,7 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minumum.accumulate}
+    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minimum.accumulate}
     skipna : bool
 
     Returns

@@ -162,9 +162,9 @@ def _setop(op_name: str, sort=None):
 
         # GH 19101: ensure empty results have correct dtype
         if result.empty:
-            result = result.values.astype(self.dtype.subtype)
+            result = result._values.astype(self.dtype.subtype)
         else:
-            result = result.values
+            result = result._values
 
         return type(self).from_tuples(result, closed=self.closed, name=result_name)
 
@@ -446,7 +446,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
 
     # IntervalTree doesn't have a is_monotonic_decreasing, so have to override
-    #  the Index implemenation
+    #  the Index implementation
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """

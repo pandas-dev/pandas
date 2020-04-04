@@ -2,6 +2,7 @@ from collections import OrderedDict, abc
 from datetime import date, datetime, timedelta
 import functools
 import itertools
+import re
 
 import numpy as np
 import numpy.ma as ma
@@ -1401,7 +1402,8 @@ class TestDataFrameConstructors:
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
-        with pytest.raises(TypeError):
+        msg = "asdict() should be called on dataclass instances"
+        with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
     def test_constructor_list_of_dict_order(self):

@@ -357,8 +357,25 @@ class TestTimeConversionFormats:
         expected = pd.Index(expected_dates)
         tm.assert_equal(result, expected)
 
-        with pytest.raises(ValueError):
-            pd.to_datetime(dates, format=fmt, utc=True)
+    def test_to_datetime_parse_tzname_or_tzoffset_different_tz_to_utc(self):
+        # GH 32792
+        dates = [
+            "2010-01-01 12:00:00 +0100",
+            "2010-01-01 12:00:00 -0100",
+            "2010-01-01 12:00:00 +0300",
+            "2010-01-01 12:00:00 +0400",
+        ]
+        expected_dates = [
+            "2010-01-01 11:00:00+00:00",
+            "2010-01-01 13:00:00+00:00",
+            "2010-01-01 09:00:00+00:00",
+            "2010-01-01 08:00:00+00:00",
+        ]
+        fmt = "%Y-%m-%d %H:%M:%S %z"
+
+        result = pd.to_datetime(dates, format=fmt, utc=True)
+        expected = pd.DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "offset", ["+0", "-1foo", "UTCbar", ":10", "+01:000:01", ""]
@@ -1089,6 +1106,23 @@ class TestToDatetime:
         # GH 9107
         with pytest.raises(OutOfBoundsDatetime):
             pd.to_datetime(dt_str, format="%Y%m%d")
+
+    def test_to_datetime_utc(self):
+        arr = np.array([parse("2012-06-13T01:39:00Z")], dtype=object)
+
+        result = to_datetime(arr, utc=True)
+        assert result.tz is pytz.utc
+
+    def test_to_datetime_fixed_offset(self):
+        from pandas.tests.indexes.datetimes.test_timezones import fixed_off
+
+        dates = [
+            datetime(2000, 1, 1, tzinfo=fixed_off),
+            datetime(2000, 1, 2, tzinfo=fixed_off),
+            datetime(2000, 1, 3, tzinfo=fixed_off),
+        ]
+        result = to_datetime(dates)
+        assert result.tz == fixed_off
 
 
 class TestToDatetimeUnit:
@@ -1861,6 +1895,18 @@ class TestToDatetimeInferFormat:
             pd.to_datetime(s, infer_datetime_format=False, cache=cache),
             pd.to_datetime(s, infer_datetime_format=True, cache=cache),
         )
+
+    @pytest.mark.parametrize(
+        "tz_name, offset", [("UTC", 0), ("UTC-3", 180), ("UTC+3", -180)]
+    )
+    def test_infer_datetime_format_tz_name(self, tz_name, offset):
+        # GH 33133
+        s = pd.Series([f"2019-02-02 08:07:13 {tz_name}"])
+        result = to_datetime(s, infer_datetime_format=True)
+        expected = pd.Series(
+            [pd.Timestamp("2019-02-02 08:07:13").tz_localize(pytz.FixedOffset(offset))]
+        )
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_iso8601_noleading_0s(self, cache):

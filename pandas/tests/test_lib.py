@@ -3,6 +3,7 @@ import pytest
 
 from pandas._libs import lib, writers as libwriters
 
+import pandas as pd
 from pandas import Index
 import pandas._testing as tm
 
@@ -38,6 +39,11 @@ class TestMisc:
         expected = np.array(["p", "a", "n", "d", "s"])
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
+
+    def test_fast_unique_multiple_unsortable_runtimewarning(self):
+        arr = [np.array(["foo", pd.Timestamp("2000")])]
+        with tm.assert_produces_warning(RuntimeWarning):
+            lib.fast_unique_multiple(arr, sort=None)
 
 
 class TestIndexing:

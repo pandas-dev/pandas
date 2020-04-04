@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 from pandas._typing import Dtype, Label
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -96,14 +96,14 @@ class NumericIndex(Index):
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
             )
 
-    @Appender(Index._maybe_cast_slice_bound.__doc__)
+    @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
-    @Appender(Index._shallow_copy.__doc__)
+    @doc(Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":
             name = self.name if name is lib.no_default else name
@@ -159,7 +159,7 @@ class NumericIndex(Index):
         """
         return False
 
-    @Appender(Index.insert.__doc__)
+    @doc(Index.insert)
     def insert(self, loc: int, item):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
@@ -296,7 +296,7 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
-    @Appender(Index._convert_arr_indexer.__doc__)
+    @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
         # from indexing are also uint64.
@@ -308,7 +308,7 @@ class UInt64Index(IntegerIndex):
 
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
-    @Appender(Index._convert_index_indexer.__doc__)
+    @doc(Index._convert_index_indexer)
     def _convert_index_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
@@ -358,7 +358,7 @@ class Float64Index(NumericIndex):
         """
         return "floating"
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if needs_i8_conversion(dtype):
@@ -370,17 +370,17 @@ class Float64Index(NumericIndex):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
             arr = astype_nansafe(self._values, dtype=dtype)
-            return Int64Index(arr)
+            return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(Index._should_fallback_to_positional.__doc__)
+    @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self):
         return False
 
-    @Appender(Index._convert_slice_indexer.__doc__)
+    @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
         assert kind in ["loc", "getitem"]
 
@@ -434,7 +434,7 @@ class Float64Index(NumericIndex):
 
         return is_float(other) and np.isnan(other) and self.hasnans
 
-    @Appender(Index.get_loc.__doc__)
+    @doc(Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if is_bool(key):
             # Catch this to avoid accidentally casting to 1.0
@@ -454,7 +454,7 @@ class Float64Index(NumericIndex):
     def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
-    @Appender(Index.isin.__doc__)
+    @doc(Index.isin)
     def isin(self, values, level=None):
         if level is not None:
             self._validate_index_level(level)
