@@ -4193,15 +4193,43 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         """
-        Determine if two Index objects contain the same elements.
+        Determine if two Index objects contain the same elements with the same order.
 
         Returns
         -------
         bool
-            True if "other" is an Index and it has the same elements as calling
-            index; False otherwise.
+            True if "other" is an Index and it has the same elements and order
+            as the calling index; False otherwise.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index([1, 2, 3])
+        >>> idx1
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> idx1.equals(pd.Index([1, 2, 3]))
+        True
+
+        The dtype is been compared as well
+
+        >>> idx2 = pd.Index(["1", "2", "3"])
+        >>> idx2
+        Index(['1', '2', '3'], dtype='object')
+
+        >>> idx1.equals(idx2)
+        False
+
+        The oreder is also been compared
+
+        >>> ascending_idx = pd.Index([1, 2, 3])
+        >>> ascending_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> descending_idx = pd.Index([3, 2, 1])
+        >>> descending_idx
+        Int64Index([3, 2, 1], dtype='int64')
+        >>> ascending_idx.equals(descending_idx)
+        False
         """
         if self.is_(other):
             return True
