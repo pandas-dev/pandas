@@ -176,10 +176,9 @@ def test_td_from_repr_roundtrip(val):
     td = Timedelta(val)
     assert Timedelta(td.value) == td
 
-    # str does not normally display nanos
-    if not td.nanoseconds:
-        assert Timedelta(str(td)) == td
+    assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
+    assert Timedelta(td._repr_base()) == td
 
 
 def test_overflow_on_construction():
