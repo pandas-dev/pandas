@@ -1158,20 +1158,11 @@ def test_loc_setitem_series_datetime64tz_full_with_index():
 
 
 def test_loc_setitem_series_datetime64tz_slice():
-    s1 = pd.Series(
-        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
-    )
+    dates = pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc)
+    s1 = pd.Series(dates, name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    expected = pd.Series(
-        [
-            *pd.date_range("2020-01-01", "2020-01-03", 3, tz=timezone.utc),
-            np.nan,
-            np.nan,
-            np.nan,
-        ],
-        name="data",
-        dtype="object",
-    )
+    expected = pd.Series(dates, name="data", dtype="object")
+    expected[-3:] = pd.NaT
     s2.loc[s1.index[:3]] = s1[:3]
     tm.assert_series_equal(expected, s2)
 
@@ -1233,22 +1224,20 @@ def test_loc_setitem_series_categorical_slice():
 
 
 def test_loc_setitem_df_interval_slice():
-    df = pd.DataFrame(pd.interval_range(start=0, end=5), columns=["data"])
+    intervals = pd.interval_range(start=0, end=5)
+    df = pd.DataFrame(intervals, columns=["data"])
     df2 = pd.DataFrame(index=df.index)
-    expected = pd.DataFrame(
-        [*pd.interval_range(start=0, end=3), np.nan, np.nan], columns=["data"]
-    )
+    expected = pd.DataFrame(intervals, columns=["data"], dtype="object")
+    expected.data[-2:] = np.nan
     df2.loc[df.index[:3], "data"] = df["data"][:3]
     tm.assert_frame_equal(df2, expected)
 
 
 def test_loc_setitem_series_period_slice():
-    s1 = pd.Series(pd.period_range(start="2020Q1", periods=5), name="data")
+    periods = pd.period_range(start="2020Q1", periods=5)
+    s1 = pd.Series(periods, name="data")
     s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    expected = pd.Series(
-        [*pd.period_range(start="2020Q1", periods=3), np.nan, np.nan],
-        name="data",
-        dtype=object,
-    )
+    expected = pd.Series(periods, name="data", dtype=object,)
+    expected[-2:] = np.nan
     s2.loc[s1.index[:3]] = s1[:3]
     tm.assert_series_equal(expected, s2)

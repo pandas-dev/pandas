@@ -882,7 +882,7 @@ class Block(PandasObject):
             return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
-            # GH#?32395 if we're going to replace the values entirely, just
+            # GH#32395 if we're going to replace the values entirely, just
             #  substitute in the new array
             return self.make_block(arr_value)
 
