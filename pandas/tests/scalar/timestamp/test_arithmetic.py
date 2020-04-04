@@ -210,6 +210,7 @@ class TestTimestampArithmetic:
 
     @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
     def test_addsub_m8ndarray(self, shape):
+        # GH#33296
         ts = Timestamp("2020-04-04 15:45")
         other = np.arange(6).astype("m8[h]").reshape(shape)
 
@@ -233,6 +234,7 @@ class TestTimestampArithmetic:
 
     @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
     def test_addsub_m8ndarray_tzaware(self, shape):
+        # GH#33296
         ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")
 
         other = np.arange(6).astype("m8[h]").reshape(shape)
