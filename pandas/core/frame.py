@@ -4673,6 +4673,49 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
+
+        Examples
+        --------
+
+        Consider dataset containing ramen rating.
+
+        >>> brand = ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie']
+        >>> df = pd.DataFrame({'brand': brand,
+        ... 'style': ['cup', 'cup', 'cup', 'pack', 'pack'],
+        ... 'rating': [4, 4, 3.5, 15, 5]},
+        ...  index=['TH', 'TH', 'ID', 'ID', 'ID'])
+
+        >>> df
+            brand style  rating
+        TH  Yum Yum   cup     4.0
+        TH  Yum Yum   cup     4.0
+        ID  Indomie   cup     3.5
+        ID  Indomie  pack    15.0
+        ID  Indomie  pack     5.0
+
+        By default, it removes duplicate rows based on all columns
+
+        >>> df.drop_duplicates()
+            brand style  rating
+        TH  Yum Yum   cup     4.0
+        ID  Indomie   cup     3.5
+        ID  Indomie  pack    15.0
+        ID  Indomie  pack     5.0
+
+        To remove duplicates on specific column(s), use ``subset``
+
+        >>> df.drop_duplicates(subset=['brand'])
+            brand style  rating
+        TH  Yum Yum   cup     4.0
+        ID  Indomie   cup     3.5
+
+        To remove drop duplicates and keep last occurences, use ``keep``
+
+        >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
+            brand style  rating
+        TH  Yum Yum   cup     4.0
+        ID  Indomie   cup     3.5
+        ID  Indomie  pack     5.0
         """
         if self.empty:
             return self.copy()
