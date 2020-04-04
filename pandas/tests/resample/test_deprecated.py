@@ -40,13 +40,13 @@ def create_index(_index_factory):
 def test_deprecating_on_loffset_and_base():
     # GH 31809
 
-    idx = pd.date_range("1/1/2000", periods=4, freq="T")
+    idx = pd.date_range("2001-01-01", periods=4, freq="T")
     df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
-        pd.Grouper(freq="10s", base=2)
+        pd.Grouper(freq="10s", base=0)
     with tm.assert_produces_warning(FutureWarning):
-        pd.Grouper(freq="10s", loffset="2s")
+        pd.Grouper(freq="10s", loffset="0s")
     with tm.assert_produces_warning(FutureWarning):
         df.groupby("a").resample("3T", base=0).sum()
     with tm.assert_produces_warning(FutureWarning):

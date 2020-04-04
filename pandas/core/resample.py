@@ -2,7 +2,6 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, no_type_check
-import warnings
 
 import numpy as np
 
@@ -1358,6 +1357,14 @@ class TimeGrouper(Grouper):
 
         self.origin = Timestamp(origin) if origin is not None else None
         self.offset = Timedelta(offset) if offset is not None else None
+
+        # always sort time groupers
+        kwargs["sort"] = True
+
+        # Handle deprecated arguments since v1.1.0 of `base` and `loffset` (GH #31809)
+        if base is not None and offset is not None:
+            raise ValueError("`offset` and `base` cannot be present at the same time")
+
         if base and isinstance(freq, Tick):
             # this conversion handle the default behavior of base and the
             # special case of GH #10530. Indeed in case when dealing with
@@ -1366,11 +1373,7 @@ class TimeGrouper(Grouper):
             # freq_nanos.
             self.offset = Timedelta(base * freq.nanos // freq.n)
 
-        # always sort time groupers
-        kwargs["sort"] = True
-
         if isinstance(loffset, str):
-            # loffset is deprecated since v1.1.0 (GH #31809)
             loffset = to_offset(loffset)
         self.loffset = loffset
 
@@ -1620,33 +1623,6 @@ class TimeGrouper(Grouper):
             labels = labels.insert(0, NaT)
 
         return binner, bins, labels
-
-
-def _validate_resample_deprecated_args(offset=None, base=None, loffset=None, **kwds):
-    if base is not None:
-        warnings.warn(
-            "'base' in .resample() and in Grouper() is deprecated.\n"
-            "The new arguments that you should use are 'offset' or 'origin'.\n\n"
-            '>>> df.resample(freq="3s", base=2)\n'
-            "\nbecomes:\n\n"
-            '>>> df.resample(freq="3s", offset="2s")\n',
-            FutureWarning,
-            stacklevel=3,
-        )
-        if offset is not None:
-            raise ValueError("offset and base cannot be present at the same time")
-
-    if loffset is not None:
-        warnings.warn(
-            "'loffset' in .resample() and in Grouper() is deprecated.\n\n"
-            '>>> df.resample(freq="3s", loffset="8H")\n'
-            "\nbecomes:\n\n"
-            ">>> from pandas.tseries.frequencies import to_offset\n"
-            '>>> df = df.resample(freq="3s").mean()\n'
-            '>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-            FutureWarning,
-            stacklevel=3,
-        )
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):

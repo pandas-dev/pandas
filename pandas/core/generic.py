@@ -8122,9 +8122,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
-        from pandas.core.resample import _validate_resample_deprecated_args
-
-        _validate_resample_deprecated_args(offset=offset, base=base, loffset=loffset)
 
         axis = self._get_axis_number(axis)
         return get_resampler(

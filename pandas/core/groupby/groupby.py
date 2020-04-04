@@ -1648,9 +1648,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         5   2000-01-01 00:03:00  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
-        from pandas.core.resample import _validate_resample_deprecated_args
-
-        _validate_resample_deprecated_args(**kwargs)
 
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
