@@ -25,6 +25,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas import MultiIndex
 import pandas.core.common as com
+from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.printing import pprint_thing
@@ -377,7 +378,7 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
-    def _transform_grouped_data(self, data: ABCDataFrame) -> ABCDataFrame:
+    def _reformat_grouped_data(self, grouped: DataFrameGroupBy) -> ABCDataFrame:
         """
         Internal function to transform grouped DataFrame object to a normal
         DataFrame to facilitate further manipulation.
@@ -386,7 +387,6 @@ class MPLPlot:
         DataFrame with MultiIndex columns. The first level of MI is unique values of
         groups, and second level of MI is the columns selected by users.
         """
-        grouped = data.groupby(self.by)
         self._grouped_data_size = len(grouped)
 
         data_list = []
@@ -411,7 +411,8 @@ class MPLPlot:
         # GH15079 reconstruct data if by is defined
         if self.by is not None:
             self.subplots = True
-            data = self._transform_grouped_data(data)
+            grouped_data = data.groupby(self.by)
+            data = self._transform_grouped_data(grouped_data)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
