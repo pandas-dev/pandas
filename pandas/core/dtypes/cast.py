@@ -3,6 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 
@@ -69,6 +70,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -313,7 +317,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return d.get((dtype, how), dtype)
 
 
-def maybe_cast_to_extension_array(cls, obj, dtype=None):
+def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
