@@ -78,8 +78,25 @@ class _ODFReader(_BaseExcelReader):
         max_row_len = 0
 
         table: List[List[Scalar]] = []
+        header = 0 if header is None else header
+        skiprows = 0 if skiprows is None else skiprows
+        nrows = 0 if nrows is None else nrows
 
         for i, sheet_row in enumerate(sheet_rows):
+
+            if header > 1:
+                header -= 1
+                table.append([])
+                continue
+            elif skiprows > 0:
+                skiprows -= 1
+                table.append([])
+                continue
+            elif nrows >= 0:
+                nrows -= 1
+            else: 
+                break
+
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row: List[Scalar] = []

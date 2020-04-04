@@ -526,23 +526,25 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
-        skiprows = 0 if skiprows is None else skiprows
         header = 0 if header is None else header
+        skiprows = 0 if skiprows is None else skiprows
+        nrows = 0 if nrows is None else nrows
+        
+        for row in sheet.rows: 
 
-        if nrows is not None:
-            for row in sheet.rows:
-                if header > 1:
-                    header -= 1
-                    data.append(["", ""])
-                elif skiprows > 0:
-                    skiprows -= 1
-                    data.append(["", ""])
-                elif nrows >= 0:
-                    nrows -= 1
-                else:
-                    break
-        else:
-            for row in sheet.rows:
-                data.append([self._convert_cell(cell, convert_float) for cell in row])
+            if header > 1:
+                header -= 1
+                data.append([])
+                continue
+            elif skiprows > 0:
+                skiprows -= 1
+                data.append([])
+                continue
+            elif nrows >= 0:
+                nrows -= 1
+            else:
+                break
+
+            data.append([self._convert_cell(cell, convert_float) for cell in row])
 
         return data
