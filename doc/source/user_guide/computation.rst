@@ -571,6 +571,27 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+For some problems, knowledge of the future is available for analysis. For example, this occurs when
+each data point is a full time series read from an experiment, and the task is to extract underlying
+conditions. In these cases, it can be useful to perform forward-looking rolling window computations.
+For this purpose, ``FixedForwardWindowIndexer`` class is provided. This ``BaseIndexer`` subclass
+implements a closed fixed-width forward-looking rolling window, and we can use it as follows:
+
+.. code-block:: ipython
+
+   In [5]: from pandas.api.indexers import FixedForwardWindowIndexer
+
+   In [6]: indexer = FixedForwardWindowIndexer(window_size=2)
+
+   In [7]: df.rolling(indexer, min_periods=1).sum()
+   Out[8]:
+       values
+   0     1.0
+   1     3.0
+   2     5.0
+   3     7.0
+   4     4.0
+
 
 .. _stats.rolling_window.endpoints:
 
