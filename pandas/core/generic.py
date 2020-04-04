@@ -547,16 +547,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The axis to update. The value 0 identifies the rows%(axis_description_sub)s.
 
         inplace : bool, default False
-            Whether to return a new {klass} instance.
+            Whether to return a new %(klass)s instance.
 
         Returns
         -------
-        renamed : {klass} or None
-            An object of type {klass} if inplace=False, None otherwise.
+        renamed : %(klass)s or None
+            An object of type %(klass)s if inplace=False, None otherwise.
 
         See Also
         --------
-        {klass}.rename_axis : Alter the name of the index%(see_also_sub)s.
+        %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
