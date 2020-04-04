@@ -80,10 +80,7 @@ class TestDatetimeIndex:
             expected_list1, dtype="datetime64[ns, UTC]", freq=None,
         )
         expected2 = np.array(
-            [0, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, 23],
-            dtype = np.int64,
+            [0] + [-1]*21 + [23], dtype=np.int64,
         )
         tm.assert_index_equal(result1, expected1)
         tm.assert_numpy_array_equal(result2, expected2)
