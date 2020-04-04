@@ -1410,7 +1410,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    @doc(NDFrame.to_markdown, klass="Series")
+    @doc(klass=_shared_doc_kwargs["klass"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
