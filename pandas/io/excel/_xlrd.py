@@ -7,6 +7,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.io.excel._base import _BaseExcelReader
 from pandas.io.parsers import _validate_integer
 
+
 class _XlrdReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer):
         """
@@ -97,7 +98,8 @@ class _XlrdReader(_BaseExcelReader):
 
         data = []
 
-        if nrows is not None: _validate_integer("nrows", nrows)
+        if nrows is not None:
+            _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
         if isinstance(header, list) or isinstance(skiprows, list):
@@ -115,7 +117,7 @@ class _XlrdReader(_BaseExcelReader):
                     continue
                 if nrows >= 0:
                     nrows -= 1
-                else: 
+                else:
                     break
 
             row = [

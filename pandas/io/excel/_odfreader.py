@@ -64,7 +64,9 @@ class _ODFReader(_BaseExcelReader):
 
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self, sheet, convert_float: bool, header, skiprows, nrows
+    ) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -80,7 +82,8 @@ class _ODFReader(_BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
-        if nrows is not None: _validate_integer("nrows", nrows)
+        if nrows is not None:
+            _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
         if isinstance(header, list) or isinstance(skiprows, list):
@@ -99,7 +102,7 @@ class _ODFReader(_BaseExcelReader):
                     continue
                 if nrows >= 0:
                     nrows -= 1
-                else: 
+                else:
                     break
 
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]

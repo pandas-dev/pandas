@@ -9,6 +9,7 @@ from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
 from pandas.io.parsers import _validate_integer
 
+
 class _OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
@@ -524,16 +525,19 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self, sheet, convert_float: bool, header, skiprows, nrows
+    ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        if nrows is not None: _validate_integer("nrows", nrows)
+        if nrows is not None:
+            _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
         if isinstance(header, list) or isinstance(skiprows, list):
             nrows = None
-        
-        for row in sheet.rows: 
+
+        for row in sheet.rows:
 
             if nrows is not None:
                 if header > 1:
@@ -546,7 +550,7 @@ class _OpenpyxlReader(_BaseExcelReader):
                     continue
                 if nrows >= 0:
                     nrows -= 1
-                else: 
+                else:
                     break
 
             data.append([self._convert_cell(cell, convert_float) for cell in row])
