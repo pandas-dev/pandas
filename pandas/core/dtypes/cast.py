@@ -21,9 +21,9 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
-    _NS_DTYPE,
     _POSSIBLY_CAST_DTYPES,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
     ensure_int32,
@@ -876,9 +876,9 @@ def coerce_to_dtypes(result, dtypes):
     def conv(r, dtype):
         if np.any(isna(r)):
             pass
-        elif dtype == _NS_DTYPE:
+        elif dtype == DT64NS_DTYPE:
             r = tslibs.Timestamp(r)
-        elif dtype == _TD_DTYPE:
+        elif dtype == TD64NS_DTYPE:
             r = tslibs.Timedelta(r)
         elif dtype == np.bool_:
             # messy. non 0/1 integers do not get converted.
@@ -946,7 +946,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
-        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
+        if dtype not in [_INT64_DTYPE, TD64NS_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!
@@ -955,8 +955,8 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
                 result = arr.astype(dtype).astype(np.float64)
                 result[mask] = np.nan
                 return result
-        elif dtype == _TD_DTYPE:
-            return arr.astype(_TD_DTYPE, copy=copy)
+        elif dtype == TD64NS_DTYPE:
+            return arr.astype(TD64NS_DTYPE, copy=copy)
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
@@ -1328,14 +1328,14 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 f"Please pass in '{dtype.name}[ns]' instead."
             )
 
-            if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
+            if is_datetime64 and not is_dtype_equal(dtype, DT64NS_DTYPE):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("M8[ns]"):
                     if dtype.name == "datetime64":
                         raise ValueError(msg)
-                    dtype = _NS_DTYPE
+                    dtype = DT64NS_DTYPE
                 else:
                     raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
             elif is_datetime64tz:
@@ -1346,14 +1346,14 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 if is_scalar(value) and isna(value):
                     value = [value]
 
-            elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
+            elif is_timedelta64 and not is_dtype_equal(dtype, TD64NS_DTYPE):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("m8[ns]"):
                     if dtype.name == "timedelta64":
                         raise ValueError(msg)
-                    dtype = _TD_DTYPE
+                    dtype = TD64NS_DTYPE
                 else:
                     raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
@@ -1401,8 +1401,8 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
         # coerce datetimelike to object
         elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
-                if value.dtype != _NS_DTYPE:
-                    value = value.astype(_NS_DTYPE)
+                if value.dtype != DT64NS_DTYPE:
+                    value = value.astype(DT64NS_DTYPE)
                 ints = np.asarray(value).view("i8")
                 return tslib.ints_to_pydatetime(ints)
 
@@ -1418,10 +1418,10 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
         if is_array and value.dtype.kind in ["M", "m"]:
             dtype = value.dtype
 
-            if dtype.kind == "M" and dtype != _NS_DTYPE:
+            if dtype.kind == "M" and dtype != DT64NS_DTYPE:
                 value = tslibs.conversion.ensure_datetime64ns(value)
 
-            elif dtype.kind == "m" and dtype != _TD_DTYPE:
+            elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
                 value = to_timedelta(value)
 
         # only do this if we have an array and the dtype of the array is not

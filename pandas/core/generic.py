@@ -147,7 +147,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
 
     if inplace:
-        self._update_inplace(result._data)
+        self._update_inplace(result)
         return
 
     return result
@@ -988,7 +988,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result._clear_item_cache()
 
         if inplace:
-            self._update_inplace(result._data)
+            self._update_inplace(result)
             return None
         else:
             return result.__finalize__(self)
@@ -3957,15 +3957,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
+        result : same type as self
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
-
         self._reset_cache()
         self._clear_item_cache()
-        self._data = getattr(result, "_data", result)
+        self._data = result._data
         self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self: FrameOrSeries, prefix: str) -> FrameOrSeries:
@@ -6107,15 +6107,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-                new_data = self.where(self.notna(), value)
+                new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 
+        result = self._constructor(new_data)
         if inplace:
-            self._update_inplace(new_data)
-            return None
+            return self._update_inplace(result)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            return result.__finalize__(self)
 
     def ffill(
         self: FrameOrSeries,
@@ -6627,10 +6627,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
                     )
 
+        result = self._constructor(new_data)
         if inplace:
-            self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            return result.__finalize__(self)
 
     _shared_docs[
         "interpolate"
@@ -7231,7 +7232,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result[mask] = np.nan
 
         if inplace:
-            self._update_inplace(result)
+            return self._update_inplace(result)
         else:
             return result
 
@@ -8061,15 +8062,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def last(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
-        Method to subset final periods of time series data based on a date offset.
+        Select final periods of time series data based on a date offset.
+
+        When having a DataFrame with dates as index, this function can
+        select the last few rows based on a date offset.
 
         Parameters
         ----------
         offset : str, DateOffset, dateutil.relativedelta
+            The offset length of the data that will be selected. For instance,
+            '3D' will display all the rows having their index within the last 3 days.
 
         Returns
         -------
-        subset : same type as caller
+        Series or DataFrame
+            A subset of the caller.
 
         Raises
         ------
@@ -8641,7 +8648,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             new_data = self._data.putmask(
                 mask=cond, new=other, align=align, axis=block_axis,
             )
-            self._update_inplace(new_data)
+            result = self._constructor(new_data)
+            return self._update_inplace(result)
 
         else:
             new_data = self._data.where(
@@ -8652,8 +8660,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 try_cast=try_cast,
                 axis=block_axis,
             )
-
-            return self._constructor(new_data).__finalize__(self)
+            result = self._constructor(new_data)
+            return result.__finalize__(self)
 
     _shared_docs[
         "where"
