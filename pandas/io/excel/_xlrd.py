@@ -96,7 +96,7 @@ class _XlrdReader(_BaseExcelReader):
                     cell_contents = val
             return cell_contents
 
-        data = []
+        data: List[List[Scalar]] = []
 
         if nrows is not None:
             _validate_integer("nrows", nrows)
