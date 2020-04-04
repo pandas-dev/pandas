@@ -7,7 +7,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
-
+from pandas.io.parsers import _validate_integer
 
 class _OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
@@ -526,24 +526,28 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def get_sheet_data(self, sheet, convert_float: bool, header, skiprows, nrows) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
+
+        if nrows is not None: _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
-        nrows = 0 if nrows is None else nrows
+        if isinstance(header, list) or isinstance(skiprows, list):
+            nrows = None
         
         for row in sheet.rows: 
 
-            if header > 1:
-                header -= 1
-                data.append([])
-                continue
-            elif skiprows > 0:
-                skiprows -= 1
-                data.append([])
-                continue
-            elif nrows >= 0:
-                nrows -= 1
-            else:
-                break
+            if nrows is not None:
+                if header > 1:
+                    header -= 1
+                    data.append([])
+                    continue
+                elif skiprows > 0:
+                    skiprows -= 1
+                    data.append([])
+                    continue
+                if nrows >= 0:
+                    nrows -= 1
+                else: 
+                    break
 
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 

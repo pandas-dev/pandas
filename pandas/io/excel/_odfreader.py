@@ -6,6 +6,7 @@ from pandas.compat._optional import import_optional_dependency
 import pandas as pd
 
 from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.parsers import _validate_integer
 
 
 class _ODFReader(_BaseExcelReader):
@@ -78,24 +79,28 @@ class _ODFReader(_BaseExcelReader):
         max_row_len = 0
 
         table: List[List[Scalar]] = []
+
+        if nrows is not None: _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
-        nrows = 0 if nrows is None else nrows
+        if isinstance(header, list) or isinstance(skiprows, list):
+            nrows = None
 
         for i, sheet_row in enumerate(sheet_rows):
 
-            if header > 1:
-                header -= 1
-                table.append([])
-                continue
-            elif skiprows > 0:
-                skiprows -= 1
-                table.append([])
-                continue
-            elif nrows >= 0:
-                nrows -= 1
-            else: 
-                break
+            if nrows is not None:
+                if header > 1:
+                    header -= 1
+                    data.append([])
+                    continue
+                elif skiprows > 0:
+                    skiprows -= 1
+                    data.append([])
+                    continue
+                if nrows >= 0:
+                    nrows -= 1
+                else: 
+                    break
 
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
