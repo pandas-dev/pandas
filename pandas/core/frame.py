@@ -2183,8 +2183,10 @@ class DataFrame(NDFrame):
 
         to_feather(self, path, **kwargs)
 
-    @Appender(
-        """
+    @doc(
+        Series.to_markdown,
+        klass=_shared_doc_kwargs["klass"],
+        examples="""
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -2208,8 +2210,6 @@ class DataFrame(NDFrame):
         +----+------------+------------+
         """
     )
-    @Substitution(klass="DataFrame")
-    @Appender(_shared_docs["to_markdown"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:

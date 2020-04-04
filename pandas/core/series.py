@@ -1410,7 +1410,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        examples="""
+        Examples
+        --------
+        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+        >>> print(s.to_markdown())
+        |    | animal   |
+        |---:|:---------|
+        |  0 | elk      |
+        |  1 | pig      |
+        |  2 | dog      |
+        |  3 | quetzal  |
+        """,
+    )
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
