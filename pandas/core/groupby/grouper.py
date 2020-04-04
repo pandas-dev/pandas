@@ -223,7 +223,7 @@ class Grouping:
     index : Index
     grouper :
     obj Union[DataFrame, Series]:
-    name :
+    name : Label
     level :
     observed : bool, default False
         If we are a Categorical, use the observed values

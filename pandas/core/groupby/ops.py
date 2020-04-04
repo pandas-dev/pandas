@@ -429,7 +429,7 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs,
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
@@ -582,13 +582,13 @@ class BaseGrouper:
         return result, names
 
     def aggregate(
-        self, values: np.ndarray, how: str, axis: int = 0, min_count: int = -1
+        self, values, how: str, axis: int = 0, min_count: int = -1
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         return self._cython_operation(
             "aggregate", values, how, axis, min_count=min_count
         )
 
-    def transform(self, values: np.ndarray, how: str, axis: int = 0, **kwargs):
+    def transform(self, values, how: str, axis: int = 0, **kwargs):
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
@@ -832,11 +832,11 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self) -> List:
+    def levels(self) -> List[Index]:
         return [self.binlabels]
 
     @property
-    def names(self) -> List:
+    def names(self) -> List[Label]:
         return [self.binlabels.name]
 
     @property
