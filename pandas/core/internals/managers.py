@@ -729,7 +729,7 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_bool], copy)
+        return self._combine([b for b in self.blocks if b.is_bool], copy)
 
     def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
@@ -739,9 +739,9 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_numeric], copy)
+        return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
+    def _combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -896,7 +896,7 @@ class BlockManager(PandasObject):
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
-        return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
