@@ -17,10 +17,7 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
 from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
-    _transform_index,
     concatenate_block_managers,
-    create_block_manager_from_arrays,
-    create_block_manager_from_blocks,
 )
 
 __all__ = [
@@ -40,8 +37,5 @@ __all__ = [
     "_block_shape",
     "BlockManager",
     "SingleBlockManager",
-    "_transform_index",
     "concatenate_block_managers",
-    "create_block_manager_from_arrays",
-    "create_block_manager_from_blocks",
 ]

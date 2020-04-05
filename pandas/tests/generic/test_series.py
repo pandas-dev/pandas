@@ -1,10 +1,7 @@
-from distutils.version import LooseVersion
 from operator import methodcaller
 
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import MultiIndex, Series, date_range
@@ -12,24 +9,10 @@ import pandas._testing as tm
 
 from .test_generic import Generic
 
-try:
-    import xarray
-
-    _XARRAY_INSTALLED = True
-except ImportError:
-    _XARRAY_INSTALLED = False
-
 
 class TestSeries(Generic):
     _typ = Series
     _comparator = lambda self, x, y: tm.assert_series_equal(x, y)
-
-    def setup_method(self):
-        self.ts = tm.makeTimeSeries()  # Was at top level in test_series
-        self.ts.name = "ts"
-
-        self.series = tm.makeStringSeries()
-        self.series.name = "series"
 
     def test_rename_mi(self):
         s = Series(
@@ -37,15 +20,6 @@ class TestSeries(Generic):
             index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
         )
         s.rename(str.lower)
-
-    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
-    def test_set_axis_name(self, func):
-        s = Series([1, 2, 3], index=["a", "b", "c"])
-        name = "foo"
-
-        result = methodcaller(func, name)(s)
-        assert s.index.name is None
-        assert result.index.name == name
 
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
@@ -64,7 +38,8 @@ class TestSeries(Generic):
 
     def test_set_axis_name_raises(self):
         s = pd.Series([1])
-        with pytest.raises(ValueError):
+        msg = "No axis named 1 for object type Series"
+        with pytest.raises(ValueError, match=msg):
             s._set_axis_name(name="a", axis=1)
 
     def test_get_numeric_data_preserve_dtype(self):
@@ -183,6 +158,9 @@ class TestSeries(Generic):
         Series._metadata = _metadata
         Series.__finalize__ = _finalize  # FIXME: use monkeypatch
 
+
+class TestSeries2:
+    # Separating off because it doesnt rely on parent class
     @pytest.mark.parametrize(
         "s",
         [
@@ -201,72 +179,3 @@ class TestSeries(Generic):
         # GH22397
         s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
         assert s.shift(freq=move_by_freq) is not s
-
-
-class TestSeries2:
-    # moved from Generic
-    def test_get_default(self):
-
-        # GH#7725
-        d0 = ["a", "b", "c", "d"]
-        d1 = np.arange(4, dtype="int64")
-        others = ["e", 10]
-
-        for data, index in ((d0, d1), (d1, d0)):
-            s = Series(data, index=index)
-            for i, d in zip(index, data):
-                assert s.get(i) == d
-                assert s.get(i, d) == d
-                assert s.get(i, "z") == d
-                for other in others:
-                    assert s.get(other, "z") == "z"
-                    assert s.get(other, other) == other
-
-
-class TestToXArray:
-    @pytest.mark.skipif(
-        not _XARRAY_INSTALLED
-        or _XARRAY_INSTALLED
-        and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
-        reason="xarray >= 0.10.0 required",
-    )
-    @pytest.mark.parametrize("index", tm.all_index_generator(6))
-    def test_to_xarray_index_types(self, index):
-        from xarray import DataArray
-
-        s = Series(range(6), index=index)
-        s.index.name = "foo"
-        result = s.to_xarray()
-        repr(result)
-        assert len(result) == 6
-        assert len(result.coords) == 1
-        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
-        assert isinstance(result, DataArray)
-
-        # idempotency
-        tm.assert_series_equal(
-            result.to_series(), s, check_index_type=False, check_categorical=True
-        )
-
-    @td.skip_if_no("xarray", min_version="0.7.0")
-    def test_to_xarray(self):
-        from xarray import DataArray
-
-        s = Series([], dtype=object)
-        s.index.name = "foo"
-        result = s.to_xarray()
-        assert len(result) == 0
-        assert len(result.coords) == 1
-        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
-        assert isinstance(result, DataArray)
-
-        s = Series(range(6))
-        s.index.name = "foo"
-        s.index = pd.MultiIndex.from_product(
-            [["a", "b"], range(3)], names=["one", "two"]
-        )
-        result = s.to_xarray()
-        assert len(result) == 2
-        tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
-        assert isinstance(result, DataArray)
-        tm.assert_series_equal(result.to_series(), s)

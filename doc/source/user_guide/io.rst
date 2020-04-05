@@ -28,7 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -3815,7 +3815,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -4817,7 +4817,7 @@ ORC
 
 .. versionadded:: 1.0.0
 
-Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
@@ -5005,7 +5005,7 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
+  For more information check the SQLAlchemy `documentation
   <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on

@@ -1,16 +1,21 @@
 from datetime import datetime
-import warnings
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCDateOffset
-
 import pandas as pd
-from pandas import DatetimeIndex, Index, Series, Timestamp, bdate_range, date_range
+from pandas import (
+    DateOffset,
+    DatetimeIndex,
+    Index,
+    Series,
+    Timestamp,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
+from pandas.tseries.offsets import BDay, Day, Hour
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -363,7 +368,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz="US/Pacific")
+        idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
@@ -394,7 +399,7 @@ class TestDatetimeIndexOps:
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq
         assert idx.freq == freq
-        assert isinstance(idx.freq, ABCDateOffset)
+        assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
         idx._data.freq = None
@@ -437,23 +442,6 @@ class TestBusinessDatetimeIndex:
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    def test_shift(self):
-        shifted = self.rng.shift(5)
-        assert shifted[0] == self.rng[5]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(-5)
-        assert shifted[5] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(0)
-        assert shifted[0] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        rng = date_range(START, END, freq=BMonthEnd())
-        shifted = rng.shift(1, freq=BDay())
-        assert shifted[0] == rng[0] + BDay()
-
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
 
@@ -490,32 +478,6 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_shift(self):
-
-        shifted = self.rng.shift(5)
-        assert shifted[0] == self.rng[5]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(-5)
-        assert shifted[5] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(0)
-        assert shifted[0] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
-            rng = date_range(START, END, freq=BMonthEnd())
-            shifted = rng.shift(1, freq=CDay())
-            assert shifted[0] == rng[0] + CDay()
-
-    def test_shift_periods(self):
-        # GH#22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = pd.date_range(start=START, end=END, periods=3)
-        tm.assert_index_equal(idx.shift(periods=0), idx)
-        tm.assert_index_equal(idx.shift(0), idx)
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)

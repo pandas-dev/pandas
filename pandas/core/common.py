@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._typing import T
+from pandas.compat.numpy import _np_version_under1p17
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -87,9 +88,6 @@ def maybe_box_datetimelike(value, dtype=None):
     return value
 
 
-values_from_object = lib.values_from_object
-
-
 def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
@@ -118,24 +116,19 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(values_from_object(key))
+            key = np.asarray(key)
 
             if not lib.is_bool_array(key):
+                na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
                 if isna(key).any():
                     raise ValueError(na_msg)
                 return False
             return True
         elif is_bool_dtype(key.dtype):
-            # an ndarray with bool-dtype by definition has no missing values.
-            # So we only need to check for NAs in ExtensionArrays
-            if is_extension_array_dtype(key.dtype):
-                if np.any(key.isna()):
-                    raise ValueError(na_msg)
             return True
     elif isinstance(key, list):
         try:
@@ -220,7 +213,7 @@ def asarray_tuplesafe(values, dtype=None):
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
-        return values.values
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -400,18 +393,30 @@ def random_state(state=None):
 
     Parameters
     ----------
-    state : int, np.random.RandomState, None.
-        If receives an int, passes to np.random.RandomState() as seed.
+    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+        If receives an int, array-like, or BitGenerator, passes to
+        np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
+
+        ..versionchanged:: 1.1.0
+
+            array-like and BitGenerator (for NumPy>=1.17) object now passed to
+            np.random.RandomState() as seed
+
         Default None.
 
     Returns
     -------
     np.random.RandomState
+
     """
-    if is_integer(state):
+    if (
+        is_integer(state)
+        or is_array_like(state)
+        or (not _np_version_under1p17 and isinstance(state, np.random.BitGenerator))
+    ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
@@ -419,7 +424,10 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, a numpy RandomState, or None"
+            (
+                "random_state must be an integer, array-like, a BitGenerator, "
+                "a numpy RandomState, or None"
+            )
         )
 
 

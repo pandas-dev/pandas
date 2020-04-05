@@ -416,10 +416,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         super().test_setitem_mask_raises(data, box_in_series)
 
     @skip_nested
-    def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
-        super().test_setitem_mask_boolean_array_raises(data, box_in_series)
-
-    @skip_nested
     @pytest.mark.parametrize(
         "idx",
         [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],

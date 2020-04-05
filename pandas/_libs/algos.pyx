@@ -7,13 +7,30 @@ from libc.math cimport fabs, sqrt
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
-                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
-                    NPY_FLOAT32, NPY_FLOAT64,
-                    NPY_OBJECT,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    NPY_FLOAT32,
+    NPY_FLOAT64,
+    NPY_INT8,
+    NPY_INT16,
+    NPY_INT32,
+    NPY_INT64,
+    NPY_OBJECT,
+    NPY_UINT8,
+    NPY_UINT16,
+    NPY_UINT32,
+    NPY_UINT64,
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 cnp.import_array()
 
 
@@ -21,8 +38,15 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport numeric, get_nat
 
 from pandas._libs.khash cimport (
-    khiter_t, kh_destroy_int64, kh_put_int64, kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
+    kh_destroy_int64,
+    kh_get_int64,
+    kh_init_int64,
+    kh_int64_t,
+    kh_put_int64,
+    kh_resize_int64,
+    khiter_t,
+)
+
 
 import pandas._libs.missing as missing
 
@@ -774,8 +798,13 @@ ctypedef fused rank_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def rank_1d(rank_t[:] in_arr, ties_method='average',
-            ascending=True, na_option='keep', pct=False):
+def rank_1d(
+    rank_t[:] in_arr,
+    ties_method="average",
+    bint ascending=True,
+    na_option="keep",
+    bint pct=False,
+):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
@@ -992,8 +1021,14 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
         return ranks
 
 
-def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
-            ascending=True, na_option='keep', pct=False):
+def rank_2d(
+    rank_t[:, :] in_arr,
+    int axis=0,
+    ties_method="average",
+    bint ascending=True,
+    na_option="keep",
+    bint pct=False,
+):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
@@ -1173,9 +1208,12 @@ ctypedef fused out_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def diff_2d(diff_t[:, :] arr,
-            out_t[:, :] out,
-            Py_ssize_t periods, int axis):
+def diff_2d(
+    diff_t[:, :] arr,
+    out_t[:, :] out,
+    Py_ssize_t periods,
+    int axis,
+):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.is_f_contig()
