@@ -791,9 +791,6 @@ class BlockManager(PandasObject):
         bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
         return bm
 
-    def __contains__(self, item) -> bool:
-        return item in self.items
-
     @property
     def nblocks(self) -> int:
         return len(self.blocks)
