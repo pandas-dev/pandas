@@ -91,8 +91,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
-
-        .. versionadded:: 0.21.0
     copy : bool, default False
         Make a copy of input ndarray.
     name : object, optional
@@ -138,21 +136,25 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     Examples
     --------
-    >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
 
-    >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> c = pd.Categorical(["a", "b", "c", "a", "b", "c"])
     >>> pd.CategoricalIndex(c)
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     Ordered ``CategoricalIndex`` can have a min and max value.
 
-    >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
-    ...                          categories=['c', 'b', 'a'])
+    >>> ci = pd.CategoricalIndex(
+    ...     ["a", "b", "c", "a", "b", "c"], ordered=True, categories=["c", "b", "a"]
+    ... )
     >>> ci
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['c', 'b', 'a'], ordered=True, dtype='category')
     >>> ci.min()
     'c'
     """
@@ -652,7 +654,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
-                         ordered=False, dtype='category')
+                          ordered=False, dtype='category')
         >>> idx.map(lambda x: x.upper())
         CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
                          ordered=False, dtype='category')
