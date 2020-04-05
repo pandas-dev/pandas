@@ -682,7 +682,7 @@ class BaseGrouper:
 
         assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: try_cast back to EA?
+        # TODO: maybe_cast_to_extension_array?
 
         return result, counts
 
