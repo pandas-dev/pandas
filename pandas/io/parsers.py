@@ -526,6 +526,7 @@ _pyarrow_unsupported = {
     "float_precision",
     "chunksize",
     "comment",
+    "nrows",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -952,7 +953,11 @@ class TextFileReader(abc.Iterator):
         # pyarrow engine not supported yet
         if engine == "pyarrow":
             for option in _pyarrow_unsupported:
-                if option != "chunksize" and option != "skipfooter":
+                if (
+                    option != "chunksize"
+                    and option != "skipfooter"
+                    and option != "nrows"
+                ):
                     if options[option] is not None:
                         fallback_reason = (
                             f"the pyarrow engine does not support the {option} argumnet"
@@ -962,6 +967,10 @@ class TextFileReader(abc.Iterator):
                     if self.chunksize is not None:
                         fallback_reason = (
                             "the pyarrow engine does not support using chunksize"
+                        )
+                    if self.nrows is not None:
+                        fallback_reason = (
+                            "the pyarrow engine does not support using skipfooter"
                         )
         # C and pyarrow engine not supported yet
         if engine == "c" or "pyarrow":
@@ -2171,7 +2180,7 @@ class CParserWrapper(ParserBase):
 
 class ArrowParserWrapper(ParserBase):
     """
-    Wrapper for the pyarrow engine for pd.read_csv()
+    Wrapper for the pyarrow engine for read_csv()
     """
 
     def __init__(self, src, **kwds):
@@ -2208,16 +2217,22 @@ class ArrowParserWrapper(ParserBase):
             ),
         )
         frame = table.to_pandas()
-        table_width = len(table.column_names)
+        num_cols = len(frame.columns)
         if self.names is None:
             if self.prefix:
-                self.names = [f"{self.prefix}{i}" for i in range(table_width)]
-            elif self.header is not None and self.header != "infer":
+                self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
+                frame = frame.rename(
+                    dict(zip(frame.columns, self.names), axis="columns")
+                )
+            elif self.header != 0:
                 header = self.header
                 self.names = frame.iloc[header]
                 frame = frame.drop(header, axis=0)
-
-        frame = frame.rename(zip(frame.names, self.names), axis="columns")
+                frame = frame.rename(
+                    dict(zip(frame.columns, self.names), axis="columns")
+                )
+        if self.kwds.get("squeeze"):
+            frame = frame.squeeze()
         return frame
 
 
