@@ -241,7 +241,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check if the pandas word reference is always used in lowercase (pandas) NOT Pandas or PANDAS'; echo $MSG
     invgrep -R '*pandas*|Pandas|PANDAS' web/* doc/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    
 fi
 
 ### CODE ###
