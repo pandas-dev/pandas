@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -758,7 +759,11 @@ class BinGrouper(BaseGrouper):
         We have a specific method of grouping, so cannot
         convert to a Index for our grouper.
         """
-        return self
+        # Return an index based on codes_info
+        grouper = self.result_index._constructor(
+            Categorical.from_codes(self.codes_info, self.result_index)
+        )
+        return grouper
 
     def get_iterator(self, data: FrameOrSeries, axis: int = 0):
         """
