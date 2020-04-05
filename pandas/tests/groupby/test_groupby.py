@@ -1864,6 +1864,20 @@ def test_groupby_groups_in_BaseGrouper():
     assert result.groups == expected.groups
 
 
+def test_groupby_groups_in_BaseGrouper_with_BinGrouper():
+    # GH 33132
+    # Test if DataFrame grouped with a pandas.Grouper and freq param has correct groups
+    mi = pd.MultiIndex.from_product(
+        [date_range(datetime.today(), periods=2), ["C", "D"]], names=["alpha", "beta"]
+    )
+    df = pd.DataFrame({"foo": [1, 2, 1, 2], "bar": [1, 2, 3, 4]}, index=mi)
+    result = df.groupby(["beta", pd.Grouper(level="alpha", freq="D")])
+    assert result.ngroups == len(result)
+
+    result = df.groupby([pd.Grouper(level="alpha", freq="D"), "beta"])
+    assert result.ngroups == len(result)
+
+
 @pytest.mark.parametrize("group_name", ["x", ["x"]])
 def test_groupby_axis_1(group_name):
     # GH 27614
