@@ -12,6 +12,7 @@ def data():
     )
 
 
+# .any(), .all() returns <NA> for [False, False], [True, True], GH-33253.
 @pytest.mark.parametrize(
     "values, exp_any, exp_all, exp_any_noskip, exp_all_noskip",
     [
