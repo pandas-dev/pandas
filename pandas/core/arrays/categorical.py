@@ -242,8 +242,6 @@ class Categorical(ExtensionArray, PandasObject):
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical.
 
-        .. versionadded:: 0.21.0
-
     Attributes
     ----------
     categories : Index
@@ -256,8 +254,6 @@ class Categorical(ExtensionArray, PandasObject):
     dtype : CategoricalDtype
         The instance of ``CategoricalDtype`` storing the ``categories``
         and ``ordered``.
-
-        .. versionadded:: 0.21.0
 
     Methods
     -------
@@ -876,8 +872,6 @@ class Categorical(ExtensionArray, PandasObject):
               are passed through and extra categories in the mapping are
               ignored.
 
-            .. versionadded:: 0.21.0.
-
             * callable : a callable that is called on all items in the old
               categories and whose return values comprise the new categories.
 
@@ -1306,7 +1300,6 @@ class Categorical(ExtensionArray, PandasObject):
         if not isinstance(state, dict):
             raise Exception("invalid pickle state")
 
-        # compat with pre 0.21.0 CategoricalDtype change
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
 
