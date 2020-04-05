@@ -189,8 +189,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
 
-    .. versionchanged:: 0.21.0
-
     Parameters
     ----------
     categories : sequence, optional
