@@ -1354,11 +1354,11 @@ def get_corr_func(method):
         return func
     elif callable(method):
         return method
-    else:
-        raise ValueError(
-            f"Unknown method '{method}', expected one of "
-            "'kendall', 'spearman', 'pearson', or callable"
-        )
+
+    raise ValueError(
+        f"Unknown method '{method}', expected one of "
+        "'kendall', 'spearman', 'pearson', or callable"
+    )
 
 
 @disallow("M8", "m8")
