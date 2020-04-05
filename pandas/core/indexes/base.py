@@ -4221,7 +4221,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(pd.Index([1, 2, 3]))
         True
 
-        The dtype is compared as well
+        The elements inside are compared
 
         >>> idx2 = pd.Index(["1", "2", "3"])
         >>> idx2
@@ -4230,7 +4230,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(idx2)
         False
 
-        The oreder is also compared
+        The oreder is compared
 
         >>> ascending_idx = pd.Index([1, 2, 3])
         >>> ascending_idx
@@ -4240,6 +4240,17 @@ class Index(IndexOpsMixin, PandasObject):
         Int64Index([3, 2, 1], dtype='int64')
         >>> ascending_idx.equals(descending_idx)
         False
+
+        The dtype is *not* compared
+
+        >>> int64_idx = pd.Int64Index([1, 2, 3])
+        >>> int64_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> uint64_idx = pd.UInt64Index([1, 2, 3])
+        >>> uint64_idx
+        UInt64Index([1, 2, 3], dtype='uint64')
+        >>> int64_idx.equals(uint64_idx)
+        True
         """
         if self.is_(other):
             return True
