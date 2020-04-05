@@ -1584,10 +1584,7 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
             mask = np.maximum.accumulate(mask)
 
         vals = accum_func(values)
-
-        from pandas import Series
-
-        result = Series(IntegerArray(vals, mask))
+        result = IntegerArray(vals, mask)
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()

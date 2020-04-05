@@ -11201,9 +11201,9 @@ def _make_cum_function(
 
         # mimicking from series._reduce, which delegates
         # using na_accum_func_now
-        delegate = self._values
-        if isinstance(delegate.dtype, ExtensionDtype):
-            return delegate._accumulate(name, skipna=skipna, **kwargs)
+        # delegate = self._values
+        # if isinstance(delegate.dtype, ExtensionDtype):
+        #     return delegate._accumulate(name, skipna=skipna, **kwargs)
 
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
