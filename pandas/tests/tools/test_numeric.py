@@ -308,7 +308,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
 
     if errors in (None, "raise"):
         index = int(multiple_elts)
-        msg = "Integer out of range. at position {index}".format(index=index)
+        msg = f"Integer out of range. at position {index}"
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)

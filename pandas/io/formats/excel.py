@@ -41,7 +41,8 @@ class ExcelCell:
 
 
 class CSSToExcelConverter:
-    """A callable for converting CSS declarations to ExcelWriter styles
+    """
+    A callable for converting CSS declarations to ExcelWriter styles
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
     focusing on font styling, backgrounds, borders and alignment.

@@ -1,4 +1,5 @@
-"""Operator classes for eval.
+"""
+Operator classes for eval.
 """
 
 from datetime import datetime
@@ -248,7 +249,8 @@ class Op:
 
 
 def _in(x, y):
-    """Compute the vectorized membership of ``x in y`` if possible, otherwise
+    """
+    Compute the vectorized membership of ``x in y`` if possible, otherwise
     use Python.
     """
     try:
@@ -263,7 +265,8 @@ def _in(x, y):
 
 
 def _not_in(x, y):
-    """Compute the vectorized membership of ``x not in y`` if possible,
+    """
+    Compute the vectorized membership of ``x not in y`` if possible,
     otherwise use Python.
     """
     try:
@@ -445,7 +448,8 @@ class BinOp(Op):
         return term_type(name, env=env)
 
     def convert_values(self):
-        """Convert datetimes to a comparable value in an expression.
+        """
+        Convert datetimes to a comparable value in an expression.
         """
 
         def stringify(value):

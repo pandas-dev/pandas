@@ -2148,6 +2148,10 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def test_to_sql_append(self):
         self._to_sql_append()
 
+    def test_to_sql_method_multi(self):
+        # GH 29921
+        self._to_sql(method="multi")
+
     def test_create_and_drop_table(self):
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}

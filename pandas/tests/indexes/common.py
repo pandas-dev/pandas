@@ -98,7 +98,7 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = "Not supported for type {}".format(type(idx).__name__)
+        msg = f"Not supported for type {type(idx).__name__}"
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
@@ -808,7 +808,7 @@ class Base:
 
         index = self.create_index()
         if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
-            pytest.skip("skipping tests for {}".format(type(index)))
+            pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
 

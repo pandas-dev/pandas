@@ -43,9 +43,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    # TODO: Should the checks below be ABCIndexClass?
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # TODO: should this be ABCIndexClass??
+        # Note: these checks can be for ABCIndex and not ABCIndexClass
+        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -175,7 +175,6 @@ def arithmetic_op(
     ndarrray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
     from pandas.core.ops import maybe_upcast_for_op
 
     # NB: We assume that extract_array has already been called
@@ -218,7 +217,6 @@ def comparison_op(
     -------
     ndarrray or ExtensionArray
     """
-
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
     rvalues = right
@@ -322,7 +320,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-
     fill_int = lambda x: x
 
     def fill_bool(x, left=None):

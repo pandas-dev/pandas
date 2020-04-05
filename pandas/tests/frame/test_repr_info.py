@@ -129,9 +129,6 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
 
-        # TODO(wesm): is this supposed to be used?
-        bval = uval.encode("utf-8")  # noqa
-
         df = DataFrame({"A": [uval, uval]})
 
         result = repr(df)

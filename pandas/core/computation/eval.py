@@ -276,6 +276,21 @@ def eval(
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"animal": ["dog", "pig"], "age": [10, 20]})
+    >>> df
+      animal  age
+    0    dog   10
+    1    pig   20
+
+    We can add a new column using ``pd.eval``:
+
+    >>> pd.eval("double_age = df.age * 2", target=df)
+      animal  age  double_age
+    0    dog   10          20
+    1    pig   20          40
     """
     inplace = validate_bool_kwarg(inplace, "inplace")
 

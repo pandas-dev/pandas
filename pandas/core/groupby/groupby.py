@@ -1174,7 +1174,6 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Count of values within each group.
         """
-
         # defined here for API doc
         raise NotImplementedError
 
@@ -1277,7 +1276,6 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-
         # TODO: implement at Cython level?
         return np.sqrt(self.var(ddof=ddof))
 
@@ -1449,7 +1447,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
-        Compute sum of values, excluding missing values.
+        Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
@@ -1458,7 +1456,6 @@ class GroupBy(_GroupBy):
         DataFrame
             Open, high, low and close values within each group.
         """
-
         return self._apply_to_column_groupbys(lambda x: x._cython_agg_general("ohlc"))
 
     @Appender(DataFrame.describe.__doc__)
@@ -1764,7 +1761,6 @@ class GroupBy(_GroupBy):
         1  1  2.0
         4  2  5.0
         """
-
         valid_containers = (set, list, tuple)
         if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
@@ -1999,7 +1995,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({"A": list("aaabba")})
         >>> df
            A
@@ -2034,7 +2029,6 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
         """
-
         with _group_selection_context(self):
             index = self._selected_obj.index
             result = Series(self.grouper.group_info[0], index)
@@ -2067,7 +2061,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
         ...                   columns=['A'])
         >>> df
@@ -2095,7 +2088,6 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
         """
-
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
@@ -2336,7 +2328,8 @@ class GroupBy(_GroupBy):
         ----------
         periods : int, default 1
             Number of periods to shift.
-        freq : frequency string
+        freq : str, optional
+            Frequency string.
         axis : axis to shift, default 0
         fill_value : optional
 
@@ -2347,7 +2340,6 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Object shifted within each group.
         """
-
         if freq is not None or axis != 0 or not isna(fill_value):
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 

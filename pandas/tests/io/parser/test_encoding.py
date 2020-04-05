@@ -45,7 +45,7 @@ A,B,C
 4,5,6""".replace(
         ",", sep
     )
-    path = "__{}__.csv".format(tm.rands(10))
+    path = f"__{tm.rands(10)}__.csv"
     kwargs = dict(sep=sep, skiprows=2)
     utf8 = "utf-8"
 

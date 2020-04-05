@@ -42,9 +42,9 @@ def test_parse_time_quarter_with_dash(dashed, normal):
 
 @pytest.mark.parametrize("dashed", ["-2Q1992", "2-Q1992", "4-4Q1992"])
 def test_parse_time_quarter_with_dash_error(dashed):
-    msg = "Unknown datetime string format, unable to parse: {dashed}"
+    msg = f"Unknown datetime string format, unable to parse: {dashed}"
 
-    with pytest.raises(parsing.DateParseError, match=msg.format(dashed=dashed)):
+    with pytest.raises(parsing.DateParseError, match=msg):
         parse_time_string(dashed)
 
 
@@ -115,12 +115,12 @@ def test_parsers_quarter_invalid(date_str):
     if date_str == "6Q-20":
         msg = (
             "Incorrect quarterly string is given, quarter "
-            "must be between 1 and 4: {date_str}"
+            f"must be between 1 and 4: {date_str}"
         )
     else:
-        msg = "Unknown datetime string format, unable to parse: {date_str}"
+        msg = f"Unknown datetime string format, unable to parse: {date_str}"
 
-    with pytest.raises(ValueError, match=msg.format(date_str=date_str)):
+    with pytest.raises(ValueError, match=msg):
         parsing.parse_time_string(date_str)
 
 

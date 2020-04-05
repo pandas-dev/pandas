@@ -80,16 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    [
-        "__iter__",
-        "mean",
-        "freq",
-        "freqstr",
-        "_ndarray_values",
-        "asi8",
-        "_box_values",
-        "_box_func",
-    ],
+    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -395,7 +386,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-
         assert kind in ["loc", "getitem"]
 
         if not is_scalar(key):
@@ -565,7 +555,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-
         new_data = type(self._data)._concat_same_type(to_concat)
 
         return self._simple_new(new_data, name=name)
@@ -948,12 +937,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
+
         Parameters
         ----------
         loc : int
         item : object
             if not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
+
         Returns
         -------
         new_index : Index

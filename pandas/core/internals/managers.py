@@ -101,7 +101,9 @@ class BlockManager(PandasObject):
 
     Parameters
     ----------
-
+    blocks: Sequence of Block
+    axes: Sequence of Index
+    do_integrity_check: bool, default True
 
     Notes
     -----
@@ -357,7 +359,6 @@ class BlockManager(PandasObject):
         -------
         BlockManager
         """
-
         result_blocks = []
 
         # filter kwarg is used in replace-* family of methods
@@ -453,7 +454,6 @@ class BlockManager(PandasObject):
         -------
         Block Manager (new object)
         """
-
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
@@ -569,7 +569,6 @@ class BlockManager(PandasObject):
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         # figure out our mask a-priori to avoid repeated replacements
@@ -589,7 +588,7 @@ class BlockManager(PandasObject):
                 )
             return _compare_or_regex_search(values, s, regex)
 
-        masks = [comp(s, regex) for i, s in enumerate(src_list)]
+        masks = [comp(s, regex) for s in src_list]
 
         result_blocks = []
         src_len = len(src_list) - 1
@@ -755,10 +754,7 @@ class BlockManager(PandasObject):
             # hit in e.g. tests.io.json.test_pandas
 
             def copy_func(ax):
-                if deep == "all":
-                    return ax.copy(deep=True)
-                else:
-                    return ax.view()
+                return ax.copy(deep=True) if deep == "all" else ax.view()
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
@@ -1246,7 +1242,6 @@ class BlockManager(PandasObject):
         -------
         new_blocks : list of Block
         """
-
         allow_fill = fill_tuple is not None
 
         sl_type, slobj, sllen = _preprocess_slice_or_indexer(
@@ -1323,7 +1318,6 @@ class BlockManager(PandasObject):
         return blocks
 
     def _make_na_block(self, placement, fill_value=None):
-        # TODO: infer dtypes other than float64 from fill_value
 
         if fill_value is None:
             fill_value = np.nan
@@ -1762,7 +1756,8 @@ def form_blocks(arrays, names, axes):
 
 
 def _simple_blockify(tuples, dtype):
-    """ return a single array of a block that has a single dtype; if dtype is
+    """
+    return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
     """
     values, placement = _stack_arrays(tuples, dtype)
@@ -1777,7 +1772,6 @@ def _simple_blockify(tuples, dtype):
 
 def _multi_blockify(tuples, dtype=None):
     """ return an array of blocks that potentially have different dtypes """
-
     # group by dtype
     grouper = itertools.groupby(tuples, lambda x: x[2].dtype)
 
@@ -1822,7 +1816,8 @@ def _stack_arrays(tuples, dtype):
 def _interleaved_dtype(
     blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
-    """Find the common dtype for `blocks`.
+    """
+    Find the common dtype for `blocks`.
 
     Parameters
     ----------
@@ -1843,7 +1838,6 @@ def _consolidate(blocks):
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """
-
     # sort by _can_consolidate, dtype
     gkey = lambda x: x._consolidate_key
     grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)

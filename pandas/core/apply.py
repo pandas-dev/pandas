@@ -35,7 +35,6 @@ def frame_apply(
     kwds=None,
 ):
     """ construct and return a row or column based frame apply object """
-
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
     if axis == 0:
@@ -144,7 +143,6 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def get_result(self):
         """ compute the results """
-
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
             return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)
@@ -193,7 +191,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         we will try to apply the function to an empty
         series in order to see if this is a reduction function
         """
-
         # we are not asked to reduce or infer reduction
         # so just return a copy of the existing object
         if self.result_type not in ["reduce", None]:
@@ -396,7 +393,6 @@ class FrameRowApply(FrameApply):
         self, results: ResType, res_index: "Index"
     ) -> "DataFrame":
         """ return the results for the rows """
-
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
@@ -457,7 +453,6 @@ class FrameColumnApply(FrameApply):
 
     def infer_to_same_shape(self, results: ResType, res_index: "Index") -> "DataFrame":
         """ infer the results to the same shape as the input object """
-
         result = self.obj._constructor(data=results)
         result = result.T
 

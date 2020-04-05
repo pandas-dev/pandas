@@ -31,7 +31,8 @@ def ensure_scope(
 
 
 def _replacer(x) -> str:
-    """Replace a number with its hexadecimal representation. Used to tag
+    """
+    Replace a number with its hexadecimal representation. Used to tag
     temporary variables with their calling scope's id.
     """
     # get the hex repr of the binary char and remove 0x and pad by pad_size

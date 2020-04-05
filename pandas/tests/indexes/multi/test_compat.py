@@ -29,7 +29,7 @@ def test_numeric_compat(idx):
 
 @pytest.mark.parametrize("method", ["all", "any"])
 def test_logical_compat(idx, method):
-    msg = "cannot perform {method}".format(method=method)
+    msg = f"cannot perform {method}"
 
     with pytest.raises(TypeError, match=msg):
         getattr(idx, method)()

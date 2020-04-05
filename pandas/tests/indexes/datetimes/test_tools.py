@@ -199,7 +199,7 @@ class TestTimeConversionFormats:
         # these are locale dependent
         lang, _ = locale.getlocale()
         month_abbr = calendar.month_abbr[4]
-        val = "01-{}-2011 00:00:01.978".format(month_abbr)
+        val = f"01-{month_abbr}-2011 00:00:01.978"
 
         format = "%d-%b-%Y %H:%M:%S.%f"
         result = to_datetime(val, format=format, cache=cache)
@@ -551,7 +551,7 @@ class TestToDatetime:
     )
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = "Out of bounds nanosecond timestamp: {}".format(dt)
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(dt, errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):

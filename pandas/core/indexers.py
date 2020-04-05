@@ -219,7 +219,7 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    Return the length of a single non-tuple indexer which could be a slice.
+    Return the expected length of target[indexer]
 
     Returns
     -------
@@ -245,6 +245,12 @@ def length_of_indexer(indexer, target=None) -> int:
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+        if isinstance(indexer, list):
+            indexer = np.array(indexer)
+
+        if indexer.dtype == bool:
+            # GH#25774
+            return indexer.sum()
         return len(indexer)
     elif not is_list_like_indexer(indexer):
         return 1
@@ -268,6 +274,33 @@ def deprecate_ndim_indexing(result):
             DeprecationWarning,
             stacklevel=3,
         )
+
+
+def unpack_1tuple(tup):
+    """
+    If we have a length-1 tuple/list that contains a slice, unpack to just
+    the slice.
+
+    Notes
+    -----
+    The list case is deprecated.
+    """
+    if len(tup) == 1 and isinstance(tup[0], slice):
+        # if we don't have a MultiIndex, we may still be able to handle
+        #  a 1-tuple.  see test_1tuple_without_multiindex
+
+        if isinstance(tup, list):
+            # GH#31299
+            warnings.warn(
+                "Indexing with a single-item list containing a "
+                "slice is deprecated and will raise in a future "
+                "version.  Pass a tuple instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        return tup[0]
+    return tup
 
 
 # -----------------------------------------------------------
@@ -296,7 +329,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     indexer : array-like or list-like
         The array-like that's used to index. List-like input that is not yet
         a numpy array or an ExtensionArray is converted to one. Other input
-        types are passed through as is
+        types are passed through as is.
 
     Returns
     -------

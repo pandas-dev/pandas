@@ -95,7 +95,6 @@ class BinOp(ops.BinOp):
     def prune(self, klass):
         def pr(left, right):
             """ create and return a new specialized BinOp from myself """
-
             if left is None:
                 return right
             elif right is None:
@@ -150,8 +149,10 @@ class BinOp(ops.BinOp):
 
     @property
     def is_in_table(self) -> bool:
-        """ return True if this is a valid column name for generation (e.g. an
-        actual column in the table) """
+        """
+        return True if this is a valid column name for generation (e.g. an
+        actual column in the table)
+        """
         return self.queryables.get(self.lhs) is not None
 
     @property
@@ -175,8 +176,10 @@ class BinOp(ops.BinOp):
         return f"({self.lhs} {self.op} {val})"
 
     def convert_value(self, v) -> "TermValue":
-        """ convert the expression that is in the term to something that is
-        accepted by pytables """
+        """
+        convert the expression that is in the term to something that is
+        accepted by pytables
+        """
 
         def stringify(value):
             if self.encoding is not None:
@@ -474,7 +477,6 @@ def _validate_where(w):
     ------
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
-
     if not (isinstance(w, (PyTablesExpr, str)) or is_list_like(w)):
         raise TypeError(
             "where must be passed as a string, PyTablesExpr, "
@@ -501,7 +503,6 @@ class PyTablesExpr(expr.Expr):
 
     Examples
     --------
-
     'index>=date'
     "columns=['A', 'D']"
     'columns=A'
@@ -572,7 +573,6 @@ class PyTablesExpr(expr.Expr):
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """
-
         try:
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError:
@@ -601,8 +601,7 @@ class TermValue:
         self.kind = kind
 
     def tostring(self, encoding) -> str:
-        """ quote the string if not encoded
-            else encode and return """
+        """ quote the string if not encoded else encode and return """
         if self.kind == "string":
             if encoding is not None:
                 return str(self.converted)

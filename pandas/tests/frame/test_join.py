@@ -161,7 +161,7 @@ def test_join_overlap(float_frame):
 
 
 def test_join_period_index(frame_with_period_index):
-    other = frame_with_period_index.rename(columns=lambda x: "{key}{key}".format(key=x))
+    other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
     joined_values = np.concatenate([frame_with_period_index.values] * 2, axis=1)
 

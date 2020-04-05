@@ -1,10 +1,11 @@
-"""Test extension array for storing nested data in a pandas container.
+"""
+Test extension array for storing nested data in a pandas container.
 
 The JSONArray stores lists of dictionaries. The storage mechanism is a list,
 not an ndarray.
 
-Note:
-
+Note
+----
 We currently store lists of UserDicts. Pandas has a few places
 internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we

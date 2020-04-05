@@ -624,7 +624,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         result : PeriodArray
         """
-
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other

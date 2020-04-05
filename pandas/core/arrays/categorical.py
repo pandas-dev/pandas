@@ -644,7 +644,13 @@ class Categorical(ExtensionArray, PandasObject):
             )
             raise ValueError(msg)
 
-        codes = np.asarray(codes)  # #21767
+        if is_extension_array_dtype(codes) and is_integer_dtype(codes):
+            # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
+            codes = codes.to_numpy(dtype=np.int64)
+        else:
+            codes = np.asarray(codes)
         if len(codes) and not is_integer_dtype(codes):
             raise ValueError("codes need to be array-like integers")
 
@@ -695,7 +701,6 @@ class Categorical(ExtensionArray, PandasObject):
         [a, c]
         Categories (2, object): [a, c]
         """
-
         if fastpath:
             new_dtype = CategoricalDtype._from_fastpath(categories, self.ordered)
         else:
@@ -1221,7 +1226,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         shape : tuple
         """
-
         return tuple([len(self._codes)])
 
     def shift(self, periods, fill_value=None):
@@ -1378,7 +1382,6 @@ class Categorical(ExtensionArray, PandasObject):
         Categorical.notna : Boolean inverse of Categorical.isna.
 
         """
-
         ret = self._codes == -1
         return ret
 
@@ -1888,7 +1891,8 @@ class Categorical(ExtensionArray, PandasObject):
         return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
-        """ a short repr displaying only max_vals and an optional (but default
+        """
+        a short repr displaying only max_vals and an optional (but default
         footer)
         """
         num = max_vals // 2
@@ -1928,7 +1932,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns a string representation of the footer.
         """
-
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
@@ -2254,7 +2257,6 @@ class Categorical(ExtensionArray, PandasObject):
         Series.unique
 
         """
-
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()
@@ -2314,7 +2316,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         bool
         """
-
         try:
             return hash(self.dtype) == hash(other.dtype)
         except (AttributeError, TypeError):
@@ -2388,7 +2389,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-
         >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
         ...                'hippo'])
         >>> s.isin(['cow', 'lama'])
@@ -2441,18 +2441,30 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
-        if to_replace in cat.categories:
-            if isna(value):
-                cat.remove_categories(to_replace, inplace=True)
-            else:
+
+        # build a dict of (to replace -> value) pairs
+        if is_list_like(to_replace):
+            # if to_replace is list-like and value is scalar
+            replace_dict = {replace_value: value for replace_value in to_replace}
+        else:
+            # if both to_replace and value are scalar
+            replace_dict = {to_replace: value}
+
+        # other cases, like if both to_replace and value are list-like or if
+        # to_replace is a dict, are handled separately in NDFrame
+        for replace_value, new_value in replace_dict.items():
+            if replace_value in cat.categories:
+                if isna(new_value):
+                    cat.remove_categories(replace_value, inplace=True)
+                    continue
                 categories = cat.categories.tolist()
-                index = categories.index(to_replace)
-                if value in cat.categories:
-                    value_index = categories.index(value)
+                index = categories.index(replace_value)
+                if new_value in cat.categories:
+                    value_index = categories.index(new_value)
                     cat._codes[cat._codes == index] = value_index
-                    cat.remove_categories(to_replace, inplace=True)
+                    cat.remove_categories(replace_value, inplace=True)
                 else:
-                    categories[index] = value
+                    categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat

@@ -460,7 +460,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
     def _validate(self):
-        """Verify that the IntervalArray is valid.
+        """
+        Verify that the IntervalArray is valid.
 
         Checks that
 
@@ -1175,7 +1176,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Parameters
         ----------
-        na_tuple : boolean, default True
+        na_tuple : bool, default True
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 

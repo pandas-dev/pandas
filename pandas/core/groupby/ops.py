@@ -169,7 +169,7 @@ class BaseGrouper:
             and not sdata.index._has_complex_internals
         ):
             try:
-                result_values, mutated = splitter.fast_apply(f, group_keys)
+                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except libreduction.InvalidApply as err:
                 # This Exception is raised if `f` triggers an exception
@@ -433,7 +433,6 @@ class BaseGrouper:
         Names is only useful when dealing with 2D results, like ohlc
         (see self._name_functions).
         """
-
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -658,7 +657,7 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None, 0))
+        dummy = obj.iloc[:0]
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
@@ -748,7 +747,6 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
-
         # this is mainly for compat
         # GH 3881
         result = {
@@ -780,7 +778,11 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        if axis == 0:
+            slicer = lambda start, edge: data.iloc[start:edge]
+        else:
+            slicer = lambda start, edge: data.iloc[:, start:edge]
+
         length = len(data.axes[axis])
 
         start = 0
@@ -919,29 +921,29 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata._get_values(slice_obj)
+        return sdata.iloc[slice_obj]
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names):
+    def fast_apply(self, f, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-
-        sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)
+            return sdata.iloc[:, slice_obj]
 
 
-def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
+def get_splitter(
+    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+) -> DataSplitter:
     if isinstance(data, Series):
         klass: Type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, *args, **kwargs)
+    return klass(data, labels, ngroups, axis)

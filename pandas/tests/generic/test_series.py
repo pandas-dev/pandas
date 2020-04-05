@@ -38,29 +38,29 @@ class TestSeries(Generic):
         )
         s.rename(str.lower)
 
-    def test_set_axis_name(self):
+    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
+    def test_set_axis_name(self, func):
         s = Series([1, 2, 3], index=["a", "b", "c"])
-        funcs = ["rename_axis", "_set_axis_name"]
         name = "foo"
-        for func in funcs:
-            result = methodcaller(func, name)(s)
-            assert s.index.name is None
-            assert result.index.name == name
 
-    def test_set_axis_name_mi(self):
+        result = methodcaller(func, name)(s)
+        assert s.index.name is None
+        assert result.index.name == name
+
+    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
+    def test_set_axis_name_mi(self, func):
         s = Series(
             [11, 21, 31],
             index=MultiIndex.from_tuples(
                 [("A", x) for x in ["a", "B", "c"]], names=["l1", "l2"]
             ),
         )
-        funcs = ["rename_axis", "_set_axis_name"]
-        for func in funcs:
-            result = methodcaller(func, ["L1", "L2"])(s)
-            assert s.index.name is None
-            assert s.index.names == ["l1", "l2"]
-            assert result.index.name is None
-            assert result.index.names, ["L1", "L2"]
+
+        result = methodcaller(func, ["L1", "L2"])(s)
+        assert s.index.name is None
+        assert s.index.names == ["l1", "l2"]
+        assert result.index.name is None
+        assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
         s = pd.Series([1])
@@ -181,32 +181,60 @@ class TestSeries(Generic):
 
         # reset
         Series._metadata = _metadata
-        Series.__finalize__ = _finalize
+        Series.__finalize__ = _finalize  # FIXME: use monkeypatch
 
+    @pytest.mark.parametrize(
+        "s",
+        [
+            Series([np.arange(5)]),
+            pd.date_range("1/1/2011", periods=24, freq="H"),
+            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
+        ],
+    )
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, s, shift_size):
+        # GH22397
+        assert s.shift(shift_size) is not s
+
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH22397
+        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        assert s.shift(freq=move_by_freq) is not s
+
+
+class TestSeries2:
+    # moved from Generic
+    def test_get_default(self):
+
+        # GH#7725
+        d0 = ["a", "b", "c", "d"]
+        d1 = np.arange(4, dtype="int64")
+        others = ["e", 10]
+
+        for data, index in ((d0, d1), (d1, d0)):
+            s = Series(data, index=index)
+            for i, d in zip(index, data):
+                assert s.get(i) == d
+                assert s.get(i, d) == d
+                assert s.get(i, "z") == d
+                for other in others:
+                    assert s.get(other, "z") == "z"
+                    assert s.get(other, other) == other
+
+
+class TestToXArray:
     @pytest.mark.skipif(
         not _XARRAY_INSTALLED
         or _XARRAY_INSTALLED
         and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
         reason="xarray >= 0.10.0 required",
     )
-    @pytest.mark.parametrize(
-        "index",
-        [
-            "FloatIndex",
-            "IntIndex",
-            "StringIndex",
-            "UnicodeIndex",
-            "DateIndex",
-            "PeriodIndex",
-            "TimedeltaIndex",
-            "CategoricalIndex",
-        ],
-    )
+    @pytest.mark.parametrize("index", tm.all_index_generator(6))
     def test_to_xarray_index_types(self, index):
         from xarray import DataArray
 
-        index = getattr(tm, f"make{index}")
-        s = Series(range(6), index=index(6))
+        s = Series(range(6), index=index)
         s.index.name = "foo"
         result = s.to_xarray()
         repr(result)
@@ -242,22 +270,3 @@ class TestSeries(Generic):
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
         assert isinstance(result, DataArray)
         tm.assert_series_equal(result.to_series(), s)
-
-    @pytest.mark.parametrize(
-        "s",
-        [
-            Series([np.arange(5)]),
-            pd.date_range("1/1/2011", periods=24, freq="H"),
-            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
-        ],
-    )
-    @pytest.mark.parametrize("shift_size", [0, 1, 2])
-    def test_shift_always_copy(self, s, shift_size):
-        # GH22397
-        assert s.shift(shift_size) is not s
-
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
-    def test_datetime_shift_always_copy(self, move_by_freq):
-        # GH22397
-        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
-        assert s.shift(freq=move_by_freq) is not s

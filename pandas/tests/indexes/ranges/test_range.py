@@ -704,7 +704,6 @@ class TestRangeIndex(Numeric):
     )
     def appends(self, request):
         """Inputs and expected outputs for RangeIndex.append test"""
-
         return request.param
 
     def test_append(self, appends):
