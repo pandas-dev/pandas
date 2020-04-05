@@ -910,3 +910,21 @@ class TestNDFrame:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
+
+    def test_cache_on_copy(self):
+        df = DataFrame({"a": [1]})
+
+        df["x"] = [0]
+        df["a"]
+
+        df.copy()
+
+        df["a"].values[0] = -1
+
+        assert df["a"].values[0] == -1
+        assert df.equals(DataFrame({"a": [-1], "x": [0]}))
+
+        df["y"] = 0
+
+        assert df["a"].values[0] == -1
+        assert df.equals(DataFrame({"a": [-1], "x": [0], "y": [0]}))
