@@ -4195,7 +4195,17 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other: Any) -> bool:
         """
-        Determine if two Index objects contain the same elements with the same order.
+        Determine if two Index object are equal.
+
+        The things that are being compared are:
+
+            * The elements inside the Index object.
+            * The order of the elements inside the Index object.
+
+        Parameters
+        ----------
+        other : Any
+            The other object to compare against.
 
         Returns
         -------
