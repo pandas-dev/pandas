@@ -2858,8 +2858,8 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """ guarantee the shape of the values to be at least 1 d """
     if values.ndim < ndim:
         shape = values.shape
-        if not is_extension_array_dtype(values):
-            # TODO: https://github.com/pandas-dev/pandas/issues/23023
+        if isinstance(values, np.ndarray):
+            # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
             values = values.reshape(tuple((1,) + shape))
