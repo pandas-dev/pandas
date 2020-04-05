@@ -1,7 +1,23 @@
 import pytest
 import numpy as np
-from pandas import Series, eval
+from pandas import Series, eval, Index
 import pandas._testing as tm
+import pandas.util._test_decorators as td
+
+PARSERS = "python", "pandas"
+ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
+
+@pytest.fixture(params=PARSERS, ids=lambda x: x)
+def parser(request):
+    return request.param
+
+@pytest.fixture(params=ENGINES, ids=lambda x: x)
+def engine(request):
+    return request.param
+
+def skip_if_no_pandas_parser(parser):
+    if parser != "pandas":
+        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
 
 class TestSeriesEval:
     # smaller hits python, larger hits numexpr
@@ -80,29 +96,19 @@ class TestSeriesEval:
 
 class TestSeriesEvalWithSeries:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(3), index=["a", "b", "c"])
+        self.index = Index(data=[2000, 2001, 2002], name="year")
+        self.series = Series(np.random.randn(3), index=self.index)
 
     def teardown_method(self, method):
+        del self.index
         del self.series
 
-    def test_simple_expr(self, parser, engine):
-        res = self.series.eval("a + b", engine=engine, parser=parser)
-        expect = self.series.a + self.series.b
-        tm.assert_series_equal(res, expect)
+    def test_bool_expr(self, parser, engine):
+        res = self.series.eval("year == 2001", engine=engine, parser=parser)
+        expect = Series(data=[False, True, False], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
 
-    def test_bool_arith_expr(self, parser, engine):
-        res = self.series.eval("a[a < 1] + b", engine=engine, parser=parser)
-        expect = self.series.a[self.series.a < 1] + self.series.b
-        tm.assert_series_equal(res, expect)
-
-    @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
-    def test_invalid_type_for_operator_raises(self, parser, engine, op):
-        series = Series({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
-
-        with pytest.raises(TypeError, match=msg):
-            series.eval(f"a {op} b", engine=engine, parser=parser)
-            
     
 class TestSeriesQueryByIndex:
     def setup_method(self, method):
