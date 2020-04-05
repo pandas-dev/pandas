@@ -306,14 +306,14 @@ cpdef inline object precision_from_unit(str unit):
     return m, p
 
 
-cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
         int64_t m
         int p
 
-    m, p = precision_from_unit(unit or "ns")
+    m, p = precision_from_unit(unit)
 
     # just give me the unit back
     if ts is None:

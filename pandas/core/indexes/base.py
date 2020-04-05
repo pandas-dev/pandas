@@ -1,3 +1,4 @@
+from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
@@ -5512,8 +5513,6 @@ def ensure_index(index_like, copy: bool = False):
         # clean_index_list does the equivalent of copying
         # so only need to do this if not list instance
         if copy:
-            from copy import copy as copy_func
-
             index_like = copy_func(index_like)
 
     return Index(index_like)
