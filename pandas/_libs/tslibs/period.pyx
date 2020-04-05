@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
 
 from numpy cimport int64_t, import_array, ndarray
@@ -13,6 +11,7 @@ from libc.string cimport strlen, memset
 import cython
 
 from cpython.datetime cimport (
+    datetime,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,

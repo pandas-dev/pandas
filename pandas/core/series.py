@@ -418,10 +418,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # The ensure_index call aabove ensures we have an Index object
             self._data.set_axis(axis, labels)
 
-    def _update_inplace(self, result, **kwargs):
-        # we want to call the generic version and not the IndexOpsMixin
-        return generic.NDFrame._update_inplace(self, result, **kwargs)
-
     # ndarray compatibility
     @property
     def dtype(self) -> DtypeObj:
@@ -971,9 +967,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
-            ).__finalize__(self)
+            return self._constructor(self._data.get_slice(indexer)).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -1515,8 +1509,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         collections.abc.Mapping
@@ -1802,7 +1794,7 @@ Name: Max Speed, dtype: float64
         result = super().unique()
         return result
 
-    def drop_duplicates(self, keep="first", inplace=False) -> "Series":
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
         Return Series with duplicate values removed.
 
@@ -1877,7 +1869,13 @@ Name: Max Speed, dtype: float64
         5     hippo
         Name: animal, dtype: object
         """
-        return super().drop_duplicates(keep=keep, inplace=inplace)
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = super().drop_duplicates(keep=keep)
+        if inplace:
+            self._update_inplace(result)
+            return None
+        else:
+            return result
 
     def duplicated(self, keep="first") -> "Series":
         """
@@ -4067,12 +4065,8 @@ Name: Max Speed, dtype: float64
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             No change is made to the Series; use 'index' or 'labels' instead.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
