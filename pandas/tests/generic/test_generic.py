@@ -922,9 +922,9 @@ class TestNDFrame:
         df["a"].values[0] = -1
 
         assert df["a"].values[0] == -1
-        assert df.equals(DataFrame({"a": [-1], "x": [0]}))
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
 
         df["y"] = 0
 
         assert df["a"].values[0] == -1
-        assert df.equals(DataFrame({"a": [-1], "x": [0], "y": [0]}))
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
