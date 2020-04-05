@@ -578,8 +578,8 @@ z
         result = buf.getvalue()
         expected_rows = [
             ",0",
-            "0,00:00:00.000000001",
-            "1,00:00:00.000000001",
+            "0,0 days 00:00:00.000000001",
+            "1,0 days 00:00:00.000000001",
         ]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
