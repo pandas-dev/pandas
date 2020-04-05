@@ -1547,7 +1547,7 @@ def _is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    assert values.ndim == 1
+    values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:

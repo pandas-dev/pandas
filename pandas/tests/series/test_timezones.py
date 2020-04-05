@@ -6,7 +6,6 @@ from datetime import datetime
 from dateutil.tz import tzoffset
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import conversion, timezones
 
@@ -37,16 +36,6 @@ class TestSeriesTimezones:
 
         result = ser["1/3/2000"]
         tm.assert_almost_equal(result, ser[2])
-
-    def test_series_align_aware(self):
-        idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
-        ser = Series(np.random.randn(len(idx1)), index=idx1)
-        ser_central = ser.tz_convert("US/Central")
-        # # different timezones convert to UTC
-
-        new1, new2 = ser.align(ser_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
 
     @pytest.mark.parametrize("tzstr", ["Europe/Berlin", "dateutil/Europe/Berlin"])
     def test_getitem_pydatetime_tz(self, tzstr):

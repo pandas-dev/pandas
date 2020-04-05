@@ -181,7 +181,7 @@ class AttributesMixin:
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
         10000000000
         """
         raise AbstractMethodError(self)
@@ -846,14 +846,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
-        elif isinstance(value, np.ndarray):
+        elif is_list_like(value) and not isinstance(value, type(self)):
+            value = array(value)
+
             if not type(self)._is_recognized_dtype(value):
                 raise TypeError(
                     "searchsorted requires compatible dtype or scalar, "
                     f"not {type(value).__name__}"
                 )
-            value = type(self)(value)
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
