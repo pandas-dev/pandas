@@ -464,12 +464,6 @@ def test_index_unique(dups):
     assert idx.nunique(dropna=False) == 21
 
 
-def test_index_dupes_contains():
-    d = datetime(2011, 12, 5, 20, 30)
-    ix = DatetimeIndex([d, d])
-    assert d in ix
-
-
 def test_duplicate_dates_indexing(dups):
     ts = dups
 
