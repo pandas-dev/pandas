@@ -1160,6 +1160,12 @@ class TestIndex(Base):
         diff = indices.difference(indices, sort=sort)
         tm.assert_index_equal(inter, diff)
 
+    def test_is_mixed_deprecated(self):
+        # GH#32922
+        index = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            index.is_mixed()
+
     @pytest.mark.parametrize(
         "indices, expected",
         [
