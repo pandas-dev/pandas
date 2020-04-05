@@ -355,16 +355,13 @@ _KeysArgType = Union[
 ]
 
 
-_GroupByT = TypeVar("_GroupByT", bound="NDFrame")
-
-
-class _GroupBy(Generic[_GroupByT], PandasObject, SelectionMixin):
+class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
     _apply_whitelist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
-        obj: _GroupByT,
+        obj: FrameOrSeries,
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
@@ -1000,7 +997,11 @@ b  2""",
         return filtered
 
 
-class GroupBy(_GroupBy[_GroupByT]):
+# To track operations that expand dimensions, like ohlc
+OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
+
+
+class GroupBy(_GroupBy[FrameOrSeries]):
     """
     Class for grouping and aggregating relational data.
 
@@ -2425,8 +2426,8 @@ class GroupBy(_GroupBy[_GroupByT]):
         return self._selected_obj[mask]
 
     def _reindex_output(
-        self, output: FrameOrSeries, fill_value: Scalar = np.NaN
-    ) -> FrameOrSeries:
+        self, output: OutputFrameOrSeries, fill_value: Scalar = np.NaN
+    ) -> OutputFrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding
