@@ -4211,7 +4211,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(pd.Index([1, 2, 3]))
         True
 
-        The dtype is been compared as well
+        The dtype is compared as well
 
         >>> idx2 = pd.Index(["1", "2", "3"])
         >>> idx2
@@ -4220,7 +4220,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(idx2)
         False
 
-        The oreder is also been compared
+        The oreder is also compared
 
         >>> ascending_idx = pd.Index([1, 2, 3])
         >>> ascending_idx
