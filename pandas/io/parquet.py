@@ -260,8 +260,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     path : str, path object or file-like object
@@ -287,8 +285,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
-        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 
