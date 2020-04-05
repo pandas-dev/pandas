@@ -573,8 +573,6 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-  .. versionadded:: 0.21.0
-
 .. note::
 
    Support for specifying index levels as the ``on``, ``left_on``, and
@@ -772,8 +770,6 @@ Here is another example with duplicate join keys in DataFrames:
 
 Checking for duplicate keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.21.0
 
 Users can use the ``validate`` argument to automatically check whether there
 are unexpected duplicates in their merge keys. Key uniqueness is checked before

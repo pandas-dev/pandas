@@ -1327,8 +1327,6 @@ See the :ref:`visualization documentation<visualization.box>` for more.
 Piping function calls
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.21.0
-
 Similar to the functionality provided by ``DataFrame`` and ``Series``, functions
 that take ``GroupBy`` objects can be chained together using a ``pipe`` method to
 allow for a cleaner, more readable syntax. To read about ``.pipe`` in general terms,

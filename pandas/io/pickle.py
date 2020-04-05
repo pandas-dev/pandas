@@ -43,7 +43,6 @@ def to_pickle(
         HIGHEST_PROTOCOL.
 
         .. [1] https://docs.python.org/3/library/pickle.html
-        .. versionadded:: 0.21.0
 
     See Also
     --------

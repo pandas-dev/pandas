@@ -1224,8 +1224,6 @@ following can be done:
 This means that the reindexed Series's index is the same Python object as the
 DataFrame's index.
 
-.. versionadded:: 0.21.0
-
 :meth:`DataFrame.reindex` also supports an "axis-style" calling convention,
 where you specify a single ``labels`` argument and the ``axis`` it applies to.
 
@@ -1434,8 +1432,6 @@ Series can also be used:
 
 If the mapping doesn't include a column/index label, it isn't renamed. Note that
 extra labels in the mapping don't throw an error.
-
-.. versionadded:: 0.21.0
 
 :meth:`DataFrame.rename` also supports an "axis-style" calling convention, where
 you specify a single ``mapper`` and the ``axis`` to apply that mapping to.

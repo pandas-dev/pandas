@@ -1057,8 +1057,6 @@ def read_html(
     the header, otherwise the function attempts to find the header within
     the body (by putting rows with only ``<th>`` elements into the header).
 
-        .. versionadded:: 0.21.0
-
     Similar to :func:`~read_csv` the `header` argument is applied
     **after** `skiprows` is applied.
 

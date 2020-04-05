@@ -357,8 +357,6 @@ def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     into : instance or subclass of collections.abc.Mapping

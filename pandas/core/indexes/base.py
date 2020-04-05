@@ -2836,8 +2836,6 @@ class Index(IndexOpsMixin, PandasObject):
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
 
-            .. versionadded:: 0.21.0 (list-like tolerance)
-
         Returns
         -------
         loc : int if unique index, slice if monotonic index, else mask
@@ -2908,8 +2906,6 @@ class Index(IndexOpsMixin, PandasObject):
             element. List-like includes list, tuple, array, Series, and must be
             the same size as the index and its dtype must exactly match the
             index's type.
-
-            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------

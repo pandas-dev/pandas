@@ -467,8 +467,6 @@ class Resampler(_GroupBy, ShallowMixin):
         limit : int, optional
             Limit of how many values to fill.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         Series or DataFrame

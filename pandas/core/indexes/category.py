@@ -91,8 +91,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
-
-        .. versionadded:: 0.21.0
     copy : bool, default False
         Make a copy of input ndarray.
     name : object, optional

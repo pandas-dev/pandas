@@ -1197,8 +1197,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     skipna : bool, default True
         Ignore NaN values when inferring the type.
 
-        .. versionadded:: 0.21.0
-
     Returns
     -------
     str
