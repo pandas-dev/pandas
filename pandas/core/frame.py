@@ -4676,7 +4676,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         Consider dataset containing ramen rating.
 
         >>> brand = ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie']
@@ -4684,7 +4683,6 @@ class DataFrame(NDFrame):
         ... 'style': ['cup', 'cup', 'cup', 'pack', 'pack'],
         ... 'rating': [4, 4, 3.5, 15, 5]},
         ...  index=['TH', 'TH', 'ID', 'ID', 'ID'])
-
         >>> df
             brand style  rating
         TH  Yum Yum   cup     4.0
