@@ -569,32 +569,39 @@ class IntegerArray(BaseMaskedArray):
         return set_function_name(cmp_method, name, cls)
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs):
-        data = self._data
-        mask = self._mask
+        # data = self._data
+        # mask = self._mask
 
-        from ..nanops import _get_values
+        # from ..nanops import _get_values
+
+        # if name == "cumsum":
+        #     fill_value = 0
+        # if name == "cumprod":
+        #     fill_value = 1
+        # if name == "cummax":
+        #     fill_value = data.min()
+        # if name == "cummin":
+        #     fill_value = data.max()
+
+        # values, mask, dtype, dtype_max, fill_value = _get_values(
+        #     data, skipna=True, fill_value=fill_value, mask=mask,
+        # )
+        from ..nanops import na_accum_func
 
         if name == "cumsum":
-            fill_value = 0
-        if name == "cumprod":
-            fill_value = 1
-        if name == "cummax":
-            fill_value = data.min()
-        if name == "cummin":
-            fill_value = data.max()
-
-        values, mask, dtype, dtype_max, fill_value = _get_values(
-            data, skipna=True, fill_value=fill_value, mask=mask,
-        )
-
-        if name == "cumsum":
-            return IntegerArray(values.cumsum(dtype=dtype_max), mask)
+            # return IntegerArray(values.cumsum(dtype=dtype_max), mask)
+            return na_accum_func(self, np.cumsum, skipna=skipna)
         elif name == "cumprod":
-            return IntegerArray(values.cumprod(dtype=dtype_max), mask)
+            # return IntegerArray(values.cumprod(dtype=dtype_max), mask)
+            return na_accum_func(self, np.cumprod, skipna=skipna)
+
         elif name == "cummax":
-            return np.maximum.accumulate(IntegerArray(values, mask))
+            # return np.maximum.accumulate(IntegerArray(values, mask))
+            return na_accum_func(self, np.maximum.accumulate, skipna=skipna)
+
         elif name == "cummin":
-            return np.minimum.accumulate(IntegerArray(values, mask))
+            # return np.minimum.accumulate(IntegerArray(values, mask))
+            return na_accum_func(self, np.minimum.accumulate, skipna=skipna)
 
         # # cumsum impute with 0 just add, afterwards replace again if needed
         # # cumprod replace nan by 1, cumprod the, maybe float here necessary?

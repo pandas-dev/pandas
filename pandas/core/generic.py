@@ -11200,6 +11200,7 @@ def _make_cum_function(
             axis = self._get_axis_number(axis)
 
         # mimicking from series._reduce, which delegates
+        # using na_accum_func_now
         delegate = self._values
         if isinstance(delegate.dtype, ExtensionDtype):
             return delegate._accumulate(name, skipna=skipna, **kwargs)

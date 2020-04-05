@@ -1558,9 +1558,36 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
 
         if isinstance(values, np.ndarray):
             result = result.view(orig_dtype)
+
         else:
             # DatetimeArray
             result = type(values)._from_sequence(result, dtype=orig_dtype)
+
+    from pandas.core.arrays import IntegerArray
+
+    if isinstance(values, IntegerArray):
+        data = values._data
+        mask = values._mask
+
+        fill_value = {
+            np.cumprod: 1,
+            np.maximum.accumulate: data.min(),
+            np.cumsum: 0,
+            np.minimum.accumulate: data.max(),
+        }[accum_func]
+
+        values, mask, dtype, dtype_max, fill_value = _get_values(
+            data, skipna=skipna, fill_value=fill_value, mask=mask
+        )
+
+        if not skipna:
+            mask = np.maximum.accumulate(mask)
+
+        vals = accum_func(values)
+
+        from pandas import Series
+
+        result = Series(IntegerArray(vals, mask))
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
