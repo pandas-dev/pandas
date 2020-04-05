@@ -908,11 +908,17 @@ class DataFrameGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
-            func, columns, order = normalize_keyword_aggregation(kwargs)
+            # GH 29268
+            from types import LambdaType
+            for k, v in list(kwargs.items()):
+                if isinstance(v[0], list) & isinstance(v[1], LambdaType):
+                    # v[0] is the first parameter given (the column(s) to group)
+                    # v[1] is the 2nd parameter given and the opperation to be done to the column(s)
+                    kwargs[k] = (np.array(v[0]).tobytes(),) + v[1:]
 
+            func, columns, order = normalize_keyword_aggregation(kwargs)
             kwargs = {}
         elif isinstance(func, list) and len(func) > len(set(func)):
 
