@@ -1955,6 +1955,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_mixed()
         False
         """
+        warnings.warn(
+            "Index.is_mixed is deprecated and will be removed in a future version. "
+            "Check index.inferred_type directly instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.inferred_type in ["mixed"]
 
     def holds_integer(self) -> bool:
@@ -2836,8 +2842,6 @@ class Index(IndexOpsMixin, PandasObject):
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
 
-            .. versionadded:: 0.21.0 (list-like tolerance)
-
         Returns
         -------
         loc : int if unique index, slice if monotonic index, else mask
@@ -2908,8 +2912,6 @@ class Index(IndexOpsMixin, PandasObject):
             element. List-like includes list, tuple, array, Series, and must be
             the same size as the index and its dtype must exactly match the
             index's type.
-
-            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------
@@ -3135,7 +3137,7 @@ class Index(IndexOpsMixin, PandasObject):
         # convert the slice to an indexer here
 
         # if we are mixed and have integers
-        if is_positional and self.is_mixed():
+        if is_positional:
             try:
                 # Validate start & stop
                 if start is not None:
