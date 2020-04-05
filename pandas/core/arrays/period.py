@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
     is_float_dtype,
+    is_list_like,
     is_period_dtype,
     pandas_dtype,
 )
@@ -831,11 +832,11 @@ def period_array(
     """
     if is_datetime64_dtype(data):
         return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
+    if is_period_dtype(data):
         return PeriodArray(data, freq)
 
     # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple)):
+    if not is_list_like(data):
         data = list(data)
 
     data = np.asarray(data)

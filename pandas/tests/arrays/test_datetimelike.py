@@ -868,3 +868,10 @@ def test_searchsorted_datetimelike_with_listlike_invalid_dtype(values, arg):
     msg = "[Unexpected type|Cannot compare]"
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)
+
+
+@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+def test_index_constructor_from_string(klass):
+    result = PeriodIndex(klass(["2020Q1", "2020Q2", "2020Q3", "2020Q4"]), freq="Q")
+    expected = pd.period_range(start="2020", periods=4, freq="Q")
+    tm.assert_index_equal(result, expected)
