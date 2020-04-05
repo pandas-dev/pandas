@@ -2447,6 +2447,8 @@ class Categorical(ExtensionArray, PandasObject):
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
         for replace_value, new_value in replace_dict.items():
+            if new_value == replace_value:
+                continue
             if replace_value in cat.categories:
                 if isna(new_value):
                     cat.remove_categories(replace_value, inplace=True)
@@ -2456,8 +2458,7 @@ class Categorical(ExtensionArray, PandasObject):
                 if new_value in cat.categories:
                     value_index = categories.index(new_value)
                     cat._codes[cat._codes == index] = value_index
-                    if new_value != replace_value:
-                        cat.remove_categories(replace_value, inplace=True)
+                    cat.remove_categories(replace_value, inplace=True)
                 else:
                     categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
