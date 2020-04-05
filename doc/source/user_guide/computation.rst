@@ -571,6 +571,8 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+.. versionadded:: 1.1
+
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
 conditions. In these cases it can be useful to perform forward-looking rolling window computations.
