@@ -1241,7 +1241,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default):
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1252,11 +1252,10 @@ class Block(PandasObject):
 
         values = self.values
 
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = self.fill_value
             allow_fill = False
         else:
-            fill_value = fill_tuple[0]
             allow_fill = True
 
         new_values = algos.take_nd(
@@ -1282,7 +1281,7 @@ class Block(PandasObject):
         new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis: int = 0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value=None):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1721,14 +1720,14 @@ class ExtensionBlock(Block):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def take_nd(self, indexer, axis: int = 0, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(
+        self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
+    ):
         """
         Take values according to indexer and return them as a block.
         """
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = None
-        else:
-            fill_value = fill_tuple[0]
 
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
@@ -2753,18 +2752,9 @@ class CategoricalBlock(ExtensionBlock):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
-        if filter is None:  # replace was called on a series
-            result.values.replace(to_replace, value, inplace=True)
-            if convert:
-                return result.convert(numeric=False, copy=not inplace)
-            else:
-                return result
-        else:  # replace was called on a DataFrame
-            if not isna(value):
-                result.values.add_categories(value, inplace=True)
-            return super(CategoricalBlock, result).replace(
-                to_replace, value, inplace, filter, regex, convert
-            )
+
+        result.values.replace(to_replace, value, inplace=True)
+        return result
 
 
 # -----------------------------------------------------------------
