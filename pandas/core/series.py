@@ -1161,7 +1161,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         resolvers = kwargs.pop("resolvers", None)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         if resolvers is None:
-            resolvers = self._get_index_resolvers()
+            index_resolvers = self._get_index_resolvers()
+            column_resolvers = self._get_cleaned_column_resolvers()
+            resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
         kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)

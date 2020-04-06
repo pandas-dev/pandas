@@ -103,9 +103,25 @@ class TestSeriesEvalWithSeries:
         del self.index
         del self.series
 
-    def test_bool_expr(self, parser, engine):
-        res = self.series.eval("year == 2001", engine=engine, parser=parser)
-        expect = Series(data=[False, True, False], index=self.index)
+    @pytest.mark.parametrize("op", ["<", "<=", ">", ">=", "==", "!="])
+    def test_bool_expr(self, op, parser, engine):
+        res = self.series.eval(f"year {op} 2001", engine=engine, parser=parser)
+        data1 = eval(f"2000 {op} 2001", engine=engine, parser=parser)
+        data2 = eval(f"2001 {op} 2001", engine=engine, parser=parser)
+        data3 = eval(f"2002 {op} 2001", engine=engine, parser=parser)
+        expect = Series(data=[data1, data2, data3], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
+
+    def test_and_bitwise_operator(self, parser, engine):
+        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine, parser=parser)
+        expect = Series(data=[False, False, False], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
+    
+    def test_or_bitwise_operator(self, parser, engine):
+        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine, parser=parser)
+        expect = Series(data=[True, False, True], index=self.index)
         # names are not checked due to different results based on engine (python vs numexpr)
         tm.assert_series_equal(res, expect, check_names=False)
 
@@ -125,20 +141,23 @@ class TestSeriesQueryByIndex:
         test = f"index {op} 5"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
     # test the operands that can join queries
-    def test_and_bitwise_operator(self, op):
+    def test_and_bitwise_operator(self):
         test = f"(index > 2) & (index < 8)"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
-    def test_or_bitwise_operator(self, op):
+    def test_or_bitwise_operator(self):
         test = f"(index < 3) | (index > 7)"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
 class TestSeriesQueryByMultiIndex:
     def setup_method(self, method):
@@ -155,20 +174,23 @@ class TestSeriesQueryByMultiIndex:
         test = "ilevel_0 == 'b'"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
     # check against not first level
     def test_query_not_first_level(self):
         test = "ilevel_1 > 4"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.parametrize("op", ["&", "|"])
     def test_both_levels(self, op):
         test = f"(ilevel_0 == 'b') {op} ((ilevel_1 % 2) == 0)"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
-        tm.assert_series_equal(result, expected)
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
 
 
