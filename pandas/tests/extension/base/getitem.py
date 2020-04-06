@@ -381,7 +381,7 @@ class BaseGetitemTests(BaseExtensionTests):
         # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
-        assert res._data._block.ndim == 1
+        assert res._mgr._block.ndim == 1
 
     def test_item(self, data):
         # https://github.com/pandas-dev/pandas/pull/30175
