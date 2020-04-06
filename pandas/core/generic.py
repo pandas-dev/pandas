@@ -5149,9 +5149,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         other : the object from which to get the attributes that we are going
             to propagate
-        method : optional, a passed method name ; possibly to take different
-            types of propagation actions based on this
+        method : str, optional
+            A passed method name providing context on where ``__finalize__``
+            was called.
 
+            .. warning:
+
+               The value passed as `method` are not currently considered
+               stable across pandas releases.
         """
         if isinstance(other, NDFrame):
             for name in other.attrs:
