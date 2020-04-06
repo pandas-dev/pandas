@@ -1336,6 +1336,7 @@ class TestDataFrameConstructors:
             (((), ()), [(), ()]),
             (((), ()), [[], []]),
             (([], []), [[], []]),
+            (([1], [2]), [[1], [2]]),  # GH 32776
             (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
         ],
     )
@@ -1568,7 +1569,7 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(float_frame._data, index=index, columns=columns)
+        result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 

@@ -492,7 +492,7 @@ class _Concatenator:
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
-                mgrs_indexers.append((obj._data, indexers))
+                mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
