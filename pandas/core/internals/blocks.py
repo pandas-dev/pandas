@@ -1241,7 +1241,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default):
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1252,11 +1252,10 @@ class Block(PandasObject):
 
         values = self.values
 
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = self.fill_value
             allow_fill = False
         else:
-            fill_value = fill_tuple[0]
             allow_fill = True
 
         new_values = algos.take_nd(
@@ -1721,14 +1720,14 @@ class ExtensionBlock(Block):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def take_nd(self, indexer, axis: int = 0, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(
+        self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
+    ):
         """
         Take values according to indexer and return them as a block.
         """
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = None
-        else:
-            fill_value = fill_tuple[0]
 
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
