@@ -151,7 +151,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 
 
 @pin_whitelisted_properties(Series, base.series_apply_whitelist)
-class SeriesGroupBy(GroupBy):
+class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -815,7 +815,7 @@ class SeriesGroupBy(GroupBy):
 
 
 @pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
-class DataFrameGroupBy(GroupBy):
+class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
@@ -1462,7 +1462,7 @@ class DataFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
             # TODO: we have no test cases that get here with EA dtypes;
-            #  try_cast may not be needed if EAs never get here
+            #  maybe_cast_result may not be needed if EAs never get here
             if cast:
                 res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)

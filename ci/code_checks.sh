@@ -268,6 +268,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     # Individual files
 
+    MSG='Doctests accessor.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/accessor.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests base.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/base.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -320,6 +324,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests tools' ; echo $MSG
     pytest -q --doctest-modules pandas/core/tools/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests window' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/window/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests tseries' ; echo $MSG

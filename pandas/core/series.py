@@ -1509,8 +1509,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         collections.abc.Mapping
@@ -4067,12 +4065,8 @@ Name: Max Speed, dtype: float64
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             No change is made to the Series; use 'index' or 'labels' instead.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
