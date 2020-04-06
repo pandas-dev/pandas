@@ -123,7 +123,8 @@ class ExpandingIndexer(BaseIndexer):
 
 
 class FixedForwardWindowIndexer(BaseIndexer):
-    """Calculate fixed forward-looking rolling window bounds,"""
+    """Creates window boundaries for fixed-length windows that include the
+    current row."""
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
