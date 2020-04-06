@@ -4195,15 +4195,64 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         """
-        Determine if two Index objects contain the same elements.
+        Determine if two Index object are equal.
+
+        The things that are being compared are:
+
+        * The elements inside the Index object.
+        * The order of the elements inside the Index object.
+
+        Parameters
+        ----------
+        other : Any
+            The other object to compare against.
 
         Returns
         -------
         bool
-            True if "other" is an Index and it has the same elements as calling
-            index; False otherwise.
+            True if "other" is an Index and it has the same elements and order
+            as the calling index; False otherwise.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index([1, 2, 3])
+        >>> idx1
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> idx1.equals(pd.Index([1, 2, 3]))
+        True
+
+        The elements inside are compared
+
+        >>> idx2 = pd.Index(["1", "2", "3"])
+        >>> idx2
+        Index(['1', '2', '3'], dtype='object')
+
+        >>> idx1.equals(idx2)
+        False
+
+        The oreder is compared
+
+        >>> ascending_idx = pd.Index([1, 2, 3])
+        >>> ascending_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> descending_idx = pd.Index([3, 2, 1])
+        >>> descending_idx
+        Int64Index([3, 2, 1], dtype='int64')
+        >>> ascending_idx.equals(descending_idx)
+        False
+
+        The dtype is *not* compared
+
+        >>> int64_idx = pd.Int64Index([1, 2, 3])
+        >>> int64_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> uint64_idx = pd.UInt64Index([1, 2, 3])
+        >>> uint64_idx
+        UInt64Index([1, 2, 3], dtype='uint64')
+        >>> int64_idx.equals(uint64_idx)
+        True
         """
         if self.is_(other):
             return True
