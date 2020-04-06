@@ -3,12 +3,13 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
+from pandas._typing import Axis, Dtype, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -522,7 +523,12 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
 
 
-def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_to_arrays(
+    data: List[Scalar],
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
@@ -530,21 +536,25 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
         content = list(lib.to_object_array(data).T)
     # gh-26429 do not raise user-facing AssertionError
     try:
-        result = _convert_object_array(
-            content, columns, dtype=dtype, coerce_float=coerce_float
-        )
+        columns = _validate_or_indexify_columns(content, columns)
+        result = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
     except AssertionError as e:
         raise ValueError(e) from e
-    return result
+    return result, columns
 
 
-def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_series_to_arrays(
+    data: List,
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
-    indexer_cache = {}
+    indexer_cache: Dict[int, Scalar] = {}
 
     aligned_values = []
     for s in data:
@@ -564,14 +574,19 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(
-            content, columns, dtype=dtype, coerce_float=coerce_float
-        )
+        columns = _validate_or_indexify_columns(content, columns)
+        content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+        return content, columns
     else:
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_dict_to_arrays(
+    data: List,
+    columns: Union[Index, List],
+    coerce_float: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -603,22 +618,85 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(
-        content, columns, dtype=dtype, coerce_float=coerce_float
-    )
+    columns = _validate_or_indexify_columns(content, columns)
+    content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+    return content, columns
 
 
-def _convert_object_array(content, columns, coerce_float=False, dtype=None):
+def _validate_or_indexify_columns(
+    content: List, columns: Union[Index, List, None]
+) -> Union[Index, List[Axis]]:
+    """
+    If columns is None, make numbers as column names; Otherwise, validate that
+    columns have valid length.
+
+    Parameters
+    ----------
+    content: list of data
+    columns: Iterable or None
+
+    Returns
+    -------
+    columns: If columns is Iterable, return as is; If columns is None, assign
+    positional column index value as columns.
+
+    Raises
+    ------
+    1. AssertionError when content is not composed of list of lists, and if
+        length of columns is not equal to length of content.
+    2. ValueError when content is list of lists, but length of each sub-list
+        is not equal
+    3. ValueError when content is list of lists, but length of sub-list is
+        not equal to length of content
+    """
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
-        if len(columns) != len(content):  # pragma: no cover
+
+        # Add mask for data which is composed of list of lists
+        is_mi_list = isinstance(columns, list) and all(
+            isinstance(col, list) for col in columns
+        )
+
+        if not is_mi_list and len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
+        elif is_mi_list:
 
+            # check if nested list column, length of each sub-list should be equal
+            if len({len(col) for col in columns}) > 1:
+                raise ValueError(
+                    "Length of columns passed for MultiIndex columns is different"
+                )
+
+            # if columns is not empty and length of sublist is not equal to content
+            elif columns and len(columns[0]) != len(content):
+                raise ValueError(
+                    f"{len(columns[0])} columns passed, passed data had "
+                    f"{len(content)} columns"
+                )
+    return columns
+
+
+def _convert_object_array(
+    content: List[Scalar], coerce_float: bool = False, dtype: Optional[Dtype] = None
+) -> List[Scalar]:
+    """
+    Internal function ot convert object array.
+
+    Parameters
+    ----------
+    content: list of processed data records
+    coerce_float: bool, to coerce floats or not, default is False
+    dtype: np.dtype, default is None
+
+    Returns
+    -------
+    arrays: casted content if not object dtype, otherwise return as is in list.
+    """
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != object and dtype != np.object:
@@ -628,7 +706,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
     arrays = [convert(arr) for arr in content]
 
-    return arrays, columns
+    return arrays
 
 
 # ---------------------------------------------------------------------
