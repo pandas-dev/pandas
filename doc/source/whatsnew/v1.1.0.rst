@@ -92,8 +92,8 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
-Build Changes
-^^^^^^^^^^^^^
+Development Changes
+^^^^^^^^^^^^^^^^^^^
 
 - The minimum version of Cython is now the most recent bug-fix version (0.29.16).
 
