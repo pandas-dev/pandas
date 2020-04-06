@@ -1568,7 +1568,7 @@ class SingleBlockManager(BlockManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=range(len(array)))
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[slobj])
 
     @property
