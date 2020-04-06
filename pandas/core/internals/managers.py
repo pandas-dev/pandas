@@ -391,7 +391,7 @@ class BlockManager(PandasObject):
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_blocks = []
+        result_blocks: List[Block] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         self._consolidate_inplace()
