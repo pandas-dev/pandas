@@ -127,7 +127,7 @@ cdef class Reducer:
                     name = labels[i]
 
                     object.__setattr__(
-                        cached_typ._data._block, 'values', chunk)
+                        cached_typ._mgr._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
@@ -180,8 +180,8 @@ cdef class _BaseGrouper:
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
-            object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
-            object.__setattr__(cached_typ._data._block, 'mgr_locs',
+            object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
                                slice(len(vslider.buf)))
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
@@ -551,7 +551,7 @@ cdef class BlockSlider:
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [b.values for b in self.dummy._data.blocks]
+        self.blocks = [b.values for b in self.dummy._mgr.blocks]
 
         for x in self.blocks:
             util.set_array_not_contiguous(x)

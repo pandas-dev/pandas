@@ -1113,28 +1113,28 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             assert b.values.base is None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
-                assert b.values.base is df._data.blocks[0].values.base
+                assert b.values.base is df._mgr.blocks[0].values.base
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is None
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 

@@ -131,7 +131,6 @@ class CSVFormatter:
         self.cols = cols
 
         # preallocate data 2d list
-        self.blocks = self.obj._data.blocks
         ncols = self.obj.shape[-1]
         self.data = [None] * ncols
 
@@ -329,7 +328,7 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
 
         df = self.obj.iloc[slicer]
-        blocks = df._data.blocks
+        blocks = df._mgr.blocks
 
         for i in range(len(blocks)):
             b = blocks[i]

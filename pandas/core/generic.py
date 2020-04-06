@@ -169,7 +169,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
 
     _internal_names: List[str] = [
-        "_data",
+        "_mgr",
         "_cacher",
         "_item_cache",
         "_cache",
@@ -188,7 +188,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _deprecations: FrozenSet[str] = frozenset(["get_values"])
     _metadata: List[str] = []
     _is_copy = None
-    _data: BlockManager
+    _mgr: BlockManager
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
@@ -204,7 +204,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # copy kwarg is retained for mypy compat, is not used
 
         object.__setattr__(self, "_is_copy", None)
-        object.__setattr__(self, "_data", data)
+        object.__setattr__(self, "_mgr", data)
         object.__setattr__(self, "_item_cache", {})
         if attrs is None:
             attrs = {}
@@ -290,6 +290,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         original, such as Series.to_frame()
         """
         raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # Internals
+
+    @property
+    def _data(self):
+        # GH#33054 retained because some downstream packages uses this,
+        #  e.g. fastparquet
+        return self._mgr
 
     # ----------------------------------------------------------------------
     # Axis
@@ -483,7 +492,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.ndim
         2
         """
-        return self._data.ndim
+        return self._mgr.ndim
 
     @property
     def size(self) -> int:
@@ -555,7 +564,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def _set_axis(self, axis: int, labels: Index) -> None:
         labels = ensure_index(labels)
-        self._data.set_axis(axis, labels)
+        self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
 
     def swapaxes(self: FrameOrSeries, axis1, axis2, copy=True) -> FrameOrSeries:
@@ -1309,7 +1318,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if not isinstance(other, self._constructor):
             return False
-        return self._data.equals(other._data)
+        return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
     # Unary Methods
@@ -1347,7 +1356,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # inv fails with 0 len
             return self
 
-        new_data = self._data.apply(operator.invert)
+        new_data = self._mgr.apply(operator.invert)
         result = self._constructor(new_data).__finalize__(self)
         return result
 
@@ -1809,7 +1818,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
         return dict(
-            _data=self._data,
+            _mgr=self._mgr,
             _typ=self._typ,
             _metadata=self._metadata,
             attrs=self.attrs,
@@ -1819,8 +1828,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __setstate__(self, state):
 
         if isinstance(state, BlockManager):
-            self._data = state
+            self._mgr = state
         elif isinstance(state, dict):
+            if "_data" in state and "_mgr" not in state:
+                # compat for older pickles
+                state["_mgr"] = state.pop("_data")
             typ = state.get("_typ")
             if typ is not None:
                 attrs = state.get("_attrs", {})
@@ -1828,7 +1840,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # set in the order of internal names
                 # to avoid definitional recursion
-                # e.g. say fill_value needing _data to be
+                # e.g. say fill_value needing _mgr to be
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in list(meta):
@@ -3194,7 +3206,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        self._data.set(item, value)
+        self._mgr.set(item, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3236,7 +3248,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 try:
                     ref._maybe_cache_changed(cacher[0], self)
                 except AssertionError:
-                    # ref._data.setitem can raise
+                    # ref._mgr.setitem can raise
                     #  AssertionError because of shape mismatch
                     pass
 
@@ -3346,7 +3358,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._consolidate_inplace()
 
-        new_data = self._data.take(
+        new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
         return self._constructor(new_data).__finalize__(self)
@@ -3507,7 +3519,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # so just return them (GH 6394)
                 return self._values[loc]
 
-            new_values = self._data.fast_xs(loc)
+            new_values = self._mgr.fast_xs(loc)
 
             result = self._constructor_sliced(
                 new_values,
@@ -3535,7 +3547,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._data.get(item)
+            values = self._mgr.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
             res._set_as_cached(item, self)
@@ -3555,7 +3567,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
-        result = self._constructor(self._data.get_slice(slobj, axis=axis))
+        result = self._constructor(self._mgr.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)
 
         # this could be a view
@@ -3565,11 +3577,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     def _iset_item(self, loc: int, value) -> None:
-        self._data.iset(loc, value)
+        self._mgr.iset(loc, value)
         self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
-        self._data.set(key, value)
+        self._mgr.set(key, value)
         self._clear_item_cache()
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
@@ -3701,7 +3713,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # If the above loop ran and didn't delete anything because
             # there was no match, this call should raise the appropriate
             # exception:
-            self._data.delete(key)
+            self._mgr.delete(key)
 
         # delete from the caches
         try:
@@ -3734,7 +3746,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _is_view(self) -> bool_t:
         """Return boolean indicating if self is view of another array """
-        return self._data.is_view
+        return self._mgr.is_view
 
     def reindex_like(
         self: FrameOrSeries,
@@ -3952,7 +3964,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # decision that we may revisit in the future.
         self._reset_cache()
         self._clear_item_cache()
-        self._data = result._data
+        self._mgr = result._mgr
         self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self: FrameOrSeries, prefix: str) -> FrameOrSeries:
@@ -4466,7 +4478,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ) -> FrameOrSeries:
         """allow_dups indicates an internal call here """
         # reindex doing multiple operations on different axes if indicated
-        new_data = self._data
+        new_data = self._mgr
         for axis in sorted(reindexers.keys()):
             index, indexer = reindexers[axis]
             baxis = self._get_block_manager_axis(axis)
@@ -4488,7 +4500,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 copy=copy,
             )
 
-        if copy and new_data is self._data:
+        if copy and new_data is self._mgr:
             new_data = new_data.copy()
 
         return self._constructor(new_data).__finalize__(self)
@@ -5146,7 +5158,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # Note: obj.x will always call obj.__getattribute__('x') prior to
         # calling obj.__getattr__('x').
-
         if (
             name in self._internal_names_set
             or name in self._metadata
@@ -5216,12 +5227,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def _protect_consolidate(self, f):
         """
-        Consolidate _data -- if the blocks have changed, then clear the
+        Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        blocks_before = len(self._data.blocks)
+        blocks_before = len(self._mgr.blocks)
         result = f()
-        if len(self._data.blocks) != blocks_before:
+        if len(self._mgr.blocks) != blocks_before:
             self._clear_item_cache()
         return result
 
@@ -5229,7 +5240,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """Consolidate data in place and return None"""
 
         def f():
-            self._data = self._data.consolidate()
+            self._mgr = self._mgr.consolidate()
 
         self._protect_consolidate(f)
 
@@ -5251,18 +5262,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             self._consolidate_inplace()
         else:
-            f = lambda: self._data.consolidate()
+            f = lambda: self._mgr.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        f = lambda: self._data.is_mixed_type
+        f = lambda: self._mgr.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self) -> bool_t:
-        f = lambda: self._data.is_numeric_mixed_type
+        f = lambda: self._mgr.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
     def _check_inplace_setting(self, value) -> bool_t:
@@ -5282,10 +5293,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._data.get_numeric_data()).__finalize__(self)
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._data.get_bool_data()).__finalize__(self)
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5365,7 +5376,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                ['monkey', nan, None]], dtype=object)
         """
         self._consolidate_inplace()
-        return self._data.as_array(transpose=self._AXIS_REVERSED)
+        return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
     def _values(self) -> np.ndarray:
@@ -5402,7 +5413,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas import Series
 
-        return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
@@ -5413,7 +5424,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return {
             k: self._constructor(v).__finalize__(self)
-            for k, v, in self._data.to_dict(copy=copy).items()
+            for k, v, in self._mgr.to_dict(copy=copy).items()
         }
 
     def astype(
@@ -5551,7 +5562,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat
@@ -5664,7 +5675,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._data.copy(deep=deep)
+        data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
         return self._constructor(data).__finalize__(self)
 
@@ -5718,7 +5729,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(coerce, "coerce")
         validate_bool_kwarg(copy, "copy")
         return self._constructor(
-            self._data.convert(
+            self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
@@ -5769,7 +5780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # python objects will still be converted to
         # native numpy numeric types
         return self._constructor(
-            self._data.convert(
+            self._mgr.convert(
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
         ).__finalize__(self)
@@ -6037,11 +6048,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 result = self.T.fillna(method=method, limit=limit).T
 
                 # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
+                result._mgr = result._mgr.downcast()
 
                 return result
 
-            new_data = self._data.interpolate(
+            new_data = self._mgr.interpolate(
                 method=method,
                 axis=axis,
                 limit=limit,
@@ -6066,7 +6077,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         f'"{type(value).__name__}"'
                     )
 
-                new_data = self._data.fillna(
+                new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
 
@@ -6087,7 +6098,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._data.fillna(
+                new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
@@ -6520,7 +6531,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not self.size:
                 return self
 
-            new_data = self._data
+            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     res = self if inplace else self.copy()
@@ -6561,7 +6572,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             f"Expecting {len(to_replace)} got {len(value)} "
                         )
 
-                    new_data = self._data.replace_list(
+                    new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
                         inplace=inplace,
@@ -6569,7 +6580,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     )
 
                 else:  # [NA, ''] -> 0
-                    new_data = self._data.replace(
+                    new_data = self._mgr.replace(
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
             elif to_replace is None:
@@ -6590,7 +6601,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._data
+                    new_data = self._mgr
 
                     for k, v in value.items():
                         if k in self:
@@ -6603,7 +6614,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             )
 
                 elif not is_list_like(value):  # NA -> 0
-                    new_data = self._data.replace(
+                    new_data = self._mgr.replace(
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
                 else:
@@ -6862,7 +6873,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = df._data
+        data = df._mgr
         new_data = data.interpolate(
             method=method,
             axis=self._info_axis_number,
@@ -8459,7 +8470,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # one has > 1 ndim
-            fdata = self._data
+            fdata = self._mgr
             if axis == 0:
                 join_index = self.index
                 lidx, ridx = None, None
@@ -8484,7 +8495,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             else:
                 raise ValueError("Must specify axis=0 or 1")
 
-            if copy and fdata is self._data:
+            if copy and fdata is self._mgr:
                 fdata = fdata.copy()
 
             left = self._constructor(fdata)
@@ -8633,14 +8644,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # reconstruct the block manager
 
             self._check_inplace_setting(other)
-            new_data = self._data.putmask(
+            new_data = self._mgr.putmask(
                 mask=cond, new=other, align=align, axis=block_axis,
             )
             result = self._constructor(new_data)
             return self._update_inplace(result)
 
         else:
-            new_data = self._data.where(
+            new_data = self._mgr.where(
                 other=other,
                 cond=cond,
                 align=align,
@@ -8915,7 +8926,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
-            new_data = self._data.shift(
+            new_data = self._mgr.shift(
                 periods=periods, axis=block_axis, fill_value=fill_value
             )
         else:
@@ -11173,7 +11184,7 @@ def _make_cum_function(
             result = result.T if hasattr(result, "T") else result
             return result
 
-        result = self._data.apply(block_accum_func)
+        result = self._mgr.apply(block_accum_func)
 
         d = self._construct_axes_dict()
         d["copy"] = False
