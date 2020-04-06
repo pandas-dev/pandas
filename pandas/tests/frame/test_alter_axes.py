@@ -238,9 +238,9 @@ class TestDataFrameAlterAxes:
         first_drop = (
             False
             if (
-                type(keys[0]) == str
+                isinstance(keys[0], str)
                 and keys[0] == "A"
-                and type(keys[1]) == str
+                and isinstance(keys[1], str)
                 and keys[1] == "A"
             )
             else drop
