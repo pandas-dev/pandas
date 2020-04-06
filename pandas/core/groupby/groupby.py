@@ -17,6 +17,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Generic,
     Hashable,
     Iterable,
     List,
@@ -24,6 +25,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -37,7 +39,7 @@ from pandas._typing import FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
@@ -211,7 +213,7 @@ which is much more readable.
 
 Parameters
 ----------
-func : callable or tuple of (callable, string)
+func : callable or tuple of (callable, str)
     Function to apply to this %(klass)s object or, alternatively,
     a `(callable, data_keyword)` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
@@ -353,13 +355,13 @@ _KeysArgType = Union[
 ]
 
 
-class _GroupBy(PandasObject, SelectionMixin):
+class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
     _apply_whitelist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
-        obj: NDFrame,
+        obj: FrameOrSeries,
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
@@ -995,7 +997,11 @@ b  2""",
         return filtered
 
 
-class GroupBy(_GroupBy):
+# To track operations that expand dimensions, like ohlc
+OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
+
+
+class GroupBy(_GroupBy[FrameOrSeries]):
     """
     Class for grouping and aggregating relational data.
 
@@ -1420,7 +1426,7 @@ class GroupBy(_GroupBy):
         """
         return self._apply_to_column_groupbys(lambda x: x._cython_agg_general("ohlc"))
 
-    @Appender(DataFrame.describe.__doc__)
+    @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with _group_selection_context(self):
             result = self.apply(lambda x: x.describe(**kwargs))
@@ -2420,8 +2426,8 @@ class GroupBy(_GroupBy):
         return self._selected_obj[mask]
 
     def _reindex_output(
-        self, output: FrameOrSeries, fill_value: Scalar = np.NaN
-    ) -> FrameOrSeries:
+        self, output: OutputFrameOrSeries, fill_value: Scalar = np.NaN
+    ) -> OutputFrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding
@@ -2509,7 +2515,7 @@ class GroupBy(_GroupBy):
 GroupBy._add_numeric_operations()
 
 
-@Appender(GroupBy.__doc__)
+@doc(GroupBy)
 def get_groupby(
     obj: NDFrame,
     by: Optional[_KeysArgType] = None,

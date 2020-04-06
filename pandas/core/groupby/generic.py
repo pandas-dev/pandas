@@ -31,7 +31,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 from pandas._typing import FrameOrSeries
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
     maybe_cast_result,
@@ -151,7 +151,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 
 
 @pin_whitelisted_properties(Series, base.series_apply_whitelist)
-class SeriesGroupBy(GroupBy):
+class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -633,7 +633,7 @@ class SeriesGroupBy(GroupBy):
         result = Series(res, index=ri, name=self._selection_name)
         return self._reindex_output(result, fill_value=0)
 
-    @Appender(Series.describe.__doc__)
+    @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
@@ -815,7 +815,7 @@ class SeriesGroupBy(GroupBy):
 
 
 @pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
-class DataFrameGroupBy(GroupBy):
+class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
@@ -1462,7 +1462,7 @@ class DataFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
             # TODO: we have no test cases that get here with EA dtypes;
-            #  try_cast may not be needed if EAs never get here
+            #  maybe_cast_result may not be needed if EAs never get here
             if cast:
                 res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
