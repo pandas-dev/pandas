@@ -5684,6 +5684,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: object
         """
         data = self._data.copy(deep=deep)
+        self._clear_item_cache()
         return self._constructor(data).__finalize__(self, method="copy")
 
     def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
