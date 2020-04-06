@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -13,7 +13,6 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -49,6 +48,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -63,7 +64,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -121,15 +122,11 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
@@ -354,7 +351,8 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    raise SpecificationError("nested renamer is not supported")
+                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
 
@@ -369,7 +367,7 @@ class SelectionMixin:
                     )
                 return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
@@ -529,7 +527,7 @@ class SelectionMixin:
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised direcly in _aggregate_multiple_funcs
+                        # raised directly in _aggregate_multiple_funcs
                         pass
                     else:
                         raise
@@ -657,7 +655,7 @@ class IndexOpsMixin:
         ):
             # numpy returns ints instead of datetime64/timedelta64 objects,
             #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self.values.item()
+            return self._values.item()
 
         if len(self) == 1:
             return next(iter(self))
@@ -854,23 +852,6 @@ class IndexOpsMixin:
             if na_value is not lib.no_default:
                 result[self.isna()] = na_value
         return result
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        # As a mixin, we depend on the mixing class having values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore
 
     @property
     def empty(self):
@@ -1146,10 +1127,8 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_array_dtype(self.dtype):
-                values = self._values
-            else:
-                values = self.values
+
+            values = self._values
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
@@ -1171,8 +1150,14 @@ class IndexOpsMixin:
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
 
-            else:
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)
@@ -1401,7 +1386,7 @@ class IndexOpsMixin:
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
     @doc(
@@ -1519,18 +1504,14 @@ class IndexOpsMixin:
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
-    def drop_duplicates(self, keep="first", inplace=False):
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
@@ -1541,9 +1522,3 @@ class IndexOpsMixin:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
             ).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
-        raise AbstractMethodError(self)
