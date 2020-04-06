@@ -398,7 +398,7 @@ def hist_frame(
     )
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com.try_sort(data.columns)):
+    for i, col in enumerate(data.columns):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
