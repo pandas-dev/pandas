@@ -395,7 +395,6 @@ class _HtmlFrameParser:
                - Move rows from bottom of body to footer only if
                  all elements inside row are <th>
         """
-
         header_rows = self._parse_thead_tr(table_html)
         body_rows = self._parse_tbody_tr(table_html)
         footer_rows = self._parse_tfoot_tr(table_html)
@@ -435,7 +434,6 @@ class _HtmlFrameParser:
         Any cell with ``rowspan`` or ``colspan`` will have its contents copied
         to subsequent cells.
         """
-
         all_texts = []  # list of rows, each a list of str
         remainder = []  # list of (index, text, nrows)
 
@@ -591,13 +589,19 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _build_doc(self):
         from bs4 import BeautifulSoup
 
-        return BeautifulSoup(
-            self._setup_build_doc(), features="html5lib", from_encoding=self.encoding
-        )
+        bdoc = self._setup_build_doc()
+        if isinstance(bdoc, bytes) and self.encoding is not None:
+            udoc = bdoc.decode(self.encoding)
+            from_encoding = None
+        else:
+            udoc = bdoc
+            from_encoding = self.encoding
+        return BeautifulSoup(udoc, features="html5lib", from_encoding=from_encoding)
 
 
 def _build_xpath_expr(attrs) -> str:
-    """Build an xpath expression to simulate bs4's ability to pass in kwargs to
+    """
+    Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
     Parameters
@@ -900,7 +904,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "Since you passed a non-rewindable file "
                     "object, we can't rewind it to try "
                     "another parser. Try read_html() with a different flavor."
-                )
+                ) from caught
 
             retained = caught
         else:
@@ -981,7 +985,7 @@ def read_html(
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
-        <http://www.w3.org/TR/html-markup/global-attributes.html>`__. ::
+        <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
             attrs = {'asdf': 'table'}
 
@@ -990,7 +994,7 @@ def read_html(
         table attributes can be found `here
         <http://www.w3.org/TR/REC-html40/struct/tables.html#h-11.2>`__. A
         working draft of the HTML 5 spec can be found `here
-        <http://www.w3.org/TR/html-markup/table.html>`__. It contains the
+        <https://html.spec.whatwg.org/multipage/tables.html>`__. It contains the
         latest information on table attributes for the modern web.
 
     parse_dates : bool, optional
@@ -1032,7 +1036,7 @@ def read_html(
 
     See Also
     --------
-    read_csv
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----
@@ -1052,8 +1056,6 @@ def read_html(
     If the function has a ``<thead>`` argument, it is used to construct
     the header, otherwise the function attempts to find the header within
     the body (by putting rows with only ``<th>`` elements into the header).
-
-        .. versionadded:: 0.21.0
 
     Similar to :func:`~read_csv` the `header` argument is applied
     **after** `skiprows` is applied.

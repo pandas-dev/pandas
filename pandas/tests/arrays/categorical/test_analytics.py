@@ -15,10 +15,10 @@ class TestCategoricalAnalytics:
     def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        msg = "Categorical is not ordered for operation {}"
+        msg = f"Categorical is not ordered for operation {aggregation}"
         agg_func = getattr(cat, aggregation)
 
-        with pytest.raises(TypeError, match=msg.format(aggregation)):
+        with pytest.raises(TypeError, match=msg):
             agg_func()
 
     def test_min_max_ordered(self):
@@ -114,14 +114,14 @@ class TestCategoricalAnalytics:
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
-    def test_searchsorted(self, ordered_fixture):
+    def test_searchsorted(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
         cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=ordered_fixture,
+            ordered=ordered,
         )
         ser = Series(cat)
 

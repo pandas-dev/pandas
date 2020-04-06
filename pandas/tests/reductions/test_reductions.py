@@ -55,9 +55,7 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = pd.Period(
-                ordinal=getattr(obj._ndarray_values, opname)(), freq=obj.freq
-            )
+            expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
         try:
             assert result == expected
         except TypeError:
@@ -66,60 +64,64 @@ class TestReductions:
             expected = expected.astype("M8[ns]").astype("int64")
             assert result.value == expected
 
-    def test_nanops(self):
+    @pytest.mark.parametrize("opname", ["max", "min"])
+    def test_nanops(self, opname, index_or_series):
         # GH#7261
-        for opname in ["max", "min"]:
-            for klass in [Index, Series]:
-                arg_op = "arg" + opname if klass is Index else "idx" + opname
+        klass = index_or_series
+        arg_op = "arg" + opname if klass is Index else "idx" + opname
 
-                obj = klass([np.nan, 2.0])
-                assert getattr(obj, opname)() == 2.0
+        obj = klass([np.nan, 2.0])
+        assert getattr(obj, opname)() == 2.0
 
-                obj = klass([np.nan])
-                assert pd.isna(getattr(obj, opname)())
-                assert pd.isna(getattr(obj, opname)(skipna=False))
+        obj = klass([np.nan])
+        assert pd.isna(getattr(obj, opname)())
+        assert pd.isna(getattr(obj, opname)(skipna=False))
 
-                obj = klass([], dtype=object)
-                assert pd.isna(getattr(obj, opname)())
-                assert pd.isna(getattr(obj, opname)(skipna=False))
+        obj = klass([], dtype=object)
+        assert pd.isna(getattr(obj, opname)())
+        assert pd.isna(getattr(obj, opname)(skipna=False))
 
-                obj = klass([pd.NaT, datetime(2011, 11, 1)])
-                # check DatetimeIndex monotonic path
-                assert getattr(obj, opname)() == datetime(2011, 11, 1)
-                assert getattr(obj, opname)(skipna=False) is pd.NaT
+        obj = klass([pd.NaT, datetime(2011, 11, 1)])
+        # check DatetimeIndex monotonic path
+        assert getattr(obj, opname)() == datetime(2011, 11, 1)
+        assert getattr(obj, opname)(skipna=False) is pd.NaT
 
-                assert getattr(obj, arg_op)() == 1
-                result = getattr(obj, arg_op)(skipna=False)
-                if klass is Series:
-                    assert np.isnan(result)
-                else:
-                    assert result == -1
+        assert getattr(obj, arg_op)() == 1
+        result = getattr(obj, arg_op)(skipna=False)
+        if klass is Series:
+            assert np.isnan(result)
+        else:
+            assert result == -1
 
-                obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
-                # check DatetimeIndex non-monotonic path
-                assert getattr(obj, opname)(), datetime(2011, 11, 1)
-                assert getattr(obj, opname)(skipna=False) is pd.NaT
+        obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
+        # check DatetimeIndex non-monotonic path
+        assert getattr(obj, opname)(), datetime(2011, 11, 1)
+        assert getattr(obj, opname)(skipna=False) is pd.NaT
 
-                assert getattr(obj, arg_op)() == 1
-                result = getattr(obj, arg_op)(skipna=False)
-                if klass is Series:
-                    assert np.isnan(result)
-                else:
-                    assert result == -1
+        assert getattr(obj, arg_op)() == 1
+        result = getattr(obj, arg_op)(skipna=False)
+        if klass is Series:
+            assert np.isnan(result)
+        else:
+            assert result == -1
 
-                for dtype in ["M8[ns]", "datetime64[ns, UTC]"]:
-                    # cases with empty Series/DatetimeIndex
-                    obj = klass([], dtype=dtype)
+    @pytest.mark.parametrize("opname", ["max", "min"])
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "datetime64[ns, UTC]"])
+    def test_nanops_empty_object(self, opname, index_or_series, dtype):
+        klass = index_or_series
+        arg_op = "arg" + opname if klass is Index else "idx" + opname
 
-                    assert getattr(obj, opname)() is pd.NaT
-                    assert getattr(obj, opname)(skipna=False) is pd.NaT
+        obj = klass([], dtype=dtype)
 
-                    with pytest.raises(ValueError, match="empty sequence"):
-                        getattr(obj, arg_op)()
-                    with pytest.raises(ValueError, match="empty sequence"):
-                        getattr(obj, arg_op)(skipna=False)
+        assert getattr(obj, opname)() is pd.NaT
+        assert getattr(obj, opname)(skipna=False) is pd.NaT
 
-        # argmin/max
+        with pytest.raises(ValueError, match="empty sequence"):
+            getattr(obj, arg_op)()
+        with pytest.raises(ValueError, match="empty sequence"):
+            getattr(obj, arg_op)(skipna=False)
+
+    def test_argminmax(self):
         obj = Index(np.arange(5, dtype="int64"))
         assert obj.argmin() == 0
         assert obj.argmax() == 4
@@ -224,16 +226,17 @@ class TestIndexReductions:
             assert idx.argmin() == 0
             assert idx.argmax() == 2
 
-        for op in ["min", "max"]:
-            # Return NaT
-            obj = TimedeltaIndex([])
-            assert pd.isna(getattr(obj, op)())
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_minmax_timedelta_empty_or_na(self, op):
+        # Return NaT
+        obj = TimedeltaIndex([])
+        assert getattr(obj, op)() is pd.NaT
 
-            obj = TimedeltaIndex([pd.NaT])
-            assert pd.isna(getattr(obj, op)())
+        obj = TimedeltaIndex([pd.NaT])
+        assert getattr(obj, op)() is pd.NaT
 
-            obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
-            assert pd.isna(getattr(obj, op)())
+        obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
+        assert getattr(obj, op)() is pd.NaT
 
     def test_numpy_minmax_timedelta64(self):
         td = timedelta_range("16815 days", "16820 days", freq="D")
@@ -316,7 +319,12 @@ class TestIndexReductions:
         )
         td = s.diff()
 
-        msg = "reduction operation '{op}' not allowed for this dtype"
+        msg = "|".join(
+            [
+                "reduction operation '{op}' not allowed for this dtype",
+                r"cannot perform {op} with type timedelta64\[ns\]",
+            ]
+        )
         msg = msg.format(op=opname)
 
         with pytest.raises(TypeError, match=msg):
@@ -435,7 +443,8 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = pd.PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert idx1.is_monotonic
+        assert not idx1.is_monotonic
+        assert idx1[1:].is_monotonic
 
         # non-monotonic
         idx2 = pd.PeriodIndex(
@@ -522,13 +531,14 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
+    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
-    def test_empty(self, method, unit, use_bottleneck):
+    def test_empty(self, method, unit, use_bottleneck, dtype):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([], dtype=object)
+            s = Series([], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -551,8 +561,14 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=True, min_count=1)
             assert pd.isna(result)
 
+            result = getattr(s, method)(skipna=False, min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(skipna=False, min_count=1)
+            assert pd.isna(result)
+
             # All-NA
-            s = Series([np.nan])
+            s = Series([np.nan], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -576,7 +592,7 @@ class TestSeriesReductions:
             assert pd.isna(result)
 
             # Mix of valid, empty
-            s = Series([np.nan, 1])
+            s = Series([np.nan, 1], dtype=dtype)
             # Default
             result = getattr(s, method)()
             assert result == 1.0
@@ -595,22 +611,22 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=True, min_count=0)
             assert result == 1.0
 
-            result = getattr(s, method)(skipna=True, min_count=1)
-            assert result == 1.0
-
             # GH#844 (changed in GH#9422)
-            df = DataFrame(np.empty((10, 0)))
+            df = DataFrame(np.empty((10, 0)), dtype=dtype)
             assert (getattr(df, method)(1) == unit).all()
 
-            s = pd.Series([1])
+            s = pd.Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan])
+            result = getattr(s, method)(skipna=False, min_count=2)
+            assert pd.isna(result)
+
+            s = pd.Series([np.nan], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan, 1])
+            s = pd.Series([np.nan, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
@@ -648,7 +664,13 @@ class TestSeriesReductions:
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
-            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+            msg = "|".join(
+                [
+                    "operation 'var' not allowed",
+                    r"cannot perform var with type timedelta64\[ns\]",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
                 getattr(tdser, method)()
         else:
             result = getattr(tdser, method)()

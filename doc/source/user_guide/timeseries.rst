@@ -122,7 +122,7 @@ as ``np.nan`` does for float data.
 
 .. _timeseries.representation:
 
-Timestamps vs. Time Spans
+Timestamps vs. time spans
 -------------------------
 
 Timestamped data is the most basic type of time series data that associates
@@ -1434,7 +1434,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time Series-Related Instance Methods
+Time series-related instance methods
 ------------------------------------
 
 Shifting / lagging
@@ -1951,6 +1951,10 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+PeriodIndex now supports partial string slicing with non-monotonic indexes.
+
+.. versionadded:: 1.1.0
+
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
@@ -1980,6 +1984,7 @@ As with ``DatetimeIndex``, the endpoints will be included in the result. The exa
 .. ipython:: python
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
+
 
 Frequency conversion and resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2291,6 +2296,35 @@ To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)
 
    # tz_convert(None) is identical to tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UTC').tz_localize(None)
+
+.. _timeseries.fold:
+
+Fold
+~~~~
+
+.. versionadded:: 1.1.0
+
+For ambiguous times, pandas supports explicitly specifying the keyword-only fold argument.
+Due to daylight saving time, one wall clock time can occur twice when shifting
+from summer to winter time; fold describes whether the datetime-like corresponds
+to the first (0) or the second time (1) the wall clock hits the ambiguous time.
+Fold is supported only for constructing from naive ``datetime.datetime``
+(see `datetime documentation <https://docs.python.org/3/library/datetime.html>`__ for details) or from :class:`Timestamp`
+or for constructing from components (see below). Only ``dateutil`` timezones are supported
+(see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
+for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
+timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
+with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
+on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct
+control over how they are handled.
+
+.. ipython:: python
+
+   pd.Timestamp(datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
+                tz='dateutil/Europe/London', fold=0)
+   pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+                tz='dateutil/Europe/London', fold=1)
 
 .. _timeseries.timezone_ambiguous:
 

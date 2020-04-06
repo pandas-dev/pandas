@@ -4,62 +4,50 @@ import locale
 import os
 import platform
 import struct
-import subprocess
 import sys
-from typing import List, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
+from pandas._typing import JSONSerializable
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
-def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
+def _get_commit_hash() -> Optional[str]:
     """
-    Returns system information as a list
+    Use vendored versioneer code to get git hash, which handles
+    git worktree correctly.
     """
-    blob: List[Tuple[str, Optional[Union[str, int]]]] = []
+    from pandas._version import get_versions
 
-    # get full commit hash
-    commit = None
-    if os.path.isdir(".git") and os.path.isdir("pandas"):
-        try:
-            pipe = subprocess.Popen(
-                'git log --format="%H" -n 1'.split(" "),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            so, serr = pipe.communicate()
-        except (OSError, ValueError):
-            pass
-        else:
-            if pipe.returncode == 0:
-                commit = so.decode("utf-8").strip().strip('"')
-
-    blob.append(("commit", commit))
-
-    try:
-        (sysname, nodename, release, version, machine, processor) = platform.uname()
-        blob.extend(
-            [
-                ("python", ".".join(map(str, sys.version_info))),
-                ("python-bits", struct.calcsize("P") * 8),
-                ("OS", f"{sysname}"),
-                ("OS-release", f"{release}"),
-                # ("Version", "{version}".format(version=version)),
-                ("machine", f"{machine}"),
-                ("processor", f"{processor}"),
-                ("byteorder", f"{sys.byteorder}"),
-                ("LC_ALL", f"{os.environ.get('LC_ALL', 'None')}"),
-                ("LANG", f"{os.environ.get('LANG', 'None')}"),
-                ("LOCALE", ".".join(map(str, locale.getlocale()))),
-            ]
-        )
-    except (KeyError, ValueError):
-        pass
-
-    return blob
+    versions = get_versions()
+    return versions["full-revisionid"]
 
 
-def show_versions(as_json=False):
-    sys_info = get_sys_info()
+def _get_sys_info() -> Dict[str, JSONSerializable]:
+    """
+    Returns system information as a JSON serializable dictionary.
+    """
+    uname_result = platform.uname()
+    language_code, encoding = locale.getlocale()
+    return {
+        "commit": _get_commit_hash(),
+        "python": ".".join(str(i) for i in sys.version_info),
+        "python-bits": struct.calcsize("P") * 8,
+        "OS": uname_result.system,
+        "OS-release": uname_result.release,
+        "Version": uname_result.version,
+        "machine": uname_result.machine,
+        "processor": uname_result.processor,
+        "byteorder": sys.byteorder,
+        "LC_ALL": os.environ.get("LC_ALL"),
+        "LANG": os.environ.get("LANG"),
+        "LOCALE": {"language-code": language_code, "encoding": encoding},
+    }
+
+
+def _get_dependency_info() -> Dict[str, JSONSerializable]:
+    """
+    Returns dependency information as a JSON serializable dictionary.
+    """
     deps = [
         "pandas",
         # required
@@ -88,40 +76,59 @@ def show_versions(as_json=False):
         "IPython",
         "pandas_datareader",
     ]
-
     deps.extend(list(VERSIONS))
-    deps_blob = []
 
+    result: Dict[str, JSONSerializable] = {}
     for modname in deps:
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
         )
-        ver: Optional[str]
-        if mod:
-            ver = _get_version(mod)
-        else:
-            ver = None
-        deps_blob.append((modname, ver))
+        result[modname] = _get_version(mod) if mod else None
+    return result
+
+
+def show_versions(as_json: Union[str, bool] = False) -> None:
+    """
+    Provide useful information, important for bug reports.
+
+    It comprises info about hosting operation system, pandas version,
+    and versions of other installed relative packages.
+
+    Parameters
+    ----------
+    as_json : str or bool, default False
+        * If False, outputs info in a human readable form to the console.
+        * If str, it will be considered as a path to a file.
+          Info will be written to that file in JSON format.
+        * If True, outputs info in JSON format to the console.
+    """
+    sys_info = _get_sys_info()
+    deps = _get_dependency_info()
 
     if as_json:
-        j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
+        j = dict(system=sys_info, dependencies=deps)
 
         if as_json is True:
             print(j)
         else:
+            assert isinstance(as_json, str)  # needed for mypy
             with codecs.open(as_json, "wb", encoding="utf8") as f:
                 json.dump(j, f, indent=2)
 
     else:
+        assert isinstance(sys_info["LOCALE"], dict)  # needed for mypy
+        language_code = sys_info["LOCALE"]["language-code"]
+        encoding = sys_info["LOCALE"]["encoding"]
+        sys_info["LOCALE"] = f"{language_code}.{encoding}"
+
         maxlen = max(len(x) for x in deps)
-        tpl = "{{k:<{maxlen}}}: {{stat}}".format(maxlen=maxlen)
         print("\nINSTALLED VERSIONS")
         print("------------------")
-        for k, stat in sys_info:
-            print(tpl.format(k=k, stat=stat))
+        for k, v in sys_info.items():
+            print(f"{k:<{maxlen}}: {v}")
         print("")
-        for k, stat in deps_blob:
-            print(tpl.format(k=k, stat=stat))
+        for k, v in deps.items():
+            print(f"{k:<{maxlen}}: {v}")
 
 
 def main() -> int:

@@ -20,7 +20,8 @@ import pandas._testing as tm
 
 def cartesian_product_for_groupers(result, args, names):
     """ Reindex to a cartesian production for the groupers,
-    preserving the nature (Categorical) of each grouper """
+    preserving the nature (Categorical) of each grouper
+    """
 
     def f(a):
         if isinstance(a, (CategoricalIndex, Categorical)):
@@ -1225,10 +1226,10 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
-        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered), "Item": [1, 2]},
         columns=["Name", "Item"],
     )
     expected = df.copy()
@@ -1260,6 +1261,9 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
 
     df = pd.DataFrame(
         {
@@ -1342,3 +1346,37 @@ def test_series_groupby_categorical_aggregation_getitem():
     result = groups["foo"].agg("mean")
     expected = groups.agg("mean")["foo"]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, expected_values",
+    [(pd.Series.nunique, [1, 1, 2]), (pd.Series.count, [1, 2, 2])],
+)
+def test_groupby_agg_categorical_columns(func, expected_values):
+    # 31256
+    df = pd.DataFrame(
+        {
+            "id": [0, 1, 2, 3, 4],
+            "groups": [0, 1, 1, 2, 2],
+            "value": pd.Categorical([0, 0, 0, 0, 1]),
+        }
+    ).set_index("id")
+    result = df.groupby("groups").agg(func)
+
+    expected = pd.DataFrame(
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_non_numeric():
+    df = pd.DataFrame(
+        {"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])}
+    )
+    expected = pd.DataFrame({"A": [2, 1]}, index=[1, 2])
+
+    result = df.groupby([1, 2, 1]).agg(pd.Series.nunique)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1, 2, 1]).nunique()
+    tm.assert_frame_equal(result, expected)

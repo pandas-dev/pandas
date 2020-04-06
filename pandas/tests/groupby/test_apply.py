@@ -108,8 +108,9 @@ def test_fast_apply():
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
+    sdata = splitter._get_sorted_data()
 
-    values, mutated = splitter.fast_apply(f, group_keys)
+    values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
     assert not mutated
 
@@ -467,6 +468,29 @@ def test_apply_without_copy():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("test_series", [True, False])
+def test_apply_with_duplicated_non_sorted_axis(test_series):
+    # GH 30667
+    df = pd.DataFrame(
+        [["x", "p"], ["x", "p"], ["x", "o"]], columns=["X", "Y"], index=[1, 2, 2]
+    )
+    if test_series:
+        ser = df.set_index("Y")["X"]
+        result = ser.groupby(level=0).apply(lambda x: x)
+
+        # not expecting the order to remain the same for duplicated axis
+        result = result.sort_index()
+        expected = ser.sort_index()
+        tm.assert_series_equal(result, expected)
+    else:
+        result = df.groupby("Y").apply(lambda x: x)
+
+        # not expecting the order to remain the same for duplicated axis
+        result = result.sort_values("Y")
+        expected = df.sort_values("Y")
+        tm.assert_frame_equal(result, expected)
+
+
 def test_apply_corner_cases():
     # #535, can't use sliding iterator
 
@@ -750,5 +774,109 @@ def test_apply_series_return_dataframe_groups():
     result = tdf.groupby("day").apply(most_common_values)["userId"]
     expected = pd.Series(
         ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("category", [False, True])
+def test_apply_multi_level_name(category):
+    # https://github.com/pandas-dev/pandas/issues/31068
+    b = [1, 2] * 5
+    if category:
+        b = pd.Categorical(b, categories=[1, 2, 3])
+    df = pd.DataFrame(
+        {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
+    ).set_index(["A", "B"])
+    result = df.groupby("B").apply(lambda x: x.sum())
+    expected = pd.DataFrame(
+        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
+    )
+    tm.assert_frame_equal(result, expected)
+    assert df.index.names == ["A", "B"]
+
+
+def test_groupby_apply_datetime_result_dtypes():
+    # GH 14849
+    data = pd.DataFrame.from_records(
+        [
+            (pd.Timestamp(2016, 1, 1), "red", "dark", 1, "8"),
+            (pd.Timestamp(2015, 1, 1), "green", "stormy", 2, "9"),
+            (pd.Timestamp(2014, 1, 1), "blue", "bright", 3, "10"),
+            (pd.Timestamp(2013, 1, 1), "blue", "calm", 4, "potato"),
+        ],
+        columns=["observation", "color", "mood", "intensity", "score"],
+    )
+    result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
+    expected = Series(
+        [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
+        index=["observation", "color", "mood", "intensity", "score"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.CategoricalIndex(list("abc")),
+        pd.interval_range(0, 3),
+        pd.period_range("2020", periods=3, freq="D"),
+        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+    ],
+)
+def test_apply_index_has_complex_internals(index):
+    # GH 31248
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    result = df.groupby("group").apply(lambda x: x)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "function, expected_values",
+    [
+        (lambda x: x.index.to_list(), [[0, 1], [2, 3]]),
+        (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
+        (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
+        (
+            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            [{0: 0, 1: 1}, {0: 2, 1: 3}],
+        ),
+        (
+            lambda x: [{n: i} for (n, i) in enumerate(x.index.to_list())],
+            [[{0: 0}, {1: 1}], [{0: 2}, {1: 3}]],
+        ),
+    ],
+)
+def test_apply_function_returns_non_pandas_non_scalar(function, expected_values):
+    # GH 31441
+    df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
+    result = df.groupby("groups").apply(function)
+    expected = pd.Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_returns_numpy_array():
+    # GH 31605
+    def fct(group):
+        return group["B"].values.flatten()
+
+    df = pd.DataFrame({"A": ["a", "a", "b", "none"], "B": [1, 2, 3, np.nan]})
+
+    result = df.groupby("A").apply(fct)
+    expected = pd.Series(
+        [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
+)
+def test_apply_function_index_return(function):
+    # GH: 22541
+    df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
+    result = df.groupby("id").apply(function)
+    expected = pd.Series(
+        [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
+        index=pd.Index([1, 2, 3], name="id"),
     )
     tm.assert_series_equal(result, expected)

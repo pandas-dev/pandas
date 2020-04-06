@@ -29,19 +29,25 @@ _bias_template = """
 
 class EWM(_Rolling):
     r"""
-    Provide exponential weighted functions.
+    Provide exponential weighted (EW) functions.
+
+    Available EW functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
+
+    Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be
+    provided.
 
     Parameters
     ----------
     com : float, optional
         Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
+        :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
     span : float, optional
         Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
+        :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{for} halflife > 0`.
+        :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
+        :math:`halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -50,11 +56,39 @@ class EWM(_Rolling):
         (otherwise result is NA).
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings
-        (viewing EWMA as a moving average).
+        for imbalance in relative weightings (viewing EWMA as a moving average).
+
+        - When ``adjust=True`` (default), the EW function is calculated using weights
+          :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
+          [:math:`x_0, x_1, ..., x_t`] would be:
+
+        .. math::
+            y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
+            \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+
+        - When ``adjust=False``, the exponentially weighted function is calculated
+          recursively:
+
+        .. math::
+            \begin{split}
+                y_0 &= x_0\\
+                y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+            \end{split}
     ignore_na : bool, default False
-        Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior.
+        Ignore missing values when calculating weights; specify ``True`` to reproduce
+        pre-0.15.0 behavior.
+
+        - When ``ignore_na=False`` (default), weights are based on absolute positions.
+          For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
+          the final weighted average of [:math:`x_0`, None, :math:`x_2`] are
+          :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+          :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+
+        - When ``ignore_na=True`` (reproducing pre-0.15.0 behavior), weights are based
+          on relative positions. For example, the weights of :math:`x_0` and :math:`x_2`
+          used in calculating the final weighted average of
+          [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
+          ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
     axis : {0 or 'index', 1 or 'columns'}, default 0
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
@@ -71,34 +105,12 @@ class EWM(_Rolling):
 
     Notes
     -----
-    Exactly one of center of mass, span, half-life, and alpha must be provided.
-    Allowed values and relationship between the parameters are specified in the
-    parameter descriptions above; see the link at the end of this section for
-    a detailed explanation.
 
-    When adjust is True (default), weighted averages are calculated using
-    weights (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
-
-    When adjust is False, weighted averages are calculated recursively as:
-       weighted_average[0] = arg[0];
-       weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
-
-    When ignore_na is False (default), weights are based on absolute positions.
-    For example, the weights of x and y used in calculating the final weighted
-    average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
-    (1-alpha)**2 and alpha (if adjust is False).
-
-    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based
-    on relative positions. For example, the weights of x and y used in
-    calculating the final weighted average of [x, None, y] are 1-alpha and 1
-    (if adjust is True), and 1-alpha and alpha (if adjust is False).
-
-    More details can be found at
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    More details can be found at:
+    :ref:`Exponentially weighted windows <stats.moments.exponentially_weighted>`.
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -116,6 +128,7 @@ class EWM(_Rolling):
     3  1.615385
     4  3.670213
     """
+
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
 
     def __init__(
@@ -154,33 +167,18 @@ class EWM(_Rolling):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
     >>> df.ewm(alpha=0.5).mean()
               A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.464856  0.569633 -0.490089
-    2 -0.207700  0.149687 -1.135379
-    3 -0.471677 -0.645305 -0.906555
-    4 -0.355635 -0.203033 -0.904111
-    5  1.076417  1.503943 -1.146293
-    6 -0.041654  1.925562 -0.588728
-    7  0.680292  0.132049  0.548693
-    8  0.067236  0.948257  0.163353
-    9 -0.286980  0.618493 -0.694496
+    0  1.000000  4.000000  7.000000
+    1  1.666667  4.666667  7.666667
+    2  2.428571  5.428571  8.428571
     """
     )
 
@@ -219,13 +217,13 @@ class EWM(_Rolling):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())

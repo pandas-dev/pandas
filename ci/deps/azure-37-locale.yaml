@@ -34,3 +34,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyarrow>=0.15
+  - pip
+  - pip:
+    - pyxlsb

@@ -23,12 +23,12 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -41,8 +41,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
+   with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -461,8 +460,6 @@ specification:
 .. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
-
-.. versionadded:: 0.21.0
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
@@ -910,16 +907,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
 Date parsing functions
@@ -2182,8 +2169,6 @@ Line delimited json
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
-.. versionadded:: 0.21.0
-
 For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
 
 .. ipython:: python
@@ -2453,7 +2438,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -2768,7 +2753,8 @@ Excel files
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
 files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``.
+can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3123,11 +3109,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
@@ -3228,6 +3210,30 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
 
    Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
    is not implemented.
+
+.. _io.xlsb:
+
+Binary Excel (.xlsb) files
+--------------------------
+
+.. versionadded:: 1.0.0
+
+The :func:`~pandas.read_excel` method can also read binary Excel files
+using the ``pyxlsb`` module. The semantics and features for reading
+binary Excel files mostly match what can be done for `Excel files`_ using
+``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
+in files and will return floats instead.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.xlsb', engine='pyxlsb')
+
+.. note::
+
+   Currently pandas only supports *reading* binary Excel files. Writing
+   is not implemented.
+
 
 .. _io.clipboard:
 
@@ -3805,7 +3811,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -4220,46 +4226,49 @@ Compression
 all kinds of stores, not just tables. Two parameters are used to
 control compression: ``complevel`` and ``complib``.
 
-``complevel`` specifies if and how hard data is to be compressed.
-              ``complevel=0`` and ``complevel=None`` disables
-              compression and ``0<complevel<10`` enables compression.
+* ``complevel`` specifies if and how hard data is to be compressed.
+  ``complevel=0`` and ``complevel=None`` disables compression and
+  ``0<complevel<10`` enables compression.
 
-``complib`` specifies which compression library to use. If nothing is
-            specified the default library ``zlib`` is used. A
-            compression library usually optimizes for either good
-            compression rates or speed and the results will depend on
-            the type of data. Which type of
-            compression to choose depends on your specific needs and
-            data. The list of supported compression libraries:
+* ``complib`` specifies which compression library to use.
+  If nothing is  specified the default library ``zlib`` is used. A
+  compression library usually optimizes for either good compression rates
+  or speed and the results will depend on the type of data. Which type of
+  compression to choose depends on your specific needs and data. The list
+  of supported compression libraries:
 
-             - `zlib <https://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
-             - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
-             - `bzip2 <http://bzip.org/>`_: Good compression rates.
-             - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
+  - `zlib <https://zlib.net/>`_: The default compression library.
+    A classic in terms of compression, achieves good compression
+    rates but is somewhat slow.
+  - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
+    compression and decompression.
+  - `bzip2 <http://bzip.org/>`_: Good compression rates.
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
+    decompression.
 
-                Support for alternative blosc compressors:
+    Support for alternative blosc compressors:
 
-                - `blosc:blosclz <http://www.blosc.org/>`_ This is the
-                  default compressor for ``blosc``
-                - `blosc:lz4
-                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
-                  A compact, very popular and fast compressor.
-                - `blosc:lz4hc
-                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
-                  A tweaked version of LZ4, produces better
-                  compression ratios at the expense of speed.
-                - `blosc:snappy <https://google.github.io/snappy/>`_:
-                  A popular compressor used in many places.
-                - `blosc:zlib <https://zlib.net/>`_: A classic;
-                  somewhat slower than the previous ones, but
-                  achieving better compression ratios.
-                - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
-                  extremely well balanced codec; it provides the best
-                  compression ratios among the others above, and at
-                  reasonably fast speed.
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
+      default compressor for ``blosc``
+    - `blosc:lz4
+      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      A compact, very popular and fast compressor.
+    - `blosc:lz4hc
+      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      A tweaked version of LZ4, produces better
+      compression ratios at the expense of speed.
+    - `blosc:snappy <https://google.github.io/snappy/>`_:
+      A popular compressor used in many places.
+    - `blosc:zlib <https://zlib.net/>`_: A classic;
+      somewhat slower than the previous ones, but
+      achieving better compression ratios.
+    - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
+      extremely well balanced codec; it provides the best
+      compression ratios among the others above, and at
+      reasonably fast speed.
 
-             If ``complib`` is defined as something other than the
-             listed libraries a ``ValueError`` exception is issued.
+  If ``complib`` is defined as something other than the listed libraries a
+  ``ValueError`` exception is issued.
 
 .. note::
 
@@ -4633,8 +4642,6 @@ Read from a feather file.
 Parquet
 -------
 
-.. versionadded:: 0.21.0
-
 `Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
 languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
@@ -4804,7 +4811,7 @@ ORC
 
 .. versionadded:: 1.0.0
 
-Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
@@ -4992,8 +4999,8 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  For more information check the SQLAlchemy `documentation
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.

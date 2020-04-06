@@ -1,6 +1,7 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
+import locale
 import os
 from warnings import catch_warnings
 
@@ -151,7 +152,6 @@ def check_round_trip(
     repeat: int, optional
         How many times to repeat the test
     """
-
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
 
@@ -484,6 +484,11 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    # GH#33077 2020-03-27
+    @pytest.mark.xfail(
+        locale.getlocale()[0] == "zh_CN",
+        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
+    )
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
@@ -533,25 +538,28 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype="Int64"),
-                "b": pd.Series(["a", None, "c"], dtype="string"),
+                "b": pd.Series([1, 2, 3], dtype="UInt32"),
+                "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
             expected = df
         else:
             # de-serialized as plain int / object
-            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+            expected = df.assign(
+                a=df.a.astype("int64"), b=df.b.astype("int64"), c=df.c.astype("object")
+            )
         check_round_trip(df, pa, expected=expected)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
             expected = df
         else:
             # if missing values in integer, currently de-serialized as float
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    @td.skip_if_no("pyarrow", min_version="0.16.0")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -563,6 +571,13 @@ class TestParquetPyArrow(Base):
             }
         )
         check_round_trip(df, pa)
+
+    @td.skip_if_no("pyarrow", min_version="0.14")
+    def test_timestamp_nanoseconds(self, pa):
+        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # this should work without error
+        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
+        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
 
 class TestParquetFastParquet(Base):

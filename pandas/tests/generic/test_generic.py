@@ -3,11 +3,14 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p17
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
+import pandas.core.common as com
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -23,10 +26,11 @@ class Generic:
         return self._typ._AXIS_ORDERS
 
     def _construct(self, shape, value=None, dtype=None, **kwargs):
-        """ construct an object for the given shape
-            if value is specified use that if its a scalar
-            if value is an array, repeat it as needed """
-
+        """
+        construct an object for the given shape
+        if value is specified use that if its a scalar
+        if value is an array, repeat it as needed
+        """
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
@@ -103,23 +107,6 @@ class Generic:
         # _get_numeric_data is includes _get_bool_data, so can't test for
         # non-inclusion
 
-    def test_get_default(self):
-
-        # GH 7725
-        d0 = "a", "b", "c", "d"
-        d1 = np.arange(4, dtype="int64")
-        others = "e", 10
-
-        for data, index in ((d0, d1), (d1, d0)):
-            s = Series(data, index=index)
-            for i, d in zip(index, data):
-                assert s.get(i) == d
-                assert s.get(i, d) == d
-                assert s.get(i, "z") == d
-                for other in others:
-                    assert s.get(other, "z") == "z"
-                    assert s.get(other, other) == other
-
     def test_nonzero(self):
 
         # GH 4633
@@ -175,26 +162,13 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
-
-        o = self._construct(shape=4, value=9.0)
-        expected = o.astype(np.int64)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        self._compare(result, expected)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
-
-        # are close
-        o = self._construct(shape=4, value=9.000000000005)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        expected = o.astype(np.int64)
-        self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
         # see gh-5191
@@ -203,8 +177,10 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented"
-        f"in the {self._typ.__name__} constructor"
+        msg = (
+            "compound dtypes are not implemented "
+            f"in the {self._typ.__name__} constructor"
+        )
 
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
@@ -273,39 +249,30 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self):
+    def test_head_tail(self, indices):
         # GH5370
 
-        o = self._construct(shape=10)
+        o = self._construct(shape=len(indices))
 
-        # check all index types
-        for index in [
-            tm.makeFloatIndex,
-            tm.makeIntIndex,
-            tm.makeStringIndex,
-            tm.makeUnicodeIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
-        ]:
-            axis = o._get_axis_name(0)
-            setattr(o, axis, index(len(getattr(o, axis))))
+        axis = o._get_axis_name(0)
+        setattr(o, axis, indices)
 
-            o.head()
+        o.head()
 
-            self._compare(o.head(), o.iloc[:5])
-            self._compare(o.tail(), o.iloc[-5:])
+        self._compare(o.head(), o.iloc[:5])
+        self._compare(o.tail(), o.iloc[-5:])
 
-            # 0-len
-            self._compare(o.head(0), o.iloc[0:0])
-            self._compare(o.tail(0), o.iloc[0:0])
+        # 0-len
+        self._compare(o.head(0), o.iloc[0:0])
+        self._compare(o.tail(0), o.iloc[0:0])
 
-            # bounded
-            self._compare(o.head(len(o) + 1), o)
-            self._compare(o.tail(len(o) + 1), o)
+        # bounded
+        self._compare(o.head(len(o) + 1), o)
+        self._compare(o.tail(len(o) + 1), o)
 
-            # neg index
-            self._compare(o.head(-3), o.head(7))
-            self._compare(o.tail(-3), o.tail(7))
+        # neg index
+        self._compare(o.head(-3), o.head(len(indices) - 3))
+        self._compare(o.tail(-3), o.tail(len(indices) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -446,6 +413,15 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             df.sample(frac=2, replace=False)
 
+    def test_sample_is_copy(self):
+        # GH-27357, GH-30784: ensure the result of sample is an actual copy and
+        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
+        df = pd.DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df2 = df.sample(3)
+
+        with tm.assert_produces_warning(None):
+            df2["d"] = 1
+
     def test_size_compat(self):
         # GH8846
         # size property should be defined
@@ -459,24 +435,6 @@ class Generic:
         o = self._construct(shape=10)
         assert len(np.array_split(o, 5)) == 5
         assert len(np.array_split(o, 2)) == 2
-
-    def test_unexpected_keyword(self):  # GH8597
-        df = DataFrame(np.random.randn(5, 2), columns=["jim", "joe"])
-        ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
-        ts = df["joe"].copy()
-        ts[2] = np.nan
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            df.drop("joe", axis=1, in_place=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            df.reindex([1, 0], inplace=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            ca.fillna(0, inplace=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            ts.fillna(0, in_place=True)
 
     # See gh-12301
     def test_stat_unexpected_keyword(self):
@@ -493,16 +451,16 @@ class Generic:
         with pytest.raises(TypeError, match=errmsg):
             obj.any(epic=starwars)  # logical_function
 
-    def test_api_compat(self):
+    @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
+    def test_api_compat(self, func):
 
         # GH 12021
         # compat for __name__, __qualname__
 
         obj = self._construct(5)
-        for func in ["sum", "cumsum", "any", "var"]:
-            f = getattr(obj, func)
-            assert f.__name__ == func
-            assert f.__qualname__.endswith(func)
+        f = getattr(obj, func)
+        assert f.__name__ == func
+        assert f.__qualname__.endswith(func)
 
     def test_stat_non_defaults_args(self):
         obj = self._construct(5)
@@ -535,53 +493,17 @@ class Generic:
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
 
-    def test_validate_bool_args(self):
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
-
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                super(DataFrame, df).rename_axis(
-                    mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-                )
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).drop("a", axis=1, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).sort_index(inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._consolidate(inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).fillna(value=0, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).interpolate(inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
-
-    def test_copy_and_deepcopy(self):
+    @pytest.mark.parametrize(
+        "func",
+        [copy, deepcopy, lambda x: x.copy(deep=False), lambda x: x.copy(deep=True)],
+    )
+    @pytest.mark.parametrize("shape", [0, 1, 2])
+    def test_copy_and_deepcopy(self, shape, func):
         # GH 15444
-        for shape in [0, 1, 2]:
-            obj = self._construct(shape)
-            for func in [
-                copy,
-                deepcopy,
-                lambda x: x.copy(deep=False),
-                lambda x: x.copy(deep=True),
-            ]:
-                obj_copy = func(obj)
-                assert obj_copy is not obj
-                self._compare(obj_copy, obj)
+        obj = self._construct(shape)
+        obj_copy = func(obj)
+        assert obj_copy is not obj
+        self._compare(obj_copy, obj)
 
     @pytest.mark.parametrize(
         "periods,fill_method,limit,exp",
@@ -721,6 +643,29 @@ class TestNDFrame:
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
+    @pytest.mark.parametrize(
+        "func_str,arg",
+        [
+            ("np.array", [2, 3, 1, 0]),
+            pytest.param(
+                "np.random.MT19937",
+                3,
+                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+            ),
+            pytest.param(
+                "np.random.PCG64",
+                11,
+                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+            ),
+        ],
+    )
+    def test_sample_random_state(self, func_str, arg):
+        # GH32503
+        df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        result = df.sample(n=3, random_state=eval(func_str)(arg))
+        expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
+        tm.assert_frame_equal(result, expected)
+
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
@@ -746,10 +691,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis="columns"), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis=2)
-        msg = "No axis named x for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named x for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 
@@ -820,17 +765,22 @@ class TestNDFrame:
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
 
-    def test_depr_take_kwarg_is_copy(self):
+    @pytest.mark.parametrize("is_copy", [True, False])
+    def test_depr_take_kwarg_is_copy(self, is_copy):
         # GH 27357
         df = DataFrame({"A": [1, 2, 3]})
         msg = (
             "is_copy is deprecated and will be removed in a future version. "
-            "take will always return a copy in the future."
+            "'take' always returns a copy, so there is no need to specify this."
         )
         with tm.assert_produces_warning(FutureWarning) as w:
-            df.take([0, 1], is_copy=True)
+            df.take([0, 1], is_copy=is_copy)
 
         assert w[0].message.args[0] == msg
+
+        s = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            s.take([0, 1], is_copy=is_copy)
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])

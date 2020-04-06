@@ -105,7 +105,7 @@ def test_resample_categorical_data_with_timedeltaindex():
         index=pd.to_timedelta([0, 10], unit="s"),
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
-    expected["Group"] = expected["Group_obj"].astype("category")
+    expected["Group"] = expected["Group_obj"]
     tm.assert_frame_equal(result, expected)
 
 

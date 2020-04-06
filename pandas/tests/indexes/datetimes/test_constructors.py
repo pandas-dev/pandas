@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from operator import attrgetter
 
@@ -415,7 +415,8 @@ class TestDatetimeIndex:
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
-        with pytest.raises(ValueError):
+        msg = "cannot be converted to datetime64"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -424,7 +425,6 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        msg = "cannot be converted to datetime64"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
@@ -435,7 +435,7 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -480,7 +480,8 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
@@ -516,7 +517,8 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        with pytest.raises(TypeError):
+        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 
         # generator expression
@@ -664,7 +666,8 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("dtype", [object, np.int32, np.int64])
     def test_constructor_invalid_dtype_raises(self, dtype):
         # GH 23986
-        with pytest.raises(ValueError):
+        msg = "Unexpected value for 'dtype'"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
@@ -681,7 +684,8 @@ class TestDatetimeIndex:
     def test_disallow_setting_tz(self):
         # GH 3746
         dti = DatetimeIndex(["2010"], tz="UTC")
-        with pytest.raises(AttributeError):
+        msg = "Cannot directly set timezone"
+        with pytest.raises(AttributeError, match=msg):
             dti.tz = pytz.timezone("US/Pacific")
 
     @pytest.mark.parametrize(
@@ -770,7 +774,8 @@ class TestDatetimeIndex:
     def test_construction_with_tz_and_tz_aware_dti(self):
         # GH 23579
         dti = date_range("2016-01-01", periods=3, tz="US/Central")
-        with pytest.raises(TypeError):
+        msg = "data is already tz-aware US/Central, unable to set specified tz"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex(dti, tz="Asia/Tokyo")
 
     def test_construction_with_nat_and_tzlocal(self):
@@ -790,7 +795,8 @@ class TestDatetimeIndex:
             pd.Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        with pytest.raises(ValueError):
+        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
+        with pytest.raises(ValueError, match=msg):
             pd.DatetimeIndex(["2000"], dtype="datetime64[us]")
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
@@ -950,3 +956,104 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_pass_datetimeindex_to_index(self):
+        # Bugs in #1396
+        rng = date_range("1/1/2000", "3/1/2000")
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pydatetime(), dtype=object)
+
+        tm.assert_numpy_array_equal(idx.values, expected.values)
+
+
+def test_timestamp_constructor_invalid_fold_raise():
+    # Test for #25057
+    # Valid fold values are only [None, 0, 1]
+    msg = "Valid values for the fold argument are None, 0, or 1."
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(123, fold=2)
+
+
+def test_timestamp_constructor_pytz_fold_raise():
+    # Test for #25057
+    # pytz doesn't support fold. Check that we raise
+    # if fold is passed with pytz
+    msg = "pytz timezones do not support fold. Please use dateutil timezones."
+    tz = pytz.timezone("Europe/London")
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+@pytest.mark.parametrize(
+    "ts_input",
+    [
+        1572136200000000000,
+        1572136200000000000.0,
+        np.datetime64(1572136200000000000, "ns"),
+        "2019-10-27 01:30:00+01:00",
+        datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc),
+    ],
+)
+def test_timestamp_constructor_fold_conflict(ts_input, fold):
+    # Test for #25057
+    # Check that we raise on fold conflict
+    msg = (
+        "Cannot pass fold with possibly unambiguous input: int, float, "
+        "numpy.datetime64, str, or timezone-aware datetime-like. "
+        "Pass naive datetime-like or build Timestamp from components."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(ts_input=ts_input, fold=fold)
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
+@pytest.mark.parametrize("fold", [0, 1])
+def test_timestamp_constructor_retain_fold(tz, fold):
+    # Test for #25057
+    # Check that we retain fold
+    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
+    result = ts.fold
+    expected = fold
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold_out",
+    [
+        (1572136200000000000, 0),
+        (1572139800000000000, 1),
+        ("2019-10-27 01:30:00+01:00", 0),
+        ("2019-10-27 01:30:00+00:00", 1),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 1),
+    ],
+)
+def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
+    # Test for #25057
+    # Check that we infer fold correctly based on timestamps since utc
+    # or strings
+    ts = pd.Timestamp(ts_input, tz=tz)
+    result = ts.fold
+    expected = fold_out
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold,value_out",
+    [
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+    ],
+)
+def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):
+    # Test for #25057
+    # Check that we adjust value for fold correctly
+    # based on timestamps since utc
+    ts = pd.Timestamp(ts_input, tz=tz, fold=fold)
+    result = ts.value
+    expected = value_out
+    assert result == expected

@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
@@ -1308,6 +1306,13 @@ class TestDataFramePlots(TestPlotBase):
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
 
+    def test_plot_scatter_with_s(self):
+        # this refers to GH 32904
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
+
+        ax = df.plot.scatter(x="a", y="b", s="c")
+        tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
+
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
         with pytest.raises(TypeError):
@@ -2036,12 +2041,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            _check_plot_works(df.plot, color=custom_colors)
-
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
@@ -2092,14 +2091,6 @@ class TestDataFramePlots(TestPlotBase):
         for ax, c in zip(axes, list(custom_colors)):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
-
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            # _check_plot_works adds an ax so catch warning. see GH #13188
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(df.plot, color=custom_colors, subplots=True)
 
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         for cmap in ["jet", cm.jet]:
@@ -2351,6 +2342,23 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             # Color contains invalid key results in ValueError
             df.plot.box(color=dict(boxes="red", xxxx="blue"))
+
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd_plot_box(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.plot.box(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
 
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
@@ -3298,6 +3306,16 @@ class TestDataFramePlots(TestPlotBase):
 
         self._check_legend_labels(ax, labels=["A", "B", "C"])
         self._check_legend_marker(ax, expected_markers=[".", ".", "."])
+
+    def test_colors_of_columns_with_same_name(self):
+        # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
+        # Creating a DataFrame with duplicate column labels and testing colors of them.
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
+        df_concat = pd.concat([df, df1], axis=1)
+        result = df_concat.plot()
+        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+            assert legend.get_color() == line.get_color()
 
 
 def _generate_4_axes_via_gridspec():

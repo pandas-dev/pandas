@@ -1,4 +1,3 @@
-import sys
 import warnings
 
 import numpy as np
@@ -6,13 +5,12 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from datetime import time as datetime_time, timedelta
-from cpython.datetime cimport (datetime,
+from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
                                PyTZInfo_Check, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_integer_object, is_offset_object)
+    is_datetime64_object, is_float_object, is_integer_object, is_offset_object)
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 cimport pandas._libs.tslibs.ccalendar as ccalendar
@@ -34,7 +32,7 @@ from pandas._libs.tslibs.tzconversion import (
 
 # ----------------------------------------------------------------------
 # Constants
-_zero_time = datetime_time(0, 0)
+_zero_time = time(0, 0)
 _no_input = object()
 
 # ----------------------------------------------------------------------
@@ -42,12 +40,12 @@ _no_input = object()
 
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
-                                            object tz, object freq):
+                                            object tz, object freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
-                                 dts.sec, dts.us, tz)
+                                 dts.sec, dts.us, tz, fold=fold)
     ts_base.value = value
     ts_base.freq = freq
     ts_base.nanosecond = dts.ps // 1000
@@ -196,6 +194,13 @@ class Timestamp(_Timestamp):
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
+    fold : {0, 1}, default None, keyword-only
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -351,7 +356,9 @@ class Timestamp(_Timestamp):
         second=None,
         microsecond=None,
         nanosecond=None,
-        tzinfo=None
+        tzinfo=None,
+        *,
+        fold=None
     ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
@@ -391,7 +398,44 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if isinstance(ts_input, str):
+        # Allow fold only for unambiguous input
+        if fold is not None:
+            if fold not in [0, 1]:
+                raise ValueError(
+                    "Valid values for the fold argument are None, 0, or 1."
+                )
+
+            if (ts_input is not _no_input and not (
+                    PyDateTime_Check(ts_input) and
+                    getattr(ts_input, 'tzinfo', None) is None)):
+                raise ValueError(
+                    "Cannot pass fold with possibly unambiguous input: int, "
+                    "float, numpy.datetime64, str, or timezone-aware "
+                    "datetime-like. Pass naive datetime-like or build "
+                    "Timestamp from components."
+                )
+
+            if tz is not None and treat_tz_as_pytz(tz):
+                raise ValueError(
+                    "pytz timezones do not support fold. Please use dateutil "
+                    "timezones."
+                )
+
+            if hasattr(ts_input, 'fold'):
+                ts_input = ts_input.replace(fold=fold)
+
+        # GH 30543 if pd.Timestamp already passed, return it
+        # check that only ts_input is passed
+        # checking verbosely, because cython doesn't optimize
+        # list comprehensions (as of cython 0.29.x)
+        if (isinstance(ts_input, Timestamp) and freq is None and
+                tz is None and unit is None and year is None and
+                month is None and day is None and hour is None and
+                minute is None and second is None and
+                microsecond is None and nanosecond is None and
+                tzinfo is None):
+            return ts_input
+        elif isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
@@ -401,16 +445,32 @@ class Timestamp(_Timestamp):
                 )
 
         elif ts_input is _no_input:
-            # User passed keyword arguments.
-            ts_input = datetime(year, month, day, hour or 0,
-                                minute or 0, second or 0,
-                                microsecond or 0)
+            # GH 31200
+            # When year, month or day is not given, we call the datetime
+            # constructor to make sure we get the same error message
+            # since Timestamp inherits datetime
+            datetime_kwargs = {
+                "hour": hour or 0,
+                "minute": minute or 0,
+                "second": second or 0,
+                "microsecond": microsecond or 0,
+                "fold": fold or 0
+            }
+            if year is not None:
+                datetime_kwargs["year"] = year
+            if month is not None:
+                datetime_kwargs["month"] = month
+            if day is not None:
+                datetime_kwargs["day"] = day
+
+            ts_input = datetime(**datetime_kwargs)
+
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
             ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0)
+                                year or 0, month or 0, day or 0, fold=fold or 0)
             nanosecond = hour
             tz = minute
             freq = None
@@ -430,7 +490,7 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
@@ -818,8 +878,7 @@ default 'raise'
             raise ValueError('Cannot infer offset with only one time.')
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
-        if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, timedelta):
+        if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
                 "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
@@ -974,7 +1033,7 @@ default 'raise'
         if value != NPY_NAT:
             check_dts_bounds(&dts)
 
-        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
+        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq, fold)
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
@@ -1029,11 +1088,10 @@ default 'raise'
 
     def normalize(self):
         """
-        Normalize Timestamp to midnight, preserving
-        tz information.
+        Normalize Timestamp to midnight, preserving tz information.
         """
         if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1000000000
+            DAY_NS = DAY_SECONDS * 1_000_000_000
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
@@ -1052,7 +1110,7 @@ cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
 # use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
+cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

@@ -4,10 +4,10 @@
     {% for post in blog.posts %}
         <div class="card">
             <div class="card-body">
-                <h3 class="card-title"><a href="{{post.link }}" target="_blank">{{ post.title }}</a></h3>
-                <h6 class="card-subtitle">Source: {{ post.feed }} | Author: {{ post.author }} | Published: {{ post.published.strftime("%b %d, %Y") }}</h6>
-                <div class="card-text">{{ post.summary }}</div>
-                <a class="card-link" href="{{post.link }}" target="_blank">Read</a>
+                <h5 class="card-title"><a href="{{post.link }}" target="_blank">{{ post.title }}</a></h5>
+                <h6 class="card-subtitle text-muted small mb-4">Source: {{ post.feed }} | Author: {{ post.author }} | Published: {{ post.published.strftime("%b %d, %Y") }}</h6>
+                <div class="card-text mb-2">{{ post.summary }}</div>
+                <a class="card-link small" href="{{post.link }}" target="_blank">Read more</a>
             </div>
         </div>
     {% endfor %}
