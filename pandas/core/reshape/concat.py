@@ -458,8 +458,8 @@ class _Concatenator:
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
 
-                mgr = self.objs[0]._data.concat(
-                    [x._data for x in self.objs], self.new_axes[0]
+                mgr = self.objs[0]._mgr.concat(
+                    [x._mgr for x in self.objs], self.new_axes[0]
                 )
                 cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")
@@ -490,7 +490,7 @@ class _Concatenator:
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
-                mgrs_indexers.append((obj._data, indexers))
+                mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy

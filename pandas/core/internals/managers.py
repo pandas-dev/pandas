@@ -1007,12 +1007,10 @@ class BlockManager(PandasObject):
             self.axes[1],
         )
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete selected item (items if non-unique) in-place.
+        Delete selected locations in-place (new block and array, same BlockManager)
         """
-        indexer = self.items.get_loc(item)
-
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
         ref_loc_offset = -is_deleted.cumsum()
@@ -1568,7 +1566,7 @@ class SingleBlockManager(BlockManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=range(len(array)))
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[slobj])
 
     @property
@@ -1606,15 +1604,14 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete single item from SingleBlockManager.
+        Delete single location from SingleBlockManager.
 
         Ensures that self.blocks doesn't become empty.
         """
-        loc = self.items.get_loc(item)
-        self._block.delete(loc)
-        self.axes[0] = self.axes[0].delete(loc)
+        self._block.delete(indexer)
+        self.axes[0] = self.axes[0].delete(indexer)
 
     def fast_xs(self, loc):
         """
