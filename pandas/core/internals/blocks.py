@@ -679,7 +679,6 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        filter=None,
         regex: bool = False,
         convert: bool = True,
     ):
@@ -711,12 +710,7 @@ class Block(PandasObject):
                 # _can_hold_element checks have reduced this back to the
                 #  scalar case and we can avoid a costly object cast
                 return self.replace(
-                    to_replace[0],
-                    value,
-                    inplace=inplace,
-                    filter=filter,
-                    regex=regex,
-                    convert=convert,
+                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert,
                 )
 
             # GH 22083, TypeError or ValueError occurred within error handling
@@ -730,7 +724,6 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
-                filter=filter,
                 regex=regex,
                 convert=convert,
             )
@@ -743,9 +736,6 @@ class Block(PandasObject):
             to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
-        if filter is not None:
-            filtered_out = ~self.mgr_locs.isin(filter)
-            mask[filtered_out.nonzero()[0]] = False
 
         if not mask.any():
             if inplace:
@@ -774,7 +764,6 @@ class Block(PandasObject):
                 to_replace=original_to_replace,
                 value=value,
                 inplace=inplace,
-                filter=filter,
                 regex=regex,
                 convert=convert,
             )
@@ -2391,20 +2380,13 @@ class BoolBlock(NumericBlock):
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
-    def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
-    ):
+    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
         inplace = validate_bool_kwarg(inplace, "inplace")
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
         return super().replace(
-            to_replace,
-            value,
-            inplace=inplace,
-            filter=filter,
-            regex=regex,
-            convert=convert,
+            to_replace, value, inplace=inplace, regex=regex, convert=convert,
         )
 
 
@@ -2478,9 +2460,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
-    ):
+    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
@@ -2491,33 +2471,18 @@ class ObjectBlock(Block):
 
         if not either_list and is_re(to_replace):
             return self._replace_single(
-                to_replace,
-                value,
-                inplace=inplace,
-                filter=filter,
-                regex=True,
-                convert=convert,
+                to_replace, value, inplace=inplace, regex=True, convert=convert,
             )
         elif not (either_list or regex):
             return super().replace(
-                to_replace,
-                value,
-                inplace=inplace,
-                filter=filter,
-                regex=regex,
-                convert=convert,
+                to_replace, value, inplace=inplace, regex=regex, convert=convert,
             )
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep,
-                        v,
-                        inplace=inplace,
-                        filter=filter,
-                        regex=regex,
-                        convert=convert,
+                        to_rep, v, inplace=inplace, regex=regex, convert=convert,
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
@@ -2528,35 +2493,18 @@ class ObjectBlock(Block):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep,
-                        value,
-                        inplace=inplace,
-                        filter=filter,
-                        regex=regex,
-                        convert=convert,
+                        to_rep, value, inplace=inplace, regex=regex, convert=convert,
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
         return self._replace_single(
-            to_replace,
-            value,
-            inplace=inplace,
-            filter=filter,
-            convert=convert,
-            regex=regex,
+            to_replace, value, inplace=inplace, convert=convert, regex=regex,
         )
 
     def _replace_single(
-        self,
-        to_replace,
-        value,
-        inplace=False,
-        filter=None,
-        regex=False,
-        convert=True,
-        mask=None,
+        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None,
     ):
         """
         Replace elements by the given value.
@@ -2569,7 +2517,6 @@ class ObjectBlock(Block):
             Replacement object.
         inplace : bool, default False
             Perform inplace modification.
-        filter : list, optional
         regex : bool, default False
             If true, perform regular expression substitution.
         convert : bool, default True
@@ -2615,9 +2562,7 @@ class ObjectBlock(Block):
         else:
             # if the thing to replace is not a string or compiled regex call
             # the superclass method -> to_replace is some kind of object
-            return super().replace(
-                to_replace, value, inplace=inplace, filter=filter, regex=regex
-            )
+            return super().replace(to_replace, value, inplace=inplace, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -2642,15 +2587,10 @@ class ObjectBlock(Block):
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
-        if filter is None:
-            filt = slice(None)
-        else:
-            filt = self.mgr_locs.isin(filter).nonzero()[0]
-
         if mask is None:
-            new_values[filt] = f(new_values[filt])
+            new_values[:] = f(new_values)
         else:
-            new_values[filt][mask] = f(new_values[filt][mask])
+            new_values[mask] = f(new_values[mask])
 
         # convert
         block = self.make_block(new_values)
@@ -2747,7 +2687,6 @@ class CategoricalBlock(ExtensionBlock):
         to_replace,
         value,
         inplace: bool = False,
-        filter=None,
         regex: bool = False,
         convert: bool = True,
     ):

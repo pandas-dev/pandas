@@ -6458,7 +6458,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
         if not (
             is_scalar(to_replace)
-            or isinstance(to_replace, pd.Series)
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
@@ -6549,18 +6548,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    keys = [(k, src) for k, src in to_replace.items() if k in self]
-                    keys_len = len(keys) - 1
-                    for i, (k, src) in enumerate(keys):
-                        convert = i == keys_len
-                        new_data = new_data.replace(
-                            to_replace=src,
-                            value=value,
-                            filter=[k],
-                            inplace=inplace,
-                            regex=regex,
-                            convert=convert,
-                        )
+
+                    # Operate column-wise
+                    res = self if inplace else self.copy()
+                    ax = self._info_axis
+                    # Note: we only get here with self.ndim == 2
+                    for i in range(len(ax)):
+                        if ax[i] in to_replace:
+                            ser = self._ixs(i, axis=1)
+                            newobj = ser.replace(to_replace[ax[i]], value, regex=regex)
+                            res.iloc[:, i] = newobj
+
+                    if inplace:
+                        return
+                    return res.__finalize__(self)
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
@@ -6601,17 +6602,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._mgr
 
-                    for k, v in value.items():
-                        if k in self:
-                            new_data = new_data.replace(
-                                to_replace=to_replace,
-                                value=v,
-                                filter=[k],
-                                inplace=inplace,
-                                regex=regex,
-                            )
+                    # Operate column-wise
+                    res = self if inplace else self.copy()
+                    ax = self._info_axis
+                    for i in range(len(ax)):
+                        if ax[i] in value:
+                            v = value[ax[i]]
+                            ser = self._ixs(i, axis=1)
+                            newobj = ser.replace(to_replace, value=v, regex=regex)
+                            res.iloc[:, i] = newobj
+
+                    if inplace:
+                        return
+                    return res.__finalize__(self)
 
                 elif not is_list_like(value):  # NA -> 0
                     new_data = self._mgr.replace(

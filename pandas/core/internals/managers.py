@@ -375,7 +375,7 @@ class BlockManager(PandasObject):
 
         return res
 
-    def apply(self: T, f, filter=None, align_keys=None, **kwargs) -> T:
+    def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -383,25 +383,16 @@ class BlockManager(PandasObject):
         ----------
         f : str or callable
             Name of the Block method to apply.
-        filter : list, if supplied, only call the block if the filter is in
-                 the block
 
         Returns
         -------
         BlockManager
         """
+        assert "filter" not in kwargs
+
         align_keys = align_keys or []
         result_blocks = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
-
-        # filter kwarg is used in replace-* family of methods
-        if filter is not None:
-            filter_locs = set(self.items.get_indexer_for(filter))
-            if len(filter_locs) == len(self.items):
-                # All items are included, as if there were no filtering
-                filter = None
-            else:
-                kwargs["filter"] = filter_locs
 
         self._consolidate_inplace()
 
@@ -416,10 +407,6 @@ class BlockManager(PandasObject):
         }
 
         for b in self.blocks:
-            if filter is not None:
-                if not b.mgr_locs.isin(filter_locs).any():
-                    result_blocks.append(b)
-                    continue
 
             if aligned_args:
                 b_items = self.items[b.mgr_locs.indexer]
