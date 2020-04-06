@@ -461,8 +461,6 @@ specification:
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
-.. versionadded:: 0.21.0
-
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
@@ -2170,8 +2168,6 @@ Line delimited json
 
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
-
-.. versionadded:: 0.21.0
 
 For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
 
@@ -4645,8 +4641,6 @@ Read from a feather file.
 
 Parquet
 -------
-
-.. versionadded:: 0.21.0
 
 `Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
