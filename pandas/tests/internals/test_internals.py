@@ -232,21 +232,6 @@ class TestBlock:
         assert self.fblock.dtype == self.fblock.values.dtype
         assert len(self.fblock) == len(self.fblock.values)
 
-    def test_merge(self):
-        avals = tm.randn(2, 10)
-        bvals = tm.randn(2, 10)
-
-        ref_cols = Index(["e", "a", "b", "d", "f"])
-
-        ablock = make_block(avals, ref_cols.get_indexer(["e", "b"]))
-        bblock = make_block(bvals, ref_cols.get_indexer(["a", "d"]))
-        merged = ablock.merge(bblock)
-        tm.assert_numpy_array_equal(
-            merged.mgr_locs.as_array, np.array([0, 1, 2, 3], dtype=np.int64)
-        )
-        tm.assert_numpy_array_equal(merged.values[[0, 2]], np.array(avals))
-        tm.assert_numpy_array_equal(merged.values[[1, 3]], np.array(bvals))
-
     def test_copy(self):
         cop = self.fblock.copy()
         assert cop is not self.fblock
@@ -315,10 +300,6 @@ class TestBlockManager:
         blocks[1].mgr_locs = np.array([1])
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
-
-    def test_contains(self, mgr):
-        assert "a" in mgr
-        assert "baz" not in mgr
 
     def test_pickle(self, mgr):
 

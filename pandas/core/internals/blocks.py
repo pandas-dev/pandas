@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
+from pandas._libs import NaT, Timestamp, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -306,9 +306,6 @@ class Block(PandasObject):
     @property
     def dtype(self):
         return self.values.dtype
-
-    def merge(self, other):
-        return _merge_blocks([self, other])
 
     def concat_same_type(self, to_concat):
         """
@@ -651,12 +648,10 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
 
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 
@@ -1287,7 +1282,7 @@ class Block(PandasObject):
         new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis: int = 0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value=None):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1715,11 +1710,9 @@ class ExtensionBlock(Block):
     def array_values(self) -> ExtensionArray:
         return self.values
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
         values = self.values
-        if slicer is not None:
-            values = values[slicer]
         mask = isna(values)
 
         values = np.asarray(values.astype(object))
@@ -1937,18 +1930,10 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self,
-        slicer=None,
-        na_rep="",
-        float_format=None,
-        decimal=".",
-        quoting=None,
-        **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
     ):
-        """ convert to our native types format, slicing if desired """
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
 
         # see gh-13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
@@ -2131,27 +2116,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
-    ):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        i8values = self.values.view("i8")
+    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
+        """ convert to our native types format """
+        dta = self.array_values()
 
-        if slicer is not None:
-            values = values[..., slicer]
-            i8values = i8values[..., slicer]
-
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(values, date_format)
-
-        result = tslib.format_array_from_datetime(
-            i8values.ravel(),
-            tz=getattr(self.values, "tz", None),
-            format=fmt,
-            na_rep=na_rep,
-        ).reshape(i8values.shape)
+        result = dta._format_native_types(
+            na_rep=na_rep, date_format=date_format, **kwargs
+        )
         return np.atleast_2d(result)
 
     def set(self, locs, values):
@@ -2387,11 +2358,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep=None, quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
 
         rvalues = np.empty(values.shape, dtype=object)
@@ -2901,32 +2870,6 @@ def _block_shape(values, ndim=1, shape=None):
             # We can't, and don't need to, reshape.
             values = values.reshape(tuple((1,) + shape))
     return values
-
-
-def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
-
-    if len(blocks) == 1:
-        return blocks[0]
-
-    if _can_consolidate:
-
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
-        # FIXME: optimization potential in case all mgrs contain slices and
-        # combination of those slices is a slice, too.
-        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
-
-        argsort = np.argsort(new_mgr_locs)
-        new_values = new_values[argsort]
-        new_mgr_locs = new_mgr_locs[argsort]
-
-        return make_block(new_values, placement=new_mgr_locs)
-
-    # no merge
-    return blocks
 
 
 def _safe_reshape(arr, new_shape):
