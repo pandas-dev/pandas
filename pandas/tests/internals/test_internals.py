@@ -301,10 +301,6 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_contains(self, mgr):
-        assert "a" in mgr
-        assert "baz" not in mgr
-
     def test_pickle(self, mgr):
 
         mgr2 = tm.round_trip_pickle(mgr)

@@ -613,8 +613,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         fmt = _get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
-        )
+            self.asi8.ravel(), tz=self.tz, format=fmt, na_rep=na_rep
+        ).reshape(self.shape)
 
     # -----------------------------------------------------------------
     # Comparison Methods
