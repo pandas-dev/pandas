@@ -276,7 +276,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement in :meth:`Series.sum` for nullable (integer and boolean) dtypes (:issue:`30982`).
+- Performance improvement in reductions (sum, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`).
 
 
 .. ---------------------------------------------------------------------------
