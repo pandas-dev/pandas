@@ -1007,12 +1007,10 @@ class BlockManager(PandasObject):
             self.axes[1],
         )
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete selected item (items if non-unique) in-place.
+        Delete selected locations in-place (new block and array, same BlockManager)
         """
-        indexer = self.items.get_loc(item)
-
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
         ref_loc_offset = -is_deleted.cumsum()
@@ -1299,14 +1297,14 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_tuple=(fill_value,))
+            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
         else:
             new_blocks = [
                 blk.take_nd(
                     indexer,
                     axis=axis,
-                    fill_tuple=(
-                        fill_value if fill_value is not None else blk.fill_value,
+                    fill_value=(
+                        fill_value if fill_value is not None else blk.fill_value
                     ),
                 )
                 for blk in self.blocks
@@ -1317,7 +1315,7 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
+    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
         """
         Slice/take blocks along axis=0.
 
@@ -1327,7 +1325,7 @@ class BlockManager(PandasObject):
         -------
         new_blocks : list of Block
         """
-        allow_fill = fill_tuple is not None
+        allow_fill = fill_value is not lib.no_default
 
         sl_type, slobj, sllen = _preprocess_slice_or_indexer(
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
@@ -1339,16 +1337,15 @@ class BlockManager(PandasObject):
             if sl_type in ("slice", "mask"):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
-                if allow_fill and fill_tuple[0] is None:
+                if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
-                    fill_tuple = (fill_value,)
 
                 return [
                     blk.take_nd(
                         slobj,
                         axis=0,
                         new_mgr_locs=slice(0, sllen),
-                        fill_tuple=fill_tuple,
+                        fill_value=fill_value,
                     )
                 ]
 
@@ -1371,8 +1368,7 @@ class BlockManager(PandasObject):
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
-                # If we've got here, fill_tuple was not None.
-                fill_value = fill_tuple[0]
+                # If we've got here, fill_value was not lib.no_default
 
                 blocks.append(
                     self._make_na_block(placement=mgr_locs, fill_value=fill_value)
@@ -1393,10 +1389,7 @@ class BlockManager(PandasObject):
                 else:
                     blocks.append(
                         blk.take_nd(
-                            blklocs[mgr_locs.indexer],
-                            axis=0,
-                            new_mgr_locs=mgr_locs,
-                            fill_tuple=None,
+                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
                         )
                     )
 
@@ -1606,15 +1599,14 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete single item from SingleBlockManager.
+        Delete single location from SingleBlockManager.
 
         Ensures that self.blocks doesn't become empty.
         """
-        loc = self.items.get_loc(item)
-        self._block.delete(loc)
-        self.axes[0] = self.axes[0].delete(loc)
+        self._block.delete(indexer)
+        self.axes[0] = self.axes[0].delete(indexer)
 
     def fast_xs(self, loc):
         """
