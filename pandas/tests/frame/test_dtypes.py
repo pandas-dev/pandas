@@ -248,12 +248,7 @@ class TestDataFrameDataTypes:
             {
                 "a": list(map(str, map(lambda x: Timestamp(x)._date_repr, a._values))),
                 "b": list(map(str, map(Timestamp, b._values))),
-                "c": list(
-                    map(
-                        str,
-                        map(lambda x: Timedelta(x)._repr_base(format="all"), c._values),
-                    )
-                ),
+                "c": list(map(lambda x: Timedelta(x)._repr_base(), c._values)),
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             }
