@@ -499,7 +499,8 @@ class IntegerArray(BaseMaskedArray):
         ExtensionArray.argsort
         """
         data = self._data.copy()
-        data[self._mask] = data.min() - 1
+        if self._mask.any():
+            data[self._mask] = data.min() - 1
         return data
 
     @classmethod
