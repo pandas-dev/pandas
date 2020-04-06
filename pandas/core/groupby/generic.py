@@ -266,10 +266,14 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             try:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
             except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
@@ -933,6 +937,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = maybe_mangle_lambdas(func)
+
+        if engine == "numba":
+            return self._python_agg_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:

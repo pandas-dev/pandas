@@ -879,7 +879,9 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         func = self._is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -892,11 +894,21 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            try:
-                # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
-            except TypeError:
-                continue
+            if engine == "numba":
+                result, counts = self.grouper.agg_series(
+                    obj,
+                    func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+            else:
+                try:
+                    # if this function is invalid for this dtype, we will ignore it.
+                    result, counts = self.grouper.agg_series(obj, f)
+                except TypeError:
+                    continue
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)

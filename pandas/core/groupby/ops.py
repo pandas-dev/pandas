@@ -608,10 +608,16 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        if engine == "numba":
+            return self._aggregate_series_pure_python(
+                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -656,7 +662,9 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func):
+    def _aggregate_series_pure_python(
+        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         group_index, _, ngroups = self.group_info
 
