@@ -1078,7 +1078,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
-        
+
         Plot stacked bar chars for the DataFrame
 
         .. plot::
