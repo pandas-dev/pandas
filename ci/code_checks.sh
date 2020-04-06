@@ -296,6 +296,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests strings.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/strings.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Directories
 
     MSG='Doctests arrays'; echo $MSG
