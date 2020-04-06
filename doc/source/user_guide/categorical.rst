@@ -211,8 +211,6 @@ To get back to the original ``Series`` or NumPy array, use
 CategoricalDtype
 ----------------
 
-.. versionchanged:: 0.21.0
-
 A categorical's type is fully described by
 
 1. ``categories``: a sequence of unique values and no missing values

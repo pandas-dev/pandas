@@ -49,34 +49,6 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             self._holder()
 
-    def test_to_series(self):
-        # assert that we are creating a copy of the index
-
-        idx = self.create_index()
-        s = idx.to_series()
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name == idx.name
-
-    def test_to_series_with_arguments(self):
-        # GH18699
-
-        # index kwarg
-        idx = self.create_index()
-        s = idx.to_series(index=idx)
-
-        assert s.values is not idx.values
-        assert s.index is idx
-        assert s.name == idx.name
-
-        # name kwarg
-        idx = self.create_index()
-        s = idx.to_series(name="__test")
-
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name != idx.name
-
     @pytest.mark.parametrize("name", [None, "new_name"])
     def test_to_frame(self, name):
         # see GH-15230, GH-22580
@@ -198,15 +170,6 @@ class Base:
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_boolean_context_compat(self):
-
-        # boolean context compat
-        idx = self.create_index()
-
-        with pytest.raises(ValueError, match="The truth value of a"):
-            if idx:
-                pass
-
     def test_reindex_base(self):
         idx = self.create_index()
         expected = np.arange(idx.size, dtype=np.intp)
@@ -252,14 +215,6 @@ class Base:
 
         idx = self.create_index()
         tm.assert_index_equal(eval(repr(idx)), idx)
-
-    def test_str(self):
-
-        # test the string repr
-        idx = self.create_index()
-        idx.name = "foo"
-        assert "'foo'" in str(idx)
-        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -313,16 +268,11 @@ class Base:
             result = result.tz_localize("UTC").tz_convert(indices.tz)
 
         tm.assert_index_equal(indices, result)
-        tm.assert_numpy_array_equal(
-            indices._ndarray_values, result._ndarray_values, check_same="copy"
-        )
 
         if isinstance(indices, PeriodIndex):
             # .values an object array of Period, thus copied
             result = index_type(ordinal=indices.asi8, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
-            )
+            tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
         elif isinstance(indices, IntervalIndex):
             # checked in test_interval.py
             pass
@@ -330,9 +280,6 @@ class Base:
             result = index_type(indices.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(
                 indices.values, result.values, check_same="same"
-            )
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
             )
 
     def test_memory_usage(self, indices):
@@ -919,6 +866,19 @@ class Base:
 
         with pytest.raises(TypeError):
             {} in idx._engine
+
+    def test_copy_copies_cache(self):
+        # GH32898
+        idx = self.create_index()
+        idx.get_loc(idx[0])  # populates the _cache.
+        copy = idx.copy()
+
+        # check that the copied cache is a copy of the original
+        assert idx._cache == copy._cache
+        assert idx._cache is not copy._cache
+        # cache values should reference the same object
+        for key, val in idx._cache.items():
+            assert copy._cache[key] is val, key
 
     def test_shallow_copy_copies_cache(self):
         # GH32669
