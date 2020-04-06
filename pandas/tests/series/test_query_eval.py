@@ -310,12 +310,6 @@ class TestSeriesQueryBacktickQuoting:
          name = "  &^ :!€$?(} >    <++*''  "))
         run_test(series, "1 < `  &^ :!€$?(} >    <++*''  `")
 
-    def test_failing_quote(self):
-        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
-            name = "it's"))
-        with pytest.raises(SyntaxError):
-            series.query("`it's` > 4")
-
     def test_failing_character_outside_range(self):
         series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
             name = "☺"))
