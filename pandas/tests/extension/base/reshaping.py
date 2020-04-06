@@ -27,7 +27,7 @@ class BaseReshapingTests(BaseExtensionTests):
             dtype = result.dtype
 
         assert dtype == data.dtype
-        assert isinstance(result._data.blocks[0], ExtensionBlock)
+        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):

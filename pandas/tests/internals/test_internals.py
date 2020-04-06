@@ -1176,7 +1176,7 @@ class TestShouldStore:
     def test_should_store_categorical(self):
         cat = pd.Categorical(["A", "B", "C"])
         df = pd.DataFrame(cat)
-        blk = df._data.blocks[0]
+        blk = df._mgr.blocks[0]
 
         # matching dtype
         assert blk.should_store(cat)
@@ -1218,7 +1218,7 @@ def test_block_shape():
     a = pd.Series([1, 2, 3]).reindex(idx)
     b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
-    assert a._data.blocks[0].mgr_locs.indexer == b._data.blocks[0].mgr_locs.indexer
+    assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
 
 def test_make_block_no_pandas_array():
