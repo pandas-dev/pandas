@@ -251,7 +251,7 @@ class TestTableOrient:
         df_json = df.to_json()
         df_dict = json.loads(df_json)
         result = pd.read_json(df_json)
-        expected = pd.read_json(df_json)
+        expected = pd.DataFrame().from_dict(df_dict)
         tm.assert_frame_equal(result, expected)
 
     def test_to_json(self):
