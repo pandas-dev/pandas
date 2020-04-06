@@ -171,7 +171,9 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
 
     Returns
     -------
-    (year : int32_t, week : int32_t, day : int32_t)
+    year : int32_t
+    week : int32_t
+    day : int32_t
 
     Notes
     -----
