@@ -294,6 +294,7 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -305,6 +306,7 @@ Datetimelike
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
 - Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
 - Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
+- Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 
 Timedelta
 ^^^^^^^^^
@@ -461,7 +463,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
 -
 
 

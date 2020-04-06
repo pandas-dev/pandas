@@ -661,7 +661,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._constructor(
             self._values.view(dtype), index=self.index
-        ).__finalize__(self)
+        ).__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -829,7 +829,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self._constructor(
             new_values, index=new_index, fastpath=True
-        ).__finalize__(self)
+        ).__finalize__(self, method="take")
 
     def _take_with_is_copy(self, indices, axis=0):
         """
@@ -962,12 +962,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
+            self,
         )
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self)
+            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self,)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -1181,7 +1181,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="repeat"
+        )
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -1308,7 +1310,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self._constructor(
                     self._values.copy(), index=new_index
-                ).__finalize__(self)
+                ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -1707,7 +1709,9 @@ Name: Max Speed, dtype: float64
 
         obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
-        return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
+        return self._constructor(out, index=lev, dtype="int64").__finalize__(
+            self, method="count"
+        )
 
     def mode(self, dropna=True) -> "Series":
         """
@@ -2130,7 +2134,9 @@ Name: Max Speed, dtype: float64
         """
         nv.validate_round(args, kwargs)
         result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index).__finalize__(self)
+        result = self._constructor(result, index=self.index).__finalize__(
+            self, method="round"
+        )
 
         return result
 
@@ -2352,7 +2358,9 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         result = algorithms.diff(self.array, periods)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="diff"
+        )
 
     def autocorr(self, lag=1) -> float:
         """
@@ -2469,7 +2477,7 @@ Name: Max Speed, dtype: float64
         if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
-            ).__finalize__(self)
+            ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
         elif isinstance(rvals, np.ndarray):
@@ -2994,7 +3002,7 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
@@ -3172,7 +3180,7 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
@@ -3206,11 +3214,13 @@ Name: Max Speed, dtype: float64
             result = Series(-1, index=self.index, name=self.name, dtype="int64")
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(self)
+            return self._constructor(result, index=self.index).__finalize__(
+                self, method="argsort"
+            )
         else:
             return self._constructor(
                 np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self)
+            ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> "Series":
         """
@@ -3428,7 +3438,7 @@ Name: Max Speed, dtype: float64
         assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self
+            self, method="swaplevel"
         )
 
     def reorder_levels(self, order) -> "Series":
@@ -3632,7 +3642,9 @@ Name: Max Speed, dtype: float64
         dtype: object
         """
         new_values = super()._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(self)
+        return self._constructor(new_values, index=self.index).__finalize__(
+            self, method="map"
+        )
 
     def _gotitem(self, key, ndim, subset=None) -> "Series":
         """
@@ -3819,7 +3831,7 @@ Name: Max Speed, dtype: float64
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype, index=self.index).__finalize__(
-                self
+                self, method="apply"
             )
 
         # dispatch to agg
@@ -3856,7 +3868,9 @@ Name: Max Speed, dtype: float64
             # so extension arrays can be used
             return self._constructor_expanddim(pd.array(mapped), index=self.index)
         else:
-            return self._constructor(mapped, index=self.index).__finalize__(self)
+            return self._constructor(mapped, index=self.index).__finalize__(
+                self, method="apply"
+            )
 
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
@@ -4297,7 +4311,9 @@ Name: Max Speed, dtype: float64
         Name: animal, dtype: bool
         """
         result = algorithms.isin(self, values)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="isin"
+        )
 
     def between(self, left, right, inclusive=True) -> "Series":
         """
@@ -4533,7 +4549,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_timestamp"
+        )
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
@@ -4558,7 +4576,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_period"
+        )
 
     # ----------------------------------------------------------------------
     # Add index
