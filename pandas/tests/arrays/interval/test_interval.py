@@ -106,7 +106,7 @@ class TestSetitem:
         result = IntervalArray.from_arrays(left, right)
 
         if result.dtype.subtype.kind in ["i", "u"]:
-            msg = "Cannot set float values for integer-backed IntervalArray"
+            msg = "Cannot set float NaN to integer-backed IntervalArray"
             with pytest.raises(ValueError, match=msg):
                 result[0] = np.NaN
             return

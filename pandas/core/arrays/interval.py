@@ -543,22 +543,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 raise TypeError(msg) from err
 
         if needs_float_conversion:
-            raise ValueError("Cannot set float values for integer-backed IntervalArray")
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
 
         key = check_array_indexer(self, key)
 
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        if needs_float_conversion:
-            left = left.astype("float")
-        left.values[key] = value_left
+        left._values[key] = value_left
         self._left = left
 
         right = self.right.copy(deep=True)
-        if needs_float_conversion:
-            right = right.astype("float")
-        right.values[key] = value_right
+        right._values[key] = value_right
         self._right = right
 
     def __eq__(self, other):

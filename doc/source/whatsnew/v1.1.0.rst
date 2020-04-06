@@ -344,7 +344,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :class:`IntervalArray` incorrectly allowing the underlying data to be changed when setting values (:issue:`32782`)
 -
 
 Indexing
