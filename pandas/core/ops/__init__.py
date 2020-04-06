@@ -325,8 +325,8 @@ def operate_blockwise(left, right, array_op):
         return lvals, rvals
 
     res_blks: List["Block"] = []
-    rmgr = right._data
-    for n, blk in enumerate(left._data.blocks):
+    rmgr = right._mgr
+    for n, blk in enumerate(left._mgr.blocks):
         locs = blk.mgr_locs
         blk_vals = blk.values
 
