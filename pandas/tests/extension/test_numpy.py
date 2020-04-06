@@ -171,9 +171,10 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         super().test_take_series(data)
 
     def test_loc_iloc_frame_single_dtype(self, data):
-        if data.dtype.numpy_dtype == object:
+        npdtype = data.dtype.numpy_dtype
+        if npdtype == object or npdtype == np.float64:
             # GH#33125
-            pytest.xfail(reason="astype doesn't recognize data.dtype")
+            pytest.xfail(reason="GH#33125 astype doesn't recognize data.dtype")
         super().test_loc_iloc_frame_single_dtype(data)
 
 
@@ -181,6 +182,8 @@ class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     @skip_nested
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         # ValueError: Names should be list-like for a MultiIndex
+        if data_for_grouping.dtype.numpy_dtype == np.float64:
+            pytest.xfail(reason="GH#33125 astype doesn't recognize data.dtype")
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
@@ -278,7 +281,11 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
-    pass
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_series_repr(self, data):
+        super().test_series_repr(data)
 
 
 @skip_nested
@@ -322,6 +329,18 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     # not actually a mixed concat, since we concat int and int.
     def test_concat_mixed_dtypes(self, data):
         super().test_concat_mixed_dtypes(data)
+
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
+
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_concat_all_na_block(self, data_missing, in_frame):
+        super().test_concat_all_na_block(data_missing, in_frame)
 
     @skip_nested
     def test_merge(self, data, na_value):
