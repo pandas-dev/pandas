@@ -127,11 +127,13 @@ class FrameWithFrameWide:
         df = pd.DataFrame(arr)
         df[1000] = df[1000].astype(np.float32)
         df.iloc[:, 1000:] = df.iloc[:, 1000:].astype(np.float32)
+        df._consolidate_inplace()
 
         # TODO: GH#33198 the setting here shoudlnt need two steps
         df2 = pd.DataFrame(arr)
         df2[1000] = df2[1000].astype(np.int64)
         df2.iloc[:, 500:1500] = df2.iloc[:, 500:1500].astype(np.int64)
+        df2._consolidate_inplace()
 
         self.left = df
         self.right = df
