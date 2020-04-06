@@ -306,9 +306,6 @@ def read_hdf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-
-        .. versionadded:: 0.21.0 support for __fspath__ protocol.
-
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -1461,8 +1458,6 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
-
-        .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -4682,7 +4677,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
-    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    # we won't get inferred_type of "datetime64" or "timedelta64" as these
     #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)

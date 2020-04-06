@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
@@ -53,9 +52,6 @@ class TestFancy:
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
-    @pytest.mark.parametrize(
         "obj",
         [
             lambda i: Series(np.arange(len(i)), index=i),
@@ -71,9 +67,9 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
@@ -83,16 +79,16 @@ class TestFancy:
                 "Cannot index with multidimensional key",
                 r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
                 "Index data must be 1-dimensional",
+                "positional indexers are out-of-bounds",
+                "Indexing a MultiIndex with a multidimensional key is not implemented",
             ]
         )
 
-        with pytest.raises(ValueError, match=msg):
+        potential_errors = (IndexError, ValueError, NotImplementedError)
+        with pytest.raises(potential_errors, match=msg):
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -109,17 +105,25 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        if (
+            (len(indices) == 0)
+            and (idxr_id == "iloc")
+            and isinstance(obj, pd.DataFrame)
+        ):
+            # gh-32896
+            pytest.skip("This is currently failing. There's an xfailed test below.")
 
         if idxr_id == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
-            isinstance(index, pd.IntervalIndex)
+            isinstance(indices, pd.IntervalIndex)
             and idxr_id == "setitem"
             and obj.ndim == 1
         ):
@@ -133,6 +137,17 @@ class TestFancy:
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
+
+    @pytest.mark.xfail(reason="gh-32896")
+    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
+        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
+        i = Index([])
+        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
@@ -605,69 +620,6 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
-        ],
-    )
-    def test_index_contains(self, index, val):
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), "2"),
-            (Index([0, 1, "2"]), 2),
-            (Index([0, 1, 2, np.inf]), 4),
-            (Index([0, 1, 2, np.nan]), 4),
-            (Index([0, 1, 2, np.inf]), np.nan),
-            (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
-            # Related to GH 16957
-            (pd.Int64Index([0, 1, 2]), np.inf),
-            (pd.Int64Index([0, 1, 2]), np.nan),
-            (pd.UInt64Index([0, 1, 2]), np.inf),
-            (pd.UInt64Index([0, 1, 2]), np.nan),
-        ],
-    )
-    def test_index_not_contains(self, index, val):
-        assert val not in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
-        # GH 19860
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
-    def test_mixed_index_not_contains(self, index, val):
-        # GH 19860
-        assert val not in index
-
-    def test_contains_with_float_index(self):
-        # GH#22085
-        integer_index = pd.Int64Index([0, 1, 2, 3])
-        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
-        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
-
-        for index in (integer_index, uinteger_index):
-            assert 1.1 not in index
-            assert 1.0 in index
-            assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
-
     def test_index_type_coercion(self):
 
         # GH 11836
@@ -1033,30 +985,6 @@ class TestDataframeNoneCoercion:
             }
         )
         tm.assert_frame_equal(start_dataframe, exp)
-
-
-def test_validate_indices_ok():
-    indices = np.asarray([0, 1])
-    validate_indices(indices, 2)
-    validate_indices(indices[:0], 0)
-    validate_indices(np.array([-1, -1]), 0)
-
-
-def test_validate_indices_low():
-    indices = np.asarray([0, -2])
-    with pytest.raises(ValueError, match="'indices' contains"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_high():
-    indices = np.asarray([0, 1, 2])
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_empty():
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(np.array([0, 1]), 0)
 
 
 def test_extension_array_cross_section():

@@ -91,23 +91,23 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     See Also
     --------
-    DateOffset
+    DateOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
-    >>> to_offset('5min')
+    >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset('1D1H')
+    >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(('W', 2))
+    >>> to_offset(("W", 2))
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, 'B'))
+    >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
@@ -147,13 +147,11 @@ def to_offset(freq) -> Optional[DateOffset]:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(libfreqs.opattern, freq)
-            if splitted[-1] != "" and not splitted[-1].isspace():
+            split = re.split(libfreqs.opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
-            for sep, stride, name in zip(
-                splitted[0::4], splitted[1::4], splitted[2::4]
-            ):
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = libfreqs._lite_rule_alias.get(name) or name

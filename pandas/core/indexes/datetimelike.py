@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import DateOffset, to_offset
+from pandas.tseries.frequencies import DateOffset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -623,19 +623,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         freq : DateOffset, None, or "infer"
         """
         # GH#29843
-        if freq is None:
-            # Always valid
-            pass
-        elif len(self) == 0 and isinstance(freq, DateOffset):
-            # Always valid.  In the TimedeltaIndex case, we assume this
-            #  is a Tick offset.
-            pass
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
-            freq = to_offset(self.inferred_freq)
-
-        self._data._freq = freq
+        self._data._with_freq(freq)
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name

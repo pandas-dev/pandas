@@ -27,7 +27,11 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
-from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
+from pandas.core.dtypes.cast import (
+    convert_dtypes,
+    maybe_cast_to_extension_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -59,7 +63,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, try_cast_to_ea
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -70,7 +74,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import maybe_convert_indices, unpack_1tuple
+from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
@@ -414,10 +418,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # The ensure_index call aabove ensures we have an Index object
             self._data.set_axis(axis, labels)
 
-    def _update_inplace(self, result, **kwargs):
-        # we want to call the generic version and not the IndexOpsMixin
-        return generic.NDFrame._update_inplace(self, result, **kwargs)
-
     # ndarray compatibility
     @property
     def dtype(self) -> DtypeObj:
@@ -431,7 +431,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        # DataFrame compatibility
+        return self.dtype
 
     @property
     def name(self) -> Label:
@@ -824,15 +825,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
-
-        if is_categorical_dtype(self):
-            # https://github.com/pandas-dev/pandas/issues/20664
-            # TODO: remove when the default Categorical.take behavior changes
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
-            kwargs = {"allow_fill": False}
-        else:
-            kwargs = {}
-        new_values = self._values.take(indices, **kwargs)
+        new_values = self._values.take(indices)
 
         return self._constructor(
             new_values, index=new_index, fastpath=True
@@ -910,7 +903,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determing if this slice is positional
+            # _convert_slice_indexer to determin if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -974,9 +967,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
-            ).__finalize__(self)
+            return self._constructor(self._data.get_slice(indexer)).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -1518,8 +1509,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         collections.abc.Mapping
@@ -1716,7 +1705,7 @@ Name: Max Speed, dtype: float64
             level_codes[mask] = cnt = len(lev)
             lev = lev.insert(cnt, lev._na_value)
 
-        obs = level_codes[notna(self.values)]
+        obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
 
@@ -1805,7 +1794,7 @@ Name: Max Speed, dtype: float64
         result = super().unique()
         return result
 
-    def drop_duplicates(self, keep="first", inplace=False) -> "Series":
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
         Return Series with duplicate values removed.
 
@@ -1880,7 +1869,13 @@ Name: Max Speed, dtype: float64
         5     hippo
         Name: animal, dtype: object
         """
-        return super().drop_duplicates(keep=keep, inplace=inplace)
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = super().drop_duplicates(keep=keep)
+        if inplace:
+            self._update_inplace(result)
+            return None
+        else:
+            return result
 
     def duplicated(self, keep="first") -> "Series":
         """
@@ -2718,9 +2713,10 @@ Name: Max Speed, dtype: float64
         if is_categorical_dtype(self.dtype):
             pass
         elif is_extension_array_dtype(self.dtype):
+            # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = try_cast_to_ea(self._values, new_values)
+            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":
@@ -2812,7 +2808,7 @@ Name: Max Speed, dtype: float64
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._data = self._data.putmask(mask=mask, new=other)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------
@@ -3852,7 +3848,7 @@ Name: Max Speed, dtype: float64
                 # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
-                values = self.astype(object).values
+                values = self.astype(object)._values
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
@@ -3958,7 +3954,7 @@ Name: Max Speed, dtype: float64
         Parameters
         ----------
         axis : {0 or "index"}
-            Unused. Accepted for compatability with DataFrame method only.
+            Unused. Accepted for compatibility with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -4069,12 +4065,8 @@ Name: Max Speed, dtype: float64
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             No change is made to the Series; use 'index' or 'labels' instead.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False

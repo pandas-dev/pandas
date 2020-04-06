@@ -58,8 +58,8 @@ _POSSIBLY_CAST_DTYPES = {
     ]
 }
 
-_NS_DTYPE = conversion.NS_DTYPE
-_TD_DTYPE = conversion.TD_DTYPE
+DT64NS_DTYPE = conversion.DT64NS_DTYPE
+TD64NS_DTYPE = conversion.TD64NS_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
@@ -188,7 +188,9 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
+        raise TypeError(
+            f"Value needs to be a scalar value, was type {type(value).__name__}"
+        )
     try:
         new_value = int(value)
         assert new_value == value
@@ -979,7 +981,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = _get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == _NS_DTYPE or getattr(tipo, "base", None) == _NS_DTYPE
+    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
@@ -1010,7 +1012,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
     False
     """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype == _TD_DTYPE)
+    return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
