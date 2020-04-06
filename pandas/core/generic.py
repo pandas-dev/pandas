@@ -3548,8 +3548,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         res = cache.get(item)
         if res is None:
             # All places that call _get_item_cache have unique columns,
-            #  assuming this lets us simplify whats left
-            assert self.columns.is_unique
+            #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
             values = self._mgr.iget(loc)

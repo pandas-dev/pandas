@@ -2699,8 +2699,6 @@ class DataFrame(NDFrame):
             series = self._ixs(col, axis=1)
             return series._values[index]
 
-        assert self.columns.is_unique
-
         series = self._get_item_cache(col)
         engine = self.index._engine
 
@@ -2836,8 +2834,6 @@ class DataFrame(NDFrame):
                 series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
-
-            assert self.columns.is_unique
 
             series = self._get_item_cache(col)
             engine = self.index._engine
