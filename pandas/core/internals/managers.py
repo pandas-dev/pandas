@@ -1391,10 +1391,7 @@ class BlockManager(PandasObject):
                 else:
                     blocks.append(
                         blk.take_nd(
-                            blklocs[mgr_locs.indexer],
-                            axis=0,
-                            new_mgr_locs=mgr_locs,
-                            fill_value=lib.no_default,
+                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
                         )
                     )
 
