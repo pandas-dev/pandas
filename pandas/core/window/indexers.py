@@ -123,8 +123,30 @@ class ExpandingIndexer(BaseIndexer):
 
 
 class FixedForwardWindowIndexer(BaseIndexer):
-    """Creates window boundaries for fixed-length windows that include the
-    current row."""
+    """
+    Creates window boundaries for fixed-length windows that include the
+    current row.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
+    4  4.0
+    """
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
