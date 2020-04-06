@@ -256,6 +256,7 @@ Deprecations
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
+- :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 .. ---------------------------------------------------------------------------
 
@@ -363,6 +364,7 @@ Indexing
 - Bug in :class:`Index` constructor where an unhelpful error message was raised for ``numpy`` scalars (:issue:`33017`)
 - Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`32831`)
+- Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 
 Missing
 ^^^^^^^
