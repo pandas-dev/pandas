@@ -272,6 +272,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/accessor.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests aggregation.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/aggregation.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests base.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/base.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
