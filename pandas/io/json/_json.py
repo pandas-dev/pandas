@@ -490,17 +490,12 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-
-        .. versionadded:: 0.21.0
-
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------

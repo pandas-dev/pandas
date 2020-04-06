@@ -528,13 +528,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Indexes for%(extended_summary_sub)s row labels can be changed by assigning
         a list-like or Index.
 
-        .. versionchanged:: 0.21.0
-
-           The signature is now `labels` and `axis`, consistent with
-           the rest of pandas API. Previously, the `axis` and `labels`
-           arguments were respectively the first and second positional
-           arguments.
-
         Parameters
         ----------
         labels : list-like, Index
@@ -1181,8 +1174,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and the value 1 or 'columns' specifies columns.
         inplace : bool, default False
             If `True`, do operation inplace and return None.
-
-            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -2152,7 +2143,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             only used when the first argument is a filename. By default, the
             compression is inferred from the filename.
 
-            .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
         index : bool, default True
@@ -2669,7 +2659,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
-            .. versionadded:: 0.21.0.
 
         See Also
         --------
@@ -3800,8 +3789,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             the same size as the index and its dtype must exactly match the
             index's type.
 
-            .. versionadded:: 0.21.0 (list-like tolerance)
-
         Returns
         -------
         Series or DataFrame
@@ -4240,8 +4227,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             element. List-like includes list, tuple, array, Series, and must be
             the same size as the index and its dtype must exactly match the
             index's type.
-
-            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------
@@ -5768,8 +5753,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         columns, leaving non-object and unconvertible
         columns unchanged. The inference rules are the
         same as during normal Series/DataFrame construction.
-
-        .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -7306,8 +7289,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Align object with lower and upper along the given axis.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
-
-            .. versionadded:: 0.21.0
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
@@ -7317,6 +7298,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Series or DataFrame
             Same type as calling object with the values outside the
             clip boundaries replaced.
+
+        See Also
+        --------
+        Series.clip : Trim values at input threshold in series.
+        DataFrame.clip : Trim values at input threshold in dataframe.
+        numpy.clip : Clip (limit) the values in an array.
 
         Examples
         --------
@@ -8081,15 +8068,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def last(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
-        Method to subset final periods of time series data based on a date offset.
+        Select final periods of time series data based on a date offset.
+
+        When having a DataFrame with dates as index, this function can
+        select the last few rows based on a date offset.
 
         Parameters
         ----------
         offset : str, DateOffset, dateutil.relativedelta
+            The offset length of the data that will be selected. For instance,
+            '3D' will display all the rows having their index within the last 3 days.
 
         Returns
         -------
-        subset : same type as caller
+        Series or DataFrame
+            A subset of the caller.
 
         Raises
         ------
