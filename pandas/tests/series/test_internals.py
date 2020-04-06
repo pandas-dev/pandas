@@ -169,6 +169,7 @@ class TestSeriesInternals:
         result = s._convert(datetime=True, coerce=True)
         tm.assert_series_equal(result, s)
 
+        # FIXME: dont leave commented-out
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)
@@ -231,7 +232,7 @@ class TestSeriesInternals:
         assert result._data.blocks[0].is_extension is False
 
 
-def test_hasnans_unchached_for_series():
+def test_hasnans_uncached_for_series():
     # GH#19700
     idx = pd.Index([0, 1])
     assert idx.hasnans is False

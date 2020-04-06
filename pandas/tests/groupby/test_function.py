@@ -1,7 +1,6 @@
 import builtins
 import datetime as dt
 from io import StringIO
-from itertools import product
 from string import ascii_lowercase
 
 import numpy as np
@@ -662,7 +661,7 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False, check_less_precise=True)
+    tm.assert_series_equal(result, expected, check_exact=False)
 
 
 def test_nsmallest():
@@ -1017,6 +1016,7 @@ def test_frame_describe_unstacked_format():
 @pytest.mark.parametrize("dropna", [False, True])
 def test_series_groupby_nunique(n, m, sort, dropna):
     def check_nunique(df, keys, as_index=True):
+        original_df = df.copy()
         gr = df.groupby(keys, as_index=as_index, sort=sort)
         left = gr["julie"].nunique(dropna=dropna)
 
@@ -1026,6 +1026,7 @@ def test_series_groupby_nunique(n, m, sort, dropna):
             right = right.reset_index(drop=True)
 
         tm.assert_series_equal(left, right, check_names=False)
+        tm.assert_frame_equal(df, original_df)
 
     days = date_range("2015-08-23", periods=10)
 
@@ -1294,36 +1295,32 @@ def test_count_uses_size_on_exception():
 # --------------------------------
 
 
-def test_size(df):
-    grouped = df.groupby(["A", "B"])
+@pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
+def test_size(df, by):
+    grouped = df.groupby(by=by)
     result = grouped.size()
     for key, group in grouped:
         assert result[key] == len(group)
 
-    grouped = df.groupby("A")
-    result = grouped.size()
-    for key, group in grouped:
-        assert result[key] == len(group)
 
-    grouped = df.groupby("B")
-    result = grouped.size()
-    for key, group in grouped:
-        assert result[key] == len(group)
+@pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
+@pytest.mark.parametrize("sort", [True, False])
+def test_size_sort(df, sort, by):
+    df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("ABC"))
+    left = df.groupby(by=by, sort=sort).size()
+    right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])
+    tm.assert_series_equal(left, right, check_names=False)
 
-    df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("abc"))
-    for sort, key in product((False, True), ("a", "b", ["a", "b"])):
-        left = df.groupby(key, sort=sort).size()
-        right = df.groupby(key, sort=sort)["c"].apply(lambda a: a.shape[0])
-        tm.assert_series_equal(left, right, check_names=False)
 
-    # GH11699
+def test_size_series_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/11699
     df = DataFrame(columns=["A", "B"])
     out = Series(dtype="int64", index=Index([], name="A"))
     tm.assert_series_equal(df.groupby("A").size(), out)
 
 
 def test_size_groupby_all_null():
-    # GH23050
+    # https://github.com/pandas-dev/pandas/issues/23050
     # Assert no 'Value Error : Length of passed values is 2, index implies 0'
     df = DataFrame({"A": [None, None]})  # all-null groups
     result = df.groupby("A").size()
@@ -1333,6 +1330,8 @@ def test_size_groupby_all_null():
 
 # quantile
 # --------------------------------
+
+
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
@@ -1606,3 +1605,34 @@ def test_groupby_mean_no_overflow():
         }
     )
     assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)

@@ -58,11 +58,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCSeries,
-    ABCSparseArray,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -71,6 +68,7 @@ from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -81,10 +79,10 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
-formatters_type = Union[
+FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-float_format_type = Union[str, Callable, "EngFormatter"]
+FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 common_docstring = """
         Parameters
@@ -283,9 +281,7 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = series._ensure_type(
-                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
-                )
+                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -455,7 +451,7 @@ class TableFormatter:
 
     show_dimensions: Union[bool, str]
     is_truncated: bool
-    formatters: formatters_type
+    formatters: FormattersType
     columns: Index
 
     @property
@@ -548,9 +544,9 @@ class DataFrameFormatter(TableFormatter):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[formatters_type] = None,
+        formatters: Optional[FormattersType] = None,
         justify: Optional[str] = None,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         line_width: Optional[int] = None,
@@ -1089,7 +1085,7 @@ class DataFrameFormatter(TableFormatter):
 def format_array(
     values: Any,
     formatter: Optional[Callable],
-    float_format: Optional[float_format_type] = None,
+    float_format: Optional[FloatFormatType] = None,
     na_rep: str = "NaN",
     digits: Optional[int] = None,
     space: Optional[Union[str, int]] = None,
@@ -1171,7 +1167,7 @@ class GenericArrayFormatter:
         formatter: Optional[Callable] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: Optional[int] = None,
@@ -1230,11 +1226,7 @@ class GenericArrayFormatter:
                 # object dtype
                 return str(formatter(x))
 
-        vals = self.values
-        if isinstance(vals, Index):
-            vals = vals._values
-        elif isinstance(vals, ABCSparseArray):
-            vals = vals.values
+        vals = extract_array(self.values, extract_numpy=True)
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = self.leading_space
@@ -1278,7 +1270,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
     def _value_formatter(
         self,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
@@ -1352,8 +1344,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
             values = self.values
             is_complex = is_complex_dtype(values)
             mask = isna(values)
-            if hasattr(values, "to_dense"):  # sparse numpy ndarray
-                values = values.to_dense()
             values = np.array(values, dtype="object")
             values[mask] = na_rep
             imask = (~mask).ravel()
@@ -1372,7 +1362,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
-        float_format: Optional[float_format_type]
+        float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
                 float_format = partial(
@@ -1461,9 +1451,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        values = self.values
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
+        values = extract_array(self.values, extract_numpy=True)
 
         formatter = values._formatter(boxed=True)
 
@@ -1559,7 +1547,7 @@ def _is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    assert values.ndim == 1
+    values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:

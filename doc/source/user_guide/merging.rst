@@ -573,8 +573,6 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-  .. versionadded:: 0.21.0
-
 .. note::
 
    Support for specifying index levels as the ``on``, ``left_on``, and
@@ -724,6 +722,27 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+You can merge a mult-indexed Series and a DataFrame, if the names of
+the MultiIndex correspond to the columns from the DataFrame. Transform
+the Series to a DataFrame using :meth:`Series.reset_index` before merging,
+as shown in the following example.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"Let": ["A", "B", "C"], "Num": [1, 2, 3]})
+   df
+
+   ser = pd.Series(
+       ["a", "b", "c", "d", "e", "f"],
+       index=pd.MultiIndex.from_arrays(
+           [["A", "B", "C"] * 2, [1, 2, 3, 4, 5, 6]], names=["Let", "Num"]
+       ),
+   )
+   ser
+
+   pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+
+
 Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
@@ -751,8 +770,6 @@ Here is another example with duplicate join keys in DataFrames:
 
 Checking for duplicate keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.21.0
 
 Users can use the ``validate`` argument to automatically check whether there
 are unexpected duplicates in their merge keys. Key uniqueness is checked before

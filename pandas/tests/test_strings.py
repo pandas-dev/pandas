@@ -41,6 +41,7 @@ _any_string_method = [
     ("join", (",",), {}),
     ("ljust", (10,), {}),
     ("match", ("a",), {}),
+    ("fullmatch", ("a",), {}),
     ("normalize", ("NFC",), {}),
     ("pad", (10,), {}),
     ("partition", (" ",), {"expand": False}),
@@ -1157,6 +1158,18 @@ class TestStringMethods:
         assert isinstance(rs, Series)
         tm.assert_series_equal(rs, xp)
 
+    def test_repeat_with_null(self):
+        # GH: 31632
+        values = Series(["a", None], dtype="string")
+        result = values.str.repeat([3, 4])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
+
+        values = Series(["a", "b"], dtype="string")
+        result = values.str.repeat([3, None])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
+
     def test_match(self):
         # New match behavior introduced in 0.13
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
@@ -1164,9 +1177,9 @@ class TestStringMethods:
         exp = Series([True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
-        values = Series(["fooBAD__barBAD", np.nan, "foo"])
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
         result = values.str.match(".*BAD[_]+.*BAD")
-        exp = Series([True, np.nan, False])
+        exp = Series([True, True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
         # mixed
@@ -1195,6 +1208,22 @@ class TestStringMethods:
         res = Series(["a", 0, np.nan]).str.match("a")
         exp = Series([True, np.nan, np.nan])
         tm.assert_series_equal(exp, res)
+
+    def test_fullmatch(self):
+        # GH 32806
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
+        result = values.str.fullmatch(".*BAD[_]+.*BAD")
+        exp = Series([True, False, np.nan, False])
+        tm.assert_series_equal(result, exp)
+
+        # Make sure that the new string arrays work
+        string_values = Series(
+            ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype="string"
+        )
+        result = string_values.str.fullmatch(".*BAD[_]+.*BAD")
+        # Result is nullable boolean with StringDtype
+        string_exp = Series([True, False, np.nan, False], dtype="boolean")
+        tm.assert_series_equal(result, string_exp)
 
     def test_extract_expand_None(self):
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
@@ -3370,6 +3399,9 @@ class TestStringMethods:
         assert result.iloc[0].tolist() == ["dave", "google", "com"]
 
         result = data.str.match(pat, flags=re.IGNORECASE)
+        assert result[0]
+
+        result = data.str.fullmatch(pat, flags=re.IGNORECASE)
         assert result[0]
 
         result = data.str.findall(pat, flags=re.IGNORECASE)

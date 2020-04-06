@@ -8,17 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Hashable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -27,7 +17,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -316,9 +306,6 @@ def read_hdf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-
-        .. versionadded:: 0.21.0 support for __fspath__ protocol.
-
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -682,7 +669,7 @@ class HDFStore:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise IOError(str(err))
+                raise IOError(str(err)) from err
             raise
 
     def close(self):
@@ -1069,14 +1056,14 @@ class HDFStore:
         except AssertionError:
             # surface any assertion errors for e.g. debugging
             raise
-        except Exception:
+        except Exception as err:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
             if where is not None:
                 raise ValueError(
                     "trying to remove a node with a non-None where clause!"
-                )
+                ) from err
 
             # we are actually trying to remove a node (with children)
             node = self.get_node(key)
@@ -1472,8 +1459,6 @@ class HDFStore:
         """
         Print detailed information on the store.
 
-        .. versionadded:: 0.21.0
-
         Returns
         -------
         str
@@ -1521,8 +1506,8 @@ class HDFStore:
         # validate
         try:
             format = _FORMAT_MAP[format.lower()]
-        except KeyError:
-            raise TypeError(f"invalid HDFStore format specified [{format}]")
+        except KeyError as err:
+            raise TypeError(f"invalid HDFStore format specified [{format}]") from err
 
         return format
 
@@ -1579,8 +1564,8 @@ class HDFStore:
             _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
                 cls = _STORER_MAP[pt]
-            except KeyError:
-                raise error("_STORER_MAP")
+            except KeyError as err:
+                raise error("_STORER_MAP") from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1614,8 +1599,8 @@ class HDFStore:
         }
         try:
             cls = _TABLE_MAP[tt]
-        except KeyError:
-            raise error("_TABLE_MAP")
+        except KeyError as err:
+            raise error("_TABLE_MAP") from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -2212,7 +2197,7 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+    def set_data(self, data: ArrayLike):
         assert data is not None
         assert self.dtype is None
 
@@ -2392,7 +2377,7 @@ class DataCol(IndexCol):
                 mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum().values
+                    codes[codes != -1] -= mask.astype(int).cumsum()._values
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered
@@ -2811,7 +2796,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -2976,7 +2961,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Optional[Hashable]
+    name: Label
 
     @property
     def shape(self):
@@ -3233,10 +3218,10 @@ class Table(Fixed):
         ]
         try:
             return obj.reset_index(), levels
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 "duplicate names/columns in the multi-index when storing as a table"
-            )
+            ) from err
 
     @property
     def nrows_expected(self) -> int:
@@ -3784,11 +3769,11 @@ class Table(Fixed):
             if table_exists and validate:
                 try:
                     existing_col = self.values_axes[i]
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     raise ValueError(
                         f"Incompatible appended table [{blocks}]"
                         f"with existing table [{self.values_axes}]"
-                    )
+                    ) from err
             else:
                 existing_col = None
 
@@ -3899,12 +3884,12 @@ class Table(Fixed):
                     b, b_items = by_items.pop(items)
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     jitems = ",".join(pprint_thing(item) for item in items)
                     raise ValueError(
                         f"cannot match existing table structure for [{jitems}] "
                         "on appending data"
-                    )
+                    ) from err
             blocks = new_blocks
             blk_items = new_blk_items
 
@@ -4692,7 +4677,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
-    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    # we won't get inferred_type of "datetime64" or "timedelta64" as these
     #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)
@@ -4836,7 +4821,9 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
+            Series(data.ravel())
+            .str.encode(encoding, errors)
+            ._values.reshape(data.shape)
         )
 
     # create the sized dtype
@@ -4875,7 +4862,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors).values
+            data = Series(data).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -4969,11 +4956,11 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+def _get_data_and_dtype_name(data: ArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """
-    if is_categorical_dtype(data.dtype):
+    if isinstance(data, Categorical):
         data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?
@@ -5061,7 +5048,7 @@ class Selection:
         q = self.table.queryables()
         try:
             return PyTablesExpr(where, queryables=q, encoding=self.table.encoding)
-        except NameError:
+        except NameError as err:
             # raise a nice message, suggesting that the user should use
             # data_columns
             qkeys = ",".join(q.keys())
@@ -5073,7 +5060,7 @@ class Selection:
                 "            an axis (e.g. 'index' or 'columns'), or a "
                 "data_column\n"
                 f"            The currently defined references are: {qkeys}\n"
-            )
+            ) from err
 
     def select(self):
         """
