@@ -47,12 +47,6 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.concat import (  # all for concatenate_block_managers
-    combine_concat_plans,
-    concatenate_join_units,
-    get_mgr_concatenation_plan,
-    is_uniform_join_units,
-)
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -2001,44 +1995,3 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
-
-
-def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
-    """
-    Concatenate block managers into one.
-
-    Parameters
-    ----------
-    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
-    axes : list of Index
-    concat_axis : int
-    copy : bool
-
-    """
-    concat_plans = [
-        get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
-    ]
-    concat_plan = combine_concat_plans(concat_plans, concat_axis)
-    blocks = []
-
-    for placement, join_units in concat_plan:
-
-        if len(join_units) == 1 and not join_units[0].indexers:
-            b = join_units[0].block
-            values = b.values
-            if copy:
-                values = values.copy()
-            else:
-                values = values.view()
-            b = b.make_block_same_class(values, placement=placement)
-        elif is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
-            b.mgr_locs = placement
-        else:
-            b = make_block(
-                concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-            )
-        blocks.append(b)
-
-    return BlockManager(blocks, axes)
