@@ -369,8 +369,7 @@ Missing
 ^^^^^^^
 
 - Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
-- Bug in :meth:`array.any` incorrectly returns ``<NA>`` for pandas.array of all ``False`` value, e.g. ``pd.array([False, False], dtype="boolean")``. Now it returns ``False`` (:issue:`33253`)
-- Bug in :meth:`array.all` incorrectly returns ``<NA>`` for pandas.array of all ``True`` value, e.g. ``pd.array([True, True], dtype="boolean")``. Now it returns ``True``(:issue:`33253`)
+- Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 
 MultiIndex
 ^^^^^^^^^^
