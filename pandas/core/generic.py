@@ -144,9 +144,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     if values.dtype == orig_dtype and inplace:
         return
 
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(
-        self, method="_single_replace"
-    )
+    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
 
     if inplace:
         self._update_inplace(result)
@@ -3574,7 +3572,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._mgr.get_slice(slobj, axis=axis))
-        result = result.__finalize__(self, method="_slice")
+        result = result.__finalize__(self)
 
         # this could be a view
         # but only in a single-dtyped view sliceable case
@@ -4509,9 +4507,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
 
-        return self._constructor(new_data).__finalize__(
-            self, method="_reindex_with_indexers"
-        )
+        return self._constructor(new_data).__finalize__(self)
 
     def filter(
         self: FrameOrSeries,
@@ -5277,9 +5273,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             f = lambda: self._mgr.consolidate()
             cons_data = self._protect_consolidate(f)
-            return self._constructor(cons_data).__finalize__(
-                self, method="_consolidate"
-            )
+            return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self) -> bool_t:
@@ -5308,14 +5302,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._mgr.get_numeric_data()).__finalize__(
-            self, method="_get_numeric_data"
-        )
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self,)
 
     def _get_bool_data(self):
-        return self._constructor(self._mgr.get_bool_data()).__finalize__(
-            self, method="_get_bool_data"
-        )
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self,)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5442,7 +5432,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Internal ONLY
         """
         return {
-            k: self._constructor(v).__finalize__(self, method="_to_dict_of_blocks")
+            k: self._constructor(v).__finalize__(self)
             for k, v, in self._mgr.to_dict(copy=copy).items()
         }
 
@@ -5755,7 +5745,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 coerce=coerce,
                 copy=copy,
             )
-        ).__finalize__(self, method="_convert")
+        ).__finalize__(self)
 
     def infer_objects(self: FrameOrSeries) -> FrameOrSeries:
         """
@@ -8455,8 +8445,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     right.index = join_index
 
         return (
-            left.__finalize__(self, method="_align_frame"),
-            right.__finalize__(other, method="_align_frame"),
+            left.__finalize__(self),
+            right.__finalize__(other),
         )
 
     def _align_series(
@@ -8542,8 +8532,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         right.index = join_index
 
         return (
-            left.__finalize__(self, method="_align_series"),
-            right.__finalize__(other, method="_align_series"),
+            left.__finalize__(self),
+            right.__finalize__(other),
         )
 
     def _where(
@@ -8685,7 +8675,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 axis=block_axis,
             )
             result = self._constructor(new_data)
-            return result.__finalize__(self, method="_where")
+            return result.__finalize__(self)
 
     _shared_docs[
         "where"

@@ -2656,7 +2656,7 @@ class DataFrame(NDFrame):
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns
                 )
-                result = result.__finalize__(self, method="_getitem_multilevel")
+                result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
