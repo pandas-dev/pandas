@@ -106,7 +106,7 @@ def test_unsortedindex():
     tm.assert_series_equal(result, expected)
 
     msg = (
-        r"MultiIndex slicing requires the index to be lexsorted: "
+        "MultiIndex slicing requires the index to be lexsorted: "
         r"slicing on levels \[1\], lexsort depth 0"
     )
     with pytest.raises(UnsortedIndexError, match=msg):

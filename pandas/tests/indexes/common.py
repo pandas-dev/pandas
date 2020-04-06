@@ -541,7 +541,6 @@ class Base:
         length = len(indices)
         msg = f"index {length} is out of bounds for axis 0 with size {length}"
         with pytest.raises(IndexError, match=msg):
-            # either depending on numpy version
             indices.delete(length)
 
     def test_equals(self, indices):
@@ -870,12 +869,14 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             [] in idx
 
-        msg = (
-            r"unhashable type: 'dict'|"
-            r"must be real number, not dict|"
-            r"an integer is required|"
-            r"\{\}|"
-            r"pandas\._libs\.interval\.IntervalTree' is not iterable"
+        msg = "|".join(
+            [
+                r"unhashable type: 'dict'",
+                r"must be real number, not dict",
+                r"an integer is required",
+                r"\{\}",
+                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             {} in idx._engine
