@@ -682,7 +682,7 @@ class TestSeriesDatetimeValues:
         ],
     )
     def test_isocalendar(self, input_series, expected_output, expected_type):
-        ser = pd.Series(input_series, dtype="datetime64[D]")
+        ser = pd.to_datetime(pd.Series(input_series))
         expected_frame = pd.DataFrame(
             expected_output, columns=["year", "week", "day"]
         ).astype(expected_type)

@@ -239,15 +239,15 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> pd.Series(["2020-01-01"], dtype="datetime64[D]").dt.isocalendar
+        >>> pd.to_datetime(pd.Series(["2020-01-01"])).dt.isocalendar
            year  week  day
         0  2020     1    3
-        >>> ser = pd.Series(["2010-01-01", pd.NaT], dtype="datetime64[D]")
+        >>> ser = pd.to_datetime(pd.Series(["2010-01-01", pd.NaT]))
         >>> ser.dt.isocalendar
              year  week  day
         0  2009.0  53.0  5.0
         1     NaN   NaN  NaN
-        >>> pd.Series(["2019-12-31"], dtype="datetime64[D]").dt.isocalendar.week
+        >>> pd.to_datetime(pd.Series(["2019-12-31"])).dt.isocalendar.week
         0    1
         Name: week, dtype: int32
         """
