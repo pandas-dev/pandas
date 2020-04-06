@@ -222,6 +222,11 @@ class SharedTests:
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
+        # Scalar lookup
+        result = arr2d[-1, 0]
+        expected = arr1d[-1]
+        assert result == expected
+
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
