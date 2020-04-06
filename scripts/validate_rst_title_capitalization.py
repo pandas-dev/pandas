@@ -135,13 +135,13 @@ def correct_title_capitalization(title: str) -> str:
     # Take into consideration words with multiple capital letters
     # Such as DataFrame or PeriodIndex or IO to not lower them.
     # Lower the other words
-    if re.search(r'((?:[A-Z]\w*){2,})', correct_title):
-        list_words: List[str] = correct_title.split(' ')
+    if re.search(r"((?:[A-Z]\w*){2,})", correct_title):
+        list_words: List[str] = correct_title.split(" ")
         if correct_title[0].islower():
             list_words[0].replace(correct_title[0], correct_title[0].upper())
 
         for idx in range(1, len(list_words)):
-            if not re.search(r'((?:[A-Z]\w*){2,})', list_words[idx]):
+            if not re.search(r"((?:[A-Z]\w*){2,})", list_words[idx]):
                 list_words[idx] = list_words[idx].lower()
 
         correct_title = " ".join(list_words)
