@@ -879,23 +879,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    To control the output names with different aggregations per column,
+    To control the output names with different aggregations,
     pandas supports "named aggregation"
 
     >>> df.groupby("A").agg(
     ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
-       b_min     c_sum
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"),
+    ...     cb_sum_diff=pd.NamedAgg(
+    ...         column=["B", "C"],
+    ...         aggfunc=lambda x: x["C"].sum() - x["B"].sum()
+    ...     )
+    ... )
+       b_min       c_sum  cb_sum_diff
     A
-    1      1 -1.956929
-    2      3 -0.322183
+    1      1    1.449287    -1.550713
+    2      3    0.110498    -6.889502
 
     - The keywords are the *output* column names
-    - The values are tuples whose first element is the column to select
+    - The values are tuples whose first element is the column(s) to select
       and the second element is the aggregation to apply to that column.
       Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
+    - When performing named aggregations with multiple columns, the second
+      element has to be a lambda and returns a 1 dimension DataFrame.
 
     See :ref:`groupby.aggregate.named` for more.
     """
@@ -918,7 +925,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if isinstance(v[0], list) & isinstance(v[1], LambdaType):
                     # v[0] is the first parameter given (the column(s) to group)
                     # v[1] is the 2nd parameter given and the opperation to be done to the column(s)
-                    kwargs[k] = (np.array(v[0]).sort().tobytes(),) + v[1:]
+                    serialized_key = np.array(v[0])
+                    serialized_key.sort()
+                    kwargs[k] = (serialized_key.tobytes(),) + v[1:]
 
             func, columns, order = normalize_keyword_aggregation(kwargs)
             kwargs = {}

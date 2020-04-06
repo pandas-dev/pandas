@@ -399,8 +399,8 @@ class SelectionMixin:
                         _obj = {}
                         for item in items:
                             _obj[item] = self._gotitem(item, ndim=1, subset=None)
-                        result[fname] = agg_how[0](_obj)
-                    except TypeError:
+                        result[fname] = [agg(_obj) for agg in agg_how]
+                    except AttributeError:
                         result[fname] = func(fname, agg_how)
                 return result
 
