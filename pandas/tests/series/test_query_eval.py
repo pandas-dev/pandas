@@ -2,6 +2,22 @@ import pytest
 import numpy as np
 from pandas import Series, eval, MultiIndex, Index
 import pandas._testing as tm
+import pandas.util._test_decorators as td
+
+PARSERS = "python", "pandas"
+ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
+
+@pytest.fixture(params=PARSERS, ids=lambda x: x)
+def parser(request):
+    return request.param
+
+@pytest.fixture(params=ENGINES, ids=lambda x: x)
+def engine(request):
+    return request.param
+
+def skip_if_no_pandas_parser(parser):
+    if parser != "pandas":
+        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
 
 class TestSeriesEval:
     # smaller hits python, larger hits numexpr
@@ -80,26 +96,102 @@ class TestSeriesEval:
 
 class TestSeriesEvalWithSeries:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(3), index=["a", "b", "c"])
+        self.index = Index(data=[2000, 2001, 2002], name="year")
+        self.series = Series(np.random.randn(3), index=self.index)
 
     def teardown_method(self, method):
+        del self.index
         del self.series
 
-    def test_simple_expr(self, parser, engine):
-        res = self.series.eval("a + b", engine=engine, parser=parser)
-        expect = self.series.a + self.series.b
-        tm.assert_series_equal(res, expect)
+    @pytest.mark.parametrize("op", ["<", "<=", ">", ">=", "==", "!="])
+    def test_bool_expr(self, op, parser, engine):
+        res = self.series.eval(f"year {op} 2001", engine=engine, parser=parser)
+        data1 = eval(f"2000 {op} 2001", engine=engine, parser=parser)
+        data2 = eval(f"2001 {op} 2001", engine=engine, parser=parser)
+        data3 = eval(f"2002 {op} 2001", engine=engine, parser=parser)
+        expect = Series(data=[data1, data2, data3], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
 
-    def test_bool_arith_expr(self, parser, engine):
-        res = self.series.eval("a[a < 1] + b", engine=engine, parser=parser)
-        expect = self.series.a[self.series.a < 1] + self.series.b
-        tm.assert_series_equal(res, expect)
+    def test_and_bitwise_operator(self, parser, engine):
+        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine, parser=parser)
+        expect = Series(data=[False, False, False], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
+    
+    def test_or_bitwise_operator(self, parser, engine):
+        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine, parser=parser)
+        expect = Series(data=[True, False, True], index=self.index)
+        # names are not checked due to different results based on engine (python vs numexpr)
+        tm.assert_series_equal(res, expect, check_names=False)
 
-    @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
-    def test_invalid_type_for_operator_raises(self, parser, engine, op):
-        series = Series({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
+    
+class TestSeriesQueryByIndex:
+    def setup_method(self, method):
+        self.series = Series(np.random.randn(10), index=[x for x in range(10)])
+        self.frame = self.series.to_frame()
+    
+    def teardown_method(self, method):
+        del self.series
+        del self.frame
 
+    # test the boolean operands
+    @pytest.mark.parametrize("op", ["<", "<=", ">", ">=", "==", "!="])
+    def test_bool_operands(self, op):
+        test = f"index {op} 5"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
+
+    # test the operands that can join queries
+    def test_and_bitwise_operator(self):
+        test = f"(index > 2) & (index < 8)"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
+
+    def test_or_bitwise_operator(self):
+        test = f"(index < 3) | (index > 7)"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
+
+class TestSeriesQueryByMultiIndex:
+    def setup_method(self, method):
+        self.series = Series(np.random.randn(10),
+             index=[["a"]*5 + ["b"]*5, [x for x in range(10)]])
+        self.frame = self.series.to_frame()
+    
+    def teardown_method(self, method):
+        del self.series
+        del self.frame
+
+    # check against first level
+    def test_query_first_level(self):
+        test = "ilevel_0 == 'b'"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
+
+    # check against not first level
+    def test_query_not_first_level(self):
+        test = "ilevel_1 > 4"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
+
+    @pytest.mark.parametrize("op", ["&", "|"])
+    def test_both_levels(self, op):
+        test = f"(ilevel_0 == 'b') {op} ((ilevel_1 % 2) == 0)"
+        result = self.series.query(test)
+        expected = self.frame.query(test)[0]
+        # names are not checked since computation/eval.py adds name to evaluated Series
+        tm.assert_series_equal(result, expected, check_names=False)
         with pytest.raises(TypeError, match=msg):
             series.eval(f"a {op} b", engine=engine, parser=parser)
     
@@ -130,6 +222,7 @@ class TestSeriesQueryByIndex:
     # test list equality
     @pytest.mark.parametrize("op", ["==", "!="])
     def test_list_equality(self, op):
+        
         run_test(self.series, f"index {op} [5]")
         run_test(self.series, f"[5] {op} index")
 
