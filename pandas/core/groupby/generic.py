@@ -1217,6 +1217,9 @@ class DataFrameGroupBy(GroupBy):
 
                     # reorder the values
                     values = [values[i] for i in indexer]
+
+                    # update due to the potential reorder
+                    first_not_none = next(com.not_none(*values), None)
                 else:
 
                     key_index = Index(keys, name=key_names[0])
