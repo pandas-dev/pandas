@@ -1460,7 +1460,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self,
         buf: Optional[IO[str]] = None,
         mode: Optional[str] = None,
-        index: Optional[bool] = None,
+        index: Optional[bool] = True,
         **kwargs,
     ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, index, **kwargs)

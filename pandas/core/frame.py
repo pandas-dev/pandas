@@ -2094,11 +2094,14 @@ class DataFrame(NDFrame):
         self,
         buf: Optional[IO[str]] = None,
         mode: Optional[str] = None,
-        index: Optional[bool] = None,
+        index: Optional[bool] = True,
         **kwargs,
     ) -> Optional[str]:
-        if index is not None and "showindex" in kwargs:
-            raise ValueError("Index and showindex are aliases, please choose one")
+        if "showindex" in kwargs:
+            raise ValueError(
+                "'showindex' is not a valid keyword argument, "
+                "please use 'index' to control showing the index"
+            )
 
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")

@@ -67,14 +67,17 @@ def test_index(index, showindex):
 
     df = pd.DataFrame([1, 2, 3])
 
-    if "index" in kwargs and "showindex" in kwargs:
-        msg = "Index and showindex are aliases"
+    if "showindex" in kwargs:
+        # force user to use index instead of tabulate's show index
+        msg = (
+            "'showindex' is not a valid keyword argument, "
+            "please use 'index' to control showing the index"
+        )
         with pytest.raises(ValueError, match=msg):
             df.to_markdown(**kwargs)
     else:
-        # only one or none is set
         result = df.to_markdown(**kwargs)
-        if (index, showindex) in [(True, None), (None, True), (None, None)]:
+        if index in [True, None]:
             assert result == (
                 "|    |   0 |\n|---:|----:|\n"
                 "|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
