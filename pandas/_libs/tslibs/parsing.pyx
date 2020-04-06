@@ -189,8 +189,13 @@ cdef inline bint does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def parse_datetime_string(date_string: str, freq=None, dayfirst=False,
-                          yearfirst=False, **kwargs):
+def parse_datetime_string(
+    str date_string,
+    object freq=None,
+    bint dayfirst=False,
+    bint yearfirst=False,
+    **kwargs,
+):
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -272,8 +277,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     return res
 
 
-cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
-                                     yearfirst=False):
+cdef parse_datetime_string_with_reso(
+    str date_string, object freq=None, bint dayfirst=False, bint yearfirst=False,
+):
     """
     Parse datetime string and try to identify its resolution.
 
@@ -467,8 +473,14 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     raise ValueError(f'Unable to parse {date_string}')
 
 
-cdef dateutil_parse(str timestr, object default, ignoretz=False,
-                    tzinfos=None, dayfirst=None, yearfirst=None):
+cdef dateutil_parse(
+    str timestr,
+    object default,
+    bint ignoretz=False,
+    object tzinfos=None,
+    bint dayfirst=False,
+    bint yearfirst=False,
+):
     """ lifted from dateutil to get resolution"""
 
     cdef:
@@ -531,8 +543,9 @@ cdef dateutil_parse(str timestr, object default, ignoretz=False,
 # Parsing for type-inference
 
 
-def try_parse_dates(object[:] values, parser=None,
-                    dayfirst=False, default=None):
+def try_parse_dates(
+    object[:] values, parser=None, bint dayfirst=False, default=None,
+):
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -569,9 +582,14 @@ def try_parse_dates(object[:] values, parser=None,
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_date_and_time(object[:] dates, object[:] times,
-                            date_parser=None, time_parser=None,
-                            dayfirst=False, default=None):
+def try_parse_date_and_time(
+    object[:] dates,
+    object[:] times,
+    date_parser=None,
+    time_parser=None,
+    bint dayfirst=False,
+    default=None,
+):
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -607,8 +625,7 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months,
-                             object[:] days):
+def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -705,6 +722,9 @@ class _timelex:
         function maintains a "token stack", for when the ambiguous context
         demands that multiple tokens be parsed at once.
         """
+        cdef:
+            Py_ssize_t n
+
         stream = self.stream.replace('\x00', '')
 
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
@@ -760,15 +780,20 @@ def _format_is_iso(f) -> bint:
     return False
 
 
-def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
-                           dt_str_split=_DATEUTIL_LEXER_SPLIT):
+def _guess_datetime_format(
+    dt_str,
+    bint dayfirst=False,
+    dt_str_parse=du_parse,
+    dt_str_split=_DATEUTIL_LEXER_SPLIT,
+):
     """
     Guess the datetime format of a given datetime string.
 
     Parameters
     ----------
-    dt_str : string, datetime string to guess the format of
-    dayfirst : boolean, default False
+    dt_str : str
+        Datetime string to guess the format of.
+    dayfirst : bool, default False
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug).
@@ -878,8 +903,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline object convert_to_unicode(object item,
-                                      bint keep_trivial_numbers):
+cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
     """
     Convert `item` to str.
 
