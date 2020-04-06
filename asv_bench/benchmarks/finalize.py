@@ -7,10 +7,10 @@ class Finalize:
 
     def setup(self, param):
         N = 1000
-        df = param(dtype=float)
+        obj = param(dtype=float)
         for i in range(N):
-            df.attrs[i] = i
-        self.df = df
+            obj.attrs[i] = i
+        self.obj = obj
 
     def time_finalize_micro(self, param):
-        self.df.__finalize__(self.df, method="__finalize__")
+        self.obj.__finalize__(self.obj, method="__finalize__")
