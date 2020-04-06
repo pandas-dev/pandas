@@ -2,7 +2,22 @@
 
 ## Citing pandas
 
-If you use _pandas_ for a scientific publication, we would appreciate citations to one of the following papers:
+If you use _pandas_ for a scientific publication, we would appreciate citations to the published software, and one of
+the two papers following the software entry:
+
+- [pandas on Zenodo](https://zenodo.org/record/3715232#.XoqFyC2ZOL8),
+   Please find us on Zenodo and replace with the citation for the version you are using.
+
+        @software{reback2020pandas,
+            author       = {The pandas development team},
+            title        = {pandas-dev/pandas: Pandas 1.0.1},
+            month        = feb,
+            year         = 2020,
+            publisher    = {Zenodo},
+            version      = {v1.0.1},
+            doi          = {10.5281/zenodo.3644238},
+            url          = {https://doi.org/10.5281/zenodo.3644238}
+        }
 
 - [Data structures for statistical computing in python](https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf),
    McKinney, Proceedings of the 9th Python in Science Conference, Volume 445, 2010.
