@@ -542,9 +542,10 @@ cdef class BlockSlider:
     cdef:
         char **base_ptrs
 
-    def __init__(self, frame):
+    def __init__(self, object frame):
         cdef:
-            Py_ssize_t i, block
+            Py_ssize_t i
+            object b
 
         self.frame = frame
         self.dummy = frame[:0]
