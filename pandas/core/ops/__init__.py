@@ -399,7 +399,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
         # Get the appropriate array-op to apply to each block's values.
         array_op = get_array_op(func, str_rep=str_rep)
-        bm = left._data.apply(array_op, right=right)
+        bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
     elif isinstance(right, ABCDataFrame):
@@ -631,7 +631,7 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
             values = values.reshape(-1, 1)
 
             array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._data.apply(array_op, right=values.T)
+            bm = left._mgr.apply(array_op, right=values.T)
             return type(left)(bm)
 
         new_data = dispatch_to_series(left, right, func)
