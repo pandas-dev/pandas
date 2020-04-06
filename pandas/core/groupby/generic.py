@@ -236,7 +236,9 @@ class SeriesGroupBy(GroupBy[Series]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, engine="cython", engine_kwargs=None, *args, **kwargs
+    ):
 
         relabeling = func is None
         columns = None
@@ -909,7 +911,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, engine="cython", engine_kwargs=None, *args, **kwargs
+    ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
