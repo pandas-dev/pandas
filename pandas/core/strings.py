@@ -657,7 +657,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2                                            NaN
     dtype: object
 
-
     Reverse every lowercase alphabetic word:
 
     >>> repl = lambda m: m.group(0)[::-1]
