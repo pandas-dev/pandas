@@ -134,9 +134,9 @@ jobs:
       if: github.event_name == 'push'
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='Pandas_Cheat_Sheet_*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas_rsync
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: github.event_name == 'push'
 
     - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas_rsync/pandas-docs/dev
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'
