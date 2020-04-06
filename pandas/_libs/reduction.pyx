@@ -36,7 +36,12 @@ cdef class Reducer:
         object dummy, f, labels, typ, ityp, index
         ndarray arr
 
-    def __init__(self, ndarray arr, object f, axis=1, dummy=None, labels=None):
+    def __init__(
+        self, ndarray arr, object f, int axis=1, object dummy=None, object labels=None
+    ):
+        cdef:
+            Py_ssize_t n, k
+
         n, k = (<object>arr).shape
 
         if axis == 0:
@@ -60,7 +65,7 @@ cdef class Reducer:
         self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
             dummy=dummy)
 
-    cdef _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, object dummy=None):
         cdef:
             object index = None, typ = None, ityp = None
 
@@ -147,7 +152,7 @@ cdef class Reducer:
 
 
 cdef class _BaseGrouper:
-    cdef _check_dummy(self, dummy):
+    cdef _check_dummy(self, object dummy):
         # both values and index must be an ndarray!
 
         values = dummy.values
@@ -190,13 +195,16 @@ cdef class _BaseGrouper:
         """
         Call self.f on our new group, then update to the next group.
         """
+        cdef:
+            object res
+
         cached_ityp._engine.clear_mapping()
         res = self.f(cached_typ)
         res = _extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
-            initialized = 1
+            initialized = True
             _check_result_array(res, len(self.dummy_arr))
 
         islider.advance(group_size)
@@ -534,7 +542,11 @@ cdef class BlockSlider:
     cdef:
         char **base_ptrs
 
-    def __init__(self, frame):
+    def __init__(self, object frame):
+        cdef:
+            Py_ssize_t i
+            object b
+
         self.frame = frame
         self.dummy = frame[:0]
         self.index = self.dummy.index
