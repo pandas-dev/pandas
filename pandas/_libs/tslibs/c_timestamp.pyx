@@ -253,6 +253,13 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 + other
+                return np.asarray(
+                    [self + other[n] for n in range(len(other))],
+                    dtype=object,
+                )
 
         # index/series like
         elif hasattr(other, '_typ'):
@@ -275,6 +282,13 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 - other
+                return np.asarray(
+                    [self - other[n] for n in range(len(other))],
+                    dtype=object,
+                )
 
         typ = getattr(other, '_typ', None)
         if typ is not None:
