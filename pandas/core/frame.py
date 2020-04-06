@@ -245,8 +245,6 @@ validate : str, optional
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-    .. versionadded:: 0.21.0
-
 Returns
 -------
 DataFrame
@@ -1339,8 +1337,6 @@ class DataFrame(NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         dict, list or collections.abc.Mapping
@@ -2117,8 +2113,6 @@ class DataFrame(NDFrame):
     ) -> None:
         """
         Write a DataFrame to the binary parquet format.
-
-        .. versionadded:: 0.21.0
 
         This function writes the dataframe as a `parquet file
         <https://parquet.apache.org/>`_. You can choose different parquet
@@ -3749,13 +3743,9 @@ class DataFrame(NDFrame):
         index : single label or list-like
             Alternative to specifying axis (``labels, axis=0``
             is equivalent to ``index=labels``).
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
