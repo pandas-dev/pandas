@@ -18,20 +18,22 @@ def get_engine(engine: str) -> "BaseImpl":
 
     if engine == "auto":
         # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
+        engine_impls = [PyArrowImpl, FastParquetImpl]
 
-        try:
-            return FastParquetImpl()
-        except ImportError:
-            pass
+        error_msgs = []
+        for eimpl in engine_impls:
+            try:
+                return eimpl()
+            except ImportError as ie:
+                error_msgs.append(ie.msg)                
 
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet support"
+            "A suitable version of "
+            "pyarrow or fastparquet is required for parquet "
+            "support. \n"
+            "Trying to import the above resulted in these errors: \n" + "\n".join(error_msgs)
         )
 
     if engine == "pyarrow":
