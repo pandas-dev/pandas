@@ -545,14 +545,24 @@ class BlockManager(PandasObject):
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(self, **kwargs) -> "BlockManager":
-        if kwargs.pop("align", True):
+    def where(
+        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
+    ) -> "BlockManager":
+        if align:
             align_keys = ["other", "cond"]
         else:
             align_keys = ["cond"]
-            kwargs["other"] = extract_array(kwargs["other"], extract_numpy=True)
+            other = extract_array(other, extract_numpy=True)
 
-        return self.apply("where", align_keys=align_keys, **kwargs)
+        return self.apply(
+            "where",
+            align_keys=align_keys,
+            other=other,
+            cond=cond,
+            errors=errors,
+            try_cast=try_cast,
+            axis=axis,
+        )
 
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
@@ -584,11 +594,13 @@ class BlockManager(PandasObject):
     def interpolate(self, **kwargs) -> "BlockManager":
         return self.apply("interpolate", **kwargs)
 
-    def shift(self, **kwargs) -> "BlockManager":
-        return self.apply("shift", **kwargs)
+    def shift(self, periods: int, axis: int, fill_value) -> "BlockManager":
+        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, **kwargs) -> "BlockManager":
-        return self.apply("fillna", **kwargs)
+    def fillna(self, value, limit, inplace: bool, downcast) -> "BlockManager":
+        return self.apply(
+            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def downcast(self) -> "BlockManager":
         return self.apply("downcast")
@@ -729,7 +741,7 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_bool], copy)
+        return self._combine([b for b in self.blocks if b.is_bool], copy)
 
     def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
@@ -739,9 +751,9 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_numeric], copy)
+        return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
+    def _combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -753,9 +765,7 @@ class BlockManager(PandasObject):
         new_blocks = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = algos.take_1d(
-                inv_indexer, b.mgr_locs.as_array, axis=0, allow_fill=False
-            )
+            b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
             new_blocks.append(b)
 
         axes = list(self.axes)
@@ -780,9 +790,6 @@ class BlockManager(PandasObject):
 
         bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
         return bm
-
-    def __contains__(self, item) -> bool:
-        return item in self.items
 
     @property
     def nblocks(self) -> int:
@@ -896,7 +903,7 @@ class BlockManager(PandasObject):
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
-        return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
