@@ -157,9 +157,6 @@ class FixedForwardWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        if min_periods is not None or center is not None or closed is not None:
-            raise ValueError("min_periods, center, and closed must all be None.")
-
         start = np.arange(num_values, dtype="int64")
         end_s = start[: -self.window_size] + self.window_size
         end_e = np.full(self.window_size, num_values, dtype="int64")
