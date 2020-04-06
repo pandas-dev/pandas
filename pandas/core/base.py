@@ -299,6 +299,7 @@ class SelectionMixin:
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+        deserialized_keys = {}
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -340,19 +341,21 @@ class SelectionMixin:
                     elif isinstance(obj, ABCSeries):
                         raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame):
-
                         # GH 29268
-                        # Original check
                         if (k not in obj.columns):
                             # Check if list thingy
                             try:
                                 keys = np.frombuffer(k, dtype=np.dtype('<U1'))
-                                for key in keys:
-                                    # Check keys
-                                    if (key not in obj.columns):
-                                        raise KeyError(f"Column '{key}' does not exist!")
-                            except AttributeError:
+                            except (AttributeError, TypeError) as e:
                                 raise KeyError(f"Column '{k}' does not exist!")
+
+                            # Check keys
+                            for key in keys:
+                                if (key not in obj.columns):
+                                    raise KeyError(f"Column '{key}' does not exist!")
+
+                                # Memorize operation
+                                deserialized_keys[k] = keys
 
                 arg = new_arg
 
@@ -394,13 +397,13 @@ class SelectionMixin:
                 result = {}
                 for fname, agg_how in arg.items():
                     # GH 29268
-                    try:
-                        items = np.frombuffer(fname, dtype=np.dtype('<U1'))
-                        _obj = {}
-                        for item in items:
-                            _obj[item] = self._gotitem(item, ndim=1, subset=None)
+                    if fname in deserialized_keys:
+                        keys = deserialized_keys[fname]
+                        _obj = zip(keys, [
+                            self._gotitem(k, ndim=1, subset=None) for k in keys
+                        ])
                         result[fname] = [agg(_obj) for agg in agg_how]
-                    except AttributeError:
+                    else:
                         result[fname] = func(fname, agg_how)
                 return result
 

@@ -923,10 +923,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             from types import LambdaType
             for k, v in list(kwargs.items()):
                 if isinstance(v[0], list) & isinstance(v[1], LambdaType):
-                    # v[0] is the first parameter given (the column(s) to group)
-                    # v[1] is the 2nd parameter given and the opperation to be done to the column(s)
-                    serialized_key = np.array(v[0])
-                    serialized_key.sort()
+                    serialized_key = np.sort(np.array(v[0]))
                     kwargs[k] = (serialized_key.tobytes(),) + v[1:]
 
             func, columns, order = normalize_keyword_aggregation(kwargs)
