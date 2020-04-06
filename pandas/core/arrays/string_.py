@@ -13,6 +13,7 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
+from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -282,7 +283,22 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
+        if name in ["min", "max"]:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+    def min(self, axis=None, out=None, keepdims=False, skipna=True):
+        result = masked_reductions.min(
+            values=self.to_numpy(na_value=np.nan), mask=self.isna(), skipna=skipna
+        )
+        return result
+
+    def max(self, axis=None, out=None, keepdims=False, skipna=True):
+        result = masked_reductions.max(
+            values=self.to_numpy(na_value=np.nan), mask=self.isna(), skipna=skipna
+        )
+        return result
 
     def value_counts(self, dropna=False):
         from pandas import value_counts

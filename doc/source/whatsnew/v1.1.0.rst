@@ -354,6 +354,7 @@ Strings
 ^^^^^^^
 
 - Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
+- Fixed issue where taking ``min`` or ``max`` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
 
 
