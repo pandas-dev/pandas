@@ -3720,7 +3720,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # If the above loop ran and didn't delete anything because
             # there was no match, this call should raise the appropriate
             # exception:
-            self._mgr.delete(key)
+            loc = self.axes[-1].get_loc(key)
+            self._mgr.idelete(loc)
 
         # delete from the caches
         try:
