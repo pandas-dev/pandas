@@ -161,8 +161,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
             raise ValueError("Forward-looking windows can't have center=True")
         if closed is not None:
             raise ValueError(
-                "Forward-looking windows don't support setting the closed"
-                "argument"
+                "Forward-looking windows don't support setting the closed" "argument"
             )
 
         start = np.arange(num_values, dtype="int64")
