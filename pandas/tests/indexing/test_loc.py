@@ -1110,19 +1110,21 @@ def test_loc_with_period_index_indexer():
 
 
 def test_loc_setitem_df_datetime64tz_full_column_with_index():
-    df = pd.DataFrame(
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.DataFrame(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
     )
-    df2 = pd.DataFrame(index=df.index)
-    df2.loc[df.index, "data"] = df["data"]
-    tm.assert_frame_equal(df, df2)
+    result = pd.DataFrame(index=expected.index)
+    result.loc[expected.index, "data"] = expected["data"]
+    tm.assert_frame_equal(expected, result)
 
 
 def test_loc_setitem_df_datetime64tz_slice():
+    # GH#32395 ea assignments with an index raise TypeError
     df = pd.DataFrame(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
     )
-    df2 = pd.DataFrame(index=df.index)
+    result = pd.DataFrame(index=df.index)
     expected = pd.DataFrame(
         [
             pd.Timestamp("2020-01-01", tz=timezone.utc),
@@ -1135,109 +1137,103 @@ def test_loc_setitem_df_datetime64tz_slice():
         columns=["data"],
         dtype="object",
     )
-    df2.loc[df.index[:3], "data"] = df["data"][:3]
-    tm.assert_frame_equal(df2, expected)
-
-
-def test_loc_setitem_df_datetime64tz_column_without_index():
-    df = pd.DataFrame(
-        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
-    )
-    df2 = pd.DataFrame(index=df.index)
-    df2.loc[:, "data"] = df["data"]
-    tm.assert_frame_equal(df, df2)
+    result.loc[df.index[:3], "data"] = df["data"][:3]
+    tm.assert_frame_equal(expected, result)
 
 
 def test_loc_setitem_series_datetime64tz_full_with_index():
-    s1 = pd.Series(
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.Series(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
     )
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    s2.loc[s1.index] = s1
-    tm.assert_series_equal(s1, s2)
+    result = pd.Series(index=expected.index, dtype="object", name="data")
+    result.loc[expected.index] = expected
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_series_datetime64tz_slice():
+    # GH#32395 ea assignments with an index raise TypeError
     dates = pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc)
     s1 = pd.Series(dates, name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
+    result = pd.Series(index=s1.index, dtype="object", name="data")
     expected = pd.Series(dates, name="data", dtype="object")
     expected[-3:] = pd.NaT
-    s2.loc[s1.index[:3]] = s1[:3]
-    tm.assert_series_equal(expected, s2)
-
-
-def test_loc_setitem_series_datetime64tz_without_index():
-    s1 = pd.Series(
-        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
-    )
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    s2.loc[:] = s1
-    tm.assert_series_equal(s1, s2)
+    result.loc[s1.index[:3]] = s1[:3]
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_series_timedelta64_full_with_index():
-    s1 = pd.Series(pd.timedelta_range(start="1 day", periods=4), name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    s2.loc[s1.index] = s1
-    tm.assert_series_equal(s1, s2)
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.Series(pd.timedelta_range(start="1 day", periods=4), name="data")
+    result = pd.Series(index=expected.index, dtype="object", name="data")
+    result.loc[expected.index] = expected
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_df_period_full_column_with_index():
-    df = pd.DataFrame(pd.period_range(start="2020Q1", periods=5), columns=["data"])
-    df2 = pd.DataFrame(index=df.index)
-    df2.loc[df.index, "data"] = df["data"]
-    tm.assert_frame_equal(df, df2)
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.DataFrame(
+        pd.period_range(start="2020Q1", periods=5), columns=["data"]
+    )
+    result = pd.DataFrame(index=expected.index)
+    result.loc[expected.index, "data"] = expected["data"]
+    tm.assert_frame_equal(expected, result)
 
 
 def test_loc_setitem_series_interval_full_with_index():
-    s1 = pd.Series(pd.interval_range(start=0, end=5), name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    s2.loc[s1.index] = s1
-    tm.assert_series_equal(s1, s2)
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.Series(pd.interval_range(start=0, end=5), name="data")
+    result = pd.Series(index=expected.index, dtype="object", name="data")
+    result.loc[expected.index] = expected
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_df_sparse_full_column_with_index():
-    df = pd.DataFrame(np.random.randn(100), columns=["data"])
-    df.iloc[5:95] = np.nan
-    df = df.astype(pd.SparseDtype("int", np.nan))
-    df2 = pd.DataFrame(index=df.index)
-    df2.loc[df.index, "data"] = df["data"]
-    tm.assert_frame_equal(df, df2)
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.DataFrame(np.random.randn(100), columns=["data"])
+    expected.iloc[5:95] = np.nan
+    expected = expected.astype(pd.SparseDtype("int", np.nan))
+    result = pd.DataFrame(index=expected.index)
+    result.loc[expected.index, "data"] = expected["data"]
+    tm.assert_frame_equal(expected, result)
 
 
 def test_loc_setitem_series_categorical_full_with_index():
-    s1 = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
-    s2.loc[s1.index] = s1
-    tm.assert_series_equal(s1, s2)
+    # GH#32395 ea assignments with an index raise TypeError
+    expected = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data")
+    result = pd.Series(index=expected.index, dtype="object", name="data")
+    result.loc[expected.index] = expected
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_series_categorical_slice():
+    # GH#32395 ea assignments with an index raise TypeError
     s1 = pd.Series(pd.Categorical([1] * 10 + [2] * 5 + [3] * 10), name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
+    result = pd.Series(index=s1.index, dtype="object", name="data")
     expected = pd.Series(
         pd.Categorical([1] * 10 + [2] * 5 + [np.nan] * 10), name="data", dtype=object
     )
-    s2.loc[s1.index[:15]] = s1[:15]
-    tm.assert_series_equal(expected, s2)
+    result.loc[s1.index[:15]] = s1[:15]
+    tm.assert_series_equal(expected, result)
 
 
 def test_loc_setitem_df_interval_slice():
+    # GH#32395 ea assignments with an index raise TypeError
     intervals = pd.interval_range(start=0, end=5)
     df = pd.DataFrame(intervals, columns=["data"])
-    df2 = pd.DataFrame(index=df.index)
+    result = pd.DataFrame(index=df.index)
     expected = pd.DataFrame(intervals, columns=["data"], dtype="object")
     expected.data[-2:] = np.nan
-    df2.loc[df.index[:3], "data"] = df["data"][:3]
-    tm.assert_frame_equal(df2, expected)
+    result.loc[df.index[:3], "data"] = df["data"][:3]
+    tm.assert_frame_equal(expected, result)
 
 
 def test_loc_setitem_series_period_slice():
+    # GH#32395 ea assignments with an index raise TypeError
     periods = pd.period_range(start="2020Q1", periods=5)
     s1 = pd.Series(periods, name="data")
-    s2 = pd.Series(index=s1.index, dtype="object", name="data")
+    result = pd.Series(index=s1.index, dtype="object", name="data")
     expected = pd.Series(periods, name="data", dtype=object,)
     expected[-2:] = np.nan
-    s2.loc[s1.index[:3]] = s1[:3]
-    tm.assert_series_equal(expected, s2)
+    result.loc[s1.index[:3]] = s1[:3]
+    tm.assert_series_equal(expected, result)
