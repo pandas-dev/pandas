@@ -152,7 +152,7 @@ cdef class Reducer:
 
 
 cdef class _BaseGrouper:
-    cdef _check_dummy(self, ndarray dummy):
+    cdef _check_dummy(self, object dummy):
         # both values and index must be an ndarray!
 
         values = dummy.values
