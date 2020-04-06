@@ -41,7 +41,16 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
+from pandas._typing import (
+    ArrayLike,
+    Axes,
+    Axis,
+    Dtype,
+    FilePathOrBuffer,
+    Label,
+    Level,
+    Renamer,
+)
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2563,14 +2572,14 @@ class DataFrame(NDFrame):
 
             return result
 
-    def _ixs_values(self, i: int) -> Union[np.ndarray, ExtensionArray]:
+    def _get_column_array(self, i: int) -> ArrayLike:
         """
-        Get the values of the ith column (ndarray or ExtensionArray, as stored
+        Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
         return self._data.iget_values(i)
 
-    def _iter_arrays(self) -> Iterator[Union[np.ndarray, ExtensionArray]]:
+    def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
@@ -7937,7 +7946,7 @@ Wild         185.0
         dtype_is_dt = np.array(
             [
                 is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
-                for values in self._iter_arrays()
+                for values in self._iter_column_arrays()
             ],
             dtype=bool,
         )

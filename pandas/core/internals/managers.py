@@ -31,7 +31,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
@@ -1008,7 +1007,7 @@ class BlockManager(PandasObject):
             self.axes[1],
         )
 
-    def iget_values(self, i: int) -> Union[np.ndarray, ExtensionArray]:
+    def iget_values(self, i: int) -> ArrayLike:
         """
         Return the data for column i as the values (ndarray or ExtensionArray).
         """
