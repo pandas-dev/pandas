@@ -1022,12 +1022,12 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> ax = df.plot.bar(x='lifespan', rot=0)
-        
+
         Plot stacked bar chars for the DataFrame
-        
+
         .. plot::
             :context: close-figs
-            
+
             >>> index = ["a", "b", "c", "d"]
             >>> df = pd.DataFrame({"UK": [10, 3, 4], "NL": [1, 5, 6]}, index=index)
             >>> ax = df.plot.bar(stacked=True)
