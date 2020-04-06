@@ -4232,7 +4232,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(idx2)
         False
 
-        The oreder is compared
+        The order is compared
 
         >>> ascending_idx = pd.Index([1, 2, 3])
         >>> ascending_idx
