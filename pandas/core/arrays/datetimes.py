@@ -1271,12 +1271,11 @@ default 'raise'
         from pandas import DataFrame
 
         sarray = fields.build_isocalendar_sarray(self.asi8)
-        iso_calendar_array = self._maybe_mask_results(
-            sarray,
-            fill_value=(np.nan, np.nan, np.nan),
-            convert=[(n, "<f8") for n in sarray.dtype.names],
-        )
-        return DataFrame(iso_calendar_array, columns=["year", "week", "day"])
+        iso_calendar_df = DataFrame(sarray, columns=["year", "week", "day"])
+        if self._hasnans:
+            iso_calendar_df = iso_calendar_df.astype("Int64")
+            iso_calendar_df.iloc[self._isnan] = None
+        return iso_calendar_df
 
     year = _field_accessor(
         "year",

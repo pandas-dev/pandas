@@ -672,18 +672,18 @@ class TestSeriesDatetimeValues:
         "input_series, expected_output, expected_type",
         [
             [["2020-01-01"], [[2020, 1, 3]], "int32"],
-            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]], "float64"],
+            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]], "Int64"],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]], "int32"],
             [
                 ["2010-01-01", pd.NaT],
                 [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]],
-                "float64",
+                "Int64",
             ],
         ],
     )
     def test_isocalendar(self, input_series, expected_output, expected_type):
-        ser = pd.to_datetime(pd.Series(input_series))
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar
         expected_frame = pd.DataFrame(
             expected_output, columns=["year", "week", "day"]
         ).astype(expected_type)
-        tm.assert_frame_equal(ser.dt.isocalendar, expected_frame)
+        tm.assert_frame_equal(result, expected_frame)
