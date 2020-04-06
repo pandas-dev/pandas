@@ -1050,7 +1050,7 @@ class PlotAccessor(PandasObject):
     @Appender(
         """
         stacked: bool, default is False
-            If stacked is set to True, stacked bar(h) charts will be plotted.
+            If stacked is set to True, stacked horizontal bar charts will be plotted.
 
         See Also
         --------
