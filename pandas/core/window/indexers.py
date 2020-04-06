@@ -157,6 +157,14 @@ class FixedForwardWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
+        if center:
+            raise ValueError("Forward-looking windows can't have center=True")
+        if closed is not None:
+            raise ValueError(
+                "Forward-looking windows don't support setting the closed"
+                "argument"
+            )
+
         start = np.arange(num_values, dtype="int64")
         end_s = start[: -self.window_size] + self.window_size
         end_e = np.full(self.window_size, num_values, dtype="int64")
