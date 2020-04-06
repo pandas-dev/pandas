@@ -293,7 +293,7 @@ def test_getitem_setitem_datetimeindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
     # also test partial date slicing
@@ -349,7 +349,7 @@ def test_getitem_setitem_periodindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
 
@@ -462,12 +462,6 @@ def test_index_unique(dups):
     tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
     assert idx.nunique() == 20
     assert idx.nunique(dropna=False) == 21
-
-
-def test_index_dupes_contains():
-    d = datetime(2011, 12, 5, 20, 30)
-    ix = DatetimeIndex([d, d])
-    assert d in ix
 
 
 def test_duplicate_dates_indexing(dups):
@@ -703,15 +697,6 @@ def test_set_none_nan():
 
     series[5:7] = np.nan
     assert series[6] is NaT
-
-
-def test_nat_operations():
-    # GH 8617
-    s = Series([0, pd.NaT], dtype="m8[ns]")
-    exp = s[0]
-    assert s.median() == exp
-    assert s.min() == exp
-    assert s.max() == exp
 
 
 def test_setitem_tuple_with_datetimetz():

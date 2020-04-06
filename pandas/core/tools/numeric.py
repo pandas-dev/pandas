@@ -35,17 +35,18 @@ def to_numeric(arg, errors="raise", downcast=None):
     Parameters
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
+        Argument to be converted.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
-    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
+    downcast : {'int', 'signed', 'unsigned', 'float'}, default None
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
         possible according to the following rules:
 
-        - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
+        - 'int' or 'signed': smallest signed int dtype (min.: np.int8)
         - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
         - 'float': smallest float dtype (min.: np.float32)
 
@@ -61,7 +62,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     Returns
     -------
-    ret : numeric if parsing succeeded.
+    ret
+        Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
 
     See Also
@@ -160,7 +162,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
-        elif downcast == "unsigned" and np.min(values) >= 0:
+        elif downcast == "unsigned" and (not len(values) or np.min(values) >= 0):
             typecodes = np.typecodes["UnsignedInteger"]
         elif downcast == "float":
             typecodes = np.typecodes["Float"]

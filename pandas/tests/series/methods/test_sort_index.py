@@ -8,6 +8,10 @@ import pandas._testing as tm
 
 
 class TestSeriesSortIndex:
+    def test_sort_index_name(self, datetime_series):
+        result = datetime_series.sort_index(ascending=False)
+        assert result.name == datetime_series.name
+
     def test_sort_index(self, datetime_series):
         rindex = list(datetime_series.index)
         random.shuffle(rindex)
@@ -30,7 +34,7 @@ class TestSeriesSortIndex:
         sorted_series = random_order.sort_index(axis=0)
         tm.assert_series_equal(sorted_series, datetime_series)
 
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             random_order.sort_values(axis=1)
 
