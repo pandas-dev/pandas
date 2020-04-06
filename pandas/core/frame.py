@@ -2585,7 +2585,7 @@ class DataFrame(NDFrame):
         This returns the values as stored in the Block (ndarray or ExtensionArray).
         """
         for i in range(len(self.columns)):
-            yield self._ixs_values(i)
+            yield self._get_column_array(i)
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
