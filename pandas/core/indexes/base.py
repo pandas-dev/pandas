@@ -4199,8 +4199,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         The things that are being compared are:
 
-            * The elements inside the Index object.
-            * The order of the elements inside the Index object.
+        * The elements inside the Index object.
+        * The order of the elements inside the Index object.
 
         Parameters
         ----------
