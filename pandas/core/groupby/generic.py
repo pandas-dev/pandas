@@ -918,7 +918,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if isinstance(v[0], list) & isinstance(v[1], LambdaType):
                     # v[0] is the first parameter given (the column(s) to group)
                     # v[1] is the 2nd parameter given and the opperation to be done to the column(s)
-                    kwargs[k] = (np.array(v[0]).tobytes(),) + v[1:]
+                    kwargs[k] = (np.array(v[0]).sort().tobytes(),) + v[1:]
 
             func, columns, order = normalize_keyword_aggregation(kwargs)
             kwargs = {}

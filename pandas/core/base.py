@@ -351,7 +351,7 @@ class SelectionMixin:
                                     # Check keys
                                     if (key not in obj.columns):
                                         raise KeyError(f"Column '{key}' does not exist!")
-                            except TypeError:
+                            except AttributeError:
                                 raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
