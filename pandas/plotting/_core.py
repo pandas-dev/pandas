@@ -988,6 +988,13 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(rot=0)
 
+        Plot stacked bar chars for the DataFrame
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.bar(stacked=True)
+
         Instead of nesting, the figure can be split by column with
         ``subplots=True``. In this case, a :class:`numpy.ndarray` of
         :class:`matplotlib.axes.Axes` are returned.
@@ -1022,15 +1029,6 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> ax = df.plot.bar(x='lifespan', rot=0)
-
-        Plot stacked bar chars for the DataFrame
-
-        .. plot::
-            :context: close-figs
-
-            >>> index = ["a", "b", "c", "d"]
-            >>> df = pd.DataFrame({"UK": [10, 3, 4], "NL": [1, 5, 6]}, index=index)
-            >>> ax = df.plot.bar(stacked=True)
     """
     )
     @Substitution(kind="bar")
@@ -1080,6 +1078,13 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
+        
+        Plot stacked bar chars for the DataFrame
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.bar(stacked=True)
 
         We can specify colors for each column
 
@@ -1113,15 +1118,6 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh(x='lifespan')
-
-        Plot stacked horizontal bar chars for the DataFrame
-
-        .. plot::
-            :context: close-figs
-
-            >>> index = ["a", "b", "c", "d"]
-            >>> df = pd.DataFrame({"UK": [10, 3, 4], "NL": [1, 5, 6]}, index=index)
-            >>> ax = df.plot.barh(stacked=True)
     """
     )
     @Substitution(kind="bar")
