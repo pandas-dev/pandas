@@ -166,7 +166,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.f)
-            return type(self.obj)._from_mgr(results)
+            return self.obj._from_mgr(results)
 
         # broadcasting
         if self.result_type == "broadcast":

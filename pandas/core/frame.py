@@ -4469,7 +4469,7 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "DataFrame":
-        result = type(self)._from_mgr(self._mgr.isna(func=isna))
+        result = self._from_mgr(self._mgr.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
@@ -4794,7 +4794,7 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
-        result = type(self)._from_mgr(new_data)
+        result = self._from_mgr(new_data)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -4930,7 +4930,7 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
-        result = type(self)._from_mgr(new_data)
+        result = self._from_mgr(new_data)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -6662,7 +6662,7 @@ Wild         185.0
         """
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
-        return type(self)._from_mgr(new_data)
+        return self._from_mgr(new_data)
 
     # ----------------------------------------------------------------------
     # Function application
@@ -8426,7 +8426,7 @@ Wild         185.0
         )
 
         if result.ndim == 2:
-            result = type(self)._from_mgr(result)
+            result = self._from_mgr(result)
         else:
             result = self._constructor_sliced(result, name=q)
 
