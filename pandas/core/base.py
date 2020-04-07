@@ -342,16 +342,16 @@ class SelectionMixin:
                         raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame):
                         # GH 29268
-                        if (k not in obj.columns):
+                        if k not in obj.columns:
                             # Check if list thingy
                             try:
-                                keys = np.frombuffer(k, dtype=np.dtype('<U1'))
+                                keys = np.frombuffer(k, dtype=np.dtype("<U1"))
                             except (AttributeError, TypeError):
                                 raise KeyError(f"Column '{k}' does not exist!")
 
                             # Check keys
                             for key in keys:
-                                if (key not in obj.columns):
+                                if key not in obj.columns:
                                     raise KeyError(f"Column '{key}' does not exist!")
 
                                 # Memorize operation
@@ -388,10 +388,11 @@ class SelectionMixin:
                 """
                 colg = self._gotitem(self._selection, ndim=2, subset=obj)
                 return colg.aggregate(how)
-            
+
             # GH 29268
             def _agg_multi_dim(name, how, keys):
                 from pandas.core.frame import DataFrame
+
                 _obj = {k: self._gotitem(k, ndim=1, subset=None) for k in keys}
                 result = {com.get_callable_name(agg): agg(_obj) for agg in how}
                 return DataFrame(result, columns=result.keys())

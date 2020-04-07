@@ -640,7 +640,7 @@ class TestNamedAggregationDataFrame:
         df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
         result = df.groupby("A").agg(
             add=(["B", "C"], lambda x: x["B"].max() + x["C"].min()),
-            minus=(["C", "B"], lambda x: x["B"].max() - x["C"].min())
+            minus=(["C", "B"], lambda x: x["B"].max() - x["C"].min()),
         )
         expected = pd.DataFrame(
             {"add": [5, 9], "minus": [-1, -1]}, index=pd.Index([0, 1], name="A")

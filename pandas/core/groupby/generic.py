@@ -921,6 +921,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if relabeling:
             # GH 29268
             from types import LambdaType
+
             for k, v in list(kwargs.items()):
                 if isinstance(v[0], list) & isinstance(v[1], LambdaType):
                     serialized_key = np.sort(np.array(v[0]))
