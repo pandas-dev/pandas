@@ -242,6 +242,14 @@ def test_min_max(method, skipna):
         assert result is pd.NA
 
 
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_numpy(method):
+    arr = pd.Series(["a", "b", "c", None], dtype="string")
+    result = getattr(np, method)(arr)
+    expected = "a" if method == "min" else "c"
+    assert result == expected
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna):
