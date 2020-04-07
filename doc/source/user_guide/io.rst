@@ -109,6 +109,11 @@ index_col : int, str, sequence of int / str, or False, default ``None``
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g. when you have a malformed file with delimiters at
   the end of each line.
+
+  The default value of ``None`` instructs pandas to guess. If the number of
+  fields in the column header row is equal to the number of fields in the body
+  of the data file, then a default index is used.  If it is one larger, then
+  the first field is used as an index.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
