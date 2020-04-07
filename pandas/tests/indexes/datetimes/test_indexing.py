@@ -25,6 +25,13 @@ class TestGetItem:
         assert result.equals(idx)
         assert result is not idx
 
+    def test_getitem_slice_keeps_name(self):
+        # GH4226
+        st = pd.Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
+        et = pd.Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
+        dr = pd.date_range(st, et, freq="H", name="timebucket")
+        assert dr[1:].name == dr.name
+
     def test_getitem(self):
         idx1 = pd.date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
         idx2 = pd.date_range(
@@ -118,6 +125,21 @@ class TestGetItem:
             values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
+
+    def test_getitem_int_list(self):
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        assert v1 == Timestamp("2/28/2005")
+        assert v2 == Timestamp("4/30/2005")
+        assert v3 == Timestamp("6/30/2005")
+
+        # getitem with non-slice drops freq
+        assert dti2.freq is None
 
 
 class TestWhere:
@@ -483,6 +505,69 @@ class TestContains:
         assert d in ix
 
 
+class TestGetIndexer:
+    def test_get_indexer(self):
+        idx = pd.date_range("2000-01-01", periods=3)
+        exp = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(idx.get_indexer(idx), exp)
+
+        target = idx[0] + pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 hour")),
+            np.array([0, -1, 1], dtype=np.intp),
+        )
+        tol_raw = [
+            pd.Timedelta("1 hour"),
+            pd.Timedelta("1 hour"),
+            pd.Timedelta("1 hour").to_timedelta64(),
+        ]
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(
+                target, "nearest", tolerance=[np.timedelta64(x) for x in tol_raw]
+            ),
+            np.array([0, -1, 1], dtype=np.intp),
+        )
+        tol_bad = [
+            pd.Timedelta("2 hour").to_timedelta64(),
+            pd.Timedelta("1 hour").to_timedelta64(),
+            "foo",
+        ]
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+            idx.get_indexer(target, "nearest", tolerance=tol_bad)
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+            idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
+
+
+class TestMaybeCastSliceBound:
+    def test_maybe_cast_slice_bounds_empty(self):
+        # GH#14354
+        empty_idx = date_range(freq="1H", periods=0, end="2015")
+
+        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
+        exp = Timestamp("2015-01-02 23:59:59.999999999")
+        assert right == exp
+
+        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
+        exp = Timestamp("2015-01-02 00:00:00")
+        assert left == exp
+
+    def test_maybe_cast_slice_duplicate_monotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/16515
+        idx = DatetimeIndex(["2017", "2017"])
+        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
+        expected = Timestamp("2017-01-01")
+        assert result == expected
+
+
 class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
@@ -777,43 +862,3 @@ class TestDatetimeIndex:
 
         result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
-
-    def test_get_indexer(self):
-        idx = pd.date_range("2000-01-01", periods=3)
-        exp = np.array([0, 1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(idx.get_indexer(idx), exp)
-
-        target = idx[0] + pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 hour")),
-            np.array([0, -1, 1], dtype=np.intp),
-        )
-        tol_raw = [
-            pd.Timedelta("1 hour"),
-            pd.Timedelta("1 hour"),
-            pd.Timedelta("1 hour").to_timedelta64(),
-        ]
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(
-                target, "nearest", tolerance=[np.timedelta64(x) for x in tol_raw]
-            ),
-            np.array([0, -1, 1], dtype=np.intp),
-        )
-        tol_bad = [
-            pd.Timedelta("2 hour").to_timedelta64(),
-            pd.Timedelta("1 hour").to_timedelta64(),
-            "foo",
-        ]
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
-            idx.get_indexer(target, "nearest", tolerance=tol_bad)
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
-            idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
