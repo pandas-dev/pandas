@@ -5,7 +5,7 @@
 {{ header }}
 
 ****************
-Pandas ecosystem
+pandas ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
