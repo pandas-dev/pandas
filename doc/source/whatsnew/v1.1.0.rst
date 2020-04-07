@@ -64,8 +64,10 @@ When applied to a `DataFrame`, they key is applied per-column to all columns or 
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a' : ['C', 'C', 'a', 'a', 'B', 'B'], 'b' : [1, 2, 3, 4, 5, 6]})
-   df.sort_values(by=['a', 'b'], key=lambda col : col.str.lower() if col.name == 'a' else -col)
+   df = pd.DataFrame({'a': ['C', 'C', 'a', 'a', 'B', 'B'],
+                      'b': [1, 2, 3, 4, 5, 6]})
+   df.sort_values(by=['a', 'b'], key=lambda col: col.str.lower()
+                  if col.name == 'a' else -col)
 
 
 For :meth:`DataFrame.sort_index` with `MultiIndex`, the key function is applied per level. For
