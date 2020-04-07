@@ -18,14 +18,14 @@ def get_engine(engine: str) -> "BaseImpl":
 
     if engine == "auto":
         # try engines in this order
-        engine_impls = [PyArrowImpl, FastParquetImpl]
+        engine_classes = [PyArrowImpl, FastParquetImpl]
 
         error_msgs = []
-        for eimpl in engine_impls:
+        for ec in engine_classes:
             try:
-                return eimpl()
-            except ImportError as ie:
-                error_msgs.append(str(ie))
+                return ec()
+            except ImportError as err:
+                error_msgs.append(str(err))
 
         raise ImportError(
             "Unable to find a usable engine; "
