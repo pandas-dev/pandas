@@ -571,11 +571,11 @@ you to evaluate an expression in the "context" of a :class:`~pandas.Series`.
    
    index = list(range(2010, 2015))
    data = np.random.randn(5)
-   series = pd.Series(data, index=index, name='data')
+   series = pd.Series(data, index=index)
    series.index.name = 'years'
    series
 
-   series.eval('(years > 2010) & (data > 0)')
+   series.eval('(years > 2010) & (years != 2013)')
 
 There is an ``inplace`` keyword that currently defaults to ``True``. This maybe
 change in future versions of pandas and it is recommended to use the ``inplace``
