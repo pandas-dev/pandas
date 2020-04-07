@@ -1256,9 +1256,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If the index is named, we can refer to it in the query.
         
         >>> series.index.name = 'numbers'
+        >>> series.query('numbers > 2')
         numbers
         3    3
         4    4
+        dtype: int64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
