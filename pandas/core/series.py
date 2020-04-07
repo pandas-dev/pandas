@@ -1131,6 +1131,45 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Unsorted
 
+    def query(self, expr, inplace=False, **kwargs):
+        
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if not isinstance(expr, str):
+            msg = f"expr must be a string to be evaluated, {type(expr)} given"
+            raise ValueError(msg)
+        kwargs["level"] = kwargs.pop("level", 0) + 1
+        kwargs["target"] = None
+        res = self.eval(expr, **kwargs)
+
+        try:
+            new_data = self.loc[res]
+        except ValueError:
+            # when res is multi-dimensional loc raises, but this is sometimes a
+            # valid query
+            new_data = self[res]
+
+        if inplace:
+            self._update_inplace(new_data)
+        else:
+            return new_data
+
+    def eval(self, expr, inplace=False, **kwargs):
+    
+        from pandas.core.computation.eval import eval as _eval
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        resolvers = kwargs.pop("resolvers", None)
+        kwargs["level"] = kwargs.pop("level", 0) + 1
+        if resolvers is None:
+            index_resolvers = self._get_index_resolvers()
+            column_resolvers = self._get_cleaned_column_resolvers()
+            resolvers = column_resolvers, index_resolvers
+        if "target" not in kwargs:
+            kwargs["target"] = self
+        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+
+        return _eval(expr, inplace=inplace, **kwargs)
+
     @property
     def _is_mixed_type(self):
         return False
