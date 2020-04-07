@@ -415,7 +415,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
-            # The ensure_index call aabove ensures we have an Index object
+            # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
