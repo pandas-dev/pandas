@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 from pandas.core.internals import ExtensionBlock
 
 from .base import BaseExtensionTests
@@ -302,7 +301,7 @@ class BaseReshapingTests(BaseExtensionTests):
                 df = ser.to_frame()
 
                 alt = df.unstack(level=level).droplevel(0, axis=1)
-                tm.assert_frame_equal(result, alt)
+                self.assert_frame_equal(result, alt)
 
             expected = ser.astype(object).unstack(level=level)
             result = result.astype(object)
