@@ -1126,7 +1126,7 @@ Mask
 
 .. _indexing.query:
 
-The :meth:`~pandas.DataFrame.query` Method
+The ``Series`` :meth:`~pandas.Series.query` Method
 ------------------------------------------
 
 :class:`~pandas.Series` objects also have a :meth:`~pandas.Series.query`
@@ -1158,6 +1158,51 @@ You can do the same with a named ``index``.
    series.index.name = 'foo'
 
    series.query('foo > 2')
+
+The ``query`` method also has a ``inplace`` keyword that lets you modify
+the original ``Series``. It is set to ``False`` by default. 
+
+.. ipython:: python
+   series.query('foo > 2', inplace=True)
+
+:class:`~pandas.MultiIndex` :meth:`~pandas.Series.query` Syntax
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use a ``Series`` with a :class:`~pandas.MultiIndex` with the
+query method.
+
+.. ipython:: python
+
+   data = list(range(0, 10))
+   foos = np.random.choice(['foo1', 'foo2'], size=10)
+   bars = np.random.choice(['bar1', 'bar2'], size=10)
+
+   data
+   foos
+   bars
+
+   index = pd.MultiIndex.from_arrays([foos, bars], names=['foos', 'bars'])
+   index
+
+   series = pd.Series(data, index=index)
+   series
+
+   series.query('foos == "foo1"')
+   series.query('foos == "foo1" and bars == "bar2"')
+
+You can use special names to refer to unnamed levels of ``MultiIndex``.
+The example below uses ``ilevel_1``, which is a common convention to refer
+to the index at the "1st" level.
+
+.. ipython:: python
+
+   series.index.names = [None, None]
+   series
+   series.query('ilevel_1 == "bar1"')
+
+
+The ``DataFrame`` :meth:`~pandas.DataFrame.query` Method
+------------------------------------------
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using an expression.
@@ -1221,38 +1266,6 @@ If instead you don't want to or cannot name your index, you can use the name
 
 :class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can use a ``Series`` with a :class:`~pandas.MultiIndex` with the
-query method.
-
-.. ipython:: python
-
-   data = list(range(0, 10))
-   foos = np.random.choice(['foo1', 'foo2'], size=10)
-   bars = np.random.choice(['bar1', 'bar2'], size=10)
-
-   data
-   foos
-   bars
-
-   index = pd.MultiIndex.from_arrays([foos, bars], names=['foos', 'bars'])
-   index
-
-   series = pd.Series(data, index=index)
-   series
-
-   series.query('foos == "foo1"')
-   series.query('foos == "foo1" and bars == "bar2"')
-
-You can use special names to refer to unnamed levels of ``MultiIndex``.
-The example below uses ``ilevel_1``, which is a common convention to refer
-to the index at the "1st" level.
-
-.. ipython:: python
-
-   series.index.names = [None, None]
-   series
-   series.query('ilevel_1 == "bar1"')
 
 You can also use the levels of a ``DataFrame`` with a
 :class:`~pandas.MultiIndex` as if they were columns in the frame:
