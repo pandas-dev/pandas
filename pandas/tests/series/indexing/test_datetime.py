@@ -130,18 +130,6 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_datetime64_duplicated():
-    dates = date_range("2010-07-01", end="2010-08-05")
-
-    tst = DataFrame({"symbol": "AAA", "date": dates})
-    result = tst.duplicated(["date", "symbol"])
-    assert (-result).all()
-
-    tst = DataFrame({"date": dates})
-    result = tst.duplicated()
-    assert (-result).all()
-
-
 def test_getitem_setitem_datetime_tz_pytz():
     from pytz import timezone as tz
 
@@ -351,20 +339,6 @@ def test_getitem_setitem_periodindex():
     result[ts.index[4:8]] = 0
     result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
-
-
-# FutureWarning from NumPy.
-@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
-def test_getitem_median_slice_bug():
-    index = date_range("20090415", "20090519", freq="2B")
-    s = Series(np.random.randn(13), index=index)
-
-    indexer = [slice(6, 7, None)]
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31299
-        result = s[indexer]
-    expected = s[indexer[0]]
-    tm.assert_series_equal(result, expected)
 
 
 def test_datetime_indexing():
@@ -682,21 +656,6 @@ def test_indexing():
 """
 test NaT support
 """
-
-
-def test_set_none_nan():
-    series = Series(date_range("1/1/2000", periods=10))
-    series[3] = None
-    assert series[3] is NaT
-
-    series[3:5] = None
-    assert series[4] is NaT
-
-    series[5] = np.nan
-    assert series[5] is NaT
-
-    series[5:7] = np.nan
-    assert series[6] is NaT
 
 
 def test_setitem_tuple_with_datetimetz():
