@@ -32,8 +32,8 @@ def get_engine(engine: str) -> "BaseImpl":
             "tried using: 'pyarrow', 'fastparquet'.\n"
             "A suitable version of "
             "pyarrow or fastparquet is required for parquet "
-            "support. \n"
-            "Trying to import the above resulted in these errors: \n"
+            "support.\n"
+            "Trying to import the above resulted in these errors:\n"
             + "\n".join(error_msgs)
         )
 
