@@ -556,7 +556,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> codes
-    array([0, 0, 1, 2, 0])
+    array([0, 0, 1, 2, 0]...)
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -565,7 +565,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> codes
-    array([1, 1, 0, 2, 1])
+    array([1, 1, 0, 2, 1]...)
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -575,7 +575,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> codes
-    array([ 0, -1,  1,  2,  0])
+    array([ 0, -1,  1,  2,  0]...)
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -586,7 +586,7 @@ def factorize(
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1])
+    array([0, 0, 1]...)
     >>> uniques
     [a, c]
     Categories (3, object): [a, b, c]
@@ -600,7 +600,7 @@ def factorize(
     >>> cat = pd.Series(['a', 'a', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1])
+    array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
     """
@@ -700,7 +700,7 @@ def value_counts(
         result = result.sort_index()
 
         # if we are dropna and we have NO values
-        if dropna and (result.values == 0).all():
+        if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
         # normalizing is by len of all (regardless of dropna)
@@ -713,7 +713,7 @@ def value_counts(
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
-            counts = result.values
+            counts = result._values
 
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
@@ -823,7 +823,7 @@ def mode(values, dropna: bool = True) -> "Series":
     # categorical is a fast-path
     if is_categorical_dtype(values):
         if isinstance(values, Series):
-            return Series(values.values.mode(dropna=dropna), name=values.name)
+            return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
     if dropna and needs_i8_conversion(values.dtype):
@@ -1645,7 +1645,7 @@ def take_nd(
         if arr.flags.f_contiguous and axis == arr.ndim - 1:
             # minor tweak that can make an order-of-magnitude difference
             # for dataframes initialized directly from 2-d ndarrays
-            # (s.t. df.values is c-contiguous and df._data.blocks[0] is its
+            # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
             # f-contiguous transpose)
             out = np.empty(out_shape, dtype=dtype, order="F")
         else:

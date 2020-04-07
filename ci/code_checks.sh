@@ -121,7 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort' ; echo $MSG
-    ISORT_CMD="isort --quiet --recursive --check-only pandas asv_bench"
+    ISORT_CMD="isort --quiet --recursive --check-only pandas asv_bench scripts"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
     else
@@ -266,52 +266,10 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    # Individual files
 
-    MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py \
-        -k"-nonzero -reindex -searchsorted -to_dict"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests datetimes.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/tools/datetimes.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/reshape/concat.py \
-        pandas/core/reshape/pivot.py \
-        pandas/core/reshape/reshape.py \
-        pandas/core/reshape/tile.py \
-        pandas/core/reshape/melt.py \
-        -k"-crosstab -pivot_table -cut"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests interval classes' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/indexes/interval.py \
-        pandas/core/arrays/interval.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests arrays'; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/arrays/string_.py \
-        pandas/core/arrays/integer.py \
-        pandas/core/arrays/boolean.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests dtypes'; echo $MSG
-    pytest -q --doctest-modules pandas/core/dtypes/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests arrays/boolean.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/boolean.py
+    MSG='Doctests accessor.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/accessor.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests base.py' ; echo $MSG
@@ -322,9 +280,64 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/construction.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests frame.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/frame.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests series.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/series.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests strings.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/strings.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Directories
+
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests computation' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/computation/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests dtypes'; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests indexes' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests ops' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/ops/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests reshape' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tools' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests window' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/window/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###
@@ -335,7 +348,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
-    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst
+    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst $BASE_DIR/doc/source/reference
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
