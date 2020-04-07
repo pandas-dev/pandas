@@ -3275,7 +3275,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
     @pytest.mark.parametrize("by", ["C", ["C", "D"]])
-    @pytest.mark.parametrize("column", ["A", ["A", "B"]])
+    @pytest.mark.parametrize("column", ["A", ["A", "B"], None])
     def test_hist_plot_by_argument(self, by, column, test_hist_df):
         # GH 15079
         _check_plot_works(test_hist_df.plot.hist, column=column, by=by)
@@ -3287,11 +3287,13 @@ class TestDataFramePlots(TestPlotBase):
             (["C"], "A", (2, 2), 3),
             ("C", "A", (2, 2), 3),
             (["C"], ["A"], (1, 3), 3),
+            ("C", None, (3, 1), 3),
             ("C", ["A", "B"], (3, 1), 3),
             (["C", "D"], "A", (9, 1), 9),
             (["C", "D"], "A", (3, 3), 9),
             (["C", "D"], ["A"], (5, 2), 9),
             (["C", "D"], ["A", "B"], (9, 1), 9),
+            (["C", "D"], None, (9, 1), 9),
             (["C", "D"], ["A", "B"], (5, 2), 9),
         ],
     )
