@@ -477,7 +477,7 @@ class TestGetLoc:
 
 
 class TestContains:
-    def test_index_dupes_contains(self):
+    def test_dti_contains_with_duplicates(self):
         d = datetime(2011, 12, 5, 20, 30)
         ix = DatetimeIndex([d, d])
         assert d in ix
