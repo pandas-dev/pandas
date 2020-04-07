@@ -159,17 +159,6 @@ class TestIndex(Base):
         if has_tz:
             assert result.tz == index.tz
 
-    @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
-    def test_constructor_from_series(self, klass):
-        expected = DatetimeIndex(
-            [Timestamp("20110101"), Timestamp("20120101"), Timestamp("20130101")]
-        )
-        s = Series(
-            [Timestamp("20110101"), Timestamp("20120101"), Timestamp("20130101")]
-        )
-        result = klass(s)
-        tm.assert_index_equal(result, expected)
-
     def test_constructor_from_series_freq(self):
         # GH 6273
         # create from a series, passing a freq
@@ -265,47 +254,6 @@ class TestIndex(Base):
 
         result = Index(np.array(na_list))
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("pos", [0, 1])
-    @pytest.mark.parametrize(
-        "klass,dtype,ctor",
-        [
-            (pd.DatetimeIndex, "datetime64[ns]", np.datetime64("nat")),
-            (pd.TimedeltaIndex, "timedelta64[ns]", np.timedelta64("nat")),
-        ],
-    )
-    def test_index_ctor_infer_nat_dt_like(self, pos, klass, dtype, ctor, nulls_fixture):
-        expected = klass([pd.NaT, pd.NaT])
-        assert expected.dtype == dtype
-        data = [ctor]
-        data.insert(pos, nulls_fixture)
-
-        if nulls_fixture is pd.NA:
-            expected = Index([pd.NA, pd.NaT])
-            pytest.xfail("Broken with np.NaT ctor; see GH 31884")
-
-        result = Index(data)
-        tm.assert_index_equal(result, expected)
-
-        result = Index(np.array(data, dtype=object))
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("swap_objs", [True, False])
-    def test_index_ctor_nat_result(self, swap_objs):
-        # mixed np.datetime64/timedelta64 nat results in object
-        data = [np.datetime64("nat"), np.timedelta64("nat")]
-        if swap_objs:
-            data = data[::-1]
-
-        expected = pd.Index(data, dtype=object)
-        tm.assert_index_equal(Index(data), expected)
-        tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
-
-    def test_index_ctor_infer_periodindex(self):
-        xp = period_range("2012-1-1", freq="M", periods=3)
-        rs = Index(xp)
-        tm.assert_index_equal(rs, xp)
-        assert isinstance(rs, PeriodIndex)
 
     @pytest.mark.parametrize(
         "vals,dtype",
