@@ -348,7 +348,7 @@ class IntegerArray(BaseMaskedArray):
                 "values should be integer numpy array. Use "
                 "the 'integer_array' function instead"
             )
-        if not (isinstance(mask, np.ndarray) and mask.dtype.kind == "b"):
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
                 "mask should be boolean numpy array. Use "
                 "the 'integer_array' function instead"
