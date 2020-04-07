@@ -6558,20 +6558,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-
                     # Operate column-wise
-                    res = self if inplace else self.copy()
-                    ax = self._info_axis
-                    # Note: we only get here with self.ndim == 2
-                    for i in range(len(ax)):
-                        if ax[i] in to_replace:
-                            ser = self._ixs(i, axis=1)
-                            newobj = ser.replace(to_replace[ax[i]], value, regex=regex)
-                            res.iloc[:, i] = newobj
-
-                    if inplace:
-                        return
-                    return res.__finalize__(self)
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-like to_replace "
+                            "and non-None value"
+                        )
+                    mapping = {
+                        col: (to_rep, value) for col, to_rep in to_replace.items()
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
@@ -6612,20 +6608,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-
                     # Operate column-wise
-                    res = self if inplace else self.copy()
-                    ax = self._info_axis
-                    for i in range(len(ax)):
-                        if ax[i] in value:
-                            v = value[ax[i]]
-                            ser = self._ixs(i, axis=1)
-                            newobj = ser.replace(to_replace, value=v, regex=regex)
-                            res.iloc[:, i] = newobj
-
-                    if inplace:
-                        return
-                    return res.__finalize__(self)
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-value and "
+                            "non-None to_replace"
+                        )
+                    mapping = {col: (to_replace, val) for col, val in value.items()}
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 elif not is_list_like(value):  # NA -> 0
                     new_data = self._mgr.replace(
