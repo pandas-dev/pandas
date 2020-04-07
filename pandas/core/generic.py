@@ -213,13 +213,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
 
     @classmethod
-    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(
-                    axe, axis=cls._get_block_manager_axis(a), copy=False
-                )
+                axe = ensure_index(axe)
+                bm_axis = cls._get_block_manager_axis(a)
+                mgr = mgr.reindex_axis(axe, axis=bm_axis, copy=False)
 
         # make a copy if explicitly requested
         if copy:
@@ -229,6 +229,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
+
+    @classmethod
+    def _from_mgr(cls, mgr: BlockManager):
+        """
+        Fastpath constructor for if we have only a BlockManager.
+        """
+        obj = object.__new__(cls)
+        NDFrame.__init__(obj, mgr)
+        return obj
 
     # ----------------------------------------------------------------------
 
@@ -1359,8 +1368,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         new_data = self._mgr.apply(operator.invert)
-        result = self._constructor(new_data).__finalize__(self, method="__invert__")
-        return result
+        result = type(self)._from_mgr(new_data)
+        return result.__finalize__(self, method="__invert__")
 
     def __nonzero__(self):
         raise ValueError(
@@ -3365,7 +3374,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
-        return self._constructor(new_data).__finalize__(self, method="take")
+        return type(self)._from_mgr(new_data).__finalize__(self, method="take")
 
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
@@ -3571,7 +3580,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
-        result = self._constructor(self._mgr.get_slice(slobj, axis=axis))
+        result = type(self)._from_mgr(self._mgr.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)
 
         # this could be a view
@@ -4508,7 +4517,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
 
-        return self._constructor(new_data).__finalize__(self)
+        return type(self)._from_mgr(new_data).__finalize__(self)
 
     def filter(
         self: FrameOrSeries,
@@ -5274,7 +5283,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             f = lambda: self._mgr.consolidate()
             cons_data = self._protect_consolidate(f)
-            return self._constructor(cons_data).__finalize__(self)
+            return type(self)._from_mgr(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self) -> bool_t:
@@ -5303,10 +5312,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self,)
+        return type(self)._from_mgr(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._mgr.get_bool_data()).__finalize__(self,)
+        return type(self)._from_mgr(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5573,7 +5582,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
-            return self._constructor(new_data).__finalize__(self, method="astype")
+            return type(self)._from_mgr(new_data).__finalize__(self, method="astype")
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -5687,7 +5696,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
-        return self._constructor(data).__finalize__(self, method="copy")
+        return type(self)._from_mgr(data).__finalize__(self, method="copy")
 
     def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
         return self.copy(deep=deep)
@@ -5738,15 +5747,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(timedelta, "timedelta")
         validate_bool_kwarg(coerce, "coerce")
         validate_bool_kwarg(copy, "copy")
-        return self._constructor(
-            self._mgr.convert(
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                coerce=coerce,
-                copy=copy,
+        return (
+            type(self)
+            ._from_mgr(
+                self._mgr.convert(
+                    datetime=datetime,
+                    numeric=numeric,
+                    timedelta=timedelta,
+                    coerce=coerce,
+                    copy=copy,
+                )
             )
-        ).__finalize__(self)
+            .__finalize__(self)
+        )
 
     def infer_objects(self: FrameOrSeries) -> FrameOrSeries:
         """
@@ -5789,11 +5802,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # numeric=False necessary to only soft convert;
         # python objects will still be converted to
         # native numpy numeric types
-        return self._constructor(
-            self._mgr.convert(
-                datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
+        return (
+            type(self)
+            ._from_mgr(
+                self._mgr.convert(
+                    datetime=True,
+                    numeric=False,
+                    timedelta=True,
+                    coerce=False,
+                    copy=True,
+                )
             )
-        ).__finalize__(self, method="infer_objects")
+            .__finalize__(self, method="infer_objects")
+        )
 
     def convert_dtypes(
         self: FrameOrSeries,
@@ -6896,7 +6917,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             **kwargs,
         )
 
-        result = self._constructor(new_data)
+        result = type(self)._from_mgr(new_data)
         if axis == 1:
             result = result.T
         if inplace:
@@ -8511,7 +8532,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if copy and fdata is self._mgr:
                 fdata = fdata.copy()
 
-            left = self._constructor(fdata)
+            left = type(self)._from_mgr(fdata)
 
             if ridx is None:
                 right = other
@@ -8663,7 +8684,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             new_data = self._mgr.putmask(
                 mask=cond, new=other, align=align, axis=block_axis,
             )
-            result = self._constructor(new_data)
+            result = type(self)._from_mgr(new_data)
             return self._update_inplace(result)
 
         else:
@@ -8675,7 +8696,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 try_cast=try_cast,
                 axis=block_axis,
             )
-            result = self._constructor(new_data)
+            result = type(self)._from_mgr(new_data)
             return result.__finalize__(self)
 
     _shared_docs[
@@ -8948,7 +8969,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return self.tshift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self, method="shift")
+        return type(self)._from_mgr(new_data).__finalize__(self, method="shift")
 
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
@@ -11202,9 +11223,8 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        obj = type(self)._from_mgr(result)
+        return obj.__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
