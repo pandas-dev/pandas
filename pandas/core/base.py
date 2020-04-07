@@ -346,7 +346,7 @@ class SelectionMixin:
                             # Check if list thingy
                             try:
                                 keys = np.frombuffer(k, dtype=np.dtype('<U1'))
-                            except (AttributeError, TypeError) as e:
+                            except (AttributeError, TypeError):
                                 raise KeyError(f"Column '{k}' does not exist!")
 
                             # Check keys
