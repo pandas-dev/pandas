@@ -5,15 +5,12 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import TYPE_CHECKING, Any, DefaultDict, Hashable, Sequence, Tuple
+from typing import Any, DefaultDict, List, Sequence, Tuple
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-
-if TYPE_CHECKING:
-    import numpy as np  # noqa: F401
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
@@ -42,9 +39,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(
-    kwargs: dict,
-) -> Tuple[DefaultDict, Tuple[Hashable], "np.ndarray"]:
+def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -56,11 +51,11 @@ def normalize_keyword_aggregation(
 
     Returns
     -------
-    aggspec : collections.defaultdict of lists
+    aggspec : dict
         The transformed kwargs.
-    columns : tuple
+    columns : List[str]
         The user-provided keys.
-    col_idx_order : numpy.ndarray
+    col_idx_order : List[int]
         List of columns indices.
 
     Examples
