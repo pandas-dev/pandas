@@ -978,8 +978,8 @@ class Parser:
             if not in_range.all():
                 return data, False
 
-        # ignore bool
         if new_data.dtype == "bool":
+            # GH#33373 ignore bool
             return data, False
 
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
