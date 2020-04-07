@@ -333,11 +333,19 @@ def ensure_key_mapped(values, key: Optional[Callable]):
     if not key:
         return values.copy()
 
+    _class = values.__class__
     result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
             "User-provided `key` function much not change the shape of the array."
         )
+
+    if not isinstance(result, _class):  # recover from type error
+        try:
+            result = _class(result)
+        except TypeError:
+            raise TypeError("User-provided `key` function returned an invalid type.")
+
     return result
 
 
