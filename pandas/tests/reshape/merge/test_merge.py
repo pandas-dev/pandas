@@ -1364,7 +1364,7 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
-        data1._data.blocks[0].values.flags.writeable = False
+        data1._mgr.blocks[0].values.flags.writeable = False
         data1.merge(data2)  # no error
 
 

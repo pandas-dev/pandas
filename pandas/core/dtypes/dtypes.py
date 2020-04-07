@@ -3,7 +3,18 @@ Define extension dtypes.
 """
 
 import re
-from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pytz
@@ -15,6 +26,15 @@ from pandas._typing import Ordered
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
+
+if TYPE_CHECKING:
+    import pyarrow  # noqa: F401
+    from pandas.core.arrays import (  # noqa: F401
+        IntervalArray,
+        PeriodArray,
+        DatetimeArray,
+    )
+    from pandas import Categorical  # noqa: F401
 
 str_type = str
 
@@ -68,7 +88,7 @@ class Registry:
         """
         Parameters
         ----------
-        dtype : ExtensionDtype
+        dtype : ExtensionDtype class
         """
         if not issubclass(dtype, ExtensionDtype):
             raise ValueError("can only register pandas extension dtypes")
@@ -122,7 +142,7 @@ class PandasExtensionDtype(ExtensionDtype):
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
     subdtype = None
-    str: Optional[str_type] = None
+    str: str_type
     num = 100
     shape: Tuple[int, ...] = tuple()
     itemsize = 8
@@ -168,8 +188,6 @@ class CategoricalDtypeType(type):
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
-
-    .. versionchanged:: 0.21.0
 
     Parameters
     ----------
@@ -500,7 +518,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["Categorical"]:
         """
         Return the array type associated with this dtype.
 
@@ -508,7 +526,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas import Categorical
+        from pandas import Categorical  # noqa: F811
 
         return Categorical
 
@@ -672,9 +690,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, unit="ns", tz=None):
+    def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            unit, tz = unit.unit, unit.tz
+            unit, tz = unit.unit, unit.tz  # type: ignore
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:
@@ -704,7 +722,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = tz
 
     @property
-    def unit(self):
+    def unit(self) -> str_type:
         """
         The precision of the datetime data.
         """
@@ -718,7 +736,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return self._tz
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["DatetimeArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -726,12 +744,12 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays import DatetimeArray  # noqa: F811
 
         return DatetimeArray
 
     @classmethod
-    def construct_from_string(cls, string: str_type):
+    def construct_from_string(cls, string: str_type) -> "DatetimeTZDtype":
         """
         Construct a DatetimeTZDtype from a string.
 
@@ -789,7 +807,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and str(self.tz) == str(other.tz)
         )
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -884,7 +902,7 @@ class PeriodDtype(PandasExtensionDtype):
         raise ValueError("could not construct PeriodDtype")
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str_type) -> "PeriodDtype":
         """
         Strict construction from a string, raise a TypeError if not
         possible
@@ -934,7 +952,7 @@ class PeriodDtype(PandasExtensionDtype):
         self._freq = state["freq"]
 
     @classmethod
-    def is_dtype(cls, dtype) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
@@ -955,7 +973,7 @@ class PeriodDtype(PandasExtensionDtype):
         return super().is_dtype(dtype)
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["PeriodArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -967,9 +985,13 @@ class PeriodDtype(PandasExtensionDtype):
 
         return PeriodArray
 
-    def __from_arrow__(self, array):
-        """Construct PeriodArray from pyarrow Array/ChunkedArray."""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "PeriodArray":
+        """
+        Construct PeriodArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
         from pandas.core.arrays import PeriodArray
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -1075,7 +1097,7 @@ class IntervalDtype(PandasExtensionDtype):
         return self._subtype
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["IntervalArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -1142,7 +1164,7 @@ class IntervalDtype(PandasExtensionDtype):
         self._subtype = state["subtype"]
 
     @classmethod
-    def is_dtype(cls, dtype) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
@@ -1160,9 +1182,13 @@ class IntervalDtype(PandasExtensionDtype):
                 return False
         return super().is_dtype(dtype)
 
-    def __from_arrow__(self, array):
-        """Construct IntervalArray from pyarrow Array/ChunkedArray."""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "IntervalArray":
+        """
+        Construct IntervalArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
         from pandas.core.arrays import IntervalArray
 
         if isinstance(array, pyarrow.Array):

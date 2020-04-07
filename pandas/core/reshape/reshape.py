@@ -431,7 +431,7 @@ def unstack(obj, level, fill_value=None):
 def _unstack_frame(obj, level, fill_value=None):
     if obj._is_mixed_type:
         unstacker = _Unstacker(obj.index, level=level)
-        blocks = obj._data.unstack(unstacker, fill_value=fill_value)
+        blocks = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(blocks)
     else:
         return _Unstacker(

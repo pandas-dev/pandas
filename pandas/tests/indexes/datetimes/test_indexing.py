@@ -498,6 +498,13 @@ class TestGetLoc:
             index.get_loc("1/1/2000")
 
 
+class TestContains:
+    def test_index_dupes_contains(self):
+        d = datetime(2011, 12, 5, 20, 30)
+        ix = DatetimeIndex([d, d])
+        assert d in ix
+
+
 class TestGetIndexer:
     pass
 
