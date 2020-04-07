@@ -2,8 +2,8 @@
 
 ## Citing pandas
 
-If you use _pandas_ for a scientific publication, we would appreciate citations to the published software, and one of
-the two papers following the software entry:
+If you use _pandas_ for a scientific publication, we would appreciate citations to the published software and the
+following paper:
 
 - [pandas on Zenodo](https://zenodo.org/record/3715232#.XoqFyC2ZOL8),
    Please find us on Zenodo and replace with the citation for the version you are using.
@@ -22,26 +22,14 @@ the two papers following the software entry:
 - [Data structures for statistical computing in python](https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf),
    McKinney, Proceedings of the 9th Python in Science Conference, Volume 445, 2010.
 
-        @inproceedings{mckinney2010data,
-            title={Data structures for statistical computing in python},
-            author={Wes McKinney},
-            booktitle={Proceedings of the 9th Python in Science Conference},
-            volume={445},
-            pages={51--56},
-            year={2010},
-            organization={Austin, TX}
-        }
-
-
-- [pandas: a foundational Python library for data analysis and statistics](https://www.scribd.com/document/71048089/pandas-a-Foundational-Python-Library-for-Data-Analysis-and-Statistics),
-  McKinney, Python for High Performance and Scientific Computing, Volume 14, 2011.
-
-        @article{mckinney2011pandas,
-            title={pandas: a foundational Python library for data analysis and statistics},
-            author={Wes McKinney},
-            journal={Python for High Performance and Scientific Computing},
-            volume={14},
-            year={2011}
+        @InProceedings{ mckinney-proc-scipy-2010,
+          author    = { {W}es {M}c{K}inney },
+          title     = { {D}ata {S}tructures for {S}tatistical {C}omputing in {P}ython },
+          booktitle = { {P}roceedings of the 9th {P}ython in {S}cience {C}onference },
+          pages     = { 56 - 61 },
+          year      = { 2010 },
+          editor    = { {S}t\'efan van der {W}alt and {J}arrod {M}illman },
+          doi       = { 10.25080/Majora-92bf1922-00a }
         }
 
 ## Brand and logo
