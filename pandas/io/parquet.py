@@ -27,6 +27,7 @@ def get_engine(engine: str) -> "BaseImpl":
             except ImportError as err:
                 error_msgs.append(str(err))
 
+        joined_error_msgs = "\n".join(error_msgs)
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
@@ -34,7 +35,7 @@ def get_engine(engine: str) -> "BaseImpl":
             "pyarrow or fastparquet is required for parquet "
             "support.\n"
             "Trying to import the above resulted in these errors:\n"
-            + "\n".join(error_msgs)
+            f"{joined_error_msgs}"
         )
 
     if engine == "pyarrow":
