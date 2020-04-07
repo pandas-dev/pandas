@@ -238,7 +238,7 @@ class TestTableOrient:
         assert result == expected
 
     def test_read_json(self):
-        # GH32383
+        # GH 32383
         df = pd.DataFrame(
             {
                 "_id": {"0": "0"},
@@ -250,7 +250,8 @@ class TestTableOrient:
         )
         df_json = df.to_json()
         df_dict = json.loads(df_json)
-        result = pd.read_json(df_json)
+        result = pd.read_json(df_json, dtype=False)
+        result.index = result.index.astype(str)
         expected = pd.DataFrame().from_dict(df_dict)
         tm.assert_frame_equal(result, expected)
 
