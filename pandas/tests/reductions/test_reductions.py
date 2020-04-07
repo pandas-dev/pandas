@@ -52,17 +52,15 @@ class TestReductions:
     @pytest.mark.parametrize("obj", objs)
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
-        if not isinstance(obj, PeriodIndex):
+        if isinstance(obj, DatetimeIndex):
+            expected = getattr(obj.values, opname)()
+            expected = obj._box_func(expected)
+        elif not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
             expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
-        try:
-            assert result == expected
-        except TypeError:
-            # comparing tz-aware series with np.array results in
-            # TypeError
-            expected = expected.astype("M8[ns]").astype("int64")
-            assert result.value == expected
+
+        assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(

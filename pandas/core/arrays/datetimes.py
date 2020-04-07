@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+import operator
 from typing import Union
 import warnings
 
@@ -455,10 +456,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
 
-    def _check_compatible_with(self, other, setitem: bool = False):
+    def _check_compatible_with(self, other, setitem: bool = False, op=None):
         if other is NaT:
             return
-        self._assert_tzawareness_compat(other)
+        if self._assert_tzawareness_compat(other, op=op) is False:
+            return False
         if setitem:
             # Stricter check for setitem vs comparison methods
             if not timezones.tz_compare(self.tz, other.tz):
@@ -627,10 +629,15 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
         vzone = timezones.get_timezone(getattr(other, "tzinfo", "__no_tz__"))
-        return zzone == vzone
+        return zzone == vzone  # TODO: use tz_compare?
 
-    def _assert_tzawareness_compat(self, other):
+    def _assert_tzawareness_compat(self, other, op=None):
         # adapted from _Timestamp._assert_tzawareness_compat
+
+        # GH#???? match stdlib behavior
+        is_inequality = not (op is operator.eq or op is operator.ne)
+
+        msg = "Cannot compare tz-naive and tz-aware datetime-like objects."
         other_tz = getattr(other, "tzinfo", None)
         if is_datetime64tz_dtype(other):
             # Get tzinfo from Series dtype
@@ -638,15 +645,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if other is NaT:
             # pd.NaT quacks both aware and naive
             pass
-        elif self.tz is None:
-            if other_tz is not None:
-                raise TypeError(
-                    "Cannot compare tz-naive and tz-aware datetime-like objects."
-                )
-        elif other_tz is None:
-            raise TypeError(
-                "Cannot compare tz-naive and tz-aware datetime-like objects"
-            )
+        elif int(self.tz is None) + int(other_tz is None) == 1:
+            # i.e. one but not the other
+            if is_inequality:
+                raise TypeError(msg)
+            return False
+        return None
 
     # -----------------------------------------------------------------
     # Arithmetic Methods

@@ -114,12 +114,25 @@ cdef class _Timestamp(datetime):
                         return NotImplemented
                 elif is_array(other):
                     # avoid recursion error GH#15183
+                    if other.dtype.kind == "M":
+                        if self.tz is None:
+                            return PyObject_RichCompare(self.asm8, other, op)
+                        raise TypeError(
+                            'Cannot compare tz-naive and tz-aware timestamps'
+                        )
+                    if other.dtype.kind == "O":
+                        # Operate element-wise
+                        return np.array(
+                            [PyObject_RichCompare(self, x, op) for x in other],
+                            dtype=bool,
+                        )
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
                 return NotImplemented
 
-        self._assert_tzawareness_compat(other)
+        if self._assert_tzawareness_compat(other, op) is False:
+            return op == Py_NE
         return cmp_scalar(self.value, ots.value, op)
 
     def __reduce_ex__(self, protocol):
@@ -158,7 +171,8 @@ cdef class _Timestamp(datetime):
         cdef:
             datetime dtval = self.to_pydatetime()
 
-        self._assert_tzawareness_compat(other)
+        if self._assert_tzawareness_compat(other, op) is False:
+            return op == Py_NE
 
         if self.nanosecond == 0:
             return PyObject_RichCompareBool(dtval, other, op)
@@ -176,12 +190,18 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other, int op):
+        is_inequality = not (op == Py_EQ or op == Py_NE)
+
         if self.tzinfo is None:
             if other.tzinfo is not None:
+                if not is_inequality:
+                    return False
                 raise TypeError('Cannot compare tz-naive and tz-aware '
                                 'timestamps')
         elif other.tzinfo is None:
+            if not is_inequality:
+                return False
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):

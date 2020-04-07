@@ -86,11 +86,9 @@ class TestTimestampComparison:
         a = Timestamp("3/12/2012")
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
+        assert not a == b
+        assert a != b
         msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            a == b
-        with pytest.raises(TypeError, match=msg):
-            a != b
         with pytest.raises(TypeError, match=msg):
             a < b
         with pytest.raises(TypeError, match=msg):
@@ -100,10 +98,8 @@ class TestTimestampComparison:
         with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError, match=msg):
-            b == a
-        with pytest.raises(TypeError, match=msg):
-            b != a
+        assert not b == a
+        assert b != a
         with pytest.raises(TypeError, match=msg):
             b < a
         with pytest.raises(TypeError, match=msg):

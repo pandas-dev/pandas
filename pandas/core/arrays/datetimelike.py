@@ -73,7 +73,10 @@ def _datetimelike_array_cmp(cls, op):
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)
-            self._check_compatible_with(other)
+            if self._check_compatible_with(other, op=op) is False:
+                if op is operator.ne:
+                    return np.ones(self.shape, dtype=bool)
+                return np.zeros(self.shape, dtype=bool)
 
             other_i8 = self._unbox_scalar(other)
 
@@ -111,7 +114,10 @@ def _datetimelike_array_cmp(cls, op):
             else:
                 # For PeriodDType this casting is unnecessary
                 other = type(self)._from_sequence(other)
-                self._check_compatible_with(other)
+                if self._check_compatible_with(other, op=op) is False:
+                    if op is operator.eq:
+                        return np.zeros(self.shape, dtype=bool)
+                    return np.ones(self.shape, dtype=bool)
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
@@ -187,7 +193,10 @@ class AttributesMixin:
         raise AbstractMethodError(self)
 
     def _check_compatible_with(
-        self, other: Union[Period, Timestamp, Timedelta, NaTType], setitem: bool = False
+        self,
+        other: Union[Period, Timestamp, Timedelta, NaTType],
+        setitem: bool = False,
+        op=None,
     ) -> None:
         """
         Verify that `self` and `other` are compatible.
@@ -204,6 +213,7 @@ class AttributesMixin:
         setitem : bool, default False
             For __setitem__ we may have stricter compatibility resrictions than
             for comparisons.
+        op : None or an operator.{eq,ne,lt,le,gt,ge} function
 
         Raises
         ------
@@ -851,7 +861,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
 
         if isinstance(value, type(self)):
-            self._check_compatible_with(value)
+            self._check_compatible_with(value)  # TODO: this is operator.lt?
             value = value.asi8
         else:
             value = self._unbox_scalar(value)

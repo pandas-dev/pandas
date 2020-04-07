@@ -258,10 +258,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other, setitem: bool = False):
+    def _check_compatible_with(self, other, setitem: bool = False, op=None):
         if other is NaT:
             return
-        if self.freqstr != other.freqstr:
+        if self.freqstr != other.freqstr:  # TODO: dont raise for eq/ne comparison?
             raise raise_on_incompatible(self, other)
 
     # --------------------------------------------------------------------
