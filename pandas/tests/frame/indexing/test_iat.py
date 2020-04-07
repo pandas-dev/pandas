@@ -12,5 +12,5 @@ def test_iat(float_frame):
 
 def test_iat_duplicate_columns():
     # https://github.com/pandas-dev/pandas/issues/11754
-    df = pd.DataFrame([[1, 1]], columns=["x", "x"])
+    df = pd.DataFrame([[1, 2]], columns=["x", "x"])
     assert df.iat[0, 0] == 1
