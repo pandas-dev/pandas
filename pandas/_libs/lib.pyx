@@ -1286,15 +1286,14 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
+
+    elif hasattr(value, 'dtype') and hasattr(value.dtype, 'tz'):
+        # this will handle Series with dtype DatetimeTZDtype
+        return "datetimetz"
+
     elif hasattr(value, 'dtype'):
-        # this will handle timezone aware datetime Series
-        # e.g. "datetime64[ns, UTC]"
-        if hasattr(value.dtype, 'tz'):
-            return "datetimetz"
         # this will handle ndarray-like
         # e.g. categoricals
-        # begin by checking if there is a tz attribute
-        # in which case we have a Series with dtype DatetimeTZDtype
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
         except TypeError:
