@@ -295,7 +295,7 @@ Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
 `official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
 
-Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+Use an ENV_DIR of your choice. We'll use ~\\virtualenvs\\pandas-dev where
 '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
 %USERPROFILE% (cmd.exe) environment variable. Any parent directories
 should already exist.
@@ -791,7 +791,7 @@ the ``pandas.util._decorators.deprecate``:
 
     from pandas.util._decorators import deprecate
 
-    deprecate('old_func', 'new_func', '0.21.0')
+    deprecate('old_func', 'new_func', '1.1.0')
 
 Otherwise, you need to do it manually:
 
@@ -803,7 +803,7 @@ Otherwise, you need to do it manually:
     def old_func():
         """Summary of the function.
 
-        .. deprecated:: 0.21.0
+        .. deprecated:: 1.1.0
            Use new_func instead.
         """
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
@@ -1354,9 +1354,9 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 0.21.0
+  .. versionadded:: 1.1.0
 
-This will put the text *New in version 0.21.0* wherever you put the sphinx
+This will put the text *New in version 1.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
