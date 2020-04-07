@@ -954,7 +954,7 @@ class PlotAccessor(PandasObject):
 
     @Appender(
         """
-        stacked: bool, default is False
+        stacked : bool, default False
             If stacked is set to True, stacked bar charts will be plotted.
 
         See Also
@@ -1047,7 +1047,7 @@ class PlotAccessor(PandasObject):
 
     @Appender(
         """
-        stacked: bool, default is False
+        stacked : bool, default False
             If stacked is set to True, stacked horizontal bar charts will be plotted.
 
         See Also
