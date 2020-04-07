@@ -43,6 +43,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    dtype: BaseMaskedDtype
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if copy:
@@ -51,10 +52,6 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         self._data = values
         self._mask = mask
-
-    @property
-    def dtype(self) -> BaseMaskedDtype:
-        raise AbstractMethodError(self)
 
     def __getitem__(self, item):
         if is_integer(item):
