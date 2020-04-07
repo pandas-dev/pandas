@@ -7,11 +7,17 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "va
 
 class FrameOps:
 
-    params = [ops, ["float", "int"], [0, 1]]
+    params = [ops, ["float", "int", "Int64"], [0, 1]]
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
+        if op == "mad" and dtype == "Int64" and axis == 1:
+            # GH-33036
+            raise NotImplementedError
+        values = np.random.randn(100000, 4)
+        if dtype == "Int64":
+            values = values.astype(int)
+        df = pd.DataFrame(values).astype(dtype)
         self.df_func = getattr(df, op)
 
     def time_op(self, op, dtype, axis):

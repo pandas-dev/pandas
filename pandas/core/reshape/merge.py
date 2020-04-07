@@ -6,14 +6,14 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
+    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -43,7 +44,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -222,7 +223,14 @@ def merge_ordered(
 
     Examples
     --------
-    >>> A
+    >>> df1 = pd.DataFrame(
+    ...     {
+    ...         "key": ["a", "c", "e", "a", "c", "e"],
+    ...         "lvalue": [1, 2, 3, 1, 2, 3],
+    ...         "group": ["a", "a", "a", "b", "b", "b"]
+    ...     }
+    ... )
+    >>> df1
           key  lvalue group
     0   a       1     a
     1   c       2     a
@@ -231,24 +239,25 @@ def merge_ordered(
     4   c       2     b
     5   e       3     b
 
-    >>> B
-        Key  rvalue
-    0     b       1
-    1     c       2
-    2     d       3
+    >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
+    >>> df2
+          key  rvalue
+    0   b       1
+    1   c       2
+    2   d       3
 
-    >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-      group key  lvalue  rvalue
-    0     a   a       1     NaN
-    1     a   b       1     1.0
-    2     a   c       2     2.0
-    3     a   d       2     3.0
-    4     a   e       3     3.0
-    5     b   a       1     NaN
-    6     b   b       1     1.0
-    7     b   c       2     2.0
-    8     b   d       2     3.0
-    9     b   e       3     3.0
+    >>> merge_ordered(df1, df2, fill_method="ffill", left_by="group")
+      key  lvalue group  rvalue
+    0   a       1     a     NaN
+    1   b       1     a     1.0
+    2   c       2     a     2.0
+    3   d       2     a     3.0
+    4   e       3     a     3.0
+    5   a       1     b     NaN
+    6   b       1     b     1.0
+    7   c       2     b     2.0
+    8   d       2     b     3.0
+    9   e       3     b     3.0
     """
 
     def _merger(x, y):
@@ -369,15 +378,14 @@ def merge_asof(
 
     Examples
     --------
-    >>> left = pd.DataFrame({'a': [1, 5, 10], 'left_val': ['a', 'b', 'c']})
+    >>> left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
-    >>> right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
-    ...                       'right_val': [1, 2, 3, 6, 7]})
+    >>> right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
     >>> right
        a  right_val
     0  1          1
@@ -386,25 +394,25 @@ def merge_asof(
     3  6          6
     4  7          7
 
-    >>> pd.merge_asof(left, right, on='a')
+    >>> pd.merge_asof(left, right, on="a")
         a left_val  right_val
     0   1        a          1
     1   5        b          3
     2  10        c          7
 
-    >>> pd.merge_asof(left, right, on='a', allow_exact_matches=False)
+    >>> pd.merge_asof(left, right, on="a", allow_exact_matches=False)
         a left_val  right_val
     0   1        a        NaN
     1   5        b        3.0
     2  10        c        7.0
 
-    >>> pd.merge_asof(left, right, on='a', direction='forward')
+    >>> pd.merge_asof(left, right, on="a", direction="forward")
         a left_val  right_val
     0   1        a        1.0
     1   5        b        6.0
     2  10        c        NaN
 
-    >>> pd.merge_asof(left, right, on='a', direction='nearest')
+    >>> pd.merge_asof(left, right, on="a", direction="nearest")
         a left_val  right_val
     0   1        a          1
     1   5        b          6
@@ -412,15 +420,14 @@ def merge_asof(
 
     We can use indexed DataFrames as well.
 
-    >>> left = pd.DataFrame({'left_val': ['a', 'b', 'c']}, index=[1, 5, 10])
+    >>> left = pd.DataFrame({"left_val": ["a", "b", "c"]}, index=[1, 5, 10])
     >>> left
        left_val
     1         a
     5         b
     10        c
 
-    >>> right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7]},
-    ...                      index=[1, 2, 3, 6, 7])
+    >>> right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
     >>> right
        right_val
     1          1
@@ -437,6 +444,32 @@ def merge_asof(
 
     Here is a real-world times-series example
 
+    >>> quotes = pd.DataFrame(
+    ...     {
+    ...         "time": [
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.030"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.041"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.049"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.072"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.075")
+    ...         ],
+    ...         "ticker": [
+    ...                "GOOG",
+    ...                "MSFT",
+    ...                "MSFT",
+    ...                "MSFT",
+    ...                "GOOG",
+    ...                "AAPL",
+    ...                "GOOG",
+    ...                "MSFT"
+    ...            ],
+    ...            "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
+    ...            "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...     }
+    ... )
     >>> quotes
                          time ticker     bid     ask
     0 2016-05-25 13:30:00.023   GOOG  720.50  720.93
@@ -448,6 +481,20 @@ def merge_asof(
     6 2016-05-25 13:30:00.072   GOOG  720.50  720.88
     7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
+    >>> trades = pd.DataFrame(
+    ...        {
+    ...            "time": [
+    ...                pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.038"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...                pd.Timestamp("2016-05-25 13:30:00.048")
+    ...            ],
+    ...            "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
+    ...            "price": [51.95, 51.95, 720.77, 720.92, 98.0],
+    ...            "quantity": [75, 155, 100, 100, 100]
+    ...        }
+    ...    )
     >>> trades
                          time ticker   price  quantity
     0 2016-05-25 13:30:00.023   MSFT   51.95        75
@@ -458,9 +505,7 @@ def merge_asof(
 
     By default we are taking the asof of the quotes
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker')
+    >>> pd.merge_asof(trades, quotes, on="time", by="ticker")
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
@@ -470,10 +515,9 @@ def merge_asof(
 
     We only asof within 2ms between the quote time and the trade time
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker',
-    ...                       tolerance=pd.Timedelta('2ms'))
+    >>> pd.merge_asof(
+    ...     trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+    ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
     1 2016-05-25 13:30:00.038   MSFT   51.95       155     NaN     NaN
@@ -485,11 +529,14 @@ def merge_asof(
     and we exclude exact matches on time. However *prior* data will
     propagate forward
 
-    >>> pd.merge_asof(trades, quotes,
-    ...                       on='time',
-    ...                       by='ticker',
-    ...                       tolerance=pd.Timedelta('10ms'),
-    ...                       allow_exact_matches=False)
+    >>> pd.merge_asof(
+    ...     trades,
+    ...     quotes,
+    ...     on="time",
+    ...     by="ticker",
+    ...     tolerance=pd.Timedelta("10ms"),
+    ...     allow_exact_matches=False
+    ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
@@ -549,7 +596,11 @@ class _MergeOperation:
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
-        self.axis = axis
+
+        # bm_axis -> the axis on the BlockManager
+        self.bm_axis = axis
+        # axis --> the axis on the Series/DataFrame
+        self.axis = 1 - axis if self.left.ndim == 2 else 0
 
         self.on = com.maybe_make_list(on)
         self.left_on = com.maybe_make_list(left_on)
@@ -617,18 +668,17 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -817,8 +867,8 @@ class _MergeOperation:
         )
 
     def _get_join_info(self):
-        left_ax = self.left._data.axes[self.axis]
-        right_ax = self.right._data.axes[self.axis]
+        left_ax = self.left.axes[self.axis]
+        right_ax = self.right.axes[self.axis]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1271,7 +1321,7 @@ def _get_join_indexers(
 
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1283,8 +1333,8 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
@@ -1431,12 +1481,10 @@ class _OrderedMerge(_MergeOperation):
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        # this is a bit kludgy
-        ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         if self.fill_method == "ffill":
@@ -1450,7 +1498,7 @@ class _OrderedMerge(_MergeOperation):
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -1822,7 +1870,59 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-def _factorize_keys(lk, rk, sort=True):
+def _factorize_keys(
+    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+) -> Tuple[np.array, np.array, int]:
+    """
+    Encode left and right keys as enumerated types.
+
+    This is used to get the join indexers to be used when merging DataFrames.
+
+    Parameters
+    ----------
+    lk : array-like
+        Left key.
+    rk : array-like
+        Right key.
+    sort : bool, defaults to True
+        If True, the encoding is done such that the unique elements in the
+        keys are sorted.
+    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+        Type of merge.
+
+    Returns
+    -------
+    array
+        Left (resp. right if called with `key='right'`) labels, as enumerated type.
+    array
+        Right (resp. left if called with `key='right'`) labels, as enumerated type.
+    int
+        Number of unique elements in union of left and right labels.
+
+    See Also
+    --------
+    merge : Merge DataFrame or named Series objects
+        with a database-style join.
+    algorithms.factorize : Encode the object as an enumerated type
+        or categorical variable.
+
+    Examples
+    --------
+    >>> lk = np.array(["a", "c", "b"])
+    >>> rk = np.array(["a", "c"])
+
+    Here, the unique values are `'a', 'b', 'c'`. With the default
+    `sort=True`, the encoding will be `{0: 'a', 1: 'b', 2: 'c'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk)
+    (array([0, 2, 1]), array([0, 2]), 3)
+
+    With the `sort=False`, the encoding will correspond to the order
+    in which the unique elements first appear: `{0: 'a', 1: 'c', 2: 'b'}`:
+
+    >>> pd.core.reshape.merge._factorize_keys(lk, rk, sort=False)
+    (array([0, 1, 2]), array([0, 1]), 3)
+    """
     # Some pre-processing for non-ndarray lk / rk
     lk = extract_array(lk, extract_numpy=True)
     rk = extract_array(rk, extract_numpy=True)
@@ -1834,14 +1934,17 @@ def _factorize_keys(lk, rk, sort=True):
         rk, _ = rk._values_for_factorize()
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
+        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
+        assert is_categorical(lk) and is_categorical(rk)
+        lk = cast(Categorical, lk)
+        rk = cast(Categorical, rk)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
-            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
@@ -1892,6 +1995,8 @@ def _factorize_keys(lk, rk, sort=True):
             np.putmask(rlab, rmask, count)
         count += 1
 
+    if how == "right":
+        return rlab, llab, count
     return llab, rlab, count
 
 

@@ -95,15 +95,6 @@ class TestCategoricalIndex:
         result = s[cats[0]]
         assert result == expected
 
-    def test_slicing_directly(self):
-        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
-        sliced = cat[3]
-        assert sliced == "d"
-        sliced = cat[3:5]
-        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
-        tm.assert_numpy_array_equal(sliced._codes, expected._codes)
-        tm.assert_index_equal(sliced.categories, expected.categories)
-
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
         reversed = cat[::-1]
@@ -778,9 +769,9 @@ class TestCategoricalIndex:
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
+    def test_loc_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
-        cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+        cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
         sl = slice(idx_values[0], idx_values[1])
 

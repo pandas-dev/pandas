@@ -57,23 +57,6 @@ def test_truncate():
         index.truncate(3, 1)
 
 
-def test_where():
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(True)
-
-
-@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-def test_where_array_like(klass):
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    cond = [False, True]
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(klass(cond))
-
-
 # TODO: reshape
 
 
