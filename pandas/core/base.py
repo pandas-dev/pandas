@@ -399,9 +399,10 @@ class SelectionMixin:
                     # GH 29268
                     if fname in deserialized_keys:
                         keys = deserialized_keys[fname]
-                        _obj = zip(keys, [
-                            self._gotitem(k, ndim=1, subset=None) for k in keys
-                        ])
+                        _obj = {}
+
+                        for k in keys:
+                            _obj[k] = self._gotitem(k, ndim=1, subset=None)
                         result[fname] = [agg(_obj) for agg in agg_how]
                     else:
                         result[fname] = func(fname, agg_how)
