@@ -562,6 +562,59 @@ Now let's do the same thing but with comparisons:
    of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
    operations in plain Python.
 
+The ``Series.eval`` method
+
+A new function added alongside the ``Series.query`` method that allows
+you to evaluate an expression in the "context" of a :class:`~pandas.Series`.
+
+.. ipython:: python
+   
+   index = list(range(2010, 2015))
+   data = np.random.randn(5)
+   series = pd.Series(data, index=index)
+   series.index.name = 'years'
+   series
+
+   series.eval('(years > 2010) & (years != 2013)')
+
+There is an ``inplace`` keyword that currently defaults to ``True``. This maybe
+change in future versions of pandas and it is recommended to use the ``inplace``
+keyword.
+
+If a ``series index`` does not have a name you can use "index" to reference the index.
+
+.. ipython:: python
+
+   index = list(range(2010, 2015))
+   data = np.random.randn(5)
+   series = pd.Series(data, index=index)
+   series
+
+   series.eval('(index > 2010) & (index != 2013)')
+
+The function can also be used on a ``series`` with a :class:`~pandas.MultiIndex`.
+
+.. ipython:: python
+   
+   data = np.random.randn(10)
+   foos = np.random.choice(['foo1', 'foo2'], size=10)
+   years = list(range(2010, 2020))
+
+   data
+   foos
+   years
+
+   index = pd.MultiIndex.from_arrays([foos, years], names=[None, 'years'])
+   index
+
+   series = pd.Series(data, index=index)
+   series
+
+   series.eval('ilevel_0 == "foo1" and years > 2013')
+
+``ilevel_0`` can be used to reference a ``MultiIndex`` by the level. In this case the 
+0th index did not have a name.
+
 The ``DataFrame.eval`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
