@@ -1132,7 +1132,127 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Unsorted
 
     def query(self, expr, inplace=False, **kwargs):
-        
+        """
+        Query the columns of a Series with a boolean expression.
+
+        Parameters
+        ----------
+        expr : str
+            The query string to evaluate.
+
+            You can refer to variables
+            in the environment by prefixing them with an '@' character like
+            ``@a + b``.
+
+            You can refer to column names that contain spaces or operators by
+            surrounding them in backticks. This way you can also escape
+            names that start with a digit, or those that  are a Python keyword.
+            Basically when it is not valid Python identifier. See notes down
+            for more details.
+
+            For example, if one of your columns is called ``a a`` and you want
+            to sum it with ``b``, your query should be ```a a` + b``.
+
+            .. versionadded:: 0.25.0
+                Backtick quoting introduced.
+
+            .. versionadded:: 1.0.0
+                Expanding functionality of backtick quoting for more than only spaces.
+
+        inplace : bool
+            Whether the query should modify the data in place or return
+            a modified copy.
+        **kwargs
+            See the documentation for :func:`eval` for complete details
+            on the keyword arguments accepted by :meth:`Series.query`.
+
+        Returns
+        -------
+        Series
+            Series resulting from the provided query expression.
+
+        See Also
+        --------
+        eval : Evaluate a string describing operations on
+            Series columns.
+        Series.eval : Evaluate a string describing operations on
+            Series columns.
+
+        Notes
+        -----
+        The result of the evaluation of this expression is first passed to
+        :attr:`Series.loc` and if that fails because of a
+        multidimensional key (e.g., a Series) then the result will be passed
+        to :meth:`Series.__getitem__`.
+
+        This method uses the top-level :func:`eval` function to
+        evaluate the passed query.
+
+        The :meth:`~pandas.Series.query` method uses a slightly
+        modified Python syntax by default. For example, the ``&`` and ``|``
+        (bitwise) operators have the precedence of their boolean cousins,
+        :keyword:`and` and :keyword:`or`. This *is* syntactically valid Python,
+        however the semantics are different.
+
+        You can change the semantics of the expression by passing the keyword
+        argument ``parser='python'``. This enforces the same semantics as
+        evaluation in Python space. Likewise, you can pass ``engine='python'``
+        to evaluate an expression using Python itself as a backend. This is not
+        recommended as it is inefficient compared to using ``numexpr`` as the
+        engine.
+
+        The :attr:`Series.index` attribute of the
+        :class:`~pandas.Series` instance are placed in the query namespace
+        by default, which allows you to treat both the index and columns of the
+        frame as a column in the frame.
+        The identifier ``index`` is used for the frame index; you can also
+        use the name of the index to identify it in a query. Please note that
+        Python keywords may not be used as identifiers.
+
+        For further details and examples see the ``query`` documentation in
+        :ref:`indexing <indexing.query>`.
+
+        *Backtick quoted variables*
+
+        Backtick quoted variables are parsed as literal Python code and
+        are converted internally to a Python valid identifier.
+        This can lead to the following problems.
+
+        During parsing a number of disallowed characters inside the backtick
+        quoted string are replaced by strings that are allowed as a Python identifier.
+        These characters include all operators in Python, the space character, the
+        question mark, the exclamation mark, the dollar sign, and the euro sign.
+        For other characters that fall outside the ASCII range (U+0001..U+007F)
+        and those that are not further specified in PEP 3131,
+        the query parser will raise an error.
+        This excludes whitespace different than the space character,
+        but also the hashtag (as it is used for comments) and the backtick
+        itself (backtick can also not be escaped).
+
+        In a special case, quotes that make a pair around a backtick can
+        confuse the parser.
+        For example, ```it's` > `that's``` will raise an error,
+        as it forms a quoted string (``'s > `that'``) with a backtick inside.
+
+        See also the Python documentation about lexical analysis
+        (https://docs.python.org/3/reference/lexical_analysis.html)
+        in combination with the source code in :mod:`pandas.core.computation.parsing`.
+
+        Examples
+        --------
+        >>> series = pd.Series(range(5))
+        >>> series
+        0    0
+        1    1
+        2    2
+        3    3
+        4    4
+        dtype: int64
+        >>> series.query('index > 2')
+        3    3
+        4    4
+        dtype: int64
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
@@ -1154,7 +1274,81 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return new_data
 
     def eval(self, expr, inplace=False, **kwargs):
-    
+        """
+        Evaluate a string describing operations on Series columns.
+
+        Operates on columns only, not specific rows or elements.  This allows
+        `eval` to run arbitrary code, which can make you vulnerable to code
+        injection if you pass user input to this function.
+
+        Parameters
+        ----------
+        expr : str
+            The expression string to evaluate.
+        inplace : bool, default False
+            If the expression contains an assignment, whether to perform the
+            operation inplace and mutate the existing Series. Otherwise,
+            a new Series is returned.
+        **kwargs
+            See the documentation for :func:`eval` for complete details
+            on the keyword arguments accepted by
+            :meth:`~pandas.Series.query`.
+
+        Returns
+        -------
+        ndarray, scalar, or pandas object
+            The result of the evaluation.
+
+        See Also
+        --------
+        Series.query : Evaluates a boolean expression to query the columns
+            of a frame.
+        eval : Evaluate a Python expression as a string using various
+            backends.
+
+        Notes
+        -----
+        For more details see the API documentation for :func:`~eval`.
+        For detailed examples see :ref:`enhancing performance with eval
+        <enhancingperf.eval>`.
+
+        Examples
+        --------
+        >>> series = pd.Series(1, index=range(5))
+        >>> series
+        0    1
+        1    1
+        2    1
+        3    1
+        4    1
+        dtype: int64
+
+        Assignment is allowed though by default the original DataFrame is not
+        modified.
+
+        >>> op = f"1.2 {'+'} index"
+        >>> series.eval(op)
+        0    1.2
+        1    2.2
+        2    3.2
+        3    4.2
+        4    5.2
+        dtype: float64
+
+        Use ``inplace=True`` to modify the original DataFrame.
+
+        >>> dict1 = {"a": 1}
+        >>> dict2 = {"b": 2}
+        >>> series.eval("c = a + b", inplace=True, resolvers=[dict1, dict2])
+        >>> series
+        0    1
+        1    1
+        2    1
+        3    1
+        4    1
+        c    3
+        dtype: int64
+        """
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")

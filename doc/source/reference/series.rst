@@ -73,6 +73,7 @@ Indexing, iteration
    Series.pop
    Series.item
    Series.xs
+   Series.query
 
 For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
@@ -148,6 +149,7 @@ Computations / descriptive stats
    Series.cumsum
    Series.describe
    Series.diff
+   Series.eval
    Series.factorize
    Series.kurt
    Series.mad
