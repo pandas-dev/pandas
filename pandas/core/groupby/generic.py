@@ -1061,7 +1061,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 else:
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
-                    if len(result._data.blocks) != 1:
+                    if len(result._mgr.blocks) != 1:
                         # We've split an object block! Everything we've assumed
                         # about a single block input returning a single block output
                         # is a lie. To keep the code-path for the typical non-split case
@@ -1070,8 +1070,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         split_frames.append(result)
                         continue
 
-                    assert len(result._data.blocks) == 1
-                    result = result._data.blocks[0].values
+                    assert len(result._mgr.blocks) == 1
+                    result = result._mgr.blocks[0].values
                     if isinstance(result, np.ndarray) and result.ndim == 1:
                         result = result.reshape(1, -1)
 
@@ -1111,7 +1111,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 assert len(locs) == result.shape[1]
                 for i, loc in enumerate(locs):
                     new_items.append(np.array([loc], dtype=locs.dtype))
-                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
+                    agg_blocks.append(result.iloc[:, [i]]._mgr.blocks[0])
 
         # reset the locs in the blocks to correspond to our
         # current ordering
@@ -1655,9 +1655,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(self) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data
+            return obj.T._mgr
         else:
-            return obj._data
+            return obj._mgr
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
