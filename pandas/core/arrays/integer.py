@@ -490,7 +490,8 @@ class IntegerArray(BaseMaskedArray):
         ExtensionArray.argsort
         """
         data = self._data.copy()
-        data[self._mask] = data.min() - 1
+        if self._mask.any():
+            data[self._mask] = data.min() - 1
         return data
 
     @classmethod
@@ -552,8 +553,9 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
-        if name == "sum":
-            return masked_reductions.sum(data, mask, skipna=skipna, **kwargs)
+        if name in {"sum", "min", "max"}:
+            op = getattr(masked_reductions, name)
+            return op(data, mask, skipna=skipna, **kwargs)
 
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)
@@ -572,7 +574,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["min", "max", "prod"]:
+        elif name == "prod":
             # GH#31409 more performant than casting-then-checking
             result = com.cast_scalar_indexer(result)
 
