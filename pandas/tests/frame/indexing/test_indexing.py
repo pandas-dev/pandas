@@ -2170,7 +2170,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[1], pd.Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
-    mgr = df._data
+    mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)
