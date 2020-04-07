@@ -4,8 +4,10 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
 
@@ -18,6 +20,18 @@ if TYPE_CHECKING:
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BasedMaskedArray subclasses.
+    """
+
+    na_value = libmissing.NA
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        raise AbstractMethodError
 
 
 class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
@@ -37,6 +51,10 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         self._data = values
         self._mask = mask
+
+    @property
+    def dtype(self) -> BaseMaskedDtype:
+        raise AbstractMethodError(self)
 
     def __getitem__(self, item):
         if is_integer(item):
@@ -226,7 +244,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
         # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)  # type: ignore
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
         uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques
 

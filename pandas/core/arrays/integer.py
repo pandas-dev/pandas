@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -34,13 +33,13 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
-class _IntegerDtype(ExtensionDtype):
+class _IntegerDtype(BaseMaskedDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -53,7 +52,6 @@ class _IntegerDtype(ExtensionDtype):
     name: str
     base = None
     type: Type
-    na_value = libmissing.NA
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
