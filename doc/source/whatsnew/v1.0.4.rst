@@ -21,13 +21,14 @@ Fixed regressions
 - Fix performance regression in ``memory_usage(deep=True)`` for object dtype (:issue:`33012`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
 - Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
+- Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
 - 
 
 .. _whatsnew_104.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
-- 
+- Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)
 - 
 
 Contributors

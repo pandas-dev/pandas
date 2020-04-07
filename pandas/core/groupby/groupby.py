@@ -42,6 +42,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_categorical_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -807,15 +808,15 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype) and dtype.kind != "M":
-                # The function can return something of any type, so check
-                #  if the type is compatible with the calling EA.
-                # datetime64tz is handled correctly in agg_series,
-                #  so is excluded here.
-
-                if len(result) and isinstance(result[0], dtype.type):
-                    cls = dtype.construct_array_type()
-                    result = try_cast_to_ea(cls, result, dtype=dtype)
+            if (
+                is_extension_array_dtype(dtype)
+                and not is_categorical_dtype(dtype)
+                and dtype.kind != "M"
+            ):
+                # We have to special case categorical so as not to upcast
+                # things like counts back to categorical
+                cls = dtype.construct_array_type()
+                result = try_cast_to_ea(cls, result, dtype=dtype)
 
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
