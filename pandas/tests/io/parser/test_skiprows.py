@@ -251,6 +251,7 @@ def test_skip_rows_bad_callable(all_parsers):
     with pytest.raises(ZeroDivisionError, match=msg):
         parser.read_csv(StringIO(data), skiprows=lambda x: 1 / 0)
 
+
 def test_skip_rows_single_column_less_than(all_parsers):
     # see gh-32072
     parser = all_parsers
@@ -294,6 +295,7 @@ South Africa,Pretoria,1.221,52.98
     )
     tm.assert_frame_equal(df, expected)
 
+
 def test_skip_rows_multi_columns_and(all_parsers):
     # see gh-32072
     parser = all_parsers
@@ -304,7 +306,9 @@ India,New Delhi,3.286,1252
 China,Beijing,9.597,1357
 South Africa,Pretoria,1.221,52.98
 """
-    df = parser.read_csv(StringIO(data), skiprows="(area <= 8.516 and population > 1200)")
+    df = parser.read_csv(
+        StringIO(data), skiprows="(area <= 8.516 and population > 1200)"
+    )
     expected = DataFrame(
         data={
             "country": ["India"],
@@ -314,6 +318,7 @@ South Africa,Pretoria,1.221,52.98
         }
     )
     tm.assert_frame_equal(df, expected)
+
 
 def test_skip_rows_multi_columns_or(all_parsers):
     # see gh-32072
