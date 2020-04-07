@@ -744,7 +744,7 @@ extensions.append(ujson_ext)
 def setup_package():
     setuptools_kwargs = {
         "install_requires": [
-            "python-dateutil >= 2.6.1",
+            "python-dateutil >= 2.7.0",
             "pytz >= 2017.2",
             f"numpy >= {min_numpy_ver}",
         ],

@@ -5,7 +5,7 @@ dependencies:
   # required
   - numpy>=1.15
   - python=3.7
-  - python-dateutil>=2.6.1
+  - python-dateutil>=2.7.0
   - pytz
 
   # benchmarks

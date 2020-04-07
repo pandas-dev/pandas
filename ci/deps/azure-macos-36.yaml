@@ -24,7 +24,7 @@ dependencies:
   - openpyxl
   - pyarrow>=0.13.0
   - pytables
-  - python-dateutil==2.6.1
+  - python-dateutil==2.7.0
   - pytz
   - xarray
   - xlrd
