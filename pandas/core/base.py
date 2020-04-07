@@ -388,6 +388,13 @@ class SelectionMixin:
                 """
                 colg = self._gotitem(self._selection, ndim=2, subset=obj)
                 return colg.aggregate(how)
+            
+            # GH 29268
+            def _agg_multi_dim(name, how, keys):
+                from pandas.core.frame import DataFrame
+                _obj = {k: self._gotitem(k, ndim=1, subset=None) for k in keys}
+                result = {com.get_callable_name(agg): agg(_obj) for agg in how}
+                return DataFrame(result, columns=result.keys())
 
             def _agg(arg, func):
                 """
@@ -399,13 +406,10 @@ class SelectionMixin:
                     # GH 29268
                     if fname in deserialized_keys:
                         keys = deserialized_keys[fname]
-                        _obj = {}
-
-                        for k in keys:
-                            _obj[k] = self._gotitem(k, ndim=1, subset=None)
-                        result[fname] = [agg(_obj) for agg in agg_how]
+                        result[fname] = _agg_multi_dim(fname, agg_how, keys)
                     else:
                         result[fname] = func(fname, agg_how)
+
                 return result
 
             # set the final keys
