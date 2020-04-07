@@ -159,7 +159,7 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
 
-        assert is_categorical(s.dtype)
+        assert not is_categorical(s.dtype)
         assert is_categorical(s)
         assert not is_categorical(np.dtype("float64"))
         assert not is_categorical(1.0)

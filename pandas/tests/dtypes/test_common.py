@@ -208,6 +208,7 @@ def test_is_categorical():
     assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
     assert not com.is_categorical([1, 2, 3])
+    assert not com.is_categorical(cat.dtype)  # Categorical obj, not dtype
 
 
 def test_is_datetime64_dtype():

@@ -19,7 +19,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
     registry,
 )
-from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -67,9 +67,6 @@ _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
-
-_ensure_datetime64ns = conversion.ensure_datetime64ns
-_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def ensure_float(arr):
@@ -359,8 +356,12 @@ def is_categorical(arr) -> bool:
     True
     >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
+    >>> is_categorical(cat.dtype)
+    False
     """
-    return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
+    return isinstance(arr, ABCCategorical) or (
+        isinstance(arr, (ABCIndexClass, ABCSeries)) and is_categorical_dtype(arr.dtype)
+    )
 
 
 def is_datetime64_dtype(arr_or_dtype) -> bool:

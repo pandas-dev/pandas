@@ -4716,7 +4716,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
         if isinstance(values, ABCMultiIndex):
-            values = values.values
+            values = values._values
         values = ensure_categorical(values)
         result = values._reverse_indexer()
 
