@@ -1,6 +1,7 @@
 # TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
+from typing import List
 
 import numpy as np
 
@@ -419,13 +420,15 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def _is_uniform_join_units(join_units) -> bool:
+def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
     _concatenate_join_units (which uses `concat_compat`).
 
     """
+    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
+    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)

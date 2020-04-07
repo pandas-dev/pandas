@@ -20,6 +20,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_datetimelike_v_numeric,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
     is_numeric_v_string_like,
@@ -42,6 +43,7 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    _block_shape,
     _extend_blocks,
     _safe_reshape,
     get_block_type,
