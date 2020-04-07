@@ -6,7 +6,21 @@ import pytest
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
-from pandas import CategoricalIndex, Index, Int64Index, MultiIndex, UInt64Index
+from pandas import (
+    NA,
+    CategoricalIndex,
+    DatetimeIndex,
+    Index,
+    Int64Index,
+    MultiIndex,
+    NaT,
+    PeriodIndex,
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+    UInt64Index,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -53,3 +67,58 @@ class TestIndexConstructorInference:
         ci = CategoricalIndex(range(5))
         result = Index(ci, dtype=object)
         assert not isinstance(result, CategoricalIndex)
+
+    def test_constructor_infer_periodindex(self):
+        xp = period_range("2012-1-1", freq="M", periods=3)
+        rs = Index(xp)
+        tm.assert_index_equal(rs, xp)
+        assert isinstance(rs, PeriodIndex)
+
+    @pytest.mark.parametrize("pos", [0, 1])
+    @pytest.mark.parametrize(
+        "klass,dtype,ctor",
+        [
+            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat")),
+            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("nat")),
+        ],
+    )
+    def test_constructor_infer_nat_dt_like(
+        self, pos, klass, dtype, ctor, nulls_fixture
+    ):
+        expected = klass([NaT, NaT])
+        assert expected.dtype == dtype
+        data = [ctor]
+        data.insert(pos, nulls_fixture)
+
+        if nulls_fixture is NA:
+            expected = Index([NA, NaT])
+            pytest.xfail("Broken with np.NaT ctor; see GH 31884")
+
+        result = Index(data)
+        tm.assert_index_equal(result, expected)
+
+        result = Index(np.array(data, dtype=object))
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("swap_objs", [True, False])
+    def test_constructor_mixed_nat_objs_infers_object(self, swap_objs):
+        # mixed np.datetime64/timedelta64 nat results in object
+        data = [np.datetime64("nat"), np.timedelta64("nat")]
+        if swap_objs:
+            data = data[::-1]
+
+        expected = Index(data, dtype=object)
+        tm.assert_index_equal(Index(data), expected)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
+
+
+class TestIndexConstructorUnwrapping:
+    # Test passing different arraylike values to pd.Index
+
+    @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
+    def test_constructor_from_series_dt64(self, klass):
+        stamps = [Timestamp("20110101"), Timestamp("20120101"), Timestamp("20130101")]
+        expected = DatetimeIndex(stamps)
+        ser = Series(stamps)
+        result = klass(ser)
+        tm.assert_index_equal(result, expected)
