@@ -467,8 +467,6 @@ class Resampler(_GroupBy, ShallowMixin):
         limit : int, optional
             Limit of how many values to fill.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         Series or DataFrame
@@ -1422,13 +1420,15 @@ class TimeGrouper(Grouper):
         # because replace() will swallow the nanosecond part
         # thus last bin maybe slightly before the end if the end contains
         # nanosecond part and lead to `Values falls after last bin` error
+        # GH 25758: If DST lands at midnight (e.g. 'America/Havana'), user feedback
+        # has noted that ambiguous=True provides the most sensible result
         binner = labels = date_range(
             freq=self.freq,
             start=first,
             end=last,
             tz=ax.tz,
             name=ax.name,
-            ambiguous="infer",
+            ambiguous=True,
             nonexistent="shift_forward",
         )
 
@@ -1602,7 +1602,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         return obj._constructor(
-            obj._data.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
+            obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         )
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")

@@ -242,8 +242,6 @@ class Categorical(ExtensionArray, PandasObject):
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical.
 
-        .. versionadded:: 0.21.0
-
     Attributes
     ----------
     categories : Index
@@ -256,8 +254,6 @@ class Categorical(ExtensionArray, PandasObject):
     dtype : CategoricalDtype
         The instance of ``CategoricalDtype`` storing the ``categories``
         and ``ordered``.
-
-        .. versionadded:: 0.21.0
 
     Methods
     -------
@@ -378,7 +374,7 @@ class Categorical(ExtensionArray, PandasObject):
             old_codes = (
                 values._values.codes if isinstance(values, ABCSeries) else values.codes
             )
-            codes = _recode_for_categories(
+            codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories
             )
 
@@ -572,13 +568,13 @@ class Categorical(ExtensionArray, PandasObject):
         if known_categories:
             # Recode from observation order to dtype.categories order.
             categories = dtype.categories
-            codes = _recode_for_categories(inferred_codes, cats, categories)
+            codes = recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
             unsorted = cats.copy()
             categories = cats.sort_values()
 
-            codes = _recode_for_categories(inferred_codes, unsorted, categories)
+            codes = recode_for_categories(inferred_codes, unsorted, categories)
             dtype = CategoricalDtype(categories, ordered=False)
         else:
             dtype = CategoricalDtype(cats, ordered=False)
@@ -727,7 +723,7 @@ class Categorical(ExtensionArray, PandasObject):
         We don't do any validation here. It's assumed that the dtype is
         a (valid) instance of `CategoricalDtype`.
         """
-        codes = _recode_for_categories(self.codes, self.categories, dtype.categories)
+        codes = recode_for_categories(self.codes, self.categories, dtype.categories)
         return type(self)(codes, dtype=dtype, fastpath=True)
 
     def set_ordered(self, value, inplace=False):
@@ -849,7 +845,7 @@ class Categorical(ExtensionArray, PandasObject):
                 # remove all _codes which are larger and set to -1/NaN
                 cat._codes[cat._codes >= len(new_dtype.categories)] = -1
         else:
-            codes = _recode_for_categories(
+            codes = recode_for_categories(
                 cat.codes, cat.categories, new_dtype.categories
             )
             cat._codes = codes
@@ -875,8 +871,6 @@ class Categorical(ExtensionArray, PandasObject):
               old categories to new. Categories not contained in the mapping
               are passed through and extra categories in the mapping are
               ignored.
-
-            .. versionadded:: 0.21.0.
 
             * callable : a callable that is called on all items in the old
               categories and whose return values comprise the new categories.
@@ -1306,7 +1300,6 @@ class Categorical(ExtensionArray, PandasObject):
         if not isinstance(state, dict):
             raise Exception("invalid pickle state")
 
-        # compat with pre 0.21.0 CategoricalDtype change
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
 
@@ -1613,19 +1606,19 @@ class Categorical(ExtensionArray, PandasObject):
 
         >>> c = pd.Categorical([np.nan, 2, 2, np.nan, 5])
         >>> c
-        [NaN, 2.0, 2.0, NaN, 5.0]
+        [NaN, 2, 2, NaN, 5]
         Categories (2, int64): [2, 5]
         >>> c.sort_values()
-        [2.0, 2.0, 5.0, NaN, NaN]
+        [2, 2, 5, NaN, NaN]
         Categories (2, int64): [2, 5]
         >>> c.sort_values(ascending=False)
-        [5.0, 2.0, 2.0, NaN, NaN]
+        [5, 2, 2, NaN, NaN]
         Categories (2, int64): [2, 5]
         >>> c.sort_values(na_position='first')
-        [NaN, NaN, 2.0, 2.0, 5.0]
+        [NaN, NaN, 2, 2, 5]
         Categories (2, int64): [2, 5]
         >>> c.sort_values(ascending=False, na_position='first')
-        [NaN, NaN, 5.0, 2.0, 2.0]
+        [NaN, NaN, 5, 2, 2]
         Categories (2, int64): [2, 5]
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1852,7 +1845,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         >>> cat.take([0, -1, -1], allow_fill=True, fill_value='a')
         [a, a, a]
-        Categories (3, object): [a, b]
+        Categories (2, object): [a, b]
 
         Specifying a fill value that's not in ``self.categories``
         will raise a ``TypeError``.
@@ -2051,7 +2044,7 @@ class Categorical(ExtensionArray, PandasObject):
                     "without identical categories"
                 )
             if not self.categories.equals(value.categories):
-                new_codes = _recode_for_categories(
+                new_codes = recode_for_categories(
                     value.codes, value.categories, self.categories
                 )
                 value = Categorical.from_codes(new_codes, dtype=self.dtype)
@@ -2248,33 +2241,32 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         unique values : ``Categorical``
 
+        See Also
+        --------
+        pandas.unique
+        CategoricalIndex.unique
+        Series.unique
+
         Examples
         --------
         An unordered Categorical will return categories in the
         order of appearance.
 
-        >>> pd.Categorical(list('baabc'))
+        >>> pd.Categorical(list("baabc")).unique()
         [b, a, c]
         Categories (3, object): [b, a, c]
 
-        >>> pd.Categorical(list('baabc'), categories=list('abc'))
+        >>> pd.Categorical(list("baabc"), categories=list("abc")).unique()
         [b, a, c]
         Categories (3, object): [b, a, c]
 
         An ordered Categorical preserves the category ordering.
 
-        >>> pd.Categorical(list('baabc'),
-        ...                categories=list('abc'),
-        ...                ordered=True)
+        >>> pd.Categorical(
+        ...     list("baabc"), categories=list("abc"), ordered=True
+        ... ).unique()
         [b, a, c]
         Categories (3, object): [a < b < c]
-
-        See Also
-        --------
-        unique
-        CategoricalIndex.unique
-        Series.unique
-
         """
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
@@ -2316,7 +2308,7 @@ class Categorical(ExtensionArray, PandasObject):
                 # fastpath to avoid re-coding
                 other_codes = other._codes
             else:
-                other_codes = _recode_for_categories(
+                other_codes = recode_for_categories(
                     other.codes, other.categories, self.categories
                 )
             return np.array_equal(self._codes, other_codes)
@@ -2455,7 +2447,7 @@ class Categorical(ExtensionArray, PandasObject):
         --------
         >>> s = pd.Categorical([1, 2, 1, 3])
         >>> s.replace(1, 3)
-        [3, 3, 2, 3]
+        [3, 2, 3, 3]
         Categories (2, int64): [2, 3]
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -2472,6 +2464,8 @@ class Categorical(ExtensionArray, PandasObject):
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
         for replace_value, new_value in replace_dict.items():
+            if new_value == replace_value:
+                continue
             if replace_value in cat.categories:
                 if isna(new_value):
                     cat.remove_categories(replace_value, inplace=True)
@@ -2523,16 +2517,100 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     Examples
     --------
+    >>> s = pd.Series(list("abbccc")).astype("category")
+    >>> s
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [a, b, c]
+
     >>> s.cat.categories
-    >>> s.cat.categories = list('abc')
-    >>> s.cat.rename_categories(list('cab'))
-    >>> s.cat.reorder_categories(list('cab'))
-    >>> s.cat.add_categories(['d','e'])
-    >>> s.cat.remove_categories(['d'])
-    >>> s.cat.remove_unused_categories()
-    >>> s.cat.set_categories(list('abcde'))
+    Index(['a', 'b', 'c'], dtype='object')
+
+    >>> s.cat.rename_categories(list("cba"))
+    0    c
+    1    b
+    2    b
+    3    a
+    4    a
+    5    a
+    dtype: category
+    Categories (3, object): [c, b, a]
+
+    >>> s.cat.reorder_categories(list("cba"))
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [c, b, a]
+
+    >>> s.cat.add_categories(["d", "e"])
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (5, object): [a, b, c, d, e]
+
+    >>> s.cat.remove_categories(["a", "c"])
+    0    NaN
+    1      b
+    2      b
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: category
+    Categories (1, object): [b]
+
+    >>> s1 = s.cat.add_categories(["d", "e"])
+    >>> s1.cat.remove_unused_categories()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [a, b, c]
+
+    >>> s.cat.set_categories(list("abcde"))
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (5, object): [a, b, c, d, e]
+
     >>> s.cat.as_ordered()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [a < b < c]
+
     >>> s.cat.as_unordered()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): [a, b, c]
     """
 
     def __init__(self, data):
@@ -2601,7 +2679,7 @@ def _get_codes_for_values(values, categories):
     return coerce_indexer_dtype(t.lookup(vals), cats)
 
 
-def _recode_for_categories(codes: np.ndarray, old_categories, new_categories):
+def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     """
     Convert a set of codes for to a new set of categories
 
@@ -2619,8 +2697,8 @@ def _recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     >>> old_cat = pd.Index(['b', 'a', 'c'])
     >>> new_cat = pd.Index(['a', 'b'])
     >>> codes = np.array([0, 1, 1, 2])
-    >>> _recode_for_categories(codes, old_cat, new_cat)
-    array([ 1,  0,  0, -1])
+    >>> recode_for_categories(codes, old_cat, new_cat)
+    array([ 1,  0,  0, -1], dtype=int8)
     """
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls

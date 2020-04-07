@@ -181,7 +181,7 @@ class AttributesMixin:
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
         10000000000
         """
         raise AbstractMethodError(self)
@@ -550,10 +550,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 key = np.asarray(key, dtype=bool)
 
             key = check_array_indexer(self, key)
-            if key.all():
-                key = slice(0, None, None)
-            else:
-                key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
         elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
             # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
             # this for now (would otherwise raise in check_array_indexer)
@@ -561,7 +558,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             key = check_array_indexer(self, key)
 
-        is_period = is_period_dtype(self)
+        is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
         else:
@@ -577,11 +574,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
-        if result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            return result
-
         return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(

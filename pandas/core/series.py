@@ -194,7 +194,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    _data: SingleBlockManager
+    _mgr: SingleBlockManager
     div: Callable[["Series", Any], "Series"]
     rdiv: Callable[["Series", Any], "Series"]
 
@@ -272,7 +272,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
-                data = data._data
+                data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
@@ -330,7 +330,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _init_dict(self, data, index=None, dtype=None):
         """
-        Derive the "_data" and "index" attributes of a new Series from a
+        Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
 
         Parameters
@@ -370,7 +370,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        return s._data, s.index
+        return s._mgr, s.index
 
     # ----------------------------------------------------------------------
 
@@ -387,7 +387,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # types
     @property
     def _can_hold_na(self):
-        return self._data._can_hold_na
+        return self._mgr._can_hold_na
 
     _index = None
 
@@ -408,7 +408,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
-                        self._data.set_axis(axis, labels)
+                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -417,11 +417,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call aabove ensures we have an Index object
-            self._data.set_axis(axis, labels)
-
-    def _update_inplace(self, result, **kwargs):
-        # we want to call the generic version and not the IndexOpsMixin
-        return generic.NDFrame._update_inplace(self, result, **kwargs)
+            self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
@@ -429,7 +425,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
     def dtypes(self) -> DtypeObj:
@@ -535,7 +531,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
         """
-        return self._data.external_values()
+        return self._mgr.external_values()
 
     @property
     def _values(self):
@@ -569,12 +565,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Nullable    | EA            | EA            | EA            |
 
         """
-        return self._data.internal_values()
+        return self._mgr.internal_values()
 
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
     @property
     def array(self) -> ExtensionArray:
-        return self._data._block.array_values()
+        return self._mgr._block.array_values()
 
     # ops
     def ravel(self, order="C"):
@@ -596,7 +592,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the length of the Series.
         """
-        return len(self._data)
+        return len(self._mgr)
 
     def view(self, dtype=None) -> "Series":
         """
@@ -666,7 +662,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._constructor(
             self._values.view(dtype), index=self.index
-        ).__finalize__(self)
+        ).__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -834,7 +830,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self._constructor(
             new_values, index=new_index, fastpath=True
-        ).__finalize__(self)
+        ).__finalize__(self, method="take")
 
     def _take_with_is_copy(self, indices, axis=0):
         """
@@ -967,12 +963,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
+            self,
         )
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._data.get_slice(indexer)).__finalize__(self)
+            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self,)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -1094,7 +1090,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
-        self._data = self._data.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False):
@@ -1186,7 +1182,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="repeat"
+        )
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -1313,7 +1311,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self._constructor(
                     self._values.copy(), index=new_index
-                ).__finalize__(self)
+                ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -1514,8 +1512,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         collections.abc.Mapping
@@ -1714,7 +1710,9 @@ Name: Max Speed, dtype: float64
 
         obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
-        return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
+        return self._constructor(out, index=lev, dtype="int64").__finalize__(
+            self, method="count"
+        )
 
     def mode(self, dropna=True) -> "Series":
         """
@@ -1801,7 +1799,7 @@ Name: Max Speed, dtype: float64
         result = super().unique()
         return result
 
-    def drop_duplicates(self, keep="first", inplace=False) -> "Series":
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
         Return Series with duplicate values removed.
 
@@ -1876,7 +1874,13 @@ Name: Max Speed, dtype: float64
         5     hippo
         Name: animal, dtype: object
         """
-        return super().drop_duplicates(keep=keep, inplace=inplace)
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = super().drop_duplicates(keep=keep)
+        if inplace:
+            self._update_inplace(result)
+            return None
+        else:
+            return result
 
     def duplicated(self, keep="first") -> "Series":
         """
@@ -2131,7 +2135,9 @@ Name: Max Speed, dtype: float64
         """
         nv.validate_round(args, kwargs)
         result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index).__finalize__(self)
+        result = self._constructor(result, index=self.index).__finalize__(
+            self, method="round"
+        )
 
         return result
 
@@ -2353,7 +2359,9 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         result = algorithms.diff(self.array, periods)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="diff"
+        )
 
     def autocorr(self, lag=1) -> float:
         """
@@ -2470,7 +2478,7 @@ Name: Max Speed, dtype: float64
         if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
-            ).__finalize__(self)
+            ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
         elif isinstance(rvals, np.ndarray):
@@ -2809,7 +2817,7 @@ Name: Max Speed, dtype: float64
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other)
+        self._mgr = self._mgr.putmask(mask=mask, new=other)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------
@@ -3050,7 +3058,7 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
@@ -3249,7 +3257,7 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
@@ -3283,11 +3291,13 @@ Name: Max Speed, dtype: float64
             result = Series(-1, index=self.index, name=self.name, dtype="int64")
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(self)
+            return self._constructor(result, index=self.index).__finalize__(
+                self, method="argsort"
+            )
         else:
             return self._constructor(
                 np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self)
+            ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> "Series":
         """
@@ -3505,7 +3515,7 @@ Name: Max Speed, dtype: float64
         assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self
+            self, method="swaplevel"
         )
 
     def reorder_levels(self, order) -> "Series":
@@ -3709,7 +3719,9 @@ Name: Max Speed, dtype: float64
         dtype: object
         """
         new_values = super()._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(self)
+        return self._constructor(new_values, index=self.index).__finalize__(
+            self, method="map"
+        )
 
     def _gotitem(self, key, ndim, subset=None) -> "Series":
         """
@@ -3896,7 +3908,7 @@ Name: Max Speed, dtype: float64
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype, index=self.index).__finalize__(
-                self
+                self, method="apply"
             )
 
         # dispatch to agg
@@ -3933,7 +3945,9 @@ Name: Max Speed, dtype: float64
             # so extension arrays can be used
             return self._constructor_expanddim(pd.array(mapped), index=self.index)
         else:
-            return self._constructor(mapped, index=self.index).__finalize__(self)
+            return self._constructor(mapped, index=self.index).__finalize__(
+                self, method="apply"
+            )
 
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
@@ -4142,12 +4156,8 @@ Name: Max Speed, dtype: float64
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             No change is made to the Series; use 'index' or 'labels' instead.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -4378,7 +4388,9 @@ Name: Max Speed, dtype: float64
         Name: animal, dtype: bool
         """
         result = algorithms.isin(self, values)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="isin"
+        )
 
     def between(self, left, right, inclusive=True) -> "Series":
         """
@@ -4614,7 +4626,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_timestamp"
+        )
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
@@ -4639,7 +4653,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_period"
+        )
 
     # ----------------------------------------------------------------------
     # Add index

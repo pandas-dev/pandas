@@ -114,6 +114,7 @@ Other enhancements
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
+- :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -128,7 +129,8 @@ Other API changes
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``min``, ``max``, ``std``, ``var``, ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``std``, ``var``, ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 -
 
 Backwards incompatible API changes
@@ -275,12 +277,26 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
 
 Deprecations
 ~~~~~~~~~~~~
+
 - Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
+
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 - Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
+- :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
+
+- Passing any arguments but the first one to  :func:`read_html` as
+  positional arguments is deprecated since version 1.1. All other
+  arguments should be given as keyword arguments (:issue:`27573`).
+
+- Passing any arguments but `path_or_buf` (the first one) to
+  :func:`read_json` as positional arguments is deprecated since
+  version 1.1. All other arguments should be given as keyword
+  arguments (:issue:`27573`).
+
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -300,7 +316,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement in :meth:`Series.sum` for nullable (integer and boolean) dtypes (:issue:`30982`).
+- Performance improvement in reductions (sum, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`).
 
 
 .. ---------------------------------------------------------------------------
@@ -318,6 +334,7 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -329,6 +346,7 @@ Datetimelike
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
 - Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
 - Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
+- Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 
 Timedelta
 ^^^^^^^^^
@@ -336,6 +354,7 @@ Timedelta
 - Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
 - Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta`` incorrectly returning ``NaT`` (:issue:`31869`)
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
+- :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
 
 Timezones
 ^^^^^^^^^
@@ -350,7 +369,7 @@ Numeric
 - Bug in :meth:`to_numeric` with string argument ``"uint64"`` and ``errors="coerce"`` silently fails (:issue:`32394`)
 - Bug in :meth:`to_numeric` with ``downcast="unsigned"`` fails for empty data (:issue:`32493`)
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
--
+- Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 
 Conversion
 ^^^^^^^^^^
@@ -387,6 +406,7 @@ Indexing
 - Bug in :class:`Index` constructor where an unhelpful error message was raised for ``numpy`` scalars (:issue:`33017`)
 - Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`32831`)
+- Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 
 Missing
 ^^^^^^^
@@ -434,6 +454,7 @@ I/O
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 - Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
+- Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 
 Plotting
 ^^^^^^^^
@@ -448,8 +469,9 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
-
+- Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 
 Reshaping
 ^^^^^^^^^
@@ -482,7 +504,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
 -
 
 
@@ -492,12 +514,14 @@ Other
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
+- Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
 - Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 - Fixed :func:`pandas.testing.assert_series_equal` to correctly raise if left object is a different subclass with ``check_series_type=True`` (:issue:`32670`).
 - :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
+- Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 
 .. ---------------------------------------------------------------------------
 
