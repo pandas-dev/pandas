@@ -25,7 +25,7 @@ def get_engine(engine: str) -> "BaseImpl":
             try:
                 return eimpl()
             except ImportError as ie:
-                error_msgs.append(ie.msg)
+                error_msgs.append(str(ie))
 
         raise ImportError(
             "Unable to find a usable engine; "
