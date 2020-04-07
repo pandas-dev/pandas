@@ -698,7 +698,7 @@ In pandas this would be written as:
    tips.groupby(['sex', 'smoker']).first()
 
 
-Other Considerations
+Other considerations
 --------------------
 
 Disk vs memory
