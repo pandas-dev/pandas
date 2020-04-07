@@ -25,6 +25,13 @@ class BaseNoReduceTests(BaseReduceTests):
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        if isinstance(data, pd.arrays.StringArray) and all_numeric_reductions in [
+            "min",
+            "max",
+        ]:
+            # Tested in pandas/tests/arrays/string_/test_string.py
+            pytest.skip("These reductions are implemented")
+
         op_name = all_numeric_reductions
         s = pd.Series(data)
 
