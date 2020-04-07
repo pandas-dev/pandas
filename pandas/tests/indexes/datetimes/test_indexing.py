@@ -506,7 +506,45 @@ class TestContains:
 
 
 class TestGetIndexer:
-    pass
+    def test_get_indexer(self):
+        idx = pd.date_range("2000-01-01", periods=3)
+        exp = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(idx.get_indexer(idx), exp)
+
+        target = idx[0] + pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 hour")),
+            np.array([0, -1, 1], dtype=np.intp),
+        )
+        tol_raw = [
+            pd.Timedelta("1 hour"),
+            pd.Timedelta("1 hour"),
+            pd.Timedelta("1 hour").to_timedelta64(),
+        ]
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(
+                target, "nearest", tolerance=[np.timedelta64(x) for x in tol_raw]
+            ),
+            np.array([0, -1, 1], dtype=np.intp),
+        )
+        tol_bad = [
+            pd.Timedelta("2 hour").to_timedelta64(),
+            pd.Timedelta("1 hour").to_timedelta64(),
+            "foo",
+        ]
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+            idx.get_indexer(target, "nearest", tolerance=tol_bad)
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+            idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
 
 
 class TestMaybeCastSliceBound:
@@ -824,43 +862,3 @@ class TestDatetimeIndex:
 
         result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
-
-    def test_get_indexer(self):
-        idx = pd.date_range("2000-01-01", periods=3)
-        exp = np.array([0, 1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(idx.get_indexer(idx), exp)
-
-        target = idx[0] + pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 hour")),
-            np.array([0, -1, 1], dtype=np.intp),
-        )
-        tol_raw = [
-            pd.Timedelta("1 hour"),
-            pd.Timedelta("1 hour"),
-            pd.Timedelta("1 hour").to_timedelta64(),
-        ]
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(
-                target, "nearest", tolerance=[np.timedelta64(x) for x in tol_raw]
-            ),
-            np.array([0, -1, 1], dtype=np.intp),
-        )
-        tol_bad = [
-            pd.Timedelta("2 hour").to_timedelta64(),
-            pd.Timedelta("1 hour").to_timedelta64(),
-            "foo",
-        ]
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
-            idx.get_indexer(target, "nearest", tolerance=tol_bad)
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
-            idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
