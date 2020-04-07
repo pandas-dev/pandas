@@ -179,7 +179,7 @@ One could hard code:
 Selection
 ---------
 
-DataFrames
+Dataframes
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -290,7 +290,7 @@ Notice the same results, with the exception of the index.
 
 .. _cookbook.multi_index:
 
-MultiIndexing
+Multiindexing
 -------------
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
@@ -913,7 +913,7 @@ The :ref:`Plotting <visualization>` docs.
    @savefig quartile_boxplot.png
    df.boxplot(column='price', by='quartiles')
 
-Data In/Out
+Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5

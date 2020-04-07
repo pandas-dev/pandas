@@ -210,7 +210,7 @@ parameter:
 
 .. _stats.moments:
 
-Window Functions
+Window functions
 ----------------
 
 .. currentmodule:: pandas.core.window
@@ -323,7 +323,7 @@ We provide a number of common statistical functions:
 
 .. _stats.rolling_apply:
 
-Rolling Apply
+Rolling apply
 ~~~~~~~~~~~~~
 
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
