@@ -158,21 +158,23 @@ class BaseGetitemTests(BaseExtensionTests):
         result = pd.Series(data)[mask]
         self.assert_series_equal(result, expected)
 
-    def test_getitem_boolean_array_mask_raises(self, data):
+    def test_getitem_boolean_na_treated_as_false(self, data):
+        # https://github.com/pandas-dev/pandas/issues/31503
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
+        mask[2:4] = True
 
-        msg = (
-            "Cannot mask with a boolean indexer containing NA values|"
-            "cannot mask with array containing NA / NaN values"
-        )
-        with pytest.raises(ValueError, match=msg):
-            data[mask]
+        result = data[mask]
+        expected = data[mask.fillna(False)]
+
+        self.assert_extension_array_equal(result, expected)
 
         s = pd.Series(data)
 
-        with pytest.raises(ValueError):
-            s[mask]
+        result = s[mask]
+        expected = s[mask.fillna(False)]
+
+        self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx",
@@ -354,7 +356,7 @@ class BaseGetitemTests(BaseExtensionTests):
         # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
-        assert res._data._block.ndim == 1
+        assert res._mgr._block.ndim == 1
 
     def test_item(self, data):
         # https://github.com/pandas-dev/pandas/pull/30175

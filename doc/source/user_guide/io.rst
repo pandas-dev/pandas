@@ -28,7 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -109,6 +109,11 @@ index_col : int, str, sequence of int / str, or False, default ``None``
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g. when you have a malformed file with delimiters at
   the end of each line.
+
+  The default value of ``None`` instructs pandas to guess. If the number of
+  fields in the column header row is equal to the number of fields in the body
+  of the data file, then a default index is used.  If it is one larger, then
+  the first field is used as an index.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -460,8 +465,6 @@ specification:
 .. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
-
-.. versionadded:: 0.21.0
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
@@ -2171,8 +2174,6 @@ Line delimited json
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
-.. versionadded:: 0.21.0
-
 For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
 
 .. ipython:: python
@@ -3815,7 +3816,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -4646,8 +4647,6 @@ Read from a feather file.
 Parquet
 -------
 
-.. versionadded:: 0.21.0
-
 `Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
 languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
@@ -4817,7 +4816,7 @@ ORC
 
 .. versionadded:: 1.0.0
 
-Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
@@ -5005,7 +5004,7 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
+  For more information check the SQLAlchemy `documentation
   <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on

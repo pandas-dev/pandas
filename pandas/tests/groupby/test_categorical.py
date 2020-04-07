@@ -1226,10 +1226,10 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
-        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered), "Item": [1, 2]},
         columns=["Name", "Item"],
     )
     expected = df.copy()
@@ -1261,6 +1261,9 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
 
     df = pd.DataFrame(
         {

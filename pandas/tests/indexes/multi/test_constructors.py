@@ -1,3 +1,6 @@
+from datetime import date, datetime
+import itertools
+
 import numpy as np
 import pytest
 
@@ -6,7 +9,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import Index, MultiIndex, date_range
+from pandas import Index, MultiIndex, Series, date_range
 import pandas._testing as tm
 
 
@@ -723,3 +726,73 @@ def test_index_equal_empty_iterable():
     a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
     b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
     tm.assert_index_equal(a, b)
+
+
+def test_raise_invalid_sortorder():
+    # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+    # GH#28518
+
+    levels = [[0, 1], [0, 1, 2]]
+
+    # Correct sortorder
+    MultiIndex(
+        levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+    )
+
+    with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2,
+        )
+
+    with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1,
+        )
+
+
+def test_datetimeindex():
+    idx1 = pd.DatetimeIndex(
+        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo",
+    )
+    idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+    idx = MultiIndex.from_arrays([idx1, idx2])
+
+    expected1 = pd.DatetimeIndex(
+        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"], tz="Asia/Tokyo"
+    )
+
+    tm.assert_index_equal(idx.levels[0], expected1)
+    tm.assert_index_equal(idx.levels[1], idx2)
+
+    # from datetime combos
+    # GH 7888
+    date1 = date.today()
+    date2 = datetime.today()
+    date3 = Timestamp.today()
+
+    for d1, d2 in itertools.product([date1, date2, date3], [date1, date2, date3]):
+        index = MultiIndex.from_product([[d1], [d2]])
+        assert isinstance(index.levels[0], pd.DatetimeIndex)
+        assert isinstance(index.levels[1], pd.DatetimeIndex)
+
+
+def test_constructor_with_tz():
+
+    index = pd.DatetimeIndex(
+        ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
+    )
+    columns = pd.DatetimeIndex(
+        ["2014/01/01 09:00", "2014/01/02 09:00"], name="dt2", tz="Asia/Tokyo"
+    )
+
+    result = MultiIndex.from_arrays([index, columns])
+
+    assert result.names == ["dt1", "dt2"]
+    tm.assert_index_equal(result.levels[0], index)
+    tm.assert_index_equal(result.levels[1], columns)
+
+    result = MultiIndex.from_arrays([Series(index), Series(columns)])
+
+    assert result.names == ["dt1", "dt2"]
+    tm.assert_index_equal(result.levels[0], index)
+    tm.assert_index_equal(result.levels[1], columns)

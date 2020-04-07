@@ -5,11 +5,12 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper
+import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Set
+from typing import Any, Dict, Iterable, List, Set
 import warnings
 
 import numpy as np
@@ -34,6 +35,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
+    is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
     is_file_like,
@@ -814,8 +816,10 @@ class TextFileReader(abc.Iterator):
             ):
                 try:
                     dialect_val = getattr(dialect, param)
-                except AttributeError:
-                    raise ValueError(f"Invalid dialect {kwds['dialect']} provided")
+                except AttributeError as err:
+                    raise ValueError(
+                        f"Invalid dialect {kwds['dialect']} provided"
+                    ) from err
                 parser_default = _parser_defaults[param]
                 provided = kwds.get(param, parser_default)
 
@@ -1419,6 +1423,54 @@ class ParserBase:
         # keep references to file handles opened by the parser itself
         self.handles = []
 
+    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
+        """
+        Check if parse_dates are in columns.
+
+        If user has provided names for parse_dates, check if those columns
+        are available.
+
+        Parameters
+        ----------
+        columns : list
+            List of names of the dataframe.
+
+        Raises
+        ------
+        ValueError
+            If column to parse_date is not in dataframe.
+
+        """
+        cols_needed: Iterable
+        if is_dict_like(self.parse_dates):
+            cols_needed = itertools.chain(*self.parse_dates.values())
+        elif is_list_like(self.parse_dates):
+            # a column in parse_dates could be represented
+            # ColReference = Union[int, str]
+            # DateGroups = List[ColReference]
+            # ParseDates = Union[DateGroups, List[DateGroups],
+            #     Dict[ColReference, DateGroups]]
+            cols_needed = itertools.chain.from_iterable(
+                col if is_list_like(col) else [col] for col in self.parse_dates
+            )
+        else:
+            cols_needed = []
+
+        # get only columns that are references using names (str), not by index
+        missing_cols = ", ".join(
+            sorted(
+                {
+                    col
+                    for col in cols_needed
+                    if isinstance(col, str) and col not in columns
+                }
+            )
+        )
+        if missing_cols:
+            raise ValueError(
+                f"Missing column provided to 'parse_dates': '{missing_cols}'"
+            )
+
     def close(self):
         for f in self.handles:
             f.close()
@@ -1816,19 +1868,19 @@ class ParserBase:
             array_type = cast_type.construct_array_type()
             try:
                 return array_type._from_sequence_of_strings(values, dtype=cast_type)
-            except NotImplementedError:
+            except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order to be used in parser methods"
-                )
+                ) from err
 
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
-                )
+                ) from err
         return values
 
     def _do_date_conversions(self, names, data):
@@ -1868,7 +1920,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, (BufferedIOBase, RawIOBase)):
+            if hasattr(src, "read") and not hasattr(src, "encoding"):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"
@@ -1938,6 +1990,7 @@ class CParserWrapper(ParserBase):
             if len(self.names) < len(usecols):
                 _validate_usecols_names(usecols, self.names)
 
+        self._validate_parse_dates_presence(self.names)
         self._set_noconvert_columns()
 
         self.orig_names = self.names
@@ -2271,11 +2324,15 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices = None
-        (
-            self.columns,
-            self.num_original_columns,
-            self.unnamed_cols,
-        ) = self._infer_columns()
+        try:
+            (
+                self.columns,
+                self.num_original_columns,
+                self.unnamed_cols,
+            ) = self._infer_columns()
+        except (TypeError, ValueError):
+            self.close()
+            raise
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
@@ -2308,6 +2365,7 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        self._validate_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
         else:
@@ -2377,19 +2435,21 @@ class PythonParser(ParserBase):
 
             dia = MyDialect
 
-            sniff_sep = True
-
             if sep is not None:
-                sniff_sep = False
                 dia.delimiter = sep
-            # attempt to sniff the delimiter
-            if sniff_sep:
+            else:
+                # attempt to sniff the delimiter from the first valid line,
+                # i.e. no comment line and not in skiprows
                 line = f.readline()
-                while self.skipfunc(self.pos):
+                lines = self._check_comments([[line]])[0]
+                while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
+                    lines = self._check_comments([[line]])[0]
 
-                line = self._check_comments([line])[0]
+                # since `line` was a string, lines will be a list containing
+                # only a single string
+                line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
@@ -2552,12 +2612,12 @@ class PythonParser(ParserBase):
                     while self.line_pos <= hr:
                         line = self._next_line()
 
-                except StopIteration:
+                except StopIteration as err:
                     if self.line_pos < hr:
                         raise ValueError(
                             f"Passed header={hr} but only {self.line_pos + 1} lines in "
                             "file"
-                        )
+                        ) from err
 
                     # We have an empty file, so check
                     # if columns are provided. That will
@@ -2569,7 +2629,7 @@ class PythonParser(ParserBase):
                         return columns, num_original_columns, unnamed_cols
 
                     if not self.names:
-                        raise EmptyDataError("No columns to parse from file")
+                        raise EmptyDataError("No columns to parse from file") from err
 
                     line = self.names[:]
 
@@ -2650,9 +2710,9 @@ class PythonParser(ParserBase):
             try:
                 line = self._buffered_line()
 
-            except StopIteration:
+            except StopIteration as err:
                 if not names:
-                    raise EmptyDataError("No columns to parse from file")
+                    raise EmptyDataError("No columns to parse from file") from err
 
                 line = names[:]
 

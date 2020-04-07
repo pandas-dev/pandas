@@ -43,7 +43,7 @@ class TestToPeriod:
     @pytest.mark.parametrize("month", MONTHS)
     def test_to_period_quarterly(self, month):
         # make sure we can make the round trip
-        freq = "Q-{month}".format(month=month)
+        freq = f"Q-{month}"
         rng = period_range("1989Q3", "1991Q3", freq=freq)
         stamps = rng.to_timestamp()
         result = stamps.to_period(freq)
@@ -147,7 +147,8 @@ class TestToPeriod:
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"])
-        with pytest.raises(ValueError):
+        msg = "You must pass a freq argument as current index has none."
+        with pytest.raises(ValueError, match=msg):
             idx.to_period()
 
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"], freq="infer")
