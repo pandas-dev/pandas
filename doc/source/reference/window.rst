@@ -87,7 +87,7 @@ Base class for defining custom window boundaries.
    api.indexers.BaseIndexer
 
 Forward-looking fixed window indexer
---------------
+------------------------------------
 .. currentmodule:: pandas
 
 Creates window boundaries for fixed-length windows that include the current row.

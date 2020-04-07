@@ -583,7 +583,6 @@ forward-looking rolling window, and we can use it as follows:
 .. ipython:: ipython
 
    from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
-
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
 
