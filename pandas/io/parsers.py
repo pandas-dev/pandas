@@ -179,9 +179,13 @@ false_values : list, optional
     Values to consider as False.
 skipinitialspace : bool, default False
     Skip spaces after delimiter.
-skiprows : list-like, int or callable, optional
+skiprows : list-like, int, str or callable, optional
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file.
+
+    If str, the query passed in will be run on the data, keeping only the
+    rows that pass the query.
+    An example of a valid query argument would be ``(population > 1200)``.
 
     If callable, the callable function will be evaluated against the row
     indices, returning True if the row should be skipped and False otherwise.
@@ -672,8 +676,13 @@ def _make_parser_function(name, default_sep=","):
             infer_datetime_format=infer_datetime_format,
             skip_blank_lines=skip_blank_lines,
         )
+        df = _read(filepath_or_buffer, kwds)
 
-        return _read(filepath_or_buffer, kwds)
+        if isinstance(skiprows, str):
+            df.query(skiprows, inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+        return df
 
     parser_f.__name__ = name
 
@@ -1143,6 +1152,12 @@ class TextFileReader(abc.Iterator):
             new_rows = len(index)
 
         df = DataFrame(col_dict, columns=columns, index=index)
+
+        kwds = self.options
+
+        if isinstance(kwds.get("skiprows"), str):
+            df.query(kwds.get("skiprows"), inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
         self._currow += new_rows
 
@@ -2269,7 +2284,7 @@ class PythonParser(ParserBase):
 
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
-        else:
+        elif not isinstance(self.skiprows, str):
             self.skipfunc = lambda x: x in self.skiprows
 
         self.skipfooter = _validate_skipfooter_arg(kwds["skipfooter"])
