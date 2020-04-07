@@ -636,6 +636,31 @@ class TestNamedAggregationDataFrame:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_agg_multiple_columns(self):
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
+        result = df.groupby("A").agg(
+            add=(["B", "C"], lambda x: x["B"].max() + x["C"].min()),
+            minus=(["C", "B"], lambda x: x["B"].max() - x["C"].min())
+        )
+        expected = pd.DataFrame(
+            {"add": [5, 9], "minus": [-1, -1]}, index=pd.Index([0, 1], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_multi_missing_column_raises(self):
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
+        with pytest.raises(KeyError, match="Column 'D' does not exist"):
+            df.groupby("A").agg(
+                minus=(["D", "C"], lambda x: x["D"].max() - x["C"].min()),
+            )
+
+    def test_agg_multi_missing_key_raises(self):
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
+        with pytest.raises(KeyError, match="D"):
+            df.groupby("A").agg(
+                minus=(["B", "C"], lambda x: x["D"].max() - x["D"].min()),
+            )
+
 
 @pytest.mark.parametrize(
     "agg_col1, agg_col2, agg_col3, agg_result1, agg_result2, agg_result3",
