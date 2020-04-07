@@ -333,7 +333,7 @@ def ensure_key_mapped(values, key: Optional[Callable]):
     if not key:
         return values.copy()
 
-    _class = values.__class__
+    _class = type(values)
     result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
