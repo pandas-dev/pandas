@@ -86,7 +86,7 @@ dependencies:
   - lxml
 
   # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
-  - openpyxl<=3.0.1
+  - openpyxl
   - xlrd
   - xlsxwriter
   - xlwt
