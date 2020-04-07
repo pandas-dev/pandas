@@ -119,15 +119,6 @@ def test_getitem_fancy(string_series, object_series):
     assert object_series[2] == slice2[1]
 
 
-def test_getitem_generator(string_series):
-    gen = (x > 0 for x in string_series)
-    result = string_series[gen]
-    result2 = string_series[iter(string_series > 0)]
-    expected = string_series[string_series > 0]
-    tm.assert_series_equal(result, expected)
-    tm.assert_series_equal(result2, expected)
-
-
 def test_type_promotion():
     # GH12599
     s = pd.Series(dtype=object)
@@ -870,16 +861,6 @@ def test_uint_drop(any_int_dtype):
     series.loc[0] = 4
     expected = pd.Series([4, 2, 3], dtype=any_int_dtype)
     tm.assert_series_equal(series, expected)
-
-
-def test_getitem_2d_no_warning():
-    # https://github.com/pandas-dev/pandas/issues/30867
-    # Don't want to support this long-term, but
-    # for now ensure that the warning from Index
-    # doesn't comes through via Series.__getitem__.
-    series = pd.Series([1, 2, 3], index=[1, 2, 3])
-    with tm.assert_produces_warning(None):
-        series[:, None]
 
 
 def test_getitem_unrecognized_scalar():
