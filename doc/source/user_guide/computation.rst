@@ -541,7 +541,7 @@ For example, if we have the following ``DataFrame``:
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
 1, we can create the following ``BaseIndexer``:
 
-.. code-block:: ipython
+.. ipython:: ipython
 
    In [2]: from pandas.api.indexers import BaseIndexer
    ...:
