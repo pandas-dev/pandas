@@ -231,11 +231,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return mgr
 
     @classmethod
-    def _from_mgr(cls, mgr: BlockManager):
+    def _from_mgr(cls: Type[FrameOrSeries], mgr: BlockManager) -> FrameOrSeries:
         """
         Fastpath constructor for if we have only a BlockManager.
         """
-        obj = object.__new__(cls)
+        constructor = cls._constructor.fget(cls)  # type: ignore
+        obj = object.__new__(constructor)
         NDFrame.__init__(obj, mgr)
         return obj
 
