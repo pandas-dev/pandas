@@ -26,6 +26,11 @@ frame_data = ({"A": [1]},)
 frame_mi_data = ({"A": [1, 2, 3, 4]}, mi)
 
 
+# Tuple of
+# - Callable: Constructor (Series, DataFrame)
+# - Tuple: Constructor args
+# - Callable: pass the constructed value with attrs set to this.
+
 _all_methods = [
     (pd.Series, [0], operator.methodcaller("view", int)),
     (pd.Series, [0], operator.methodcaller("take", [])),
