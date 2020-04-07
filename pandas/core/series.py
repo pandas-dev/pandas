@@ -1133,7 +1133,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def query(self, expr, inplace=False, **kwargs):
         """
-        Query the columns of a Series with a boolean expression.
+        Query the data of a Series with a boolean expression.
 
         Parameters
         ----------
@@ -1142,16 +1142,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             You can refer to variables
             in the environment by prefixing them with an '@' character like
-            ``@a + b``.
+            '@a + b'.
 
-            You can refer to column names that contain spaces or operators by
+            You can refer to index names that contain spaces or operators by
             surrounding them in backticks. This way you can also escape
-            names that start with a digit, or those that  are a Python keyword.
-            Basically when it is not valid Python identifier. See notes down
+            names that start with a digit, or those that are a Python keyword.
+            Basically when it is not valid Python identifier. See notes below 
             for more details.
 
-            For example, if one of your columns is called ``a a`` and you want
-            to sum it with ``b``, your query should be ```a a` + b``.
+            For example, if one of your index levels is named 'a a' and you want
+            to sum it with the level named 'b', your query should be '`a a` + b'.
 
             .. versionadded:: 0.25.0
                 Backtick quoting introduced.
@@ -1183,9 +1183,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The result of the evaluation of this expression is first passed to
         :attr:`Series.loc` and if that fails because of a
         multidimensional key (e.g., a Series) then the result will be passed
-        to :meth:`Series.__getitem__`.
+        to :meth:`Series.__getitem__`;.
 
-        This method uses the top-level :func:`eval` function to
+        This method uses the top-level :func:'eval' function to
         evaluate the passed query.
 
         The :meth:`~pandas.Series.query` method uses a slightly
@@ -1252,6 +1252,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    3
         4    4
         dtype: int64
+        
+        If the index is named, we can refer to it in the query.
+        
+        >>> series.index.name = 'numbers'
+        numbers
+        3    3
+        4    4
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
