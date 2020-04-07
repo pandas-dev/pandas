@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pandas import Series, eval, Index
+from pandas import Series, eval, MultiIndex, Index
 import pandas._testing as tm
 import pandas.util._test_decorators as td
 
@@ -136,24 +136,24 @@ class TestSeriesQueryByIndex:
         del self.frame
 
     # test the boolean operands
-    @pytest.mark.parametrize("op", ["<", "<=", ">", ">=", "==", "!="])
-    def test_bool_operands(self, op):
-        test = f"index {op} 5"
-        result = self.series.query(test)
-        expected = self.frame.query(test)[0]
-        # names are not checked since computation/eval.py adds name to evaluated Series
-        tm.assert_series_equal(result, expected, check_names=False)
+    def test_bool_operands(self):
+        for op in ["<", "<=", ">", ">=", "==", "!="]:
+            test = "index " + op + " 5"
+            result = self.series.query(test)
+            expected = self.frame.query(test)[0]
+            # names are not checked since computation/eval.py adds name to evaluated Series
+            tm.assert_series_equal(result, expected, check_names=False)
 
     # test the operands that can join queries
     def test_and_bitwise_operator(self):
-        test = f"(index > 2) & (index < 8)"
+        test = "(index > 2) & (index < 8)"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
         # names are not checked since computation/eval.py adds name to evaluated Series
         tm.assert_series_equal(result, expected, check_names=False)
 
     def test_or_bitwise_operator(self):
-        test = f"(index < 3) | (index > 7)"
+        test = "(index < 3) | (index > 7)"
         result = self.series.query(test)
         expected = self.frame.query(test)[0]
         # names are not checked since computation/eval.py adds name to evaluated Series
@@ -185,12 +185,232 @@ class TestSeriesQueryByMultiIndex:
         # names are not checked since computation/eval.py adds name to evaluated Series
         tm.assert_series_equal(result, expected, check_names=False)
 
-    @pytest.mark.parametrize("op", ["&", "|"])
-    def test_both_levels(self, op):
-        test = f"(ilevel_0 == 'b') {op} ((ilevel_1 % 2) == 0)"
-        result = self.series.query(test)
-        expected = self.frame.query(test)[0]
-        # names are not checked since computation/eval.py adds name to evaluated Series
-        tm.assert_series_equal(result, expected, check_names=False)
+    def test_both_levels(self):
+        for op in ["&", "|"]:
+            test = f"(ilevel_0 == 'b') " + op + " ((ilevel_1 % 2) == 0)"
+            result = self.series.query(test)
+            expected = self.frame.query(test)[0]
+            # names are not checked since computation/eval.py adds name to evaluated Series
+            tm.assert_series_equal(result, expected, check_names=False)
+        
+
+def run_test(series, test):
+    frame = series.to_frame()
+    result = series.query(test)
+    expected = frame.query(test)[0]
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
+class TestSeriesQueryByIndex:
+    def setup_method(self, method):
+        self.series = Series(np.random.randn(10), index=[x for x in range(10)])
+        self.frame = self.series.to_frame()
+    
+    def teardown_method(self, method):
+        del self.series
+        del self.frame
+
+    # test the boolean operands
+    def test_bool_operands(self):
+        for op in  ["<", "<=", ">", ">=", "==", "!="]:
+            run_test(self.series, "index " + op + " 5")
+            run_test(self.series, "5 " + op + " index")
+
+
+    # test list equality
+    def test_list_equality(self):
+        for op in ["==", "!="]:
+            run_test(self.series, "index " + op + " [5]")
+            run_test(self.series, "[5] " + op + " index")
+
+    # test the operands that can join queries
+    def test_and_bitwise_operator(self):
+        run_test(self.series, "(index > 2) & (index < 8)")
+        
+
+    def test_or_bitwise_operator(self):
+        run_test(self.series, "(index < 3) | (index > 7)")
+
+     # test in and not in
+    def test_in(self):
+        run_test(self.series, "'a' in index")
+        run_test(self.series, "['a'] in index")
+
+    def test_not_in(self):
+        run_test(self.series, "'a' not in index")
+        run_test(self.series, "['a'] not in index")
+
+class TestSeriesQueryBacktickQuoting:
+
+    def test_single_backtick(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "B B"))
+        run_test(series, "1 < `B B`")
+
+    def test_double_backtick(self):
+        series =  Series(np.random.randn(10), index = MultiIndex.from_arrays(
+            [[x for x in range(10)], [x for x in range(10)]],
+             names = ["B B", "C C"]))
+        run_test(series, "1 < `B B` and 4 < `C C`")
+
+    def test_already_underscore(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "B_B"))
+        run_test(series, "1 < `B_B`")
+
+
+    def test_same_name_but_underscore(self):
+        series =  Series(np.random.randn(10), index = MultiIndex.from_arrays(
+            [[x for x in range(10)], [x for x in range(10)]],
+             names = ["C_C", "C C"]))
+        run_test(series, "1 < `C_C` and 4 < `C C`")
+
+    def test_underscore_and_spaces(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "B_B B"))
+        run_test(series, "1 < `B_B B`")
+
+    def test_special_character_dot(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "B.B"))
+        run_test(series, "1 < `B.B`")
+
+    def test_special_character_hyphen(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "B-B"))
+        run_test(series, "1 < `B-B`")
+
+    def test_start_with_digit(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "1e1"))
+        run_test(series, "1 < `1e1`")
+
+    def test_keyword(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "def"))
+        run_test(series, "1 < `def`")
+
+    def test_empty_string(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = ""))
+        run_test(series, "1 < ``")
+
+    def test_spaces(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "  "))
+        run_test(series, "1 < `  `")
+
+    def test_parenthesis(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "(xyz)"))
+        run_test(series, "1 < `(xyz)`")
+
+    def test_many_symbols(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+         name = "  &^ :!€$?(} >    <++*''  "))
+        run_test(series, "1 < `  &^ :!€$?(} >    <++*''  `")
+
+    def test_failing_character_outside_range(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+            name = "☺"))
+        with pytest.raises(SyntaxError):
+            series.query("`☺` > 4")
+
+    def test_failing_hashtag(self):
+        series =  Series(np.random.randn(10), index = Index([x for x in range(10)],
+            name = "foo#bar"))
+        with pytest.raises(SyntaxError):
+            series.query("`foo#bar` > 4")
+
+class TestSeriesQueryWithMultiIndex:
+    def setup_method(self, method):
+        multiIndex = MultiIndex.from_arrays([["a"]*5 + ["b"]*5, [str(x) for x in range(10)]],
+        names=["alpha", "num"])
+        self.series = Series(np.random.randn(10),
+             index = multiIndex)
+    
+    def teardown_method(self, method):
+        del self.series
+
+    # test against level 0
+    def test_equality(self):
+        for op in ["==", "!="]:
+            run_test(self.series, "alpha " + op + " 'b'")
+            run_test(self.series, "'b' " + op + " alpha")
+
+    def test_list_equality(self):
+        
+        for op in ["==", "!="]:
+            run_test(self.series, "alpha " + op + " ['b']")
+            run_test(self.series, "['b'] " + op + " alpha")
+    
+    def test_in_operator(self):
+        for op in ["in", "not in"]:
+            run_test(self.series, "['b'] " + op + " alpha")
+            run_test(self.series, "'b' " + op + " alpha")
+
+    # test against level 1
+    def test_equality_level1(self):
+        for op in ["==", "!="]:
+            run_test(self.series, "num " + op + " '3'")
+            run_test(self.series, "'3' " + op + " num")
+
+    def test_list_equality_level1(self):
+        for op in ["==", "!="]:
+            run_test(self.series, "num " + op + " ['3']")
+            run_test(self.series, "['3'] " + op + " num")
+
+    def test_in_operator(self):
+        for op in ["in", "not in"]:
+            run_test(self.series, "['3'] " + op + " num")
+            run_test(self.series, "'3' " + op + " num")
+
+class TestSeriesQueryByUnamedMultiIndex:
+    def setup_method(self, method):
+        self.series = Series(np.random.randn(10),
+             index=[["a"]*5 + ["b"]*5, [x for x in range(10)]])
+    
+    def teardown_method(self, method):
+        del self.series
+
+    # check against first level
+    def test_query_first_level(self):
+        run_test(self.series, "ilevel_0 == 'b'")
+        run_test(self.series, "'b' == ilevel_0")
+
+    # check against not first level
+    def test_query_not_first_level(self):
+        run_test(self.series, "ilevel_1 > 4")
+        run_test(self.series, "4 > ilevel_1")
+
+    def test_both_levels(self):
+        for op in ["&", "|"]:
+            run_test(self.series, "(ilevel_0 == 'b') " + op + " ((ilevel_1 % 2) == 0)")
+            run_test(self.series, "((ilevel_1 % 2) == 0) " + op + " (ilevel_0 == 'b')")
+
+    def test_levels_equality(self):
+        index= [np.random.randint(5, size = 100), np.random.randint(5, size = 100)]
+        series = Series(np.random.randn(100), index= index)
+
+        # test equality
+        run_test(series, "ilevel_0 == ilevel_1")
+        run_test(series, "ilevel_1 == ilevel_0")
+
+        # test inequality
+        run_test(series, "ilevel_0 != ilevel_1")
+        run_test(series, "ilevel_1 != ilevel_0")
+
+
+
+
+
+     
+
+
+
+        
+
+
+   
+
+    
