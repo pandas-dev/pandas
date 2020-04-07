@@ -85,3 +85,14 @@ Base class for defining custom window boundaries.
    :toctree: api/
 
    api.indexers.BaseIndexer
+
+Forward-looking fixed window indexer
+--------------
+.. currentmodule:: pandas
+
+Creates window boundaries for fixed-length windows that include the current row.
+
+.. autosummary::
+   :toctree: api/
+
+   api.indexers.FixedForwardWindowIndexer

@@ -541,7 +541,7 @@ For example, if we have the following ``DataFrame``:
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
 1, we can create the following ``BaseIndexer``:
 
-.. ipython:: ipython
+.. code-block:: ipython
 
    In [2]: from pandas.api.indexers import BaseIndexer
    ...:
@@ -576,23 +576,16 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
 conditions. In these cases it can be useful to perform forward-looking rolling window computations.
-``FixedForwardWindowIndexer`` class is available for this purpose. This ``BaseIndexer`` subclass
-implements a closed fixed-width forward-looking rolling window, and we can use it as follows:
+:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+forward-looking rolling window, and we can use it as follows:
 
-.. code-block:: ipython
+.. ipython:: ipython
 
-   In [5]: from pandas.api.indexers import FixedForwardWindowIndexer
+   from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
 
-   In [6]: indexer = FixedForwardWindowIndexer(window_size=2)
-
-   In [7]: df.rolling(indexer, min_periods=1).sum()
-   Out[8]:
-       values
-   0     1.0
-   1     3.0
-   2     5.0
-   3     7.0
-   4     4.0
+   indexer = FixedForwardWindowIndexer(window_size=2)
+   df.rolling(indexer, min_periods=1).sum()
 
 
 .. _stats.rolling_window.endpoints:
