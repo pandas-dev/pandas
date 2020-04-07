@@ -1160,7 +1160,11 @@ You can do the same with a named ``index``.
    series.query('foo > 2')
 
 The ``query`` method also has a ``inplace`` keyword that lets you modify
+<<<<<<< HEAD
 the original ``Series``. It is set to ``False`` by default. 
+=======
+the originail ``Series``. It is set to ``False`` by default. 
+>>>>>>> 20ea8298f1479f9be29bcb85d0251951b417ce6f
 
 .. ipython:: python
    series.query('foo > 2', inplace=True)
