@@ -2,7 +2,7 @@
 Common type operations.
 """
 
-from typing import Any, Callable, Union
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -199,20 +199,28 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     return new_value
 
 
-def classes(*klasses) -> Callable:
-    """ evaluate if the tipo is a subclass of the klasses """
-    return lambda tipo: issubclass(tipo, klasses)
-
-
-def classes_and_not_datetimelike(*klasses) -> Callable:
-    """
-    evaluate if the tipo is a subclass of the klasses
-    and not a datetimelike
-    """
-    return lambda tipo: (
-        issubclass(tipo, klasses)
-        and not issubclass(tipo, (np.datetime64, np.timedelta64))
-    )
+_object_classes = lambda tipo: issubclass(tipo, np.object_)
+_datetime64_classes = lambda tipo: issubclass(tipo, np.datetime64)
+_timedelta64_classes = lambda tipo: issubclass(tipo, np.timedelta64)
+_any_int_classes = lambda tipo: issubclass(tipo, (np.integer, np.timedelta64))
+_int_classes = lambda tipo: issubclass(tipo, np.integer) and not issubclass(
+    tipo, (np.datetime64, np.timedelta64)
+)
+_signed_int_classes = lambda tipo: issubclass(
+    tipo, np.signedinteger
+) and not issubclass(tipo, (np.datetime64, np.timedelta64))
+_unsigned_int_classes = lambda tipo: issubclass(
+    tipo, np.unsignedinteger
+) and not issubclass(tipo, (np.datetime64, np.timedelta64))
+_int64_classes = lambda tipo: issubclass(tipo, np.int64)
+_datetime64_or_timedelta64_classes = lambda tipo: issubclass(
+    tipo, (np.datetime64, np.timedelta64)
+)
+_numeric_classes = lambda tipo: issubclass(
+    tipo, (np.number, np.bool_)
+) and not issubclass(tipo, (np.datetime64, np.timedelta64))
+_float_classes = lambda tipo: issubclass(tipo, np.floating)
+_complex_classes = lambda tipo: issubclass(tipo, np.complexfloating)
 
 
 def is_object_dtype(arr_or_dtype) -> bool:
@@ -242,7 +250,7 @@ def is_object_dtype(arr_or_dtype) -> bool:
     >>> is_object_dtype([1, 2, 3])
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.object_))
+    return _is_dtype_type(arr_or_dtype, _object_classes)
 
 
 def is_sparse(arr) -> bool:
@@ -390,7 +398,7 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_dtype([1, 2, 3])
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
+    return _is_dtype_type(arr_or_dtype, _datetime64_classes)
 
 
 def is_datetime64tz_dtype(arr_or_dtype) -> bool:
@@ -457,7 +465,7 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_dtype('0 days')
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _timedelta64_classes)
 
 
 def is_period_dtype(arr_or_dtype) -> bool:
@@ -687,7 +695,7 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
     >>> is_any_int_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.integer, np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _any_int_classes)
 
 
 def is_integer_dtype(arr_or_dtype) -> bool:
@@ -741,7 +749,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     >>> is_integer_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.integer))
+    return _is_dtype_type(arr_or_dtype, _int_classes)
 
 
 def is_signed_integer_dtype(arr_or_dtype) -> bool:
@@ -797,7 +805,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
+    return _is_dtype_type(arr_or_dtype, _signed_int_classes)
 
 
 def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
@@ -844,9 +852,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     >>> is_unsigned_integer_dtype(np.array([1, 2], dtype=np.uint32))
     True
     """
-    return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.unsignedinteger)
-    )
+    return _is_dtype_type(arr_or_dtype, _unsigned_int_classes)
 
 
 def is_int64_dtype(arr_or_dtype) -> bool:
@@ -896,7 +902,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.int64))
+    return _is_dtype_type(arr_or_dtype, _int64_classes)
 
 
 def is_datetime64_any_dtype(arr_or_dtype) -> bool:
@@ -1050,7 +1056,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _datetime64_or_timedelta64_classes)
 
 
 def _is_unorderable_exception(e: TypeError) -> bool:
@@ -1267,9 +1273,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     >>> is_numeric_dtype(np.array([], dtype=np.timedelta64))
     False
     """
-    return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
-    )
+    return _is_dtype_type(arr_or_dtype, _numeric_classes)
 
 
 def is_string_like_dtype(arr_or_dtype) -> bool:
@@ -1334,7 +1338,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
     >>> is_float_dtype(pd.Index([1, 2.]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.floating))
+    return _is_dtype_type(arr_or_dtype, _float_classes)
 
 
 def is_bool_dtype(arr_or_dtype) -> bool:
@@ -1545,7 +1549,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     >>> is_complex_dtype(np.array([1 + 1j, 5]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.complexfloating))
+    return _is_dtype_type(arr_or_dtype, _complex_classes)
 
 
 def _is_dtype(arr_or_dtype, condition) -> bool:
