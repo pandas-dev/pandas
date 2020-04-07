@@ -26,6 +26,7 @@ class TestXport:
         self.dirpath = datapath("io", "sas", "data")
         self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
+        self.file02b = open(os.path.join(self.dirpath, "SSHSV1_A.xpt"), "rb")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
@@ -117,6 +118,16 @@ class TestXport:
         numeric_as_float(data_csv)
 
         data = read_sas(self.file02)
+        tm.assert_frame_equal(data, data_csv)
+
+    def test2_binary(self):
+        # Test with SSHSV1_A.xpt, read as a binary file
+
+        # Compare to this
+        data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
+        numeric_as_float(data_csv)
+
+        data = read_sas(self.file02b, format="xport")
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
