@@ -47,12 +47,6 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.concat import (  # all for concatenate_block_managers
-    combine_concat_plans,
-    concatenate_join_units,
-    get_mgr_concatenation_plan,
-    is_uniform_join_units,
-)
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -1015,12 +1009,10 @@ class BlockManager(PandasObject):
         values = block.iget(self.blklocs[i])
         return values
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete selected item (items if non-unique) in-place.
+        Delete selected locations in-place (new block and array, same BlockManager)
         """
-        indexer = self.items.get_loc(item)
-
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
         ref_loc_offset = -is_deleted.cumsum()
@@ -1307,14 +1299,14 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_tuple=(fill_value,))
+            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
         else:
             new_blocks = [
                 blk.take_nd(
                     indexer,
                     axis=axis,
-                    fill_tuple=(
-                        fill_value if fill_value is not None else blk.fill_value,
+                    fill_value=(
+                        fill_value if fill_value is not None else blk.fill_value
                     ),
                 )
                 for blk in self.blocks
@@ -1325,7 +1317,7 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
+    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
         """
         Slice/take blocks along axis=0.
 
@@ -1335,7 +1327,7 @@ class BlockManager(PandasObject):
         -------
         new_blocks : list of Block
         """
-        allow_fill = fill_tuple is not None
+        allow_fill = fill_value is not lib.no_default
 
         sl_type, slobj, sllen = _preprocess_slice_or_indexer(
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
@@ -1347,16 +1339,15 @@ class BlockManager(PandasObject):
             if sl_type in ("slice", "mask"):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
-                if allow_fill and fill_tuple[0] is None:
+                if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
-                    fill_tuple = (fill_value,)
 
                 return [
                     blk.take_nd(
                         slobj,
                         axis=0,
                         new_mgr_locs=slice(0, sllen),
-                        fill_tuple=fill_tuple,
+                        fill_value=fill_value,
                     )
                 ]
 
@@ -1379,8 +1370,7 @@ class BlockManager(PandasObject):
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
-                # If we've got here, fill_tuple was not None.
-                fill_value = fill_tuple[0]
+                # If we've got here, fill_value was not lib.no_default
 
                 blocks.append(
                     self._make_na_block(placement=mgr_locs, fill_value=fill_value)
@@ -1401,10 +1391,7 @@ class BlockManager(PandasObject):
                 else:
                     blocks.append(
                         blk.take_nd(
-                            blklocs[mgr_locs.indexer],
-                            axis=0,
-                            new_mgr_locs=mgr_locs,
-                            fill_tuple=None,
+                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
                         )
                     )
 
@@ -1576,7 +1563,7 @@ class SingleBlockManager(BlockManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=range(len(array)))
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[slobj])
 
     @property
@@ -1614,15 +1601,14 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete single item from SingleBlockManager.
+        Delete single location from SingleBlockManager.
 
         Ensures that self.blocks doesn't become empty.
         """
-        loc = self.items.get_loc(item)
-        self._block.delete(loc)
-        self.axes[0] = self.axes[0].delete(loc)
+        self._block.delete(indexer)
+        self.axes[0] = self.axes[0].delete(indexer)
 
     def fast_xs(self, loc):
         """
@@ -2017,44 +2003,3 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
-
-
-def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
-    """
-    Concatenate block managers into one.
-
-    Parameters
-    ----------
-    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
-    axes : list of Index
-    concat_axis : int
-    copy : bool
-
-    """
-    concat_plans = [
-        get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
-    ]
-    concat_plan = combine_concat_plans(concat_plans, concat_axis)
-    blocks = []
-
-    for placement, join_units in concat_plan:
-
-        if len(join_units) == 1 and not join_units[0].indexers:
-            b = join_units[0].block
-            values = b.values
-            if copy:
-                values = values.copy()
-            else:
-                values = values.view()
-            b = b.make_block_same_class(values, placement=placement)
-        elif is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
-            b.mgr_locs = placement
-        else:
-            b = make_block(
-                concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-            )
-        blocks.append(b)
-
-    return BlockManager(blocks, axes)
