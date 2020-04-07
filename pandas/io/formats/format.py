@@ -1547,7 +1547,7 @@ def _is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    assert values.ndim == 1
+    values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1672,14 +1672,9 @@ def _get_format_timedelta64(
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )
-    all_sub_day = (
-        np.logical_and(consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
-    )
 
     if even_days:
         format = None
-    elif all_sub_day:
-        format = "sub_day"
     else:
         format = "long"
 
