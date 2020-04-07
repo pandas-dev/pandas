@@ -56,9 +56,9 @@ def normalize_keyword_aggregation(
 
     Returns
     -------
-    aggspec : DefaultDict[list]
+    aggspec : collections.defaultdict of lists
         The transformed kwargs.
-    columns : Tuple[Hashable]
+    columns : tuple
         The user-provided keys.
     col_idx_order : numpy.ndarray
         List of columns indices.
