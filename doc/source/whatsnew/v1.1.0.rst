@@ -92,6 +92,11 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
+Development Changes
+^^^^^^^^^^^^^^^^^^^
+
+- The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
+
 .. _whatsnew_110.api.other:
 
 Other API changes
