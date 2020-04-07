@@ -190,6 +190,11 @@ skiprows : list-like, int, str or callable, optional
     If callable, the callable function will be evaluated against the row
     indices, returning True if the row should be skipped and False otherwise.
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
+conditionalrows : str, optional
+    Query to run on the data to keep rows based on a boolean condition.
+    The query passed in will be run on the data, keeping only the
+    rows that pass the query.
+    An example of a valid query argument would be ``(population > 1200)``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c').
 nrows : int, optional
@@ -482,6 +487,7 @@ _parser_defaults = {
     "names": None,
     "prefix": None,
     "skiprows": None,
+    "conditionalrows": None,
     "skipfooter": 0,
     "nrows": None,
     "na_values": None,
@@ -552,6 +558,7 @@ def _make_parser_function(name, default_sep=","):
         false_values=None,
         skipinitialspace=False,
         skiprows=None,
+        conditionalrows=None,
         skipfooter=0,
         nrows=None,
         # NA and Missing Data Handling
@@ -643,6 +650,7 @@ def _make_parser_function(name, default_sep=","):
             names=names,
             prefix=prefix,
             skiprows=skiprows,
+            conditionalrows=conditionalrows,
             skipfooter=skipfooter,
             na_values=na_values,
             true_values=true_values,
@@ -678,8 +686,8 @@ def _make_parser_function(name, default_sep=","):
         )
         df = _read(filepath_or_buffer, kwds)
 
-        if isinstance(skiprows, str):
-            df.query(skiprows, inplace=True)
+        if isinstance(conditionalrows, str):
+            df.query(conditionalrows, inplace=True)
             df.reset_index(drop=True, inplace=True)
 
         return df
@@ -1045,6 +1053,7 @@ class TextFileReader(abc.Iterator):
         converters = options["converters"]
         na_values = options["na_values"]
         skiprows = options["skiprows"]
+        conditionalrows = options["conditionalrows"]
 
         validate_header_arg(options["header"])
 
@@ -1106,6 +1115,7 @@ class TextFileReader(abc.Iterator):
         result["na_values"] = na_values
         result["na_fvalues"] = na_fvalues
         result["skiprows"] = skiprows
+        result["conditionalrows"] = conditionalrows
 
         return result, engine
 
@@ -1155,8 +1165,8 @@ class TextFileReader(abc.Iterator):
 
         kwds = self.options
 
-        if isinstance(kwds.get("skiprows"), str):
-            df.query(kwds.get("skiprows"), inplace=True)
+        if isinstance(kwds.get("conditionalrows"), str):
+            df.query(kwds.get("conditionalrows"), inplace=True)
             df.reset_index(drop=True, inplace=True)
 
         self._currow += new_rows

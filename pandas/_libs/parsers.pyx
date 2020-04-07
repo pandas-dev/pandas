@@ -330,6 +330,7 @@ cdef class TextReader:
                   bint allow_leading_cols=True,
                   bint low_memory=False,
                   skiprows=None,
+                  conditionalrows=None,
                   skipfooter=0,
                   bint verbose=False,
                   bint mangle_dupe_cols=True,
@@ -582,8 +583,6 @@ cdef class TextReader:
     cdef _make_skiprow_set(self):
         if util.is_integer_object(self.skiprows):
             parser_set_skipfirstnrows(self.parser, self.skiprows)
-        elif isinstance(self.skiprows, str):
-            pass
         elif not callable(self.skiprows):
             for i in self.skiprows:
                 parser_add_skiprow(self.parser, i)
