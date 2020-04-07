@@ -63,16 +63,10 @@ class Factorize:
         }[dtype]
         if not unique:
             data = data.repeat(5)
-        self.idx = data
-        if dtype in ("Int64", "boolean") and sort:
-            # sort is not a keyword on EAs
-            raise NotImplementedError
+        self.data = data
 
     def time_factorize(self, unique, sort, dtype):
-        if sort:
-            self.idx.factorize(sort=sort)
-        else:
-            self.idx.factorize()
+        pd.factorize(self.data, sort=sort)
 
 
 class Duplicated:
