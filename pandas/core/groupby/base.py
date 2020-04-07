@@ -4,10 +4,11 @@ hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
-from typing import List, Protocol
+from typing import List
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 from pandas._typing import FrameOrSeries
+from pandas._typing_extensions import Protocol
 
 
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
