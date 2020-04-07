@@ -250,8 +250,7 @@ class TestTableOrient:
                 "name_en": {"0": "Hakata Dolls Matsuo"},
             }
         )
-        df_json = df.to_json()
-        result = pd.read_json(df_json)
+        result = pd.read_json(df.to_json())
         result.index = result.index.astype(str)
         tm.assert_frame_equal(result, df)
 
