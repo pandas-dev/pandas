@@ -23,7 +23,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import DataFrame, MultiIndex
+from pandas import MultiIndex
 import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 
@@ -111,7 +111,7 @@ class MPLPlot:
         import matplotlib.pyplot as plt
 
         self.data = data
-        self.by = [by] if not isinstance(by, list) or by is None else by
+        self.by = [by] if not isinstance(by, list) and by is not None else by
 
         if self.by:
             self._grouped_data_size = len(data.groupby(self.by))
@@ -279,7 +279,7 @@ class MPLPlot:
         >>> mi = MultiIndex.from_tuples(tuples)
         >>> value = [[1, 3, np.nan, np.nan],
         ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
-        >>> data = DataFrame(value, columns=mi)
+        >>> data = DataFrame(value, columns=mi) # doctest: +SKIP
         >>> _create_iter_data_given_by(data, by=["col1"]) # doctest: +SKIP
         {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
          'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
