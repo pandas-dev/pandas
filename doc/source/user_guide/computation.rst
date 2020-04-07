@@ -586,7 +586,6 @@ forward-looking rolling window, and we can use it as follows:
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
 
-
 .. _stats.rolling_window.endpoints:
 
 Rolling window endpoints
