@@ -50,18 +50,27 @@ to the each column of a DataFrame before sorting is performed (:issue:`27237`).
 
    s = pd.Series(['C', 'a', 'B'])
    s.sort_values()
-   s
 
 
-Note how this is sorted with capital letters first. Now if we apply the `col.str.lower()` method, we get
+Note how this is sorted with capital letters first. If we apply the `ser.str.lower()` method, we get
 
 .. ipython:: python
 
    s.sort_values(key=lambda x: x.str.lower())
-   s
 
-For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
-:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
+
+When applied to a `DataFrame`, they key is applied per-column to all columns or a subset if
+`by` is specified, e.g.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a' : ['C', 'C', 'a', 'a', 'B', 'B'], 'b' : [1, 2, 3, 4, 5, 6]})
+   df.sort_values(by=['a', 'b'], key=lambda col : col.str.lower() if col.name == 'a' else -col)
+
+
+For :meth:`DataFrame.sort_index` with `MultiIndex`, the key function is applied per level. For
+more details, see examples and documentation in :meth:`DataFrame.sort_values`, :meth:`Series.sort_values`,
+and :meth:`~DataFrame.sort_index`.
 
 .. _whatsnew_110.timestamp_fold_support:
 
