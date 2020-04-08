@@ -179,9 +179,3 @@ def test_readjson_unicode(monkeypatch):
         result = read_json(path)
         expected = pd.DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
         tm.assert_frame_equal(result, expected)
-
-
-def test_readjson_bool_series():
-    result = read_json("[true, true, false]", typ="series")
-    expected = pd.Series([True, True, False])
-    tm.assert_series_equal(result, expected)
