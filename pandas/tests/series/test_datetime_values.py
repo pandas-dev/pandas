@@ -680,6 +680,6 @@ class TestSeriesDatetimeValues:
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar
         expected_frame = pd.DataFrame(
-            expected_output, columns=["year", "week", "day"], dtype="Int64"
+            expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)

@@ -247,7 +247,7 @@ class DatetimeProperties(Properties):
         >>> ser.dt.isocalendar.week
         0      53
         1    <NA>
-        Name: week, dtype: Int64
+        Name: week, dtype: UInt32
         """
         return self._get_values().isocalendar.set_index(self._parent.index)
 

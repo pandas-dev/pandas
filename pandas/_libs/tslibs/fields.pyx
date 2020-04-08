@@ -8,7 +8,7 @@ from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, int32_t, int8_t
+from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import (
@@ -682,13 +682,13 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
     cdef:
         Py_ssize_t i, count = len(dtindex)
         npy_datetimestruct dts
-        ndarray[int32_t] iso_years, iso_weeks, days
+        ndarray[uint32_t] iso_years, iso_weeks, days
         iso_calendar_t ret_val
 
     sa_dtype = [
-        ("year", "i4"),
-        ("week", "i4"),
-        ("day", "i4"),
+        ("year", "u4"),
+        ("week", "u4"),
+        ("day", "u4"),
     ]
 
     out = np.empty(count, dtype=sa_dtype)
@@ -700,7 +700,7 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
     with nogil:
         for i in range(count):
             if dtindex[i] == NPY_NAT:
-                ret_val = -1, -1, -1
+                ret_val = 0, 0, 0
             else:
                 dt64_to_dtstruct(dtindex[i], &dts)
                 ret_val = get_iso_calendar(dts.year, dts.month, dts.day)

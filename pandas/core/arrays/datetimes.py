@@ -1266,13 +1266,13 @@ default 'raise'
         1     1
         2     1
         3     1
-        Name: week, dtype: Int64
+        Name: week, dtype: UInt32
         """
         from pandas import DataFrame
 
         sarray = fields.build_isocalendar_sarray(self.asi8)
         iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="Int64"
+            sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
         if self._hasnans:
             iso_calendar_df.iloc[self._isnan] = None
