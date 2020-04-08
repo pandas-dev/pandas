@@ -103,19 +103,23 @@ class TestTableSchemaType:
     @pytest.mark.parametrize("int_type", [np.int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_data(self, int_type):
         int_data = [1, 2, 3]
-        assert as_json_table_type(np.array(int_data, dtype=int_type)) == "integer"
+        assert as_json_table_type(np.array(int_data, dtype=int_type).dtype) == "integer"
 
     @pytest.mark.parametrize(
         "float_type", [np.float, np.float16, np.float32, np.float64]
     )
     def test_as_json_table_type_float_data(self, float_type):
         float_data = [1.0, 2.0, 3.0]
-        assert as_json_table_type(np.array(float_data, dtype=float_type)) == "number"
+        assert (
+            as_json_table_type(np.array(float_data, dtype=float_type).dtype) == "number"
+        )
 
     @pytest.mark.parametrize("bool_type", [bool, np.bool])
     def test_as_json_table_type_bool_data(self, bool_type):
         bool_data = [True, False]
-        assert as_json_table_type(np.array(bool_data, dtype=bool_type)) == "boolean"
+        assert (
+            as_json_table_type(np.array(bool_data, dtype=bool_type).dtype) == "boolean"
+        )
 
     @pytest.mark.parametrize(
         "date_data",
@@ -128,11 +132,11 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_date_data(self, date_data):
-        assert as_json_table_type(date_data) == "datetime"
+        assert as_json_table_type(date_data.dtype) == "datetime"
 
     @pytest.mark.parametrize("str_data", [pd.Series(["a", "b"]), pd.Index(["a", "b"])])
     def test_as_json_table_type_string_data(self, str_data):
-        assert as_json_table_type(str_data) == "string"
+        assert as_json_table_type(str_data.dtype) == "string"
 
     @pytest.mark.parametrize(
         "cat_data",
@@ -145,7 +149,7 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_categorical_data(self, cat_data):
-        assert as_json_table_type(cat_data) == "any"
+        assert as_json_table_type(cat_data.dtype) == "any"
 
     # ------
     # dtypes
@@ -189,7 +193,7 @@ class TestTableSchemaType:
         # TODO: I think before is_categorical_dtype(Categorical)
         # returned True, but now it's False. Figure out why or
         # if it matters
-        assert as_json_table_type(pd.Categorical(["a"])) == "any"
+        assert as_json_table_type(pd.Categorical(["a"]).dtype) == "any"
         assert as_json_table_type(CategoricalDtype()) == "any"
 
 
