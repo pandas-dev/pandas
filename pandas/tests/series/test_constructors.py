@@ -626,7 +626,7 @@ class TestSeriesConstructors:
         s = pd.Series(index)
 
         # we make 1 copy; this is just a smoke test here
-        assert s._data.blocks[0].values is not index
+        assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -1124,9 +1124,9 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_mapping(self, non_mapping_dict_subclass):
+    def test_constructor_mapping(self, non_dict_mapping_subclass):
         # GH 29788
-        ndm = non_mapping_dict_subclass({3: "three"})
+        ndm = non_dict_mapping_subclass({3: "three"})
         result = Series(ndm)
         expected = Series(["three"], index=[3])
 
@@ -1329,6 +1329,7 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(s, Series(date_range("20130101", periods=3, freq="D")))
 
+        # FIXME: dont leave commented-out
         # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
 

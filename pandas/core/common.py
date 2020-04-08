@@ -213,7 +213,7 @@ def asarray_tuplesafe(values, dtype=None):
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
-        return values.values
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -356,8 +356,6 @@ def dict_compat(d):
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
-
-    .. versionadded:: 0.21.0
 
     Parameters
     ----------

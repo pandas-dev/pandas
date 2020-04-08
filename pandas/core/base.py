@@ -13,7 +13,6 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -123,15 +122,11 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
@@ -372,7 +367,7 @@ class SelectionMixin:
                     )
                 return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
@@ -660,7 +655,7 @@ class IndexOpsMixin:
         ):
             # numpy returns ints instead of datetime64/timedelta64 objects,
             #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self.values.item()
+            return self._values.item()
 
         if len(self) == 1:
             return next(iter(self))
@@ -1132,10 +1127,8 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_array_dtype(self.dtype):
-                values = self._values
-            else:
-                values = self.values
+
+            values = self._values
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
@@ -1393,7 +1386,7 @@ class IndexOpsMixin:
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
     @doc(
@@ -1511,18 +1504,14 @@ class IndexOpsMixin:
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
-    def drop_duplicates(self, keep="first", inplace=False):
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
@@ -1532,10 +1521,4 @@ class IndexOpsMixin:
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
-        raise AbstractMethodError(self)
+            ).__finalize__(self, method="duplicated")
