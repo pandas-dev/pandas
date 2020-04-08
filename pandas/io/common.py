@@ -403,20 +403,18 @@ def get_handle(
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(
-                    path_or_buf, mode, **compression_args)  # type: ignore
+                f = gzip.open(path_or_buf, mode, **compression_args)  # type: ignore
             else:
                 f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args)  # type: ignore
+                    fileobj=path_or_buf, **compression_args
+                )  # type: ignore
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(
-                    path_or_buf, mode, **compression_args)  # type: ignore
+                f = bz2.BZ2File(path_or_buf, mode, **compression_args)  # type: ignore
             else:
-                f = bz2.BZ2File(
-                    path_or_buf, **compression_args)  # type: ignore
+                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
 
         # ZIP Compression
         elif compression == "zip":
