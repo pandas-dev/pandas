@@ -126,7 +126,11 @@ class TestMultiIndexPartial:
 
         # this works...for now
         df["A"].iloc[14] = 5
-        assert df["A"][14] == 5
+        assert df["A"].iloc[14] == 5
+        with pytest.raises(KeyError, match="14"):
+            # TODO: really should be separate test
+            # GH#33355 dont fall-back to positional when leading level is int
+            df["A"][14]
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
@@ -140,7 +144,7 @@ class TestMultiIndexPartial:
         tm.assert_series_equal(result, expected)
 
         # need to put in some work here
-
+        # FIXME: dont leave commented-out
         # self.ymd.loc[2000, 0] = 0
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 

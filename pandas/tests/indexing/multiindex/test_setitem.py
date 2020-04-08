@@ -255,7 +255,12 @@ class TestMultiIndexSetItem:
         assert notna(s.values[65:]).all()
 
         s[2000, 3, 10] = np.nan
-        assert isna(s[49])
+        assert isna(s.iloc[49])
+
+        with pytest.raises(KeyError, match="49"):
+            # TODO: really should be separate test
+            # GH#33355 dont fall-back to positional when leading level is int
+            s[49]
 
     def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
