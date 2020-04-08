@@ -14,11 +14,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    DefaultDict,
     Dict,
     FrozenSet,
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -30,7 +32,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -909,7 +911,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func: Optional[DefaultDict[str, List[Scalar]]] = None, *args, **kwargs
+    ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:

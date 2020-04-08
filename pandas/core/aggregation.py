@@ -5,7 +5,9 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import TYPE_CHECKING, Any, DefaultDict, Hashable, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Sequence, Tuple
+
+from pandas._typing import Scalar
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -43,8 +45,8 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 
 def normalize_keyword_aggregation(
-    kwargs: dict,
-) -> Tuple[DefaultDict, Tuple[Hashable, ...], "np.ndarray"]:
+    kwargs: Dict[str, str]
+) -> Tuple[DefaultDict[str, List[Scalar]], Tuple[str, ...], "np.ndarray"]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
