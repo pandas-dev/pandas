@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import Scalar
-from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import pandas_dtype
@@ -15,7 +13,6 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -289,20 +286,6 @@ class StringArray(PandasArray):
             return getattr(self, name)(skipna=skipna)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
-
-    def min(self, skipna: bool = True, **kwargs) -> Scalar:
-        nv.validate_min((), kwargs)
-        result = masked_reductions.min(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
-        )
-        return result
-
-    def max(self, skipna: bool = True, **kwargs) -> Scalar:
-        nv.validate_max((), kwargs)
-        result = masked_reductions.max(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
-        )
-        return result
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
