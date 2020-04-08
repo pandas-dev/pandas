@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -26,6 +27,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
+from pandas.core.array_algos import masked_reductions
 import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -469,23 +471,13 @@ class IntegerArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
+        elif is_datetime64_dtype(dtype):
+            kwargs = dict(na_value=np.datetime64("NaT"))
         else:
             kwargs = {}
 
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-        """
-        return self._data
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
@@ -507,7 +499,8 @@ class IntegerArray(BaseMaskedArray):
         ExtensionArray.argsort
         """
         data = self._data.copy()
-        data[self._mask] = data.min() - 1
+        if self._mask.any():
+            data[self._mask] = data.min() - 1
         return data
 
     @classmethod
@@ -569,6 +562,10 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
+        if name in {"sum", "min", "max"}:
+            op = getattr(masked_reductions, name)
+            return op(data, mask, skipna=skipna, **kwargs)
+
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)
         if self._hasna:
@@ -586,7 +583,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"]:
+        elif name == "prod":
             # GH#31409 more performant than casting-then-checking
             result = com.cast_scalar_indexer(result)
 

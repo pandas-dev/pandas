@@ -5,7 +5,7 @@ numpy>=1.15
 python-dateutil>=2.6.1
 pytz
 asv
-cython>=0.29.13
+cython>=0.29.16
 black==19.10b0
 cpplint
 flake8
@@ -68,7 +68,8 @@ tables>=3.4.2
 s3fs
 sqlalchemy
 xarray
+cftime
 pyreadstat
 tabulate>=0.8.3
-git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc

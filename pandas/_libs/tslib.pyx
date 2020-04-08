@@ -14,7 +14,7 @@ PyDateTime_IMPORT
 
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray
+from numpy cimport float64_t, int64_t, ndarray, uint8_t
 import numpy as np
 cnp.import_array()
 
@@ -114,7 +114,7 @@ def ints_to_pydatetime(
     const int64_t[:] arr,
     object tz=None,
     object freq=None,
-    bint fold=0,
+    bint fold=False,
     str box="datetime"
 ):
     """
@@ -288,7 +288,8 @@ def format_array_from_datetime(
     cdef:
         int64_t val, ns, N = len(values)
         ndarray[int64_t] consider_values
-        bint show_ms = 0, show_us = 0, show_ns = 0, basic_format = 0
+        bint show_ms = False, show_us = False, show_ns = False
+        bint basic_format = False
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         npy_datetimestruct dts
@@ -351,7 +352,6 @@ def format_array_from_datetime(
 
 def array_with_unit_to_datetime(
     ndarray values,
-    ndarray mask,
     object unit,
     str errors='coerce'
 ):
@@ -373,8 +373,6 @@ def array_with_unit_to_datetime(
     ----------
     values : ndarray of object
          Date-like objects to convert.
-    mask : boolean ndarray
-         Not-a-time mask for non-nullable integer types conversion, can be None.
     unit : object
          Time unit to use during conversion.
     errors : str, default 'raise'
@@ -395,6 +393,7 @@ def array_with_unit_to_datetime(
         bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
+        ndarray mask
         object tz = None
 
     assert is_ignore or is_coerce or is_raise
@@ -404,9 +403,6 @@ def array_with_unit_to_datetime(
             result = values.astype('M8[ns]')
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
-        if mask is not None:
-            iresult = result.view('i8')
-            iresult[mask] = NPY_NAT
         return result, tz
 
     m = cast_from_unit(None, unit)
@@ -419,9 +415,8 @@ def array_with_unit_to_datetime(
         if values.dtype.kind == "i":
             # Note: this condition makes the casting="same_kind" redundant
             iresult = values.astype('i8', casting='same_kind', copy=False)
-            # If no mask, fill mask by comparing to NPY_NAT constant
-            if mask is None:
-                mask = iresult == NPY_NAT
+            # fill by comparing to NPY_NAT constant
+            mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
@@ -582,10 +577,10 @@ cpdef array_to_datetime(
         ndarray[object] oresult
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
-        bint seen_integer = 0
-        bint seen_string = 0
-        bint seen_datetime = 0
-        bint seen_datetime_offset = 0
+        bint seen_integer = False
+        bint seen_string = False
+        bint seen_datetime = False
+        bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -612,7 +607,7 @@ cpdef array_to_datetime(
                     iresult[i] = NPY_NAT
 
                 elif PyDateTime_Check(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     if val.tzinfo is not None:
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
@@ -628,17 +623,17 @@ cpdef array_to_datetime(
                         check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     iresult[i] = pydate_to_dt64(val, &dts)
                     check_dts_bounds(&dts)
 
                 elif is_datetime64_object(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     iresult[i] = get_datetime64_nanos(val)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
-                    seen_integer = 1
+                    seen_integer = True
 
                     if val != val or val == NPY_NAT:
                         iresult[i] = NPY_NAT
@@ -657,7 +652,7 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = 1
+                    seen_string = True
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
@@ -699,7 +694,7 @@ cpdef array_to_datetime(
                             raise TypeError("invalid string coercion to datetime")
 
                         if tz is not None:
-                            seen_datetime_offset = 1
+                            seen_datetime_offset = True
                             # dateutil timezone objects cannot be hashed, so
                             # store the UTC offsets in seconds instead
                             out_tzoffset_vals.add(tz.total_seconds())
@@ -715,7 +710,7 @@ cpdef array_to_datetime(
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
                         if out_local == 1:
-                            seen_datetime_offset = 1
+                            seen_datetime_offset = True
                             # Store the out_tzoffset in seconds
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects

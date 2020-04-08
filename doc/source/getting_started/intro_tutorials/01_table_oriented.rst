@@ -26,7 +26,7 @@ documentation.
         </li>
     </ul>
 
-Pandas data table representation
+pandas data table representation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. image:: ../../_static/schemas/01_table_dataframe.svg

@@ -4,17 +4,15 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -50,6 +48,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -64,7 +64,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -86,15 +86,6 @@ class PandasObject(DirNamesMixin):
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
         return super().__sizeof__()
-
-    def _ensure_type(self: T, obj) -> T:
-        """
-        Ensure that an object has same type as self.
-
-        Used by type checkers.
-        """
-        assert isinstance(obj, type(self)), type(obj)
-        return obj
 
 
 class NoNewAttributesMixin:
@@ -131,15 +122,11 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
@@ -364,7 +351,8 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    raise SpecificationError("nested renamer is not supported")
+                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
 
@@ -379,7 +367,7 @@ class SelectionMixin:
                     )
                 return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
@@ -539,7 +527,7 @@ class SelectionMixin:
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised direcly in _aggregate_multiple_funcs
+                        # raised directly in _aggregate_multiple_funcs
                         pass
                     else:
                         raise
@@ -667,7 +655,7 @@ class IndexOpsMixin:
         ):
             # numpy returns ints instead of datetime64/timedelta64 objects,
             #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self.values.item()
+            return self._values.item()
 
         if len(self) == 1:
             return next(iter(self))
@@ -866,23 +854,6 @@ class IndexOpsMixin:
         return result
 
     @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        # As a mixin, we depend on the mixing class having values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore
-
-    @property
     def empty(self):
         return not self.size
 
@@ -895,6 +866,9 @@ class IndexOpsMixin:
         axis : int, optional
             For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -927,16 +901,17 @@ class IndexOpsMixin:
         nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
+    @doc(op="max", oppose="min", value="largest")
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return int position of the largest value in the Series.
+        Return int position of the {value} value in the Series.
 
-        If the maximum is achieved in multiple locations,
+        If the {op}imum is achieved in multiple locations,
         the first row position is returned.
 
         Parameters
         ----------
-        axis : {None}
+        axis : {{None}}
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
@@ -946,12 +921,13 @@ class IndexOpsMixin:
         Returns
         -------
         int
-            Row position of the maximum values.
+            Row position of the {op}imum value.
 
         See Also
         --------
-        numpy.ndarray.argmax : Equivalent method for numpy arrays.
-        Series.argmin : Similar method, but returning the minimum.
+        Series.arg{op} : Return position of the {op}imum value.
+        Series.arg{oppose} : Return position of the {oppose}imum value.
+        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
@@ -959,8 +935,8 @@ class IndexOpsMixin:
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
@@ -970,8 +946,11 @@ class IndexOpsMixin:
 
         >>> s.argmax()
         2
+        >>> s.argmin()
+        0
 
-        The maximum cereal calories is in the third element,
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
@@ -987,6 +966,9 @@ class IndexOpsMixin:
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1019,24 +1001,8 @@ class IndexOpsMixin:
         nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
+    @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return a ndarray of the minimum argument indexer.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series.
-        skipna : bool, default True
-
-        Returns
-        -------
-        numpy.ndarray
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1055,7 +1021,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
+            nested list of Python scalars.
         """
         if not isinstance(self._values, np.ndarray):
             # check for ndarray instead of dtype to catch DTA/TDA
@@ -1160,10 +1127,8 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_array_dtype(self.dtype):
-                values = self._values
-            else:
-                values = self.values
+
+            values = self._values
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
@@ -1185,8 +1150,14 @@ class IndexOpsMixin:
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
 
-            else:
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)
@@ -1402,7 +1373,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
 
         Notes
         -----
@@ -1414,7 +1386,7 @@ class IndexOpsMixin:
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
     @doc(
@@ -1438,13 +1410,13 @@ class IndexOpsMixin:
     ] = """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted %(klass)s `self` such that, if the
+        Find the indices into a sorted {klass} `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
         .. note::
 
-            The %(klass)s *must* be monotonically sorted, otherwise
+            The {klass} *must* be monotonically sorted, otherwise
             wrong locations will likely be returned. Pandas does *not*
             check this for you.
 
@@ -1452,7 +1424,7 @@ class IndexOpsMixin:
         ----------
         value : array_like
             Values to insert into `self`.
-        side : {'left', 'right'}, optional
+        side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
@@ -1473,8 +1445,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        sort_values
-        numpy.searchsorted
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
 
         Notes
         -----
@@ -1482,61 +1454,64 @@ class IndexOpsMixin:
 
         Examples
         --------
-        >>> x = pd.Series([1, 2, 3])
-        >>> x
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser
         0    1
         1    2
         2    3
         dtype: int64
 
-        >>> x.searchsorted(4)
+        >>> ser.searchsorted(4)
         3
 
-        >>> x.searchsorted([0, 4])
+        >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> x.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side='left')
         array([0, 2])
 
-        >>> x.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread',
-                                'cheese', 'milk'], ordered=True)
+        >>> ser = pd.Categorical(
+        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ... )
+        >>> ser
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
-        >>> x.searchsorted('bread')
+        >>> ser.searchsorted('bread')
         1
 
-        >>> x.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(['bread'], side='right')
         array([3])
 
         If the values are not monotonically sorted, wrong locations
         may be returned:
 
-        >>> x = pd.Series([2, 1, 3])
-        >>> x.searchsorted(1)
+        >>> ser = pd.Series([2, 1, 3])
+        >>> ser
+        0    2
+        1    1
+        2    3
+        dtype: int64
+
+        >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
 
-    @Substitution(klass="Index")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
-    def drop_duplicates(self, keep="first", inplace=False):
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
@@ -1546,10 +1521,4 @@ class IndexOpsMixin:
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
-        raise AbstractMethodError(self)
+            ).__finalize__(self, method="duplicated")

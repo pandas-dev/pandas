@@ -109,6 +109,7 @@ with open(os.path.join(source_path, "index.rst"), "w") as f:
         )
     )
 autosummary_generate = True if pattern is None else ["index"]
+autodoc_typehints = "none"
 
 # numpydoc
 numpydoc_attributes_as_param_list = False
@@ -195,7 +196,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "pandas_sphinx_theme"
+html_theme = "pydata_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
