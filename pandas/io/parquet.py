@@ -18,20 +18,23 @@ def get_engine(engine: str) -> "BaseImpl":
 
     if engine == "auto":
         # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
+        engine_classes = [PyArrowImpl, FastParquetImpl]
 
-        try:
-            return FastParquetImpl()
-        except ImportError:
-            pass
+        error_msgs = ""
+        for engine_class in engine_classes:
+            try:
+                return engine_class()
+            except ImportError as err:
+                error_msgs += "\n - " + str(err)
 
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet support"
+            "A suitable version of "
+            "pyarrow or fastparquet is required for parquet "
+            "support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
         )
 
     if engine == "pyarrow":
@@ -105,9 +108,7 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, path, compression=compression, **kwargs,
-            )
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)
