@@ -649,3 +649,15 @@ def test_failure_to_convert_uint64_string_to_NaN():
     ser = Series([32, 64, np.nan])
     result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
+
+
+def test_support_downcast_of_nullable_dtypes():
+    # GH 33013
+    try:
+        pd.to_numeric(pd.Series([1, 2, 3], dtype="Int32"), downcast="integer")
+        pd.to_numeric(pd.Series([1, 2, 3], dtype="Int64"), downcast="integer")
+        pd.to_numeric(pd.Series([1, 2], dtype="Int32"), downcast="signed")
+        pd.to_numeric(pd.Series([1, 2, 3], dtype="Int32"), downcast="float")
+        pd.to_numeric(pd.Series([1, 2, 3], dtype="Float32"), downcast="integer")
+    except TypeError:
+        pytest.fail("TypeError raised.")
