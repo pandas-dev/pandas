@@ -440,6 +440,7 @@ def pivot(
         if index is None:
             pass
         elif is_list_like(index):
+            # Remove type ignore once mypy-5206 is implemented, same for below
             cols = list(index)  # type: ignore
         else:
             cols = [index]  # type: ignore
