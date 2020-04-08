@@ -114,7 +114,7 @@ from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_seque
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
+from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
@@ -2574,7 +2574,7 @@ class DataFrame(NDFrame):
                 return self._get_item_cache(key)
 
         # Do we have a slicer (on rows)?
-        indexer = convert_to_index_sliceable(self, key)
+        indexer = self._convert_to_index_sliceable(key)
         if indexer is not None:
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
@@ -2716,11 +2716,35 @@ class DataFrame(NDFrame):
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
 
+    def _convert_to_index_sliceable(self, key):
+        """
+        If we are index sliceable, then return my slicer, otherwise return None.
+        """
+        idx = self.index
+        if isinstance(key, slice):
+            return idx._convert_slice_indexer(key, kind="getitem")
+
+        elif isinstance(key, str):
+
+            # we are an actual column
+            if key in self.columns:
+                return None
+
+            # We might have a datetimelike string that we can translate to a
+            # slice here via partial string indexing
+            if idx._supports_partial_string_indexing:
+                try:
+                    return idx._get_string_slice(key)
+                except (KeyError, ValueError, NotImplementedError):
+                    return None
+
+        return None
+
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
-        indexer = convert_to_index_sliceable(self, key)
+        indexer = self._convert_to_index_sliceable(key)
         if indexer is not None:
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
