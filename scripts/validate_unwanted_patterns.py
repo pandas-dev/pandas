@@ -26,6 +26,16 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_index_shared_docs",
     "_merge_doc",
     "_shared_docs",
+    "_new_Index",
+    "_new_PeriodIndex",
+    "_doc_template",
+    "_interval_shared_docs",
+    "_apply_docs",
+    "_arith_doc_FRAME",
+    "_flex_comp_doc_FRAME",
+    "_make_flex_doc",
+    "_op_descriptions",
+    "_pipe_template",
 }
 
 
@@ -124,7 +134,7 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
 
 def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     """
-    Checking that a private function is not used across modules.
+    Checking that a private function is not imported across modules.
 
     Parameters
     ----------

@@ -120,11 +120,13 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --format="##[error]{source_path}:{line_number}:{msg}" pandas/core/
         RET=$(($RET + $?)) ; echo $MSG "DONE"
+
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --format="##[error]{source_path}:{line_number}:{msg}" pandas/tseries/
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     else
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" pandas/core/
         RET=$(($RET + $?)) ; echo $MSG "DONE"
+
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" pandas/tseries/
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
