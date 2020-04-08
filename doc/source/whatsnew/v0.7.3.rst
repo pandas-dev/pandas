@@ -1,6 +1,6 @@
 .. _whatsnew_0703:
 
-Version v.0.7.3 (April 12, 2012)
+Version 0.7.3 (April 12, 2012)
 ------------------------
 
 {{ header }}

@@ -1,6 +1,6 @@
 .. _whatsnew_0700:
 
-Version v.0.7.0 (February 9, 2012)
+Version 0.7.0 (February 9, 2012)
 --------------------------
 
 {{ header }}
