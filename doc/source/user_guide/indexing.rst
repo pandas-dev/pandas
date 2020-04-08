@@ -1131,7 +1131,7 @@ The ``Series`` :meth:`~pandas.Series.query` Method
 
 :class:`~pandas.Series` objects also have a :meth:`~pandas.Series.query`
 method that allows for selection using an expression. Perviously, the
-behaviour required the conversion of a ``Series`` object into a ``DataFrame`` in order to use the query method. The differences are 
+behaviour required the conversion of a ``Series`` object into a ``DataFrame`` in order to use the query method. The differences are
 shown below.
 
 .. ipython:: python

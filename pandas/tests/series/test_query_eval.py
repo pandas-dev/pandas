@@ -3,7 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import Series, eval, MultiIndex, Index
+from pandas import Series, IndexMulti, Index
 import pandas._testing as tm
 
 PARSERS = "python", "pandas"
@@ -18,6 +18,7 @@ def parser(request):
 @pytest.fixture(params=ENGINES, ids=lambda x: x)
 def engine(request):
     return request.param
+
 
 def skip_if_no_pandas_parser(parser):
     if parser != "pandas":
@@ -43,7 +44,7 @@ class TestSeriesEval:
         series.iloc[0] = 2
         m = series.mean()
 
-        base = Series(np.tile(m, n))
+        base = Series(np.tile(m, n)) #noqa
 
         expected = eval(f"base {op_str} series")
 
@@ -120,7 +121,7 @@ class TestSeriesEvalWithSeries:
 
     def test_and_bitwise_operator(self, parser, engine):
         res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine,
-        parser=parser)
+            parser=parser)
         expect = Series(data=[False, False, False], index=self.index)
         # names are not checked due to different results based on engine
         # (python vs numexpr)
@@ -128,7 +129,7 @@ class TestSeriesEvalWithSeries:
 
     def test_or_bitwise_operator(self, parser, engine):
         res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine,
-        parser=parser)
+            parser=parser)
         expect = Series(data=[True, False, True], index=self.index)
         # names are not checked due to different results based on engine (python
         # vs numexpr)
@@ -255,81 +256,66 @@ class TestSeriesQueryByIndex:
 
 class TestSeriesQueryBacktickQuoting:
     def test_single_backtick(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name = "B B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="B B"))
         run_test(series, "1 < `B B`")
 
     def test_double_backtick(self):
         series = Series(np.random.randn(10), index=MultiIndex.from_arrays(
-            [list(range(10)), list(range(10))],
-                names = ["B B", "C C"]))
+            [list(range(10)), list(range(10))], names=["B B", "C C"]))
         run_test(series, "1 < `B B` and 4 < `C C`")
 
     def test_already_underscore(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name = "B_B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name = "B_B"))
         run_test(series, "1 < `B_B`")
 
     def test_same_name_but_underscore(self):
         series = Series(np.random.randn(10), index=MultiIndex.from_arrays(
-            [list(range(10)), list(range(10))],
-                names=["C_C", "C C"]))
+            [list(range(10)), list(range(10))], names=["C_C", "C C"]))
         run_test(series, "1 < `C_C` and 4 < `C C`")
 
     def test_underscore_and_spaces(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-         name="B_B B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="B_B B"))
         run_test(series, "1 < `B_B B`")
 
     def test_special_character_dot(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="B.B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="B.B"))
         run_test(series, "1 < `B.B`")
 
     def test_special_character_hyphen(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="B-B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="B-B"))
         run_test(series, "1 < `B-B`")
 
     def test_start_with_digit(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="1e1"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="1e1"))
         run_test(series, "1 < `1e1`")
 
     def test_keyword(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="def"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="def"))
         run_test(series, "1 < `def`")
 
     def test_empty_string(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name=""))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name=""))
         run_test(series, "1 < ``")
 
     def test_spaces(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="  "))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="  "))
         run_test(series, "1 < `  `")
 
     def test_parenthesis(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="(xyz)"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="(xyz)"))
         run_test(series, "1 < `(xyz)`")
 
     def test_many_symbols(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="  &^ :!€$?(} >    <++*''  "))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="  &^ :!€$?(} >    <++*''  "))
         run_test(series, "1 < `  &^ :!€$?(} >    <++*''  `")
 
     def test_failing_character_outside_range(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="☺"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="☺"))
         with pytest.raises(SyntaxError):
             series.query("`☺` > 4")
 
     def test_failing_hashtag(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)),
-            name="foo#bar"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="foo#bar"))
         with pytest.raises(SyntaxError):
             series.query("`foo#bar` > 4")
 
@@ -378,8 +364,8 @@ class TestSeriesQueryWithMultiIndex:
 
 class TestSeriesQueryByUnamedMultiIndex:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(10),
-            index=[["a"] * 5 + ["b"] * 5, list(range(10))])
+        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5,
+            list(range(10))])
 
     def teardown_method(self, method):
         del self.series
