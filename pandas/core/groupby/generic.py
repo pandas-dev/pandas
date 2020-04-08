@@ -275,6 +275,7 @@ class SeriesGroupBy(GroupBy[Series]):
                     func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
                 )
             except (ValueError, KeyError):
+                # Do not catch Numba errors here, we want to raise and not fall back.
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)

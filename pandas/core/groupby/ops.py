@@ -54,6 +54,13 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+from pandas.core.util.numba_ import (
+    check_kwargs_and_nopython,
+    get_jit_arguments,
+    jit_user_function,
+    split_for_numba,
+    validate_udf,
+)
 
 
 class BaseGrouper:
@@ -666,6 +673,14 @@ class BaseGrouper:
         self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
 
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            numba_func = self._numba_func_cache.get(
+                func, jit_user_function(func, nopython, nogil, parallel)
+            )
+
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -674,7 +689,14 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group)
+            if engine == "numba":
+                values, index, _ = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if func not in self._numba_func_cache:
+                    self._numba_func_cache[func] = numba_func
+            else:
+                res = func(group, *args, **kwargs)
+
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
