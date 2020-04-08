@@ -122,7 +122,7 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                 )
 
 
-def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     """
     Checking that a private function is not used across modules.
 
@@ -397,7 +397,7 @@ def main(
 if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
-        "private_function_across_module",
+        "private_import_across_module",
         "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
