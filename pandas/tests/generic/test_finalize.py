@@ -32,16 +32,17 @@ frame_mi_data = ({"A": [1, 2, 3, 4]}, mi)
 # - Callable: pass the constructed value with attrs set to this.
 
 _all_methods = [
-    (pd.Series, [0], operator.methodcaller("view", int)),
-    (pd.Series, [0], operator.methodcaller("take", [])),
-    (pd.Series, [0], operator.methodcaller("__getitem__", [True])),
-    (pd.Series, [0], operator.methodcaller("repeat", 2)),
+    (pd.Series, ([0],), operator.methodcaller("view", int)),
+    (pd.Series, ([0],), operator.methodcaller("take", [])),
+    (pd.Series, ([0],), operator.methodcaller("__getitem__", [True])),
+    (pd.Series, ([0],), operator.methodcaller("repeat", 2)),
     pytest.param(
-        (pd.Series, [0], operator.methodcaller("reset_index")), marks=pytest.mark.xfail
+        (pd.Series, ([0],), operator.methodcaller("reset_index")),
+        marks=pytest.mark.xfail,
     ),
-    (pd.Series, [0], operator.methodcaller("reset_index", drop=True)),
+    (pd.Series, ([0],), operator.methodcaller("reset_index", drop=True)),
     pytest.param(
-        (pd.Series, [0], operator.methodcaller("to_frame")), marks=pytest.mark.xfail
+        (pd.Series, ([0],), operator.methodcaller("to_frame")), marks=pytest.mark.xfail
     ),
     (pd.Series, (0, mi), operator.methodcaller("count", level="A")),
     (pd.Series, ([0, 0],), operator.methodcaller("drop_duplicates")),
