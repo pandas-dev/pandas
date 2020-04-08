@@ -19,7 +19,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     validate_numeric_casting,
@@ -49,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -58,6 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCMultiIndex,
+    ABCPandasArray,
     ABCPeriodIndex,
     ABCRangeIndex,
     ABCSeries,
@@ -69,10 +68,8 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -291,63 +288,12 @@ class Index(IndexOpsMixin, PandasObject):
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
     ) -> "Index":
 
+        from pandas.core.indexes.range import RangeIndex
+
         name = maybe_extract_name(name, data, cls)
 
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-        if "tz" in kwargs:
-            tz = kwargs.pop("tz")
-            validate_tz_from_dtype(dtype, tz)
-            dtype = tz_to_dtype(tz)
-
-        if is_scalar(data):
-            raise cls._scalar_data_error(data)
-        elif isinstance(dtype, ExtensionDtype) and getattr(dtype, "kind", None) not in [
-            "m",
-            "M",
-        ]:
-            # Handled below
-            pass
-        elif not isinstance(
-            data, (range, np.ndarray, ExtensionArray, Index, ABCSeries)
-        ):
-            if hasattr(data, "__array__"):
-                return Index(
-                    np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs
-                )
-
-            if tupleize_cols and is_list_like(data):
-                # GH#21470: convert iterable to list before determining if empty
-                if is_iterator(data):
-                    data = list(data)
-
-                if data and all(isinstance(e, tuple) for e in data):
-                    # we must be all tuples, otherwise don't construct
-                    # GH#10697
-                    from pandas.core.indexes.multi import MultiIndex
-
-                    return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get("names")
-                    )
-            # other iterable of some kind
-            subarr = com.asarray_tuplesafe(data, dtype=object)
-            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
-
-        # -------------------------------------------------------------------
-        # From here down, we know that we have an array-like data
-
-        from pandas.core.indexes.range import RangeIndex
-        from pandas.core.arrays import PandasArray
-
-        if not isinstance(data, (RangeIndex, ABCMultiIndex)):
+        if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
-            data = extract_array(data, extract_numpy=True)
-        if isinstance(data, PandasArray):
-            # ensure users don't accidentally put a PandasArray in an index.
-            # Note: this check is only necessary for the tests where we patch
-            #  patch PandasArray._typ, because extract_array returns
-            #  a PandasArray even though we passed extract_numpy=True.
-            #  For the same reason, we cant check ABCPandasArray here.
             data = data.to_numpy()
 
         # range
@@ -370,7 +316,11 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
-        elif is_datetime64_any_dtype(data) or is_datetime64_any_dtype(dtype):
+        elif (
+            is_datetime64_any_dtype(data)
+            or is_datetime64_any_dtype(dtype)
+            or "tz" in kwargs
+        ):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
@@ -402,7 +352,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index(data, dtype=object, copy=copy, name=name, **kwargs)
 
         # index-like
-        else:
+        elif isinstance(data, (np.ndarray, Index, ABCSeries)):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.numeric import (
                 Float64Index,
@@ -449,6 +399,28 @@ class Index(IndexOpsMixin, PandasObject):
                 # GH#13601, GH#20285, GH#27125
                 raise ValueError("Index data must be 1-dimensional")
             return cls._simple_new(subarr, name)
+
+        elif data is None or is_scalar(data):
+            raise cls._scalar_data_error(data)
+        elif hasattr(data, "__array__"):
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
+        else:
+            if tupleize_cols and is_list_like(data):
+                # GH21470: convert iterable to list before determining if empty
+                if is_iterator(data):
+                    data = list(data)
+
+                if data and all(isinstance(e, tuple) for e in data):
+                    # we must be all tuples, otherwise don't construct
+                    # 10697
+                    from pandas.core.indexes.multi import MultiIndex
+
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get("names")
+                    )
+            # other iterable of some kind
+            subarr = com.asarray_tuplesafe(data, dtype=object)
+            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     """
     NOTE for new Index creation:
