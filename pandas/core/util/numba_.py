@@ -1,7 +1,7 @@
 """Common utilities for Numba operations"""
 import inspect
 import types
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from pandas.compat._optional import import_optional_dependency
 
 def check_kwargs_and_nopython(
     kwargs: Optional[Dict] = None, nopython: Optional[bool] = None
-):
+) -> None:
     if kwargs and nopython:
         raise ValueError(
             "numba does not support kwargs with nopython=True: "
@@ -19,7 +19,9 @@ def check_kwargs_and_nopython(
         )
 
 
-def get_jit_arguments(engine_kwargs: Optional[Dict[str, bool]] = None):
+def get_jit_arguments(
+    engine_kwargs: Optional[Dict[str, bool]] = None
+) -> Tuple[bool, bool, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.
     """
@@ -32,7 +34,9 @@ def get_jit_arguments(engine_kwargs: Optional[Dict[str, bool]] = None):
     return nopython, nogil, parallel
 
 
-def jit_user_function(func: Callable, nopython: bool, nogil: bool, parallel: bool):
+def jit_user_function(
+    func: Callable, nopython: bool, nogil: bool, parallel: bool
+) -> Callable:
     """
     JIT the user's function given the configurable arguments.
     """
@@ -60,7 +64,7 @@ def jit_user_function(func: Callable, nopython: bool, nogil: bool, parallel: boo
     return numba_func
 
 
-def split_for_numba(arg: FrameOrSeries):
+def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Split pandas object into its components as numpy arrays for numba functions.
     """
@@ -71,7 +75,7 @@ def split_for_numba(arg: FrameOrSeries):
     return arg.to_numpy(), arg.index.to_numpy(), columns_as_array
 
 
-def validate_udf(func: Callable, include_columns: bool = False):
+def validate_udf(func: Callable, include_columns: bool = False) -> None:
     """
     Validate user defined function for ops when using Numba.
 
