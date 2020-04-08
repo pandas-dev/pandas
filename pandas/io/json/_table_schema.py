@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Union, cast
 import warnings
 
 import pandas._libs.json as json
-from pandas._typing import DtypeObj
+from pandas._typing import DtypeObj, JSONSerializable
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -109,7 +109,10 @@ def convert_pandas_type_to_json_field(arr):
         name = "values"
     else:
         name = arr.name
-    field = {"name": name, "type": as_json_table_type(dtype)}
+    field: Dict[str, JSONSerializable] = {
+        "name": name,
+        "type": as_json_table_type(dtype),
+    }
 
     if is_categorical_dtype(arr):
         if hasattr(arr, "categories"):
