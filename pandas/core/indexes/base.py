@@ -1,3 +1,4 @@
+from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
@@ -5340,7 +5341,7 @@ class Index(IndexOpsMixin, PandasObject):
         Add in numeric unary methods.
         """
 
-        def _make_evaluate_unary(op, opstr):
+        def _make_evaluate_unary(op, opstr: str_t):
             def _evaluate_numeric_unary(self):
 
                 attrs = self._get_attributes_dict()
@@ -5446,7 +5447,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         )
 
-        def _make_logical_function(name, desc, f):
+        def _make_logical_function(name: str_t, desc: str_t, f):
             @Substitution(outname=name, desc=desc)
             @Appender(_index_shared_docs["index_" + name])
             @Appender(_doc)
@@ -5535,15 +5536,15 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy=False):
+def ensure_index(index_like, copy: bool = False):
     """
     Ensure that we have an index from some index-like object.
 
     Parameters
     ----------
-    index : sequence
+    index_like : sequence
         An Index or other sequence
-    copy : bool
+    copy : bool, default False
 
     Returns
     -------
@@ -5594,9 +5595,7 @@ def ensure_index(index_like, copy=False):
         # clean_index_list does the equivalent of copying
         # so only need to do this if not list instance
         if copy:
-            from copy import copy
-
-            index_like = copy(index_like)
+            index_like = copy_func(index_like)
 
     return Index(index_like)
 
@@ -5623,7 +5622,7 @@ def _trim_front(strings):
     return trimmed
 
 
-def _validate_join_method(method):
+def _validate_join_method(method: str):
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
 
