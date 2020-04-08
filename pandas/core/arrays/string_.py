@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -289,14 +290,14 @@ class StringArray(PandasArray):
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
-    def min(self, skipna=True, **kwargs):
+    def min(self, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return result
 
-    def max(self, skipna=True, **kwargs):
+    def max(self, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
