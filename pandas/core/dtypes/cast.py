@@ -235,6 +235,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
                 if (new_result == result).all():
                     return new_result
             else:
+                # np.allclose raises TypeError on extension arrays
                 nd_result = np.array(result).astype(result[0].dtype)
                 if np.allclose(new_result, nd_result, rtol=0):
                     return new_result
