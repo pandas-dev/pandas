@@ -1,6 +1,6 @@
 .. _whatsnew_04x:
 
-Versions v.0.4.1 through v0.4.3 (September 25 - October 9, 2011)
+Versions v.0.4.1 through v.0.4.3 (September 25 - October 9, 2011)
 -------------------------------------------------------
 
 {{ header }}
