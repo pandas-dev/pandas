@@ -1911,7 +1911,9 @@ def _merge_blocks(
     return blocks
 
 
-def _compare_or_regex_search(a, b, regex=False):
+def _compare_or_regex_search(
+    a: Union[ArrayLike, Scalar], b: Union[ArrayLike, Scalar], regex: bool = False
+) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
 
@@ -1930,13 +1932,13 @@ def _compare_or_regex_search(a, b, regex=False):
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, Scalar],
+        result: Union[ArrayLike, bool],
         a: Union[ArrayLike, Scalar],
         b: Union[ArrayLike, Scalar],
-    ) -> Union[ArrayLike, Scalar]:
+    ) -> Union[ArrayLike, bool]:
         """
-        Raises an error if the two arrays cannot be compared,
-        otherwise returns the comparison result as expected.
+        Raises an error if the two arrays (a,b) cannot be compared.
+        Otherwise, returns the comparison result as expected.
         """
         if is_scalar(result) and (
             isinstance(a, np.ndarray) or isinstance(b, np.ndarray)
@@ -1958,22 +1960,21 @@ def _compare_or_regex_search(a, b, regex=False):
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(
-            lambda x: bool(re.search(b, x)) if isinstance(x, str) else False
+            lambda x: bool(re.search(b, x))
+            if isinstance(x, str) and isinstance(b, str)
+            else False
         )
 
-    is_a_array = isinstance(a, np.ndarray)
-    is_b_array = isinstance(b, np.ndarray)
-
     # GH#32621 use mask to avoid comparing to NAs
-    if is_a_array and not is_b_array:
+    if isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
         mask = np.reshape(~(isna(a)), a.shape)
-    elif is_b_array and not is_a_array:
+    elif isinstance(b, np.ndarray) and not isinstance(a, np.ndarray):
         mask = np.reshape(~(isna(b)), b.shape)
-    elif is_a_array and is_b_array:
+    elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
         mask = ~(isna(a) | isna(b))
-    if is_a_array:
+    if isinstance(a, np.ndarray):
         a = a[mask]
-    if is_b_array:
+    if isinstance(b, np.ndarray):
         b = b[mask]
 
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
