@@ -620,7 +620,14 @@ class TestDatetimeIndexComparisons:
             # GH#12601: Check comparison against Timestamps and DatetimeIndex
             with pytest.raises(TypeError, match=msg):
                 op(ts, dz)
-        # TODO: else ...
+        elif op is operator.eq:
+            assert not np.any(op(dr, ts_tz))
+            assert not np.any(op(dz, ts))
+            assert not np.any(op(ts, dz))
+        else:
+            assert np.all(op(dr, ts_tz))
+            assert np.all(op(dz, ts))
+            assert np.all(op(ts, dz))
 
     @pytest.mark.parametrize(
         "op",
@@ -648,9 +655,13 @@ class TestDatetimeIndexComparisons:
                 op(dtarr, other)
             with pytest.raises(TypeError, match=msg):
                 op(other, dtarr)
+        elif op is operator.eq:
+
+            assert not np.any(op(dtarr, other))
+            assert not np.any(op(other, dtarr))
         else:
-            # TODO: write out the relevant assertions
-            pass
+            assert np.all(op(dtarr, other))
+            assert np.all(op(other, dtarr))
 
     @pytest.mark.parametrize(
         "op",
