@@ -1943,10 +1943,10 @@ def _compare_or_regex_search(a, b, regex=False):
         ):
             type_names = [type(a).__name__, type(b).__name__]
 
-            if is_a_array:
+            if isinstance(a, np.ndarray):
                 type_names[0] = f"ndarray(dtype={a.dtype})"
 
-            if is_b_array:
+            if isinstance(b, np.ndarray):
                 type_names[1] = f"ndarray(dtype={b.dtype})"
 
             raise TypeError(
