@@ -159,7 +159,6 @@ def to_numeric(arg, errors="raise", downcast=None):
     # to a numerical dtype and if a downcast method has been specified
     if downcast is not None and is_numeric_dtype(values):
         typecodes = None
-
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
         elif downcast == "unsigned" and (not len(values) or np.min(values) >= 0):

@@ -143,9 +143,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
             else:
                 dtype = "object"
-
         dtype = np.dtype(dtype)
-
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
         return converted
@@ -210,9 +208,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
         # don't allow upcasts here (except if empty)
         if result.dtype.itemsize <= dtype.itemsize and result.size:
             return result
-
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
-
         if not result.size:
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
@@ -239,7 +235,8 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
                 if (new_result == result).all():
                     return new_result
             else:
-                if np.allclose(new_result, result, rtol=0):
+                nd_result = np.array(result).astype(result[0].dtype)
+                if np.allclose(new_result, nd_result, rtol=0):
                     return new_result
 
     elif (
