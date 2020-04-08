@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Int64Index, MultiIndex
+from pandas import DataFrame, Float64Index, Int64Index, MultiIndex
 import pandas._testing as tm
 
 
@@ -128,15 +128,21 @@ class TestMultiIndexPartial:
         df["A"].iloc[14] = 5
         assert df["A"].iloc[14] == 5
 
-    def test_getitem_int_leading_level(
-        self, multiindex_year_month_day_dataframe_random_data
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_getitem_intkey_leading_level(
+        self, multiindex_year_month_day_dataframe_random_data, dtype
     ):
         # GH#33355 dont fall-back to positional when leading level is int
         ymd = multiindex_year_month_day_dataframe_random_data
+        levels = ymd.index.levels
+        ymd.index = ymd.index.set_levels([levels[0].astype(dtype)] + levels[1:])
         ser = ymd["A"]
         mi = ser.index
         assert isinstance(mi, MultiIndex)
-        assert isinstance(mi.levels[0], Int64Index)
+        if dtype is int:
+            assert isinstance(mi.levels[0], Int64Index)
+        else:
+            assert isinstance(mi.levels[0], Float64Index)
 
         assert 14 not in mi.levels[0]
         assert not mi.levels[0]._should_fallback_to_positional()
