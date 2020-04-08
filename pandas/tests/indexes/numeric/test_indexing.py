@@ -13,17 +13,28 @@ def index_large():
 
 
 class TestGetLoc:
-    def test_get_loc_float64(self):
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_loc_float64_method(self, method):
         idx = Float64Index([0.0, 1.0, 2.0])
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(1, method) == 1
-            if method is not None:
-                assert idx.get_loc(1, method, tolerance=0) == 1
 
-        for method, loc in [("pad", 1), ("backfill", 2), ("nearest", 1)]:
-            assert idx.get_loc(1.1, method) == loc
-            assert idx.get_loc(1.1, method, tolerance=0.9) == loc
+        assert idx.get_loc(1, method=method) == 1
+        assert idx.get_loc(1, method=method, tolerance=0) == 1
 
+    def test_get_loc_float64_method_none(self):
+        idx = Float64Index([0.0, 1.0, 2.0])
+        method = None
+        assert idx.get_loc(1, method=method) == 1
+
+    @pytest.mark.parametrize(
+        "method, loc", [("pad", 1), ("backfill", 2), ("nearest", 1)]
+    )
+    def test_get_loc_float64_method_loc(self, method, loc):
+        idx = Float64Index([0.0, 1.0, 2.0])
+        assert idx.get_loc(1.1, method) == loc
+        assert idx.get_loc(1.1, method, tolerance=0.9) == loc
+
+    def test_get_loc_float64_raises(self):
+        idx = Float64Index([0.0, 1.0, 2.0])
         with pytest.raises(KeyError, match="^'foo'$"):
             idx.get_loc("foo")
         with pytest.raises(KeyError, match=r"^1\.5$"):
@@ -82,21 +93,23 @@ class TestGetLoc:
 
 
 class TestGetIndexer:
-    def test_get_indexer_float64(self):
+    @pytest.mark.parametrize(
+        "method, arr",
+        [("pad", [-1, 0, 1]), ("backfill", [0, 1, 2]), ("nearest", [0, 1, 1])],
+    )
+    def test_get_indexer_float64(self, method, arr):
         idx = Float64Index([0.0, 1.0, 2.0])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
-        )
 
         target = [-0.1, 0.5, 1.1]
         tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
+            idx.get_indexer(target, method=method), np.array(arr, dtype=np.intp)
         )
+
+    def test_get_indexer_float64_default_method(self):
+        idx = Float64Index([0.0, 1.0, 2.0])
+
         tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
+            idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
         )
 
     def test_get_indexer_nan(self):
@@ -105,21 +118,27 @@ class TestGetIndexer:
         expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_get_indexer_int64(self):
+    @pytest.mark.parametrize(
+        "method, arr",
+        [
+            ("pad", [0, 0, 1, 1, 2, 2, 3, 3, 4, 4]),
+            ("backfill", [0, 1, 1, 2, 2, 3, 3, 4, 4, 5]),
+        ],
+    )
+    def test_get_indexer_int64(self, method, arr):
         index = Int64Index(range(0, 20, 2))
+
+        target = Int64Index(np.arange(10))
+        indexer = index.get_indexer(target, method=method)
+        expected = np.array(arr, dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected)
+
+    def test_get_indexer_int64_default_method(self):
+        index = Int64Index(range(0, 20, 2))
+
         target = Int64Index(np.arange(10))
         indexer = index.get_indexer(target)
         expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-        target = Int64Index(np.arange(10))
-        indexer = index.get_indexer(target, method="pad")
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-        target = Int64Index(np.arange(10))
-        indexer = index.get_indexer(target, method="backfill")
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_uint64(self, index_large):
@@ -228,10 +247,14 @@ class TestTake:
 
 
 class TestContains:
-    def test_contains_float64_nans(self):
+    @pytest.mark.parametrize(
+        "obj",
+        [  # contains nans
+            np.nan,
+            # contains no nans
+            1.0,
+        ],
+    )
+    def test_contains_float64_nans(self, obj):
         index = Float64Index([1.0, 2.0, np.nan])
-        assert np.nan in index
-
-    def test_contains_float64_not_nans(self):
-        index = Float64Index([1.0, 2.0, np.nan])
-        assert 1.0 in index
+        assert obj in index
