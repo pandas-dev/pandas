@@ -20,22 +20,21 @@ def get_engine(engine: str) -> "BaseImpl":
         # try engines in this order
         engine_classes = [PyArrowImpl, FastParquetImpl]
 
-        error_msgs = []
+        error_msgs = ""
         for engine_class in engine_classes:
             try:
                 return engine_class()
             except ImportError as err:
-                error_msgs.append(str(err))
+                error_msgs += "\n - " + str(err)
 
-        joined_error_msgs = "\n".join(error_msgs)
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
             "A suitable version of "
             "pyarrow or fastparquet is required for parquet "
             "support.\n"
-            "Trying to import the above resulted in these errors:\n"
-            f"{joined_error_msgs}"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
         )
 
     if engine == "pyarrow":
