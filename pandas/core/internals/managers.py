@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -1942,7 +1942,15 @@ def _compare_or_regex_search(a, b, regex=False):
     mask : array_like of bool
     """
 
-    def _check(result, a, b):
+    def _check_comparison_types(
+        result: Union[ArrayLike, Scalar],
+        a: Union[ArrayLike, Scalar],
+        b: Union[ArrayLike, Scalar],
+    ) -> Union[ArrayLike, Scalar]:
+        """
+        Raises an error if the two arrays cannot be compared,
+        otherwise returns the comparison result as expected.
+        """
         if is_scalar(result) and (
             isinstance(a, np.ndarray) or isinstance(b, np.ndarray)
         ):
@@ -1983,15 +1991,18 @@ def _compare_or_regex_search(a, b, regex=False):
 
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
-        return _check(False, a, b)
-    else:
-        result = op(a)
-        if isinstance(result, np.ndarray):
-            tmp = np.zeros(mask.shape, dtype=np.bool)
-            tmp[mask] = result
-            result = tmp
+        return _check_comparison_types(False, a, b)
 
-    return _check(result, a, b)
+    result = op(a)
+
+    if isinstance(result, np.ndarray):
+        # The shape of the mask can differ to that of the result
+        # since we may compare only a subset of a's or b's elements
+        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp[mask] = result
+        result = tmp
+
+    return _check_comparison_types(result, a, b)
 
 
 def _fast_count_smallints(arr):
