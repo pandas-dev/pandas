@@ -30,7 +30,7 @@ class BaseNoReduceTests(BaseReduceTests):
             "max",
         ]:
             # Tested in pandas/tests/arrays/string_/test_string.py
-            pytest.skip("These reductions are implemented")
+            return None
 
         op_name = all_numeric_reductions
         s = pd.Series(data)
