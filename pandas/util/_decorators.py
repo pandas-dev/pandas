@@ -216,6 +216,105 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
+def _format_argument_list(allow_args: Union[List[str], int]):
+    """
+    Convert the allow_args argument (either string or integer) of
+    `deprecate_nonkeyword_arguments` function to a string describing
+    it to be inserted into warning message.
+
+    Parameters
+    ----------
+    allowed_args : list, tuple or int
+        The `allowed_args` argument for `deprecate_nonkeyword_arguments`,
+        but None value is not allowed.
+
+    Returns
+    -------
+    s : str
+        The substring describing the argument list in best way to be
+        inserted to the warning message.
+
+    Examples
+    --------
+    `format_argument_list(0)` -> ''
+    `format_argument_list(1)` -> 'except for the first argument'
+    `format_argument_list(2)` -> 'except for the first 2 arguments'
+    `format_argument_list([])` -> ''
+    `format_argument_list(['a'])` -> "except for the arguments 'a'"
+    `format_argument_list(['a', 'b'])` -> "except for the arguments 'a' and 'b'"
+    `format_argument_list(['a', 'b', 'c'])` ->
+        "except for the arguments 'a', 'b' and 'c'"
+    """
+    if not allow_args:
+        return ""
+    elif allow_args == 1:
+        return " except for the first argument"
+    elif isinstance(allow_args, int):
+        return " except for the first {num_args} arguments".format(num_args=allow_args)
+    elif len(allow_args) == 1:
+        return " except for the argument '{arg}'".format(arg=allow_args[0])
+    else:
+        last = allow_args[-1]
+        args = ", ".join(["'" + x + "'" for x in allow_args[:-1]])
+        return " except for the arguments {args} and '{last}'".format(
+            args=args, last=last
+        )
+
+
+def deprecate_nonkeyword_arguments(
+    version: str,
+    allowed_args: Optional[Union[List[str], int]] = None,
+    stacklevel: int = 2,
+) -> Callable:
+    """
+    Decorator to deprecate a use of non-keyword arguments of a function.
+
+    Parameters
+    ----------
+    version : str
+        The version in which positional arguments will become
+        keyword-only.
+
+    allowed_args : list or int, optional
+        In case of list, it must be the list of names of some
+        first arguments of the decorated functions that are
+        OK to be given as positional arguments. In case of an
+        integer, this is the number of positional arguments
+        that will stay positional. In case of None value,
+        defaults to list of all arguments not having the
+        default value.
+
+    stacklevel : int, default=2
+        The stack level for warnings.warn
+    """
+
+    def decorate(func):
+        if allowed_args is not None:
+            allow_args = allowed_args
+        else:
+            spec = inspect.getfullargspec(func)
+            allow_args = spec.args[: -len(spec.defaults)]
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            arguments = _format_argument_list(allow_args)
+            if isinstance(allow_args, (list, tuple)):
+                num_allow_args = len(allow_args)
+            else:
+                num_allow_args = allow_args
+            if len(args) > num_allow_args:
+                msg = (
+                    "Starting with Pandas version {version} all arguments of {funcname}"
+                    "{except_args} will be keyword-only"
+                ).format(version=version, funcname=func.__name__, except_args=arguments)
+                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorate
+
+
 def rewrite_axis_style_signature(
     name: str, extra_params: List[Tuple[str, Any]]
 ) -> Callable[..., Any]:

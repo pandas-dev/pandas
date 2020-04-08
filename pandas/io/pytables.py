@@ -306,9 +306,6 @@ def read_hdf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-
-        .. versionadded:: 0.21.0 support for __fspath__ protocol.
-
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -1461,8 +1458,6 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
-
-        .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -3063,7 +3058,7 @@ class BlockManagerFixed(GenericFixed):
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
-        data = obj._data
+        data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
 
@@ -3858,18 +3853,18 @@ class Table(Fixed):
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
+        blocks = block_obj._mgr.blocks
+        blk_items = get_blk_items(block_obj._mgr, blocks)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
+            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr, blocks)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
+                mgr = block_obj.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 

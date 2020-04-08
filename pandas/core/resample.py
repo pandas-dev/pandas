@@ -470,8 +470,6 @@ class Resampler(_GroupBy, ShallowMixin):
         limit : int, optional
             Limit of how many values to fill.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         Series or DataFrame
@@ -1608,7 +1606,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         return obj._constructor(
-            obj._data.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
+            obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         )
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
