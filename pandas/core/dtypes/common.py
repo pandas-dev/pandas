@@ -111,27 +111,6 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_categorical(arr):
-    """
-    Ensure that an array-like object is a Categorical (if not already).
-
-    Parameters
-    ----------
-    arr : array-like
-        The array that we want to convert into a Categorical.
-
-    Returns
-    -------
-    cat_arr : The original array cast as a Categorical. If it already
-              is a Categorical, we return as is.
-    """
-    if not is_categorical_dtype(arr.dtype):
-        from pandas import Categorical
-
-        arr = Categorical(arr)
-    return arr
-
-
 def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     """
     Ensure that an dtype array of some integer dtype

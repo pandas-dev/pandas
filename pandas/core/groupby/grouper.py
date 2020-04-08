@@ -11,7 +11,6 @@ from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_list_like,
@@ -383,7 +382,7 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = ensure_categorical(self.grouper)
+        values = Categorical(self.grouper)
         return values._reverse_indexer()
 
     @property

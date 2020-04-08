@@ -24,7 +24,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     ensure_int64,
     ensure_object,
     ensure_platform_int,
@@ -67,7 +66,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -4717,8 +4716,8 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
         if isinstance(values, ABCMultiIndex):
-            values = values.values
-        values = ensure_categorical(values)
+            values = values._values
+        values = Categorical(values)
         result = values._reverse_indexer()
 
         # map to the label
