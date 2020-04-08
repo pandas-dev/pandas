@@ -257,10 +257,15 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cpdef inline object precision_from_unit(object unit):
+cpdef inline object precision_from_unit(str unit):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
+
+    Notes
+    -----
+    The caller is responsible for ensuring that the default value of "ns"
+    takes the place of None.
     """
     cdef:
         int64_t m
@@ -301,7 +306,7 @@ cpdef inline object precision_from_unit(object unit):
     return m, p
 
 
-cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
@@ -525,15 +530,24 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     return cast_from_unit(float(n), unit)
 
 
-cpdef inline object parse_timedelta_unit(object unit):
+cpdef inline str parse_timedelta_unit(object unit):
     """
     Parameters
     ----------
-    unit : an unit string
+    unit : str or None
+
+    Returns
+    -------
+    str
+        Canonical unit string.
+
+    Raises
+    ------
+    ValueError : on non-parseable input
     """
     if unit is None:
-        return 'ns'
-    elif unit == 'M':
+        return "ns"
+    elif unit == "M":
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
@@ -622,14 +636,14 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
-cdef inline int64_t parse_iso_format_string(object ts) except? -1:
+cdef inline int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
     groups for each component of an ISO 8601 duration
 
     Parameters
     ----------
-    ts:
+    ts: str
         ISO 8601 Duration formatted string
 
     Returns

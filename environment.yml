@@ -12,7 +12,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.29.13
+  - cython>=0.29.16
 
   # code checks
   - black=19.10b0
