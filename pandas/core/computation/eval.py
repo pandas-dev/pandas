@@ -267,11 +267,11 @@ def eval(
     --------
     Series.query : Evaluates a boolean expression to query a series.
     Series.eval : Evaluate a string describing operations on
-            Series. 
+            Series.
     DataFrame.query : Evaluates a boolean expression to query the columns
             of a frame.
     DataFrame.eval : Evaluate a string describing operations on
-            DataFrame columns.       
+            DataFrame columns.
 
     Notes
     -----

@@ -568,7 +568,7 @@ A new function added alongside the ``Series.query`` method that allows
 you to evaluate an expression in the "context" of a :class:`~pandas.Series`.
 
 .. ipython:: python
-   
+
    index = list(range(2010, 2015))
    data = np.random.randn(5)
    series = pd.Series(data, index=index)
@@ -595,7 +595,7 @@ If a ``series index`` does not have a name you can use "index" to reference the 
 The function can also be used on a ``series`` with a :class:`~pandas.MultiIndex`.
 
 .. ipython:: python
-   
+
    data = np.random.randn(10)
    foos = np.random.choice(['foo1', 'foo2'], size=10)
    years = list(range(2010, 2020))
@@ -612,7 +612,7 @@ The function can also be used on a ``series`` with a :class:`~pandas.MultiIndex`
 
    series.eval('ilevel_0 == "foo1" and years > 2013')
 
-``ilevel_0`` can be used to reference a ``MultiIndex`` by the level. In this case the 
+``ilevel_0`` can be used to reference a ``MultiIndex`` by the level. In this case the
 0th index did not have a name.
 
 The ``DataFrame.eval`` method

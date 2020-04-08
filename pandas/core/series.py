@@ -1138,7 +1138,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             You can refer to index names that contain spaces or operators by
             surrounding them in backticks. This way you can also escape
             names that start with a digit, or those that are a Python keyword.
-            Basically when it is not valid Python identifier. See notes below 
+            Basically when it is not valid Python identifier. See notes below
             for more details.
 
             For example, if one of your index levels is named 'a a' and you want
@@ -1243,9 +1243,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    3
         4    4
         dtype: int64
-        
+
         If the index is named, we can refer to it in the query.
-        
+
         >>> series.index.name = 'numbers'
         >>> series.query('numbers > 2')
         numbers

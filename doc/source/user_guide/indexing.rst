@@ -1131,8 +1131,7 @@ The ``Series`` :meth:`~pandas.Series.query` Method
 
 :class:`~pandas.Series` objects also have a :meth:`~pandas.Series.query`
 method that allows for selection using an expression. Perviously, the
-behaviour required the conversion of a ``Series`` object into a 
-``DataFrame`` in order to use the query method. The differences are 
+behaviour required the conversion of a ``Series`` object into a ``DataFrame`` in order to use the query method. The differences are 
 shown below.
 
 .. ipython:: python
@@ -1151,7 +1150,7 @@ shown below.
 You can do the same with a named ``index``.
 
 .. ipython:: python
-   
+
    data = [10, 11, 12, 13, 14, 15]
    index = [0, 1, 2, 3, 4, 5]
    series = pd.Series(data, index=index)
@@ -1160,7 +1159,7 @@ You can do the same with a named ``index``.
    series.query('foo > 2')
 
 The ``query`` method also has a ``inplace`` keyword that lets you modify
-the original ``Series``. It is set to ``False`` by default. 
+the original ``Series``. It is set to ``False`` by default.
 
 .. ipython:: python
    series.query('foo > 2', inplace=True)
