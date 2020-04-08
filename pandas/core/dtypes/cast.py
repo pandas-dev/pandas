@@ -178,7 +178,8 @@ def maybe_downcast_to_dtype(result, dtype):
 
 def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     """
-    Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
+    Subset of maybe_downcast_to_dtype restricted to numeric and
+    nullable dtypes.
 
     Parameters
     ----------
