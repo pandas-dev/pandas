@@ -762,10 +762,26 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two'),
-                                            (3, 'one'), (3, 'two')],
-                                            names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples(
+        ...     [
+        ...         (1, "one"),
+        ...         (1, "two"),
+        ...         (2, "one"),
+        ...         (2, "two"),
+        ...         (3, "one"),
+        ...         (3, "two")
+        ...     ],
+        ...     names=["foo", "bar"]
+        ... )
+        >>> idx
+        MultiIndex([(1, 'one'),
+            (1, 'two'),
+            (2, 'one'),
+            (2, 'two'),
+            (3, 'one'),
+            (3, 'two')],
+           names=['foo', 'bar'])
+
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
                     ('a', 2),
@@ -798,10 +814,12 @@ class MultiIndex(Index):
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
-                    ('a', 2),
-                    ('b', 1),
-                    ('b', 2)],
-                   names=['foo', 'bar'])
+            ('a', 2),
+            ('b', 1),
+            ('b', 2),
+            ('c', 1),
+            ('c', 2)],
+           names=['foo', 'bar'])
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
@@ -907,11 +925,16 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'),
-                                             (1, 'two'),
-                                             (2, 'one'),
-                                             (2, 'two')],
-                                            names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples(
+        ...     [(1, "one"), (1, "two"), (2, "one"), (2, "two")], names=["foo", "bar"]
+        ... )
+        >>> idx
+        MultiIndex([(1, 'one'),
+            (1, 'two'),
+            (2, 'one'),
+            (2, 'two')],
+           names=['foo', 'bar'])
+
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
         MultiIndex([(2, 'one'),
                     (1, 'one'),
@@ -1584,7 +1607,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        DataFrame
+        DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
+            tabular data.
         """
         from pandas import DataFrame
 
@@ -1652,6 +1676,30 @@ class MultiIndex(Index):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        In the below examples, the first level of the MultiIndex is sorted because
+        a<b<c, so there is no need to look at the next level.
+
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'e', 'f']]).is_lexsorted()
+        True
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'f', 'e']]).is_lexsorted()
+        True
+
+        In case there is a tie, the lexicographical sorting looks
+        at the next level of the MultiIndex.
+
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']]).is_lexsorted()
+        True
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']]).is_lexsorted()
+        False
+        >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
+        ...                            ['aa', 'bb', 'aa', 'bb']]).is_lexsorted()
+        True
+        >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
+        ...                            ['bb', 'aa', 'aa', 'bb']]).is_lexsorted()
+        False
         """
         return self.lexsort_depth == self.nlevels
 
@@ -2726,8 +2774,7 @@ class MultiIndex(Index):
         (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
 
         >>> mi.get_loc_level('e', level='B')
-        (array([False,  True, False], dtype=bool),
-        Index(['b'], dtype='object', name='A'))
+        (array([False,  True, False]), Index(['b'], dtype='object', name='A'))
 
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
@@ -3250,7 +3297,46 @@ class MultiIndex(Index):
         -------
         Index
 
-        >>> index.union(index2)
+        Examples
+        --------
+        >>> idx1 = pd.MultiIndex.from_arrays(
+        ...     [[1, 1, 2, 2], ["Red", "Blue", "Red", "Blue"]]
+        ... )
+        >>> idx1
+        MultiIndex([(1,  'Red'),
+            (1, 'Blue'),
+            (2,  'Red'),
+            (2, 'Blue')],
+           )
+        >>> idx2 = pd.MultiIndex.from_arrays(
+        ...     [[3, 3, 2, 2], ["Red", "Green", "Red", "Green"]]
+        ... )
+        >>> idx2
+        MultiIndex([(3,   'Red'),
+            (3, 'Green'),
+            (2,   'Red'),
+            (2, 'Green')],
+           )
+
+        >>> idx1.union(idx2)
+        MultiIndex([(1,  'Blue'),
+            (1,   'Red'),
+            (2,  'Blue'),
+            (2, 'Green'),
+            (2,   'Red'),
+            (3, 'Green'),
+            (3,   'Red')],
+           )
+
+        >>> idx1.union(idx2, sort=False)
+        MultiIndex([(1,   'Red'),
+            (1,  'Blue'),
+            (2,   'Red'),
+            (2,  'Blue'),
+            (3,   'Red'),
+            (3, 'Green'),
+            (2, 'Green')],
+           )
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)

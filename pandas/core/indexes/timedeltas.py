@@ -5,7 +5,7 @@ from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
+    TD64NS_DTYPE,
     is_float,
     is_integer,
     is_scalar,
@@ -134,7 +134,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         unit=None,
         freq=None,
         closed=None,
-        dtype=_TD_DTYPE,
+        dtype=TD64NS_DTYPE,
         copy=False,
         name=None,
     ):
@@ -351,7 +351,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                 '5 days 00:00:00'],
-               dtype='timedelta64[ns]', freq=None)
+               dtype='timedelta64[ns]', freq='32H')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
