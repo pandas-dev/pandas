@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -68,6 +69,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -292,9 +294,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         name = maybe_extract_name(name, data, cls)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+        if "tz" in kwargs:
+            tz = kwargs.pop("tz")
+            validate_tz_from_dtype(dtype, tz)
+            dtype = tz_to_dtype(tz)
+
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
+
+        data_dype = getattr(data, "dtype", None)
 
         # range
         if isinstance(data, RangeIndex):
@@ -303,43 +314,39 @@ class Index(IndexOpsMixin, PandasObject):
             return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
-        elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
+        elif is_categorical_dtype(data_dype) or is_categorical_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.category import CategoricalIndex
 
             return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
 
         # interval
-        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+        elif is_interval_dtype(data_dype) or is_interval_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.interval import IntervalIndex
 
             return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
-        elif (
-            is_datetime64_any_dtype(data)
-            or is_datetime64_any_dtype(dtype)
-            or "tz" in kwargs
-        ):
+        elif is_datetime64_any_dtype(data_dype) or is_datetime64_any_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
             return _maybe_asobject(dtype, DatetimeIndex, data, copy, name, **kwargs)
 
-        elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(data_dype) or is_timedelta64_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import TimedeltaIndex
 
             return _maybe_asobject(dtype, TimedeltaIndex, data, copy, name, **kwargs)
 
-        elif is_period_dtype(data) or is_period_dtype(dtype):
+        elif is_period_dtype(data_dype) or is_period_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import PeriodIndex
 
             return _maybe_asobject(dtype, PeriodIndex, data, copy, name, **kwargs)
 
         # extension dtype
-        elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
+        elif is_extension_array_dtype(data_dype) or is_extension_array_dtype(dtype):
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
