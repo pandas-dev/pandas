@@ -405,9 +405,7 @@ def get_handle(
             if is_path:
                 f = gzip.open(path_or_buf, mode, **compression_args)  # type: ignore
             else:
-                f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args
-                )  # type: ignore
+                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)  # type: ignore
 
         # BZ Compression
         elif compression == "bz2":
