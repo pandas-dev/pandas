@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -2764,7 +2763,7 @@ def get_block_type(values, dtype=None):
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif is_categorical(values):
+    elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values)
