@@ -69,6 +69,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -294,6 +295,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
+        if "tz" in kwargs:
+            tz = kwargs.pop("tz")
+            validate_tz_from_dtype(dtype, tz)
+            dtype = tz_to_dtype(tz)
 
         if is_scalar(data):
             raise cls._scalar_data_error(data)
@@ -365,11 +370,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
-        elif (
-            is_datetime64_any_dtype(data)
-            or is_datetime64_any_dtype(dtype)
-            or "tz" in kwargs
-        ):
+        elif is_datetime64_any_dtype(data) or is_datetime64_any_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
