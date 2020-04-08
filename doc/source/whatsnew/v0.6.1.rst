@@ -1,7 +1,7 @@
 
 .. _whatsnew_061:
 
-v.0.6.1 (December 13, 2011)
+Version v.0.6.1 (December 13, 2011)
 ---------------------------
 
 New features

@@ -1,6 +1,6 @@
 .. _whatsnew_0701:
 
-v.0.7.1 (February 29, 2012)
+Version v.0.7.1 (February 29, 2012)
 ---------------------------
 
 {{ header }}
