@@ -400,6 +400,9 @@ def get_handle(
 
     if compression:
 
+        # GH33398 the type ignores here seem related to mypy issue #5382;
+        # it may be possible to remove them once that is resolved.
+
         # GZ Compression
         if compression == "gzip":
             if is_path:
