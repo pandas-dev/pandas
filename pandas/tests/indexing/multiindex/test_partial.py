@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, Int64Index, MultiIndex
 import pandas._testing as tm
 
 
@@ -127,10 +127,25 @@ class TestMultiIndexPartial:
         # this works...for now
         df["A"].iloc[14] = 5
         assert df["A"].iloc[14] == 5
+
+    def test_getitem_int_leading_level(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        # GH#33355 dont fall-back to positional when leading level is int
+        ymd = multiindex_year_month_day_dataframe_random_data
+        ser = ymd["A"]
+        mi = ser.index
+        assert isinstance(mi, MultiIndex)
+        assert isinstance(mi.levels[0], Int64Index)
+
+        assert 14 not in mi.levels[0]
+        assert not mi.levels[0]._should_fallback_to_positional()
+        assert not mi._should_fallback_to_positional()
+
         with pytest.raises(KeyError, match="14"):
-            # TODO: really should be separate test
-            # GH#33355 dont fall-back to positional when leading level is int
-            df["A"][14]
+            ser[14]
+        with pytest.raises(KeyError, match="14"):
+            mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!

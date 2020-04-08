@@ -236,6 +236,7 @@ class TestMultiIndexSetItem:
                 f_index
             )
 
+        # FIXME: dont leave commented-out
         # TODO(wesm): unused?
         # new_df = pd.concat([f(name, df2) for name, df2 in grp], axis=1).T
 
@@ -258,7 +259,6 @@ class TestMultiIndexSetItem:
         assert isna(s.iloc[49])
 
         with pytest.raises(KeyError, match="49"):
-            # TODO: really should be separate test
             # GH#33355 dont fall-back to positional when leading level is int
             s[49]
 
