@@ -285,7 +285,7 @@ class StringArray(PandasArray):
 
     def _reduce(self, name, skipna=True, **kwargs):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna, **kwargs)
+            return getattr(self, name)(skipna=skipna)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
