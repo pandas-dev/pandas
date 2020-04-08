@@ -120,3 +120,53 @@ class ExpandingIndexer(BaseIndexer):
             np.zeros(num_values, dtype=np.int64),
             np.arange(1, num_values + 1, dtype=np.int64),
         )
+
+
+class FixedForwardWindowIndexer(BaseIndexer):
+    """
+    Creates window boundaries for fixed-length windows that include the
+    current row.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
+    4  4.0
+    """
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        if center:
+            raise ValueError("Forward-looking windows can't have center=True")
+        if closed is not None:
+            raise ValueError(
+                "Forward-looking windows don't support setting the closed argument"
+            )
+
+        start = np.arange(num_values, dtype="int64")
+        end_s = start[: -self.window_size] + self.window_size
+        end_e = np.full(self.window_size, num_values, dtype="int64")
+        end = np.concatenate([end_s, end_e])
+
+        return start, end

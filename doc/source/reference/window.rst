@@ -85,3 +85,4 @@ Base class for defining custom window boundaries.
    :toctree: api/
 
    api.indexers.BaseIndexer
+   api.indexers.FixedForwardWindowIndexer
