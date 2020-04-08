@@ -125,7 +125,7 @@ def ensure_categorical(arr):
     cat_arr : The original array cast as a Categorical. If it already
               is a Categorical, we return as is.
     """
-    if not is_categorical(arr):
+    if not is_categorical_dtype(arr.dtype):
         from pandas import Categorical
 
         arr = Categorical(arr)
@@ -360,6 +360,12 @@ def is_categorical(arr) -> bool:
     >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    warnings.warn(
+        "is_categorical is deprecated and will be removed in a future version.  "
+        "Use is_categorical_dtype instead",
+        FutureWarning,
+        stacklevel=2,
+    )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
@@ -1458,7 +1464,7 @@ def is_extension_type(arr) -> bool:
         stacklevel=2,
     )
 
-    if is_categorical(arr):
+    if is_categorical_dtype(arr):
         return True
     elif is_sparse(arr):
         return True

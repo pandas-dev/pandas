@@ -4504,6 +4504,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 allow_dups=allow_dups,
                 copy=copy,
             )
+            # If we've made a copy once, no need to make another one
+            copy = False
 
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
@@ -6468,7 +6470,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
         if not (
             is_scalar(to_replace)
-            or isinstance(to_replace, pd.Series)
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
