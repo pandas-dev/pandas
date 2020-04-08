@@ -21,9 +21,9 @@ def get_engine(engine: str) -> "BaseImpl":
         engine_classes = [PyArrowImpl, FastParquetImpl]
 
         error_msgs = []
-        for ec in engine_classes:
+        for engine_class in engine_classes:
             try:
-                return ec()
+                return engine_class()
             except ImportError as err:
                 error_msgs.append(str(err))
 
