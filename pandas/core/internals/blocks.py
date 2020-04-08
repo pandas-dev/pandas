@@ -27,8 +27,13 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
+    is_bool_dtype,
+    is_categorical,    
     is_categorical_dtype,
     is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -1994,9 +1999,6 @@ class DatetimeLikeBlockMixin:
     @property
     def _holder(self):
         return DatetimeArray
-
-    def should_store(self, value):
-        return is_dtype_equal(self.dtype, value.dtype)
 
     @property
     def fill_value(self):

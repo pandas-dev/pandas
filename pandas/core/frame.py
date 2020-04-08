@@ -8022,6 +8022,7 @@ Wild         185.0
         if numeric_only is None:
             data = self
             values = data.values
+
             try:
                 result = f(values)
 
@@ -8035,6 +8036,7 @@ Wild         185.0
                 values = data.values
                 with np.errstate(all="ignore"):
                     result = f(values)
+        
         else:
             if numeric_only:
                 data = _get_data(axis_matters=True)

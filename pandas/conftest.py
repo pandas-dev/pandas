@@ -369,9 +369,6 @@ def _create_multiindex():
     )
     return mi
 
-    class TestSubDict(dict):
-        def __init__(self, *args, **kwargs):
-            dict.__init__(self, *args, **kwargs)
 
 def _create_mi_with_dt64tz_level():
     """
@@ -442,9 +439,6 @@ def string_series():
     s.name = "series"
     return s
 
-    # See Also: tests.multi.conftest.idx
-    major_axis = Index(["foo", "bar", "baz", "qux"])
-    minor_axis = Index(["one", "two"])
 
 @pytest.fixture
 def object_series():
@@ -750,7 +744,7 @@ def all_logical_operators(request):
     * &
     * ^
     """
-    return pytestconfig.getoption("--strict-data-files")
+    return request.param
 
 
 # ----------------------------------------------------------------
@@ -763,9 +757,6 @@ def strict_data_files(pytestconfig):
     """
     return pytestconfig.getoption("--strict-data-files")
 
-    Returns
-    -------
-    path including ``pandas/tests``.
 
 @pytest.fixture
 def datapath(strict_data_files):
@@ -1198,7 +1189,6 @@ def ip():
 
     return InteractiveShell()
 
-_cython_table = pd.core.base.SelectionMixin._cython_table.items()
 
 @pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
 def spmatrix(request):
@@ -1209,12 +1199,6 @@ def spmatrix(request):
 
     return getattr(sparse, request.param + "_matrix")
 
-    Parameters
-    ----------
-    ndframe : DataFrame or Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value.
 
 @pytest.fixture(params=list(tm.cython_table))
 def cython_table_items(request):
