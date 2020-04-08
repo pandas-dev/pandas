@@ -525,9 +525,7 @@ class BaseGrouper:
                 np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
-            result = self._aggregate(
-                result, counts, values, codes, func, is_datetimelike, min_count
-            )
+            result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = _maybe_fill(
                 np.empty_like(values, dtype=out_dtype), fill_value=np.nan
@@ -590,14 +588,7 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_datetimelike: bool,
-        min_count: int = -1,
+        self, result, counts, values, comp_ids, agg_func, min_count: int = -1,
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
@@ -691,7 +682,7 @@ class BaseGrouper:
 
         assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: try_cast back to EA?
+        # TODO: maybe_cast_to_extension_array?
 
         return result, counts
 

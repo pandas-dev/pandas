@@ -31,29 +31,6 @@ from pandas.tseries.offsets import BDay
 _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
-class TestGet:
-    def test_get(self, float_frame):
-        b = float_frame.get("B")
-        tm.assert_series_equal(b, float_frame["B"])
-
-        assert float_frame.get("foo") is None
-        tm.assert_series_equal(
-            float_frame.get("foo", float_frame["B"]), float_frame["B"]
-        )
-
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
-        ],
-    )
-    def test_get_none(self, df):
-        # see gh-5652
-        assert df.get(None) is None
-
-
 class TestDataFrameIndexing:
     def test_getitem(self, float_frame):
         # Slicing
@@ -414,16 +391,6 @@ class TestDataFrameIndexing:
             index=["A", "B", "C", "D", "E", "E1", "F", "F1"],
         )
         tm.assert_series_equal(result, expected)
-
-        # where dtype conversions
-        # GH 3733
-        df = DataFrame(data=np.random.randn(100, 50))
-        df = df.where(df > 0)  # create nans
-        bools = df > 0
-        mask = isna(df)
-        expected = bools.astype(float).mask(mask)
-        result = bools.mask(mask)
-        tm.assert_frame_equal(result, expected)
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
@@ -853,15 +820,6 @@ class TestDataFrameIndexing:
         df = pd.DataFrame()
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
-
-    def test_delitem_corner(self, float_frame):
-        f = float_frame.copy()
-        del f["D"]
-        assert len(f.columns) == 3
-        with pytest.raises(KeyError, match=r"^'D'$"):
-            del f["D"]
-        del f["B"]
-        assert len(f.columns) == 2
 
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
@@ -1424,6 +1382,24 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match="same size"):
             float_frame.lookup(["a", "b", "c"], ["a"])
 
+    def test_lookup_requires_unique_axes(self):
+        # GH#33041 raise with a helpful error message
+        df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
+
+        rows = [0, 1]
+        cols = ["A", "A"]
+
+        # homogeneous-dtype case
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.T.lookup(cols, rows)
+
+        # heterogeneous dtype
+        df["B"] = 0
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
@@ -1629,11 +1605,6 @@ class TestDataFrameIndexing:
         expected = pd.DataFrame({"x": expected_values}, index=target)
         actual = df.reindex(target, method=method)
         tm.assert_frame_equal(expected, actual)
-
-        actual = df.reindex_like(df, method=method, tolerance=0)
-        tm.assert_frame_equal(df, actual)
-        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-        tm.assert_frame_equal(df, actual)
 
         actual = df.reindex(target, method=method, tolerance=1)
         tm.assert_frame_equal(expected, actual)
@@ -2096,69 +2067,6 @@ class TestDataFrameIndexing:
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
 
-    def test_mask(self):
-        df = DataFrame(np.random.randn(5, 3))
-        cond = df > 0
-
-        rs = df.where(cond, np.nan)
-        tm.assert_frame_equal(rs, df.mask(df <= 0))
-        tm.assert_frame_equal(rs, df.mask(~cond))
-
-        other = DataFrame(np.random.randn(5, 3))
-        rs = df.where(cond, other)
-        tm.assert_frame_equal(rs, df.mask(df <= 0, other))
-        tm.assert_frame_equal(rs, df.mask(~cond, other))
-
-        # see gh-21891
-        df = DataFrame([1, 2])
-        res = df.mask([[True], [False]])
-
-        exp = DataFrame([np.nan, 2])
-        tm.assert_frame_equal(res, exp)
-
-    def test_mask_inplace(self):
-        # GH8801
-        df = DataFrame(np.random.randn(5, 3))
-        cond = df > 0
-
-        rdf = df.copy()
-
-        rdf.where(cond, inplace=True)
-        tm.assert_frame_equal(rdf, df.where(cond))
-        tm.assert_frame_equal(rdf, df.mask(~cond))
-
-        rdf = df.copy()
-        rdf.where(cond, -df, inplace=True)
-        tm.assert_frame_equal(rdf, df.where(cond, -df))
-        tm.assert_frame_equal(rdf, df.mask(~cond, -df))
-
-    def test_mask_edge_case_1xN_frame(self):
-        # GH4071
-        df = DataFrame([[1, 2]])
-        res = df.mask(DataFrame([[True, False]]))
-        expec = DataFrame([[np.nan, 2]])
-        tm.assert_frame_equal(res, expec)
-
-    def test_mask_callable(self):
-        # GH 12533
-        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        result = df.mask(lambda x: x > 4, lambda x: x + 1)
-        exp = DataFrame([[1, 2, 3], [4, 6, 7], [8, 9, 10]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, df.mask(df > 4, df + 1))
-
-        # return ndarray and scalar
-        result = df.mask(lambda x: (x % 2 == 0).values, lambda x: 99)
-        exp = DataFrame([[1, 99, 3], [99, 5, 99], [7, 99, 9]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, df.mask(df % 2 == 0, 99))
-
-        # chain
-        result = (df + 2).mask(lambda x: x > 8, lambda x: x + 10)
-        exp = DataFrame([[3, 4, 5], [6, 7, 8], [19, 20, 21]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, (df + 2).mask((df + 2) > 8, (df + 2) + 10))
-
     def test_type_error_multiindex(self):
         # See gh-12218
         df = DataFrame(
@@ -2273,7 +2181,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[1], pd.Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
-    mgr = df._data
+    mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)

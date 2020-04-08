@@ -1,9 +1,9 @@
 from collections import defaultdict
-from functools import partial
 import itertools
 import operator
 import re
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+import warnings
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.blocks import (
@@ -42,16 +43,9 @@ from pandas.core.internals.blocks import (
     ExtensionBlock,
     ObjectValuesExtensionBlock,
     _extend_blocks,
-    _merge_blocks,
     _safe_reshape,
     get_block_type,
     make_block,
-)
-from pandas.core.internals.concat import (  # all for concatenate_block_managers
-    combine_concat_plans,
-    concatenate_join_units,
-    get_mgr_concatenation_plan,
-    is_uniform_join_units,
 )
 
 from pandas.io.formats.printing import pprint_thing
@@ -341,7 +335,7 @@ class BlockManager(PandasObject):
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
             if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
-                construction_error(tot_items, block.shape[1:], self.axes)
+                raise construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
             raise AssertionError(
                 "Number of manager items must equal union of "
@@ -426,7 +420,7 @@ class BlockManager(PandasObject):
 
                 for k, obj in aligned_args.items():
                     axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
+                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
@@ -539,21 +533,30 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))),
-            axes[0],
-            fastpath=True,
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
         )
 
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(self, **kwargs) -> "BlockManager":
-        if kwargs.pop("align", True):
+    def where(
+        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
+    ) -> "BlockManager":
+        if align:
             align_keys = ["other", "cond"]
         else:
             align_keys = ["cond"]
+            other = extract_array(other, extract_numpy=True)
 
-        return self.apply("where", align_keys=align_keys, **kwargs)
+        return self.apply(
+            "where",
+            align_keys=align_keys,
+            other=other,
+            cond=cond,
+            errors=errors,
+            try_cast=try_cast,
+            axis=axis,
+        )
 
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
@@ -567,6 +570,7 @@ class BlockManager(PandasObject):
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
 
         return self.apply(
             "putmask",
@@ -584,11 +588,13 @@ class BlockManager(PandasObject):
     def interpolate(self, **kwargs) -> "BlockManager":
         return self.apply("interpolate", **kwargs)
 
-    def shift(self, **kwargs) -> "BlockManager":
-        return self.apply("shift", **kwargs)
+    def shift(self, periods: int, axis: int, fill_value) -> "BlockManager":
+        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, **kwargs) -> "BlockManager":
-        return self.apply("fillna", **kwargs)
+    def fillna(self, value, limit, inplace: bool, downcast) -> "BlockManager":
+        return self.apply(
+            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def downcast(self) -> "BlockManager":
         return self.apply("downcast")
@@ -729,7 +735,7 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_bool], copy)
+        return self._combine([b for b in self.blocks if b.is_bool], copy)
 
     def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
@@ -739,9 +745,9 @@ class BlockManager(PandasObject):
             Whether to copy the blocks
         """
         self._consolidate_inplace()
-        return self.combine([b for b in self.blocks if b.is_numeric], copy)
+        return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
+    def _combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -753,9 +759,7 @@ class BlockManager(PandasObject):
         new_blocks = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = algos.take_1d(
-                inv_indexer, b.mgr_locs.as_array, axis=0, allow_fill=False
-            )
+            b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
             new_blocks.append(b)
 
         axes = list(self.axes)
@@ -780,9 +784,6 @@ class BlockManager(PandasObject):
 
         bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
         return bm
-
-    def __contains__(self, item) -> bool:
-        return item in self.items
 
     @property
     def nblocks(self) -> int:
@@ -896,32 +897,26 @@ class BlockManager(PandasObject):
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
-        return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc: int):
+    def fast_xs(self, loc: int) -> ArrayLike:
         """
-        get a cross sectional for a given location in the
-        items ; handle dups
+        Return the array corresponding to `frame.iloc[loc]`.
 
-        return the result, is *could* be a view in the case of a
-        single block
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        items = self.items
-
-        # non-unique (GH4726)
-        if not items.is_unique:
-            result = self._interleave()
-            if self.ndim == 2:
-                result = result.T
-            return result[loc]
-
-        # unique
         dtype = _interleaved_dtype(self.blocks)
 
-        n = len(items)
+        n = len(self)
         if is_extension_array_dtype(dtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
@@ -1004,15 +999,12 @@ class BlockManager(PandasObject):
                 values, placement=slice(0, len(values)), ndim=1
             ),
             self.axes[1],
-            fastpath=True,
         )
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete selected item (items if non-unique) in-place.
+        Delete selected locations in-place (new block and array, same BlockManager)
         """
-        indexer = self.items.get_loc(item)
-
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
         ref_loc_offset = -is_deleted.cumsum()
@@ -1299,14 +1291,14 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_tuple=(fill_value,))
+            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
         else:
             new_blocks = [
                 blk.take_nd(
                     indexer,
                     axis=axis,
-                    fill_tuple=(
-                        fill_value if fill_value is not None else blk.fill_value,
+                    fill_value=(
+                        fill_value if fill_value is not None else blk.fill_value
                     ),
                 )
                 for blk in self.blocks
@@ -1317,7 +1309,7 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
+    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
         """
         Slice/take blocks along axis=0.
 
@@ -1327,7 +1319,7 @@ class BlockManager(PandasObject):
         -------
         new_blocks : list of Block
         """
-        allow_fill = fill_tuple is not None
+        allow_fill = fill_value is not lib.no_default
 
         sl_type, slobj, sllen = _preprocess_slice_or_indexer(
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
@@ -1339,16 +1331,15 @@ class BlockManager(PandasObject):
             if sl_type in ("slice", "mask"):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
-                if allow_fill and fill_tuple[0] is None:
+                if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
-                    fill_tuple = (fill_value,)
 
                 return [
                     blk.take_nd(
                         slobj,
                         axis=0,
                         new_mgr_locs=slice(0, sllen),
-                        fill_tuple=fill_tuple,
+                        fill_value=fill_value,
                     )
                 ]
 
@@ -1371,8 +1362,7 @@ class BlockManager(PandasObject):
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
-                # If we've got here, fill_tuple was not None.
-                fill_value = fill_tuple[0]
+                # If we've got here, fill_value was not lib.no_default
 
                 blocks.append(
                     self._make_na_block(placement=mgr_locs, fill_value=fill_value)
@@ -1393,10 +1383,7 @@ class BlockManager(PandasObject):
                 else:
                     blocks.append(
                         blk.take_nd(
-                            blklocs[mgr_locs.indexer],
-                            axis=0,
-                            new_mgr_locs=mgr_locs,
-                            fill_tuple=None,
+                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
                         )
                     )
 
@@ -1462,14 +1449,13 @@ class BlockManager(PandasObject):
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
 
-    def unstack(self, unstacker_func, fill_value) -> "BlockManager":
+    def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
         Return a BlockManager with all blocks unstacked..
 
         Parameters
         ----------
-        unstacker_func : callable
-            A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+        unstacker : reshape._Unstacker
         fill_value : Any
             fill_value for newly introduced missing values.
 
@@ -1477,19 +1463,16 @@ class BlockManager(PandasObject):
         -------
         unstacked : BlockManager
         """
-        n_rows = self.shape[-1]
-        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
-        new_columns = dummy.get_new_columns()
-        new_index = dummy.get_new_index()
+        new_columns = unstacker.get_new_columns(self.items)
+        new_index = unstacker.new_index
+
         new_blocks: List[Block] = []
         columns_mask: List[np.ndarray] = []
 
         for blk in self.blocks:
+            blk_cols = self.items[blk.mgr_locs.indexer]
             blocks, mask = blk._unstack(
-                partial(unstacker_func, value_columns=self.items[blk.mgr_locs.indexer]),
-                new_columns,
-                n_rows,
-                fill_value,
+                unstacker, new_columns, fill_value, value_columns=blk_cols,
             )
 
             new_blocks.extend(blocks)
@@ -1512,25 +1495,22 @@ class SingleBlockManager(BlockManager):
     def __init__(
         self,
         block: Block,
-        axis: Union[Index, List[Index]],
+        axis: Index,
         do_integrity_check: bool = False,
-        fastpath: bool = False,
+        fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
+        assert isinstance(axis, Index), type(axis)
 
-        if isinstance(axis, list):
-            if len(axis) != 1:
-                raise ValueError(
-                    "cannot create SingleBlockManager with more than 1 axis"
-                )
-            axis = axis[0]
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The `fastpath` keyword is deprecated and will be removed "
+                "in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
-        # passed from constructor, single block, single axis
-        if fastpath:
-            self.axes = [axis]
-        else:
-            self.axes = [ensure_index(axis)]
-
+        self.axes = [axis]
         self.blocks = tuple([block])
 
     @classmethod
@@ -1542,7 +1522,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False, fastpath=True)
+        return cls(blocks[0], axes[0], do_integrity_check=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
@@ -1550,7 +1530,7 @@ class SingleBlockManager(BlockManager):
         Constructor for if we have an array that is not yet a Block.
         """
         block = make_block(array, placement=slice(0, len(index)), ndim=1)
-        return cls(block, index, fastpath=True)
+        return cls(block, index)
 
     def _post_setstate(self):
         pass
@@ -1575,8 +1555,8 @@ class SingleBlockManager(BlockManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=range(len(array)))
-        return type(self)(block, self.index[slobj], fastpath=True)
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        return type(self)(block, self.index[slobj])
 
     @property
     def index(self) -> Index:
@@ -1613,15 +1593,14 @@ class SingleBlockManager(BlockManager):
     def _consolidate_inplace(self):
         pass
 
-    def delete(self, item):
+    def idelete(self, indexer):
         """
-        Delete single item from SingleBlockManager.
+        Delete single location from SingleBlockManager.
 
         Ensures that self.blocks doesn't become empty.
         """
-        loc = self.items.get_loc(item)
-        self._block.delete(loc)
-        self.axes[0] = self.axes[0].delete(loc)
+        self._block.delete(indexer)
+        self.axes[0] = self.axes[0].delete(indexer)
 
     def fast_xs(self, loc):
         """
@@ -1630,7 +1609,9 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
+    def concat(
+        self, to_concat: List["SingleBlockManager"], new_axis: Index
+    ) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
@@ -1646,21 +1627,11 @@ class SingleBlockManager(BlockManager):
         -------
         SingleBlockManager
         """
-        non_empties = [x for x in to_concat if len(x) > 0]
 
-        # check if all series are of the same block type:
-        if len(non_empties) > 0:
-            blocks = [obj.blocks[0] for obj in non_empties]
-            if len({b.dtype for b in blocks}) == 1:
-                new_block = blocks[0].concat_same_type(blocks)
-            else:
-                values = [x.values for x in blocks]
-                values = concat_compat(values)
-                new_block = make_block(values, placement=slice(0, len(values), 1))
-        else:
-            values = [x._block.values for x in to_concat]
-            values = concat_compat(values)
-            new_block = make_block(values, placement=slice(0, len(values), 1))
+        blocks = [obj.blocks[0] for obj in to_concat]
+        values = concat_compat([x.values for x in blocks])
+
+        new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
         return mgr
@@ -1670,7 +1641,7 @@ class SingleBlockManager(BlockManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes):
+def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
     try:
         if len(blocks) == 1 and not isinstance(blocks[0], Block):
             # if blocks[0] is of length 0, return empty blocks
@@ -1691,10 +1662,15 @@ def create_block_manager_from_blocks(blocks, axes):
     except ValueError as e:
         blocks = [getattr(b, "values", b) for b in blocks]
         tot_items = sum(b.shape[0] for b in blocks)
-        construction_error(tot_items, blocks[0].shape[1:], axes, e)
+        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
-def create_block_manager_from_arrays(arrays, names, axes):
+def create_block_manager_from_arrays(
+    arrays, names: Index, axes: List[Index]
+) -> BlockManager:
+    assert isinstance(names, Index)
+    assert isinstance(axes, list)
+    assert all(isinstance(x, Index) for x in axes)
 
     try:
         blocks = form_blocks(arrays, names, axes)
@@ -1702,7 +1678,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
         mgr._consolidate_inplace()
         return mgr
     except ValueError as e:
-        construction_error(len(arrays), arrays[0].shape, axes, e)
+        raise construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
 def construction_error(tot_items, block_shape, axes, e=None):
@@ -1717,23 +1693,25 @@ def construction_error(tot_items, block_shape, axes, e=None):
     if len(implied) <= 2:
         implied = implied[::-1]
 
+    # We return the exception object instead of raising it so that we
+    #  can raise it in the caller; mypy plays better with that
     if passed == implied and e is not None:
-        raise e
+        return e
     if block_shape[0] == 0:
-        raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+        return ValueError("Empty data passed with indices specified.")
+    return ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------
 
 
-def form_blocks(arrays, names, axes):
+def form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = defaultdict(list)
+    items_dict: DefaultDict[str, List] = defaultdict(list)
     extra_locs = []
 
-    names_idx = ensure_index(names)
+    names_idx = names
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -1751,7 +1729,7 @@ def form_blocks(arrays, names, axes):
         block_type = get_block_type(v)
         items_dict[block_type.__name__].append((i, k, v))
 
-    blocks = []
+    blocks: List[Block] = []
     if len(items_dict["FloatBlock"]):
         float_blocks = _multi_blockify(items_dict["FloatBlock"])
         blocks.extend(float_blocks)
@@ -1769,7 +1747,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(int_blocks)
 
     if len(items_dict["DatetimeBlock"]):
-        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], _NS_DTYPE)
+        datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], DT64NS_DTYPE)
         blocks.extend(datetime_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
@@ -1912,10 +1890,38 @@ def _consolidate(blocks):
     new_blocks = []
     for (_can_consolidate, dtype), group_blocks in grouper:
         merged_blocks = _merge_blocks(
-            list(group_blocks), dtype=dtype, _can_consolidate=_can_consolidate
+            list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
         new_blocks = _extend_blocks(merged_blocks, new_blocks)
     return new_blocks
+
+
+def _merge_blocks(
+    blocks: List[Block], dtype: DtypeObj, can_consolidate: bool
+) -> List[Block]:
+
+    if len(blocks) == 1:
+        return blocks
+
+    if can_consolidate:
+
+        if dtype is None:
+            if len({b.dtype for b in blocks}) != 1:
+                raise AssertionError("_merge_blocks are invalid!")
+
+        # TODO: optimization potential in case all mgrs contain slices and
+        # combination of those slices is a slice, too.
+        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
+        new_values = np.vstack([b.values for b in blocks])
+
+        argsort = np.argsort(new_mgr_locs)
+        new_values = new_values[argsort]
+        new_mgr_locs = new_mgr_locs[argsort]
+
+        return [make_block(new_values, placement=new_mgr_locs)]
+
+    # can't consolidate --> no merge
+    return blocks
 
 
 def _compare_or_regex_search(a, b, regex=False):
@@ -1989,45 +1995,3 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
-
-
-def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
-    """
-    Concatenate block managers into one.
-
-    Parameters
-    ----------
-    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
-    axes : list of Index
-    concat_axis : int
-    copy : bool
-
-    """
-    concat_plans = [
-        get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
-    ]
-    concat_plan = combine_concat_plans(concat_plans, concat_axis)
-    blocks = []
-
-    for placement, join_units in concat_plan:
-
-        if len(join_units) == 1 and not join_units[0].indexers:
-            b = join_units[0].block
-            values = b.values
-            if copy:
-                values = values.copy()
-            else:
-                values = values.view()
-            b = b.make_block_same_class(values, placement=placement)
-        elif is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type(
-                [ju.block for ju in join_units], placement=placement
-            )
-        else:
-            b = make_block(
-                concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-            )
-        blocks.append(b)
-
-    return BlockManager(blocks, axes)
