@@ -351,14 +351,20 @@ def get_handle(
         'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-        no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', other entries passed as additional compression options.
+        no compression). If dict and compression mode is one of
+        {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
 
         .. versionchanged:: 1.0.0
 
            May now be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
+
+        .. versionchanged:: 1.1.0
+
+           Passing compression options as keys in dict is now
+           supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
 
     memory_map : boolean, default False
         See parsers._parser_params for more information.
@@ -397,16 +403,16 @@ def get_handle(
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode)
+                f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf)
+                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(path_or_buf, mode)
+                f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf)
+                f = bz2.BZ2File(path_or_buf, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
