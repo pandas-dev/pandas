@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     is_bool_dtype,
-    is_categorical,    
+    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
