@@ -434,6 +434,11 @@ class DataFrame(NDFrame):
             data = data._mgr
 
         if isinstance(data, BlockManager):
+            if index is None and columns is None and dtype is None and copy is False:
+                # GH#33357 fastpath
+                NDFrame.__init__(self, data)
+                return
+
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
@@ -4469,7 +4474,7 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "DataFrame":
-        result = self._from_mgr(self._mgr.isna(func=isna))
+        result = self._constructor(self._data.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
@@ -4794,7 +4799,7 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
-        result = self._from_mgr(new_data)
+        result = self._constructor(new_data)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -4930,7 +4935,7 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
-        result = self._from_mgr(new_data)
+        result = self._constructor(new_data)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -6662,7 +6667,7 @@ Wild         185.0
         """
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
-        return self._from_mgr(new_data)
+        return self._constructor(new_data)
 
     # ----------------------------------------------------------------------
     # Function application
@@ -8426,7 +8431,7 @@ Wild         185.0
         )
 
         if result.ndim == 2:
-            result = self._from_mgr(result)
+            result = self._constructor(result)
         else:
             result = self._constructor_sliced(result, name=q)
 

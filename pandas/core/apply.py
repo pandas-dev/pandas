@@ -166,7 +166,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.f)
-            return self.obj._from_mgr(results)
+            # _constructor will retain self.index and self.columns
+            return self.obj._constructor(data=results)
 
         # broadcasting
         if self.result_type == "broadcast":
