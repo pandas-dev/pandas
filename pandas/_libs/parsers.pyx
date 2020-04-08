@@ -50,11 +50,15 @@ from pandas._libs.khash cimport (
     kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_integer_dtype, is_float_dtype,
-    is_bool_dtype, is_object_dtype,
-    is_datetime64_dtype,
-    pandas_dtype, is_extension_array_dtype)
+    is_cat_dtype,
+    is_integer_dtype,
+    is_float_dtype,
+    is_bool_dtype,
+    is_object_dtype,
+    is_dt64_dtype,
+    pandas_dtype,
+    is_ea_dtype,
+)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
@@ -1064,7 +1068,7 @@ cdef class TextReader:
 
             # don't try to upcast EAs
             try_upcast = upcast_na and na_count > 0
-            if try_upcast and not is_extension_array_dtype(col_dtype):
+            if try_upcast and not is_ea_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
@@ -1140,7 +1144,7 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
                              object na_flist):
-        if is_categorical_dtype(dtype):
+        if is_cat_dtype(dtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
@@ -1153,7 +1157,7 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
-        elif is_extension_array_dtype(dtype):
+        elif is_ea_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
             array_type = dtype.construct_array_type()
@@ -1223,7 +1227,7 @@ cdef class TextReader:
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_datetime64_dtype(dtype):
+        elif is_dt64_dtype(dtype):
             raise TypeError(f"the dtype {dtype} is not supported "
                             f"for parsing, pass this column "
                             f"using parse_dates instead")
@@ -2035,19 +2039,19 @@ def _concatenate_chunks(list chunks):
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
-        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        numpy_dtypes = {x for x in dtypes if not is_cat_dtype(x)}
         if len(numpy_dtypes) > 1:
             common_type = np.find_common_type(numpy_dtypes, [])
             if common_type == np.object:
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
-        if is_categorical_dtype(dtype):
+        if is_cat_dtype(dtype):
             sort_categories = isinstance(dtype, str)
             result[name] = union_categoricals(arrs,
                                               sort_categories=sort_categories)
         else:
-            if is_extension_array_dtype(dtype):
+            if is_ea_dtype(dtype):
                 array_type = dtype.construct_array_type()
                 result[name] = array_type._concat_same_type(arrs)
             else:

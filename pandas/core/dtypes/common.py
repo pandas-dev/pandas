@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos
+from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
@@ -1514,6 +1514,41 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
     return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+
+
+def is_ea_dtype(dtype) -> bool:
+    return isinstance(dtype, ExtensionDtype)
+
+
+def is_dt64_dtype(dtype) -> bool:
+    return isinstance(dtype, np.dtype) and dtype.kind == "M"
+
+
+def is_dt64tz_dtype(dtype) -> bool:
+    return isinstance(dtype, ExtensionDtype) and dtype.kind == "M"
+
+
+def is_dt64_any_dtype(dtype) -> bool:
+    return isinstance(dtype, (np.dtype, ExtensionDtype)) and dtype.kind == "M"
+
+
+def is_td64_dtype(dtype) -> bool:
+    return isinstance(dtype, np.dtype) and dtype.kind == "m"
+
+
+def is_period_dtype_obj(dtype) -> bool:
+    return isinstance(dtype, ExtensionDtype) and dtype.type is Period
+
+
+def is_interval_dtype_obj(dtype) -> bool:
+    return isinstance(dtype, ExtensionDtype) and dtype.type is Interval
+
+
+def is_cat_dtype(dtype) -> bool:
+    """
+    Check if we have a CategoricalDtype object.
+    """
+    return isinstance(dtype, ExtensionDtype) and dtype.name == "category"
 
 
 def is_complex_dtype(arr_or_dtype) -> bool:
