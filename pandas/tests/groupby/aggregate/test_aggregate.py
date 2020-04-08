@@ -655,7 +655,8 @@ class TestNamedAggregationDataFrame:
             )
 
     def test_agg_multi_missing_key_raises(self):
-        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6], "D": [0, 0, 1, 1]})
+        # shouldn't be able to get aggregrations on columns not specified
         with pytest.raises(KeyError, match="D"):
             df.groupby("A").agg(
                 minus=(["B", "C"], lambda x: x["D"].max() - x["D"].min()),
