@@ -982,7 +982,7 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
         return data, False
