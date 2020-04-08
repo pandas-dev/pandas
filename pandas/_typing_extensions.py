@@ -1,15 +1,14 @@
-import abc
-import collections
-import contextlib
-import sys
-import typing
-import collections.abc as collections_abc
-import operator
-
 # These are used by Protocol implementation
 # We use internal typing helpers here, but this significantly reduces
 # code duplication. (Also this is only until Protocol is in typing.)
-from typing import Generic, Callable, TypeVar, Tuple
+import abc
+import collections
+import collections.abc as collections_abc
+import contextlib
+import operator
+import sys
+import typing
+from typing import Callable, Generic, Tuple, TypeVar
 
 # After PEP 560, internal typing API was substantially reworked.
 # This is especially important for Protocol class which uses internal APIs

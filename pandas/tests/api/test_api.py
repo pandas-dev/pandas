@@ -202,6 +202,7 @@ class TestPDApi(Base):
         "_testing",
         "_tslib",
         "_typing",
+        "_typing_extensions",
         "_version",
     ]
 
