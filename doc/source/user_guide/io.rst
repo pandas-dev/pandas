@@ -3398,8 +3398,8 @@ Passing options to the compression protocol in order to speed up compression:
 .. ipython:: python
 
    df.to_pickle(
-      "data.pkl.gz",
-      compression={"method": "gzip", 'compresslevel': 1}
+       "data.pkl.gz",
+       compression={"method": "gzip", 'compresslevel': 1}
    )
 
 .. ipython:: python
