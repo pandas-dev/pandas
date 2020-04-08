@@ -1941,8 +1941,11 @@ def _compare_or_regex_search(a, b, regex=False):
     -------
     mask : array_like of bool
     """
+
     def _check(result, a, b):
-        if is_scalar(result) and (isinstance(a, np.ndarray) or isinstance(b, np.ndarray)):
+        if is_scalar(result) and (
+            isinstance(a, np.ndarray) or isinstance(b, np.ndarray)
+        ):
             type_names = [type(a).__name__, type(b).__name__]
 
             if is_a_array:
