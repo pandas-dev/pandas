@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
+from pandas._libs import NaT, Timestamp, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -1241,7 +1241,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default):
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1252,11 +1252,10 @@ class Block(PandasObject):
 
         values = self.values
 
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = self.fill_value
             allow_fill = False
         else:
-            fill_value = fill_tuple[0]
             allow_fill = True
 
         new_values = algos.take_nd(
@@ -1282,7 +1281,7 @@ class Block(PandasObject):
         new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis: int = 0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value=None):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1721,14 +1720,14 @@ class ExtensionBlock(Block):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def take_nd(self, indexer, axis: int = 0, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(
+        self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
+    ):
         """
         Take values according to indexer and return them as a block.
         """
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = None
-        else:
-            fill_value = fill_tuple[0]
 
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
@@ -2116,21 +2115,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(self, na_rep=None, date_format=None, quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        i8values = self.values.view("i8")
+    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
+        """ convert to our native types format """
+        dta = self.array_values()
 
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(values, date_format)
-
-        result = tslib.format_array_from_datetime(
-            i8values.ravel(),
-            tz=getattr(self.values, "tz", None),
-            format=fmt,
-            na_rep=na_rep,
-        ).reshape(i8values.shape)
+        result = dta._format_native_types(
+            na_rep=na_rep, date_format=date_format, **kwargs
+        )
         return np.atleast_2d(result)
 
     def set(self, locs, values):
@@ -2366,26 +2357,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, na_rep=None, quoting=None, **kwargs):
+    def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
-        values = self.values
-        mask = isna(values)
-
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = "NaT"
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
-
-        # FIXME:
-        # should use the formats.format.Timedelta64Formatter here
-        # to figure what format to pass to the Timedelta
-        # e.g. to not show the decimals say
-        rvalues.flat[imask] = np.array(
-            [Timedelta(val)._repr_base(format="all") for val in values.ravel()[imask]],
-            dtype=object,
-        )
-        return rvalues
+        tda = self.array_values()
+        return tda._format_native_types(na_rep, **kwargs)
 
 
 class BoolBlock(NumericBlock):
@@ -2761,18 +2736,9 @@ class CategoricalBlock(ExtensionBlock):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
-        if filter is None:  # replace was called on a series
-            result.values.replace(to_replace, value, inplace=True)
-            if convert:
-                return result.convert(numeric=False, copy=not inplace)
-            else:
-                return result
-        else:  # replace was called on a DataFrame
-            if not isna(value):
-                result.values.add_categories(value, inplace=True)
-            return super(CategoricalBlock, result).replace(
-                to_replace, value, inplace, filter, regex, convert
-            )
+
+        result.values.replace(to_replace, value, inplace=True)
+        return result
 
 
 # -----------------------------------------------------------------

@@ -798,14 +798,16 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
         with nogil:
             for i in range(n):
                 for j in range(k):
-                    counts[labels[i], j] += mask[i, j]
+                    if mask[i, j]:
+                        counts[labels[i], j] += 1
 
     else:  # axis == 1
         counts = np.zeros((n, max_bin), dtype='i8')
         with nogil:
             for i in range(n):
                 for j in range(k):
-                    counts[i, labels[j]] += mask[i, j]
+                    if mask[i, j]:
+                        counts[i, labels[j]] += 1
 
     return counts
 
@@ -1194,8 +1196,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default True
         Ignore NaN values when inferring the type.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------
