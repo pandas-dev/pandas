@@ -4801,7 +4801,7 @@ class DataFrame(NDFrame):
 
             # need to rewrap column in Series to apply key function
             if key is not None:
-                k = Series(k)
+                k = Series(k, name=by)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
