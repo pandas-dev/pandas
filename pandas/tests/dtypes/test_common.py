@@ -212,6 +212,7 @@ def test_is_categorical():
 
 
 def test_is_categorical_deprecation():
+    # GH#33385
     with tm.assert_produces_warning(FutureWarning):
         com.is_categorical([1, 2, 3])
 

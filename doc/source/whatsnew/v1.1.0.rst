@@ -269,7 +269,7 @@ Deprecations
   version 1.1. All other arguments should be given as keyword
   arguments (:issue:`27573`).
 
--
+- :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 
 .. ---------------------------------------------------------------------------
 
