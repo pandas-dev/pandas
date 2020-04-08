@@ -90,9 +90,14 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         # GH 18951: tz-naive to tz-aware
+        # GH 33401: Match the behavior of Series.astype
         idx = date_range("20170101", periods=4)
         result = idx.astype("datetime64[ns, US/Eastern]")
-        expected = date_range("20170101", periods=4, tz="US/Eastern")
+        expected = (
+            date_range("20170101", periods=4)
+            .tz_localize("UTC")
+            .tz_convert("US/Eastern")
+        )
         tm.assert_index_equal(result, expected)
 
     def test_astype_str_compat(self):
@@ -321,3 +326,13 @@ class TestAstype:
         result = obj._data.astype(bool)
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_astype_tz_dtype_utc_localization(self):
+        # GH 33401
+        result = pd.Index([pd.Timestamp("2020-01-01 15:00")]).astype(
+            "datetime64[ns, US/Eastern]"
+        )
+        expected = pd.Index([pd.Timestamp("2020-01-01 10:00")]).tz_localize(
+            "US/Eastern"
+        )
+        tm.assert_index_equal(result, expected)

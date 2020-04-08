@@ -400,7 +400,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``infer_datetime_format=True`` where timezone names (e.g. ``UTC``) would not be parsed correctly (:issue:`33133`)
--
+- Bug in :func:`DatetimeIndex.astype` with a ``datetime64[ns, tz]`` dtype where the data was not localized to UTC first (:issue:`33401`)
 
 
 Numeric

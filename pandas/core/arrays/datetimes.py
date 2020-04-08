@@ -586,7 +586,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             # GH#18951: datetime64_ns dtype but not equal means different tz
             new_tz = getattr(dtype, "tz", None)
             if getattr(self.dtype, "tz", None) is None:
-                return self.tz_localize(new_tz)
+                # GH 33401: Match the behavior of Series.astype
+                return self.tz_localize(timezones.UTC).tz_convert(new_tz)
             result = self.tz_convert(new_tz)
             if copy:
                 result = result.copy()
