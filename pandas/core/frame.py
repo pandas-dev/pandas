@@ -6681,7 +6681,7 @@ Wild         185.0
         Series.diff,
         klass="Dataframe",
         extra_params="axis : {0 or 'index', 1 or 'columns'}, default 0\n    "
-        "Take difference over rows (0) or columns (1).",
+        "Take difference over rows (0) or columns (1).\n",
         other_klass="Series",
         examples="""Difference with previous row
 

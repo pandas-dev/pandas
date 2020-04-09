@@ -2345,7 +2345,6 @@ dtype: float64""",
             Periods to shift for calculating difference, accepts negative
             values.
         {extra_params}
-
         Returns
         -------
         {klass}
