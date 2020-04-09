@@ -661,7 +661,7 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False, check_less_precise=True)
+    tm.assert_series_equal(result, expected, check_exact=False)
 
 
 def test_nsmallest():
@@ -1519,6 +1519,30 @@ def test_quantile_missing_group_values_correct_results():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([1, 0, None] * 2, dtype="Int64"),
+        pd.array([True, False, None] * 2, dtype="boolean"),
+    ],
+)
+@pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
+def test_groupby_quantile_nullable_array(values, q):
+    # https://github.com/pandas-dev/pandas/issues/33136
+    df = pd.DataFrame({"a": ["x"] * 3 + ["y"] * 3, "b": values})
+    result = df.groupby("a")["b"].quantile(q)
+
+    if isinstance(q, list):
+        idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
+        true_quantiles = [0.0, 0.5, 1.0]
+    else:
+        idx = pd.Index(["x", "y"], name="a")
+        true_quantiles = [0.5]
+
+    expected = pd.Series(true_quantiles * 2, index=idx, name="b")
+    tm.assert_series_equal(result, expected)
+
+
 # pipe
 # --------------------------------
 
@@ -1605,3 +1629,34 @@ def test_groupby_mean_no_overflow():
         }
     )
     assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)

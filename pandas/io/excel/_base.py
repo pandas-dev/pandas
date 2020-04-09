@@ -366,6 +366,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def load_workbook(self, filepath_or_buffer):
         pass
 
+    def close(self):
+        pass
+
     @property
     @abc.abstractmethod
     def sheet_names(self):
@@ -895,14 +898,7 @@ class ExcelFile:
 
     def close(self):
         """close io if necessary"""
-        if self.engine == "openpyxl":
-            # https://stackoverflow.com/questions/31416842/
-            #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-            wb = self.book
-            wb._archive.close()
-
-        if hasattr(self.io, "close"):
-            self.io.close()
+        self._reader.close()
 
     def __enter__(self):
         return self

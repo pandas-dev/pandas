@@ -31,9 +31,11 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 from pandas._typing import FrameOrSeries
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
+    maybe_cast_result,
+    maybe_cast_result_dtype,
     maybe_convert_objects,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
@@ -49,7 +51,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
@@ -149,7 +151,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 
 
 @pin_whitelisted_properties(Series, base.series_apply_whitelist)
-class SeriesGroupBy(GroupBy):
+class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -526,7 +528,7 @@ class SeriesGroupBy(GroupBy):
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
-            out = self._try_cast(out, self.obj)
+            out = maybe_cast_result(out, self.obj, how=func_nm)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -631,7 +633,7 @@ class SeriesGroupBy(GroupBy):
         result = Series(res, index=ri, name=self._selection_name)
         return self._reindex_output(result, fill_value=0)
 
-    @Appender(Series.describe.__doc__)
+    @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
@@ -813,7 +815,7 @@ class SeriesGroupBy(GroupBy):
 
 
 @pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
-class DataFrameGroupBy(GroupBy):
+class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
@@ -955,9 +957,11 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 else:
-                    result.columns = Index(
-                        result.columns.levels[0], name=self._selected_obj.columns.name
-                    )
+                    # select everything except for the last level, which is the one
+                    # containing the name of the function(s), see GH 32040
+                    result.columns = result.columns.rename(
+                        [self._selected_obj.columns.name] * result.columns.nlevels
+                    ).droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1053,7 +1057,7 @@ class DataFrameGroupBy(GroupBy):
                 else:
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
-                    if len(result._data.blocks) != 1:
+                    if len(result._mgr.blocks) != 1:
                         # We've split an object block! Everything we've assumed
                         # about a single block input returning a single block output
                         # is a lie. To keep the code-path for the typical non-split case
@@ -1062,16 +1066,18 @@ class DataFrameGroupBy(GroupBy):
                         split_frames.append(result)
                         continue
 
-                    assert len(result._data.blocks) == 1
-                    result = result._data.blocks[0].values
+                    assert len(result._mgr.blocks) == 1
+                    result = result._mgr.blocks[0].values
                     if isinstance(result, np.ndarray) and result.ndim == 1:
                         result = result.reshape(1, -1)
 
             assert not isinstance(result, DataFrame)
 
             if result is not no_result:
-                # see if we can cast the block back to the original dtype
-                result = maybe_downcast_numeric(result, block.dtype)
+                # see if we can cast the block to the desired dtype
+                # this may not be the original dtype
+                dtype = maybe_cast_result_dtype(block.dtype, how)
+                result = maybe_downcast_numeric(result, dtype)
 
                 if block.is_extension and isinstance(result, np.ndarray):
                     # e.g. block.values was an IntegerArray
@@ -1083,7 +1089,7 @@ class DataFrameGroupBy(GroupBy):
                         result = type(block.values)._from_sequence(
                             result.ravel(), dtype=block.values.dtype
                         )
-                    except ValueError:
+                    except (ValueError, TypeError):
                         # reshape to be valid for non-Extension Block
                         result = result.reshape(1, -1)
 
@@ -1101,7 +1107,7 @@ class DataFrameGroupBy(GroupBy):
                 assert len(locs) == result.shape[1]
                 for i, loc in enumerate(locs):
                     new_items.append(np.array([loc], dtype=locs.dtype))
-                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
+                    agg_blocks.append(result.iloc[:, [i]]._mgr.blocks[0])
 
         # reset the locs in the blocks to correspond to our
         # current ordering
@@ -1173,7 +1179,7 @@ class DataFrameGroupBy(GroupBy):
 
             else:
                 if cast:
-                    result[item] = self._try_cast(result[item], data)
+                    result[item] = maybe_cast_result(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1456,9 +1462,9 @@ class DataFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
             # TODO: we have no test cases that get here with EA dtypes;
-            #  try_cast may not be needed if EAs never get here
+            #  maybe_cast_result may not be needed if EAs never get here
             if cast:
-                res = self._try_cast(res, obj.iloc[:, i])
+                res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
 
         return DataFrame._from_arrays(output, columns=result.columns, index=obj.index)
@@ -1645,9 +1651,9 @@ class DataFrameGroupBy(GroupBy):
     def _get_data_to_aggregate(self) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data
+            return obj.T._mgr
         else:
-            return obj._data
+            return obj._mgr
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
@@ -1772,10 +1778,8 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        vals = (
-            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
-            for blk in data.blocks
-        )
+        # TODO(2DEA): reshape would not be necessary with 2D EAs
+        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
         locs = (blk.mgr_locs for blk in data.blocks)
 
         counted = (

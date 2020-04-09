@@ -5,6 +5,7 @@ and Index.__new__.
 These should not depend on core.internals.
 """
 
+from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
@@ -186,7 +187,7 @@ def array(
 
     >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
     <TimedeltaArray>
-    ['01:00:00', '02:00:00']
+    ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
 
     Examples
@@ -446,6 +447,8 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    elif isinstance(data, abc.Set):
+        raise TypeError("Set type is unordered")
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 

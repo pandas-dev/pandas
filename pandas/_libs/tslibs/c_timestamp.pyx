@@ -253,6 +253,13 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 + other
+                return np.asarray(
+                    [self + other[n] for n in range(len(other))],
+                    dtype=object,
+                )
 
         # index/series like
         elif hasattr(other, '_typ'):
@@ -275,6 +282,13 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 - other
+                return np.asarray(
+                    [self - other[n] for n in range(len(other))],
+                    dtype=object,
+                )
 
         typ = getattr(other, '_typ', None)
         if typ is not None:
@@ -286,6 +300,10 @@ cdef class _Timestamp(datetime):
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
+            # both_timestamps is to determine whether Timedelta(self - other)
+            # should raise the OOB error, or fall back returning a timedelta.
+            both_timestamps = (isinstance(other, _Timestamp) and
+                               isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
                 other = type(self)(other)
             else:
@@ -301,7 +319,14 @@ cdef class _Timestamp(datetime):
             from pandas._libs.tslibs.timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime):
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                if isinstance(other, _Timestamp):
+                    if both_timestamps:
+                        raise OutOfBoundsDatetime(
+                            "Result is too large for pandas.Timedelta. Convert inputs "
+                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                            "before subtracting."
+                        ) from err
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually

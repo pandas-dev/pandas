@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_interval_dtype,
-    is_list_like,
     is_number,
     is_numeric_dtype,
     is_period_dtype,
@@ -418,10 +417,7 @@ def rands_array(nchars, size, dtype="O"):
         .view((np.str_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def randu_array(nchars, size, dtype="O"):
@@ -433,10 +429,7 @@ def randu_array(nchars, size, dtype="O"):
         .view((np.unicode_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def rands(nchars):
@@ -447,16 +440,6 @@ def rands(nchars):
 
     """
     return "".join(np.random.choice(RANDS_CHARS, nchars))
-
-
-def randu(nchars):
-    """
-    Generate one random unicode string.
-
-    See `randu_array` if you want to create an array of random unicode strings.
-
-    """
-    return "".join(np.random.choice(RANDU_CHARS, nchars))
 
 
 def close(fignum=None):
@@ -725,10 +708,7 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             # return Index as it is to include values in the error message
             return x
 
-        try:
-            return type(x).__name__
-        except AttributeError:
-            return repr(type(x))
+        return type(x).__name__
 
     if exact == "equiv":
         if type(left) != type(right):
@@ -844,10 +824,14 @@ def assert_categorical_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
         )
     else:
+        try:
+            lc = left.categories.sort_values()
+            rc = right.categories.sort_values()
+        except TypeError:
+            # e.g. '<' not supported between instances of 'int' and 'str'
+            lc, rc = left.categories, right.categories
         assert_index_equal(
-            left.categories.sort_values(),
-            right.categories.sort_values(),
-            obj=f"{obj}.categories",
+            lc, rc, obj=f"{obj}.categories",
         )
         assert_index_equal(
             left.categories.take(left.codes),
@@ -904,8 +888,15 @@ def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None):
+def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
     __tracebackhide__ = True
+
+    msg = f"""{obj} are different
+
+{message}"""
+
+    if isinstance(index_values, np.ndarray):
+        msg += f"\n[index]: {pprint_thing(index_values)}"
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
@@ -917,9 +908,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    msg = f"""{obj} are different
-
-{message}
+    msg += f"""
 [left]:  {left}
 [right]: {right}"""
 
@@ -937,6 +926,7 @@ def assert_numpy_array_equal(
     err_msg=None,
     check_same=None,
     obj="numpy array",
+    index_values=None,
 ):
     """
     Check that 'np.ndarray' is equivalent.
@@ -956,6 +946,8 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    index_values : numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
     """
     __tracebackhide__ = True
 
@@ -993,7 +985,7 @@ def assert_numpy_array_equal(
 
             diff = diff * 100.0 / left.size
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right)
+            raise_assert_detail(obj, msg, left, right, index_values=index_values)
 
         raise AssertionError(err_msg)
 
@@ -1038,7 +1030,8 @@ def assert_extension_array_equal(
 
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
-        assert_numpy_array_equal(left.asi8, right.asi8)
+        # np.asarray for case where we have a np.MaskedArray
+        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
         return
 
     left_na = np.asarray(left.isna())
@@ -1065,6 +1058,7 @@ def assert_series_equal(
     right,
     check_dtype=True,
     check_index_type="equiv",
+    check_series_type=True,
     check_less_precise=False,
     check_names=True,
     check_exact=False,
@@ -1085,6 +1079,8 @@ def assert_series_equal(
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
+    check_series_type : bool, default True
+         Whether to check the Series class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
@@ -1116,10 +1112,8 @@ def assert_series_equal(
     # instance validation
     _check_isinstance(left, right, Series)
 
-    # TODO: There are some tests using rhs is sparse
-    # lhs is dense. Should use assert_class_equal in future
-    assert isinstance(left, type(right))
-    # assert_class_equal(left, right, obj=obj)
+    if check_series_type:
+        assert_class_equal(left, right, obj=obj)
 
     # length comparison
     if len(left) != len(right):
@@ -1157,7 +1151,11 @@ def assert_series_equal(
             raise AssertionError("check_exact may only be used with numeric Series")
 
         assert_numpy_array_equal(
-            left._values, right._values, check_dtype=check_dtype, obj=str(obj)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1174,25 +1172,29 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) or is_interval_dtype(right.dtype):
+    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
-    elif is_datetime64tz_dtype(left.dtype):
-        # .values is an ndarray, but ._values is the ExtensionArray.
-        assert_extension_array_equal(left._values, right._values)
-    elif (
-        is_extension_array_dtype(left)
-        and not is_categorical_dtype(left)
-        and is_extension_array_dtype(right)
-        and not is_categorical_dtype(right)
-    ):
-        assert_extension_array_equal(left.array, right.array)
-    else:
+    elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
         _testing.assert_almost_equal(
-            left._internal_get_values(),
-            right._internal_get_values(),
+            left._values,
+            right._values,
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
+        )
+    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
+        assert_extension_array_equal(left._values, right._values)
+    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+        # DatetimeArray or TimedeltaArray
+        assert_extension_array_equal(left._values, right._values)
+    else:
+        _testing.assert_almost_equal(
+            left._values,
+            right._values,
+            check_less_precise=check_less_precise,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index_values=np.asarray(left.index),
         )
 
     # metadata comparison
@@ -1481,14 +1483,7 @@ def to_array(obj):
 # Sparse
 
 
-def assert_sp_array_equal(
-    left,
-    right,
-    check_dtype=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-):
+def assert_sp_array_equal(left, right):
     """
     Check that the left and right SparseArray are equal.
 
@@ -1496,38 +1491,17 @@ def assert_sp_array_equal(
     ----------
     left : SparseArray
     right : SparseArray
-    check_dtype : bool, default True
-        Whether to check the data dtype is identical.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
     """
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
-    assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
+    assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
     assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
     assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
-    if not check_kind:
-        left_index = left.sp_index.to_block_index()
-        right_index = right.sp_index.to_block_index()
-    else:
-        left_index = left.sp_index
-        right_index = right.sp_index
-
-    if consolidate_block_indices and left.kind == "block":
-        # we'll probably remove this hack...
-        left_index = left_index.to_int_index().to_block_index()
-        right_index = right_index.to_int_index().to_block_index()
+    left_index = left.sp_index
+    right_index = right.sp_index
 
     if not left_index.equals(right_index):
         raise_assert_detail(
@@ -1537,11 +1511,9 @@ def assert_sp_array_equal(
         # Just ensure a
         pass
 
-    if check_fill_value:
-        assert_attr_equal("fill_value", left, right)
-    if check_dtype:
-        assert_attr_equal("dtype", left, right)
-    assert_numpy_array_equal(left.to_dense(), right.to_dense(), check_dtype=check_dtype)
+    assert_attr_equal("fill_value", left, right)
+    assert_attr_equal("dtype", left, right)
+    assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
 # -----------------------------------------------------------------------------
@@ -1722,32 +1694,6 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
     if df.index[-1] == end:
         df = df.iloc[:-1]
     return df
-
-
-def all_index_generator(k=10):
-    """
-    Generator which can be iterated over to get instances of all the various
-    index classes.
-
-    Parameters
-    ----------
-    k: length of each of the index instances
-    """
-    all_make_index_funcs = [
-        makeIntIndex,
-        makeFloatIndex,
-        makeStringIndex,
-        makeUnicodeIndex,
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-        makeBoolIndex,
-        makeRangeIndex,
-        makeIntervalIndex,
-        makeCategoricalIndex,
-    ]
-    for make_index_func in all_make_index_funcs:
-        yield make_index_func(k=k)
 
 
 def index_subclass_makers_generator():
@@ -2093,53 +2039,6 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingCustomDataframe(
-    nrows,
-    ncols,
-    density=0.9,
-    random_state=None,
-    c_idx_names=True,
-    r_idx_names=True,
-    c_idx_nlevels=1,
-    r_idx_nlevels=1,
-    data_gen_f=None,
-    c_ndupe_l=None,
-    r_ndupe_l=None,
-    dtype=None,
-    c_idx_type=None,
-    r_idx_type=None,
-):
-    """
-    Parameters
-    ----------
-    Density : float, optional
-        Float in (0, 1) that gives the percentage of non-missing numbers in
-        the DataFrame.
-    random_state : {np.random.RandomState, int}, optional
-        Random number generator or random seed.
-
-    See makeCustomDataframe for descriptions of the rest of the parameters.
-    """
-    df = makeCustomDataframe(
-        nrows,
-        ncols,
-        c_idx_names=c_idx_names,
-        r_idx_names=r_idx_names,
-        c_idx_nlevels=c_idx_nlevels,
-        r_idx_nlevels=r_idx_nlevels,
-        data_gen_f=data_gen_f,
-        c_ndupe_l=c_ndupe_l,
-        r_ndupe_l=r_ndupe_l,
-        dtype=dtype,
-        c_idx_type=c_idx_type,
-        r_idx_type=r_idx_type,
-    )
-
-    i, j = _create_missing_idx(nrows, ncols, density, random_state)
-    df.values[i, j] = np.nan
-    return df
-
-
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
@@ -2294,7 +2193,7 @@ def network(
 
     Notes
     -----
-    * ``raise_on_error`` supercedes ``check_before_test``
+    * ``raise_on_error`` supersedes ``check_before_test``
 
     Returns
     -------
@@ -2387,7 +2286,6 @@ with_connectivity_check = network
 def assert_produces_warning(
     expected_warning=Warning,
     filter_level="always",
-    clear=None,
     check_stacklevel=True,
     raise_on_extra_warnings=True,
 ):
@@ -2417,12 +2315,6 @@ def assert_produces_warning(
           from each module
         * "once" - print the warning the first time it is generated
 
-    clear : str, default None
-        If not ``None`` then remove any previously raised warnings from
-        the ``__warningsregistry__`` to ensure that no warning messages are
-        suppressed by this context manager. If ``None`` is specified,
-        the ``__warningsregistry__`` keeps track of which warnings have been
-        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
@@ -2454,19 +2346,6 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        if clear is not None:
-            # make sure that we are clearing these warnings
-            # if they have happened before
-            # to guarantee that we will catch them
-            if not is_list_like(clear):
-                clear = [clear]
-            for m in clear:
-                try:
-                    m.__warningregistry__.clear()
-                except AttributeError:
-                    # module may not have __warningregistry__
-                    pass
 
         saw_warning = False
         warnings.simplefilter(filter_level)
@@ -2783,3 +2662,34 @@ def external_error_raised(
     import pytest
 
     return pytest.raises(expected_exception, match=None)
+
+
+cython_table = pd.core.base.SelectionMixin._cython_table.items()
+
+
+def get_cython_table_params(ndframe, func_names_and_expected):
+    """
+    Combine frame, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    ndframe : DataFrame or Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value.
+
+    Returns
+    -------
+    list
+        List of three items (DataFrame, function, expected result)
+    """
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((ndframe, func_name, expected))
+        results += [
+            (ndframe, func, expected)
+            for func, name in cython_table
+            if name == func_name
+        ]
+    return results

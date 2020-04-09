@@ -13,8 +13,6 @@ import pytest
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1057,18 +1055,7 @@ class TestHDFStore:
 
         s_nan = ser.replace(nan_rep, np.nan)
 
-        if is_categorical_dtype(s_nan):
-            assert is_categorical_dtype(retr)
-            tm.assert_series_equal(
-                s_nan, retr, check_dtype=False, check_categorical=False
-            )
-        else:
-            tm.assert_series_equal(s_nan, retr)
-
-        # FIXME: don't leave commented-out
-        # fails:
-        # for x in examples:
-        #     roundtrip(s, nan_rep=b'\xf8\xfc')
+        tm.assert_series_equal(s_nan, retr)
 
     def test_append_some_nans(self, setup_path):
 
@@ -1230,14 +1217,14 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
@@ -2311,9 +2298,7 @@ class TestHDFStore:
         with catch_warnings(record=True):
             values = np.random.randn(2)
 
-            func = lambda l, r: tm.assert_series_equal(
-                l, r, check_dtype=True, check_index_type=True
-            )
+            func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
 
         with catch_warnings(record=True):
             ser = Series(values, [0, "y"])
@@ -2397,7 +2382,7 @@ class TestHDFStore:
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
             recons = store["df"]
-            assert recons._data.is_consolidated()
+            assert recons._mgr.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
