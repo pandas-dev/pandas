@@ -526,8 +526,12 @@ class _OpenpyxlReader(_BaseExcelReader):
         return cell.value
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, header: Union[int, Sequence[int]],
-        skiprows: Union[int, Sequence[int]], nrows: int
+        self,
+        sheet,
+        convert_float: bool,
+        header: Union[int, Sequence[int]],
+        skiprows: Union[int, Sequence[int]],
+        nrows: int,
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 

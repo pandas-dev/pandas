@@ -50,8 +50,12 @@ class _XlrdReader(_BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet, convert_float, header: Union[int, Sequence[int]],
-        skiprows: Union[int, Sequence[int]], nrows: int
+        self,
+        sheet,
+        convert_float,
+        header: Union[int, Sequence[int]],
+        skiprows: Union[int, Sequence[int]],
+        nrows: int,
     ) -> List[List[Scalar]]:
         from xlrd import (
             xldate,
