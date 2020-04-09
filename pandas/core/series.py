@@ -1004,8 +1004,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except (KeyError, ValueError):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
+                # positional setter
                 values[key] = value
             else:
+                # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
         except TypeError as e:
@@ -1017,9 +1019,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
-                    return
                 except InvalidIndexError:
                     self._set_values(key.astype(np.bool_), value)
+                return
 
             else:
                 self._set_with(key, value)
@@ -1039,20 +1041,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
             return self._set_values(indexer, value)
 
-        elif is_scalar(key) and not is_integer(key) and key not in self.index:
-            # GH#12862 adding an new key to the Series
-            # Note: have to exclude integers because that is ambiguously
-            #  position-based
-            self.loc[key] = value
-            return
-
         else:
-            if isinstance(key, tuple):
-                try:
-                    # TODO: no test cases that get here
-                    self._set_values(key, value)
-                except Exception:
-                    pass
+            assert not isinstance(key, tuple)
 
             if is_scalar(key):
                 key = [key]
@@ -1069,7 +1059,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if self.index.inferred_type == "integer":
                     self._set_labels(key, value)
                 else:
-                    return self._set_values(key, value)
+                    self._set_values(key, value)
             else:
                 self._set_labels(key, value)
 
