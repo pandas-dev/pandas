@@ -4,7 +4,7 @@ channels:
 dependencies:
   # required
   - numpy>=1.15
-  - python=3.7
+  - python=3
   - python-dateutil>=2.6.1
   - pytz
 
