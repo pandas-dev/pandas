@@ -6644,41 +6644,6 @@ Overflow for input dtype
 0    NaN
 1  255.0""")
     def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a DataFrame element compared with another
-        element in the DataFrame (default is the element in the same column
-        of the previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Take difference over rows (0) or columns (1).
-
-        Returns
-        -------
-        DataFrame
-
-        See Also
-        --------
-        Series.diff: First discrete difference for a Series.
-        DataFrame.pct_change: Percent change over given number of periods.
-        DataFrame.shift: Shift index by desired number of periods with an
-            optional time freq.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-
-        Examples
-        --------
-        Difference with previous row
->>>>>>> master
 
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._data.diff(n=periods, axis=bm_axis)
