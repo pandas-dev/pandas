@@ -905,6 +905,7 @@ class TestTimedeltaComparison:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_td64_ndarray(self):
+        # GG#33441
         arr = np.arange(5).astype("timedelta64[ns]")
         td = pd.Timedelta(arr[1])
 
