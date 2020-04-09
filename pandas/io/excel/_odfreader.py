@@ -1,4 +1,4 @@
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 from pandas._typing import FilePathOrBuffer, Scalar, Union
 from pandas.compat._optional import import_optional_dependency
@@ -68,9 +68,9 @@ class _ODFReader(_BaseExcelReader):
         self,
         sheet,
         convert_float: bool,
-        header: Union[int, Sequence[int]],
-        skiprows: Union[int, Sequence[int]],
-        nrows: int,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
     ) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
