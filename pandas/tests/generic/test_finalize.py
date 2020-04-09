@@ -13,11 +13,10 @@ import pandas as pd
 # * Binary methods (mul, div, etc.)
 # * Binary outputs (align, etc.)
 # * top-level methods (concat, merge, get_dummies, etc.)
-# * groupby
 # * window
 # * cumulative reductions
 
-not_implemented_mark = pytest.mark.xfail(reason="__finalize__ not implemented")
+not_implemented_mark = pytest.mark.xfail(reason="not implemented")
 
 mi = pd.MultiIndex.from_product([["a", "b"], [0, 1]], names=["A", "B"])
 
@@ -138,7 +137,7 @@ _all_methods = [
         (
             pd.DataFrame,
             frame_data,
-            operator.methodcaller("combine", pd.DataFrame(*frame_data)),
+            operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
         ),
         marks=not_implemented_mark,
     ),
@@ -772,6 +771,8 @@ def test_categorical_accessor(method):
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
         lambda x: x.agg(["sum", "count"]),
+        lambda x: x.transform(lambda y: y),
+        lambda x: x.apply(lambda y: y),
     ],
 )
 @not_implemented_mark
