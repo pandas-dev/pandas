@@ -73,6 +73,10 @@ class TestFeather:
                 "dtns": pd.date_range("20130101", periods=3, freq="ns"),
             }
         )
+        if pyarrow_version >= LooseVersion("0.16.1.dev"):
+            df["periods"] = pd.period_range("2013", freq="M", periods=3)
+            df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
+            df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
         self.check_round_trip(df)
