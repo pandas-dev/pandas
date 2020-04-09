@@ -1,5 +1,4 @@
 from copy import copy
-from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
 from cpython.ref cimport Py_INCREF
@@ -177,6 +176,8 @@ cdef class _BaseGrouper:
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ._data._block, 'mgr_locs',
+                               slice(len(vslider.buf)))
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
 

@@ -11,7 +11,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import Label
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -141,7 +141,7 @@ class RangeIndex(Int64Index):
 
         result._range = values
         result.name = name
-
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -342,7 +342,7 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
-    @Appender(Int64Index.get_loc.__doc__)
+    @doc(Int64Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None and tolerance is None:
             if is_integer(key) or (is_float(key) and key.is_integer()):
@@ -386,16 +386,18 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
-    @Appender(Int64Index._shallow_copy.__doc__)
+    @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
 
         if values is None:
-            return self._simple_new(self._range, name=name)
+            result = self._simple_new(self._range, name=name)
+            result._cache = self._cache.copy()
+            return result
         else:
             return Int64Index._simple_new(values, name=name)
 
-    @Appender(Int64Index.copy.__doc__)
+    @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
         self._validate_dtype(dtype)
         if name is None:
@@ -617,7 +619,7 @@ class RangeIndex(Int64Index):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
-    @Appender(Int64Index.join.__doc__)
+    @doc(Int64Index.join)
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         if how == "outer" and self is not other:
             # note: could return RangeIndex in more circumstances

@@ -13,7 +13,8 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -271,6 +272,13 @@ class StringArray(PandasArray):
             if copy:
                 return self.copy()
             return self
+        elif isinstance(dtype, _IntegerDtype):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype.numpy_dtype)
+            return IntegerArray(values, mask, copy=False)
+
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -281,7 +289,7 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    # Overrride parent because we have different return types.
+    # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
