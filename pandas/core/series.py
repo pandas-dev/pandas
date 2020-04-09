@@ -2292,6 +2292,7 @@ Name: Max Speed, dtype: float64
         extra_params="",
         other_klass="DataFrame",
         examples="""Difference with previous row
+
 >>> s = pd.Series([1, 1, 2, 3, 5, 8])
 >>> s.diff()
 0    NaN
@@ -2303,6 +2304,7 @@ Name: Max Speed, dtype: float64
 dtype: float64
 
 Difference with 3rd previous row
+
 >>> s.diff(periods=3)
 0    NaN
 1    NaN
@@ -2313,6 +2315,7 @@ Difference with 3rd previous row
 dtype: float64
 
 Difference with following row
+
 >>> s.diff(periods=-1)
 0    0.0
 1   -1.0
@@ -2323,11 +2326,13 @@ Difference with following row
 dtype: float64
 
 Overflow for input dtype
+
 >>> s = pd.Series([1, 0], dtype=np.uint8)
 >>> s.diff()
 0      NaN
 1    255.0
-dtype: float64""")
+dtype: float64""",
+    )
     def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.

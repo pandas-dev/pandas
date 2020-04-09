@@ -6587,6 +6587,7 @@ Wild         185.0
         "Take difference over rows (0) or columns (1).",
         other_klass="Series",
         examples="""Difference with previous row
+
 >>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
 ...                    'b': [1, 1, 2, 3, 5, 8],
 ...                    'c': [1, 4, 9, 16, 25, 36]})
@@ -6598,6 +6599,7 @@ Wild         185.0
 3  4  3  16
 4  5  5  25
 5  6  8  36
+
 >>> df.diff()
      a    b     c
 0  NaN  NaN   NaN
@@ -6608,6 +6610,7 @@ Wild         185.0
 5  1.0  3.0  11.0
 
 Difference with previous column
+
 >>> df.diff(axis=1)
     a    b     c
 0 NaN  0.0   0.0
@@ -6618,6 +6621,7 @@ Difference with previous column
 5 NaN  2.0  28.0
 
 Difference with 3rd previous row
+
 >>> df.diff(periods=3)
      a    b     c
 0  NaN  NaN   NaN
@@ -6628,6 +6632,7 @@ Difference with 3rd previous row
 5  3.0  6.0  27.0
 
 Difference with following row
+
 >>> df.diff(periods=-1)
      a    b     c
 0 -1.0  0.0  -3.0
@@ -6635,14 +6640,16 @@ Difference with following row
 2 -1.0 -1.0  -7.0
 3 -1.0 -2.0  -9.0
 4 -1.0 -3.0 -11.0
-5  NaN  NaN   NaND
+5  NaN  NaN   NaN
 
 Overflow for input dtype
+
 >>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
 >>> df.diff()
        a
 0    NaN
-1  255.0""")
+1  255.0""",
+    )
     def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
 
         bm_axis = self._get_block_manager_axis(axis)
