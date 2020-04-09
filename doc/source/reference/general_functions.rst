@@ -13,7 +13,6 @@ Data manipulations
    :toctree: api/
 
    melt
-   lreshape
    pivot
    pivot_table
    crosstab
@@ -26,6 +25,7 @@ Data manipulations
    get_dummies
    factorize
    unique
+   lreshape
    wide_to_long
 
 Top-level missing data
