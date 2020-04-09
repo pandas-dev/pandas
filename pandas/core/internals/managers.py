@@ -7,14 +7,13 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
+from pandas._libs import internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
-    maybe_convert_objects,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -33,6 +32,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
@@ -626,11 +626,8 @@ class BlockManager(PandasObject):
             """
             if isna(s):
                 return isna(values)
-            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
 
-                return _compare_or_regex_search(
-                    maybe_convert_objects(values), s.asm8, regex
-                )
+            s = com.maybe_box_datetimelike(s)
             return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for s in src_list]
