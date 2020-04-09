@@ -293,6 +293,8 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
+
+            assert spec.defaults is not None  # TODO: this might be a bug
             allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
