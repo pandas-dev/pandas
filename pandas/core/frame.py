@@ -4740,6 +4740,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         Series
+            Boolean series for each duplicated rows.
+
+        See Also
+        --------
+        Index.duplicated : Equivalent method on index.
+        Series.duplicated : Equivalent method on series.
+        Series.drop_duplicates : Remove duplicate values from series.
+        DataFrame.drop_duplicates : Remove duplicate values from series.
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
