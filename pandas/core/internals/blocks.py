@@ -565,7 +565,11 @@ class Block(PandasObject):
         # force the copy here
         if self.is_extension:
             # TODO: Should we try/except this astype?
-            values = self.values.astype(dtype)
+            if is_extension_array_dtype(dtype):
+                arr_type = dtype.construct_array_type()
+                values = arr_type._from_sequence(self.values, dtype=dtype)
+            else:
+                values = self.values.astype(dtype)
         else:
             if issubclass(dtype.type, str):
 
