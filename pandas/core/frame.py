@@ -6071,6 +6071,8 @@ Wild         185.0
         --------
         DataFrame.pivot : Pivot without aggregation that can handle
             non-numeric data.
+        DataFrame.melt: Unpivot a DataFrame from wide to long format,
+            optionally leaving identifiers set.
         lreshape : Reshape wide-format data to format. Generalized inverse of
             DataFrame.pivot.
         wide_to_long : Wide panel to long format. Less flexible but more
