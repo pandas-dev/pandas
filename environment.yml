@@ -12,7 +12,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.29.13
+  - cython>=0.29.16
 
   # code checks
   - black=19.10b0
@@ -86,7 +86,7 @@ dependencies:
   - lxml
 
   # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
-  - openpyxl<=3.0.1
+  - openpyxl
   - xlrd
   - xlsxwriter
   - xlwt
