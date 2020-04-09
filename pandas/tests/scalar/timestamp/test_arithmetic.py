@@ -6,6 +6,7 @@ import pytest
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import Timedelta, Timestamp
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
@@ -90,7 +91,8 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            with pytest.raises(TypeError, match="subtraction must have"):
+            msg = "subtraction must have"
+            with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
@@ -176,28 +178,6 @@ class TestTimestampArithmetic:
         valdiff = result.value - ts.value
         assert valdiff == expected_difference
 
-    @pytest.mark.parametrize("ts", [Timestamp.now(), Timestamp.now("utc")])
-    @pytest.mark.parametrize(
-        "other",
-        [
-            1,
-            np.int64(1),
-            np.array([1, 2], dtype=np.int32),
-            np.array([3, 4], dtype=np.uint64),
-        ],
-    )
-    def test_add_int_no_freq_raises(self, ts, other):
-        msg = "Addition/subtraction of integers and integer-arrays"
-        with pytest.raises(TypeError, match=msg):
-            ts + other
-        with pytest.raises(TypeError, match=msg):
-            other + ts
-
-        with pytest.raises(TypeError, match=msg):
-            ts - other
-        with pytest.raises(TypeError):
-            other - ts
-
     @pytest.mark.parametrize(
         "ts",
         [
@@ -215,14 +195,64 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_with_freq(self, ts, other):
-
-        with pytest.raises(TypeError):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             ts + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + ts
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts - other
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
+            other - ts
+
+    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    def test_addsub_m8ndarray(self, shape):
+        # GH#33296
+        ts = Timestamp("2020-04-04 15:45")
+        other = np.arange(6).astype("m8[h]").reshape(shape)
+
+        result = ts + other
+
+        ex_stamps = [ts + Timedelta(hours=n) for n in range(6)]
+        expected = np.array([x.asm8 for x in ex_stamps], dtype="M8[ns]").reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = other + ts
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ts - other
+        ex_stamps = [ts - Timedelta(hours=n) for n in range(6)]
+        expected = np.array([x.asm8 for x in ex_stamps], dtype="M8[ns]").reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
+        with pytest.raises(TypeError, match=msg):
+            other - ts
+
+    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    def test_addsub_m8ndarray_tzaware(self, shape):
+        # GH#33296
+        ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")
+
+        other = np.arange(6).astype("m8[h]").reshape(shape)
+
+        result = ts + other
+
+        ex_stamps = [ts + Timedelta(hours=n) for n in range(6)]
+        expected = np.array(ex_stamps).reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = other + ts
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ts - other
+        ex_stamps = [ts - Timedelta(hours=n) for n in range(6)]
+        expected = np.array(ex_stamps).reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
+        with pytest.raises(TypeError, match=msg):
             other - ts

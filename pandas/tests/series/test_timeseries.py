@@ -1,63 +1,12 @@
-from io import StringIO
-
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
-def _simple_ts(start, end, freq="D"):
-    rng = date_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
-
-
-def assert_range_equal(left, right):
-    assert left.equals(right)
-    assert left.freq == right.freq
-    assert left.tz == right.tz
-
-
 class TestTimeSeries:
-    def test_autocorr(self, datetime_series):
-        # Just run the function
-        corr1 = datetime_series.autocorr()
-
-        # Now run it with the lag parameter
-        corr2 = datetime_series.autocorr(lag=1)
-
-        # corr() with lag needs Series of at least length 2
-        if len(datetime_series) <= 2:
-            assert np.isnan(corr1)
-            assert np.isnan(corr2)
-        else:
-            assert corr1 == corr2
-
-        # Choose a random lag between 1 and length of Series - 2
-        # and compare the result with the Series corr() function
-        n = 1 + np.random.randint(max(1, len(datetime_series) - 2))
-        corr1 = datetime_series.corr(datetime_series.shift(n))
-        corr2 = datetime_series.autocorr(lag=n)
-
-        # corr() with lag needs Series of at least length 2
-        if len(datetime_series) <= 2:
-            assert np.isnan(corr1)
-            assert np.isnan(corr2)
-        else:
-            assert corr1 == corr2
-
-    def test_mpl_compat_hack(self, datetime_series):
-
-        # This is currently failing because the test was relying on
-        # the DeprecationWarning coming through Index.__getitem__.
-        # We want to implement a warning specifically for Series.__getitem__
-        # at which point this will become a Deprecation/FutureWarning
-        with tm.assert_produces_warning(None):
-            # GH#30588 multi-dimensional indexing deprecated
-            result = datetime_series[:, np.newaxis]
-        expected = datetime_series.values[:, np.newaxis]
-        tm.assert_almost_equal(result, expected)
-
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
@@ -72,19 +21,12 @@ class TestTimeSeries:
 
         masked = rng[mask]
         expected = rng[10:20]
-        assert expected.freq is not None
-        assert_range_equal(masked, expected)
+        assert expected.freq == rng.freq
+        tm.assert_index_equal(masked, expected)
 
         mask[22] = True
         masked = rng[mask]
         assert masked.freq is None
-
-    def test_series_ctor_datetime64(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
-        dates = np.asarray(rng)
-
-        series = Series(dates)
-        assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
 
     def test_promote_datetime_date(self):
         rng = date_range("1/1/2000", periods=20)
@@ -122,15 +64,6 @@ class TestTimeSeries:
         expected = grouped.count()
 
         tm.assert_series_equal(result, expected)
-
-    def test_to_csv_numpy_16_bug(self):
-        frame = DataFrame({"a": date_range("1/1/2000", periods=10)})
-
-        buf = StringIO()
-        frame.to_csv(buf)
-
-        result = buf.getvalue()
-        assert "2000-01-01" in result
 
     def test_series_map_box_timedelta(self):
         # GH 11349
@@ -175,18 +108,25 @@ class TestTimeSeries:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    def test_asarray_object_dt64(self, tz):
+        ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
+
+        with tm.assert_produces_warning(None):
+            # Future behavior (for tzaware case) with no warning
+            result = np.asarray(ser, dtype=object)
+
+        expected = np.array(
+            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
         ser = pd.Series(pd.date_range("2000", periods=2))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         result = np.asarray(ser)
 
-        tm.assert_numpy_array_equal(result, expected)
-
-        # optionally, object
-        result = np.asarray(ser, dtype=object)
-
-        expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_asarray_tz_aware(self):
@@ -199,13 +139,5 @@ class TestTimeSeries:
 
         # Old behavior with no warning
         result = np.asarray(ser, dtype="M8[ns]")
-
-        tm.assert_numpy_array_equal(result, expected)
-
-        # Future behavior with no warning
-        expected = np.array(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
-        )
-        result = np.asarray(ser, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)

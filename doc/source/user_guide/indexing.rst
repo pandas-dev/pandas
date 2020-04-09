@@ -374,7 +374,7 @@ For getting values with a boolean array:
    df1.loc['a'] > 0
    df1.loc[:, df1.loc['a'] > 0]
 
-NA values in a boolean array propogate as ``False``:
+NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 

@@ -245,8 +245,6 @@ validate : str, optional
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-    .. versionadded:: 0.21.0
-
 Returns
 -------
 DataFrame
@@ -433,7 +431,7 @@ class DataFrame(NDFrame):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            data = data._data
+            data = data._mgr
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(
@@ -592,10 +590,10 @@ class DataFrame(NDFrame):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if self._data.any_extension_types:
-            return len({block.dtype for block in self._data.blocks}) == 1
+        if self._mgr.any_extension_types:
+            return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._data.is_mixed_type
+            return not self._mgr.is_mixed_type
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -839,7 +837,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        io.formats.style.Styler
+        io.formats.style.Styler : Helps style a DataFrame or Series according to the
+            data with HTML and CSS.
         """
         from pandas.io.formats.style import Styler
 
@@ -1065,7 +1064,7 @@ class DataFrame(NDFrame):
         -------
         Series or DataFrame
             If other is a Series, return the matrix product between self and
-            other as a Serie. If other is a DataFrame or a numpy.array, return
+            other as a Series. If other is a DataFrame or a numpy.array, return
             the matrix product of self and other in a DataFrame of a np.array.
 
         See Also
@@ -1337,8 +1336,6 @@ class DataFrame(NDFrame):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
-
-            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -2117,8 +2114,6 @@ class DataFrame(NDFrame):
         """
         Write a DataFrame to the binary parquet format.
 
-        .. versionadded:: 0.21.0
-
         This function writes the dataframe as a `parquet file
         <https://parquet.apache.org/>`_. You can choose different parquet
         backends, and have the option of compression. See
@@ -2300,7 +2295,7 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
-    @Appender(info.__doc__)
+    @doc(info)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ) -> None:
@@ -2520,7 +2515,7 @@ class DataFrame(NDFrame):
                 new_values, index=self.columns, columns=self.index
             )
 
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="transpose")
 
     @property
     def T(self) -> "DataFrame":
@@ -2542,7 +2537,7 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            new_values = self._data.fast_xs(i)
+            new_values = self._mgr.fast_xs(i)
 
             # if we are a copy, mark as such
             copy = isinstance(new_values, np.ndarray) and new_values.base is None
@@ -2559,7 +2554,7 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
 
-            values = self._data.iget(i)
+            values = self._mgr.iget(i)
             result = self._box_col_values(values, label)
 
             # this is a cached value, mark it so
@@ -2870,7 +2865,7 @@ class DataFrame(NDFrame):
                     "and a value that cannot be converted to a Series"
                 ) from err
 
-            self._data = self._data.reindex_axis(
+            self._mgr = self._mgr.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
             )
 
@@ -3042,16 +3037,16 @@ class DataFrame(NDFrame):
         res = self.eval(expr, **kwargs)
 
         try:
-            new_data = self.loc[res]
+            result = self.loc[res]
         except ValueError:
             # when res is multi-dimensional loc raises, but this is sometimes a
             # valid query
-            new_data = self[res]
+            result = self[res]
 
         if inplace:
-            self._update_inplace(new_data)
+            self._update_inplace(result)
         else:
-            return new_data
+            return result
 
     def eval(self, expr, inplace=False, **kwargs):
         """
@@ -3318,7 +3313,7 @@ class DataFrame(NDFrame):
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
-        self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> "DataFrame":
         r"""
@@ -3499,7 +3494,7 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._data.iget(idx), index=self.index, name=item)
+            item: Series(self._mgr.iget(idx), index=self.index, name=item)
             for idx, item in enumerate(self.columns)
         }
 
@@ -3525,6 +3520,9 @@ class DataFrame(NDFrame):
         n = len(row_labels)
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
+        if not (self.index.is_unique and self.columns.is_unique):
+            # GH#33041
+            raise ValueError("DataFrame.lookup requires unique index and columns")
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
@@ -3745,13 +3743,9 @@ class DataFrame(NDFrame):
         index : single label or list-like
             Alternative to specifying axis (``labels, axis=0``
             is equivalent to ``index=labels``).
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
@@ -3897,7 +3891,7 @@ class DataFrame(NDFrame):
         columns : dict-like or function
             Alternative to specifying axis (``mapper, axis=1``
             is equivalent to ``columns=mapper``).
-        axis : int or str
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis to target with ``mapper``. Can be either the axis name
             ('index', 'columns') or number (0, 1). The default is 'index'.
         copy : bool, default True
@@ -4030,6 +4024,41 @@ class DataFrame(NDFrame):
             regex=regex,
             method=method,
         )
+
+    def _replace_columnwise(
+        self, mapping: Dict[Label, Tuple[Any, Any]], inplace: bool, regex
+    ):
+        """
+        Dispatch to Series.replace column-wise.
+
+
+        Parameters
+        ----------
+        mapping : dict
+            of the form {col: (target, value)}
+        inplace : bool
+        regex : bool or same types as `to_replace` in DataFrame.replace
+
+        Returns
+        -------
+        DataFrame or None
+        """
+        # Operate column-wise
+        res = self if inplace else self.copy()
+        ax = self.columns
+
+        for i in range(len(ax)):
+            if ax[i] in mapping:
+                ser = self.iloc[:, i]
+
+                target, value = mapping[ax[i]]
+                newobj = ser.replace(target, value, regex=regex)
+
+                res.iloc[:, i] = newobj
+
+        if inplace:
+            return
+        return res.__finalize__(self)
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
@@ -4409,7 +4438,7 @@ class DataFrame(NDFrame):
                     values_dtype = values.dtype
 
                     if issubclass(values_type, DatetimeLikeArray):
-                        values = values._data
+                        values = values._data  # TODO: can we de-kludge yet?
 
                     if mask.any():
                         values, _ = maybe_upcast_putmask(values, mask, np.nan)
@@ -4475,19 +4504,20 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "DataFrame":
-        return super().isna()
+        result = self._constructor(self._data.isna(func=isna))
+        return result.__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self) -> "DataFrame":
-        return super().isnull()
+        return self.isna()
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notna(self) -> "DataFrame":
-        return super().notna()
+        return ~self.isna()
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notnull(self) -> "DataFrame":
-        return super().notnull()
+        return ~self.isna()
 
     def dropna(self, axis=0, how="any", thresh=None, subset=None, inplace=False):
         """
@@ -4675,21 +4705,15 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         duplicated = self.duplicated(subset, keep=keep)
 
+        result = self[-duplicated]
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
         if inplace:
-            (inds,) = np.asarray(-duplicated).nonzero()
-            new_data = self._data.take(inds)
-
-            if ignore_index:
-                new_data.axes[1] = ibase.default_index(len(inds))
-            self._update_inplace(new_data)
+            self._update_inplace(result)
+            return None
         else:
-            result = self[-duplicated]
-
-            if ignore_index:
-                result.index = ibase.default_index(len(result))
             return result
-
-        return None
 
     def duplicated(
         self,
@@ -4798,17 +4822,18 @@ class DataFrame(NDFrame):
                 k, kind=kind, ascending=ascending, na_position=na_position
             )
 
-        new_data = self._data.take(
+        new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
 
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
+        result = self._constructor(new_data)
         if inplace:
-            return self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
@@ -4823,6 +4848,9 @@ class DataFrame(NDFrame):
     ):
         """
         Sort object by labels (along an axis).
+
+        Returns a new DataFrame sorted by label if `inplace` argument is
+        ``False``, otherwise updates the original DataFrame and returns None.
 
         Parameters
         ----------
@@ -4854,8 +4882,37 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sorted_obj : DataFrame or None
-            DataFrame with sorted index if inplace=False, None otherwise.
+        DataFrame
+            The original DataFrame sorted by the labels.
+
+        See Also
+        --------
+        Series.sort_index : Sort Series by the index.
+        DataFrame.sort_values : Sort DataFrame by the value.
+        Series.sort_values : Sort Series by the value.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([1, 2, 3, 4, 5], index=[100, 29, 234, 1, 150],
+        ...                   columns=['A'])
+        >>> df.sort_index()
+             A
+        1    4
+        29   2
+        100  1
+        150  5
+        234  3
+
+        By default, it sorts in ascending order, to sort in descending order,
+        use ``ascending=False``
+
+        >>> df.sort_index(ascending=False)
+             A
+        234  3
+        150  5
+        100  1
+        29   2
+        1    4
         """
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
@@ -4900,7 +4957,7 @@ class DataFrame(NDFrame):
             )
 
         baxis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer, axis=baxis, verify=False)
+        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -4908,10 +4965,11 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_data.axes[1] = ibase.default_index(len(indexer))
 
+        result = self._constructor(new_data)
         if inplace:
-            return self._update_inplace(new_data)
+            return self._update_inplace(result)
         else:
-            return self._constructor(new_data).__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def value_counts(
         self,
@@ -5228,6 +5286,9 @@ class DataFrame(NDFrame):
         ----------
         i, j : int or str
             Levels of the indices to be swapped. Can pass level name as string.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
+            'columns' for column-wise.
 
         Returns
         -------
@@ -5257,7 +5318,7 @@ class DataFrame(NDFrame):
         order : list of int or list of str
             List representing new level order. Reference level by number
             (position) or by key (label).
-        axis : int
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Where to reorder levels.
 
         Returns
@@ -6551,10 +6612,12 @@ Wild         185.0
 
     See Also
     --------
-    %(other)s
-    pivot_table
-    DataFrame.pivot
-    Series.explode
+    %(other)s : Identical method.
+    pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Return reshaped DataFrame organized
+        by given index / column values.
+    DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
 
     Examples
     --------
@@ -6735,7 +6798,7 @@ Wild         185.0
         5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
 
     # ----------------------------------------------------------------------
@@ -6968,7 +7031,7 @@ Wild         185.0
         2    [1, 2]
         dtype: object
 
-        Passing result_type='expand' will expand list-like results
+        Passing ``result_type='expand'`` will expand list-like results
         to columns of a Dataframe
 
         >>> df.apply(lambda x: [1, 2], axis=1, result_type='expand')
@@ -7851,7 +7914,7 @@ Wild         185.0
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
-            If 1 or 'columns' counts are generated for each **row**.
+            If 1 or 'columns' counts are generated for each row.
         level : int or str, optional
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular `level`, collapsing into a `DataFrame`.
@@ -7929,7 +7992,7 @@ Wild         185.0
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type or frame._data.any_extension_types:
+            if frame._is_mixed_type or frame._mgr.any_extension_types:
                 # the or any_extension_types is really only hit for single-
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
@@ -7955,18 +8018,21 @@ Wild         185.0
                 f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
 
+        # Mask NaNs: Mask rows or columns where the index level is NaN, and all
+        # values in the DataFrame that are NaN
         if frame._is_mixed_type:
             # Since we have mixed types, calling notna(frame.values) might
             # upcast everything to object
-            mask = notna(frame).values
+            values_mask = notna(frame).values
         else:
             # But use the speedup when we have homogeneous dtypes
-            mask = notna(frame.values)
+            values_mask = notna(frame.values)
 
+        index_mask = notna(count_axis.get_level_values(level=level))
         if axis == 1:
-            # We're transposing the mask rather than frame to avoid potential
-            # upcasts to object, which induces a ~20x slowdown
-            mask = mask.T
+            mask = index_mask & values_mask
+        else:
+            mask = index_mask.reshape(-1, 1) & values_mask
 
         if isinstance(level, str):
             level = count_axis._get_level_number(level)
@@ -7974,15 +8040,14 @@ Wild         185.0
         level_name = count_axis._names[level]
         level_index = count_axis.levels[level]._shallow_copy(name=level_name)
         level_codes = ensure_int64(count_axis.codes[level])
-        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
-
-        result = DataFrame(counts, index=level_index, columns=agg_axis)
+        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
-            # Undo our earlier transpose
-            return result.T
+            result = DataFrame(counts, index=agg_axis, columns=level_index)
         else:
-            return result
+            result = DataFrame(counts, index=level_index, columns=agg_axis)
+
+        return result
 
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
@@ -8051,7 +8116,7 @@ Wild         185.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(blk_func)
+            res = df._mgr.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
@@ -8063,34 +8128,43 @@ Wild         185.0
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
+        if not self._is_homogeneous_type:
+            # try to avoid self.values call
+
+            if filter_type is None and axis == 0 and len(self) > 0:
+                # operate column-wise
+
+                # numeric_only must be None here, as other cases caught above
+                # require len(self) > 0 bc frame_apply messes up empty prod/sum
+
+                # this can end up with a non-reduction
+                # but not always. if the types are mixed
+                # with datelike then need to make sure a series
+
+                # we only end up here if we have not specified
+                # numeric_only and yet we have tried a
+                # column-by-column reduction, where we have mixed type.
+                # So let's just do what we can
+                from pandas.core.apply import frame_apply
+
+                opa = frame_apply(
+                    self, func=f, result_type="expand", ignore_failures=True
+                )
+                result = opa.get_result()
+                if result.ndim == self.ndim:
+                    result = result.iloc[0].rename(None)
+                return result
+
+        data = self
         if numeric_only is None:
             data = self
             values = data.values
+
             try:
                 result = f(values)
 
             except TypeError:
                 # e.g. in nanops trying to convert strs to float
-
-                # try by-column first
-                if filter_type is None and axis == 0:
-                    # this can end up with a non-reduction
-                    # but not always. if the types are mixed
-                    # with datelike then need to make sure a series
-
-                    # we only end up here if we have not specified
-                    # numeric_only and yet we have tried a
-                    # column-by-column reduction, where we have mixed type.
-                    # So let's just do what we can
-                    from pandas.core.apply import frame_apply
-
-                    opa = frame_apply(
-                        self, func=f, result_type="expand", ignore_failures=True
-                    )
-                    result = opa.get_result()
-                    if result.ndim == self.ndim:
-                        result = result.iloc[0]
-                    return result
 
                 # TODO: why doesnt axis matter here?
                 data = _get_data(axis_matters=False)
@@ -8099,6 +8173,7 @@ Wild         185.0
                 values = data.values
                 with np.errstate(all="ignore"):
                     result = f(values)
+
         else:
             if numeric_only:
                 data = _get_data(axis_matters=True)
@@ -8409,7 +8484,7 @@ Wild         185.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'} (default 0)
+        axis : {0, 1, 'index', 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
@@ -8483,7 +8558,7 @@ Wild         185.0
                 return self._constructor([], index=q, columns=cols)
             return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
-        result = data._data.quantile(
+        result = data._mgr.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
         )
 

@@ -2,6 +2,7 @@ from collections import OrderedDict, abc
 from datetime import date, datetime, timedelta
 import functools
 import itertools
+import re
 
 import numpy as np
 import numpy.ma as ma
@@ -1062,6 +1063,32 @@ class TestDataFrameConstructors:
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_like_data_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cdef")]
+        result = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+        mi = MultiIndex.from_arrays(arrays)
+        expected = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=mi)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_wrong_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abc"), list("cde")]
+
+        msg = "3 columns passed, passed data had 4"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+    def test_constructor_unequal_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cde")]
+
+        msg = "Length of columns passed for MultiIndex columns is different"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
@@ -1335,6 +1362,7 @@ class TestDataFrameConstructors:
             (((), ()), [(), ()]),
             (((), ()), [[], []]),
             (([], []), [[], []]),
+            (([1], [2]), [[1], [2]]),  # GH 32776
             (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
         ],
     )
@@ -1401,7 +1429,8 @@ class TestDataFrameConstructors:
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
-        with pytest.raises(TypeError):
+        msg = "asdict() should be called on dataclass instances"
+        with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
     def test_constructor_list_of_dict_order(self):
@@ -1566,7 +1595,7 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(float_frame._data, index=index, columns=columns)
+        result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 

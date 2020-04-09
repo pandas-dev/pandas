@@ -37,13 +37,10 @@ class TestABCClasses:
         assert isinstance(self.df, gt.ABCDataFrame)
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
         assert isinstance(self.categorical, gt.ABCCategorical)
-        assert isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCPeriod)
 
         assert isinstance(pd.DateOffset(), gt.ABCDateOffset)
         assert isinstance(pd.Period("2012", freq="A-DEC").freq, gt.ABCDateOffset)
         assert not isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCDateOffset)
-        assert isinstance(pd.Interval(0, 1.5), gt.ABCInterval)
-        assert not isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCInterval)
 
         assert isinstance(self.datetime_array, gt.ABCDatetimeArray)
         assert not isinstance(self.datetime_index, gt.ABCDatetimeArray)
