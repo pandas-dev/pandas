@@ -42,6 +42,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "Arrow",
     "Parquet",
     "MultiIndex",
+    "MultiIndexing",
     "NumFOCUS",
     "sklearn",
     "Docker",
@@ -58,6 +59,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "DatetimeIndex",
     "IntervalIndex",
     "CategoricalIndex",
+    "Categorical",
     "GroupBy",
     "SPSS",
     "ORC",
@@ -99,6 +101,14 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessHour",
     "BusinessDay",
     "DateOffset",
+    "TZ",
+    "GIL",
+    "strftime",
+    "XPORT",
+    "Unicode",
+    "East",
+    "Asian",
+    "None",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

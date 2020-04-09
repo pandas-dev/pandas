@@ -1,7 +1,7 @@
 .. _whatsnew_0140:
 
-v0.14.0 (May 31 , 2014)
------------------------
+Version 0.14.0 (May 31 , 2014)
+------------------------------
 
 {{ header }}
 
@@ -321,7 +321,7 @@ Text parsing API changes
 
 .. _whatsnew_0140.groupby:
 
-Groupby API changes
+GroupBy API changes
 ~~~~~~~~~~~~~~~~~~~
 
 More consistent behavior for some groupby methods:
@@ -904,7 +904,7 @@ There are no experimental changes in 0.14.0
 
 .. _whatsnew_0140.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in Series ValueError when index doesn't match data (:issue:`6532`)
