@@ -3,7 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import Series, IndexMulti, Index
+from pandas import Index, MultiIndex, Series  # noqa
 import pandas._testing as tm
 
 PARSERS = "python", "pandas"
@@ -44,7 +44,7 @@ class TestSeriesEval:
         series.iloc[0] = 2
         m = series.mean()
 
-        base = Series(np.tile(m, n)) #noqa
+        base = Series(np.tile(m, n))  # noqa
 
         expected = eval(f"base {op_str} series")
 
@@ -120,16 +120,14 @@ class TestSeriesEvalWithSeries:
         tm.assert_series_equal(res, expect, check_names=False)
 
     def test_and_bitwise_operator(self, parser, engine):
-        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine,
-            parser=parser)
+        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine, parser=parser)
         expect = Series(data=[False, False, False], index=self.index)
         # names are not checked due to different results based on engine
         # (python vs numexpr)
         tm.assert_series_equal(res, expect, check_names=False)
 
     def test_or_bitwise_operator(self, parser, engine):
-        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine,
-            parser=parser)
+        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine, parser=parser)
         expect = Series(data=[True, False, True], index=self.index)
         # names are not checked due to different results based on engine (python
         # vs numexpr)
@@ -175,8 +173,8 @@ class TestSeriesQueryByIndexMethods:
 
 class TestSeriesQueryByMultiIndex:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(10),
-            index=[["a"] * 5 + ["b"] * 5, list(range(10))])
+        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5,
+            list(range(10))])
         self.frame = self.series.to_frame()
 
     def teardown_method(self, method):
@@ -265,7 +263,7 @@ class TestSeriesQueryBacktickQuoting:
         run_test(series, "1 < `B B` and 4 < `C C`")
 
     def test_already_underscore(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)), name = "B_B"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="B_B"))
         run_test(series, "1 < `B_B`")
 
     def test_same_name_but_underscore(self):
@@ -306,7 +304,8 @@ class TestSeriesQueryBacktickQuoting:
         run_test(series, "1 < `(xyz)`")
 
     def test_many_symbols(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)), name="  &^ :!€$?(} >    <++*''  "))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), 
+            name="  &^ :!€$?(} >    <++*''  "))
         run_test(series, "1 < `  &^ :!€$?(} >    <++*''  `")
 
     def test_failing_character_outside_range(self):
@@ -322,8 +321,8 @@ class TestSeriesQueryBacktickQuoting:
 
 class TestSeriesQueryWithMultiIndex:
     def setup_method(self, method):
-        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5,
-            [str(x) for x in range(10)]], names=["alpha", "num"])
+        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5, [str(x) for x in
+            range(10)]], names=["alpha", "num"])
         self.series = Series(np.random.randn(10), index=multiIndex)
 
     def teardown_method(self, method):
@@ -364,7 +363,7 @@ class TestSeriesQueryWithMultiIndex:
 
 class TestSeriesQueryByUnamedMultiIndex:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5,
+        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5, 
             list(range(10))])
 
     def teardown_method(self, method):
