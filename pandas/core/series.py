@@ -205,6 +205,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
 
+        if (
+            isinstance(data, SingleBlockManager)
+            and index is None
+            and dtype is None
+            and copy is False
+        ):
+            # GH#33357 called with just the SingleBlockManager
+            NDFrame.__init__(self, data)
+            self.name = name
+            return
+
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -828,9 +839,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 
-        return self._constructor(
-            new_values, index=new_index, fastpath=True
-        ).__finalize__(self, method="take")
+        result = self._constructor(new_values, index=new_index, fastpath=True)
+        return result.__finalize__(self, method="take")
 
     def _take_with_is_copy(self, indices, axis=0):
         """
