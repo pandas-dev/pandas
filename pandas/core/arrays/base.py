@@ -13,6 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import ArrayLike
+from typing_extensions import Protocol
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -1053,6 +1054,50 @@ class ExtensionArray:
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
 
+class OpsExtendable(Protocol):
+
+    @classmethod
+    def _create_arithmetic_method(cls, op): ...
+
+    def __add__(self, other): ...
+
+    def __sub__(self, other): ...
+
+    def __mul__(self, other): ...
+
+    def __pow__(self, other): ...
+
+    def __mod__(self, other): ...
+
+    def __floordiv__(self, other): ...
+
+    def __truediv__(self, other): ...
+
+    def __divmod__(self, other): ...
+
+    def __radd__(self, other): ...
+
+    def __rsub__(self, other): ...
+
+    def __rmul__(self, other):
+        pass
+
+    def __rpow__(self, other):
+        pass
+
+    def __rmod__(self, other):
+        pass
+
+    def __rfloordiv__(self, other):
+        pass
+
+    def __rtruediv__(self, other):
+        ...
+
+    def __rdivmod__(self, other):
+        ...
+
+
 class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
@@ -1065,23 +1110,23 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
-    def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
-        cls.__sub__ = cls._create_arithmetic_method(operator.sub)
-        cls.__rsub__ = cls._create_arithmetic_method(ops.rsub)
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
-        cls.__pow__ = cls._create_arithmetic_method(operator.pow)
-        cls.__rpow__ = cls._create_arithmetic_method(ops.rpow)
-        cls.__mod__ = cls._create_arithmetic_method(operator.mod)
-        cls.__rmod__ = cls._create_arithmetic_method(ops.rmod)
-        cls.__floordiv__ = cls._create_arithmetic_method(operator.floordiv)
-        cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
-        cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
-        cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
-        cls.__divmod__ = cls._create_arithmetic_method(divmod)
-        cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
+    def _add_arithmetic_ops(cls: OpsExtendable):
+        setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
+        setattr(cls, "__radd__", cls._create_arithmetic_method(ops.radd))
+        setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
+        setattr(cls, "__rsub__", cls._create_arithmetic_method(ops.rsub))
+        setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
+        setattr(cls, "__rmul__", cls._create_arithmetic_method(ops.rmul))
+        setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
+        setattr(cls, "__rpow__", cls._create_arithmetic_method(ops.rpow))
+        setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
+        setattr(cls, "__rmod__", cls._create_arithmetic_method(ops.rmod))
+        setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
+        setattr(cls, "__rfloordiv__", cls._create_arithmetic_method(ops.rfloordiv))
+        setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
+        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(ops.rtruediv))
+        setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
+        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
 
     @classmethod
     def _add_comparison_ops(cls):
