@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
@@ -1012,10 +1011,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError("Can only tuple-index with a MultiIndex") from e
-
-            # python 3 type errors should be raised
-            if _is_unorderable_exception(e):
-                raise IndexError(key) from e
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
