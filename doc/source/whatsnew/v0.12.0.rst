@@ -177,8 +177,8 @@ API changes
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-I/o enhancements
-~~~~~~~~~~~~~~~~
+IO enhancements
+~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (:issue:`3477`, :issue:`3605`, :issue:`3606`, :issue:`3616`).
