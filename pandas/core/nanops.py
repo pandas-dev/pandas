@@ -1238,7 +1238,7 @@ def _maybe_null_out(
     result: np.ndarray,
     axis: Optional[int],
     mask: Optional[np.ndarray],
-    shape: Tuple,
+    shape: Tuple[int, ...],
     min_count: int = 1,
 ) -> float:
     """
@@ -1260,14 +1260,41 @@ def _maybe_null_out(
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
     elif result is not NaT:
-        if mask is not None:
-            null_mask = mask.size - mask.sum()
-        else:
-            null_mask = np.prod(shape)
-        if null_mask < min_count:
+        if check_below_min_count(shape, mask, min_count):
             result = np.nan
 
     return result
+
+
+def check_below_min_count(
+    shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
+):
+    """
+    Check for the `min_count` keyword. Returns True if below `min_count` (when
+    missing value should be returned from the reduction).
+
+    Parameters
+    ----------
+    shape : tuple
+        The shape of the values (`values.shape`).
+    mask : ndarray or None
+        Boolean numpy array (typically of same shape as `shape`) or None.
+    min_count : int
+        Keyword passed through from sum/prod call.
+
+    Returns
+    -------
+    bool
+    """
+    if min_count > 0:
+        if mask is None:
+            # no missing values, only check size
+            non_nulls = np.prod(shape)
+        else:
+            non_nulls = mask.size - mask.sum()
+        if non_nulls < min_count:
+            return True
+    return False
 
 
 def _zero_out_fperr(arg):
@@ -1305,30 +1332,33 @@ def nancorr(
 
 
 def get_corr_func(method):
-    if method in ["kendall", "spearman"]:
-        from scipy.stats import kendalltau, spearmanr
-    elif method in ["pearson"]:
-        pass
+    if method == "kendall":
+        from scipy.stats import kendalltau
+
+        def func(a, b):
+            return kendalltau(a, b)[0]
+
+        return func
+    elif method == "spearman":
+        from scipy.stats import spearmanr
+
+        def func(a, b):
+            return spearmanr(a, b)[0]
+
+        return func
+    elif method == "pearson":
+
+        def func(a, b):
+            return np.corrcoef(a, b)[0, 1]
+
+        return func
     elif callable(method):
         return method
-    else:
-        raise ValueError(
-            f"Unkown method '{method}', expected one of 'kendall', 'spearman'"
-        )
 
-    def _pearson(a, b):
-        return np.corrcoef(a, b)[0, 1]
-
-    def _kendall(a, b):
-        # kendallttau returns a tuple of the tau statistic and pvalue
-        rs = kendalltau(a, b)
-        return rs[0]
-
-    def _spearman(a, b):
-        return spearmanr(a, b)[0]
-
-    _cor_methods = {"pearson": _pearson, "kendall": _kendall, "spearman": _spearman}
-    return _cor_methods[method]
+    raise ValueError(
+        f"Unknown method '{method}', expected one of "
+        "'kendall', 'spearman', 'pearson', or callable"
+    )
 
 
 @disallow("M8", "m8")
@@ -1509,7 +1539,7 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minumum.accumulate}
+    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minimum.accumulate}
     skipna : bool
 
     Returns

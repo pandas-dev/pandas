@@ -8,6 +8,8 @@ import sys
 import numpy as np  # noqa
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -45,6 +47,19 @@ def test_xarray(df):
     xarray = import_module("xarray")  # noqa
 
     assert df.to_xarray() is not None
+
+
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
+def test_xarray_cftimeindex_nearest():
+    # https://github.com/pydata/xarray/issues/3751
+    import cftime
+    import xarray
+
+    times = xarray.cftime_range("0001", periods=2)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
 
 
 def test_oo_optimizable():
@@ -107,7 +122,6 @@ def test_pandas_datareader():
 
 # importing from pandas, Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.skip(reason="Anaconda installation issue - GH32144")
 def test_geopandas():
 
     geopandas = import_module("geopandas")  # noqa

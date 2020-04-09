@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -214,7 +214,10 @@ class ExtensionIndex(Index):
     def __getitem__(self, key):
         result = self._data[key]
         if isinstance(result, type(self._data)):
-            return type(self)(result, name=self.name)
+            if result.ndim == 1:
+                return type(self)(result, name=self.name)
+            # Unpack to ndarray for MPL compat
+            result = result._data
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)
@@ -228,14 +231,10 @@ class ExtensionIndex(Index):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._data, dtype=dtype)
 
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self._data._ndarray_values
-
     def _get_engine_target(self) -> np.ndarray:
         return self._data._values_for_argsort()
 
-    @Appender(Index.dropna.__doc__)
+    @doc(Index.dropna)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -257,7 +256,7 @@ class ExtensionIndex(Index):
         arr = type(self._data)._concat_same_type(to_concat)
         return type(self)._simple_new(arr, name=name)
 
-    @Appender(Index.take.__doc__)
+    @doc(Index.take)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -287,7 +286,7 @@ class ExtensionIndex(Index):
             result = result[~result.isna()]
         return self._shallow_copy(result)
 
-    @Appender(Index.map.__doc__)
+    @doc(Index.map)
     def map(self, mapper, na_action=None):
         # Try to run function on index first, and then on elements of index
         # Especially important for group-by functionality
@@ -304,7 +303,7 @@ class ExtensionIndex(Index):
         except Exception:
             return self.astype(object).map(mapper)
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self

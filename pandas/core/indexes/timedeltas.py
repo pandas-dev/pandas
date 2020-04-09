@@ -1,11 +1,11 @@
 """ implement the TimedeltaIndex """
 
 from pandas._libs import NaT, Timedelta, index as libindex
-from pandas._typing import Label
-from pandas.util._decorators import Appender
+from pandas._typing import DtypeObj, Label
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
+    TD64NS_DTYPE,
     is_float,
     is_integer,
     is_scalar,
@@ -134,7 +134,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         unit=None,
         freq=None,
         closed=None,
-        dtype=_TD_DTYPE,
+        dtype=TD64NS_DTYPE,
         copy=False,
         name=None,
     ):
@@ -195,7 +195,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
     # -------------------------------------------------------------------
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
@@ -212,6 +212,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
         return self, other
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        return is_timedelta64_dtype(dtype)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -345,7 +351,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                 '5 days 00:00:00'],
-               dtype='timedelta64[ns]', freq=None)
+               dtype='timedelta64[ns]', freq='32H')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
