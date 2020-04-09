@@ -834,15 +834,16 @@ class TestTypeInference:
         arr = np.array([np.nan, "2011-01-01", pd.Timestamp("2011-01-02")])
         assert lib.infer_dtype(arr, skipna=True) == "mixed"
 
-    def test_infer_dtypes_datetimetz(self):
+    @pytest.mark.parametrize("na", [pd.NaT, np.nan, np.datetime64("NaT"), None, pd.NA])
+    def test_infer_dtypes_datetimetz_with_na(self, na):
 
-        # starts with nan
-        for n in [pd.NaT, np.nan, np.datetime64("NaT"), None]:
-            arr = np.array([n, datetime(2011, 1, 1, tzinfo=pytz.utc)])
-            assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
+        arr = np.array([na, datetime(2011, 1, 1, tzinfo=pytz.utc)])
+        assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
-            arr = np.array([n, pd.Timestamp("2011-01-02", tzinfo=pytz.utc)])
-            assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
+        arr = np.array([na, pd.Timestamp("2011-01-02", tzinfo=pytz.utc)])
+        assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
+
+    def test_infer_dtypes_datetimetz_diff_tz(self):
 
         # datetimes with different timezones
         arr = [
