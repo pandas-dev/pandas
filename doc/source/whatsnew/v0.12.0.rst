@@ -1,7 +1,7 @@
 .. _whatsnew_0120:
 
-v0.12.0 (July 24, 2013)
-------------------------
+Version 0.12.0 (July 24, 2013)
+------------------------------
 
 {{ header }}
 
@@ -177,7 +177,7 @@ API changes
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-I/O enhancements
+I/o enhancements
 ~~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
