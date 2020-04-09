@@ -237,6 +237,11 @@ class CSVFormatter:
         if not (has_aliases or self.header):
             return
         if has_aliases:
+            # TODO: type checking here is tricky because header is annotated as
+            # a Union[bool, Sequence[Hashable]] but we actually accept "sequence" types
+            # that don't inherit from abc.Sequence (ndarray, ABCIndex)
+            assert not isinstance(header, bool)
+
             if len(header) != len(cols):
                 raise ValueError(
                     f"Writing {len(cols)} cols but got {len(header)} aliases"
@@ -268,12 +273,15 @@ class CSVFormatter:
                     # given a string for a DF with Index
                     index_label = [index_label]
 
-                encoded_labels = list(index_label)
+                # TODO: mismatch here because encoded_labels is a Sequence[str]
+                # but we fill with Sequence[Hashable]; need to clean up handling
+                # of non-None / non-str contained objects
+                encoded_labels = list(index_label)  # type: ignore
             else:
                 encoded_labels = []
 
         if not has_mi_columns or has_aliases:
-            encoded_labels += list(write_cols)
+            encoded_labels += list(write_cols)  # type: ignore
             writer.writerow(encoded_labels)
         else:
             # write out the mi
