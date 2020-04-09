@@ -6500,7 +6500,7 @@ Difference with following row
 2 -1.0 -1.0  -7.0
 3 -1.0 -2.0  -9.0
 4 -1.0 -3.0 -11.0
-5  NaN  NaN   NaN
+5  NaN  NaN   NaND
 
 Overflow for input dtype
 >>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
@@ -6533,7 +6533,6 @@ Overflow for input dtype
             requested ndim of result
         subset : object, default None
             subset to act on
-
         """
         if subset is None:
             subset = self

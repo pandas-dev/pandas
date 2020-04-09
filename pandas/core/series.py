@@ -4527,6 +4527,7 @@ dtype: float64""")
             new_values = new_values.copy()
 
         assert isinstance(self.index, ABCDatetimeIndex)
+        new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
     # ----------------------------------------------------------------------
