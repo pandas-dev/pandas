@@ -2656,10 +2656,14 @@ Name: Max Speed, dtype: float64
         """
         if isinstance(result, tuple):
             # produced by divmod or rdivmod
-            return (
-                self._construct_result(result[0], name=name),
-                self._construct_result(result[1], name=name),
-            )
+
+            res1 = self._construct_result(result[0], name=name)
+            res2 = self._construct_result(result[1], name=name)
+
+            # GH#33427 assertions to keep mypy happy
+            assert isinstance(res1, Series)
+            assert isinstance(res2, Series)
+            return (res1, res2)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
