@@ -213,13 +213,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
 
     @classmethod
-    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(
-                    axe, axis=cls._get_block_manager_axis(a), copy=False
-                )
+                axe = ensure_index(axe)
+                bm_axis = cls._get_block_manager_axis(a)
+                mgr = mgr.reindex_axis(axe, axis=bm_axis, copy=False)
 
         # make a copy if explicitly requested
         if copy:
@@ -590,7 +590,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(self)
+        return self._constructor(new_values, *new_axes).__finalize__(
+            self, method="swapaxes"
+        )
 
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
@@ -993,7 +995,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._update_inplace(result)
             return None
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="rename")
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
     def rename_axis(self, mapper=lib.no_default, **kwargs):
@@ -1357,7 +1359,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         new_data = self._mgr.apply(operator.invert)
-        result = self._constructor(new_data).__finalize__(self)
+        result = self._constructor(new_data).__finalize__(self, method="__invert__")
         return result
 
     def __nonzero__(self):
@@ -1802,7 +1804,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # ptp also requires the item_from_zerodim
             return result
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(self)
+        return self._constructor(result, **d).__finalize__(
+            self, method="__array_wrap__"
+        )
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -3361,7 +3365,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self, method="take")
 
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
@@ -3713,7 +3717,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # If the above loop ran and didn't delete anything because
             # there was no match, this call should raise the appropriate
             # exception:
-            self._mgr.delete(key)
+            loc = self.axes[-1].get_loc(key)
+            self._mgr.idelete(loc)
 
         # delete from the caches
         try:
@@ -4430,7 +4435,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # perform the reindex on the axes
         return self._reindex_axes(
             axes, level, limit, tolerance, method, fill_value, copy
-        ).__finalize__(self)
+        ).__finalize__(self, method="reindex")
 
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
@@ -4499,6 +4504,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 allow_dups=allow_dups,
                 copy=copy,
             )
+            # If we've made a copy once, no need to make another one
+            copy = False
 
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
@@ -5129,7 +5136,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Attribute access
 
     def __finalize__(
-        self: FrameOrSeries, other, method=None, **kwargs
+        self: FrameOrSeries, other, method: Optional[str] = None, **kwargs
     ) -> FrameOrSeries:
         """
         Propagate metadata from other to self.
@@ -5138,9 +5145,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         other : the object from which to get the attributes that we are going
             to propagate
-        method : optional, a passed method name ; possibly to take different
-            types of propagation actions based on this
+        method : str, optional
+            A passed method name providing context on where ``__finalize__``
+            was called.
 
+            .. warning:
+
+               The value passed as `method` are not currently considered
+               stable across pandas releases.
         """
         if isinstance(other, NDFrame):
             for name in other.attrs:
@@ -5562,8 +5574,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
-            return self._constructor(new_data).__finalize__(self)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
+            return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -5677,7 +5689,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
-        return self._constructor(data).__finalize__(self)
+        return self._constructor(data).__finalize__(self, method="copy")
 
     def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
         return self.copy(deep=deep)
@@ -5783,7 +5795,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._mgr.convert(
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
-        ).__finalize__(self)
+        ).__finalize__(self, method="infer_objects")
 
     def convert_dtypes(
         self: FrameOrSeries,
@@ -6110,7 +6122,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="fillna")
 
     def ffill(
         self: FrameOrSeries,
@@ -6458,7 +6470,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
         if not (
             is_scalar(to_replace)
-            or isinstance(to_replace, pd.Series)
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
@@ -6531,36 +6542,29 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not self.size:
                 return self
 
-            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
-                    res = self if inplace else self.copy()
-                    for c, src in to_replace.items():
-                        if c in value and c in self:
-                            # object conversion is handled in
-                            # series.replace which is called recursively
-                            res[c] = res[c].replace(
-                                to_replace=src,
-                                value=value[c],
-                                inplace=False,
-                                regex=regex,
-                            )
-                    return None if inplace else res
+                    # Note: Checking below for `in foo.keys()` instead of
+                    #  `in foo`is needed for when we have a Series and not dict
+                    mapping = {
+                        col: (to_replace[col], value[col])
+                        for col in to_replace.keys()
+                        if col in value.keys() and col in self
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    keys = [(k, src) for k, src in to_replace.items() if k in self]
-                    keys_len = len(keys) - 1
-                    for i, (k, src) in enumerate(keys):
-                        convert = i == keys_len
-                        new_data = new_data.replace(
-                            to_replace=src,
-                            value=value,
-                            filter=[k],
-                            inplace=inplace,
-                            regex=regex,
-                            convert=convert,
+                    # Operate column-wise
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-like to_replace "
+                            "and non-None value"
                         )
+                    mapping = {
+                        col: (to_rep, value) for col, to_rep in to_replace.items()
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
@@ -6601,17 +6605,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._mgr
-
-                    for k, v in value.items():
-                        if k in self:
-                            new_data = new_data.replace(
-                                to_replace=to_replace,
-                                value=v,
-                                filter=[k],
-                                inplace=inplace,
-                                regex=regex,
-                            )
+                    # Operate column-wise
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-value and "
+                            "non-None to_replace"
+                        )
+                    mapping = {col: (to_replace, val) for col, val in value.items()}
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 elif not is_list_like(value):  # NA -> 0
                     new_data = self._mgr.replace(
@@ -6626,7 +6627,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="replace")
 
     _shared_docs[
         "interpolate"
@@ -6892,7 +6893,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="interpolate")
 
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
@@ -7130,11 +7131,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self: FrameOrSeries) -> FrameOrSeries:
-        return isna(self).__finalize__(self)
+        return isna(self).__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self: FrameOrSeries) -> FrameOrSeries:
-        return isna(self).__finalize__(self)
+        return isna(self).__finalize__(self, method="isnull")
 
     _shared_docs[
         "notna"
@@ -7200,11 +7201,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notna(self: FrameOrSeries) -> FrameOrSeries:
-        return notna(self).__finalize__(self)
+        return notna(self).__finalize__(self, method="notna")
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
-        return notna(self).__finalize__(self)
+        return notna(self).__finalize__(self, method="notnull")
 
     def _clip_with_scalar(self, lower, upper, inplace: bool_t = False):
         if (lower is not None and np.any(isna(lower))) or (
@@ -8228,7 +8229,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 pct=pct,
             )
             ranks = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks.__finalize__(self)
+            return ranks.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True
@@ -8435,7 +8436,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     left.index = join_index
                     right.index = join_index
 
-        return left.__finalize__(self), right.__finalize__(other)
+        return (
+            left.__finalize__(self),
+            right.__finalize__(other),
+        )
 
     def _align_series(
         self,
@@ -8519,7 +8523,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         left.index = join_index
                         right.index = join_index
 
-        return left.__finalize__(self), right.__finalize__(other)
+        return (
+            left.__finalize__(self),
+            right.__finalize__(other),
+        )
 
     def _where(
         self,
@@ -8932,7 +8939,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return self.tshift(periods, freq)
 
-        return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self, method="shift")
 
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
@@ -8969,7 +8976,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         shifted_axis = self._get_axis(axis)[islicer]
         new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
 
-        return new_obj.__finalize__(self)
+        return new_obj.__finalize__(self, method="slice_shift")
 
     def tshift(
         self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
@@ -9029,7 +9036,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy()
         result.set_axis(new_ax, axis, inplace=True)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tshift")
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
@@ -9240,7 +9247,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tz_convert")
 
     def tz_localize(
         self: FrameOrSeries,
@@ -9409,7 +9416,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         result = self.copy(deep=copy)
         result = result.set_axis(ax, axis=axis, inplace=False)
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="tz_localize")
 
     # ----------------------------------------------------------------------
     # Numeric Methods
@@ -11188,7 +11195,7 @@ def _make_cum_function(
 
         d = self._construct_axes_dict()
         d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self)
+        return self._constructor(result, **d).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
