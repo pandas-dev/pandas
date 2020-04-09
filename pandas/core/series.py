@@ -2243,15 +2243,43 @@ Name: Max Speed, dtype: float64
         klass="Series",
         extra_params="",
         other_klass="DataFrame",
-        examples="Difference with previous row\n\n>>> s = pd.Series([1, 1, 2, 3, "
-        "5, 8])\n>>> s.diff()\n0    NaN\n1    0.0\n2    1.0\n3    1.0\n4    2.0\n"
-        "5    3.0\ndtype: float64\n\nDifference with 3rd previous row\n\n>>> s.di"
-        "ff(periods=3)\n0    NaN\n1    NaN\n2    NaN\n3    2.0\n4    4.0\n5    6."
-        "0\ndtype: float64\n\nDifference with following row\n\n>>> s.diff(periods"
-        "=-1)\n0    0.0\n1   -1.0\n2   -1.0\n3   -2.0\n4   -3.0\n5    NaN\ndtype:"
-        " float64\n\nOverflow for input dtype\n\n>>> s = pd.Series([1, 0], dtype="
-        "np.uint8)\n>>> s.diff()\n0      NaN\n1    255.0\ndtype: float64",
-    )
+        examples="""Difference with previous row
+>>> s = pd.Series([1, 1, 2, 3, 5, 8])
+>>> s.diff()
+0    NaN
+1    0.0
+2    1.0
+3    1.0
+4    2.0
+5    3.0
+dtype: float64
+
+Difference with 3rd previous row
+>>> s.diff(periods=3)
+0    NaN
+1    NaN
+2    NaN
+3    2.0
+4    4.0
+5    6.0
+dtype: float64
+
+Difference with following row
+>>> s.diff(periods=-1)
+0    0.0
+1   -1.0
+2   -1.0
+3   -2.0
+4   -3.0
+5    NaN
+dtype: float64
+
+Overflow for input dtype
+>>> s = pd.Series([1, 0], dtype=np.uint8)
+>>> s.diff()
+0      NaN
+1    255.0
+dtype: float64""")
     def diff(self, periods=1) -> "Series":
         """
         First discrete difference of element.
@@ -4499,7 +4527,6 @@ Name: Max Speed, dtype: float64
             new_values = new_values.copy()
 
         assert isinstance(self.index, ABCDatetimeIndex)
-        new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
     # ----------------------------------------------------------------------
