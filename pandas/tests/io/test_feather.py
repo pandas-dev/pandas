@@ -4,6 +4,8 @@ from distutils.version import LooseVersion
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -27,15 +29,15 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, expected=None, **kwargs):
+    def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
 
         if expected is None:
             expected = df
 
         with tm.ensure_clean() as path:
-            to_feather(df, path)
+            to_feather(df, path, **write_kwargs)
 
-            result = read_feather(path, **kwargs)
+            result = read_feather(path, **read_kwargs)
             tm.assert_frame_equal(result, expected)
 
     def test_error(self):
@@ -102,8 +104,8 @@ class TestFeather:
 
     def test_unsupported_other(self):
 
-        # period
-        df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
+        # mixed python objects
+        df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # Some versions raise ValueError, others raise ArrowInvalid.
         self.check_error_on_write(df, Exception)
 
@@ -148,3 +150,8 @@ class TestFeather:
         df = tm.makeDataFrame().reset_index()
         result = tm.round_trip_localpath(df.to_feather, pd.read_feather)
         tm.assert_frame_equal(df, result)
+
+    @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
+    def test_passthrough_keywords(self):
+        df = tm.makeDataFrame().reset_index()
+        self.check_round_trip(df, write_kwargs=dict(version=1))
