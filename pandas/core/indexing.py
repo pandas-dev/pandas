@@ -1557,7 +1557,10 @@ class _iLocIndexer(_LocationIndexer):
             (blk,) = self.obj._mgr.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
-                take_split_path = blk._can_hold_element(val) or self.obj._is_mixed_type
+                if isinstance(indexer, tuple) and com.is_null_slice(indexer[0]):
+                    take_split_path = True
+                else:
+                    take_split_path = not blk._can_hold_element(val)
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref
