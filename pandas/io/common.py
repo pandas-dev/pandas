@@ -497,9 +497,13 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
 
     def write(self, data):
-        archive_name = self.filename
         if self.archive_name is not None:
             archive_name = self.archive_name
+        elif self.filename is not None:
+            archive_name = self.filename
+        else:
+            raise RuntimeError("No filename to write to!")
+
         super().writestr(archive_name, data)
 
     @property
