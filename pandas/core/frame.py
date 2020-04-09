@@ -4678,9 +4678,8 @@ class DataFrame(NDFrame):
         --------
         Consider dataset containing ramen rating.
 
-        >>> brand = ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie']
         >>> df = pd.DataFrame({
-        ...     'brand': brand,
+        ...     'brand': ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie'],
         ...     'style': ['cup', 'cup', 'cup', 'pack', 'pack'],
         ...     'rating': [4, 4, 3.5, 15, 5]
         ... })
