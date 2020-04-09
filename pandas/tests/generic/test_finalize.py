@@ -12,7 +12,6 @@ import pandas as pd
 # TODO:
 # * Binary methods (mul, div, etc.)
 # * Binary outputs (align, etc.)
-# * transform, apply
 # * top-level methods (concat, merge, get_dummies, etc.)
 # * groupby
 # * window
@@ -481,6 +480,40 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("pct_change")),
         marks=not_implemented_mark,
     ),
+    (pd.Series, ([1],), operator.methodcaller("transform", lambda x: x - x.min())),
+    pytest.param(
+        (
+            pd.DataFrame,
+            frame_mi_data,
+            operator.methodcaller("transform", lambda x: x - x.min()),
+        ),
+        marks=not_implemented_mark,
+    ),
+    (pd.Series, ([1],), operator.methodcaller("apply", lambda x: x)),
+    pytest.param(
+        (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
+        marks=not_implemented_mark,
+    ),
+    # Cumulative reductions
+    (pd.Series, ([1],), operator.methodcaller("cumsum")),
+    (pd.DataFrame, frame_data, operator.methodcaller("cumsum")),
+    # Reductions
+    pytest.param(
+        (pd.DataFrame, frame_data, operator.methodcaller("any")),
+        marks=not_implemented_mark,
+    ),
+    pytest.param(
+        (pd.DataFrame, frame_data, operator.methodcaller("sum")),
+        marks=not_implemented_mark,
+    ),
+    pytest.param(
+        (pd.DataFrame, frame_data, operator.methodcaller("std")),
+        marks=not_implemented_mark,
+    ),
+    pytest.param(
+        (pd.DataFrame, frame_data, operator.methodcaller("mean")),
+        marks=not_implemented_mark,
+    ),
 ]
 
 
@@ -687,4 +720,26 @@ def test_categorical_accessor(method):
     s = pd.Series(["a", "b"], dtype="category")
     s.attrs = {"a": 1}
     result = method(s.cat)
+    assert result.attrs == {"a": 1}
+
+
+# ----------------------------------------------------------------------------
+# Groupby
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
+    "method",
+    [
+        operator.methodcaller("sum"),
+        lambda x: x.agg("sum"),
+        lambda x: x.agg(["sum", "count"]),
+    ],
+)
+@not_implemented_mark
+def test_groupby(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
