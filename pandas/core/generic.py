@@ -5094,8 +5094,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         `agg` is an alias for `aggregate`. Use the alias.
 
         A passed user-defined-function will be passed a Series for evaluation.
-        {examples}
-        """
+        {examples}"""
     )
 
     # ----------------------------------------------------------------------
@@ -11310,8 +11309,7 @@ def _make_stat_function_ddof(
 
         Returns
         -------
-        {name1} or {name2} (if level specified)\n
-        """
+        {name1} or {name2} (if level specified)\n"""
         nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
@@ -11380,8 +11378,7 @@ def _make_cum_function(
         {name2}.cumsum : Return cumulative sum over {name2} axis.
         {name2}.cumprod : Return cumulative product over {name2} axis.
 
-        {examples}
-        """
+        {examples}"""
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
             axis = self._stat_axis_number
@@ -11428,11 +11425,11 @@ def _make_logical_function(
     )
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
         """
-      {desc}
+        {desc}
 
-       Parameters
-       ----------
-       axis : {{0 or 'index', 1 or 'columns', None}}, default 0
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns', None}}, default 0
            Indicate which axis or axes should be reduced.
 
            * 0 / 'index' : reduce the index, return a Series whose index is the
@@ -11441,30 +11438,29 @@ def _make_logical_function(
              original index.
            * None : reduce all axes, return a scalar.
 
-       bool_only : bool, default None
+        bool_only : bool, default None
            Include only boolean columns. If None, will attempt to use everything,
            then use only boolean data. Not implemented for Series.
-       skipna : bool, default True
+        skipna : bool, default True
            Exclude NA/null values. If the entire row/column is NA and skipna is
            True, then the result will be {empty_value}, as for an empty row/column.
            If skipna is False, then NA are treated as True, because these are not
            equal to zero.
-       level : int or level name, default None
+        level : int or level name, default None
            If the axis is a MultiIndex (hierarchical), count along a
            particular level, collapsing into a {name1}.
-       **kwargs : any, default None
+        **kwargs : any, default None
            Additional keywords have no effect but might be accepted for
            compatibility with NumPy.
 
-       Returns
-       -------
-       {name1} or {name2}
+        Returns
+        -------
+        {name1} or {name2}
            If level is specified, then, {name2} is returned; otherwise, {name1}
            is returned.
 
-       {see_also}
-       {examples}
-       """
+        {see_also}
+        {examples}"""
         nv.validate_logical_func(tuple(), kwargs, fname=name)
         if level is not None:
             if bool_only is not None:
