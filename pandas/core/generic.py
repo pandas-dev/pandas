@@ -7763,7 +7763,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin=None,
+        origin: pd.Timestamp = None,
         offset=None,
     ) -> "Resampler":
         """
