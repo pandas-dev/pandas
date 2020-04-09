@@ -138,7 +138,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
         Do not include columns whose entries are all NaN.
     label : None
         Not used.
-        
+
         .. deprecated:: 1.0.0
 
     Returns
