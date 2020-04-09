@@ -1098,7 +1098,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
 
     @classmethod
-    def _add_comparison_ops(cls):
+    def _add_comparison_ops(cls: OpsExtendable):
         setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
         setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
         setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
@@ -1107,7 +1107,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
 
     @classmethod
-    def _add_logical_ops(cls):
+    def _add_logical_ops(cls: OpsExtendable):
         setattr(cls, "__and__", cls._create_logical_method(operator.and_))
         setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
         setattr(cls, "__or__", cls._create_logical_method(operator.or_))

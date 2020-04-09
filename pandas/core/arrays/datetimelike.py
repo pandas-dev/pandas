@@ -1,9 +1,11 @@
+import abc
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Type, Union, cast
+from typing import Any, Sequence, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
+from typing_extensions import Protocol
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
@@ -212,7 +214,12 @@ class AttributesMixin:
         raise AbstractMethodError(self)
 
 
-class DatelikeOps:
+class DatelikeOperable(Protocol):
+
+    def _format_native_types(self, date_format, na_rep): ...
+
+
+class DatelikeOps(abc.ABC):
     """
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
@@ -221,7 +228,7 @@ class DatelikeOps:
         URL="https://docs.python.org/3/library/datetime.html"
         "#strftime-and-strptime-behavior"
     )
-    def strftime(self, date_format):
+    def strftime(self: DatelikeOperable, date_format):
         """
         Convert to Index using specified date_format.
 
@@ -258,6 +265,30 @@ class DatelikeOps:
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         return result.astype(object)
+
+
+class TimelikeOperable(Protocol):
+
+    @property
+    def tz(self): ...
+
+    @property
+    def dtype(self): ...
+
+    @property
+    def inferred_freq(self): ...
+
+    def __len__(self): ...
+
+    def _round(self, freq, mode, ambiguous, nonexistent): ...
+
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"): ...
+
+    def view(self, dtype): ...
+
+    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None): ...
+
+    def _simple_new(self, values: np.ndarray, dtype=None, freq=None): ...
 
 
 class TimelikeOps:
@@ -368,7 +399,7 @@ default 'raise'
         dtype: datetime64[ns]
         """
 
-    def _round(self, freq, mode, ambiguous, nonexistent):
+    def _round(self: TimelikeOperable, freq, mode, ambiguous, nonexistent):
         # round the local times
         if is_datetime64tz_dtype(self):
             # operate on naive timestamps, then convert back to aware
@@ -385,18 +416,18 @@ default 'raise'
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
-    def round(self, freq, ambiguous="raise", nonexistent="raise"):
+    def round(self: TimelikeOperable, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
-    def floor(self, freq, ambiguous="raise", nonexistent="raise"):
+    def floor(self: TimelikeOperable, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
-    def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
+    def ceil(self: TimelikeOperable, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
-    def _with_freq(self, freq):
+    def _with_freq(self: TimelikeOperable, freq):
         """
         Helper to set our freq in-place, returning self to allow method chaining.
 
@@ -425,6 +456,73 @@ default 'raise'
         return self
 
 
+class DatetimeLikeArrayProtocol(Protocol):
+    _data: Any
+    _freq: Any
+    _recognized_scalars: Any
+    _resolution: Any
+    _scalar_type: Any
+    freq: Any
+    dtype: Any
+    asi8: Any
+    ndim: int
+
+    def __init__(self, values, dtype, freq=None, copy=False): ...
+
+    def __add__(self, other): ...
+
+    @property
+    def _box_func(self): ...
+
+    @property
+    def size(self): ...
+
+    @property
+    def freqstr(self) -> str: ...
+
+    @property
+    def _isnan(self) -> bool: ...
+
+    @property
+    def _hasnans(self) -> bool: ...
+
+    def _generate_range(self, start, end, periods, freq, closed_or_fields): ...
+
+    def shape(self) -> Tuple[int, ...]: ...
+
+    def _simple_new(self, values: np.ndarray, dtype=None, freq=None): ...
+
+    def _box_values(self, values): ...
+
+    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs): ...
+
+    def _check_compatible_with(self, other, setitem: bool = False): ...
+
+    def _unbox_scalar(self, value): ...
+
+    def _validate_fill_value(self, fill_value): ...
+
+    def _add_nat(self): ...
+
+    def _add_offset(self, other): ...
+
+    def _add_datetimelike_scalar(self, other): ...
+
+    def _time_shift(self, other): ...
+
+    def _add_datetime_arraylike(self, other): ...
+
+    def _add_timedelta_arraylike(self, other): ...
+
+    def _addsub_int_array(self, other, op): ...    
+
+    def _addsub_object_array(self, other, op): ...
+
+    def copy(self): ...
+
+    def isna(self) -> bool: ...
+
+
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
@@ -438,19 +536,19 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     """
 
     @property
-    def ndim(self) -> int:
+    def ndim(self: DatetimeLikeArrayProtocol) -> int:
         return self._data.ndim
 
     @property
-    def shape(self):
+    def shape(self: DatetimeLikeArrayProtocol):
         return self._data.shape
 
-    def reshape(self, *args, **kwargs):
+    def reshape(self: DatetimeLikeArrayProtocol, *args, **kwargs):
         # Note: we drop any freq
         data = self._data.reshape(*args, **kwargs)
         return type(self)(data, dtype=self.dtype)
 
-    def ravel(self, *args, **kwargs):
+    def ravel(self: DatetimeLikeArrayProtocol, *args, **kwargs):
         # Note: we drop any freq
         data = self._data.ravel(*args, **kwargs)
         return type(self)(data, dtype=self.dtype)
@@ -468,11 +566,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         return lib.map_infer(values, self._box_func)
 
-    def __iter__(self):
+    def __iter__(self: DatetimeLikeArrayProtocol):
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self: DatetimeLikeArrayProtocol) -> np.ndarray:
         """
         Integer representation of the values.
 
@@ -487,7 +585,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # ----------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep="NaT", date_format=None):
+    def _format_native_types(self: DatetimeLikeArrayProtocol, na_rep="NaT", date_format=None):
         """
         Helper method for astype when converting to strings.
 
@@ -505,7 +603,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # Array-Like / EA-Interface Methods
 
     @property
-    def nbytes(self):
+    def nbytes(self: DatetimeLikeArrayProtocol):
         return self._data.nbytes
 
     def __array__(self, dtype=None) -> np.ndarray:
@@ -515,14 +613,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self._data
 
     @property
-    def size(self) -> int:
+    def size(self: DatetimeLikeArrayProtocol) -> int:
         """The number of elements in this array."""
         return np.prod(self.shape)
 
     def __len__(self) -> int:
         return len(self._data)
 
-    def __getitem__(self, key):
+    def __getitem__(self: DatetimeLikeArrayProtocol, key):
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -631,7 +729,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # DatetimeArray and TimedeltaArray
         pass
 
-    def astype(self, dtype, copy=True):
+    def astype(self: DatetimeLikeArrayProtocol, dtype, copy=True):
         # Some notes on cases we don't have to handle here in the base class:
         #   1. PeriodArray.astype handles period -> period
         #   2. DatetimeArray.astype handles conversion between tz.
@@ -669,7 +767,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             return np.asarray(self, dtype=dtype)
 
-    def view(self, dtype=None):
+    def view(self: DatetimeLikeArrayProtocol, dtype=None):
         if dtype is None or dtype is self.dtype:
             return type(self)(self._data, dtype=self.dtype)
         return self._data.view(dtype=dtype)
@@ -677,11 +775,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
+    def unique(self: DatetimeLikeArrayProtocol):
         result = unique1d(self.asi8)
         return type(self)(result, dtype=self.dtype)
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_fill_value(self: DatetimeLikeArrayProtocol, fill_value):
         """
         If a fill_value is passed to `take` convert it to an i8 representation,
         raising ValueError if this is not possible.
@@ -710,7 +808,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             )
         return fill_value
 
-    def take(self, indices, allow_fill=False, fill_value=None):
+    def take(self: DatetimeLikeArrayProtocol, indices, allow_fill=False, fill_value=None):
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
@@ -748,22 +846,22 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return cls._simple_new(values, dtype=dtype, freq=new_freq)
 
-    def copy(self):
+    def copy(self: DatetimeLikeArrayProtocol):
         values = self.asi8.copy()
         return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
-    def _values_for_factorize(self):
+    def _values_for_factorize(self: DatetimeLikeArrayProtocol):
         return self.asi8, iNaT
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls: DatetimeLikeArrayProtocol, values, original):
         return cls(values, dtype=original.dtype)
 
-    def _values_for_argsort(self):
+    def _values_for_argsort(self: DatetimeLikeArrayProtocol):
         return self._data
 
     @Appender(ExtensionArray.shift.__doc__)
-    def shift(self, periods=1, fill_value=None, axis=0):
+    def shift(self: DatetimeLikeArrayProtocol, periods=1, fill_value=None, axis=0):
         if not self.size or periods == 0:
             return self.copy()
 
@@ -799,7 +897,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self: DatetimeLikeArrayProtocol, value, side="left", sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -859,7 +957,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # TODO: Use datetime64 semantics for sorting, xref GH#29844
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
 
-    def repeat(self, repeats, *args, **kwargs):
+    def repeat(self: DatetimeLikeArrayProtocol, repeats, *args, **kwargs):
         """
         Repeat elements of an array.
 
@@ -871,7 +969,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         values = self._data.repeat(repeats)
         return type(self)(values.view("i8"), dtype=self.dtype)
 
-    def value_counts(self, dropna=False):
+    def value_counts(self: DatetimeLikeArrayProtocol, dropna=False):
         """
         Return a Series containing counts of unique values.
 
@@ -912,24 +1010,24 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self):
+    def isna(self: DatetimeLikeArrayProtocol):
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
+    def _isnan(self: DatetimeLikeArrayProtocol):
         """
         return if each value is nan
         """
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self):
+    def _hasnans(self: DatetimeLikeArrayProtocol):
         """
         return if I have any nans; enables various perf speedups
         """
         return bool(self._isnan.any())
 
-    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
+    def _maybe_mask_results(self: DatetimeLikeArrayProtocol, result, fill_value=iNaT, convert=None):
         """
         Parameters
         ----------
@@ -954,7 +1052,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             result[self._isnan] = fill_value
         return result
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(self: DatetimeLikeArrayProtocol, value=None, method=None, limit=None):
         # TODO(GH-20300): remove this
         # Just overriding to ensure that we avoid an astype(object).
         # Either 20300 or a `_values_for_fillna` would avoid this duplication.
@@ -1005,14 +1103,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # Frequency Properties/Methods
 
     @property
-    def freq(self):
+    def freq(self: DatetimeLikeArrayProtocol):
         """
         Return the frequency object if it is set, otherwise None.
         """
         return self._freq
 
     @freq.setter
-    def freq(self, value):
+    def freq(self: DatetimeLikeArrayProtocol, value):
         if value is not None:
             value = frequencies.to_offset(value)
             self._validate_frequency(self, value)
@@ -1020,7 +1118,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         self._freq = value
 
     @property
-    def freqstr(self):
+    def freqstr(self: DatetimeLikeArrayProtocol):
         """
         Return the frequency object as a string if its set, otherwise None.
         """
@@ -1029,7 +1127,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self.freq.freqstr
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def inferred_freq(self):
+    def inferred_freq(self: DatetimeLikeArrayProtocol):
         """
         Tryies to return a string representing a frequency guess,
         generated by infer_freq.  Returns None if it can't autodetect the
@@ -1043,11 +1141,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
+    def _resolution(self: DatetimeLikeArrayProtocol):
         return frequencies.Resolution.get_reso_from_freq(self.freqstr)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def resolution(self):
+    def resolution(self: DatetimeLikeArrayProtocol):
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
@@ -1099,15 +1197,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     #  see GH#23789
 
     @property
-    def _is_monotonic_increasing(self):
+    def _is_monotonic_increasing(self: DatetimeLikeArrayProtocol):
         return algos.is_monotonic(self.asi8, timelike=True)[0]
 
     @property
-    def _is_monotonic_decreasing(self):
+    def _is_monotonic_decreasing(self: DatetimeLikeArrayProtocol):
         return algos.is_monotonic(self.asi8, timelike=True)[1]
 
     @property
-    def _is_unique(self):
+    def _is_unique(self: DatetimeLikeArrayProtocol):
         return len(unique1d(self.asi8)) == len(self)
 
     # ------------------------------------------------------------------
@@ -1149,7 +1247,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _add_offset(self, offset):
         raise AbstractMethodError(self)
 
-    def _add_timedeltalike_scalar(self, other):
+    def _add_timedeltalike_scalar(self: DatetimeLikeArrayProtocol, other):
         """
         Add a delta of a timedeltalike
 
@@ -1179,7 +1277,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return type(self)(new_values, dtype=self.dtype, freq=new_freq)
         return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
-    def _add_timedelta_arraylike(self, other):
+    def _add_timedelta_arraylike(self: DatetimeLikeArrayProtocol, other):
         """
         Add a delta of a TimedeltaIndex
 
@@ -1209,7 +1307,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
-    def _add_nat(self):
+    def _add_nat(self: DatetimeLikeArrayProtocol):
         """
         Add pd.NaT to self
         """
@@ -1224,7 +1322,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
-    def _sub_nat(self):
+    def _sub_nat(self: DatetimeLikeArrayProtocol):
         """
         Subtract pd.NaT from self
         """
@@ -1238,7 +1336,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result.fill(iNaT)
         return result.view("timedelta64[ns]")
 
-    def _sub_period_array(self, other):
+    def _sub_period_array(self: DatetimeLikeArrayProtocol, other):
         """
         Subtract a Period Array/Index from self.  This is only valid if self
         is itself a Period Array/Index, raises otherwise.  Both objects must
@@ -1274,7 +1372,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             new_values[mask] = NaT
         return new_values
 
-    def _addsub_object_array(self, other: np.ndarray, op):
+    def _addsub_object_array(self: DatetimeLikeArrayProtocol, other: np.ndarray, op):
         """
         Add or subtract array-like of DateOffset objects
 
@@ -1305,7 +1403,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
-    def _time_shift(self, periods, freq=None):
+    def _time_shift(self: DatetimeLikeArrayProtocol, periods, freq=None):
         """
         Shift each value by `periods`.
 
@@ -1343,7 +1441,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
     @unpack_zerodim_and_defer("__add__")
-    def __add__(self, other):
+    def __add__(self: DatetimeLikeArrayProtocol, other):
 
         # scalar others
         if other is NaT:
@@ -1390,12 +1488,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return TimedeltaArray(result)
         return result
 
-    def __radd__(self, other):
+    def __radd__(self: DatetimeLikeArrayProtocol, other):
         # alias for __add__
         return self.__add__(other)
 
     @unpack_zerodim_and_defer("__sub__")
-    def __sub__(self, other):
+    def __sub__(self: DatetimeLikeArrayProtocol, other):
 
         # scalar others
         if other is NaT:
@@ -1444,7 +1542,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return TimedeltaArray(result)
         return result
 
-    def __rsub__(self, other):
+    def __rsub__(self: DatetimeLikeArrayProtocol, other):
         if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self.dtype):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
@@ -1480,7 +1578,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return -(self - other)
 
-    def __iadd__(self, other):  # type: ignore
+    def __iadd__(self: DatetimeLikeArrayProtocol, other):  # type: ignore
         result = self + other
         self[:] = result[:]
 
@@ -1489,7 +1587,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             self._freq = result._freq
         return self
 
-    def __isub__(self, other):  # type: ignore
+    def __isub__(self: DatetimeLikeArrayProtocol, other):  # type: ignore
         result = self - other
         self[:] = result[:]
 
@@ -1501,14 +1599,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+    def _reduce(self: DatetimeLikeArrayProtocol, name, axis=0, skipna=True, **kwargs):
         op = getattr(self, name, None)
         if op:
             return op(skipna=skipna, **kwargs)
         else:
             return super()._reduce(name, skipna, **kwargs)
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self: DatetimeLikeArrayProtocol, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Array or minimum along
         an axis.
@@ -1528,7 +1626,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return NaT
         return self._box_func(result)
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self: DatetimeLikeArrayProtocol, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Array or maximum along
         an axis.
@@ -1560,7 +1658,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
-    def mean(self, skipna=True):
+    def mean(self: DatetimeLikeArrayProtocol, skipna=True):
         """
         Return the mean value of the Array.
 
