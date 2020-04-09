@@ -1059,43 +1059,12 @@ class OpsExtendable(Protocol):
     @classmethod
     def _create_arithmetic_method(cls, op): ...
 
-    def __add__(self, other): ...
+    @classmethod
+    def _create_comparison_method(cls, op): ...
 
-    def __sub__(self, other): ...
+    @classmethod
+    def _create_logical_method(cls, op): ...
 
-    def __mul__(self, other): ...
-
-    def __pow__(self, other): ...
-
-    def __mod__(self, other): ...
-
-    def __floordiv__(self, other): ...
-
-    def __truediv__(self, other): ...
-
-    def __divmod__(self, other): ...
-
-    def __radd__(self, other): ...
-
-    def __rsub__(self, other): ...
-
-    def __rmul__(self, other):
-        pass
-
-    def __rpow__(self, other):
-        pass
-
-    def __rmod__(self, other):
-        pass
-
-    def __rfloordiv__(self, other):
-        pass
-
-    def __rtruediv__(self, other):
-        ...
-
-    def __rdivmod__(self, other):
-        ...
 
 
 class ExtensionOpsMixin:
@@ -1130,21 +1099,21 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_comparison_ops(cls):
-        cls.__eq__ = cls._create_comparison_method(operator.eq)
-        cls.__ne__ = cls._create_comparison_method(operator.ne)
-        cls.__lt__ = cls._create_comparison_method(operator.lt)
-        cls.__gt__ = cls._create_comparison_method(operator.gt)
-        cls.__le__ = cls._create_comparison_method(operator.le)
-        cls.__ge__ = cls._create_comparison_method(operator.ge)
+        setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
+        setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
+        setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
+        setattr(cls, "__gt__", cls._create_comparison_method(operator.gt))
+        setattr(cls, "__le__", cls._create_comparison_method(operator.le))
+        setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
 
     @classmethod
     def _add_logical_ops(cls):
-        cls.__and__ = cls._create_logical_method(operator.and_)
-        cls.__rand__ = cls._create_logical_method(ops.rand_)
-        cls.__or__ = cls._create_logical_method(operator.or_)
-        cls.__ror__ = cls._create_logical_method(ops.ror_)
-        cls.__xor__ = cls._create_logical_method(operator.xor)
-        cls.__rxor__ = cls._create_logical_method(ops.rxor)
+        setattr(cls, "__and__", cls._create_logical_method(operator.and_))
+        setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
+        setattr(cls, "__or__", cls._create_logical_method(operator.or_))
+        setattr(cls, "__ror__", cls._create_logical_method(ops.ror_))
+        setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
+        setattr(cls, "__rxor__", cls._create_logical_method(ops.rxor))
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
