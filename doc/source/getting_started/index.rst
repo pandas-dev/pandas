@@ -21,7 +21,7 @@ Installation
                 <div class="card-body">
                     <p class="card-text">
 
-pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
+pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution and can be
 installed with Anaconda or Miniconda:
 
 .. raw:: html
