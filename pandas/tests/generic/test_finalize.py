@@ -682,7 +682,7 @@ def test_timedelta_methods(method):
         operator.methodcaller("set_categories", ["A", "B"]),
     ],
 )
-# @not_implemented_mark
+@not_implemented_mark
 def test_categorical_accessor(method):
     s = pd.Series(["a", "b"], dtype="category")
     s.attrs = {"a": 1}
