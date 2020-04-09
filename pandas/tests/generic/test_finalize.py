@@ -545,6 +545,42 @@ def test_finalize_called(ndframe_method):
 
 
 # ----------------------------------------------------------------------------
+# Binary operations
+
+
+@pytest.mark.parametrize("annotate", ["left", "right", "both"])
+@pytest.mark.parametrize(
+    "args",
+    [
+        (1, pd.Series([1])),
+        (1, pd.DataFrame({"A": [1]})),
+        (pd.Series([1]), 1),
+        (pd.DataFrame({"A": [1]}), 1),
+        (pd.Series([1]), pd.Series([1])),
+        (pd.DataFrame({"A": [1]}), pd.DataFrame({"A": [1]})),
+        (pd.Series([1]), pd.DataFrame({"A": [1]})),
+        (pd.DataFrame({"A": [1]}), pd.Series([1])),
+    ],
+)
+def test_binops(args, annotate, all_arithmetic_functions):
+    # This generates 326 tests... Is that needed?
+    left, right = args
+    if annotate == "both" and isinstance(left, int) or isinstance(right, int):
+        return
+
+    if isinstance(left, pd.DataFrame) or isinstance(right, pd.DataFrame):
+        pytest.xfail(reason="not implemented")
+
+    if annotate in {"left", "both"} and not isinstance(left, int):
+        left.attrs = {"a": 1}
+    if annotate in {"left", "both"} and not isinstance(right, int):
+        right.attrs = {"a": 1}
+
+    result = all_arithmetic_functions(left, right)
+    assert result.attrs == {"a": 1}
+
+
+# ----------------------------------------------------------------------------
 # Accessors
 
 
