@@ -658,6 +658,5 @@ def test_support_downcast_of_nullable_dtypes():
         pd.to_numeric(pd.Series([1, 2, 3], dtype="Int64"), downcast="integer")
         pd.to_numeric(pd.Series([1, 2], dtype="Int32"), downcast="signed")
         pd.to_numeric(pd.Series([1, 2, 3], dtype="Int32"), downcast="float")
-        pd.to_numeric(pd.Series([1, 2, 3], dtype="Float32"), downcast="integer")
     except TypeError:
         pytest.fail("TypeError raised.")
