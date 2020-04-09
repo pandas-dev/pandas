@@ -121,14 +121,44 @@ def melt(
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
 def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
-    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot.
+    Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
+
+    Similar to ``pd.melt`` but more user-friendly. Accepts a dictionary,
+    ``groups``, in which each key is a new column name and each value is a
+    list of old column names that will be "melted" under the new column name as
+    part of the reshape.
 
     Parameters
     ----------
     data : DataFrame
+        The wide-format DataFrame.
     groups : dict
-        {new_name : list_of_columns}
-    dropna : boolean, default True
+        {new_name : list_of_columns}.
+    dropna : bool, default True
+        Do not include columns whose entries are all NaN.
+    label : None
+        Not used.
+        
+        .. deprecated:: 1.0.0
+
+    Returns
+    -------
+    DataFrame
+        Reshaped DataFrame.
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
 
     Examples
     --------
@@ -146,24 +176,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     1  Yankees  2007  573
     2  Red Sox  2008  545
     3  Yankees  2008  526
-
-    Returns
-    -------
-    reshaped : DataFrame
-
-    See Also
-    --------
-    melt : Unpivot a DataFrame from wide to long format, optionally leaving
-        identifiers set.
-    pivot : Create a spreadsheet-style pivot table as a DataFrame.
-    DataFrame.pivot : Pivot without aggregation that can handle
-        non-numeric data.
-    DataFrame.pivot_table : Generalization of pivot that can handle
-        duplicate values for one index/column pair.
-    DataFrame.unstack : Pivot based on the index values instead of a
-        column.
-    wide_to_long : Wide panel to long format. Less flexible but more
-        user-friendly than melt.
     """
     if isinstance(groups, dict):
         keys = list(groups.keys())
@@ -264,7 +276,7 @@ def wide_to_long(
         duplicate values for one index/column pair.
     DataFrame.unstack : Pivot based on the index values instead of a
         column.
-    lreshape : Reshape long-format data to wide. Generalized inverse of
+    lreshape : Reshape wide-format data to format. Generalized inverse of
         DataFrame.pivot.
 
     Notes
