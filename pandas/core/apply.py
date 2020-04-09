@@ -145,6 +145,9 @@ class FrameApply(metaclass=abc.ABCMeta):
         """ compute the results """
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
+            if "axis" in self.kwds:
+                self.kwds.pop("axis")
+
             return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)
 
         # all empty

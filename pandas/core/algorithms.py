@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+import abc
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
@@ -1065,7 +1066,7 @@ def quantile(x, q, interpolation_method="fraction"):
 # --------------- #
 
 
-class SelectN:
+class SelectN(abc.ABC):
     def __init__(self, obj, n: int, keep: str):
         self.obj = obj
         self.n = n
@@ -1089,6 +1090,9 @@ class SelectN:
         return (
             is_numeric_dtype(dtype) and not is_complex_dtype(dtype)
         ) or needs_i8_conversion(dtype)
+
+    @abc.abstractmethod
+    def compute(self, method): ...
 
 
 class SelectNSeries(SelectN):
