@@ -74,8 +74,9 @@ def _minmax(func: Callable, values: np.ndarray, mask: np.ndarray, skipna: bool =
         else:
             return func(values)
     else:
-        if not mask.all():
-            return func(values[~mask])
+        subset = values[~mask]
+        if subset.size:
+            return func(subset)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
