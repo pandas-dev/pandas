@@ -39,7 +39,7 @@ For example:
 Comparing two `DataFrame` or two `Series` and summarizing the differences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added :meth:`DataFrame.differences` and :meth:`Series.differences` for comparing two `DataFrame` or two `Series` (:issue:`30429`)
+We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing two `DataFrame` or two `Series` (:issue:`30429`)
 
 .. ipython:: python
 
@@ -59,7 +59,7 @@ We've added :meth:`DataFrame.differences` and :meth:`Series.differences` for com
 
    df
    df2
-   df.differences(df2)
+   df.compare(df2)
 
 .. _whatsnew_110.timestamp_fold_support:
 

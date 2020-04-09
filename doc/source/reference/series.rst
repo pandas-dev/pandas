@@ -246,9 +246,9 @@ Combining / comparing / joining / merging
    :toctree: api/
 
    Series.append
+   Series.differences
    Series.replace
    Series.update
-   Series.differences
 
 Time series-related
 -------------------

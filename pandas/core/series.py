@@ -2640,7 +2640,7 @@ Series or DataFrame
 
 See Also
 --------
-DataFrame.differences : Show differences.
+DataFrame.compare : Compare with another DataFrame and show differences.
 
 Notes
 -----
@@ -2653,14 +2653,14 @@ Examples
 
 Align the differences on columns
 
->>> s1.differences(s2)
+>>> s1.compare(s2)
   self other
 1    b     a
 3    d     b
 
 Stack the differences on indices
 
->>> s1.differences(s2, align_axis=0)
+>>> s1.compare(s2, align_axis=0)
 1  self     b
    other    a
 3  self     d
@@ -2669,7 +2669,7 @@ dtype: object
 
 Keep all original rows
 
->>> s1.differences(s2, keep_shape=True)
+>>> s1.compare(s2, keep_shape=True)
   self other
 0  NaN   NaN
 1    b     a
@@ -2679,7 +2679,7 @@ Keep all original rows
 
 Keep all original rows and also all original values
 
->>> s1.differences(s2, keep_shape=True, keep_equal=True)
+>>> s1.compare(s2, keep_shape=True, keep_equal=True)
   self other
 0    a     a
 1    b     a
@@ -2688,15 +2688,15 @@ Keep all original rows and also all original values
 4    e     e
 """
     )
-    @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(
+    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
         self,
         other: "Series",
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
     ) -> FrameOrSeriesUnion:
-        return super().differences(
+        return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,

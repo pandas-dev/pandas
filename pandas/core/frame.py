@@ -5338,7 +5338,7 @@ DataFrame
 
 See Also
 --------
-Series.differences : Show differences.
+Series.compare : Compare with another Series and show differences.
 
 Notes
 -----
@@ -5375,7 +5375,7 @@ Examples
 
 Align the differences on columns
 
->>> df.differences(df2)
+>>> df.compare(df2)
   col1       col3
   self other self other
 0    a     c  NaN   NaN
@@ -5383,7 +5383,7 @@ Align the differences on columns
 
 Stack the differences on rows
 
->>> df.differences(df2, align_axis=0)
+>>> df.compare(df2, align_axis=0)
         col1  col3
 0 self     a   NaN
   other    c   NaN
@@ -5392,7 +5392,7 @@ Stack the differences on rows
 
 Keep all original rows and columns
 
->>> df.differences(df2, keep_shape=True)
+>>> df.compare(df2, keep_shape=True)
   col1       col2       col3
   self other self other self other
 0    a     c  NaN   NaN  NaN   NaN
@@ -5403,7 +5403,7 @@ Keep all original rows and columns
 
 Keep all original rows and columns and also all original values
 
->>> df.differences(df2, keep_shape=True, keep_equal=True)
+>>> df.compare(df2, keep_shape=True, keep_equal=True)
   col1       col2       col3
   self other self other self other
 0    a     c  1.0   1.0  1.0   1.0
@@ -5413,15 +5413,15 @@ Keep all original rows and columns and also all original values
 4    a     a  5.0   5.0  5.0   5.0
 """
     )
-    @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(
+    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
         self,
         other: "DataFrame",
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
     ) -> "DataFrame":
-        return super().differences(
+        return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,

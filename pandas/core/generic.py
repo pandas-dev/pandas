@@ -8253,7 +8253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return ranker(data)
 
     _shared_docs[
-        "differences"
+        "compare"
     ] = """
         Compare to another %(klass)s and show the differences.
 
@@ -8279,8 +8279,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Otherwise, equal values are shown as NaNs.
         """
 
-    @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(
+    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
         self,
         other,
         align_axis: Axis = 1,

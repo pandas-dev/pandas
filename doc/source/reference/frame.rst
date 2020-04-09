@@ -247,10 +247,10 @@ Combining / comparing / joining / merging
 
    DataFrame.append
    DataFrame.assign
+   DataFrame.compare
    DataFrame.join
    DataFrame.merge
    DataFrame.update
-   DataFrame.differences
 
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
