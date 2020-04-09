@@ -332,12 +332,14 @@ def operate_blockwise(left, right, array_op):
 
         left_ea = not isinstance(blk_vals, np.ndarray)
 
+        # TODO: joris says this is costly, see if we can optimize
         rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
 
-        if left_ea:
-            assert len(locs) == 1, locs
-            assert len(rblks) == 1, rblks
-            assert rblks[0].shape[0] == 1, rblks[0].shape
+        # Assertions are disabled for performance, but should hold:
+        # if left_ea:
+        #    assert len(locs) == 1, locs
+        #    assert len(rblks) == 1, rblks
+        #    assert rblks[0].shape[0] == 1, rblks[0].shape
 
         for k, rblk in enumerate(rblks):
             right_ea = not isinstance(rblk.values, np.ndarray)
@@ -347,10 +349,11 @@ def operate_blockwise(left, right, array_op):
             res_values = array_op(lvals, rvals)
             nbs = rblk._split_op_result(res_values)
 
-            if right_ea or left_ea:
-                assert len(nbs) == 1
-            else:
-                assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
+            # Assertions are disabled for performance, but should hold:
+            # if right_ea or left_ea:
+            #    assert len(nbs) == 1
+            # else:
+            #    assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
 
             for nb in nbs:
                 # Reset mgr_locs to correspond to our original DataFrame

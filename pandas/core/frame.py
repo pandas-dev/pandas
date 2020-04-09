@@ -442,6 +442,7 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
+
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -5453,10 +5454,11 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        out = self._constructor(result, index=self.index, copy=False)
+        out = self._constructor(result, copy=False)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
+        out.index = self.index
         return out
 
     def combine(
