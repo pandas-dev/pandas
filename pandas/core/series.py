@@ -2290,47 +2290,49 @@ Name: Max Speed, dtype: float64
         klass="Series",
         extra_params="",
         other_klass="DataFrame",
-        examples="""Difference with previous row
+        examples=dedent(
+            """
+        Difference with previous row
 
->>> s = pd.Series([1, 1, 2, 3, 5, 8])
->>> s.diff()
-0    NaN
-1    0.0
-2    1.0
-3    1.0
-4    2.0
-5    3.0
-dtype: float64
+        >>> s = pd.Series([1, 1, 2, 3, 5, 8])
+        >>> s.diff()
+        0    NaN
+        1    0.0
+        2    1.0
+        3    1.0
+        4    2.0
+        5    3.0
+        dtype: float64
 
-Difference with 3rd previous row
+        Difference with 3rd previous row
 
->>> s.diff(periods=3)
-0    NaN
-1    NaN
-2    NaN
-3    2.0
-4    4.0
-5    6.0
-dtype: float64
+        >>> s.diff(periods=3)
+        0    NaN
+        1    NaN
+        2    NaN
+        3    2.0
+        4    4.0
+        5    6.0
+        dtype: float64
 
-Difference with following row
+        Difference with following row
 
->>> s.diff(periods=-1)
-0    0.0
-1   -1.0
-2   -1.0
-3   -2.0
-4   -3.0
-5    NaN
-dtype: float64
+        >>> s.diff(periods=-1)
+        0    0.0
+        1   -1.0
+        2   -1.0
+        3   -2.0
+        4   -3.0
+        5    NaN
+        dtype: float64
 
-Overflow for input dtype
+        Overflow for input dtype
 
->>> s = pd.Series([1, 0], dtype=np.uint8)
->>> s.diff()
-0      NaN
-1    255.0
-dtype: float64""",
+        >>> s = pd.Series([1, 0], dtype=np.uint8)
+        >>> s.diff()
+        0      NaN
+        1    255.0
+        dtype: float64"""),
     )
     def diff(self, periods: int = 1) -> "Series":
         """
