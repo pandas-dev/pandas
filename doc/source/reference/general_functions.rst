@@ -13,6 +13,7 @@ Data manipulations
    :toctree: api/
 
    melt
+   lreshape
    pivot
    pivot_table
    crosstab

@@ -121,7 +121,7 @@ def melt(
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
 def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
-    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
+    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot.
 
     Parameters
     ----------
@@ -150,6 +150,20 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     Returns
     -------
     reshaped : DataFrame
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
     """
     if isinstance(groups, dict):
         keys = list(groups.keys())
@@ -238,6 +252,20 @@ def wide_to_long(
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
         (i, j).
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    lreshape : Reshape long-format data to wide. Generalized inverse of
+        DataFrame.pivot.
 
     Notes
     -----
