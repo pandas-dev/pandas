@@ -28,7 +28,7 @@ from pandas.core.internals.managers import BlockManager
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes, concat_axis: int, copy: bool
+    mgrs_indexers, axes, concat_axis: int, copy: bool, ignore_2d_ea: bool = False,
 ) -> BlockManager:
     """
     Concatenate block managers into one.
@@ -65,7 +65,9 @@ def concatenate_block_managers(
             b.mgr_locs = placement
         else:
             b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy),
+                _concatenate_join_units(
+                    join_units, concat_axis, copy=copy, ignore_2d_ea=ignore_2d_ea
+                ),
                 placement=placement,
             )
         blocks.append(b)
@@ -247,6 +249,16 @@ class JoinUnit:
                     pass
                 elif getattr(self.block, "is_extension", False):
                     pass
+                elif is_extension_array_dtype(empty_dtype):
+                    missing_arr = empty_dtype.construct_array_type()._from_sequence(
+                        [], dtype=empty_dtype
+                    )
+                    ncols, nrows = self.shape
+                    assert ncols == 1, ncols
+                    empty_arr = -1 * np.ones((nrows,), dtype="int8")
+                    return missing_arr.take(
+                        empty_arr, allow_fill=True, fill_value=fill_value
+                    )
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
@@ -280,7 +292,7 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(join_units, concat_axis, copy):
+def _concatenate_join_units(join_units, concat_axis, copy, ignore_2d_ea=False):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -307,7 +319,9 @@ def _concatenate_join_units(join_units, concat_axis, copy):
             else:
                 concat_values = concat_values.copy()
     else:
-        concat_values = concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(
+            to_concat, axis=concat_axis, ignore_2d_ea=ignore_2d_ea
+        )
 
     return concat_values
 
@@ -344,6 +358,7 @@ def _get_empty_dtype_and_na(join_units):
 
     upcast_classes = defaultdict(list)
     null_upcast_classes = defaultdict(list)
+
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
@@ -352,6 +367,11 @@ def _get_empty_dtype_and_na(join_units):
             upcast_cls = "category"
         elif is_datetime64tz_dtype(dtype):
             upcast_cls = "datetimetz"
+
+        # may need to move sparse back up
+        elif is_extension_array_dtype(dtype):
+            upcast_cls = "extension"
+
         elif issubclass(dtype.type, np.bool_):
             upcast_cls = "bool"
         elif issubclass(dtype.type, np.object_):
@@ -362,8 +382,6 @@ def _get_empty_dtype_and_na(join_units):
             upcast_cls = "timedelta"
         elif is_sparse(dtype):
             upcast_cls = dtype.subtype.name
-        elif is_extension_array_dtype(dtype):
-            upcast_cls = "object"
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:
@@ -379,6 +397,12 @@ def _get_empty_dtype_and_na(join_units):
 
     if not upcast_classes:
         upcast_classes = null_upcast_classes
+    if "extension" in upcast_classes:
+        if len(upcast_classes) == 1:
+            cls = upcast_classes["extension"][0]
+            return cls, cls.na_value
+        else:
+            return np.dtype("object"), np.nan
 
     # TODO: de-duplicate with maybe_promote?
     # create the result

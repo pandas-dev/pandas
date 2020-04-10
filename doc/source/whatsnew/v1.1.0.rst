@@ -583,7 +583,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
--
+- Fixed bug in :func:`concat` when concatenating DataFrames with non-overlaping columns resulting in object-dtype columns rather than preserving the extension dtype (:issue:`27692`, :issue:`33027`)
 
 
 Other

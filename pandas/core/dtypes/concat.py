@@ -68,7 +68,7 @@ def get_dtype_kinds(l):
     return typs
 
 
-def concat_compat(to_concat, axis: int = 0):
+def concat_compat(to_concat, axis: int = 0, ignore_2d_ea: bool = False):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -122,7 +122,11 @@ def concat_compat(to_concat, axis: int = 0):
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
     if any_ea and axis == 1:
-        to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+        if single_dtype and ignore_2d_ea:
+            cls = type(to_concat[0])
+            return cls._concat_same_type(to_concat)
+        else:
+            to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
 
     elif any_ea and single_dtype and axis == 0:
         cls = type(to_concat[0])

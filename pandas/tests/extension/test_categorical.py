@@ -93,7 +93,8 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    pass
+    def test_concat_with_reindex(self, data):
+        pytest.xfail(reason="Deliberate?")
 
 
 class TestGetitem(base.BaseGetitemTests):
