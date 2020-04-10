@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
     is_float_dtype,
-    is_list_like,
     is_period_dtype,
     pandas_dtype,
 )
