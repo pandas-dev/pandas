@@ -85,7 +85,7 @@ See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.multiple_lambdas:
 
-Groupby Aggregation with multiple lambdas
+Groupby aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
@@ -1243,7 +1243,7 @@ Sparse
 - Bug in :func:`numpy.modf` on a :class:`SparseArray`. Now a tuple of :class:`SparseArray` is returned (:issue:`26946`).
 
 
-Build Changes
+Build changes
 ^^^^^^^^^^^^^
 
 - Fix install error with PyPy on macOS (:issue:`26536`)
