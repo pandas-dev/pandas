@@ -7,10 +7,18 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import fields, parsing, timezones
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
+from pandas.core.dtypes.common import (
+    DT64NS_DTYPE,
+    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_float,
+    is_integer,
+    is_scalar,
+)
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
@@ -279,7 +287,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import _is_dates_only
 
-        return _is_dates_only(self.values) and self.tz is None
+        return self.tz is None and _is_dates_only(self._values)
 
     def __reduce__(self):
 
@@ -297,6 +305,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if self._has_same_tz(value):
             return Timestamp(value).asm8
         raise ValueError("Passed item and index have different timezone")
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not is_datetime64_any_dtype(dtype):
+            return False
+        if self.tz is not None:
+            # If we have tz, we can compare to tzaware
+            return is_datetime64tz_dtype(dtype)
+        # if we dont have tz, we can only compare to tznaive
+        return is_datetime64_dtype(dtype)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -434,7 +454,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=_NS_DTYPE)
+        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
 
         for i, v in enumerate(self):
             s = v
@@ -700,7 +720,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Return index locations of index values at particular time of day
+        Return index locations of values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -716,7 +736,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_between_time, DataFrame.at_time
+        indexer_between_time : Get index locations of values between particular
+            times of day.
+        DataFrame.at_time : Select values at particular time of day.
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
@@ -757,7 +779,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_at_time, DataFrame.between_time
+        indexer_at_time : Get index locations of values at particular time of day.
+        DataFrame.between_time : Select values between particular times of day.
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
@@ -991,16 +1014,10 @@ def bdate_range(
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
         only used when custom frequency strings are passed.  The default
         value None is equivalent to 'Mon Tue Wed Thu Fri'.
-
-        .. versionadded:: 0.21.0
-
     holidays : list-like or None, default None
         Dates to exclude from the set of valid business days, passed to
         ``numpy.busdaycalendar``, only used when custom frequency strings
         are passed.
-
-        .. versionadded:: 0.21.0
-
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
