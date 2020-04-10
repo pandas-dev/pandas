@@ -1177,7 +1177,7 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
-        bins : int, default 10 or string
+        bins : str or int, default 10
             Number of histogram bins to be used.
 
             You can alternatively provide a string describing a binning
