@@ -94,6 +94,19 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+| python-dateutil | 2.7.3           |    X     |         |
++-----------------+-----------------+----------+---------+
+
+
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
 
