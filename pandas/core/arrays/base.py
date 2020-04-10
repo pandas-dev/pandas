@@ -1206,7 +1206,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             return _maybe_convert(res)
 
-        op_name = ops._get_op_name(op, True)
+        op_name = f"__{op.__name__}__"
         return set_function_name(_binop, op_name, cls)
 
     @classmethod

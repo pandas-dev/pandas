@@ -2288,7 +2288,7 @@ class MultiIndex(Index):
 
             # GH7774: preserve dtype/tz if target is empty and not an Index.
             # target may be an iterator
-            target = ibase._ensure_has_len(target)
+            target = ibase.ensure_has_len(target)
             if len(target) == 0 and not isinstance(target, Index):
                 idx = self.levels[level]
                 attrs = idx._get_attributes_dict()
