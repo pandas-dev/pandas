@@ -293,9 +293,9 @@ def _relabel_result(
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
     >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
-    dict(A=Series([2.0, NaN, NaN, NaN], index=columns),
-         C=Series([NaN, 6.0, NaN, NaN], index=columns),
-         B=Series([NaN, NaN, 2.5, 4.0], index=columns))
+    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
+         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
+         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
     """
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
