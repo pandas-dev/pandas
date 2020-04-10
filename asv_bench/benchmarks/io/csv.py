@@ -245,7 +245,7 @@ class ReadCSVFloatPrecision(StringIORewind):
             names=list("abc"),
         )
 
-    def time_read_csv_arrow(self, sep):
+    def time_read_csv_arrow(self, sep, decimal, float_precision):
         read_csv(
             self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
         )
@@ -256,23 +256,15 @@ class ReadCSVEngine(StringIORewind):
         data = ["A,B,C"] + (["1,2,3"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
 
-    def time_read_csv_c(self, sep):
-        read_csv(
-            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
-        )
+    def time_read_csv_c(self):
+        read_csv(self.data(self.StringIO_input))
 
-    def time_read_csv_arrow(self, sep):
-        read_csv(
-            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
-        )
+    def time_read_csv_arrow(self):
+        read_csv(self.data(self.StringIO_input), engine="pyarrow")
 
-    def time_read_csv_python_engine(self, sep):
+    def time_read_csv_python_engine(self):
         read_csv(
-            self.data(self.StringIO_input),
-            sep=sep,
-            header=None,
-            engine="python",
-            names=list("abc"),
+            self.data(self.StringIO_input), engine="python",
         )
 
 

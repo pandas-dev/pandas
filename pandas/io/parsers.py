@@ -172,6 +172,7 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.13
     as a dependency however.
+
     .. versionchanged:: (1.1)
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
@@ -2266,16 +2267,14 @@ class ArrowParserWrapper(ParserBase):
 
     def read(self):
         pyarrow = import_optional_dependency(
-            "pyarrow.csv", extra="pyarrow is required to use arrow engine"
+            "pyarrow.csv", extra="pyarrow is required to use the pyarrow engine"
         )
         table = pyarrow.read_csv(
             self.src,
             read_options=pyarrow.ReadOptions(
                 skip_rows=self.kwds.get("skiprows"),
                 column_names=self.names,
-                autogenerate_column_names=True
-                if self.header != 0 or self.kwds.get("skiprows") != set()
-                else False,
+                autogenerate_column_names=True if self.header != 0 else False,
             ),
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),

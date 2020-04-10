@@ -88,9 +88,6 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
-- :func:`pandas.read_csv` now accepts engine="arrow" as an argument, allowing for faster csv parsing
-  if pyarrow>0.13 is installed. However, the pyarrow engine is less feature-complete than its "c" or
-  "python" counterparts. (:issue:`23697`)
 
 .. ---------------------------------------------------------------------------
 
@@ -412,6 +409,9 @@ I/O
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 - Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
+- :func:`pandas.read_csv` now accepts engine="arrow" as an argument, allowing for faster csv parsing
+  if pyarrow>0.13 is installed. However, the pyarrow engine is less feature-complete than its "c" or
+  "python" counterparts. (:issue:`23697`)
 
 Plotting
 ^^^^^^^^
