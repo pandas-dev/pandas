@@ -415,28 +415,10 @@ else:
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
 
-debugging_symbols_requested = "--with-debugging-symbols" in sys.argv
-if debugging_symbols_requested:
-    sys.argv.remove("--with-debugging-symbols")
-
-
-if sys.byteorder == "big":
-    endian_macro = [("__BIG_ENDIAN__", "1")]
-else:
-    endian_macro = [("__LITTLE_ENDIAN__", "1")]
-
-
 if is_platform_windows():
     extra_compile_args = []
-    extra_link_args = []
-    if debugging_symbols_requested:
-        extra_compile_args.append("/Z7")
-        extra_link_args.append("/DEBUG")
 else:
     extra_compile_args = ["-Werror"]
-    extra_link_args = []
-    if debugging_symbols_requested:
-        extra_compile_args.append("-g")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
@@ -457,28 +439,13 @@ if is_platform_mac():
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")
 
-# enable coverage by building cython files by setting the environment variable
-# "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
-# with `--with-cython-coverage`enabled
-linetrace = os.environ.get("PANDAS_CYTHON_COVERAGE", False)
-if "--with-cython-coverage" in sys.argv:
-    linetrace = True
-    sys.argv.remove("--with-cython-coverage")
 
-# Note: if not using `cythonize`, coverage can be enabled by
-# pinning `ext.cython_directives = directives` to each ext in extensions.
-# github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {"linetrace": False, "language_level": 3}
-macros = []
-if linetrace:
-    # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
-    directives["linetrace"] = True
-    macros = [("CYTHON_TRACE", "1"), ("CYTHON_TRACE_NOGIL", "1")]
+directives = {"language_level": 3}
 
 # in numpy>=1.16.0, silence build warnings about deprecated API usage
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
-macros.append(("NPY_NO_DEPRECATED_API", "0"))
+macros = [("NPY_NO_DEPRECATED_API", "0")]
 if "-Werror" in extra_compile_args:
     try:
         import numpy as np
@@ -693,7 +660,6 @@ for name, data in ext_data.items():
         language=data.get("language", "c"),
         define_macros=data.get("macros", macros),
         extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
     )
 
     extensions.append(obj)
@@ -734,7 +700,6 @@ ujson_ext = Extension(
         "pandas/_libs/src/datetime",
     ],
     extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
-    extra_link_args=extra_link_args,
     define_macros=macros,
 )
 
