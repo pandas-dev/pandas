@@ -1025,7 +1025,7 @@ class ExtensionArray:
     # of objects
     _can_hold_na = True
 
-    def _accumulate(self, name, skipna=True, **kwargs):
+    def _accumulate(self, name, skipna=True, **kwargs) -> "ExtensionArray":
         """
         Return an ExtensionArray performing the accumulation operation.
         The underlying data type might change

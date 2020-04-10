@@ -558,17 +558,18 @@ class IntegerArray(BaseMaskedArray):
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
-    def _accumulate(self, name: str, skipna: bool = True, **kwargs):
+    def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> "IntegerArray":
         from ..nanops import na_accum_func
 
         if name == "cumsum":
-            return na_accum_func(self, np.cumsum, skipna=skipna)
+            result = na_accum_func(self, np.cumsum, skipna=skipna)
         elif name == "cumprod":
-            return na_accum_func(self, np.cumprod, skipna=skipna)
+            resut = na_accum_func(self, np.cumprod, skipna=skipna)
         elif name == "cummax":
-            return na_accum_func(self, np.maximum.accumulate, skipna=skipna)
+            result = na_accum_func(self, np.maximum.accumulate, skipna=skipna)
         elif name == "cummin":
-            return na_accum_func(self, np.minimum.accumulate, skipna=skipna)
+            result = na_accum_func(self, np.minimum.accumulate, skipna=skipna)
+        return result
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         data = self._data
