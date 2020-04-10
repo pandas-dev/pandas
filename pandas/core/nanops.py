@@ -1588,7 +1588,6 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
 
         if isinstance(values, np.ndarray):
             result = result.view(orig_dtype)
-
         else:
             # DatetimeArray
             result = type(values)._from_sequence(result, dtype=orig_dtype)
