@@ -40,6 +40,34 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.iloc[:4, 0]
         self.assert_series_equal(result, expected)
 
+        # GH#32959 slice columns with step
+        result = df.iloc[:, ::2]
+        self.assert_frame_equal(result, df[["A"]])
+        result = df[["B", "A"]].iloc[:, ::2]
+        self.assert_frame_equal(result, df[["B"]])
+
+    def test_iloc_frame_single_block(self, data):
+        # GH#32959 null slice along index, slice along columns with single-block
+        df = pd.DataFrame({"A": data})
+
+        result = df.iloc[:, :]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, :1]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, :2]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, ::2]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, 1:2]
+        self.assert_frame_equal(result, df.iloc[:, :0])
+
+        result = df.iloc[:, -1:]
+        self.assert_frame_equal(result, df)
+
     def test_loc_series(self, data):
         ser = pd.Series(data)
         result = ser.loc[:3]
