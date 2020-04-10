@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -1936,9 +1935,8 @@ def _factorize_keys(
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
-        assert is_categorical(lk) and is_categorical(rk)
-        lk = cast(Categorical, lk)
-        rk = cast(Categorical, rk)
+        assert isinstance(lk, Categorical)
+        assert isinstance(rk, Categorical)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes

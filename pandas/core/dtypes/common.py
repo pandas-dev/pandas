@@ -125,7 +125,7 @@ def ensure_categorical(arr):
     cat_arr : The original array cast as a Categorical. If it already
               is a Categorical, we return as is.
     """
-    if not is_categorical(arr):
+    if not is_categorical_dtype(arr.dtype):
         from pandas import Categorical
 
         arr = Categorical(arr)
@@ -364,6 +364,12 @@ def is_categorical(arr) -> bool:
     >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    warnings.warn(
+        "is_categorical is deprecated and will be removed in a future version.  "
+        "Use is_categorical_dtype instead",
+        FutureWarning,
+        stacklevel=2,
+    )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
@@ -1057,23 +1063,6 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
-def _is_unorderable_exception(e: TypeError) -> bool:
-    """
-    Check if the exception raised is an unorderable exception.
-
-    Parameters
-    ----------
-    e : Exception or sub-class
-        The exception object to check.
-
-    Returns
-    -------
-    bool
-        Whether or not the exception raised is an unorderable exception.
-    """
-    return "'>' not supported between instances of" in str(e)
-
-
 # This exists to silence numpy deprecation warnings, see GH#29553
 def is_numeric_v_string_like(a, b):
     """
@@ -1462,7 +1451,7 @@ def is_extension_type(arr) -> bool:
         stacklevel=2,
     )
 
-    if is_categorical(arr):
+    if is_categorical_dtype(arr):
         return True
     elif is_sparse(arr):
         return True
