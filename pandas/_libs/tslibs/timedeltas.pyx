@@ -82,6 +82,7 @@ cdef dict timedelta_abbrevs = {
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
+    "µs": "us",
     "micro": "us",
     "micros": "us",
     "u": "us",
@@ -101,7 +102,7 @@ _no_input = object()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ints_to_pytimedelta(int64_t[:] arr, box=False):
+def ints_to_pytimedelta(const int64_t[:] arr, box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
     True)
@@ -256,10 +257,15 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cpdef inline object precision_from_unit(object unit):
+cpdef inline object precision_from_unit(str unit):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
+
+    Notes
+    -----
+    The caller is responsible for ensuring that the default value of "ns"
+    takes the place of None.
     """
     cdef:
         int64_t m
@@ -300,7 +306,7 @@ cpdef inline object precision_from_unit(object unit):
     return m, p
 
 
-cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
@@ -524,15 +530,24 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     return cast_from_unit(float(n), unit)
 
 
-cpdef inline object parse_timedelta_unit(object unit):
+cpdef inline str parse_timedelta_unit(object unit):
     """
     Parameters
     ----------
-    unit : an unit string
+    unit : str or None
+
+    Returns
+    -------
+    str
+        Canonical unit string.
+
+    Raises
+    ------
+    ValueError : on non-parseable input
     """
     if unit is None:
-        return 'ns'
-    elif unit == 'M':
+        return "ns"
+    elif unit == "M":
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
@@ -621,14 +636,14 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
-cdef inline int64_t parse_iso_format_string(object ts) except? -1:
+cdef inline int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
     groups for each component of an ISO 8601 duration
 
     Parameters
     ----------
-    ts:
+    ts: str
         ISO 8601 Duration formatted string
 
     Returns
@@ -1071,9 +1086,11 @@ cdef class _Timedelta(timedelta):
             subs = (self._h or self._m or self._s or
                     self._ms or self._us or self._ns)
 
-            # by default not showing nano
             if self._ms or self._us or self._ns:
                 seconds_fmt = "{seconds:02}.{milliseconds:03}{microseconds:03}"
+                if self._ns:
+                    # GH#9309
+                    seconds_fmt += "{nanoseconds:03}"
             else:
                 seconds_fmt = "{seconds:02}"
 
@@ -1167,7 +1184,7 @@ class Timedelta(_Timedelta):
 
         Possible values:
 
-        * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
+        * 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
         * 'days' or 'day'
         * 'hours', 'hour', 'hr', or 'h'
         * 'minutes', 'minute', 'min', or 'm'
@@ -1198,7 +1215,7 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            nano = np.timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
+            nano = convert_to_timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
             try:
                 value = nano + convert_to_timedelta64(timedelta(**kwargs),
                                                       'ns')
@@ -1407,7 +1424,14 @@ class Timedelta(_Timedelta):
             # convert to Timedelta below
             pass
 
+        elif util.is_nan(other):
+            # i.e. np.nan or np.float64("NaN")
+            raise TypeError("Cannot divide float by Timedelta")
+
         elif hasattr(other, 'dtype'):
+            if other.dtype.kind == "O":
+                # GH#31869
+                return np.array([x / self for x in other])
             return other / self.to_timedelta64()
 
         elif not _validate_ops_compat(other):
@@ -1415,7 +1439,8 @@ class Timedelta(_Timedelta):
 
         other = Timedelta(other)
         if other is NaT:
-            return NaT
+            # In this context we treat NaT as timedelta-like
+            return np.nan
         return float(other.value) / self.value
 
     def __floordiv__(self, other):

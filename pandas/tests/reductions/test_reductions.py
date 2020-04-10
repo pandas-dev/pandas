@@ -55,9 +55,7 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = pd.Period(
-                ordinal=getattr(obj._ndarray_values, opname)(), freq=obj.freq
-            )
+            expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
         try:
             assert result == expected
         except TypeError:
@@ -67,27 +65,58 @@ class TestReductions:
             assert result.value == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
-    def test_nanops(self, opname, index_or_series):
+    @pytest.mark.parametrize(
+        "dtype, val",
+        [
+            ("object", 2.0),
+            ("float64", 2.0),
+            ("datetime64[ns]", datetime(2011, 11, 1)),
+            ("Int64", 2),
+            ("boolean", True),
+        ],
+    )
+    def test_nanminmax(self, opname, dtype, val, index_or_series):
+        # GH#7261
+        klass = index_or_series
+
+        if dtype in ["Int64", "boolean"] and klass == pd.Index:
+            pytest.skip("EAs can't yet be stored in an index")
+
+        def check_missing(res):
+            if dtype == "datetime64[ns]":
+                return res is pd.NaT
+            elif dtype == "Int64":
+                return res is pd.NA
+            else:
+                return pd.isna(res)
+
+        obj = klass([None], dtype=dtype)
+        assert check_missing(getattr(obj, opname)())
+        assert check_missing(getattr(obj, opname)(skipna=False))
+
+        obj = klass([], dtype=dtype)
+        assert check_missing(getattr(obj, opname)())
+        assert check_missing(getattr(obj, opname)(skipna=False))
+
+        if dtype == "object":
+            # generic test with object only works for empty / all NaN
+            return
+
+        obj = klass([None, val], dtype=dtype)
+        assert getattr(obj, opname)() == val
+        assert check_missing(getattr(obj, opname)(skipna=False))
+
+        obj = klass([None, val, None], dtype=dtype)
+        assert getattr(obj, opname)() == val
+        assert check_missing(getattr(obj, opname)(skipna=False))
+
+    @pytest.mark.parametrize("opname", ["max", "min"])
+    def test_nanargminmax(self, opname, index_or_series):
         # GH#7261
         klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
 
-        obj = klass([np.nan, 2.0])
-        assert getattr(obj, opname)() == 2.0
-
-        obj = klass([np.nan])
-        assert pd.isna(getattr(obj, opname)())
-        assert pd.isna(getattr(obj, opname)(skipna=False))
-
-        obj = klass([], dtype=object)
-        assert pd.isna(getattr(obj, opname)())
-        assert pd.isna(getattr(obj, opname)(skipna=False))
-
         obj = klass([pd.NaT, datetime(2011, 11, 1)])
-        # check DatetimeIndex monotonic path
-        assert getattr(obj, opname)() == datetime(2011, 11, 1)
-        assert getattr(obj, opname)(skipna=False) is pd.NaT
-
         assert getattr(obj, arg_op)() == 1
         result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
@@ -97,9 +126,6 @@ class TestReductions:
 
         obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
         # check DatetimeIndex non-monotonic path
-        assert getattr(obj, opname)(), datetime(2011, 11, 1)
-        assert getattr(obj, opname)(skipna=False) is pd.NaT
-
         assert getattr(obj, arg_op)() == 1
         result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
@@ -533,13 +559,14 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
+    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
-    def test_empty(self, method, unit, use_bottleneck):
+    def test_empty(self, method, unit, use_bottleneck, dtype):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([], dtype=object)
+            s = Series([], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -562,8 +589,14 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=True, min_count=1)
             assert pd.isna(result)
 
+            result = getattr(s, method)(skipna=False, min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(skipna=False, min_count=1)
+            assert pd.isna(result)
+
             # All-NA
-            s = Series([np.nan])
+            s = Series([np.nan], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -587,7 +620,7 @@ class TestSeriesReductions:
             assert pd.isna(result)
 
             # Mix of valid, empty
-            s = Series([np.nan, 1])
+            s = Series([np.nan, 1], dtype=dtype)
             # Default
             result = getattr(s, method)()
             assert result == 1.0
@@ -606,22 +639,22 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=True, min_count=0)
             assert result == 1.0
 
-            result = getattr(s, method)(skipna=True, min_count=1)
-            assert result == 1.0
-
             # GH#844 (changed in GH#9422)
-            df = DataFrame(np.empty((10, 0)))
+            df = DataFrame(np.empty((10, 0)), dtype=dtype)
             assert (getattr(df, method)(1) == unit).all()
 
-            s = pd.Series([1])
+            s = pd.Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan])
+            result = getattr(s, method)(skipna=False, min_count=2)
+            assert pd.isna(result)
+
+            s = pd.Series([np.nan], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan, 1])
+            s = pd.Series([np.nan, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
@@ -857,6 +890,30 @@ class TestSeriesReductions:
             s.any(bool_only=True)
         with pytest.raises(NotImplementedError):
             s.all(bool_only=True)
+
+    def test_all_any_boolean(self):
+        # Check skipna, with boolean type
+        s1 = Series([pd.NA, True], dtype="boolean")
+        s2 = Series([pd.NA, False], dtype="boolean")
+        assert s1.all(skipna=False) is pd.NA  # NA && True => NA
+        assert s1.all(skipna=True)
+        assert s2.any(skipna=False) is pd.NA  # NA || False => NA
+        assert not s2.any(skipna=True)
+
+        # GH-33253: all True / all False values buggy with skipna=False
+        s3 = Series([True, True], dtype="boolean")
+        s4 = Series([False, False], dtype="boolean")
+        assert s3.all(skipna=False)
+        assert not s4.any(skipna=False)
+
+        # Check level TODO(GH-33449) result should also be boolean
+        s = pd.Series(
+            [False, False, True, True, False, True],
+            index=[0, 0, 1, 1, 2, 2],
+            dtype="boolean",
+        )
+        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
     def test_timedelta64_analytics(self):
 

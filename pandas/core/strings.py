@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Pattern, Type, Union
 import warnings
 
 import numpy as np
@@ -10,7 +10,7 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -36,7 +36,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -206,7 +205,7 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         return np.ndarray(0, dtype=dtype)
 
     if isinstance(arr, ABCSeries):
-        arr = arr.values
+        arr = arr._values  # TODO: extract_array?
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
@@ -447,7 +446,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
                 stacklevel=3,
             )
 
-        f = lambda x: bool(regex.search(x))
+        f = lambda x: regex.search(x) is not None
     else:
         if case:
             f = lambda x: pat in x
@@ -573,7 +572,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -653,9 +652,9 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     To get the idea:
 
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
-    0    <_sre.SRE_Match object; span=(0, 1), match='f'>oo
-    1    <_sre.SRE_Match object; span=(0, 1), match='f'>uz
-    2                                                  NaN
+    0    <re.Match object; span=(0, 1), match='f'>oo
+    1    <re.Match object; span=(0, 1), match='f'>uz
+    2                                            NaN
     dtype: object
 
     Reverse every lowercase alphabetic word:
@@ -776,19 +775,27 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan):
+def str_match(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
     """
-    Determine if each string matches a regular expression.
+    Determine if each string starts with a match of a regular expression.
 
     Parameters
     ----------
@@ -807,6 +814,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
+    fullmatch : Stricter matching that requires the entire string to match.
     contains : Analogous, but less strict, relying on re.search instead of
         re.match.
     extract : Extract matched groups.
@@ -817,7 +825,51 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     regex = re.compile(pat, flags=flags)
 
     dtype = bool
-    f = lambda x: bool(regex.match(x))
+    f = lambda x: regex.match(x) is not None
+
+    return _na_map(f, arr, na, dtype=dtype)
+
+
+def str_fullmatch(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
+    """
+    Determine if each string entirely matches a regular expression.
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
+    flags : int, default 0 (no flags)
+        Regex module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
+
+    Returns
+    -------
+    Series/array of boolean values
+
+    See Also
+    --------
+    match : Similar, but also returns `True` when only a *prefix* of the string
+        matches the regular expression.
+    extract : Extract matched groups.
+    """
+    if not case:
+        flags |= re.IGNORECASE
+
+    regex = re.compile(pat, flags=flags)
+
+    dtype = bool
+    f = lambda x: regex.fullmatch(x) is not None
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -2024,8 +2076,18 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s.str.split('_')
-    >>> s.str.replace('_', '')
+    >>> s = pd.Series(["A_Str_Series"])
+    >>> s
+    0    A_Str_Series
+    dtype: object
+
+    >>> s.str.split("_")
+    0    [A, Str, Series]
+    dtype: object
+
+    >>> s.str.replace("_", "")
+    0    AStrSeries
+    dtype: object
     """
 
     def __init__(self, data):
@@ -2033,8 +2095,8 @@ class StringMethods(NoNewAttributesMixin):
         self._is_categorical = is_categorical_dtype(data)
         self._is_string = data.dtype.name == "string"
 
-        # .values.categories works for both Series/Index
-        self._parent = data.values.categories if self._is_categorical else data
+        # ._values.categories works for both Series/Index
+        self._parent = data._values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -2235,7 +2297,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndexClass):
-            return [Series(others.values, index=others)]
+            return [Series(others._values, index=others)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -2425,12 +2487,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):
@@ -2497,7 +2559,7 @@ class StringMethods(NoNewAttributesMixin):
         Limit number of splits in output.
         ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        Expand the splitted strings into separate columns.
+        Expand the split strings into separate columns.
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
@@ -2531,9 +2593,14 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence",
-    ...                "https://docs.python.org/3/tutorial/index.html",
-    ...                np.nan])
+    >>> s = pd.Series(
+    ...     [
+    ...         "this is a regular sentence",
+    ...         "https://docs.python.org/3/tutorial/index.html",
+    ...         np.nan
+    ...     ]
+    ... )
+    >>> s
     0                       this is a regular sentence
     1    https://docs.python.org/3/tutorial/index.html
     2                                              NaN
@@ -2573,7 +2640,7 @@ class StringMethods(NoNewAttributesMixin):
 
     The `pat` parameter can be used to split by other characters.
 
-    >>> s.str.split(pat = "/")
+    >>> s.str.split(pat="/")
     0                         [this is a regular sentence]
     1    [https:, , docs.python.org, 3, tutorial, index...
     2                                                  NaN
@@ -2584,14 +2651,10 @@ class StringMethods(NoNewAttributesMixin):
     the columns during the split.
 
     >>> s.str.split(expand=True)
-                                                   0     1     2        3
-    0                                           this    is     a  regular
-    1  https://docs.python.org/3/tutorial/index.html  None  None     None
-    2                                            NaN   NaN   NaN      NaN \
-                 4
-    0     sentence
-    1         None
-    2          NaN
+                                                   0     1     2        3         4
+    0                                           this    is     a  regular  sentence
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
+    2                                            NaN   NaN   NaN      NaN       NaN
 
     For slightly more complex use cases like splitting the html document name
     from a url, a combination of parameter settings can be used.
@@ -2606,7 +2669,9 @@ class StringMethods(NoNewAttributesMixin):
     expressions.
 
     >>> s = pd.Series(["1+1=2"])
-
+    >>> s
+    0    1+1=2
+    dtype: object
     >>> s.str.split(r"\+|=", expand=True)
          0    1    2
     0    1    1    2
@@ -2698,7 +2763,7 @@ class StringMethods(NoNewAttributesMixin):
     >>> idx.str.partition()
     MultiIndex([('X', ' ', '123'),
                 ('Y', ' ', '999')],
-               dtype='object')
+               )
 
     Or an index with tuples with ``expand=False``:
 
@@ -2759,6 +2824,12 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
+
+    @copy(str_fullmatch)
+    @forbid_nonstring_types(["bytes"])
+    def fullmatch(self, pat, case=True, flags=0, na=np.nan):
+        result = str_fullmatch(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_replace)

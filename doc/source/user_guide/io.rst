@@ -28,7 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -109,6 +109,11 @@ index_col : int, str, sequence of int / str, or False, default ``None``
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g. when you have a malformed file with delimiters at
   the end of each line.
+
+  The default value of ``None`` instructs pandas to guess. If the number of
+  fields in the column header row is equal to the number of fields in the body
+  of the data file, then a default index is used.  If it is one larger, then
+  the first field is used as an index.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -460,8 +465,6 @@ specification:
 .. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
-
-.. versionadded:: 0.21.0
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
@@ -2170,8 +2173,6 @@ Line delimited json
 
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
-
-.. versionadded:: 0.21.0
 
 For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
 
@@ -4582,17 +4583,15 @@ frames efficient, and to make sharing data across data analysis languages easy.
 Feather is designed to faithfully serialize and de-serialize DataFrames, supporting all of the pandas
 dtypes, including extension dtypes such as categorical and datetime with tz.
 
-Several caveats.
+Several caveats:
 
-* This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
-  to the earlier versions.
 * The format will NOT write an ``Index``, or ``MultiIndex`` for the
   ``DataFrame`` and will raise an error if a non-default one is provided. You
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 * Duplicate column names and non-string columns names are not supported
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* Actual Python objects in object dtype columns are not supported. These will
+  raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
@@ -4645,8 +4644,6 @@ Read from a feather file.
 
 Parquet
 -------
-
-.. versionadded:: 0.21.0
 
 `Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
@@ -4817,7 +4814,7 @@ ORC
 
 .. versionadded:: 1.0.0
 
-Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
@@ -5005,7 +5002,7 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
+  For more information check the SQLAlchemy `documentation
   <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on

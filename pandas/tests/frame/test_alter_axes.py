@@ -234,9 +234,16 @@ class TestDataFrameAlterAxes:
 
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
-        # use "is" because == would give ambiguous Boolean error for containers
+        # plain == would give ambiguous Boolean error for containers
         first_drop = (
-            False if (keys[0] is "A" and keys[1] is "A") else drop  # noqa: F632
+            False
+            if (
+                isinstance(keys[0], str)
+                and keys[0] == "A"
+                and isinstance(keys[1], str)
+                and keys[1] == "A"
+            )
+            else drop
         )
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
@@ -615,118 +622,6 @@ class TestDataFrameAlterAxes:
 
     # Renaming
 
-    def test_rename_axis_inplace(self, float_frame):
-        # GH 15704
-        expected = float_frame.rename_axis("foo")
-        result = float_frame.copy()
-        no_return = result.rename_axis("foo", inplace=True)
-
-        assert no_return is None
-        tm.assert_frame_equal(result, expected)
-
-        expected = float_frame.rename_axis("bar", axis=1)
-        result = float_frame.copy()
-        no_return = result.rename_axis("bar", axis=1, inplace=True)
-
-        assert no_return is None
-        tm.assert_frame_equal(result, expected)
-
-    def test_rename_axis_raises(self):
-        # https://github.com/pandas-dev/pandas/issues/17833
-        df = DataFrame({"A": [1, 2], "B": [1, 2]})
-        with pytest.raises(ValueError, match="Use `.rename`"):
-            df.rename_axis(id, axis=0)
-
-        with pytest.raises(ValueError, match="Use `.rename`"):
-            df.rename_axis({0: 10, 1: 20}, axis=0)
-
-        with pytest.raises(ValueError, match="Use `.rename`"):
-            df.rename_axis(id, axis=1)
-
-        with pytest.raises(ValueError, match="Use `.rename`"):
-            df["A"].rename_axis(id)
-
-    def test_rename_axis_mapper(self):
-        # GH 19978
-        mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
-        df = DataFrame(
-            {"x": list(range(len(mi))), "y": [i * 10 for i in range(len(mi))]}, index=mi
-        )
-
-        # Test for rename of the Index object of columns
-        result = df.rename_axis("cols", axis=1)
-        tm.assert_index_equal(result.columns, Index(["x", "y"], name="cols"))
-
-        # Test for rename of the Index object of columns using dict
-        result = result.rename_axis(columns={"cols": "new"}, axis=1)
-        tm.assert_index_equal(result.columns, Index(["x", "y"], name="new"))
-
-        # Test for renaming index using dict
-        result = df.rename_axis(index={"ll": "foo"})
-        assert result.index.names == ["foo", "nn"]
-
-        # Test for renaming index using a function
-        result = df.rename_axis(index=str.upper, axis=0)
-        assert result.index.names == ["LL", "NN"]
-
-        # Test for renaming index providing complete list
-        result = df.rename_axis(index=["foo", "goo"])
-        assert result.index.names == ["foo", "goo"]
-
-        # Test for changing index and columns at same time
-        sdf = df.reset_index().set_index("nn").drop(columns=["ll", "y"])
-        result = sdf.rename_axis(index="foo", columns="meh")
-        assert result.index.name == "foo"
-        assert result.columns.name == "meh"
-
-        # Test different error cases
-        with pytest.raises(TypeError, match="Must pass"):
-            df.rename_axis(index="wrong")
-
-        with pytest.raises(ValueError, match="Length of names"):
-            df.rename_axis(index=["wrong"])
-
-        with pytest.raises(TypeError, match="bogus"):
-            df.rename_axis(bogus=None)
-
-    def test_reorder_levels(self):
-        index = MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-            names=["L0", "L1", "L2"],
-        )
-        df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
-
-        # no change, position
-        result = df.reorder_levels([0, 1, 2])
-        tm.assert_frame_equal(df, result)
-
-        # no change, labels
-        result = df.reorder_levels(["L0", "L1", "L2"])
-        tm.assert_frame_equal(df, result)
-
-        # rotate, position
-        result = df.reorder_levels([1, 2, 0])
-        e_idx = MultiIndex(
-            levels=[["one", "two", "three"], [0, 1], ["bar"]],
-            codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1], [0, 0, 0, 0, 0, 0]],
-            names=["L1", "L2", "L0"],
-        )
-        expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.reorder_levels([0, 0, 0])
-        e_idx = MultiIndex(
-            levels=[["bar"], ["bar"], ["bar"]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]],
-            names=["L0", "L0", "L0"],
-        )
-        expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.reorder_levels(["L0", "L0", "L0"])
-        tm.assert_frame_equal(result, expected)
-
     def test_set_index_names(self):
         df = tm.makeDataFrame()
         df.index.name = "name"
@@ -840,25 +735,6 @@ class TestDataFrameAlterAxes:
             "tolerance",
         }
 
-    def test_droplevel(self):
-        # GH20342
-        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
-        df = df.set_index([0, 1]).rename_axis(["a", "b"])
-        df.columns = MultiIndex.from_tuples(
-            [("c", "e"), ("d", "f")], names=["level_1", "level_2"]
-        )
-
-        # test that dropping of a level in index works
-        expected = df.reset_index("a", drop=True)
-        result = df.droplevel("a", axis="index")
-        tm.assert_frame_equal(result, expected)
-
-        # test that dropping of a level in columns works
-        expected = df.copy()
-        expected.columns = Index(["c", "d"], name="level_1")
-        result = df.droplevel("level_2", axis="columns")
-        tm.assert_frame_equal(result, expected)
-
 
 class TestIntervalIndex:
     def test_setitem(self):
@@ -907,35 +783,3 @@ class TestIntervalIndex:
         df = df.set_index("B")
 
         df = df.reset_index()
-
-    def test_set_axis_inplace(self):
-        # GH14636
-        df = DataFrame(
-            {"A": [1.1, 2.2, 3.3], "B": [5.0, 6.1, 7.2], "C": [4.4, 5.5, 6.6]},
-            index=[2010, 2011, 2012],
-        )
-
-        expected = {0: df.copy(), 1: df.copy()}
-        expected[0].index = list("abc")
-        expected[1].columns = list("abc")
-        expected["index"] = expected[0]
-        expected["columns"] = expected[1]
-
-        for axis in expected:
-            result = df.copy()
-            result.set_axis(list("abc"), axis=axis, inplace=True)
-            tm.assert_frame_equal(result, expected[axis])
-
-            # inplace=False
-            result = df.set_axis(list("abc"), axis=axis)
-            tm.assert_frame_equal(expected[axis], result)
-
-        # omitting the "axis" parameter
-        with tm.assert_produces_warning(None):
-            result = df.set_axis(list("abc"))
-        tm.assert_frame_equal(result, expected[0])
-
-        # wrong values for the "axis" parameter
-        for axis in 3, "foo":
-            with pytest.raises(ValueError, match="No axis named"):
-                df.set_axis(list("abc"), axis=axis)

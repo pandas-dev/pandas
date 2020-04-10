@@ -34,7 +34,7 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.13.3"
-min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -433,8 +433,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # args to ignore warnings
-    extra_compile_args = []
+    extra_compile_args = ["-Werror"]
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -454,6 +453,9 @@ if is_platform_mac():
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
+
+    if sys.version_info[:2] == (3, 8):  # GH 33239
+        extra_compile_args.append("-Wno-error=deprecated-declarations")
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -477,6 +479,14 @@ if linetrace:
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ < LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
