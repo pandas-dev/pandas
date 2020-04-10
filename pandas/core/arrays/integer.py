@@ -28,7 +28,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
-import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
