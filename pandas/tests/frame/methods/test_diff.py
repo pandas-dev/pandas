@@ -64,18 +64,15 @@ class TestDataFrameDiff:
                 1: date_range("2010", freq="D", periods=2, tz=tz),
             }
         )
-        if tz is None:
-            result = df.diff(axis=1)
-            expected = DataFrame(
-                {
-                    0: pd.TimedeltaIndex(["NaT", "NaT"]),
-                    1: pd.TimedeltaIndex(["0 days", "0 days"]),
-                }
-            )
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.raises(NotImplementedError):
-                result = df.diff(axis=1)
+
+        result = df.diff(axis=1)
+        expected = DataFrame(
+            {
+                0: pd.TimedeltaIndex(["NaT", "NaT"]),
+                1: pd.TimedeltaIndex(["0 days", "0 days"]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_diff_timedelta(self):
         # GH#4533
@@ -118,3 +115,46 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(
             df.diff(axis=0), DataFrame([[np.nan, np.nan], [2.0, 2.0]])
         )
+
+    @pytest.mark.xfail(
+        reason="GH#32995 needs to operate column-wise or do inference",
+        raises=AssertionError,
+    )
+    def test_diff_period(self):
+        # GH#32995 Don't pass an incorrect axis
+        #  TODO(EA2D): this bug wouldn't have happened with 2D EA
+        pi = pd.date_range("2016-01-01", periods=3).to_period("D")
+        df = pd.DataFrame({"A": pi})
+
+        result = df.diff(1, axis=1)
+
+        # TODO: should we make Block.diff do type inference?  or maybe algos.diff?
+        expected = (df - pd.NaT).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_mixed_dtypes(self):
+        # GH#32995 operate column-wise when we have mixed dtypes and axis=1
+        df = pd.DataFrame({"A": range(3), "B": 2 * np.arange(3, dtype=np.float64)})
+
+        expected = pd.DataFrame({"A": [np.nan, np.nan, np.nan], "B": df["B"] / 2})
+
+        result = df.diff(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_mixed_dtypes_large_periods(self):
+        # GH#32995 operate column-wise when we have mixed dtypes and axis=1
+        df = pd.DataFrame({"A": range(3), "B": 2 * np.arange(3, dtype=np.float64)})
+
+        expected = df * np.nan
+
+        result = df.diff(axis=1, periods=3)
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_mixed_dtypes_negative_periods(self):
+        # GH#32995 operate column-wise when we have mixed dtypes and axis=1
+        df = pd.DataFrame({"A": range(3), "B": 2 * np.arange(3, dtype=np.float64)})
+
+        expected = pd.DataFrame({"A": -1.0 * df["A"], "B": df["B"] * np.nan})
+
+        result = df.diff(axis=1, periods=-1)
+        tm.assert_frame_equal(result, expected)
