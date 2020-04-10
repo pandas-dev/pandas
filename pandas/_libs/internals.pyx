@@ -106,13 +106,8 @@ cdef class BlockPlacement:
         else:
             return self._as_array
 
-    def isin(self, arr):
-        from pandas.core.indexes.api import Int64Index
-
-        return Int64Index(self.as_array, copy=False).isin(arr)
-
     @property
-    def as_array(self):
+    def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, end, _
 
@@ -146,10 +141,10 @@ cdef class BlockPlacement:
 
         return BlockPlacement(val)
 
-    def delete(self, loc):
+    def delete(self, loc) -> "BlockPlacement":
         return BlockPlacement(np.delete(self.as_array, loc, axis=0))
 
-    def append(self, others):
+    def append(self, others) -> "BlockPlacement":
         if not len(others):
             return self
 
@@ -190,11 +185,9 @@ cdef class BlockPlacement:
             val = newarr
             return BlockPlacement(val)
 
-    def add(self, other):
+    def add(self, other) -> "BlockPlacement":
+        # We can get here with int or ndarray
         return self.iadd(other)
-
-    def sub(self, other):
-        return self.add(-other)
 
     cdef slice _ensure_has_slice(self):
         if not self._has_slice:

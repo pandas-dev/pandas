@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -44,7 +43,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -678,7 +677,7 @@ class _MergeOperation:
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(self.left._data, lindexers), (self.right._data, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -1498,7 +1497,7 @@ class _OrderedMerge(_MergeOperation):
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(self.left._data, lindexers), (self.right._data, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -1936,15 +1935,14 @@ def _factorize_keys(
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
-        assert is_categorical(lk) and is_categorical(rk)
-        lk = cast(Categorical, lk)
-        rk = cast(Categorical, rk)
+        assert isinstance(lk, Categorical)
+        assert isinstance(rk, Categorical)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
-            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)

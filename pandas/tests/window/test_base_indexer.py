@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame, Series
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
+from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
 from pandas.core.window.indexers import ExpandingIndexer
 
 
@@ -82,9 +82,7 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize(
-    "func", ["min", "max", "std", "var", "count", "skew", "cov", "corr"]
-)
+@pytest.mark.parametrize("func", ["std", "var", "count", "skew", "cov", "corr"])
 def test_notimplemented_functions(func):
     # GH 32865
     class CustomIndexer(BaseIndexer):
@@ -95,3 +93,36 @@ def test_notimplemented_functions(func):
     indexer = CustomIndexer()
     with pytest.raises(NotImplementedError, match=f"{func} is not supported"):
         getattr(df.rolling(indexer), func)()
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+@pytest.mark.parametrize(
+    "func,alt_func,expected",
+    [
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan]),
+        ("max", np.max, [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan]),
+    ],
+)
+def test_rolling_forward_window(constructor, func, alt_func, expected):
+    # GH 32865
+    values = np.arange(10)
+    values[5] = 100.0
+
+    indexer = FixedForwardWindowIndexer(window_size=3)
+
+    match = "Forward-looking windows can't have center=True"
+    with pytest.raises(ValueError, match=match):
+        rolling = constructor(values).rolling(window=indexer, center=True)
+        result = getattr(rolling, func)()
+
+    match = "Forward-looking windows don't support setting the closed argument"
+    with pytest.raises(ValueError, match=match):
+        rolling = constructor(values).rolling(window=indexer, closed="right")
+        result = getattr(rolling, func)()
+
+    rolling = constructor(values).rolling(window=indexer, min_periods=2)
+    result = getattr(rolling, func)()
+    expected = constructor(expected)
+    tm.assert_equal(result, expected)
+    expected2 = constructor(rolling.apply(lambda x: alt_func(x)))
+    tm.assert_equal(result, expected2)
