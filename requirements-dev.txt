@@ -2,7 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
-python-dateutil>=2.7.0
+python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.16
