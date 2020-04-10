@@ -10,9 +10,21 @@ class BaseCastingTests(BaseExtensionTests):
     """Casting to and from ExtensionDtypes"""
 
     def test_astype_object_series(self, all_data):
-        ser = pd.Series({"A": all_data})
+        ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
         assert isinstance(result._mgr.blocks[0], ObjectBlock)
+
+    def test_astype_object_frame(self, all_data):
+        df = pd.DataFrame({"A": all_data})
+
+        result = df.astype(object)
+        blk = result._data.blocks[0]
+        assert isinstance(blk, ObjectBlock), type(blk)
+
+        # FIXME: these currently fail; dont leave commented-out
+        # check that we can compare the dtypes
+        # cmp = result.dtypes.equals(df.dtypes)
+        # assert not cmp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
