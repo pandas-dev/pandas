@@ -56,7 +56,6 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -11180,12 +11179,6 @@ def _make_cum_function(
             axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
-
-        # mimicking from series._reduce, which delegates
-        # using na_accum_func_now
-        # delegate = self._values
-        # if isinstance(delegate.dtype, ExtensionDtype):
-        #     return delegate._accumulate(name, skipna=skipna, **kwargs)
 
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
