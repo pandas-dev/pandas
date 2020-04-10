@@ -203,11 +203,18 @@ def test_is_scipy_sparse():
 
 def test_is_categorical():
     cat = pd.Categorical([1, 2, 3])
-    assert com.is_categorical(cat)
-    assert com.is_categorical(pd.Series(cat))
-    assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert com.is_categorical(cat)
+        assert com.is_categorical(pd.Series(cat))
+        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
-    assert not com.is_categorical([1, 2, 3])
+        assert not com.is_categorical([1, 2, 3])
+
+
+def test_is_categorical_deprecation():
+    # GH#33385
+    with tm.assert_produces_warning(FutureWarning):
+        com.is_categorical([1, 2, 3])
 
 
 def test_is_datetime64_dtype():

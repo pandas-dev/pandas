@@ -272,6 +272,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/accessor.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests aggregation.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/aggregation.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests base.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/base.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -294,6 +298,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests strings.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/strings.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Directories
@@ -344,7 +352,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
-    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst $BASE_DIR/doc/source/reference
+    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development $BASE_DIR/doc/source/reference
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
