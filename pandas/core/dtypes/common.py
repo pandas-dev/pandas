@@ -58,8 +58,8 @@ _POSSIBLY_CAST_DTYPES = {
     ]
 }
 
-_NS_DTYPE = conversion.NS_DTYPE
-_TD_DTYPE = conversion.TD_DTYPE
+DT64NS_DTYPE = conversion.DT64NS_DTYPE
+TD64NS_DTYPE = conversion.TD64NS_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
@@ -125,7 +125,7 @@ def ensure_categorical(arr):
     cat_arr : The original array cast as a Categorical. If it already
               is a Categorical, we return as is.
     """
-    if not is_categorical(arr):
+    if not is_categorical_dtype(arr.dtype):
         from pandas import Categorical
 
         arr = Categorical(arr)
@@ -188,7 +188,9 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
+        raise TypeError(
+            f"Value needs to be a scalar value, was type {type(value).__name__}"
+        )
     try:
         new_value = int(value)
         assert new_value == value
@@ -358,6 +360,12 @@ def is_categorical(arr) -> bool:
     >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    warnings.warn(
+        "is_categorical is deprecated and will be removed in a future version.  "
+        "Use is_categorical_dtype instead",
+        FutureWarning,
+        stacklevel=2,
+    )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
@@ -979,7 +987,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = _get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == _NS_DTYPE or getattr(tipo, "base", None) == _NS_DTYPE
+    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
@@ -1010,7 +1018,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
     False
     """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype == _TD_DTYPE)
+    return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
@@ -1049,23 +1057,6 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     True
     """
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
-
-
-def _is_unorderable_exception(e: TypeError) -> bool:
-    """
-    Check if the exception raised is an unorderable exception.
-
-    Parameters
-    ----------
-    e : Exception or sub-class
-        The exception object to check.
-
-    Returns
-    -------
-    bool
-        Whether or not the exception raised is an unorderable exception.
-    """
-    return "'>' not supported between instances of" in str(e)
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
@@ -1456,7 +1447,7 @@ def is_extension_type(arr) -> bool:
         stacklevel=2,
     )
 
-    if is_categorical(arr):
+    if is_categorical_dtype(arr):
         return True
     elif is_sparse(arr):
         return True

@@ -279,7 +279,7 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
 }
 
 static int is_simple_frame(PyObject *obj) {
-    PyObject *check = get_sub_attr(obj, "_data", "is_mixed_type");
+    PyObject *check = get_sub_attr(obj, "_mgr", "is_mixed_type");
     int ret = (check == Py_False);
 
     if (!check) {
@@ -760,7 +760,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         goto BLKRET;
     }
 
-    blocks = get_sub_attr(obj, "_data", "blocks");
+    blocks = get_sub_attr(obj, "_mgr", "blocks");
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         goto BLKRET;
@@ -1451,7 +1451,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 } else {
                     // datetime.* objects don't follow above rules
                     nanosecVal =
-                        PyDateTimeToEpoch((PyDateTime_Date *)item, NPY_FR_ns);
+                        PyDateTimeToEpoch(item, NPY_FR_ns);
                 }
             }
         }
@@ -1469,8 +1469,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                         if (type_num == NPY_DATETIME) {
                             cLabel = int64ToIso(nanosecVal, base, &len);
                         } else {
-                            cLabel = PyDateTimeToIso((PyDateTime_Date *)item,
-                                                     base, &len);
+                            cLabel = PyDateTimeToIso(item, base, &len);
                         }
                     }
                     if (cLabel == NULL) {
@@ -1683,7 +1682,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
             GET_TC(tc)->longValue =
-                PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+                PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1710,7 +1709,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
             GET_TC(tc)->longValue =
-                PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+                PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;

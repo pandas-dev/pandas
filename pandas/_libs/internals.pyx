@@ -20,7 +20,6 @@ cdef class BlockPlacement:
     cdef:
         slice _as_slice
         object _as_array
-
         bint _has_slice, _has_array, _is_known_slice_like
 
     def __init__(self, val):
@@ -32,7 +31,11 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, slice):
+        if isinstance(val, int):
+            slc = slice(val, val + 1, 1)
+            self._as_slice = slc
+            self._has_slice = True
+        elif isinstance(val, slice):
             slc = slice_canonize(val)
 
             if slc.start != slc.stop:
@@ -52,12 +55,13 @@ cdef class BlockPlacement:
     def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             v = self._as_slice
         else:
             v = self._as_array
 
-        return f'{type(self).__name__}({v})'
+        return f"{type(self).__name__}({v})"
 
     def __repr__(self) -> str:
         return str(self)
@@ -65,6 +69,7 @@ cdef class BlockPlacement:
     def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             return slice_len(s)
         else:
@@ -74,6 +79,7 @@ cdef class BlockPlacement:
         cdef:
             slice s = self._ensure_has_slice()
             Py_ssize_t start, stop, step, _
+
         if s is not None:
             start, stop, step, _ = slice_get_indices_ex(s)
             return iter(range(start, stop, step))
@@ -84,45 +90,47 @@ cdef class BlockPlacement:
     def as_slice(self) -> slice:
         cdef:
             slice s = self._ensure_has_slice()
-        if s is None:
-            raise TypeError('Not slice-like')
-        else:
+
+        if s is not None:
             return s
+        else:
+            raise TypeError("Not slice-like")
 
     @property
     def indexer(self):
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             return s
         else:
             return self._as_array
 
-    def isin(self, arr):
-        from pandas.core.indexes.api import Int64Index
-        return Int64Index(self.as_array, copy=False).isin(arr)
-
     @property
-    def as_array(self):
+    def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, end, _
+
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
-            #  np.arange(start, stop, step, dtype=np.int64)
+            #  `np.arange(start, stop, step, dtype=np.int64)`
             self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
+
         return self._as_array
 
     @property
     def is_slice_like(self) -> bool:
         cdef:
             slice s = self._ensure_has_slice()
+
         return s is not None
 
     def __getitem__(self, loc):
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             val = slice_getitem(s, loc)
         else:
@@ -133,15 +141,16 @@ cdef class BlockPlacement:
 
         return BlockPlacement(val)
 
-    def delete(self, loc):
+    def delete(self, loc) -> "BlockPlacement":
         return BlockPlacement(np.delete(self.as_array, loc, axis=0))
 
-    def append(self, others):
-        if len(others) == 0:
+    def append(self, others) -> "BlockPlacement":
+        if not len(others):
             return self
 
-        return BlockPlacement(np.concatenate([self.as_array] +
-                                             [o.as_array for o in others]))
+        return BlockPlacement(
+            np.concatenate([self.as_array] + [o.as_array for o in others])
+        )
 
     cdef iadd(self, other):
         cdef:
@@ -159,8 +168,7 @@ cdef class BlockPlacement:
             start += other_int
             stop += other_int
 
-            if ((step > 0 and start < 0) or
-                    (step < 0 and stop < step)):
+            if (step > 0 and start < 0) or (step < 0 and stop < step):
                 raise ValueError("iadd causes length change")
 
             if stop < 0:
@@ -177,16 +185,15 @@ cdef class BlockPlacement:
             val = newarr
             return BlockPlacement(val)
 
-    def add(self, other):
+    def add(self, other) -> "BlockPlacement":
+        # We can get here with int or ndarray
         return self.iadd(other)
-
-    def sub(self, other):
-        return self.add(-other)
 
     cdef slice _ensure_has_slice(self):
         if not self._has_slice:
             self._as_slice = indexer_as_slice(self._as_array)
             self._has_slice = True
+
         return self._as_slice
 
 
@@ -236,8 +243,7 @@ cdef slice slice_canonize(slice s):
         return slice(start, stop, step)
 
 
-cpdef Py_ssize_t slice_len(
-        slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
+cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
     """
     Get length of a bounded slice.
 
@@ -254,8 +260,7 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    PySlice_GetIndicesEx(slc, objlen,
-                         &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
     return length
 
@@ -273,8 +278,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    PySlice_GetIndicesEx(slc, objlen,
-                         &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
     return start, stop, step, length
 
@@ -374,29 +378,26 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     # blockno handling.
     cdef:
         int64_t cur_blkno
-        Py_ssize_t i, start, stop, n, diff
-
+        Py_ssize_t i, start, stop, n, diff, tot_len
         object blkno
         object group_dict = defaultdict(list)
-        int64_t[:] res_view
 
     n = blknos.shape[0]
-
-    if n == 0:
-        return
-
+    result = list()
     start = 0
     cur_blkno = blknos[start]
 
-    if group is False:
+    if n == 0:
+        pass
+    elif group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                yield cur_blkno, slice(start, i)
+                result.append((cur_blkno, slice(start, i)))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        yield cur_blkno, slice(start, n)
+        result.append((cur_blkno, slice(start, n)))
     else:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
@@ -409,19 +410,20 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         for blkno, slices in group_dict.items():
             if len(slices) == 1:
-                yield blkno, slice(slices[0][0], slices[0][1])
+                result.append((blkno, slice(slices[0][0], slices[0][1])))
             else:
                 tot_len = sum(stop - start for start, stop in slices)
-                result = np.empty(tot_len, dtype=np.int64)
-                res_view = result
+                arr = np.empty(tot_len, dtype=np.int64)
 
                 i = 0
                 for start, stop in slices:
                     for diff in range(start, stop):
-                        res_view[i] = diff
+                        arr[i] = diff
                         i += 1
 
-                yield blkno, result
+                result.append((blkno, arr))
+
+    return result
 
 
 def get_blkno_placements(blknos, group: bool = True):

@@ -232,7 +232,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : {'int', 'block'}, default 'int'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -268,7 +268,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Indices: array([2, 3], dtype=int32)
     """
 
-    _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
     _deprecations = PandasObject._deprecations | frozenset(["get_values"])
     _sparse_index: SparseIndex
@@ -1049,7 +1048,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = SparseArray([0, 0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
         >>> arr
         [0, 0, 1, 2]
         Fill: 0
@@ -1067,8 +1066,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         >>> arr.astype(np.dtype('float64'))
         ... # doctest: +NORMALIZE_WHITESPACE
-        [0, 0, 1.0, 2.0]
-        Fill: 0
+        [0.0, 0.0, 1.0, 2.0]
+        Fill: 0.0
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
@@ -1108,19 +1107,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Examples
         --------
         >>> arr = pd.arrays.SparseArray([0, 1, 2])
-        >>> arr.apply(lambda x: x + 10)
+        >>> arr.map(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply({0: 10, 1: 11, 2: 12})
+        >>> arr.map({0: 10, 1: 11, 2: 12})
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply(pd.Series([10, 11, 12], index=[0, 1, 2]))
+        >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         [10, 11, 12]
         Fill: 10
         IntIndex
