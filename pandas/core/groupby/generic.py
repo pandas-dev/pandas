@@ -829,10 +829,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
-    ...                    'B': [1, 2, 3, 4],
-    ...                    'C': np.random.randn(4)})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "A": [1, 1, 2, 2],
+    ...         "B": [1, 2, 3, 4],
+    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860],
+    ...     }
+    ... )
 
     >>> df
        A  B         C
@@ -872,7 +875,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         B             C
       min max       sum
     A
-    1   1   2  0.590716
+    1   1   2  0.590715
     2   3   4  0.704907
 
     To control the output names with different aggregations per column,
@@ -883,8 +886,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
        b_min     c_sum
     A
-    1      1 -1.956929
-    2      3 -0.322183
+    1      1  0.590715
+    2      3  0.704907
+
 
     - The keywords are the *output* column names
     - The values are tuples whose first element is the column to select
