@@ -66,7 +66,7 @@ class DotSharedTests:
         tm.assert_equal(result, expected)
 
     def test_dot_shape_mismatch(self, obj):
-        msg = r"Dot product shape mismatch"
+        msg = "Dot product shape mismatch"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             obj.dot(obj.values[:3])
