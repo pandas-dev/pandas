@@ -63,8 +63,12 @@ class _PyxlsbReader(_BaseExcelReader):
         return cell.v
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]], nrows: Optional[int]
+        self,
+        sheet,
+        convert_float: bool,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
     ) -> List[List[Scalar]]:
         return [
             [self._convert_cell(c, convert_float) for c in r]

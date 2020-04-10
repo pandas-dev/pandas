@@ -7,7 +7,6 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
-from pandas.io.parsers import _validate_integer
 
 
 class _OpenpyxlWriter(ExcelWriter):

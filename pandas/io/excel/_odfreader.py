@@ -6,7 +6,6 @@ from pandas.compat._optional import import_optional_dependency
 import pandas as pd
 
 from pandas.io.excel._base import _BaseExcelReader
-from pandas.io.parsers import _validate_integer
 
 
 class _ODFReader(_BaseExcelReader):
