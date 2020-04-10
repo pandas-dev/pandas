@@ -88,9 +88,16 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
--
+- The :meth:`DataFrame.to_feather` method now supports additional keyword
+  arguments (e.g. to set the compression) that are added in pyarrow 0.17
+  (:issue:`33422`).
 
 .. ---------------------------------------------------------------------------
+
+Development Changes
+^^^^^^^^^^^^^^^^^^^
+
+- The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
 
 .. _whatsnew_110.api.other:
 
@@ -104,6 +111,7 @@ Other API changes
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``std``, ``var``, ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
+- Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 -
 
 Backwards incompatible API changes
@@ -115,6 +123,67 @@ Backwards incompatible API changes
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
 - Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
+
+``MultiIndex.get_indexer`` interprets `method` argument differently
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='backfill'`` or ``method='pad'`` to the behavior before pandas 0.23.0. In particular, MultiIndexes are treated as a list of tuples and padding or backfilling is done with respect to the ordering of these lists of tuples (:issue:`29896`).
+
+As an example of this, given:
+
+.. ipython:: python
+
+        df = pd.DataFrame({
+            'a': [0, 0, 0, 0],
+            'b': [0, 2, 3, 4],
+            'c': ['A', 'B', 'C', 'D'],
+        }).set_index(['a', 'b'])
+        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
+
+The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*:
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='backfill')
+    Out[1]:
+          c
+    0 -1  A
+       0  A
+       1  D
+       3  A
+       4  A
+       5  C
+
+*pandas <0.23, >= 1.1.0*
+
+.. ipython:: python
+
+        df.reindex(mi_2, method='backfill')
+
+And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='pad')
+    Out[1]:
+            c
+    0 -1  NaN
+       0  NaN
+       1    D
+       3  NaN
+       4    A
+       5    C
+
+*pandas < 0.23, >= 1.1.0*
+
+.. ipython:: python
+
+        df.reindex(mi_2, method='pad')
+
 -
 
 .. _whatsnew_110.api_breaking.indexing_raises_key_errors:
@@ -250,13 +319,26 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
 
 Deprecations
 ~~~~~~~~~~~~
+
 - Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
+
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 - Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
+
+- Passing any arguments but the first one to  :func:`read_html` as
+  positional arguments is deprecated since version 1.1. All other
+  arguments should be given as keyword arguments (:issue:`27573`).
+
+- Passing any arguments but `path_or_buf` (the first one) to
+  :func:`read_json` as positional arguments is deprecated since
+  version 1.1. All other arguments should be given as keyword
+  arguments (:issue:`27573`).
+
+- :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 
 .. ---------------------------------------------------------------------------
 
@@ -276,7 +358,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement in :meth:`Series.sum` for nullable (integer and boolean) dtypes (:issue:`30982`).
+- Performance improvement in reductions (sum, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`).
 
 
 .. ---------------------------------------------------------------------------
@@ -372,7 +454,7 @@ Missing
 ^^^^^^^
 
 - Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
-
+- Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -413,7 +495,10 @@ I/O
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 - Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
+- Bug in :meth:`read_sas` was raising an ``AttributeError`` when reading files from Google Cloud Storage (issue:`33069`)
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
+- Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
+- Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
 
 Plotting
 ^^^^^^^^
@@ -430,6 +515,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 - Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+- Bug in :meth:`SeriesGroupBy.quantile` raising on nullable integers (:issue:`33136`)
+- Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)
+- Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 
 Reshaping
