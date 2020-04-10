@@ -1,3 +1,4 @@
+from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
@@ -203,10 +204,14 @@ class Index(IndexOpsMixin, PandasObject):
     --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
-    MultiIndex : A multi-level, or hierarchical, Index.
+    MultiIndex : A multi-level, or hierarchical Index.
     IntervalIndex : An Index of :class:`Interval` s.
-    DatetimeIndex, TimedeltaIndex, PeriodIndex
-    Int64Index, UInt64Index,  Float64Index
+    DatetimeIndex : Index of datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    Int64Index : A special case of :class:`Index` with purely integer labels.
+    UInt64Index : A special case of :class:`Index` with purely unsigned integer labels.
+    Float64Index : A special case of :class:`Index` with purely float labels.
 
     Notes
     -----
@@ -533,10 +538,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Remove tz so Index will try non-DatetimeIndex inference
         attributes.pop("tz", None)
         return Index(values, **attributes)
-
-    def _update_inplace(self, result, **kwargs):
-        # guard when called from IndexOpsMixin
-        raise TypeError("Index can't be updated inplace")
 
     def is_(self, other) -> bool:
         """
@@ -1841,7 +1842,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
         ...                 "Watermelon"]).astype("category")
-        >>> idx.object()
+        >>> idx.is_object()
         False
 
         >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
@@ -1955,6 +1956,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_mixed()
         False
         """
+        warnings.warn(
+            "Index.is_mixed is deprecated and will be removed in a future version. "
+            "Check index.inferred_type directly instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.inferred_type in ["mixed"]
 
     def holds_integer(self) -> bool:
@@ -2053,7 +2060,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Float64Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.isna()
-        array([False, False,  True], dtype=bool)
+        array([False, False,  True])
 
         Empty strings are not considered NA values. None is considered an NA
         value.
@@ -2062,7 +2069,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Index(['black', '', 'red', None], dtype='object')
         >>> idx.isna()
-        array([False, False, False,  True], dtype=bool)
+        array([False, False, False,  True])
 
         For datetimes, `NaT` (Not a Time) is considered as an NA value.
 
@@ -2072,7 +2079,7 @@ class Index(IndexOpsMixin, PandasObject):
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
                       dtype='datetime64[ns]', freq=None)
         >>> idx.isna()
-        array([False,  True,  True,  True], dtype=bool)
+        array([False,  True,  True,  True])
         """
         return self._isnan
 
@@ -2836,8 +2843,6 @@ class Index(IndexOpsMixin, PandasObject):
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
 
-            .. versionadded:: 0.21.0 (list-like tolerance)
-
         Returns
         -------
         loc : int if unique index, slice if monotonic index, else mask
@@ -2908,8 +2913,6 @@ class Index(IndexOpsMixin, PandasObject):
             element. List-like includes list, tuple, array, Series, and must be
             the same size as the index and its dtype must exactly match the
             index's type.
-
-            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------
@@ -3135,7 +3138,7 @@ class Index(IndexOpsMixin, PandasObject):
         # convert the slice to an indexer here
 
         # if we are mixed and have integers
-        if is_positional and self.is_mixed():
+        if is_positional:
             try:
                 # Validate start & stop
                 if start is not None:
@@ -3283,7 +3286,7 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = _ensure_has_len(target)  # target may be an iterator
+        target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
             if isinstance(self, ABCRangeIndex):
@@ -3835,7 +3838,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @doc(IndexOpsMixin.array)  # type: ignore
+    @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -4193,15 +4196,64 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         """
-        Determine if two Index objects contain the same elements.
+        Determine if two Index object are equal.
+
+        The things that are being compared are:
+
+        * The elements inside the Index object.
+        * The order of the elements inside the Index object.
+
+        Parameters
+        ----------
+        other : Any
+            The other object to compare against.
 
         Returns
         -------
         bool
-            True if "other" is an Index and it has the same elements as calling
-            index; False otherwise.
+            True if "other" is an Index and it has the same elements and order
+            as the calling index; False otherwise.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index([1, 2, 3])
+        >>> idx1
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> idx1.equals(pd.Index([1, 2, 3]))
+        True
+
+        The elements inside are compared
+
+        >>> idx2 = pd.Index(["1", "2", "3"])
+        >>> idx2
+        Index(['1', '2', '3'], dtype='object')
+
+        >>> idx1.equals(idx2)
+        False
+
+        The order is compared
+
+        >>> ascending_idx = pd.Index([1, 2, 3])
+        >>> ascending_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> descending_idx = pd.Index([3, 2, 1])
+        >>> descending_idx
+        Int64Index([3, 2, 1], dtype='int64')
+        >>> ascending_idx.equals(descending_idx)
+        False
+
+        The dtype is *not* compared
+
+        >>> int64_idx = pd.Int64Index([1, 2, 3])
+        >>> int64_idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> uint64_idx = pd.UInt64Index([1, 2, 3])
+        >>> uint64_idx
+        UInt64Index([1, 2, 3], dtype='uint64')
+        >>> int64_idx.equals(uint64_idx)
+        True
         """
         if self.is_(other):
             return True
@@ -4516,10 +4568,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
-        if not is_scalar(key):
-            # if key is not a scalar, directly raise an error (the code below
-            # would convert to numpy arrays and raise later any way) - GH29926
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             # GH 20882, 21257
@@ -4539,6 +4588,12 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         return self._get_values_for_loc(series, loc, key)
+
+    def _check_indexing_error(self, key):
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
@@ -4790,8 +4845,9 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                  ['red', 'blue', 'green']],
         ...                                  names=('number', 'color'))
         >>> midx
-        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
-                   codes=[[0, 1, 2], [2, 0, 1]],
+        MultiIndex([(1,   'red'),
+                    (2,  'blue'),
+                    (3, 'green')],
                    names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
@@ -4859,11 +4915,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_indexer(start='b', end='c')
-        slice(1, 3)
+        slice(1, 3, None)
 
         >>> idx = pd.MultiIndex.from_arrays([list('abcd'), list('efgh')])
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
-        slice(1, 3)
+        slice(1, 3, None)
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step, kind=kind)
 
@@ -5261,7 +5317,7 @@ class Index(IndexOpsMixin, PandasObject):
         Add in numeric unary methods.
         """
 
-        def _make_evaluate_unary(op, opstr):
+        def _make_evaluate_unary(op, opstr: str_t):
             def _evaluate_numeric_unary(self):
 
                 attrs = self._get_attributes_dict()
@@ -5367,7 +5423,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         )
 
-        def _make_logical_function(name, desc, f):
+        def _make_logical_function(name: str_t, desc: str_t, f):
             @Substitution(outname=name, desc=desc)
             @Appender(_index_shared_docs["index_" + name])
             @Appender(_doc)
@@ -5434,11 +5490,10 @@ def ensure_index_from_sequences(sequences, names=None):
 
     Examples
     --------
-    >>> ensure_index_from_sequences([[1, 2, 3]], names=['name'])
+    >>> ensure_index_from_sequences([[1, 2, 3]], names=["name"])
     Int64Index([1, 2, 3], dtype='int64', name='name')
 
-    >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
-                                    names=['L1', 'L2'])
+    >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
                names=['L1', 'L2'])
@@ -5457,19 +5512,23 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy=False):
+def ensure_index(index_like, copy: bool = False):
     """
     Ensure that we have an index from some index-like object.
 
     Parameters
     ----------
-    index : sequence
+    index_like : sequence
         An Index or other sequence
-    copy : bool
+    copy : bool, default False
 
     Returns
     -------
     index : Index or MultiIndex
+
+    See Also
+    --------
+    ensure_index_from_sequences
 
     Examples
     --------
@@ -5481,13 +5540,8 @@ def ensure_index(index_like, copy=False):
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex([('a', 'b'),
-                ('a', 'c')],
-               dtype='object')
-               )
-
-    See Also
-    --------
-    ensure_index_from_sequences
+            ('a', 'c')],
+           )
     """
     if isinstance(index_like, Index):
         if copy:
@@ -5517,14 +5571,12 @@ def ensure_index(index_like, copy=False):
         # clean_index_list does the equivalent of copying
         # so only need to do this if not list instance
         if copy:
-            from copy import copy
-
-            index_like = copy(index_like)
+            index_like = copy_func(index_like)
 
     return Index(index_like)
 
 
-def _ensure_has_len(seq):
+def ensure_has_len(seq):
     """
     If seq is an iterator, put its values into a list.
     """
@@ -5546,7 +5598,7 @@ def _trim_front(strings):
     return trimmed
 
 
-def _validate_join_method(method):
+def _validate_join_method(method: str):
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
 

@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import functools
 import inspect
 import re
 from typing import Any, List
@@ -7,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
+from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -28,10 +27,9 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
+    DT64NS_DTYPE,
+    TD64NS_DTYPE,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -51,7 +49,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_categorical, concat_datetime
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -184,21 +182,6 @@ class Block(PandasObject):
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
 
-    def is_categorical_astype(self, dtype) -> bool:
-        """
-        validate that we have a astypeable to categorical,
-        returns a boolean if we are a categorical
-        """
-        if dtype is Categorical or dtype is CategoricalDtype:
-            # this is a pd.Categorical, but is not
-            # a valid type for astypeing
-            raise TypeError(f"invalid type {dtype} for astype")
-
-        elif is_categorical_dtype(dtype):
-            return True
-
-        return False
-
     def external_values(self):
         """
         The array that Series.values returns (public attribute).
@@ -260,6 +243,8 @@ class Block(PandasObject):
         """
         if placement is None:
             placement = self.mgr_locs
+        if self.is_extension:
+            values = _block_shape(values, ndim=self.ndim)
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
@@ -323,19 +308,15 @@ class Block(PandasObject):
     def dtype(self):
         return self.values.dtype
 
-    def merge(self, other):
-        return _merge_blocks([self, other])
-
-    def concat_same_type(self, to_concat, placement=None):
+    def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
         """
         values = self._concatenator(
             [blk.values for blk in to_concat], axis=self.ndim - 1
         )
-        return self.make_block_same_class(
-            values, placement=placement or slice(0, len(values), 1)
-        )
+        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
+        return self.make_block_same_class(values, placement=placement)
 
     def iget(self, i):
         return self.values[i]
@@ -375,13 +356,12 @@ class Block(PandasObject):
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
                 vals = result[i]
-                nv = _block_shape(vals, ndim=self.ndim)
-                block = self.make_block(values=nv, placement=[loc])
+                block = self.make_block(values=vals, placement=[loc])
                 nbs.append(block)
             return nbs
 
         if not isinstance(result, Block):
-            result = self.make_block(values=_block_shape(result, ndim=self.ndim))
+            result = self.make_block(result)
 
         return [result]
 
@@ -567,7 +547,7 @@ class Block(PandasObject):
             raise TypeError(msg)
 
         # may need to convert to categorical
-        if self.is_categorical_astype(dtype):
+        if is_categorical_dtype(dtype):
 
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
@@ -668,12 +648,10 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+        """ convert to our native types format """
         values = self.values
 
-        if slicer is not None:
-            values = values[:, slicer]
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 
@@ -701,7 +679,6 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        filter=None,
         regex: bool = False,
         convert: bool = True,
     ):
@@ -733,12 +710,7 @@ class Block(PandasObject):
                 # _can_hold_element checks have reduced this back to the
                 #  scalar case and we can avoid a costly object cast
                 return self.replace(
-                    to_replace[0],
-                    value,
-                    inplace=inplace,
-                    filter=filter,
-                    regex=regex,
-                    convert=convert,
+                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert,
                 )
 
             # GH 22083, TypeError or ValueError occurred within error handling
@@ -752,7 +724,6 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
-                filter=filter,
                 regex=regex,
                 convert=convert,
             )
@@ -765,9 +736,6 @@ class Block(PandasObject):
             to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
-        if filter is not None:
-            filtered_out = ~self.mgr_locs.isin(filter)
-            mask[filtered_out.nonzero()[0]] = False
 
         if not mask.any():
             if inplace:
@@ -796,7 +764,6 @@ class Block(PandasObject):
                 to_replace=original_to_replace,
                 value=value,
                 inplace=inplace,
-                filter=filter,
                 regex=regex,
                 convert=convert,
             )
@@ -1263,7 +1230,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default):
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1274,11 +1241,10 @@ class Block(PandasObject):
 
         values = self.values
 
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = self.fill_value
             allow_fill = False
         else:
-            fill_value = fill_tuple[0]
             allow_fill = True
 
         new_values = algos.take_nd(
@@ -1299,12 +1265,9 @@ class Block(PandasObject):
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
-        # We use block_shape for ExtensionBlock subclasses, which may call here
-        # via a super.
-        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis: int = 0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value=None):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1420,18 +1383,15 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
         """
         Return a list of unstacked blocks of self
 
         Parameters
         ----------
-        unstacker_func : callable
-            Partially applied unstacker.
+        unstacker : reshape._Unstacker
         new_columns : Index
             All columns of the unstacked BlockManager.
-        n_rows : int
-            Only used in ExtensionBlock._unstack
         fill_value : int
             Only used in ExtensionBlock._unstack
 
@@ -1442,10 +1402,11 @@ class Block(PandasObject):
         mask : array_like of bool
             The mask of columns of `blocks` we should keep.
         """
-        unstacker = unstacker_func(self.values.T)
-        new_items = unstacker.get_new_columns()
+        new_items = unstacker.get_new_columns(value_columns)
         new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
+        new_values, mask = unstacker.get_new_values(
+            self.values.T, fill_value=fill_value
+        )
 
         mask = mask.any(0)
         new_values = new_values.T[mask]
@@ -1655,38 +1616,6 @@ class ExtensionBlock(Block):
         new_values[mask] = new
         return [self.make_block(values=new_values)]
 
-    def _get_unstack_items(self, unstacker, new_columns):
-        """
-        Get the placement, values, and mask for a Block unstack.
-
-        This is shared between ObjectBlock and ExtensionBlock. They
-        differ in that ObjectBlock passes the values, while ExtensionBlock
-        passes the dummy ndarray of positions to be used by a take
-        later.
-
-        Parameters
-        ----------
-        unstacker : pandas.core.reshape.reshape._Unstacker
-        new_columns : Index
-            All columns of the unstacked BlockManager.
-
-        Returns
-        -------
-        new_placement : ndarray[int]
-            The placement of the new columns in `new_columns`.
-        new_values : Union[ndarray, ExtensionArray]
-            The first return value from _Unstacker.get_new_values.
-        mask : ndarray[bool]
-            The second return value from _Unstacker.get_new_values.
-        """
-        # shared with ExtensionBlock
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
-
-        mask = mask.any(0)
-        return new_placement, new_values, mask
-
     def _maybe_coerce_values(self, values):
         """
         Unbox to an extension array.
@@ -1766,11 +1695,9 @@ class ExtensionBlock(Block):
     def array_values(self) -> ExtensionArray:
         return self.values
 
-    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
         values = self.values
-        if slicer is not None:
-            values = values[slicer]
         mask = isna(values)
 
         values = np.asarray(values.astype(object))
@@ -1779,14 +1706,14 @@ class ExtensionBlock(Block):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def take_nd(self, indexer, axis: int = 0, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(
+        self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
+    ):
         """
         Take values according to indexer and return them as a block.
         """
-        if fill_tuple is None:
+        if fill_value is lib.no_default:
             fill_value = None
-        else:
-            fill_value = fill_tuple[0]
 
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
@@ -1818,13 +1745,13 @@ class ExtensionBlock(Block):
 
         return self.values[slicer]
 
-    def concat_same_type(self, to_concat, placement=None):
+    def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
         """
         values = self._holder._concat_same_type([blk.values for blk in to_concat])
-        placement = placement or slice(0, len(values), 1)
-        return self.make_block_same_class(values, ndim=self.ndim, placement=placement)
+        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
+        return self.make_block_same_class(values, placement=placement)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
@@ -1846,7 +1773,14 @@ class ExtensionBlock(Block):
         )
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 0 and n != 0:
+            # n==0 case will be a no-op so let is fall through
+            # Since we only have one column, the result will be all-NA.
+            #  Create this result by shifting along axis=0 past the length of
+            #  our values.
+            return super().diff(len(self.values), axis=0)
         if axis == 1:
+            # TODO(EA2D): unnecessary with 2D EAs
             # we are by definition 1D.
             axis = 0
         return super().diff(n, axis)
@@ -1917,20 +1851,20 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
         # a `take` on the actual values.
+        n_rows = self.shape[-1]
         dummy_arr = np.arange(n_rows)
-        dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
-        unstacker = dummy_unstacker(dummy_arr)
 
-        new_placement, new_values, mask = self._get_unstack_items(
-            unstacker, new_columns
-        )
+        new_items = unstacker.get_new_columns(value_columns)
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
+        mask = mask.any(0)
 
         blocks = [
             self.make_block_same_class(
@@ -1988,18 +1922,10 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self,
-        slicer=None,
-        na_rep="",
-        float_format=None,
-        decimal=".",
-        quoting=None,
-        **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
     ):
-        """ convert to our native types format, slicing if desired """
+        """ convert to our native types format """
         values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
 
         # see gh-13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
@@ -2090,12 +2016,7 @@ class DatetimeLikeBlockMixin:
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        result = super().iget(key)
-        if isinstance(result, np.datetime64):
-            result = Timestamp(result)
-        elif isinstance(result, np.timedelta64):
-            result = Timedelta(result)
-        return result
+        return self.array_values().reshape(self.shape)[key]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
@@ -2132,7 +2053,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         Overridden by DatetimeTZBlock.
         """
-        if values.dtype != _NS_DTYPE:
+        if values.dtype != DT64NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
 
         if isinstance(values, DatetimeArray):
@@ -2182,27 +2103,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
-    ):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        i8values = self.values.view("i8")
+    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
+        """ convert to our native types format """
+        dta = self.array_values()
 
-        if slicer is not None:
-            values = values[..., slicer]
-            i8values = i8values[..., slicer]
-
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(values, date_format)
-
-        result = tslib.format_array_from_datetime(
-            i8values.ravel(),
-            tz=getattr(self.values, "tz", None),
-            format=fmt,
-            na_rep=na_rep,
-        ).reshape(i8values.shape)
+        result = dta._format_native_types(
+            na_rep=na_rep, date_format=date_format, **kwargs
+        )
         return np.atleast_2d(result)
 
     def set(self, locs, values):
@@ -2336,19 +2243,19 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         new_values = new_values.astype("timedelta64[ns]")
         return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
-    def concat_same_type(self, to_concat, placement=None):
+    def concat_same_type(self, to_concat):
         # need to handle concat([tz1, tz2]) here, since DatetimeArray
         # only handles cases where all the tzs are the same.
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
             values = concat_datetime([x.values for x in to_concat])
-            placement = placement or slice(0, len(values), 1)
 
-            if self.ndim > 1:
-                values = np.atleast_2d(values)
-            return ObjectBlock(values, ndim=self.ndim, placement=placement)
-        return super().concat_same_type(to_concat, placement)
+            values = values.astype(object, copy=False)
+            placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
+
+            return self.make_block(values, placement=placement)
+        return super().concat_same_type(to_concat)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
@@ -2404,7 +2311,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     fill_value = np.timedelta64("NaT", "ns")
 
     def __init__(self, values, placement, ndim=None):
-        if values.dtype != _TD_DTYPE:
+        if values.dtype != TD64NS_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
         if isinstance(values, TimedeltaArray):
             values = values._data
@@ -2438,28 +2345,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
-        """ convert to our native types format, slicing if desired """
-        values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
-        mask = isna(values)
-
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = "NaT"
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
-
-        # FIXME:
-        # should use the formats.format.Timedelta64Formatter here
-        # to figure what format to pass to the Timedelta
-        # e.g. to not show the decimals say
-        rvalues.flat[imask] = np.array(
-            [Timedelta(val)._repr_base(format="all") for val in values.ravel()[imask]],
-            dtype=object,
-        )
-        return rvalues
+    def to_native_types(self, na_rep="NaT", **kwargs):
+        """ convert to our native types format """
+        tda = self.array_values()
+        return tda._format_native_types(na_rep, **kwargs)
 
 
 class BoolBlock(NumericBlock):
@@ -2473,20 +2362,13 @@ class BoolBlock(NumericBlock):
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
-    def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
-    ):
+    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
         inplace = validate_bool_kwarg(inplace, "inplace")
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
         return super().replace(
-            to_replace,
-            value,
-            inplace=inplace,
-            filter=filter,
-            regex=regex,
-            convert=convert,
+            to_replace, value, inplace=inplace, regex=regex, convert=convert,
         )
 
 
@@ -2538,7 +2420,6 @@ class ObjectBlock(Block):
                 # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
 
-            values = _block_shape(values, ndim=self.ndim)
             return values
 
         if self.ndim == 2:
@@ -2560,9 +2441,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
-    ):
+    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
@@ -2573,33 +2452,18 @@ class ObjectBlock(Block):
 
         if not either_list and is_re(to_replace):
             return self._replace_single(
-                to_replace,
-                value,
-                inplace=inplace,
-                filter=filter,
-                regex=True,
-                convert=convert,
+                to_replace, value, inplace=inplace, regex=True, convert=convert,
             )
         elif not (either_list or regex):
             return super().replace(
-                to_replace,
-                value,
-                inplace=inplace,
-                filter=filter,
-                regex=regex,
-                convert=convert,
+                to_replace, value, inplace=inplace, regex=regex, convert=convert,
             )
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep,
-                        v,
-                        inplace=inplace,
-                        filter=filter,
-                        regex=regex,
-                        convert=convert,
+                        to_rep, v, inplace=inplace, regex=regex, convert=convert,
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
@@ -2610,35 +2474,18 @@ class ObjectBlock(Block):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep,
-                        value,
-                        inplace=inplace,
-                        filter=filter,
-                        regex=regex,
-                        convert=convert,
+                        to_rep, value, inplace=inplace, regex=regex, convert=convert,
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
         return self._replace_single(
-            to_replace,
-            value,
-            inplace=inplace,
-            filter=filter,
-            convert=convert,
-            regex=regex,
+            to_replace, value, inplace=inplace, convert=convert, regex=regex,
         )
 
     def _replace_single(
-        self,
-        to_replace,
-        value,
-        inplace=False,
-        filter=None,
-        regex=False,
-        convert=True,
-        mask=None,
+        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None,
     ):
         """
         Replace elements by the given value.
@@ -2651,7 +2498,6 @@ class ObjectBlock(Block):
             Replacement object.
         inplace : bool, default False
             Perform inplace modification.
-        filter : list, optional
         regex : bool, default False
             If true, perform regular expression substitution.
         convert : bool, default True
@@ -2697,9 +2543,7 @@ class ObjectBlock(Block):
         else:
             # if the thing to replace is not a string or compiled regex call
             # the superclass method -> to_replace is some kind of object
-            return super().replace(
-                to_replace, value, inplace=inplace, filter=filter, regex=regex
-            )
+            return super().replace(to_replace, value, inplace=inplace, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -2724,15 +2568,10 @@ class ObjectBlock(Block):
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
-        if filter is None:
-            filt = slice(None)
-        else:
-            filt = self.mgr_locs.isin(filter).nonzero()[0]
-
         if mask is None:
-            new_values[filt] = f(new_values[filt])
+            new_values[:] = f(new_values)
         else:
-            new_values[filt][mask] = f(new_values[filt][mask])
+            new_values[mask] = f(new_values[mask])
 
         # convert
         block = self.make_block(new_values)
@@ -2802,7 +2641,7 @@ class CategoricalBlock(ExtensionBlock):
     def _holder(self):
         return Categorical
 
-    def concat_same_type(self, to_concat, placement=None):
+    def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
 
@@ -2818,34 +2657,23 @@ class CategoricalBlock(ExtensionBlock):
         values = self._concatenator(
             [blk.values for blk in to_concat], axis=self.ndim - 1
         )
+        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
         # not using self.make_block_same_class as values can be object dtype
-        return make_block(
-            values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
-        )
+        return self.make_block(values, placement=placement)
 
     def replace(
         self,
         to_replace,
         value,
         inplace: bool = False,
-        filter=None,
         regex: bool = False,
         convert: bool = True,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
-        if filter is None:  # replace was called on a series
-            result.values.replace(to_replace, value, inplace=True)
-            if convert:
-                return result.convert(numeric=False, copy=not inplace)
-            else:
-                return result
-        else:  # replace was called on a DataFrame
-            if not isna(value):
-                result.values.add_categories(value, inplace=True)
-            return super(CategoricalBlock, result).replace(
-                to_replace, value, inplace, filter, regex, convert
-            )
+
+        result.values.replace(to_replace, value, inplace=True)
+        return result
 
 
 # -----------------------------------------------------------------
@@ -2871,7 +2699,7 @@ def get_block_type(values, dtype=None):
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif is_categorical(values):
+    elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values)
@@ -2940,43 +2768,16 @@ def _extend_blocks(result, blocks=None):
     return blocks
 
 
-def _block_shape(values, ndim=1, shape=None):
+def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """ guarantee the shape of the values to be at least 1 d """
     if values.ndim < ndim:
-        if shape is None:
-            shape = values.shape
-        if not is_extension_array_dtype(values):
-            # TODO: https://github.com/pandas-dev/pandas/issues/23023
+        shape = values.shape
+        if not is_extension_array_dtype(values.dtype):
+            # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1,) + shape))
+            values = values.reshape(tuple((1,) + shape))  # type: ignore
     return values
-
-
-def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
-
-    if len(blocks) == 1:
-        return blocks[0]
-
-    if _can_consolidate:
-
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
-        # FIXME: optimization potential in case all mgrs contain slices and
-        # combination of those slices is a slice, too.
-        new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
-
-        argsort = np.argsort(new_mgr_locs)
-        new_values = new_values[argsort]
-        new_mgr_locs = new_mgr_locs[argsort]
-
-        return make_block(new_values, placement=new_mgr_locs)
-
-    # no merge
-    return blocks
 
 
 def _safe_reshape(arr, new_shape):

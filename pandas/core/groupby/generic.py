@@ -29,7 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import lib
 from pandas._typing import FrameOrSeries
 from pandas.util._decorators import Appender, Substitution, doc
 
@@ -147,7 +147,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 
 
 @pin_whitelisted_properties(Series, base.series_apply_whitelist)
-class SeriesGroupBy(GroupBy):
+class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -384,7 +384,7 @@ class SeriesGroupBy(GroupBy):
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index
         )
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
@@ -811,7 +811,7 @@ class SeriesGroupBy(GroupBy):
 
 
 @pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
-class DataFrameGroupBy(GroupBy):
+class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
@@ -1036,7 +1036,7 @@ class DataFrameGroupBy(GroupBy):
                 else:
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
-                    if len(result._data.blocks) != 1:
+                    if len(result._mgr.blocks) != 1:
                         # We've split an object block! Everything we've assumed
                         # about a single block input returning a single block output
                         # is a lie. To keep the code-path for the typical non-split case
@@ -1045,8 +1045,8 @@ class DataFrameGroupBy(GroupBy):
                         split_frames.append(result)
                         continue
 
-                    assert len(result._data.blocks) == 1
-                    result = result._data.blocks[0].values
+                    assert len(result._mgr.blocks) == 1
+                    result = result._mgr.blocks[0].values
                     if isinstance(result, np.ndarray) and result.ndim == 1:
                         result = result.reshape(1, -1)
 
@@ -1086,7 +1086,7 @@ class DataFrameGroupBy(GroupBy):
                 assert len(locs) == result.shape[1]
                 for i, loc in enumerate(locs):
                     new_items.append(np.array([loc], dtype=locs.dtype))
-                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
+                    agg_blocks.append(result.iloc[:, [i]]._mgr.blocks[0])
 
         # reset the locs in the blocks to correspond to our
         # current ordering
@@ -1325,14 +1325,10 @@ class DataFrameGroupBy(GroupBy):
 
             # values are not series or array-like but scalars
             else:
-                # only coerce dates if we find at least 1 datetime
-                should_coerce = any(isinstance(x, Timestamp) for x in values)
                 # self._selection_name not passed through to Series as the
                 # result should not take the name of original selection
                 # of columns
-                return Series(values, index=key_index)._convert(
-                    datetime=True, coerce=should_coerce
-                )
+                return Series(values, index=key_index)
 
         else:
             # Handle cases like BinGrouper
@@ -1441,7 +1437,7 @@ class DataFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
             # TODO: we have no test cases that get here with EA dtypes;
-            #  try_cast may not be needed if EAs never get here
+            #  maybe_cast_result may not be needed if EAs never get here
             if cast:
                 res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
@@ -1630,9 +1626,9 @@ class DataFrameGroupBy(GroupBy):
     def _get_data_to_aggregate(self) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data
+            return obj.T._mgr
         else:
-            return obj._data
+            return obj._mgr
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
@@ -1682,7 +1678,7 @@ class DataFrameGroupBy(GroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
