@@ -880,6 +880,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
+        if isinstance(key, slice):
+            # _convert_slice_indexer to determin if this slice is positional
+            #  or label based, and if the latter, convert to positional
+            slobj = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._slice(slobj)
+
+        elif com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            key = np.asarray(key, dtype=bool)
+            return self._get_values(key)
+
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
@@ -897,26 +908,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     raise
 
-        if not key_is_scalar:
-            # avoid expensive checks if we know we have a scalar
-            if is_iterator(key):
-                key = list(key)
-
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                key = np.asarray(key, dtype=bool)
-                return self._get_values(key)
+        if is_iterator(key):
+            key = list(key)
 
         return self._get_with(key)
 
     def _get_with(self, key):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
-            # _convert_slice_indexer to determin if this slice is positional
-            #  or label based, and if the latter, convert to positional
-            slobj = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._slice(slobj)
-        elif isinstance(key, ABCDataFrame):
+        if isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
                 "supported, use the appropriate DataFrame column"
@@ -1009,6 +1008,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             key = slice(None)
 
+        if isinstance(key, slice):
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._set_values(indexer, value)
+
+        elif com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            key = np.asarray(key, dtype=bool)
+            try:
+                self._where(~key, value, inplace=True)
+            except InvalidIndexError:
+                self._set_values(key.astype(np.bool_), value)
+            return
+
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
@@ -1024,17 +1036,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError("Can only tuple-index with a MultiIndex") from e
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                key = np.asarray(key, dtype=bool)
-                try:
-                    self._where(~key, value, inplace=True)
-                except InvalidIndexError:
-                    self._set_values(key.astype(np.bool_), value)
-                return
-
-            else:
-                self._set_with(key, value)
+            self._set_with(key, value)
 
         if cacher_needs_updating:
             self._maybe_update_cacher()
@@ -1047,31 +1049,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+        assert not isinstance(key, tuple)
 
+        if is_scalar(key):
+            key = [key]
+
+        if isinstance(key, Index):
+            key_type = key.inferred_type
+            key = key._values
         else:
-            assert not isinstance(key, tuple)
+            key_type = lib.infer_dtype(key, skipna=False)
 
-            if is_scalar(key):
-                key = [key]
-
-            if isinstance(key, Index):
-                key_type = key.inferred_type
-                key = key._values
-            else:
-                key_type = lib.infer_dtype(key, skipna=False)
-
-            # Note: key_type == "boolean" should not occur because that
-            #  should be caught by the is_bool_indexer check in __setitem__
-            if key_type == "integer":
-                if self.index.inferred_type == "integer":
-                    self._set_labels(key, value)
-                else:
-                    self._set_values(key, value)
-            else:
+        # Note: key_type == "boolean" should not occur because that
+        #  should be caught by the is_bool_indexer check in __setitem__
+        if key_type == "integer":
+            if self.index.inferred_type == "integer":
                 self._set_labels(key, value)
+            else:
+                self._set_values(key, value)
+        else:
+            self._set_labels(key, value)
 
     def _set_labels(self, key, value):
         key = com.asarray_tuplesafe(key)
