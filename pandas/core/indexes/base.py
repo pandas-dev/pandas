@@ -3838,7 +3838,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @doc(IndexOpsMixin.array)  # type: ignore
+    @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
