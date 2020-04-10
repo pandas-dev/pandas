@@ -14,8 +14,6 @@ from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import Timestamp
 
@@ -87,7 +85,6 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
-@td.skip_if_no("dateutil", "2.7")
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
@@ -98,7 +95,6 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@td.skip_if_no("dateutil", "2.7")
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
