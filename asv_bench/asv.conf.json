@@ -125,6 +125,6 @@
     "regression_thresholds": {
     },
     "build_command":
-    ["python setup.py build -j4",
+    ["python setup.py build_ext -j4",
      "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }
