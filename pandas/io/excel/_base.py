@@ -28,7 +28,7 @@ from pandas.io.excel._util import (
     _pop_header_name,
     get_writer,
 )
-from pandas.io.parsers import TextParser
+from pandas.io.parsers import TextParser, _validate_integer
 
 _read_excel_doc = (
     """
@@ -307,6 +307,9 @@ def read_excel(
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
+    if nrows is not None:
+        _validate_integer("nrows", nrows)
+
     return io.parse(
         sheet_name=sheet_name,
         header=header,
@@ -332,7 +335,6 @@ def read_excel(
         mangle_dupe_cols=mangle_dupe_cols,
         **kwds,
     )
-
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer):

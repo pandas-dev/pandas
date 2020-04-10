@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional, Sequence
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import FilePathOrBuffer, Scalar, Union
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
@@ -63,7 +63,8 @@ class _PyxlsbReader(_BaseExcelReader):
         return cell.v
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, header, skiprows, nrows
+        self, sheet, convert_float: bool, header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]], nrows: Optional[int]
     ) -> List[List[Scalar]]:
         return [
             [self._convert_cell(c, convert_float) for c in r]

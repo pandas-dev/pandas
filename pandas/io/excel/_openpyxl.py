@@ -540,8 +540,6 @@ class _OpenpyxlReader(_BaseExcelReader):
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        if nrows is not None:
-            _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
         if isinstance(header, list) or isinstance(skiprows, list):

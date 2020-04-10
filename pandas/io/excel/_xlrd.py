@@ -107,12 +107,11 @@ class _XlrdReader(_BaseExcelReader):
 
         data: List[List[Scalar]] = []
 
-        if nrows is not None:
-            _validate_integer("nrows", nrows)
         header = 0 if header is None else header
         skiprows = 0 if skiprows is None else skiprows
         if isinstance(header, list) or isinstance(skiprows, list):
             nrows = None
+
         for i in range(sheet.nrows):
 
             if nrows is not None:
