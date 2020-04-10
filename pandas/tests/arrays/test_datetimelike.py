@@ -60,6 +60,12 @@ def timedelta_index(request):
 class SharedTests:
     index_cls: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
 
+    @pytest.fixture
+    def arr1d(self):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = self.array_cls(data, freq="D")
+        return arr
+
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific
         #  to the case where one has length-1, which numpy would broadcast
@@ -204,6 +210,23 @@ class SharedTests:
         result = arr.searchsorted(pd.NaT)
         assert result == 0
 
+    def test_getitem_2d(self, arr1d):
+        # 2d slicing on a 1D array
+        expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
+        result = arr1d[:, np.newaxis]
+        tm.assert_equal(result, expected)
+
+        # Lookup on a 2D array
+        arr2d = expected
+        expected = type(arr2d)(arr2d._data[:3, 0], dtype=arr2d.dtype)
+        result = arr2d[:3, 0]
+        tm.assert_equal(result, expected)
+
+        # Scalar lookup
+        result = arr2d[-1, 0]
+        expected = arr1d[-1]
+        assert result == expected
+
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
@@ -264,6 +287,13 @@ class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
     dtype = pd.Timestamp
+
+    @pytest.fixture
+    def arr1d(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        dti = pd.date_range("2016-01-01 01:01:00", periods=3, freq="H", tz=tz)
+        dta = dti._data
+        return dta
 
     def test_round(self, tz_naive_fixture):
         # GH#24064
@@ -644,6 +674,10 @@ class TestPeriodArray(SharedTests):
     index_cls = pd.PeriodIndex
     array_cls = PeriodArray
     dtype = pd.Period
+
+    @pytest.fixture
+    def arr1d(self, period_index):
+        return period_index._data
 
     def test_from_pi(self, period_index):
         pi = period_index

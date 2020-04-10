@@ -520,7 +520,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if result or len(self) == 0:
+            if result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -587,7 +587,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if not result or len(self) == 0:
+            if not result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -696,8 +696,9 @@ class BooleanArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
-        if name == "sum":
-            return masked_reductions.sum(data, mask, skipna=skipna, **kwargs)
+        if name in {"sum", "min", "max"}:
+            op = getattr(masked_reductions, name)
+            return op(data, mask, skipna=skipna, **kwargs)
 
         # coerce to a nan-aware float if needed
         if self._hasna:
@@ -714,9 +715,6 @@ class BooleanArray(BaseMaskedArray):
             int_result = np.int64(result)
             if int_result == result:
                 result = int_result
-
-        elif name in ["min", "max"] and notna(result):
-            result = np.bool_(result)
 
         return result
 

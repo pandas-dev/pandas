@@ -196,7 +196,7 @@ cdef class IntervalMixin:
                              f"expected {repr(self.closed)}.")
 
 
-cdef _interval_like(other):
+cdef bint _interval_like(other):
     return (hasattr(other, 'left')
             and hasattr(other, 'right')
             and hasattr(other, 'closed'))
