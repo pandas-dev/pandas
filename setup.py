@@ -454,6 +454,9 @@ if is_platform_mac():
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
 
+    if sys.version_info[:2] == (3, 8):  # GH 33239
+        extra_compile_args.append("-Wno-error=deprecated-declarations")
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
