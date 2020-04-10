@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike
 from pandas.util._validators import validate_bool_kwarg
