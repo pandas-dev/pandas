@@ -1100,6 +1100,7 @@ default 'raise'
 
             res = get_period_alias(freq)
 
+            #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
                 base, stride = libfrequencies._base_and_stride(freq)
                 res = f"{stride}{base}"
