@@ -10,7 +10,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import Period, PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 
@@ -902,3 +902,13 @@ def test_searchsorted_datetimelike_with_listlike_invalid_dtype(values, arg):
     msg = "[Unexpected type|Cannot compare]"
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)
+
+
+@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+def test_period_index_construction_from_strings(klass):
+    # https://github.com/pandas-dev/pandas/issues/26109
+    strings = ["2020Q1", "2020Q2"] * 2
+    data = klass(strings)
+    result = PeriodIndex(data, freq="Q")
+    expected = PeriodIndex([Period(s) for s in strings])
+    tm.assert_index_equal(result, expected)

@@ -37,6 +37,7 @@ def test_registered():
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
         (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
+        (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
 )
 def test_period_array_ok(data, freq, expected):
