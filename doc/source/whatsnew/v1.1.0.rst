@@ -585,6 +585,7 @@ Other
 - Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 - Fixed :func:`pandas.testing.assert_series_equal` to correctly raise if left object is a different subclass with ``check_series_type=True`` (:issue:`32670`).
 - :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
+- Getting a missing attribute in a query/eval string raises the correct ``AttributeError`` (:issue:`32408`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
