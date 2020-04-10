@@ -900,6 +900,17 @@ class Window(_Window):
     3  2.0
     4  4.0
 
+    Same as above, but with forward-looking windows
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
+    4  4.0
+
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
