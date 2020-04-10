@@ -746,7 +746,7 @@ def all_logical_operators(request):
     """
     return request.param
 
-  
+
 _all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
 
 
