@@ -698,7 +698,15 @@ class BooleanArray(BaseMaskedArray):
 
         if name in {"sum", "prod", "min", "max"}:
             op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
+            result = op(data, mask, skipna=skipna, **kwargs)
+
+            # if we have numeric op that would result in an int, coerce to int if possible
+            if name == "prod" and notna(result):
+                int_result = np.int64(result)
+                if int_result == result:
+                    result = int_result
+
+            return result
 
         # coerce to a nan-aware float if needed
         if self._hasna:
