@@ -324,7 +324,7 @@ class TestSeriesQueryBacktickQuoting:
 
 class TestSeriesQueryWithMultiIndex:
     def setup_method(self, method):
-        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5, [str(x) for x in 
+        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5, [str(x) for x in
             range(10)]], names=["alpha", "num"])
         self.series = Series(np.random.randn(10), index=multiIndex)
 
