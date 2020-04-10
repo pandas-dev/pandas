@@ -3,6 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
+    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -63,12 +65,17 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
+
+if TYPE_CHECKING:
+    from pandas import Series
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -246,9 +253,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     return result
 
 
-def maybe_cast_result(
-    result, obj: ABCSeries, numeric_only: bool = False, how: str = ""
-):
+def maybe_cast_result(result, obj: "Series", numeric_only: bool = False, how: str = ""):
     """
     Try casting result to a different type if appropriate
 
@@ -256,8 +261,8 @@ def maybe_cast_result(
     ----------
     result : array-like
         Result to cast.
-    obj : ABCSeries
-        Input series from which result was calculated.
+    obj : Series
+        Input Series from which result was calculated.
     numeric_only : bool, default False
         Whether to cast only numerics or datetimes as well.
     how : str, default ""
@@ -275,12 +280,15 @@ def maybe_cast_result(
     dtype = maybe_cast_result_dtype(dtype, how)
 
     if not is_scalar(result):
-        if is_extension_array_dtype(dtype) and dtype.kind != "M":
-            # The result may be of any type, cast back to original
-            # type if it's compatible.
-            if len(result) and isinstance(result[0], dtype.type):
-                cls = dtype.construct_array_type()
-                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+        if (
+            is_extension_array_dtype(dtype)
+            and not is_categorical_dtype(dtype)
+            and dtype.kind != "M"
+        ):
+            # We have to special case categorical so as not to upcast
+            # things like counts back to categorical
+            cls = dtype.construct_array_type()
+            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
         elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
             result = maybe_downcast_to_dtype(result, dtype)
@@ -313,13 +321,13 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return d.get((dtype, how), dtype)
 
 
-def maybe_cast_to_extension_array(cls, obj, dtype=None):
+def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
     Parameters
     ----------
-    cls : ExtensionArray subclass
+    cls : class, subclass of ExtensionArray
     obj : arraylike
         Values to pass to cls._from_sequence
     dtype : ExtensionDtype, optional
@@ -329,6 +337,8 @@ def maybe_cast_to_extension_array(cls, obj, dtype=None):
     ExtensionArray or obj
     """
     assert isinstance(cls, type), f"must pass a type: {cls}"
+    assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
+    assert issubclass(cls, ABCExtensionArray), assertion_msg
     try:
         result = cls._from_sequence(obj, dtype=dtype)
     except Exception:
