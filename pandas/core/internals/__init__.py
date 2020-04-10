@@ -10,7 +10,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     IntBlock,
     ObjectBlock,
     TimeDeltaBlock,
-    _block_shape,
     _safe_reshape,
     make_block,
 )
@@ -31,7 +30,6 @@ __all__ = [
     "TimeDeltaBlock",
     "_safe_reshape",
     "make_block",
-    "_block_shape",
     "BlockManager",
     "SingleBlockManager",
     "concatenate_block_managers",
