@@ -2412,7 +2412,7 @@ class MultiIndex(Index):
         # GH#10331
         if isinstance(key, str) and self.levels[0]._supports_partial_string_indexing:
             # Convert key '2016-01-01' to ('2016-01-01'[, slice(None, None, None)]+)
-            key = tuple(key, *([slice(None)] * (len(self.levels) - 1)))
+            key = tuple((key, *([slice(None)] * (len(self.levels) - 1))))
 
         if isinstance(key, tuple):
             # Convert (..., '2016-01-01', ...) in tuple to
