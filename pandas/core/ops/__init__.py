@@ -347,6 +347,8 @@ def operate_blockwise(left, right, array_op):
             lvals, rvals = get_same_shape_values(blk, rblk, left_ea, right_ea)
 
             res_values = array_op(lvals, rvals)
+            if left_ea and not right_ea and hasattr(res_values, "reshape"):
+                res_values = res_values.reshape(1, -1)
             nbs = rblk._split_op_result(res_values)
 
             # Assertions are disabled for performance, but should hold:
