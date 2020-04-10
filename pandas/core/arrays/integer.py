@@ -346,12 +346,7 @@ class IntegerArray(BaseMaskedArray):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
             raise TypeError(
                 "values should be integer numpy array. Use "
-                "the 'integer_array' function instead"
-            )
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'integer_array' function instead"
+                "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
 
