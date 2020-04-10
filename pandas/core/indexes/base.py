@@ -3286,7 +3286,7 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = _ensure_has_len(target)  # target may be an iterator
+        target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
             if isinstance(self, ABCRangeIndex):
@@ -5576,7 +5576,7 @@ def ensure_index(index_like, copy: bool = False):
     return Index(index_like)
 
 
-def _ensure_has_len(seq):
+def ensure_has_len(seq):
     """
     If seq is an iterator, put its values into a list.
     """
