@@ -53,7 +53,7 @@ def reconstruct_func(
 
     Examples
     --------
-    >>> reconstruct_func({"foo": ("col", "min")})
+    >>> reconstruct_func(None, {"foo": ("col", "min")})
     True, {"col": ["min"]}, ("foo",), [0]
 
     >>> reconstruct_func("min")
