@@ -305,7 +305,7 @@ class Index(IndexOpsMixin, PandasObject):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
 
-        data_dype = getattr(data, "dtype", None)
+        data_dtype = getattr(data, "dtype", None)
 
         # range
         if isinstance(data, RangeIndex):
@@ -314,39 +314,39 @@ class Index(IndexOpsMixin, PandasObject):
             return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
-        elif is_categorical_dtype(data_dype) or is_categorical_dtype(dtype):
+        elif is_categorical_dtype(data_dtype) or is_categorical_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.category import CategoricalIndex
 
             return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
 
         # interval
-        elif is_interval_dtype(data_dype) or is_interval_dtype(dtype):
+        elif is_interval_dtype(data_dtype) or is_interval_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.interval import IntervalIndex
 
             return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
-        elif is_datetime64_any_dtype(data_dype) or is_datetime64_any_dtype(dtype):
+        elif is_datetime64_any_dtype(data_dtype) or is_datetime64_any_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
             return _maybe_asobject(dtype, DatetimeIndex, data, copy, name, **kwargs)
 
-        elif is_timedelta64_dtype(data_dype) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(data_dtype) or is_timedelta64_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import TimedeltaIndex
 
             return _maybe_asobject(dtype, TimedeltaIndex, data, copy, name, **kwargs)
 
-        elif is_period_dtype(data_dype) or is_period_dtype(dtype):
+        elif is_period_dtype(data_dtype) or is_period_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import PeriodIndex
 
             return _maybe_asobject(dtype, PeriodIndex, data, copy, name, **kwargs)
 
         # extension dtype
-        elif is_extension_array_dtype(data_dype) or is_extension_array_dtype(dtype):
+        elif is_extension_array_dtype(data_dtype) or is_extension_array_dtype(dtype):
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
