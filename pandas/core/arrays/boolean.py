@@ -10,7 +10,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.cast import astype_nansafe, maybe_cast_result_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
@@ -699,14 +699,9 @@ class BooleanArray(BaseMaskedArray):
         if name in {"sum", "prod", "min", "max"}:
             op = getattr(masked_reductions, name)
             result = op(data, mask, skipna=skipna, **kwargs)
-
-            # if we have numeric op that would result in an int,
-            # coerce to int if possible
-            if name == "prod" and notna(result):
-                int_result = np.int64(result)
-                if int_result == result:
-                    result = int_result
-
+            dtype = maybe_cast_result_dtype(dtype=data.dtype, how=name)
+            if notna(result) and (dtype != result.dtype):
+                result = result.astype(dtype)
             return result
 
         # coerce to a nan-aware float if needed
