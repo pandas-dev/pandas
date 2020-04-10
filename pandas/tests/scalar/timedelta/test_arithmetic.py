@@ -904,6 +904,25 @@ class TestTimedeltaComparison:
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_compare_td64_ndarray(self):
+        # GG#33441
+        arr = np.arange(5).astype("timedelta64[ns]")
+        td = pd.Timedelta(arr[1])
+
+        expected = np.array([False, True, False, False, False], dtype=bool)
+
+        result = td == arr
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr == td
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = td != arr
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        result = arr != td
+        tm.assert_numpy_array_equal(result, ~expected)
+
     @pytest.mark.skip(reason="GH#20829 is reverted until after 0.24.0")
     def test_compare_custom_object(self):
         """
@@ -943,7 +962,7 @@ class TestTimedeltaComparison:
     def test_compare_unknown_type(self, val):
         # GH#20829
         t = Timedelta("1s")
-        msg = "Cannot compare type Timedelta with type (int|str)"
+        msg = "not supported between instances of 'Timedelta' and '(int|str)'"
         with pytest.raises(TypeError, match=msg):
             t >= val
         with pytest.raises(TypeError, match=msg):
@@ -984,7 +1003,7 @@ def test_ops_error_str():
         with pytest.raises(TypeError, match=msg):
             left + right
 
-        msg = "Cannot compare type"
+        msg = "not supported between instances of"
         with pytest.raises(TypeError, match=msg):
             left > right
 
