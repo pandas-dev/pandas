@@ -6769,28 +6769,9 @@ Wild         185.0
         """
         bm_axis = self._get_block_manager_axis(axis)
         self._consolidate_inplace()
-        if bm_axis == 0 and len(self._data.blocks) > 1 and periods != 0:
-            # i.e. axis == 1 and we have multiple blocks
-            # We need to consolidate before this check otherwise we risk
-            #  getting unexpected dtypes in our result.
 
-            def get_na_ser(ser):
-                # get a Series with an appropriate diff dtype
-                return ser.to_frame().diff(1, axis=1).iloc[:, 0]
-
-            if periods < 0:
-                return self.iloc[:, ::-1].diff(-periods, axis).iloc[:, ::-1]
-
-            ncols = min(periods, len(self.columns))
-            na_results = [get_na_ser(self.iloc[:, n]) for n in range(ncols)]
-            results = [
-                self.iloc[:, n] - self.iloc[:, n - periods]
-                for n in range(ncols, len(self.columns))
-            ]
-
-            all_results = na_results + results
-            dresults = {n: all_results[n] for n in range(len(all_results))}
-            return self._construct_result(dresults)
+        if bm_axis == 0 and periods != 0:
+            return self.T.diff(periods, axis=0).T
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)

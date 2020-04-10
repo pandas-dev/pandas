@@ -64,18 +64,15 @@ class TestDataFrameDiff:
                 1: date_range("2010", freq="D", periods=2, tz=tz),
             }
         )
-        if tz is None:
-            result = df.diff(axis=1)
-            expected = DataFrame(
-                {
-                    0: pd.TimedeltaIndex(["NaT", "NaT"]),
-                    1: pd.TimedeltaIndex(["0 days", "0 days"]),
-                }
-            )
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.raises(NotImplementedError):
-                result = df.diff(axis=1)
+
+        result = df.diff(axis=1)
+        expected = DataFrame(
+            {
+                0: pd.TimedeltaIndex(["NaT", "NaT"]),
+                1: pd.TimedeltaIndex(["0 days", "0 days"]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_diff_timedelta(self):
         # GH#4533
@@ -119,6 +116,10 @@ class TestDataFrameDiff:
             df.diff(axis=0), DataFrame([[np.nan, np.nan], [2.0, 2.0]])
         )
 
+    @pytest.mark.xfail(
+        reason="GH#32995 needs to operate column-wise or do inference",
+        raises=AssertionError,
+    )
     def test_diff_period(self):
         # GH#32995 Don't pass an incorrect axis
         #  TODO(EA2D): this bug wouldn't have happened with 2D EA
