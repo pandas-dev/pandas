@@ -1792,9 +1792,9 @@ the key is applied per-level to the levels specified by `level`.
 .. ipython:: python
 
    s1 = pd.DataFrame({
-      "a": ['B', 'a', 'C'],
-      "b": [1, 2, 3],
-      "c": [2, 3, 4]
+         "a": ['B', 'a', 'C'],
+         "b": [1, 2, 3],
+         "c": [2, 3, 4]
    }).set_index(list("ab"))
    s1.sort_index(level="a")
    s1.sort_index(level="a", key=lambda idx: idx.str.lower())
