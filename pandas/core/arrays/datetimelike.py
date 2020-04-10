@@ -784,7 +784,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=9,
             )
             fill_value = new_fill
 

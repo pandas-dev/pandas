@@ -2063,18 +2063,24 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path) -> None:
+    def to_feather(self, path, **kwargs) -> None:
         """
-        Write out the binary feather-format for DataFrames.
+        Write a DataFrame to the binary Feather format.
 
         Parameters
         ----------
         path : str
             String file path.
+        **kwargs :
+            Additional keywords passed to :func:`pyarrow.feather.write_feather`.
+            Starting with pyarrow 0.17, this includes the `compression`,
+            `compression_level`, `chunksize` and `version` keywords.
+
+            .. versionadded:: 1.1.0
         """
         from pandas.io.feather_format import to_feather
 
-        to_feather(self, path)
+        to_feather(self, path, **kwargs)
 
     @Appender(
         """
@@ -3630,7 +3636,7 @@ class DataFrame(NDFrame):
                 fill_value=fill_value,
             )
 
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4011,7 +4017,7 @@ class DataFrame(NDFrame):
             downcast=downcast,
         )
 
-    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4065,7 +4071,7 @@ class DataFrame(NDFrame):
             return
         return res.__finalize__(self)
 
-    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
