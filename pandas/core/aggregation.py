@@ -57,7 +57,7 @@ def reconstruct_func(
     (True, defaultdict(None, {'col': ['min']}), ('foo',), array([0]))
 
     >>> reconstruct_func("min")
-    False, "min", None, None
+    (False, "min", None, None)
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
     columns: Optional[List[str]] = None
