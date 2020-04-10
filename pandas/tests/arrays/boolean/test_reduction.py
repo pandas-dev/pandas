@@ -19,6 +19,9 @@ def data():
         ([False, pd.NA], False, False, pd.NA, False),
         ([pd.NA], False, True, pd.NA, pd.NA),
         ([], False, True, False, True),
+        # GH-33253: all True / all False values buggy with skipna=False
+        ([True, True], True, True, True, True),
+        ([False, False], False, False, False, False),
     ],
 )
 def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):

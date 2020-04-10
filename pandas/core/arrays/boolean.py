@@ -520,7 +520,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if result or len(self) == 0:
+            if result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -587,7 +587,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if not result or len(self) == 0:
+            if not result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
