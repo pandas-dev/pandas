@@ -241,17 +241,16 @@ class TestTableOrient:
         # GH 32383
         df = pd.DataFrame(
             {
-                "_id": {"0": 0},
-                "category": {"0": "Goods"},
-                "recommender_id": {"0": 3},
-                "recommender_name_jp": {"0": "浦田"},
-                "recommender_name_en": {"0": "Urata"},
-                "name_jp": {"0": "博多人形（松尾吉将まつお よしまさ）"},
-                "name_en": {"0": "Hakata Dolls Matsuo"},
+                "_id": {0: 0},
+                "category": {0: "Goods"},
+                "recommender_id": {0: 3},
+                "recommender_name_jp": {0: "浦田"},
+                "recommender_name_en": {0: "Urata"},
+                "name_jp": {0: "博多人形（松尾吉将まつお よしまさ）"},
+                "name_en": {0: "Hakata Dolls Matsuo"},
             }
         )
         result = pd.read_json(df.to_json())
-        df.index = df.index.astype(int)
         tm.assert_frame_equal(result, df)
 
     def test_to_json(self):
