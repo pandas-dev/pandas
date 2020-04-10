@@ -574,6 +574,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
+        if lib.is_scalar(result):
+            return self._box_func(result)
         return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
@@ -784,7 +786,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=9,
             )
             fill_value = new_fill
 
