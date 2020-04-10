@@ -65,6 +65,9 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.iloc[:, 1:2]
         self.assert_frame_equal(result, df.iloc[:, :0])
 
+        result = df.iloc[:, -1:]
+        self.assert_frame_equal(result, df)
+
     def test_loc_series(self, data):
         ser = pd.Series(data)
         result = ser.loc[:3]
