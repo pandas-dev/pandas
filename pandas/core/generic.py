@@ -5549,7 +5549,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: datetime64[ns]
 
         Convert to datetime type with time zone:
-        
+
         >>> # localize to UTC and convert to US/Eastern time zone
         >>> ser_date.astype('datetime64[ns, US/Eastern]')
         0   2019-12-31 19:00:00-05:00
