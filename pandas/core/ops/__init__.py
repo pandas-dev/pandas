@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import Level
+from pandas._typing import ArrayLike, Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like
