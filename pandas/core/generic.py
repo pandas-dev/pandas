@@ -11421,7 +11421,7 @@ def _make_logical_function(
         name2=name2,
         see_also=see_also,
         examples=examples,
-        empty_value=empty_value,
+        empty_value=str(empty_value),
     )
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
         """
