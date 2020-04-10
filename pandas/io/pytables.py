@@ -2212,7 +2212,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: ArrayLike) -> "Col":
+    def _get_atom(cls, values: np.ndarray) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """

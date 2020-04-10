@@ -151,13 +151,6 @@ class ExtensionDtype:
         raise AbstractMethodError(self)
 
     @property
-    def itemsize(self) -> int:
-        """
-        The element size of this data-type object.
-        """
-        raise AbstractMethodError(self)
-
-    @property
     def kind(self) -> str:
         """
         A character code (one of 'biufcmMOSUV'), default 'O'
