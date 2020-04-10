@@ -3912,7 +3912,7 @@ Name: Max Speed, dtype: float64
         """
         return False
 
-    @Appender(generic._shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4173,7 +4173,7 @@ Name: Max Speed, dtype: float64
             downcast=downcast,
         )
 
-    @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4192,7 +4192,7 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
-    @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, **_shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
