@@ -6,6 +6,7 @@ import numpy as np
 import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
+from pandas._typing import Dtype
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -746,7 +747,12 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFrame":
+def from_dummies(
+    data: "DataFrame",
+    prefix: Optional[Union[str, List[str]]] = None,
+    prefix_sep: str = "_",
+    dtype: Dtype = "category",
+) -> "DataFrame":
     """
     The inverse transformation of ``pandas.get_dummies``.
 
@@ -858,7 +864,7 @@ def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFr
 
     # Check each row sums to 1 or 0
     def _validate_values(data):
-        if not all(i in [0, 1] for i in data.sum(axis=1).unique().tolist()):
+        if (data.sum(axis=1) != 1).any():
             raise ValueError(
                 "Data cannot be decoded! Each row must contain only 0s and"
                 " 1s, and each row may have at most one 1."
