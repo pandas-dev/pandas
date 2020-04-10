@@ -8,7 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -2212,7 +2212,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: np.ndarray) -> "Col":
+    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -2225,7 +2225,6 @@ class DataCol(IndexCol):
             shape = (1, values.size)
 
         if is_categorical_dtype(dtype):
-            values = cast(Categorical, values)
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
