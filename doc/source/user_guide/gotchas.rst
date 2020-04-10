@@ -317,7 +317,7 @@ See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataf
 for more information.
 
 
-Byte-Ordering issues
+Byte-ordering issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
 a different byte order than the one on which you are running Python. A common

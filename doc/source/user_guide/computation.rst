@@ -210,7 +210,7 @@ parameter:
 
 .. _stats.moments:
 
-Window Functions
+Window functions
 ----------------
 
 .. currentmodule:: pandas.core.window
@@ -323,7 +323,7 @@ We provide a number of common statistical functions:
 
 .. _stats.rolling_apply:
 
-Rolling Apply
+Rolling apply
 ~~~~~~~~~~~~~
 
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
@@ -571,6 +571,20 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+.. versionadded:: 1.1
+
+For some problems knowledge of the future is available for analysis. For example, this occurs when
+each data point is a full time series read from an experiment, and the task is to extract underlying
+conditions. In these cases it can be useful to perform forward-looking rolling window computations.
+:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+forward-looking rolling window, and we can use it as follows:
+
+.. ipython:: ipython
+
+   from pandas.api.indexers import FixedForwardWindowIndexer
+   indexer = FixedForwardWindowIndexer(window_size=2)
+   df.rolling(indexer, min_periods=1).sum()
 
 .. _stats.rolling_window.endpoints:
 
