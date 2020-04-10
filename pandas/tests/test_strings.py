@@ -3624,3 +3624,12 @@ def test_string_array_extract():
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
+def test_cat_different_classes(klass):
+    # https://github.com/pandas-dev/pandas/issues/33425
+    s = pd.Series(["a", "b", "c"])
+    result = s.str.cat(klass(["x", "y", "z"]))
+    expected = pd.Series(["ax", "by", "cz"])
+    tm.assert_series_equal(result, expected)
