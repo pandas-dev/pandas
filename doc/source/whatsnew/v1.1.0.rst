@@ -94,6 +94,19 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+| python-dateutil | 2.7.3           |    X     |         |
++-----------------+-----------------+----------+---------+
+
+
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
 
@@ -388,6 +401,7 @@ Datetimelike
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
 - Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
 - Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
+- Bug where :meth:`PeriodIndex` raised when passed a :class:`Series` of strings (:issue:`26109`)
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 
 Timedelta
@@ -397,6 +411,7 @@ Timedelta
 - Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta`` incorrectly returning ``NaT`` (:issue:`31869`)
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 - :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
+- Bug in comparing a :class:`Timedelta`` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
 
 Timezones
 ^^^^^^^^^
@@ -412,6 +427,8 @@ Numeric
 - Bug in :meth:`to_numeric` with ``downcast="unsigned"`` fails for empty data (:issue:`32493`)
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
 - Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
+- Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
+-
 
 Conversion
 ^^^^^^^^^^
@@ -423,12 +440,12 @@ Strings
 ^^^^^^^
 
 - Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
--
+- Bug in :meth:`Series.str.cat` returning ``NaN`` output when other had :class:`Index` type (:issue:`33425`)
 
 
 Interval
 ^^^^^^^^
--
+- Bug in :class:`IntervalArray` incorrectly allowing the underlying data to be changed when setting values (:issue:`32782`)
 -
 
 Indexing
@@ -449,11 +466,12 @@ Indexing
 - Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`32831`)
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
+- Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
 
 Missing
 ^^^^^^^
-
 - Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
+- Bug in :meth:`replace` when argument ``to_replace`` is of type dict/list and is used on a :class:`Series` containing ``<NA>`` was raising a ``TypeError``. The method now handles this by ignoring ``<NA>`` values when doing the comparison for the replacement (:issue:`32621`)
 - Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 
 MultiIndex
@@ -504,8 +522,9 @@ Plotting
 ^^^^^^^^
 
 - :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
--
+- Bug in :meth:`DataFrame.plot.hist` where weights are not working for multiple columns (:issue:`33173`)
 - Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
+- Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 
 
 Groupby/resample/rolling
@@ -519,6 +538,7 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)
 - Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
+- Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 
 Reshaping
 ^^^^^^^^^

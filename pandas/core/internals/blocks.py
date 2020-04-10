@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, writers
+from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -243,6 +243,8 @@ class Block(PandasObject):
         """
         if placement is None:
             placement = self.mgr_locs
+        if self.is_extension:
+            values = _block_shape(values, ndim=self.ndim)
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
@@ -354,13 +356,12 @@ class Block(PandasObject):
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
                 vals = result[i]
-                nv = _block_shape(vals, ndim=self.ndim)
-                block = self.make_block(values=nv, placement=[loc])
+                block = self.make_block(values=vals, placement=[loc])
                 nbs.append(block)
             return nbs
 
         if not isinstance(result, Block):
-            result = self.make_block(values=_block_shape(result, ndim=self.ndim))
+            result = self.make_block(result)
 
         return [result]
 
@@ -1264,9 +1265,6 @@ class Block(PandasObject):
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
-        # We use block_shape for ExtensionBlock subclasses, which may call here
-        # via a super.
-        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value=None):
@@ -1775,7 +1773,14 @@ class ExtensionBlock(Block):
         )
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 0 and n != 0:
+            # n==0 case will be a no-op so let is fall through
+            # Since we only have one column, the result will be all-NA.
+            #  Create this result by shifting along axis=0 past the length of
+            #  our values.
+            return super().diff(len(self.values), axis=0)
         if axis == 1:
+            # TODO(EA2D): unnecessary with 2D EAs
             # we are by definition 1D.
             axis = 0
         return super().diff(n, axis)
@@ -2011,12 +2016,7 @@ class DatetimeLikeBlockMixin:
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        result = super().iget(key)
-        if isinstance(result, np.datetime64):
-            result = Timestamp(result)
-        elif isinstance(result, np.timedelta64):
-            result = Timedelta(result)
-        return result
+        return self.array_values().reshape(self.shape)[key]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
@@ -2254,7 +2254,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.astype(object, copy=False)
             placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
 
-            return self.make_block(_block_shape(values, self.ndim), placement=placement)
+            return self.make_block(values, placement=placement)
         return super().concat_same_type(to_concat)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
@@ -2420,7 +2420,6 @@ class ObjectBlock(Block):
                 # TODO: allow EA once reshape is supported
                 values = values.reshape(shape)
 
-            values = _block_shape(values, ndim=self.ndim)
             return values
 
         if self.ndim == 2:
@@ -2660,9 +2659,7 @@ class CategoricalBlock(ExtensionBlock):
         )
         placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
         # not using self.make_block_same_class as values can be object dtype
-        return self.make_block(
-            _block_shape(values, ndim=self.ndim), placement=placement
-        )
+        return self.make_block(values, placement=placement)
 
     def replace(
         self,
@@ -2771,16 +2768,15 @@ def _extend_blocks(result, blocks=None):
     return blocks
 
 
-def _block_shape(values, ndim=1, shape=None):
+def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """ guarantee the shape of the values to be at least 1 d """
     if values.ndim < ndim:
-        if shape is None:
-            shape = values.shape
-        if not is_extension_array_dtype(values):
-            # TODO: https://github.com/pandas-dev/pandas/issues/23023
+        shape = values.shape
+        if not is_extension_array_dtype(values.dtype):
+            # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1,) + shape))
+            values = values.reshape(tuple((1,) + shape))  # type: ignore
     return values
 
 
