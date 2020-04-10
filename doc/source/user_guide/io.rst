@@ -4583,17 +4583,15 @@ frames efficient, and to make sharing data across data analysis languages easy.
 Feather is designed to faithfully serialize and de-serialize DataFrames, supporting all of the pandas
 dtypes, including extension dtypes such as categorical and datetime with tz.
 
-Several caveats.
+Several caveats:
 
-* This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
-  to the earlier versions.
 * The format will NOT write an ``Index``, or ``MultiIndex`` for the
   ``DataFrame`` and will raise an error if a non-default one is provided. You
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 * Duplicate column names and non-string columns names are not supported
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* Actual Python objects in object dtype columns are not supported. These will
+  raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
