@@ -120,14 +120,16 @@ class TestSeriesEvalWithSeries:
         tm.assert_series_equal(res, expect, check_names=False)
 
     def test_and_bitwise_operator(self, parser, engine):
-        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine, parser=parser)
+        res = self.series.eval("(year < 2001) & (year != 2000)", engine=engine,
+            parser=parser)
         expect = Series(data=[False, False, False], index=self.index)
         # names are not checked due to different results based on engine
         # (python vs numexpr)
         tm.assert_series_equal(res, expect, check_names=False)
 
     def test_or_bitwise_operator(self, parser, engine):
-        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine, parser=parser)
+        res = self.series.eval("(year > 2001) | (year == 2000)", engine=engine,
+            parser=parser)
         expect = Series(data=[True, False, True], index=self.index)
         # names are not checked due to different results based on engine (python
         # vs numexpr)
@@ -173,8 +175,8 @@ class TestSeriesQueryByIndexMethods:
 
 class TestSeriesQueryByMultiIndex:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5,
-            list(range(10))])
+        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5, list(
+            range(10))])
         self.frame = self.series.to_frame()
 
     def teardown_method(self, method):
@@ -304,8 +306,8 @@ class TestSeriesQueryBacktickQuoting:
         run_test(series, "1 < `(xyz)`")
 
     def test_many_symbols(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)), 
-            name="  &^ :!€$?(} >    <++*''  "))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name=
+            "  &^ :!€$?(} >    <++*''  "))
         run_test(series, "1 < `  &^ :!€$?(} >    <++*''  `")
 
     def test_failing_character_outside_range(self):
@@ -314,14 +316,15 @@ class TestSeriesQueryBacktickQuoting:
             series.query("`☺` > 4")
 
     def test_failing_hashtag(self):
-        series = Series(np.random.randn(10), index=Index(list(range(10)), name="foo#bar"))
+        series = Series(np.random.randn(10), index=Index(list(range(10)), name="foo#bar"
+            ))
         with pytest.raises(SyntaxError):
             series.query("`foo#bar` > 4")
 
 
 class TestSeriesQueryWithMultiIndex:
     def setup_method(self, method):
-        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5, [str(x) for x in
+        multiIndex = MultiIndex.from_arrays([["a"] * 5 + ["b"] * 5, [str(x) for x in 
             range(10)]], names=["alpha", "num"])
         self.series = Series(np.random.randn(10), index=multiIndex)
 
@@ -363,8 +366,8 @@ class TestSeriesQueryWithMultiIndex:
 
 class TestSeriesQueryByUnamedMultiIndex:
     def setup_method(self, method):
-        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5, 
-            list(range(10))])
+        self.series = Series(np.random.randn(10), index=[["a"] * 5 + ["b"] * 5, list(
+            range(10))])
 
     def teardown_method(self, method):
         del self.series
