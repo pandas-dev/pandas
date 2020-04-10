@@ -600,6 +600,16 @@ class DataFrame(NDFrame):
         else:
             return not self._mgr.is_mixed_type
 
+    @property
+    def _can_fast_transpose(self) -> bool:
+        """
+        Can we transpose this DataFrame without creating any new array objects.
+        """
+        if self._data.any_extension_types:
+            # TODO(EA2D) special case would be unnecessary with 2D EAs
+            return False
+        return len(self._data.blocks) == 1
+
     # ----------------------------------------------------------------------
     # Rendering Methods
 
