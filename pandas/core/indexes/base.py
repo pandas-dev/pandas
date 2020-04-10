@@ -4568,7 +4568,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
-        self._check_indexing_error(key)
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
 
         try:
             # GH 20882, 21257
@@ -4588,12 +4591,6 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         return self._get_values_for_loc(series, loc, key)
-
-    def _check_indexing_error(self, key):
-        if not is_scalar(key):
-            # if key is not a scalar, directly raise an error (the code below
-            # would convert to numpy arrays and raise later any way) - GH29926
-            raise InvalidIndexError(key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
