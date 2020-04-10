@@ -2186,8 +2186,7 @@ class DataFrame(NDFrame):
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
-        examples=
-        """Examples
+        examples="""Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
