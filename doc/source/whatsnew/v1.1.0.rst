@@ -44,7 +44,9 @@ Sorting with keys
 We've added a ``key`` argument to the DataFrame and Series sorting methods, including
 :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
 and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
-to the each column of a DataFrame before sorting is performed (:issue:`27237`).
+to the each column of a DataFrame before sorting is performed (:issue:`27237`). See
+:ref:`sort_values with keys <basics.sort_value_key>` and :ref:`sort_index with keys
+<basics.sort_index_key>` for more information.
 
 .. ipython:: python
 

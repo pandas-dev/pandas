@@ -1,6 +1,6 @@
 import operator
 from shutil import get_terminal_size
-from typing import Callable, Dict, Hashable, List, Optional, Type, Union, cast
+from typing import Dict, Hashable, List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -1533,11 +1533,7 @@ class Categorical(ExtensionArray, PandasObject):
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(
-        self,
-        inplace=False,
-        ascending=True,
-        na_position="last",
-        key: Optional[Callable] = None,
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
     ):
         """
         Sort the Categorical by category value returning a new
@@ -1560,15 +1556,6 @@ class Categorical(ExtensionArray, PandasObject):
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
-        key : callable, optional
-            Apply the key function to the values before sorting.
-            This is similar to the `key` argument in the builtin
-            :meth:`sorted` function, with the notable difference that
-            this `key` function should be *vectorized*. It should expect
-            a ``Categorical`` and return an object with the same shape
-            as the input.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1625,9 +1612,7 @@ class Categorical(ExtensionArray, PandasObject):
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {repr(na_position)}")
 
-        sorted_idx = nargsort(
-            self, ascending=ascending, na_position=na_position, key=key
-        )
+        sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
         if inplace:
             self._codes = self._codes[sorted_idx]

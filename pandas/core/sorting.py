@@ -266,7 +266,6 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Optional[Callable] = None,
-    # raw: bool = True,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.

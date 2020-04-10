@@ -1781,6 +1781,23 @@ used to sort a pandas object by its index levels.
    # Series
    unsorted_df['three'].sort_index()
 
+.. versionadded:: 1.1.0
+.. _basics.sort_index_key:
+
+Sorting by index also supports a ``key`` parameter that takes a callable
+function to apply to the index being sorted. for `MultiIndex` objects,
+the key is applied per-level to the levels specified by `level`.
+
+.. ipython:: python
+
+   s1 = pd.DataFrame({
+      "a": ['B', 'a', 'C'],
+      "b": [1, 2, 3],
+      "c": [2, 3, 4]
+   }).set_index(list("ab"))
+   s1.sort_index(level="a")
+   s1.sort_index(level="a", key=lambda idx: idx.str.lower())
+
 .. _basics.sort_values:
 
 By values
@@ -1813,6 +1830,9 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+.. versionadded:: 1.1.0
+.. _basics.sort_value_key:
+
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.
 
@@ -1823,7 +1843,18 @@ to apply to the values being sorted.
    s1.sort_values(key=lambda x: x.str.lower())
 
 `key` will be given the :class:`Series` of values and should return a ``Series``
-or array of the same shape with the transformed values.
+or array of the same shape with the transformed values. For `DataFrame` objects,
+the key is applied per column, so the key should still expect a Series and return
+a Series, e.g.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a" : ['B', 'a', 'C'], "b" : [1, 2, 3])
+   df.sort_values(by='a')
+   df.sort_values(by='a', key=lambda col : col.str.lower())
+
+The name or type of each column can be used to apply different functions to
+different columns.
 
 .. _basics.sort_indexes_and_values:
 

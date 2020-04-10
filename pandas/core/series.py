@@ -3227,6 +3227,8 @@ Name: Max Speed, dtype: float64
         bar  two    7
         dtype: int64
 
+        Apply a key function before sorting
+
         >>> s = pd.Series([1, 2, 3, 4], index=['A', 'b', 'C', 'd'])
         >>> s.sort_index(key=lambda x : x.str.lower())
         A    1

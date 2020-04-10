@@ -5093,6 +5093,19 @@ class DataFrame(NDFrame):
         100  1
         29   2
         1    4
+
+        A key function can be specified which is applied to the index before
+        sorting. For a ``MultiIndex`` this is applied to each level separately.
+
+        Apply a key function before sorting
+ 
+        >>> df = pd.DataFrame({"a" : [1, 2, 3, 4]}, index=['A', 'b', 'C', 'd'])
+        >>> df.sort_index(key=lambda x : x.str.lower())
+           a
+        A  1
+        b  2
+        C  3
+        d  4
         """
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical

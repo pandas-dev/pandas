@@ -5603,7 +5603,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 19920: retain column metadata after concat
@@ -8454,7 +8454,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     left.index = join_index
                     right.index = join_index
 
-        return (left.__finalize__(self), right.__finalize__(other))
+        return (
+            left.__finalize__(self),
+            right.__finalize__(other),
+        )
 
     def _align_series(
         self,
@@ -8538,7 +8541,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         left.index = join_index
                         right.index = join_index
 
-        return (left.__finalize__(self), right.__finalize__(other))
+        return (
+            left.__finalize__(self),
+            right.__finalize__(other),
+        )
 
     def _where(
         self,
@@ -8664,7 +8670,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._mgr.putmask(
-                mask=cond, new=other, align=align, axis=block_axis
+                mask=cond, new=other, align=align, axis=block_axis,
             )
             result = self._constructor(new_data)
             return self._update_inplace(result)
