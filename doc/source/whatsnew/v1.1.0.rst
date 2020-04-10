@@ -88,7 +88,9 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
--
+- The :meth:`DataFrame.to_feather` method now supports additional keyword
+  arguments (e.g. to set the compression) that are added in pyarrow 0.17
+  (:issue:`33422`).
 
 .. ---------------------------------------------------------------------------
 
@@ -452,7 +454,7 @@ Missing
 ^^^^^^^
 
 - Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
-
+- Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 
 MultiIndex
 ^^^^^^^^^^

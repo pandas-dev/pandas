@@ -213,13 +213,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
 
     @classmethod
-    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(
-                    axe, axis=cls._get_block_manager_axis(a), copy=False
-                )
+                axe = ensure_index(axe)
+                bm_axis = cls._get_block_manager_axis(a)
+                mgr = mgr.reindex_axis(axe, axis=bm_axis, copy=False)
 
         # make a copy if explicitly requested
         if copy:
@@ -5305,10 +5305,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._mgr.get_bool_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -6542,21 +6542,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not self.size:
                 return self
 
-            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
-                    res = self if inplace else self.copy()
-                    for c, src in to_replace.items():
-                        if c in value and c in self:
-                            # object conversion is handled in
-                            # series.replace which is called recursively
-                            res[c] = res[c].replace(
-                                to_replace=src,
-                                value=value[c],
-                                inplace=False,
-                                regex=regex,
-                            )
-                    return None if inplace else res
+                    # Note: Checking below for `in foo.keys()` instead of
+                    #  `in foo`is needed for when we have a Series and not dict
+                    mapping = {
+                        col: (to_replace[col], value[col])
+                        for col in to_replace.keys()
+                        if col in value.keys() and col in self
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
