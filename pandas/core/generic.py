@@ -213,13 +213,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
 
     @classmethod
-    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(
-                    axe, axis=cls._get_block_manager_axis(a), copy=False
-                )
+                axe = ensure_index(axe)
+                bm_axis = cls._get_block_manager_axis(a)
+                mgr = mgr.reindex_axis(axe, axis=bm_axis, copy=False)
 
         # make a copy if explicitly requested
         if copy:
@@ -4511,6 +4511,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 allow_dups=allow_dups,
                 copy=copy,
             )
+            # If we've made a copy once, no need to make another one
+            copy = False
 
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
@@ -5310,10 +5312,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._mgr.get_bool_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5714,7 +5716,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric: bool_t = False,
         timedelta: bool_t = False,
         coerce: bool_t = False,
-        copy: bool_t = True,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -5731,10 +5732,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         coerce : bool, default False
             If True, force conversion with unconvertible values converted to
             nulls (NaN or NaT).
-        copy : bool, default True
-            If True, return a copy even if no copy is necessary (e.g. no
-            conversion was done). Note: This is meant for internal use, and
-            should not be confused with inplace.
 
         Returns
         -------
@@ -5744,14 +5741,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
         validate_bool_kwarg(coerce, "coerce")
-        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
                 coerce=coerce,
-                copy=copy,
+                copy=True,
             )
         ).__finalize__(self)
 
@@ -6167,12 +6163,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    _shared_docs[
-        "replace"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        inplace=False,
+        limit=None,
+        regex=False,
+        method="pad",
+    ):
+        """
         Replace values given in `to_replace` with `value`.
 
-        Values of the %(klass)s are replaced with other values dynamically.
+        Values of the {klass} are replaced with other values dynamically.
         This differs from updating with ``.loc`` or ``.iloc``, which require
         you to specify a location to update with some value.
 
@@ -6204,19 +6208,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 - Dicts can be used to specify different replacement values
                   for different existing values. For example,
-                  ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
+                  ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
                   'y' with 'z'. To use a dict in this way the `value`
                   parameter should be `None`.
                 - For a DataFrame a dict can specify that different values
                   should be replaced in different columns. For example,
-                  ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
+                  ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
                   and the value 'z' in column 'b' and replaces these values
                   with whatever is specified in `value`. The `value` parameter
                   should not be ``None`` in this case. You can treat this as a
                   special case of passing two lists except that you are
                   specifying the column to search in.
                 - For a DataFrame nested dictionaries, e.g.,
-                  ``{'a': {'b': np.nan}}``, are read as follows: look in column
+                  ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
                   'a' for the value 'b' and replace it with NaN. The `value`
                   parameter should be ``None`` to use a nested dict in this
                   way. You can nest regular expressions as well. Note that
@@ -6249,7 +6253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             string. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
             `to_replace` must be ``None``.
-        method : {'pad', 'ffill', 'bfill', `None`}
+        method : {{'pad', 'ffill', 'bfill', `None`}}
             The method to use when for replacement, when `to_replace` is a
             scalar, list or tuple and `value` is ``None``.
 
@@ -6258,7 +6262,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
+        {klass}
             Object after replacement.
 
         Raises
@@ -6284,8 +6288,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        %(klass)s.fillna : Fill NA values.
-        %(klass)s.where : Replace values based on boolean condition.
+        {klass}.fillna : Fill NA values.
+        {klass}.where : Replace values based on boolean condition.
         Series.str.replace : Simple string replacement.
 
         Notes
@@ -6317,9 +6321,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
+        >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
         ...                    'B': [5, 6, 7, 8, 9],
-        ...                    'C': ['a', 'b', 'c', 'd', 'e']})
+        ...                    'C': ['a', 'b', 'c', 'd', 'e']}})
         >>> df.replace(0, 5)
            A  B  C
         0  5  5  a
@@ -6356,7 +6360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         **dict-like `to_replace`**
 
-        >>> df.replace({0: 10, 1: 100})
+        >>> df.replace({{0: 10, 1: 100}})
              A  B  C
         0   10  5  a
         1  100  6  b
@@ -6364,7 +6368,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    3  8  d
         4    4  9  e
 
-        >>> df.replace({'A': 0, 'B': 5}, 100)
+        >>> df.replace({{'A': 0, 'B': 5}}, 100)
              A    B  C
         0  100  100  a
         1    1    6  b
@@ -6372,7 +6376,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    3    8  d
         4    4    9  e
 
-        >>> df.replace({'A': {0: 100, 4: 400}})
+        >>> df.replace({{'A': {{0: 100, 4: 400}}}})
              A  B  C
         0  100  5  a
         1    1  6  b
@@ -6382,15 +6386,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         **Regular expression `to_replace`**
 
-        >>> df = pd.DataFrame({'A': ['bat', 'foo', 'bait'],
-        ...                    'B': ['abc', 'bar', 'xyz']})
+        >>> df = pd.DataFrame({{'A': ['bat', 'foo', 'bait'],
+        ...                    'B': ['abc', 'bar', 'xyz']}})
         >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
               A    B
         0   new  abc
         1   foo  new
         2  bait  xyz
 
-        >>> df.replace({'A': r'^ba.$'}, {'A': 'new'}, regex=True)
+        >>> df.replace({{'A': r'^ba.$'}}, {{'A': 'new'}}, regex=True)
               A    B
         0   new  abc
         1   foo  bar
@@ -6402,7 +6406,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   foo  new
         2  bait  xyz
 
-        >>> df.replace(regex={r'^ba.$': 'new', 'foo': 'xyz'})
+        >>> df.replace(regex={{r'^ba.$': 'new', 'foo': 'xyz'}})
               A    B
         0   new  abc
         1   xyz  new
@@ -6418,9 +6422,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         the data types in the `to_replace` parameter must match the data
         type of the value being replaced:
 
-        >>> df = pd.DataFrame({'A': [True, False, True],
-        ...                    'B': [False, True, False]})
-        >>> df.replace({'a string': 'new value', True: False})  # raises
+        >>> df = pd.DataFrame({{'A': [True, False, True],
+        ...                    'B': [False, True, False]}})
+        >>> df.replace({{'a string': 'new value', True: False}})  # raises
         Traceback (most recent call last):
             ...
         TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
@@ -6428,7 +6432,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
 
-        Compare the behavior of ``s.replace({'a': None})`` and
+        Compare the behavior of ``s.replace({{'a': None}})`` and
         ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
 
@@ -6436,10 +6440,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         When one uses a dict as the `to_replace` value, it is like the
         value(s) in the dict are equal to the `value` parameter.
-        ``s.replace({'a': None})`` is equivalent to
-        ``s.replace(to_replace={'a': None}, value=None, method=None)``:
+        ``s.replace({{'a': None}})`` is equivalent to
+        ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
 
-        >>> s.replace({'a': None})
+        >>> s.replace({{'a': None}})
         0      10
         1    None
         2    None
@@ -6462,20 +6466,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4     b
         dtype: object
     """
-
-    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
-    def replace(
-        self,
-        to_replace=None,
-        value=None,
-        inplace=False,
-        limit=None,
-        regex=False,
-        method="pad",
-    ):
         if not (
             is_scalar(to_replace)
-            or isinstance(to_replace, pd.Series)
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
@@ -6548,36 +6540,29 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not self.size:
                 return self
 
-            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
-                    res = self if inplace else self.copy()
-                    for c, src in to_replace.items():
-                        if c in value and c in self:
-                            # object conversion is handled in
-                            # series.replace which is called recursively
-                            res[c] = res[c].replace(
-                                to_replace=src,
-                                value=value[c],
-                                inplace=False,
-                                regex=regex,
-                            )
-                    return None if inplace else res
+                    # Note: Checking below for `in foo.keys()` instead of
+                    #  `in foo`is needed for when we have a Series and not dict
+                    mapping = {
+                        col: (to_replace[col], value[col])
+                        for col in to_replace.keys()
+                        if col in value.keys() and col in self
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    keys = [(k, src) for k, src in to_replace.items() if k in self]
-                    keys_len = len(keys) - 1
-                    for i, (k, src) in enumerate(keys):
-                        convert = i == keys_len
-                        new_data = new_data.replace(
-                            to_replace=src,
-                            value=value,
-                            filter=[k],
-                            inplace=inplace,
-                            regex=regex,
-                            convert=convert,
+                    # Operate column-wise
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-like to_replace "
+                            "and non-None value"
                         )
+                    mapping = {
+                        col: (to_rep, value) for col, to_rep in to_replace.items()
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
@@ -6618,17 +6603,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._mgr
-
-                    for k, v in value.items():
-                        if k in self:
-                            new_data = new_data.replace(
-                                to_replace=to_replace,
-                                value=v,
-                                filter=[k],
-                                inplace=inplace,
-                                regex=regex,
-                            )
+                    # Operate column-wise
+                    if self.ndim == 1:
+                        raise ValueError(
+                            "Series.replace cannot use dict-value and "
+                            "non-None to_replace"
+                        )
+                    mapping = {col: (to_replace, val) for col, val in value.items()}
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 elif not is_list_like(value):  # NA -> 0
                     new_data = self._mgr.replace(
@@ -8262,54 +8244,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    _shared_docs[
-        "align"
-    ] = """
-        Align two objects on their axes with the specified join method.
-
-        Join method is specified for each axis Index.
-
-        Parameters
-        ----------
-        other : DataFrame or Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-        axis : allowed axis of the other object, default None
-            Align on index (0), columns (1), or both (None).
-        level : int or level name, default None
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
-        copy : bool, default True
-            Always returns new objects. If copy=False and no reindexing is
-            required then original objects are returned.
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series:
-
-            - pad / ffill: propagate last valid observation forward to next valid.
-            - backfill / bfill: use NEXT valid observation to fill gap.
-
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
-        fill_axis : %(axes_single_arg)s, default 0
-            Filling axis, method and limit.
-        broadcast_axis : %(axes_single_arg)s, default None
-            Broadcast values along this axis, if aligning two objects of
-            different dimensions.
-
-        Returns
-        -------
-        (left, right) : (%(klass)s, type of other)
-            Aligned objects.
-        """
-
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @doc(**_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -8323,6 +8258,51 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_axis=0,
         broadcast_axis=None,
     ):
+        """
+        Align two objects on their axes with the specified join method.
+
+        Join method is specified for each axis Index.
+
+        Parameters
+        ----------
+        other : DataFrame or Series
+        join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+        axis : allowed axis of the other object, default None
+            Align on index (0), columns (1), or both (None).
+        level : int or level name, default None
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        copy : bool, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
+            Method to use for filling holes in reindexed Series:
+
+            - pad / ffill: propagate last valid observation forward to next valid.
+            - backfill / bfill: use NEXT valid observation to fill gap.
+
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
+        fill_axis : {axes_single_arg}, default 0
+            Filling axis, method and limit.
+        broadcast_axis : {axes_single_arg}, default None
+            Broadcast values along this axis, if aligning two objects of
+            different dimensions.
+
+        Returns
+        -------
+        (left, right) : ({klass}, type of other)
+            Aligned objects.
+        """
+
         method = missing.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
@@ -8866,9 +8846,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
         )
 
-    _shared_docs[
-        "shift"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def shift(
+        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
+    ) -> FrameOrSeries:
+        """
         Shift index by desired number of periods with an optional time `freq`.
 
         When `freq` is not passed, shift the index without realigning the data.
@@ -8885,7 +8867,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
-        axis : {0 or 'index', 1 or 'columns', None}, default None
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
@@ -8898,7 +8880,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
+        {klass}
             Copy of input object, shifted.
 
         See Also
@@ -8911,9 +8893,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        >>> df = pd.DataFrame({{'Col1': [10, 20, 15, 30, 45],
         ...                    'Col2': [13, 23, 18, 33, 48],
-        ...                    'Col3': [17, 27, 22, 37, 52]})
+        ...                    'Col3': [17, 27, 22, 37, 52]}})
 
         >>> df.shift(periods=3)
            Col1  Col2  Col3
@@ -8938,12 +8920,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2     0     0     0
         3    10    13    17
         4    20    23    27
-    """
-
-    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
-    def shift(
-        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
-    ) -> FrameOrSeries:
+        """
         if periods == 0:
             return self.copy()
 
