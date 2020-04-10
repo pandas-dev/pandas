@@ -221,7 +221,7 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
 `NumPy <https://www.numpy.org>`__                                1.13.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.6.1
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.2
 ================================================================ ==========================
 
