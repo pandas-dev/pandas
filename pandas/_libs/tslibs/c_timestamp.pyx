@@ -114,6 +114,18 @@ cdef class _Timestamp(datetime):
                         return NotImplemented
                 elif is_array(other):
                     # avoid recursion error GH#15183
+                    if other.dtype.kind == "M":
+                        if self.tz is None:
+                            return PyObject_RichCompare(self.asm8, other, op)
+                        raise TypeError(
+                            "Cannot compare tz-naive and tz-aware timestamps"
+                        )
+                    if other.dtype.kind == "O":
+                        # Operate element-wise
+                        return np.array(
+                            [PyObject_RichCompare(self, x, op) for x in other],
+                            dtype=bool,
+                        )
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
