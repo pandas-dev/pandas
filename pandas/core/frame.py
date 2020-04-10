@@ -4065,7 +4065,7 @@ class DataFrame(NDFrame):
             return
         return res.__finalize__(self)
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["shift"])
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
