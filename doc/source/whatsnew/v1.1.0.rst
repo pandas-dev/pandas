@@ -440,7 +440,7 @@ Strings
 ^^^^^^^
 
 - Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
--
+- Bug in :meth:`Series.str.cat` returning ``NaN`` output when other had :class:`Index` type (:issue:`33425`)
 
 
 Interval
