@@ -600,7 +600,7 @@ Rolling/expanding moments improvements
 
 .. _whatsnew_0150.sql:
 
-Improvements in the sql io module
+Improvements in the SQL io module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function. This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`).

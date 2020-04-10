@@ -1197,7 +1197,7 @@ Performance improvements
 
 .. _whatsnew_0180.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
