@@ -3636,7 +3636,7 @@ class DataFrame(NDFrame):
                 fill_value=fill_value,
             )
 
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4017,7 +4017,7 @@ class DataFrame(NDFrame):
             downcast=downcast,
         )
 
-    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4071,7 +4071,7 @@ class DataFrame(NDFrame):
             return
         return res.__finalize__(self)
 
-    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
