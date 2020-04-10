@@ -1001,34 +1001,34 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets):
 
 
 _TYPE_MAP = {
-    'categorical': 'categorical',
-    'category': 'categorical',
-    'int8': 'integer',
-    'int16': 'integer',
-    'int32': 'integer',
-    'int64': 'integer',
-    'i': 'integer',
-    'uint8': 'integer',
-    'uint16': 'integer',
-    'uint32': 'integer',
-    'uint64': 'integer',
-    'u': 'integer',
-    'float32': 'floating',
-    'float64': 'floating',
-    'f': 'floating',
-    'complex64': 'complex',
-    'complex128': 'complex',
-    'c': 'complex',
-    'string': 'string',
-    'S': 'bytes',
-    'U': 'string',
-    'bool': 'boolean',
-    'b': 'boolean',
-    'datetime64[ns]': 'datetime64',
-    'M': 'datetime64',
-    'timedelta64[ns]': 'timedelta64',
-    'm': 'timedelta64',
-    'interval': 'interval',
+    "categorical": "categorical",
+    "category": "categorical",
+    "int8": "integer",
+    "int16": "integer",
+    "int32": "integer",
+    "int64": "integer",
+    "i": "integer",
+    "uint8": "integer",
+    "uint16": "integer",
+    "uint32": "integer",
+    "uint64": "integer",
+    "u": "integer",
+    "float32": "floating",
+    "float64": "floating",
+    "f": "floating",
+    "complex64": "complex",
+    "complex128": "complex",
+    "c": "complex",
+    "string": "string",
+    "S": "bytes",
+    "U": "string",
+    "bool": "boolean",
+    "b": "boolean",
+    "datetime64[ns]": "datetime64",
+    "M": "datetime64",
+    "timedelta64[ns]": "timedelta64",
+    "m": "timedelta64",
+    "interval": "interval",
 }
 
 # types only exist on certain platform
@@ -1173,12 +1173,13 @@ cdef class Seen:
                     or self.nat_)
 
 
-cdef _try_infer_map(v):
+cdef object _try_infer_map(object v):
     """
     If its in our map, just return the dtype.
     """
     cdef:
-        object attr, val
+        object val
+        str attr
     for attr in ['name', 'kind', 'base']:
         val = getattr(v.dtype, attr)
         if val in _TYPE_MAP:
@@ -1196,8 +1197,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default True
         Ignore NaN values when inferring the type.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------
