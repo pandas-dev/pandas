@@ -880,6 +880,7 @@ class BlockManager(PandasObject):
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
+        # TODO(EA2D): the combine will be unnecessary with 2D EAs
         return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
     def fast_xs(self, loc: int) -> ArrayLike:
@@ -1589,33 +1590,6 @@ class SingleBlockManager(BlockManager):
         return a view of the data
         """
         raise NotImplementedError("Use series._values[loc] instead")
-
-    def concat(
-        self, to_concat: List["SingleBlockManager"], new_axis: Index
-    ) -> "SingleBlockManager":
-        """
-        Concatenate a list of SingleBlockManagers into a single
-        SingleBlockManager.
-
-        Used for pd.concat of Series objects with axis=0.
-
-        Parameters
-        ----------
-        to_concat : list of SingleBlockManagers
-        new_axis : Index of the result
-
-        Returns
-        -------
-        SingleBlockManager
-        """
-
-        blocks = [obj.blocks[0] for obj in to_concat]
-        values = concat_compat([x.values for x in blocks])
-
-        new_block = make_block(values, placement=slice(0, len(values), 1))
-
-        mgr = SingleBlockManager(new_block, new_axis)
-        return mgr
 
 
 # --------------------------------------------------------------------
