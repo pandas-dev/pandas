@@ -5,7 +5,7 @@ numpy>=1.15
 python-dateutil>=2.6.1
 pytz
 asv
-cython>=0.29.13
+cython>=0.29.16
 black==19.10b0
 cpplint
 flake8
@@ -55,7 +55,7 @@ numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
-openpyxl<=3.0.1
+openpyxl
 xlrd
 xlsxwriter
 xlwt
