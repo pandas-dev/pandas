@@ -69,8 +69,8 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     Converting numbers by specifying the `unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), unit='s')
-    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
-                    '00:00:03', '00:00:04'],
+    TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                    '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
