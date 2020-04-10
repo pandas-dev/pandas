@@ -3286,7 +3286,7 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = _ensure_has_len(target)  # target may be an iterator
+        target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
             if isinstance(self, ABCRangeIndex):
@@ -3838,7 +3838,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @doc(IndexOpsMixin.array)  # type: ignore
+    @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -4568,10 +4568,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
-        if not is_scalar(key):
-            # if key is not a scalar, directly raise an error (the code below
-            # would convert to numpy arrays and raise later any way) - GH29926
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             # GH 20882, 21257
@@ -4591,6 +4588,12 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         return self._get_values_for_loc(series, loc, key)
+
+    def _check_indexing_error(self, key):
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
@@ -5573,7 +5576,7 @@ def ensure_index(index_like, copy: bool = False):
     return Index(index_like)
 
 
-def _ensure_has_len(seq):
+def ensure_has_len(seq):
     """
     If seq is an iterator, put its values into a list.
     """

@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -880,6 +880,7 @@ class BlockManager(PandasObject):
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
+        # TODO(EA2D): the combine will be unnecessary with 2D EAs
         return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
     def fast_xs(self, loc: int) -> ArrayLike:
@@ -983,6 +984,14 @@ class BlockManager(PandasObject):
             ),
             self.axes[1],
         )
+
+    def iget_values(self, i: int) -> ArrayLike:
+        """
+        Return the data for column i as the values (ndarray or ExtensionArray).
+        """
+        block = self.blocks[self.blknos[i]]
+        values = block.iget(self.blklocs[i])
+        return values
 
     def idelete(self, indexer):
         """
@@ -1593,33 +1602,6 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(
-        self, to_concat: List["SingleBlockManager"], new_axis: Index
-    ) -> "SingleBlockManager":
-        """
-        Concatenate a list of SingleBlockManagers into a single
-        SingleBlockManager.
-
-        Used for pd.concat of Series objects with axis=0.
-
-        Parameters
-        ----------
-        to_concat : list of SingleBlockManagers
-        new_axis : Index of the result
-
-        Returns
-        -------
-        SingleBlockManager
-        """
-
-        blocks = [obj.blocks[0] for obj in to_concat]
-        values = concat_compat([x.values for x in blocks])
-
-        new_block = make_block(values, placement=slice(0, len(values), 1))
-
-        mgr = SingleBlockManager(new_block, new_axis)
-        return mgr
-
 
 # --------------------------------------------------------------------
 # Constructor Helpers
@@ -1908,7 +1890,9 @@ def _merge_blocks(
     return blocks
 
 
-def _compare_or_regex_search(a, b, regex=False):
+def _compare_or_regex_search(
+    a: Union[ArrayLike, Scalar], b: Union[ArrayLike, Scalar], regex: bool = False
+) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
 
@@ -1925,35 +1909,67 @@ def _compare_or_regex_search(a, b, regex=False):
     -------
     mask : array_like of bool
     """
+
+    def _check_comparison_types(
+        result: Union[ArrayLike, bool],
+        a: Union[ArrayLike, Scalar],
+        b: Union[ArrayLike, Scalar],
+    ) -> Union[ArrayLike, bool]:
+        """
+        Raises an error if the two arrays (a,b) cannot be compared.
+        Otherwise, returns the comparison result as expected.
+        """
+        if is_scalar(result) and (
+            isinstance(a, np.ndarray) or isinstance(b, np.ndarray)
+        ):
+            type_names = [type(a).__name__, type(b).__name__]
+
+            if isinstance(a, np.ndarray):
+                type_names[0] = f"ndarray(dtype={a.dtype})"
+
+            if isinstance(b, np.ndarray):
+                type_names[1] = f"ndarray(dtype={b.dtype})"
+
+            raise TypeError(
+                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
+            )
+        return result
+
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(
-            lambda x: bool(re.search(b, x)) if isinstance(x, str) else False
+            lambda x: bool(re.search(b, x))
+            if isinstance(x, str) and isinstance(b, str)
+            else False
         )
 
-    is_a_array = isinstance(a, np.ndarray)
-    is_b_array = isinstance(b, np.ndarray)
+    # GH#32621 use mask to avoid comparing to NAs
+    if isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
+        mask = np.reshape(~(isna(a)), a.shape)
+    elif isinstance(b, np.ndarray) and not isinstance(a, np.ndarray):
+        mask = np.reshape(~(isna(b)), b.shape)
+    elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+        mask = ~(isna(a) | isna(b))
+    if isinstance(a, np.ndarray):
+        a = a[mask]
+    if isinstance(b, np.ndarray):
+        b = b[mask]
 
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
-        result = False
-    else:
-        result = op(a)
+        return _check_comparison_types(False, a, b)
 
-    if is_scalar(result) and (is_a_array or is_b_array):
-        type_names = [type(a).__name__, type(b).__name__]
+    result = op(a)
 
-        if is_a_array:
-            type_names[0] = f"ndarray(dtype={a.dtype})"
+    if isinstance(result, np.ndarray):
+        # The shape of the mask can differ to that of the result
+        # since we may compare only a subset of a's or b's elements
+        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp[mask] = result
+        result = tmp
 
-        if is_b_array:
-            type_names[1] = f"ndarray(dtype={b.dtype})"
-
-        raise TypeError(
-            f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
-        )
-    return result
+    return _check_comparison_types(result, a, b)
 
 
 def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:
