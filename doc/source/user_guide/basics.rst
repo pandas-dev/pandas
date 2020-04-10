@@ -1781,8 +1781,9 @@ used to sort a pandas object by its index levels.
    # Series
    unsorted_df['three'].sort_index()
 
-.. versionadded:: 1.1.0
 .. _basics.sort_index_key:
+
+.. versionadded:: 1.1.0
 
 Sorting by index also supports a ``key`` parameter that takes a callable
 function to apply to the index being sorted. for `MultiIndex` objects,
@@ -1830,8 +1831,9 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
-.. versionadded:: 1.1.0
 .. _basics.sort_value_key:
+
+.. versionadded:: 1.1.0
 
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.
