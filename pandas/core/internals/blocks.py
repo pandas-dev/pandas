@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, algos as libalgos, lib, writers
+from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -2009,12 +2009,7 @@ class DatetimeLikeBlockMixin:
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        result = super().iget(key)
-        if isinstance(result, np.datetime64):
-            result = Timestamp(result)
-        elif isinstance(result, np.timedelta64):
-            result = Timedelta(result)
-        return result
+        return self.array_values().reshape(self.shape)[key]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
