@@ -231,7 +231,7 @@ def _json_normalize(
         js: Dict[str, Any], spec: Union[List, str]
     ) -> Union[Scalar, Iterable]:
         """Internal function to pull field"""
-        result = js  # type: ignore
+        result = js
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
@@ -251,7 +251,7 @@ def _json_normalize(
         # null, otherwise return an empty list
         if not isinstance(result, Iterable):
             if pd.isnull(result):
-                result = []  # type: ignore
+                result = []
             else:
                 raise TypeError(
                     f"{js} has non iterable value {result} for path {spec}. "
