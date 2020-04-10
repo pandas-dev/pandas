@@ -206,7 +206,7 @@ def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}({{c_type}}[:] arr, {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{c_type}}[:] arr, {{c_type}}[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
