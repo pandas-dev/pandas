@@ -7,15 +7,18 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import stringify_path
 
 
-def to_feather(df: DataFrame, path):
+def to_feather(df: DataFrame, path, **kwargs):
     """
-    Write a DataFrame to the feather-format
+    Write a DataFrame to the binary Feather format.
 
     Parameters
     ----------
     df : DataFrame
     path : string file path, or file-like object
+    **kwargs :
+        Additional keywords passed to `pyarrow.feather.write_feather`.
 
+        .. versionadded:: 1.1.0
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
@@ -58,7 +61,7 @@ def to_feather(df: DataFrame, path):
     if df.columns.inferred_type not in valid_types:
         raise ValueError("feather must have string column names")
 
-    feather.write_feather(df, path)
+    feather.write_feather(df, path, **kwargs)
 
 
 def read_feather(path, columns=None, use_threads: bool = True):

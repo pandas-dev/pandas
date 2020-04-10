@@ -251,6 +251,13 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
+    def test_replace_with_dictlike_and_string_dtype(self):
+        # GH 32621
+        s = pd.Series(["one", "two", np.nan], dtype="string")
+        expected = pd.Series(["1", "2", np.nan])
+        result = s.replace({"one": "1", "two": "2"})
+        tm.assert_series_equal(expected, result)
+
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
