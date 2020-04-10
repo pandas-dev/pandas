@@ -5,12 +5,22 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
@@ -259,10 +269,34 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     return mangled_aggspec
 
 
-def _relabel_result(result, func, columns, order) -> Dict:
+def _relabel_result(
+    result: Union[ABCSeries, ABCDataFrame],
+    func: Dict[str, List[Union[Callable, str]]],
+    columns: Tuple,
+    order: List[int],
+) -> Dict[str, ABCSeries]:
     """Internal function to reorder result if relabelling is True for
-    dataframe.agg, and return the reordered result in dict."""
+    dataframe.agg, and return the reordered result in dict.
 
+    Parameters:
+    ----------
+    result: Result from aggregation
+    func: Dict of (column name, funcs)
+    columns: New columns name for relabelling
+    order: New order for relabelling
+
+    Examples:
+    ---------
+    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
+    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
+    >>> columns = ("foo", "aab", "bar", "dat")
+    >>> order = [0, 1, 2, 3]
+    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
+    dict(A=Series([2.0, NaN, NaN, NaN], index=columns),
+         C=Series([NaN, 6.0, NaN, NaN], index=columns),
+         B=Series([NaN, NaN, 2.5, 4.0], index=columns))
+    """
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
