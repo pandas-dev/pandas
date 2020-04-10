@@ -2764,7 +2764,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        other : Series
+        other : Series, or object coercible into Series
             The value(s) to be combined with the `Series`.
 
         Returns
@@ -2844,6 +2844,10 @@ Name: Max Speed, dtype: float64
         2    6
         dtype: int64
         """
+        
+        if not isinstance(other, Series):
+            other = Series(other)
+        
         other = other.reindex_like(self)
         mask = notna(other)
 
