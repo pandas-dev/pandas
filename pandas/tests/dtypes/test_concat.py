@@ -88,3 +88,13 @@ def test_concat_mismatched_categoricals_with_empty():
     result = _concat.concat_compat([ser1._values, ser2._values])
     expected = pd.concat([ser1, ser2])._values
     tm.assert_categorical_equal(result, expected)
+
+#This will raise a ValueError issue if it fails
+#Regression test for issue 25257
+def test_no_tz_concat_without_copy():
+    df = pd.DataFrame({
+        'timestamp': [pd.Timestamp('2020-04-08 09:00:00.709949+0000', tz='UTC')],
+    })
+    pd.concat([df], copy=False)
+    
+
