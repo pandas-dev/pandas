@@ -3096,7 +3096,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression mode is 'infer' and `path_or_buf` is path-like, then
             detect compression mode from the following extensions: '.gz',
             '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
-            and mode is 'zip' or inferred as 'zip', other entries passed as
+            and mode is one of {'zip', 'gzip', 'bz2'}, or inferred as
+            one of the above, other entries passed as
             additional compression options.
 
             .. versionchanged:: 1.0.0
@@ -3104,6 +3105,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                May now be a dict with key 'method' as compression mode
                and other entries as additional compression options if
                compression mode is 'zip'.
+
+            .. versionchanged:: 1.1.0
+
+               Passing compression options as keys in dict is
+               supported for compression modes 'gzip' and 'bz2'
+               as well as 'zip'.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
