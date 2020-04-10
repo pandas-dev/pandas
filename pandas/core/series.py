@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
@@ -203,6 +202,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
+
+        if (
+            isinstance(data, SingleBlockManager)
+            and index is None
+            and dtype is None
+            and copy is False
+        ):
+            # GH#33357 called with just the SingleBlockManager
+            NDFrame.__init__(self, data)
+            self.name = name
+            return
 
         # we are called internally, so short-circuit
         if fastpath:
@@ -827,9 +837,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 
-        return self._constructor(
-            new_values, index=new_index, fastpath=True
-        ).__finalize__(self, method="take")
+        result = self._constructor(new_values, index=new_index, fastpath=True)
+        return result.__finalize__(self, method="take")
 
     def _take_with_is_copy(self, indices, axis=0):
         """
@@ -1005,26 +1014,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except (KeyError, ValueError):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
+                # positional setter
                 values[key] = value
             else:
+                # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError("Can only tuple-index with a MultiIndex") from e
 
-            # python 3 type errors should be raised
-            if _is_unorderable_exception(e):
-                raise IndexError(key) from e
-
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
-                    return
                 except InvalidIndexError:
                     self._set_values(key.astype(np.bool_), value)
+                return
 
             else:
                 self._set_with(key, value)
@@ -1044,20 +1051,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
             return self._set_values(indexer, value)
 
-        elif is_scalar(key) and not is_integer(key) and key not in self.index:
-            # GH#12862 adding an new key to the Series
-            # Note: have to exclude integers because that is ambiguously
-            #  position-based
-            self.loc[key] = value
-            return
-
         else:
-            if isinstance(key, tuple):
-                try:
-                    # TODO: no test cases that get here
-                    self._set_values(key, value)
-                except Exception:
-                    pass
+            assert not isinstance(key, tuple)
 
             if is_scalar(key):
                 key = [key]
@@ -1074,7 +1069,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if self.index.inferred_type == "integer":
                     self._set_labels(key, value)
                 else:
-                    return self._set_values(key, value)
+                    self._set_values(key, value)
             else:
                 self._set_labels(key, value)
 
@@ -3917,7 +3912,7 @@ Name: Max Speed, dtype: float64
         """
         return False
 
-    @Appender(generic._shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4178,7 +4173,7 @@ Name: Max Speed, dtype: float64
             downcast=downcast,
         )
 
-    @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4197,7 +4192,7 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
-    @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, **_shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
