@@ -85,13 +85,13 @@ class TestToPeriod:
             freq="5min",
         )
 
-        tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None):
             # Using simple filter because we are not checking for the warning here
             warnings.simplefilter("ignore", UserWarning)
 
             pi1 = rng.to_period("5min")
 
-        tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None):
             # Using simple filter because we are not checking for the warning here
             warnings.simplefilter("ignore", UserWarning)
 
