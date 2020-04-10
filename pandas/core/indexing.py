@@ -1557,6 +1557,7 @@ class _iLocIndexer(_LocationIndexer):
             (blk,) = self.obj._mgr.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
+                # https://github.com/pandas-dev/pandas/issues/33198
                 if isinstance(indexer, tuple) and com.is_null_slice(indexer[0]):
                     take_split_path = True
                 else:
