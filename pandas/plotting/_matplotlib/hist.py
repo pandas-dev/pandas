@@ -49,9 +49,7 @@ class HistPlot(LinePlot):
         values = values[~isna(values)]
 
         hist, bins = np.histogram(
-            values,
-            bins=self.bins,
-            range=self.kwds.get("range", None)
+            values, bins=self.bins, range=self.kwds.get("range", None)
         )
         return bins
 
