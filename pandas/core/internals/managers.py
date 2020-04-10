@@ -640,11 +640,10 @@ class BlockManager(PandasObject):
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
-                # TODO: assert/validate that `d` is always a scalar?
                 new_rb: List[Block] = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
-                    convert = i == src_len
+                    convert = i == src_len  # only convert once at the end
                     result = b._replace_coerce(
                         mask=m,
                         to_replace=s,
