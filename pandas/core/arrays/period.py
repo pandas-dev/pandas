@@ -836,7 +836,7 @@ def period_array(
         return PeriodArray(data, freq)
 
     # other iterable of some kind
-    if not is_list_like(data):
+    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
     data = np.asarray(data)
