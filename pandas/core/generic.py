@@ -84,6 +84,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -11191,7 +11192,10 @@ def _make_cum_function(
             result = result.T if hasattr(result, "T") else result
             return result
 
-        result = self._mgr.apply(block_accum_func)
+        if isinstance(self.values, ExtensionArray):
+            result = self.values._accumulate(name, skipna, **kwargs)
+        else:
+            result = self._mgr.apply(block_accum_func)
 
         # y = com.values_from_object(self).copy()
 
