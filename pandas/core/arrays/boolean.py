@@ -700,7 +700,8 @@ class BooleanArray(BaseMaskedArray):
             op = getattr(masked_reductions, name)
             result = op(data, mask, skipna=skipna, **kwargs)
 
-            # if we have numeric op that would result in an int, coerce to int if possible
+            # if we have numeric op that would result in an int,
+            # coerce to int if possible
             if name == "prod" and notna(result):
                 int_result = np.int64(result)
                 if int_result == result:
