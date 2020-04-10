@@ -559,68 +559,16 @@ class IntegerArray(BaseMaskedArray):
         return set_function_name(cmp_method, name, cls)
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs):
-        # data = self._data
-        # mask = self._mask
-
-        # from ..nanops import _get_values
-
-        # if name == "cumsum":
-        #     fill_value = 0
-        # if name == "cumprod":
-        #     fill_value = 1
-        # if name == "cummax":
-        #     fill_value = data.min()
-        # if name == "cummin":
-        #     fill_value = data.max()
-
-        # values, mask, dtype, dtype_max, fill_value = _get_values(
-        #     data, skipna=True, fill_value=fill_value, mask=mask,
-        # )
         from ..nanops import na_accum_func
 
         if name == "cumsum":
-            # return IntegerArray(values.cumsum(dtype=dtype_max), mask)
             return na_accum_func(self, np.cumsum, skipna=skipna)
         elif name == "cumprod":
-            # return IntegerArray(values.cumprod(dtype=dtype_max), mask)
             return na_accum_func(self, np.cumprod, skipna=skipna)
-
         elif name == "cummax":
-            # return np.maximum.accumulate(IntegerArray(values, mask))
             return na_accum_func(self, np.maximum.accumulate, skipna=skipna)
-
         elif name == "cummin":
-            # return np.minimum.accumulate(IntegerArray(values, mask))
             return na_accum_func(self, np.minimum.accumulate, skipna=skipna)
-
-        # # cumsum impute with 0 just add, afterwards replace again if needed
-        # # cumprod replace nan by 1, cumprod the, maybe float here necessary?
-        # # cummax, impute by min value np.maximum accumulate. Replace again
-        # # cummin, impute by max value, np.minimum.accumulate. replace again afterwards
-        # # coerce to a nan-aware float if needed
-        # if mask.any():
-        #     data = self._data.astype("float64")
-        #     data[mask] = self._na_value
-
-        # from ..nanops import _get_values
-
-        # data[mask] = 0
-        # self._data = data.cumsum()
-
-        # values, mask, dtype, dtype_max, _ = _ get_values(
-        # data, skipna, fill_value=0, mask=mask
-        # )
-        # the_cumsum = values.cumsum(axis=0, dtype=dtype_max)
-        # the_cumsum =_maybe_null_out(the_cumsum, axis=0, mask=mask,
-        # values=values.shape, min_count=min_count)
-
-        # # TODO: check in nanops:
-        # # - _get_values
-        # # - _maybe_null_out
-        # # - _wrap_restuls
-        # # - _maybe_get_mask
-
-        # return self
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         data = self._data
