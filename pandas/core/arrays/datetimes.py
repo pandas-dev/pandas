@@ -18,6 +18,7 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
+import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -1090,13 +1091,20 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.inferred_freq or self.freqstr
+            freq = self.freqstr or self.inferred_freq
 
-        if freq is None:
-            freq = get_period_alias(freq)
+            if freq is None:
+                raise ValueError(
+                    "You must pass a freq argument as current index has none."
+                )
 
-        if freq is None:
-            raise ValueError("You must pass a freq argument as current index has none.")
+            res = get_period_alias(freq)
+
+            if res is None:
+                base, stride = libfrequencies._base_and_stride(freq)
+                res = f"{stride}{base}"
+
+            freq = res
 
         return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
 
