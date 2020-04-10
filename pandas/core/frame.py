@@ -6774,6 +6774,11 @@ Wild         185.0
         5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
+        self._consolidate_inplace()
+
+        if bm_axis == 0 and periods != 0:
+            return self.T.diff(periods, axis=0).T
+
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
 
