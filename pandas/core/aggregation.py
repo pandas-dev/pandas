@@ -54,7 +54,7 @@ def reconstruct_func(
     Examples
     --------
     >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    True, {"col": ["min"]}, ("foo",), [0]
+    (True, defaultdict(None, {'col': ['min']}), ('foo',), array([0]))
 
     >>> reconstruct_func("min")
     False, "min", None, None
