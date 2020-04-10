@@ -271,18 +271,8 @@ class BooleanArray(BaseMaskedArray):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
                 "values should be boolean numpy array. Use "
-                "the 'array' function instead"
+                "the 'pd.array' function instead"
             )
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'array' function instead"
-            )
-        if not values.ndim == 1:
-            raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
-            raise ValueError("mask must be a 1D array")
-
         self._dtype = BooleanDtype()
         super().__init__(values, mask, copy=copy)
 
