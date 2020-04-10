@@ -118,7 +118,7 @@ cdef class _Timestamp(datetime):
                         if self.tz is None:
                             return PyObject_RichCompare(self.asm8, other, op)
                         raise TypeError(
-                            'Cannot compare tz-naive and tz-aware timestamps'
+                            "Cannot compare tz-naive and tz-aware timestamps"
                         )
                     if other.dtype.kind == "O":
                         # Operate element-wise

@@ -271,18 +271,8 @@ class BooleanArray(BaseMaskedArray):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
                 "values should be boolean numpy array. Use "
-                "the 'array' function instead"
+                "the 'pd.array' function instead"
             )
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'array' function instead"
-            )
-        if not values.ndim == 1:
-            raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
-            raise ValueError("mask must be a 1D array")
-
         self._dtype = BooleanDtype()
         super().__init__(values, mask, copy=copy)
 
@@ -520,7 +510,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if result or len(self) == 0:
+            if result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -587,7 +577,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if not result or len(self) == 0:
+            if not result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value

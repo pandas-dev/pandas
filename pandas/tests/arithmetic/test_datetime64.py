@@ -769,7 +769,7 @@ class TestDatetimeIndexComparisons:
         result = dti == other
         expected = np.array([True] * 5 + [False] * 5)
         tm.assert_numpy_array_equal(result, expected)
-        msg = "Cannot compare type"
+        msg = ">=' not supported between instances of 'Timestamp' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             dti >= other
 

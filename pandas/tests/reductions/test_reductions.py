@@ -889,6 +889,30 @@ class TestSeriesReductions:
         with pytest.raises(NotImplementedError):
             s.all(bool_only=True)
 
+    def test_all_any_boolean(self):
+        # Check skipna, with boolean type
+        s1 = Series([pd.NA, True], dtype="boolean")
+        s2 = Series([pd.NA, False], dtype="boolean")
+        assert s1.all(skipna=False) is pd.NA  # NA && True => NA
+        assert s1.all(skipna=True)
+        assert s2.any(skipna=False) is pd.NA  # NA || False => NA
+        assert not s2.any(skipna=True)
+
+        # GH-33253: all True / all False values buggy with skipna=False
+        s3 = Series([True, True], dtype="boolean")
+        s4 = Series([False, False], dtype="boolean")
+        assert s3.all(skipna=False)
+        assert not s4.any(skipna=False)
+
+        # Check level TODO(GH-33449) result should also be boolean
+        s = pd.Series(
+            [False, False, True, True, False, True],
+            index=[0, 0, 1, 1, 2, 2],
+            dtype="boolean",
+        )
+        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+
     def test_timedelta64_analytics(self):
 
         # index min/max
