@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BytesIO, StringIO, TextIOWrapper
+from io import StringIO, TextIOBase, TextIOWrapper
 import itertools
 import re
 import sys
@@ -172,7 +172,7 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.13
     as a dependency however.
-    .. versionchanged(1.1)
+    .. versionchanged:: (1.1)
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -1167,27 +1167,28 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer("nrows", nrows)
         if self.engine == "pyarrow":
-            return self._engine.read(nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
-
-        if index is None:
-            if col_dict:
-                # Any column is actually fine:
-                new_rows = len(next(iter(col_dict.values())))
-                index = RangeIndex(self._currow, self._currow + new_rows)
-            else:
-                new_rows = 0
+            df = self._engine.read()
         else:
-            new_rows = len(index)
+            nrows = _validate_integer("nrows", nrows)
+            ret = self._engine.read(nrows)
 
-        df = DataFrame(col_dict, columns=columns, index=index)
+            # May alter columns / col_dict
+            index, columns, col_dict = self._create_index(ret)
 
-        self._currow += new_rows
+            if index is None:
+                if col_dict:
+                    # Any column is actually fine:
+                    new_rows = len(next(iter(col_dict.values())))
+                    index = RangeIndex(self._currow, self._currow + new_rows)
+                else:
+                    new_rows = 0
+            else:
+                new_rows = len(index)
+
+            df = DataFrame(col_dict, columns=columns, index=index)
+
+            self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
@@ -2231,6 +2232,19 @@ class CParserWrapper(ParserBase):
         return values
 
 
+class BytesIOWrapper:
+    def __init__(self, string_buffer, encoding="utf-8"):
+        self.string_buffer = string_buffer
+        self.encoding = encoding
+
+    def __getattr__(self, attr):
+        return getattr(self.string_buffer, attr)
+
+    def read(self, size=-1):
+        content = self.string_buffer.read(size)
+        return content.encode(self.encoding)
+
+
 class ArrowParserWrapper(ParserBase):
     """
     Wrapper for the pyarrow engine for read_csv()
@@ -2247,10 +2261,10 @@ class ArrowParserWrapper(ParserBase):
 
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
 
-        if isinstance(self.src, StringIO):
-            self.src = BytesIO(self.src.getvalue().encode(encoding))
+        if isinstance(self.src, TextIOBase):
+            self.src = BytesIOWrapper(self.src, encoding=encoding)
 
-    def read(self, nrows=None):
+    def read(self):
         pyarrow = import_optional_dependency(
             "pyarrow.csv", extra="pyarrow is required to use arrow engine"
         )
@@ -2259,7 +2273,9 @@ class ArrowParserWrapper(ParserBase):
             read_options=pyarrow.ReadOptions(
                 skip_rows=self.kwds.get("skiprows"),
                 column_names=self.names,
-                autogenerate_column_names=True if self.header != 0 else False,
+                autogenerate_column_names=True
+                if self.header != 0 or self.kwds.get("skiprows") != set()
+                else False,
             ),
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),
@@ -2277,15 +2293,22 @@ class ArrowParserWrapper(ParserBase):
                 frame = frame.rename(
                     dict(zip(frame.columns, self.names), axis="columns")
                 )
-            elif self.header != 0:
+            elif self.header is not None and self.header != 0:
                 header = self.header
                 self.names = frame.iloc[header]
                 frame = frame.drop(header, axis=0)
                 frame = frame.rename(
-                    dict(zip(frame.columns, self.names), axis="columns")
+                    columns=dict(zip(frame.columns, self.names), axis="columns")
                 )
-        if self.kwds.get("squeeze"):
-            frame = frame.squeeze()
+            elif self.header is None:
+                self.names = range(len(frame.columns))
+                frame = frame.rename(
+                    columns=dict(zip(frame.columns, self.names), axis="columns")
+                )
+
+        index_col = self.kwds.get("index_col")[0]  # flatten list w/ 1 elem
+        if index_col is not None:
+            frame.set_index(frame.columns[index_col], drop=True, inplace=True)
         return frame
 
 

@@ -10,7 +10,6 @@ from ..pandas_vb_common import BaseIO, tm
 
 
 class ToCSV(BaseIO):
-
     fname = "__test__.csv"
     params = ["wide", "long", "mixed"]
     param_names = ["kind"]
@@ -43,7 +42,6 @@ class ToCSV(BaseIO):
 
 
 class ToCSVDatetime(BaseIO):
-
     fname = "__test__.csv"
 
     def setup(self):
@@ -55,7 +53,6 @@ class ToCSVDatetime(BaseIO):
 
 
 class ToCSVDatetimeBig(BaseIO):
-
     fname = "__test__.csv"
     timeout = 1500
     params = [1000, 10000, 100000]
@@ -83,7 +80,6 @@ class StringIORewind:
 
 
 class ReadCSVDInferDatetimeFormat(StringIORewind):
-
     params = ([True, False], ["custom", "iso8601", "ymd"])
     param_names = ["infer_datetime_format", "format"]
 
@@ -108,7 +104,6 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
 
 
 class ReadCSVConcatDatetime(StringIORewind):
-
     iso8601 = "%Y-%m-%d %H:%M:%S"
 
     def setup(self):
@@ -126,7 +121,6 @@ class ReadCSVConcatDatetime(StringIORewind):
 
 
 class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
-
     params = (["nan", "0", ""],)
     param_names = ["bad_date_value"]
 
@@ -144,7 +138,6 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 
 
 class ReadCSVSkipRows(BaseIO):
-
     fname = "__test__.csv"
     params = [None, 10000]
     param_names = ["skiprows"]
@@ -190,7 +183,6 @@ class ReadUint64Integers(StringIORewind):
 
 
 class ReadCSVThousands(BaseIO):
-
     fname = "__test__.csv"
     params = ([",", "|"], [None, ","])
     param_names = ["sep", "thousands"]
@@ -222,7 +214,6 @@ class ReadCSVComment(StringIORewind):
 
 
 class ReadCSVFloatPrecision(StringIORewind):
-
     params = ([",", ";"], [".", "_"], [None, "high", "round_trip"])
     param_names = ["sep", "decimal", "float_precision"]
 
@@ -254,19 +245,38 @@ class ReadCSVFloatPrecision(StringIORewind):
             names=list("abc"),
         )
 
-    def time_read_csv_pyarrow_engine(self, sep, decimal, float_precision):
+    def time_read_csv_arrow(self, sep):
+        read_csv(
+            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
+        )
+
+
+class ReadCSVEngine(StringIORewind):
+    def setup(self):
+        data = ["A,B,C"] + (["1,2,3"] * 100000)
+        self.StringIO_input = StringIO("\n".join(data))
+
+    def time_read_csv_c(self, sep):
+        read_csv(
+            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
+        )
+
+    def time_read_csv_arrow(self, sep):
+        read_csv(
+            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
+        )
+
+    def time_read_csv_python_engine(self, sep):
         read_csv(
             self.data(self.StringIO_input),
             sep=sep,
             header=None,
-            engine="pyarrow",
-            float_precision=None,
+            engine="python",
             names=list("abc"),
         )
 
 
 class ReadCSVCategorical(BaseIO):
-
     fname = "__test__.csv"
 
     def setup(self):
@@ -335,7 +345,6 @@ class ReadCSVCachedParseDates(StringIORewind):
 
 
 class ReadCSVMemoryGrowth(BaseIO):
-
     chunksize = 20
     num_rows = 1000
     fname = "__test__.csv"
