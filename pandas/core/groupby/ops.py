@@ -7,14 +7,14 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Type
+from typing import List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -148,9 +148,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(
-        self, f: Callable[[FrameOrSeries], Any], data: FrameOrSeries, axis: int = 0
-    ):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -612,7 +610,7 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func: Callable[[Series], Any]):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
@@ -641,7 +639,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable[[Series], Any]):
+    def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -660,7 +658,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func: Callable[[Series], Any]):
+    def _aggregate_series_pure_python(self, obj: Series, func: F):
 
         group_index, _, ngroups = self.group_info
 
@@ -846,7 +844,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: Callable[[Series], Any]):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
@@ -920,9 +918,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(
-        self, f: Callable[[FrameOrSeries], Any], sdata: FrameOrSeries, names
-    ):
+    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
