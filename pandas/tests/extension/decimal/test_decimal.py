@@ -148,7 +148,8 @@ class Reduce:
     def check_reduce(self, s, op_name, skipna):
 
         if op_name in ["median", "skew", "kurt"]:
-            with pytest.raises(NotImplementedError):
+            msg = r"decimal does not support the .* operation"
+            with pytest.raises(NotImplementedError, match=msg):
                 getattr(s, op_name)(skipna=skipna)
 
         else:

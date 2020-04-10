@@ -51,19 +51,10 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 import warnings
+
+from pandas._typing import F
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
@@ -213,8 +204,8 @@ class DictWrapper:
         prefix += key
         try:
             v = object.__getattribute__(self, "d")[key]
-        except KeyError:
-            raise OptionError("No such option")
+        except KeyError as err:
+            raise OptionError("No such option") from err
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -703,9 +694,6 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 #
 # helpers
-
-FuncType = Callable[..., Any]
-F = TypeVar("F", bound=FuncType)
 
 
 @contextmanager

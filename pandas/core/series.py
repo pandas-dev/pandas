@@ -9,12 +9,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Iterable,
     List,
     Optional,
     Tuple,
     Type,
+    Union,
 )
 import warnings
 
@@ -23,14 +23,17 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import Label
+from pandas._typing import ArrayLike, Axis, DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
-from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
+from pandas.core.dtypes.cast import (
+    convert_dtypes,
+    maybe_cast_to_extension_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
-    _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
@@ -48,7 +51,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
-    ABCSparseArray,
 )
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -61,7 +63,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, try_cast_to_ea
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -72,7 +74,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
@@ -177,7 +179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _name: Optional[Hashable]
+    _name: Label
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -191,7 +193,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    _data: SingleBlockManager
+    _mgr: SingleBlockManager
     div: Callable[["Series", Any], "Series"]
     rdiv: Callable[["Series", Any], "Series"]
 
@@ -202,12 +204,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
 
+        if (
+            isinstance(data, SingleBlockManager)
+            and index is None
+            and dtype is None
+            and copy is False
+        ):
+            # GH#33357 called with just the SingleBlockManager
+            NDFrame.__init__(self, data)
+            self.name = name
+            return
+
         # we are called internally, so short-circuit
         if fastpath:
 
             # data is an ndarray, index is defined
             if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
             if copy:
                 data = data.copy()
             if index is None:
@@ -269,7 +282,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
-                data = data._data
+                data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
@@ -290,9 +303,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError(f"'{type(data).__name__}' type is unordered")
-            elif isinstance(data, ABCSparseArray):
-                # handle sparse passed here (and force conversion)
-                data = data.to_dense()
             else:
                 data = com.maybe_iterable_to_list(data)
 
@@ -322,15 +332,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
 
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data, fastpath=True)
+        generic.NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
     def _init_dict(self, data, index=None, dtype=None):
         """
-        Derive the "_data" and "index" attributes of a new Series from a
+        Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
 
         Parameters
@@ -370,7 +380,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        return s._data, s.index
+        return s._mgr, s.index
 
     # ----------------------------------------------------------------------
 
@@ -387,13 +397,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # types
     @property
     def _can_hold_na(self):
-        return self._data._can_hold_na
+        return self._mgr._can_hold_na
 
     _index = None
 
-    def _set_axis(self, axis, labels, fastpath: bool = False) -> None:
+    def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
+
+        This is called from the cython code when we set the `index` attribute
+        directly, e.g. `series.index = [1, 2, 3]`.
         """
         if not fastpath:
             labels = ensure_index(labels)
@@ -405,7 +418,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
-                        self._data.set_axis(axis, labels)
+                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -413,33 +426,77 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
-            self._data.set_axis(axis, labels)
-
-    def _update_inplace(self, result, **kwargs):
-        # we want to call the generic version and not the IndexOpsMixin
-        return generic.NDFrame._update_inplace(self, result, **kwargs)
+            # The ensure_index call above ensures we have an Index object
+            self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        return self._mgr.dtype
 
     @property
-    def dtypes(self):
+    def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
-        return self._data.dtype
+        # DataFrame compatibility
+        return self.dtype
 
     @property
-    def name(self) -> Optional[Hashable]:
+    def name(self) -> Label:
+        """
+        Return the name of the Series.
+
+        The name of a Series becomes its index or column name if it is used
+        to form a DataFrame. It is also used whenever displaying the Series
+        using the interpreter.
+
+        Returns
+        -------
+        label (hashable object)
+            The name of the Series, also the column name if part of a DataFrame.
+
+        See Also
+        --------
+        Series.rename : Sets the Series name when given a scalar input.
+        Index.name : Corresponding Index property.
+
+        Examples
+        --------
+        The Series name can be set initially when calling the constructor.
+
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Numbers, dtype: int64
+        >>> s.name = "Integers"
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Integers, dtype: int64
+
+        The name of a Series within a DataFrame is its column name.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df
+           Odd Numbers  Even Numbers
+        0            1             2
+        1            3             4
+        2            5             6
+        >>> df["Even Numbers"].name
+        'Even Numbers'
+        """
         return self._name
 
     @name.setter
-    def name(self, value: Optional[Hashable]) -> None:
+    def name(self, value: Label) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
         object.__setattr__(self, "_name", value)
@@ -484,7 +541,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
         """
-        return self._data.external_values()
+        return self._mgr.external_values()
 
     @property
     def _values(self):
@@ -505,40 +562,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         timedelta64 dtypes), while ``.array`` ensures to always return an
         ExtensionArray.
 
-        Differs from ``._ndarray_values``, as that ensures to always return a
-        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
-        the Series was backed by an ExtensionArray).
-
         Overview:
 
-        dtype       | values        | _values       | array         | _ndarray_values |
-        ----------- | ------------- | ------------- | ------------- | --------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
-        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
-        Nullable    | EA            | EA            | EA            | ndarray         |
+        dtype       | values        | _values       | array         |
+        ----------- | ------------- | ------------- | ------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   |
+        Category    | Categorical   | Categorical   | Categorical   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
+        Nullable    | EA            | EA            | EA            |
 
         """
-        return self._data.internal_values()
+        return self._mgr.internal_values()
 
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
     @property
     def array(self) -> ExtensionArray:
-        return self._data._block.array_values()
-
-    def _internal_get_values(self):
-        """
-        Same as values (but handles sparseness conversions); is a view.
-
-        Returns
-        -------
-        numpy.ndarray
-            Data of the Series.
-        """
-        return self._data.get_values()
+        return self._mgr._block.array_values()
 
     # ops
     def ravel(self, order="C"):
@@ -552,7 +594,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._values.ravel(order=order)
 
@@ -560,7 +602,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the length of the Series.
         """
-        return len(self._data)
+        return len(self._mgr)
 
     def view(self, dtype=None) -> "Series":
         """
@@ -630,7 +672,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._constructor(
             self._values.view(dtype), index=self.index
-        ).__finalize__(self)
+        ).__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -689,11 +731,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        name: Optional[Hashable]
-        if len(set(names)) == 1:
-            name = names[0]
-        else:
-            name = None
+        name = names[0] if len(set(names)) == 1 else None
 
         def construct_return(result):
             if lib.is_scalar(result):
@@ -798,21 +836,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
+        new_values = self._values.take(indices)
 
-        if is_categorical_dtype(self):
-            # https://github.com/pandas-dev/pandas/issues/20664
-            # TODO: remove when the default Categorical.take behavior changes
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
-            kwargs = {"allow_fill": False}
-        else:
-            kwargs = {}
-        new_values = self._values.take(indices, **kwargs)
+        result = self._constructor(new_values, index=new_index, fastpath=True)
+        return result.__finalize__(self, method="take")
 
-        return self._constructor(
-            new_values, index=new_index, fastpath=True
-        ).__finalize__(self)
-
-    def _take_with_is_copy(self, indices, axis=0, **kwargs):
+    def _take_with_is_copy(self, indices, axis=0):
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -821,7 +850,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        return self.take(indices=indices, axis=axis, **kwargs)
+        return self.take(indices=indices, axis=axis)
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -849,8 +878,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
-        if key_is_scalar:
-            key = self.index._convert_scalar_indexer(key, kind="getitem")
+        if isinstance(key, (list, tuple)):
+            key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
@@ -876,6 +905,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 return self._get_values(key)
 
         return self._get_with(key)
@@ -883,7 +913,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determing if this slice is positional
+            # _convert_slice_indexer to determin if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -893,16 +923,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "supported, use the appropriate DataFrame column"
             )
         elif isinstance(key, tuple):
-            try:
-                return self._get_values_tuple(key)
-            except ValueError:
-                # if we don't have a MultiIndex, we may still be able to handle
-                #  a 1-tuple.  see test_1tuple_without_multiindex
-                if len(key) == 1:
-                    key = key[0]
-                    if isinstance(key, slice):
-                        return self._get_values(key)
-                raise
+            return self._get_values_tuple(key)
+
+        elif not is_list_like(key):
+            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
+            return self.loc[key]
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
@@ -924,26 +949,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.iloc[key]
 
-        if isinstance(key, (list, tuple)):
-            # TODO: de-dup with tuple case handled above?
+        if isinstance(key, list):
             # handle the dup indexing case GH#4246
-            if len(key) == 1 and isinstance(key[0], slice):
-                # [slice(0, 5, None)] will break if you convert to ndarray,
-                # e.g. as requested by np.median
-                # FIXME: hack
-                if isinstance(key, list):
-                    # GH#31299
-                    warnings.warn(
-                        "Indexing with a single-item list containing a "
-                        "slice is deprecated and will raise in a future "
-                        "version.  Pass a tuple instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
-                    # TODO: use a message more like numpy's?
-                    key = tuple(key)
-                return self._get_values(key)
-
             return self.loc[key]
 
         return self.reindex(key)
@@ -965,14 +972,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
+            self,
         )
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
-            ).__finalize__(self)
+            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self,)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -994,42 +999,43 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if takeable:
             return self._values[label]
 
-        # We assume that _convert_scalar_indexer has already been called,
-        #  with kind="loc", if necessary, by the time we get here
-        return self.index.get_value(self, label)
+        # Similar to Index.get_value, but we do not fall back to positional
+        loc = self.index.get_loc(label)
+        return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
+
+        if key is Ellipsis:
+            key = slice(None)
 
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
+                # positional setter
                 values[key] = value
-            elif key is Ellipsis:
-                self[:] = value
             else:
+                # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex")
-
-            # python 3 type errors should be raised
-            if _is_unorderable_exception(e):
-                raise IndexError(key)
+                raise ValueError("Can only tuple-index with a MultiIndex") from e
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
-                    return
                 except InvalidIndexError:
-                    pass
+                    self._set_values(key.astype(np.bool_), value)
+                return
 
-            self._set_with(key, value)
+            else:
+                self._set_with(key, value)
 
         if cacher_needs_updating:
             self._maybe_update_cacher()
@@ -1046,20 +1052,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
             return self._set_values(indexer, value)
 
-        elif is_scalar(key) and not is_integer(key) and key not in self.index:
-            # GH#12862 adding an new key to the Series
-            # Note: have to exclude integers because that is ambiguously
-            #  position-based
-            self.loc[key] = value
-            return
-
         else:
-            if isinstance(key, tuple):
-                try:
-                    # TODO: no test cases that get here
-                    self._set_values(key, value)
-                except Exception:
-                    pass
+            assert not isinstance(key, tuple)
 
             if is_scalar(key):
                 key = [key]
@@ -1070,13 +1064,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 key_type = lib.infer_dtype(key, skipna=False)
 
+            # Note: key_type == "boolean" should not occur because that
+            #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if self.index.inferred_type == "integer":
                     self._set_labels(key, value)
                 else:
-                    return self._set_values(key, value)
-            elif key_type == "boolean":
-                self._set_values(key.astype(np.bool_), value)
+                    self._set_values(key, value)
             else:
                 self._set_labels(key, value)
 
@@ -1091,7 +1085,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
-        self._data = self._data.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False):
@@ -1183,7 +1177,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="repeat"
+        )
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -1310,7 +1306,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self._constructor(
                     self._values.copy(), index=new_index
-                ).__finalize__(self)
+                ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -1511,8 +1507,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0
-
         Returns
         -------
         collections.abc.Mapping
@@ -1685,6 +1679,10 @@ Name: Max Speed, dtype: float64
         int or Series (if level specified)
             Number of non-null values in the Series.
 
+        See Also
+        --------
+        DataFrame.count : Count non-NA cells for each column or row.
+
         Examples
         --------
         >>> s = pd.Series([0.0, 1.0, np.nan])
@@ -1705,9 +1703,11 @@ Name: Max Speed, dtype: float64
             level_codes[mask] = cnt = len(lev)
             lev = lev.insert(cnt, lev._na_value)
 
-        obs = level_codes[notna(self.values)]
+        obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
-        return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
+        return self._constructor(out, index=lev, dtype="int64").__finalize__(
+            self, method="count"
+        )
 
     def mode(self, dropna=True) -> "Series":
         """
@@ -1794,7 +1794,7 @@ Name: Max Speed, dtype: float64
         result = super().unique()
         return result
 
-    def drop_duplicates(self, keep="first", inplace=False) -> "Series":
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
         Return Series with duplicate values removed.
 
@@ -1869,7 +1869,13 @@ Name: Max Speed, dtype: float64
         5     hippo
         Name: animal, dtype: object
         """
-        return super().drop_duplicates(keep=keep, inplace=inplace)
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = super().drop_duplicates(keep=keep)
+        if inplace:
+            self._update_inplace(result)
+            return None
+        else:
+            return result
 
     def duplicated(self, keep="first") -> "Series":
         """
@@ -2014,7 +2020,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2085,7 +2091,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2099,6 +2105,9 @@ Name: Max Speed, dtype: float64
         decimals : int, default 0
             Number of decimal places to round to. If decimals is negative,
             it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2120,8 +2129,10 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = com.values_from_object(self).round(decimals)
-        result = self._constructor(result, index=self.index).__finalize__(self)
+        result = self._values.round(decimals)
+        result = self._constructor(result, index=self.index).__finalize__(
+            self, method="round"
+        )
 
         return result
 
@@ -2153,8 +2164,8 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile : Calculate the rolling quantile.
+        numpy.percentile : Returns the q-th percentile(s) of the array elements.
 
         Examples
         --------
@@ -2212,6 +2223,12 @@ Name: Max Speed, dtype: float64
         float
             Correlation with other.
 
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation between columns.
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2254,6 +2271,10 @@ Name: Max Speed, dtype: float64
             Covariance between Series and other normalized by N-1
             (unbiased estimator).
 
+        See Also
+        --------
+        DataFrame.cov : Compute pairwise covariance of columns.
+
         Examples
         --------
         >>> s1 = pd.Series([0.90010907, 0.13484424, 0.62036035])
@@ -2266,7 +2287,7 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods=1) -> "Series":
+    def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.
 
@@ -2333,7 +2354,9 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         result = algorithms.diff(self.array, periods)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="diff"
+        )
 
     def autocorr(self, lag=1) -> float:
         """
@@ -2450,7 +2473,7 @@ Name: Max Speed, dtype: float64
         if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
-            ).__finalize__(self)
+            ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
         elif isinstance(rvals, np.ndarray):
@@ -2470,8 +2493,7 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @Substitution(klass="Series")
-    @Appender(base._shared_docs["searchsorted"])
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     def searchsorted(self, value, side="left", sorter=None):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
@@ -2555,6 +2577,12 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
+        if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
+            msg = (
+                f"to_append should be a Series or list/tuple of Series, "
+                f"got DataFrame"
+            )
+            raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
@@ -2581,12 +2609,10 @@ Name: Max Speed, dtype: float64
         if not isinstance(other, Series):
             raise AssertionError("Other operand must be Series")
 
-        new_index = self.index
         this = self
 
         if not self.index.equals(other.index):
             this, other = self.align(other, level=level, join="outer", copy=False)
-            new_index = this.index
 
         this_vals, other_vals = ops.fill_binop(this.values, other.values, fill_value)
 
@@ -2594,8 +2620,45 @@ Name: Max Speed, dtype: float64
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        ret = ops._construct_result(self, result, new_index, name)
+        ret = this._construct_result(result, name)
         return ret
+
+    def _construct_result(
+        self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Label
+    ) -> Union["Series", Tuple["Series", "Series"]]:
+        """
+        Construct an appropriately-labelled Series from the result of an op.
+
+        Parameters
+        ----------
+        result : ndarray or ExtensionArray
+        name : Label
+
+        Returns
+        -------
+        Series
+            In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
+        """
+        if isinstance(result, tuple):
+            # produced by divmod or rdivmod
+
+            res1 = self._construct_result(result[0], name=name)
+            res2 = self._construct_result(result[1], name=name)
+
+            # GH#33427 assertions to keep mypy happy
+            assert isinstance(res1, Series)
+            assert isinstance(res2, Series)
+            return (res1, res2)
+
+        # We do not pass dtype to ensure that the Series constructor
+        #  does inference in the case where `result` has object-dtype.
+        out = self._constructor(result, index=self.index)
+        out = out.__finalize__(self)
+
+        # Set the result's name after __finalize__ is called because __finalize__
+        #  would set it back to self.name
+        out.name = name
+        return out
 
     def combine(self, other, func, fill_value=None) -> "Series":
         """
@@ -2686,12 +2749,13 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.values):
+        if is_categorical_dtype(self.dtype):
             pass
-        elif is_extension_array_dtype(self.values):
+        elif is_extension_array_dtype(self.dtype):
+            # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = try_cast_to_ea(self._values, new_values)
+            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":
@@ -2783,7 +2847,7 @@ Name: Max Speed, dtype: float64
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._mgr = self._mgr.putmask(mask=mask, new=other)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------
@@ -2969,17 +3033,17 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
         axis=0,
         level=None,
-        ascending=True,
-        inplace=False,
-        kind="quicksort",
-        na_position="last",
-        sort_remaining=True,
+        ascending: bool = True,
+        inplace: bool = False,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        sort_remaining: bool = True,
         ignore_index: bool = False,
     ):
         """
@@ -2994,8 +3058,9 @@ Name: Max Speed, dtype: float64
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool, default true
-            Sort ascending vs. descending.
+        ascending : bool or list of bools, default True
+            Sort ascending vs. descending. When the index is a MultiIndex the
+            sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
@@ -3146,7 +3211,7 @@ Name: Max Speed, dtype: float64
         if inplace:
             self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
@@ -3171,7 +3236,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         values = self._values
         mask = isna(values)
@@ -3180,11 +3245,13 @@ Name: Max Speed, dtype: float64
             result = Series(-1, index=self.index, name=self.name, dtype="int64")
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(self)
+            return self._constructor(result, index=self.index).__finalize__(
+                self, method="argsort"
+            )
         else:
             return self._constructor(
                 np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self)
+            ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> "Series":
         """
@@ -3402,7 +3469,7 @@ Name: Max Speed, dtype: float64
         assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
-            self
+            self, method="swaplevel"
         )
 
     def reorder_levels(self, order) -> "Series":
@@ -3606,7 +3673,9 @@ Name: Max Speed, dtype: float64
         dtype: object
         """
         new_values = super()._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(self)
+        return self._constructor(new_values, index=self.index).__finalize__(
+            self, method="map"
+        )
 
     def _gotitem(self, key, ndim, subset=None) -> "Series":
         """
@@ -3793,7 +3862,7 @@ Name: Max Speed, dtype: float64
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype, index=self.index).__finalize__(
-                self
+                self, method="apply"
             )
 
         # dispatch to agg
@@ -3822,7 +3891,7 @@ Name: Max Speed, dtype: float64
                 # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
-                values = self.astype(object).values
+                values = self.astype(object)._values
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
@@ -3830,7 +3899,9 @@ Name: Max Speed, dtype: float64
             # so extension arrays can be used
             return self._constructor_expanddim(pd.array(mapped), index=self.index)
         else:
-            return self._constructor(mapped, index=self.index).__finalize__(self)
+            return self._constructor(mapped, index=self.index).__finalize__(
+                self, method="apply"
+            )
 
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
@@ -3877,7 +3948,7 @@ Name: Max Speed, dtype: float64
         """
         return False
 
-    @Appender(generic._shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -3928,7 +3999,7 @@ Name: Max Speed, dtype: float64
         Parameters
         ----------
         axis : {0 or "index"}
-            Unused. Accepted for compatability with DataFrame method only.
+            Unused. Accepted for compatibility with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -4005,7 +4076,7 @@ Name: Max Speed, dtype: float64
         see_also_sub="",
     )
     @Appender(generic.NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
@@ -4039,12 +4110,8 @@ Name: Max Speed, dtype: float64
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
-
-            .. versionadded:: 0.21.0
         columns : single label or list-like
             No change is made to the Series; use 'index' or 'labels' instead.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -4142,7 +4209,7 @@ Name: Max Speed, dtype: float64
             downcast=downcast,
         )
 
-    @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4161,7 +4228,7 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
-    @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, **_shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -4275,7 +4342,9 @@ Name: Max Speed, dtype: float64
         Name: animal, dtype: bool
         """
         result = algorithms.isin(self, values)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        return self._constructor(result, index=self.index).__finalize__(
+            self, method="isin"
+        )
 
     def between(self, left, right, inclusive=True) -> "Series":
         """
@@ -4511,7 +4580,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_timestamp"
+        )
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
@@ -4536,7 +4607,9 @@ Name: Max Speed, dtype: float64
 
         assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
-        return self._constructor(new_values, index=new_index).__finalize__(self)
+        return self._constructor(new_values, index=new_index).__finalize__(
+            self, method="to_period"
+        )
 
     # ----------------------------------------------------------------------
     # Add index

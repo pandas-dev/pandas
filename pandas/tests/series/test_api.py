@@ -85,10 +85,6 @@ class TestSeriesMisc:
             result = getattr(s, op)(cp)
             assert result.name is None
 
-    def test_combine_first_name(self, datetime_series):
-        result = datetime_series.combine_first(datetime_series[:5])
-        assert result.name == datetime_series.name
-
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
         assert result.name == datetime_series.name
@@ -113,10 +109,6 @@ class TestSeriesMisc:
             obj.to_pickle(path)
             unpickled = pd.read_pickle(path)
             return unpickled
-
-    def test_sort_index_name(self, datetime_series):
-        result = datetime_series.sort_index(ascending=False)
-        assert result.name == datetime_series.name
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}

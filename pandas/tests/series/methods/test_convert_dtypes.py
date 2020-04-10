@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_interval_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -81,6 +83,18 @@ class TestSeriesConvertDtypes:
                     ),
                 },
             ),
+            (  # GH32117
+                ["h", "i", 1],
+                np.dtype("O"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): np.dtype("O"),
+                },
+            ),
             (
                 [10, np.nan, 20],
                 np.dtype("float"),
@@ -144,11 +158,23 @@ class TestSeriesConvertDtypes:
                 [1, 2.0],
                 object,
                 {
-                    ((True, False), (True, False), (True,), (True, False)): "Int64",
+                    ((True,), (True, False), (True,), (True, False)): "Int64",
                     ((True,), (True, False), (False,), (True, False)): np.dtype(
                         "float"
                     ),
-                    ((False,), (True, False), (False,), (True, False)): np.dtype(
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
+                        "object"
+                    ),
+                },
+            ),
+            (
+                [1, 2.5],
+                object,
+                {
+                    ((True,), (True, False), (True, False), (True, False)): np.dtype(
+                        "float"
+                    ),
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
                         "object"
                     ),
                 },
@@ -242,7 +268,12 @@ class TestSeriesConvertDtypes:
 
         # Test that it is a copy
         copy = series.copy(deep=True)
-        ns[ns.notna()] = np.nan
+        if is_interval_dtype(ns.dtype) and ns.dtype.subtype.kind in ["i", "u"]:
+            msg = "Cannot set float NaN to integer-backed IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                ns[ns.notna()] = np.nan
+        else:
+            ns[ns.notna()] = np.nan
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
@@ -255,3 +286,8 @@ class TestSeriesConvertDtypes:
         )
         result = df.convert_dtypes()
         tm.assert_frame_equal(df, result)
+
+    def test_convert_bool_dtype(self):
+        # GH32287
+        df = pd.DataFrame({"A": pd.array([True])})
+        tm.assert_frame_equal(df, df.convert_dtypes())

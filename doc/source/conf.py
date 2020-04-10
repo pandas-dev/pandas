@@ -109,6 +109,7 @@ with open(os.path.join(source_path, "index.rst"), "w") as f:
         )
     )
 autosummary_generate = True if pattern is None else ["index"]
+autodoc_typehints = "none"
 
 # numpydoc
 numpydoc_attributes_as_param_list = False
@@ -195,7 +196,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "pandas_sphinx_theme"
+html_theme = "pydata_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -232,6 +233,7 @@ html_logo = "../../web/pandas/static/img/pandas.svg"
 html_static_path = ["_static"]
 
 html_css_files = [
+    "css/getting_started.css",
     "css/pandas.css",
 ]
 
@@ -414,6 +416,7 @@ if pattern is None:
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
         "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
