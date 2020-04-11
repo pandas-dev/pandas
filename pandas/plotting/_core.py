@@ -988,7 +988,7 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(rot=0)
 
-        Plot stacked bar chars for the DataFrame
+        Plot stacked bar charts for the DataFrame
 
         .. plot::
             :context: close-figs
@@ -1079,7 +1079,7 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
 
-        Plot stacked bar chars for the DataFrame
+        Plot stacked bar charts for the DataFrame
 
         .. plot::
             :context: close-figs
