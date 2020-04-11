@@ -5548,9 +5548,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
 
-        Convert to datetime type with time zone
-        (Behavior - Datetimes are localized to UTC first
-        before converting to the specified timezone):
+        Datetimes are localized to UTC first before
+        converting to the specified timezone:
 
         >>> ser_date.astype('datetime64[ns, US/Eastern]')
         0   2019-12-31 19:00:00-05:00
