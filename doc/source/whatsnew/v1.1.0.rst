@@ -411,6 +411,7 @@ Datetimelike
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 - Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
 
+
 Timedelta
 ^^^^^^^^^
 
