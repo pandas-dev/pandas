@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, no_type_check
+from typing import Dict, no_type_check, Optional
 
 import numpy as np
 
@@ -9,6 +9,8 @@ from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
+
+from pandas._typing import TimestampCompatibleTypes, TimedeltaCompatibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
@@ -1306,18 +1308,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed=None,
-        label=None,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind=None,
-        convention=None,
-        base=None,
-        origin=None,
-        offset=None,
+        kind: Optional[str] = None,
+        convention: Optional[str] = None,
+        base: Optional[int] = None,
+        origin: Optional[TimestampCompatibleTypes] = None,
+        offset: Optional[TimedeltaCompatibleTypes] = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1722,8 +1724,8 @@ def _get_period_range_edges(first, last, freq, closed="left", origin=None, offse
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     origin : pd.Timestamp, default None
-        The timestamp on which to adjust the grouping. The timezone of the
-        timestamp must match the timezone of the index. If None is passed, the
+        The timestamp on which to adjust the grouping. It must be timezone
+        aware if the index of the resampled data is. If None is passed, the
         first day of the time series at midnight is used.
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.

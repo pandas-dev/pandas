@@ -39,6 +39,8 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    TimedeltaCompatibleTypes,
+    TimestampCompatibleTypes,
     ValueKeyFunc,
 )
 from pandas.compat import set_function_name
@@ -7763,8 +7765,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: pd.Timestamp = None,
-        offset=None,
+        origin: Optional[TimestampCompatibleTypes] = None,
+        offset: Optional[TimedeltaCompatibleTypes] = None,
     ) -> "Resampler":
         """
         Resample time-series data.
@@ -7818,14 +7820,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : pd.Timestamp, default None
+        origin : Timestamp, str or datetime-like, default None
             The timestamp on which to adjust the grouping. It must be timezone
             aware if the index of the resampled data is. If None is passed, the
             first day of the time series at midnight is used.
 
             .. versionadded:: 1.1.0
 
-        offset : pd.Timedelta, default is None
+        offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
             .. versionadded:: 1.1.0

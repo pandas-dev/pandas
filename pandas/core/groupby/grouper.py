@@ -83,14 +83,14 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : pd.Timestamp, default None
+    origin : Timestamp, str or datetime-like, default None
         The timestamp on which to adjust the grouping. The timezone of the
         timestamp must match the timezone of the index. If None is passed, the
         first day of the time series at midnight is used.
 
         .. versionadded:: 1.1.0
 
-    offset : pd.Timedelta, default is None
+    offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
 
         .. versionadded:: 1.1.0
