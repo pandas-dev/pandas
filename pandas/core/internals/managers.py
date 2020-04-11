@@ -7,14 +7,13 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
+from pandas._libs import internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
-    maybe_convert_objects,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -33,6 +32,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
@@ -47,8 +47,6 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-
-from pandas.io.formats.printing import pprint_thing
 
 # TODO: flexible with index=None and/or items=None
 
@@ -325,7 +323,7 @@ class BlockManager(PandasObject):
                 output += f"\nAxis {i}: {ax}"
 
         for block in self.blocks:
-            output += f"\n{pprint_thing(block)}"
+            output += f"\n{block}"
         return output
 
     def _verify_integrity(self) -> None:
@@ -626,11 +624,8 @@ class BlockManager(PandasObject):
             """
             if isna(s):
                 return isna(values)
-            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
 
-                return _compare_or_regex_search(
-                    maybe_convert_objects(values), s.asm8, regex
-                )
+            s = com.maybe_box_datetimelike(s)
             return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for s in src_list]
@@ -643,11 +638,10 @@ class BlockManager(PandasObject):
             # replace ALWAYS will return a list
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
-                # TODO: assert/validate that `d` is always a scalar?
                 new_rb: List[Block] = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
-                    convert = i == src_len
+                    convert = i == src_len  # only convert once at the end
                     result = b._replace_coerce(
                         mask=m,
                         to_replace=s,
@@ -1319,6 +1313,10 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
+                # GH#32959 EABlock would fail since we cant make 0-width
+                # TODO(EA2D): special casing unnecessary with 2D EAs
+                if sllen == 0:
+                    return []
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
