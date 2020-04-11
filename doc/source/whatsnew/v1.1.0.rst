@@ -51,14 +51,17 @@ We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing t
        },
        columns=["col1", "col2", "col3"],
    )
-   df2 = df.copy()
-   df2.loc[0, 'col1'] = 'c'
-   df2.loc[2, 'col3'] = 4.0
+   df
 
 .. ipython:: python
 
-   df
+   df2 = df.copy()
+   df2.loc[0, 'col1'] = 'c'
+   df2.loc[2, 'col3'] = 4.0
    df2
+
+.. ipython:: python
+
    df.compare(df2)
 
 .. _whatsnew_110.timestamp_fold_support:

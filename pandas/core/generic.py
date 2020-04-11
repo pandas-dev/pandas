@@ -8283,6 +8283,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
         from pandas.core.reshape.concat import concat
 
+        if type(self) is not type(other):
+            cls_self, cls_other = type(self).__name__, type(other).__name__
+            raise TypeError(
+                f"can only compare '{cls_self}' (not '{cls_other}') with '{cls_self}'"
+            )
+
         mask = ~((self == other) | (self.isna() & other.isna()))
         keys = ["self", "other"]
 
