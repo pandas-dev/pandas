@@ -649,25 +649,3 @@ def test_failure_to_convert_uint64_string_to_NaN():
     ser = Series([32, 64, np.nan])
     result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
-
-
-def test_set_levels_with_changed_multiindex():
-    # GH33420
-    np.random.seed(seed=0)
-    arrays = [
-        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-        ["one", "one", "one", "one", "one", "one", "one", "one"],
-        ["three", "four", "three", "four", "three", "four", "three", "four"],
-    ]
-    ran_array = np.random.rand(8, 4)
-    test_df = pd.DataFrame(ran_array, index=arrays)
-    test_df.index.set_levels([3, 4], level=2, inplace=True)
-    correct_df = pd.DataFrame(ran_array, index=arrays)
-    correct_df.index = pd.MultiIndex.from_arrays(
-        [
-            test_df.index.get_level_values(0),
-            test_df.index.get_level_values(1),
-            np.tile([3, 4], 4),
-        ]
-    )
-    tm.assert_equal(test_df, correct_df)
