@@ -91,6 +91,12 @@ Other enhancements
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
+- :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_pickle`,
+  and :meth:`DataFrame.to_json` now support passing a dict of
+  compression arguments when using the ``gzip`` and ``bz2`` protocols.
+  This can be used to set a custom compression level, e.g.,
+  ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
+  (:issue:`33196`)
 
 .. ---------------------------------------------------------------------------
 
