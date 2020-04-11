@@ -46,11 +46,11 @@ class TestFrameAccessor:
     def test_from_spmatrix_including_explicit_zero(self, format):
         import scipy.sparse
 
-        mat = scipy.sparse.random(10, 2, density=0.5, format=format, dtype="int64")
+        mat = scipy.sparse.random(10, 2, density=0.5, format=format)
         mat.data[0] = 0
         result = pd.DataFrame.sparse.from_spmatrix(mat)
-        sp_dtype = SparseDtype("int64", np.array(0, dtype="int64").item())
-        expected = pd.DataFrame(mat.todense()).astype(sp_dtype)
+        dtype = SparseDtype("float64", 0.0)
+        expected = pd.DataFrame(mat.todense()).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
