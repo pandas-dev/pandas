@@ -777,7 +777,7 @@ def _build_names_mapper(
             )
             names_count[name] -= 1
 
-        # Add suffix name is shared between column and rows
+        # Add suffix name if column is shared between column and rows
         if name in shared_col_row_names:
             mapped_name = "{mapped_name}_{suffix}".format(
                 mapped_name=mapped_name, suffix=suffix
