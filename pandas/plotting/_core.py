@@ -1079,12 +1079,12 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
 
-        Plot stacked bar charts for the DataFrame
+        Plot stacked barh charts for the DataFrame
 
         .. plot::
             :context: close-figs
 
-            >>> ax = df.plot.bar(stacked=True)
+            >>> ax = df.plot.barh(stacked=True)
 
         We can specify colors for each column
 
