@@ -356,7 +356,7 @@ def apply_key(index, key, level=None):
 
         sort_levels = [index._get_level_number(lev) for lev in sort_levels]
     else:
-        sort_levels = range(index.nlevels)
+        sort_levels = list(range(index.nlevels))  # satisfies mypy
 
     mapped = [
         ensure_key_mapped(index._get_level_values(level), key)
