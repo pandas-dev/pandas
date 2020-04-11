@@ -2531,12 +2531,17 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_nested_dict(object data) -> object:
+def from_nested_dict(object data) -> dict:
     cdef:
         object new_data = collections.defaultdict(dict)
-        object index, column, value, nested_dict
+        object index, column, value, dict_iterator
+        dict data_dct, nested_dict
 
-    for index, nested_dict in data.items():
+    data_dct = dict(data)
+
+    for index, dict_iterator in data_dct.items():
+        nested_dict = dict(dict_iterator)
         for column, value in nested_dict.items():
             new_data[column][index] = value
-    return new_data
+
+    return dict(new_data)
