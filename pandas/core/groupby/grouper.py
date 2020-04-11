@@ -299,7 +299,6 @@ class Grouping:
         self.obj = obj
         self.observed = observed
         self.in_axis = in_axis
-
         self.dropna = dropna
 
         # right place for this?

@@ -399,7 +399,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
-
         self.dropna = dropna
 
         if grouper is None:
