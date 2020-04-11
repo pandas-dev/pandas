@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, no_type_check, Optional
+from typing import Dict, Optional, no_type_check
 
 import numpy as np
 
@@ -9,8 +9,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
-
-from pandas._typing import TimestampCompatibleTypes, TimedeltaCompatibleTypes
+from pandas._typing import TimedeltaCompatibleTypes, TimestampCompatibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
