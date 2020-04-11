@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
-from pandas._libs.tslibs import Timedelta, conversion
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike
 from pandas.util._validators import validate_bool_kwarg
@@ -281,6 +281,7 @@ class Block(PandasObject):
 
     def _slice(self, slicer):
         """ return a slice of my values """
+
         return self.values[slicer]
 
     def getitem_block(self, slicer, new_mgr_locs=None):
@@ -1730,14 +1731,40 @@ class ExtensionBlock(Block):
         return True
 
     def _slice(self, slicer):
-        """ return a slice of my values """
-        # slice the category
+        """
+        Return a slice of my values.
+
+        Parameters
+        ----------
+        slicer : slice, ndarray[int], or a tuple of these
+            Valid (non-reducing) indexer for self.values.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
         # return same dims as we currently have
+        if not isinstance(slicer, tuple) and self.ndim == 2:
+            # reached via getitem_block via _slice_take_blocks_ax0
+            # TODO(EA2D): wont be necessary with 2D EAs
+            slicer = (slicer, slice(None))
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not com.is_null_slice(slicer[0]):
-                raise AssertionError("invalid slicing for a 1-ndim categorical")
-            slicer = slicer[1]
+            first = slicer[0]
+            if not isinstance(first, slice):
+                raise AssertionError(
+                    "invalid slicing for a 1-ndim ExtensionArray", first
+                )
+            # GH#32959 only full-slicers along fake-dim0 are valid
+            # TODO(EA2D): wont be necessary with 2D EAs
+            new_locs = self.mgr_locs[first]
+            if len(new_locs):
+                # effectively slice(None)
+                slicer = slicer[1]
+            else:
+                raise AssertionError(
+                    "invalid slicing for a 1-ndim ExtensionArray", slicer
+                )
 
         return self.values[slicer]
 
@@ -2196,15 +2223,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
-
-    def _slice(self, slicer):
-        """ return a slice of my values """
-        if isinstance(slicer, tuple):
-            col, loc = slicer
-            if not com.is_null_slice(col) and col != 0:
-                raise IndexError(f"{self} only contains one item")
-            return self.values[loc]
-        return self.values[slicer]
 
     def diff(self, n: int, axis: int = 0) -> List["Block"]:
         """
