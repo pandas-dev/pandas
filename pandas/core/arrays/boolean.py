@@ -10,7 +10,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import astype_nansafe, maybe_cast_result_dtype
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
