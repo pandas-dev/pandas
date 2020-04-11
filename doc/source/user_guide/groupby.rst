@@ -199,9 +199,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
    df3.groupby(['X']).get_group('B')
 
 
-.. versionadded:: 1.1.0
-
 .. _groupby.dropna:
+
+.. versionadded:: 1.1.0
 
 GroupBy dropna
 ^^^^^^^^^^^^^^
