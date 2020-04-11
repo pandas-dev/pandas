@@ -3,48 +3,31 @@ Functions for defining unary operations.
 """
 from typing import Any
 
-import numpy as np
-
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_object_dtype,
-    is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
-
-from pandas.core.construction import array
+from pandas.core.dtypes.generic import ABCExtensionArray
 
 
-def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
+def should_extension_dispatch(left: ArrayLike, right: Any) -> bool:
     """
-    Identify cases where Series operation should use dispatch_to_extension_op.
+    Identify cases where Series operation should dispatch to ExtensionArray method.
 
     Parameters
     ----------
-    left : Series
+    left : np.ndarray or ExtensionArray
     right : object
 
     Returns
     -------
     bool
     """
-    if (
-        is_extension_array_dtype(left.dtype)
-        or is_datetime64_dtype(left.dtype)
-        or is_timedelta64_dtype(left.dtype)
-    ):
-        return True
-
-    if not is_scalar(right) and is_extension_array_dtype(right):
-        # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-        return True
-
-    return False
+    return isinstance(left, ABCExtensionArray) or isinstance(right, ABCExtensionArray)
 
 
 def should_series_dispatch(left, right, op):
@@ -93,34 +76,3 @@ def should_series_dispatch(left, right, op):
         return True
 
     return False
-
-
-def dispatch_to_extension_op(op, left: ArrayLike, right: Any):
-    """
-    Assume that left or right is a Series backed by an ExtensionArray,
-    apply the operator defined by op.
-
-    Parameters
-    ----------
-    op : binary operator
-    left : ExtensionArray or np.ndarray
-    right : object
-
-    Returns
-    -------
-    ExtensionArray or np.ndarray
-        2-tuple of these if op is divmod or rdivmod
-    """
-    # NB: left and right should already be unboxed, so neither should be
-    #  a Series or Index.
-
-    if left.dtype.kind in "mM" and isinstance(left, np.ndarray):
-        # We need to cast datetime64 and timedelta64 ndarrays to
-        #  DatetimeArray/TimedeltaArray.  But we avoid wrapping others in
-        #  PandasArray as that behaves poorly with e.g. IntegerArray.
-        left = array(left)
-
-    # The op calls will raise TypeError if the op is not defined
-    # on the ExtensionArray
-    res_values = op(left, right)
-    return res_values

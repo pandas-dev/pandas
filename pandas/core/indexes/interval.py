@@ -20,7 +20,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_categorical,
+    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
@@ -426,7 +426,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
 
     # IntervalTree doesn't have a is_monotonic_decreasing, so have to override
-    #  the Index implemenation
+    #  the Index implementation
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
@@ -787,7 +787,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             left_indexer = self.left.get_indexer(target_as_index.left)
             right_indexer = self.right.get_indexer(target_as_index.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-        elif is_categorical(target_as_index):
+        elif is_categorical_dtype(target_as_index.dtype):
             # get an indexer for unique categories then propagate to codes via take_1d
             categories_indexer = self.get_indexer(target_as_index.categories)
             indexer = take_1d(categories_indexer, target_as_index.codes, fill_value=-1)
@@ -1104,9 +1104,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
-                result = result.values.astype(self.dtype.subtype)
+                result = result._values.astype(self.dtype.subtype)
             else:
-                result = result.values
+                result = result._values
 
             return type(self).from_tuples(result, closed=self.closed, name=result_name)
 

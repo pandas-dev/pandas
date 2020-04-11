@@ -162,12 +162,12 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast()
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast()
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
 
     def test_constructor_compound_dtypes(self):
@@ -249,14 +249,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    @pytest.mark.parametrize("index", tm.all_index_generator(10))
-    def test_head_tail(self, index):
+    def test_head_tail(self, indices):
         # GH5370
 
-        o = self._construct(shape=10)
+        o = self._construct(shape=len(indices))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, index)
+        setattr(o, axis, indices)
 
         o.head()
 
@@ -272,8 +271,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(7))
-        self._compare(o.tail(-3), o.tail(7))
+        self._compare(o.head(-3), o.head(len(indices) - 3))
+        self._compare(o.tail(-3), o.tail(len(indices) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -692,10 +691,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis="columns"), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis=2)
-        msg = "No axis named x for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named x for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 

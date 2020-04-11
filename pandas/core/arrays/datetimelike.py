@@ -181,7 +181,7 @@ class AttributesMixin:
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
         10000000000
         """
         raise AbstractMethodError(self)
@@ -202,7 +202,7 @@ class AttributesMixin:
         ----------
         other
         setitem : bool, default False
-            For __setitem__ we may have stricter compatiblity resrictions than
+            For __setitem__ we may have stricter compatibility resrictions than
             for comparisons.
 
         Raises
@@ -396,6 +396,34 @@ default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
+    def _with_freq(self, freq):
+        """
+        Helper to set our freq in-place, returning self to allow method chaining.
+
+        Parameters
+        ----------
+        freq : DateOffset, None, or "infer"
+
+        Returns
+        -------
+        self
+        """
+        # GH#29843
+        if freq is None:
+            # Always valid
+            pass
+        elif len(self) == 0 and isinstance(freq, DateOffset):
+            # Always valid.  In the TimedeltaArray case, we assume this
+            #  is a Tick offset.
+            pass
+        else:
+            # As an internal method, we can ensure this assertion always holds
+            assert freq == "infer"
+            freq = frequencies.to_offset(self.inferred_freq)
+
+        self._freq = freq
+        return self
+
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray):
     """
@@ -522,10 +550,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 key = np.asarray(key, dtype=bool)
 
             key = check_array_indexer(self, key)
-            if key.all():
-                key = slice(0, None, None)
-            else:
-                key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
         elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
             # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
             # this for now (would otherwise raise in check_array_indexer)
@@ -533,7 +558,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             key = check_array_indexer(self, key)
 
-        is_period = is_period_dtype(self)
+        is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
         else:
@@ -549,11 +574,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
-        if result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            return result
-
+        if lib.is_scalar(result):
+            return self._box_func(result)
         return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
@@ -764,7 +786,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=9,
             )
             fill_value = new_fill
 
@@ -818,14 +840,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
-        elif isinstance(value, np.ndarray):
+        elif is_list_like(value) and not isinstance(value, type(self)):
+            value = array(value)
+
             if not type(self)._is_recognized_dtype(value):
                 raise TypeError(
                     "searchsorted requires compatible dtype or scalar, "
                     f"not {type(value).__name__}"
                 )
-            value = type(self)(value)
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
@@ -877,7 +899,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         index = Index(
             cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
         )
-        return Series(result.values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name)
 
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
@@ -1157,7 +1179,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if new_freq is not None:
             # fastpath that doesnt require inference
             return type(self)(new_values, dtype=self.dtype, freq=new_freq)
-        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
+        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1167,7 +1189,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         -------
         Same type as self
         """
-        # overriden by PeriodArray
+        # overridden by PeriodArray
 
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
@@ -1187,7 +1209,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
 
-        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
+        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
     def _add_nat(self):
         """

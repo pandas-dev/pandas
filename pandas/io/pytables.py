@@ -306,9 +306,6 @@ def read_hdf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-
-        .. versionadded:: 0.21.0 support for __fspath__ protocol.
-
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -1462,8 +1459,6 @@ class HDFStore:
         """
         Print detailed information on the store.
 
-        .. versionadded:: 0.21.0
-
         Returns
         -------
         str
@@ -1921,9 +1916,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
@@ -2382,7 +2375,7 @@ class DataCol(IndexCol):
                 mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum().values
+                    codes[codes != -1] -= mask.astype(int).cumsum()._values
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered
@@ -3065,7 +3058,7 @@ class BlockManagerFixed(GenericFixed):
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
-        data = obj._data
+        data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
 
@@ -3860,18 +3853,18 @@ class Table(Fixed):
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
+        blocks = block_obj._mgr.blocks
+        blk_items = get_blk_items(block_obj._mgr, blocks)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
+            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr, blocks)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
+                mgr = block_obj.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
@@ -4682,7 +4675,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
-    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    # we won't get inferred_type of "datetime64" or "timedelta64" as these
     #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)
@@ -4826,7 +4819,9 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
+            Series(data.ravel())
+            .str.encode(encoding, errors)
+            ._values.reshape(data.shape)
         )
 
     # create the sized dtype
@@ -4865,7 +4860,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors).values
+            data = Series(data).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 

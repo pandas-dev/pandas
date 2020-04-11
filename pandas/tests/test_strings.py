@@ -41,6 +41,7 @@ _any_string_method = [
     ("join", (",",), {}),
     ("ljust", (10,), {}),
     ("match", ("a",), {}),
+    ("fullmatch", ("a",), {}),
     ("normalize", ("NFC",), {}),
     ("pad", (10,), {}),
     ("partition", (" ",), {"expand": False}),
@@ -1176,9 +1177,9 @@ class TestStringMethods:
         exp = Series([True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
-        values = Series(["fooBAD__barBAD", np.nan, "foo"])
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
         result = values.str.match(".*BAD[_]+.*BAD")
-        exp = Series([True, np.nan, False])
+        exp = Series([True, True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
         # mixed
@@ -1207,6 +1208,22 @@ class TestStringMethods:
         res = Series(["a", 0, np.nan]).str.match("a")
         exp = Series([True, np.nan, np.nan])
         tm.assert_series_equal(exp, res)
+
+    def test_fullmatch(self):
+        # GH 32806
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
+        result = values.str.fullmatch(".*BAD[_]+.*BAD")
+        exp = Series([True, False, np.nan, False])
+        tm.assert_series_equal(result, exp)
+
+        # Make sure that the new string arrays work
+        string_values = Series(
+            ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype="string"
+        )
+        result = string_values.str.fullmatch(".*BAD[_]+.*BAD")
+        # Result is nullable boolean with StringDtype
+        string_exp = Series([True, False, np.nan, False], dtype="boolean")
+        tm.assert_series_equal(result, string_exp)
 
     def test_extract_expand_None(self):
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
@@ -3384,6 +3401,9 @@ class TestStringMethods:
         result = data.str.match(pat, flags=re.IGNORECASE)
         assert result[0]
 
+        result = data.str.fullmatch(pat, flags=re.IGNORECASE)
+        assert result[0]
+
         result = data.str.findall(pat, flags=re.IGNORECASE)
         assert result[0][0] == ("dave", "google", "com")
 
@@ -3604,3 +3624,12 @@ def test_string_array_extract():
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
+def test_cat_different_classes(klass):
+    # https://github.com/pandas-dev/pandas/issues/33425
+    s = pd.Series(["a", "b", "c"])
+    result = s.str.cat(klass(["x", "y", "z"]))
+    expected = pd.Series(["ax", "by", "cz"])
+    tm.assert_series_equal(result, expected)

@@ -2,10 +2,10 @@
 # See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
-python-dateutil>=2.6.1
+python-dateutil>=2.7.3
 pytz
 asv
-cython>=0.29.13
+cython>=0.29.16
 black==19.10b0
 cpplint
 flake8
@@ -55,7 +55,7 @@ numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
-openpyxl<=3.0.1
+openpyxl
 xlrd
 xlsxwriter
 xlwt
@@ -68,6 +68,7 @@ tables>=3.4.2
 s3fs
 sqlalchemy
 xarray
+cftime
 pyreadstat
 tabulate>=0.8.3
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
