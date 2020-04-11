@@ -39,8 +39,8 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
-    # Since right now, by default MI will drop NA from levels, so we need
-    # to set NA for level manually afterwards.
+    # Since right now, by default MI will drop NA from levels when we create MI
+    # via `from_*`, so we need to add NA for level manually afterwards.
     if not dropna:
         mi = mi.set_levels(["A", "B", np.nan], level="b")
     expected = pd.DataFrame(outputs, index=mi)
@@ -83,8 +83,8 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
-    # Since right now, by default MI will drop NA from levels, so we need
-    # to set NA for level manually afterwards.
+    # Since right now, by default MI will drop NA from levels when we create MI
+    # via `from_*`, so we need to add NA for level manually afterwards.
     if not dropna:
         mi = mi.set_levels([["A", "B", np.nan], ["A", "B", np.nan]])
     expected = pd.DataFrame(outputs, index=mi)
@@ -195,8 +195,8 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
-    # Since right now, by default MI will drop NA from levels, so we need
-    # to set NA for level manually afterwards.
+    # Since right now, by default MI will drop NA from levels when we create MI
+    # via `from_*`, so we need to add NA for level manually afterwards.
     if not dropna:
         mi = mi.set_levels(["A", "B", np.nan], level="b")
     expected = pd.DataFrame(outputs, index=mi)
