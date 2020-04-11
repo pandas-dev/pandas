@@ -543,7 +543,7 @@ class TestCrosstab:
         expected = crosstab(s1, s2.rename("bar")).rename_axis(
             columns={"bar": "foo"}, axis=1
         )
-        result = pd.crosstab(s1, s2)
+        result = crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
         assert result.index.names == ["foo"]
         assert result.columns.names == ["foo"]
