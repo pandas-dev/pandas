@@ -3243,10 +3243,7 @@ Name: Max Speed, dtype: float64
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-        if isinstance(self.index, ABCMultiIndex):
-            index = self.index.apply_key(key, level=level)
-        else:
-            index = ensure_key_mapped(self.index, key)
+        index = ensure_key_mapped(self.index, key, levels=level)
 
         if level is not None:
             new_index, indexer = index.sortlevel(

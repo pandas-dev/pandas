@@ -5112,12 +5112,7 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
-
-        # apply key to each level separately and create a new index
-        if isinstance(labels, ABCMultiIndex):
-            labels = labels.apply_key(key, level=level)
-        else:
-            labels = ensure_key_mapped(labels, key)
+        labels = ensure_key_mapped(labels, key, levels=level)
 
         # make sure that the axis is lexsorted to start
         # if not we need to reconstruct to get the correct indexer

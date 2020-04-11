@@ -2190,52 +2190,6 @@ class MultiIndex(Index):
             for level_codes in self.codes
         ]
 
-    def apply_key(self, key, level=None):
-        """
-        Returns a new MultiIndex in which key has been applied
-        to all levels specified in level (or all levels if level
-        is None). Used for key sorting for MultiIndex.
-
-        Parameters
-        ----------
-        key : Callable
-            Function that takes an Index and returns an Index of
-            the same shape. This key is applied to each level
-            separately. The name of the level can be used to
-            distinguish different levels for application.
-        level : list-like, int or str, default None
-            Level or list of levels to apply the key function to.
-            If None, key function is applied to all levels. Other
-            levels are left unchanged.
-
-        Returns
-        -------
-        labels : MultiIndex
-            Resulting MultiIndex with modified levels.
-        """
-        from pandas.core.sorting import ensure_key_mapped
-
-        if level is not None:
-            if isinstance(level, (str, int)):
-                sort_levels = [level]
-            else:
-                sort_levels = level
-
-            sort_levels = [self._get_level_number(lev) for lev in sort_levels]
-        else:
-            sort_levels = range(self.nlevels)
-
-        mapped = [
-            ensure_key_mapped(self._get_level_values(level), key)
-            if level in sort_levels
-            else self._get_level_values(level)
-            for level in range(self.nlevels)
-        ]
-
-        labels = MultiIndex.from_arrays(mapped)
-
-        return labels
-
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
         Sort MultiIndex at the requested level. The result will respect the

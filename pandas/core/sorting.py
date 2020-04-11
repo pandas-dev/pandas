@@ -12,6 +12,8 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
 )
+
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -318,7 +320,57 @@ def nargsort(
     return indexer
 
 
-def ensure_key_mapped(values, key: Optional[Callable]):
+def apply_key(index, key, level=None):
+        """
+        Returns a new MultiIndex in which key has been applied
+        to all levels specified in level (or all levels if level
+        is None). Used for key sorting for MultiIndex.
+
+        Parameters
+        ----------
+        index : MultiIndex
+            Index to which to apply the key function on the
+            specified levels.
+        key : Callable
+            Function that takes an Index and returns an Index of
+            the same shape. This key is applied to each level
+            separately. The name of the level can be used to
+            distinguish different levels for application.
+        level : list-like, int or str, default None
+            Level or list of levels to apply the key function to.
+            If None, key function is applied to all levels. Other
+            levels are left unchanged.
+
+        Returns
+        -------
+        labels : MultiIndex
+            Resulting MultiIndex with modified levels.
+        """
+        from pandas.core.indexes.api import MultiIndex
+
+        if level is not None:
+            if isinstance(level, (str, int)):
+                sort_levels = [level]
+            else:
+                sort_levels = level
+
+            sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+        else:
+            sort_levels = range(index.nlevels)
+
+        mapped = [
+            ensure_key_mapped(index._get_level_values(level), key)
+            if level in sort_levels
+            else index._get_level_values(level)
+            for level in range(index.nlevels)
+        ]
+
+        labels = MultiIndex.from_arrays(mapped)
+
+        return labels
+
+
+def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -328,24 +380,29 @@ def ensure_key_mapped(values, key: Optional[Callable]):
     ----------
     values : Series, DataFrame, Index subclass, or ndarray
     key : Optional[Callable], key to be called on the values array
+    levels : Optional[List], if values is a MultiIndex, list of levels to
+    apply the key to.
     """
     if not key:
         return values.copy()
 
-    _class = type(values)
-    result = key(values.copy())
-    if len(result) != len(values):
-        raise ValueError(
-            "User-provided `key` function much not change the shape of the array."
-        )
+    if isinstance(values, ABCMultiIndex):
+        return apply_key(values, key, level=levels)
+    else:
+        _class = type(values)
+        result = key(values.copy())
+        if len(result) != len(values):
+            raise ValueError(
+                "User-provided `key` function much not change the shape of the array."
+            )
 
-    if not isinstance(result, _class):  # recover from type error
-        try:
-            result = _class(result)
-        except TypeError:
-            raise TypeError("User-provided `key` function returned an invalid type.")
+        if not isinstance(result, _class):  # recover from type error
+            try:
+                result = _class(result)
+            except TypeError:
+                raise TypeError("User-provided `key` function returned an invalid type.")
 
-    return result
+        return result
 
 
 class _KeyMapper:
