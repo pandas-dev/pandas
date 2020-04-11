@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, Optional, no_type_check
+from typing import Dict, Optional, Union, no_type_check
 
 import numpy as np
 
@@ -1317,7 +1317,7 @@ class TimeGrouper(Grouper):
         kind: Optional[str] = None,
         convention: Optional[str] = None,
         base: Optional[int] = None,
-        origin: Optional[TimestampCompatibleTypes] = None,
+        origin: Union[str, TimestampCompatibleTypes] = "start_day",
         offset: Optional[TimedeltaCompatibleTypes] = None,
         **kwargs,
     ):
@@ -1356,7 +1356,12 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        self.origin = Timestamp(origin) if origin is not None else None
+        if origin in {"start_day", "start"}:
+            self.origin = origin
+        elif origin == "epoch":
+            self.origin = Timedelta(0, tz="UTC")
+        else:
+            self.origin = Timestamp(origin)
         self.offset = Timedelta(offset) if offset is not None else None
 
         # always sort time groupers
@@ -1580,9 +1585,11 @@ class TimeGrouper(Grouper):
         end = ax.max().asfreq(self.freq, how="end")
         bin_shift = 0
 
-        # GH 23882 & 31809
-        if self.origin is not None or self.offset is not None:
-            # get base adjusted bin edge labels
+        if isinstance(self.freq, Tick):
+            # GH 23882 & 31809: get adjusted bin edge labels with `origin`
+            # and `origin` support. This call only makes sense if the freq is a
+            # Tick since offset and origin are only used in those cases.
+            # Not doing this check could create an extra empty bin.
             p_start, end = _get_period_range_edges(
                 start,
                 end,
@@ -1642,7 +1649,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", origin=None, offset=None
+    first, last, freq, closed="left", origin="start_day", offset=None
 ):
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
@@ -1673,9 +1680,10 @@ def _get_timestamp_range_edges(
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(freq, Tick):
-        is_idx_tz_aware = first.tz is not None or last.tz is not None
-        if origin is not None and origin.tz is None and is_idx_tz_aware:
-            raise ValueError("The origin must have the same timezone as the index.")
+        if origin not in {"start", "start_day"}:
+            is_idx_tz_aware = first.tz is not None or last.tz is not None
+            if origin.tz is None and is_idx_tz_aware:
+                raise ValueError("The origin must have the same timezone as the index.")
 
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
@@ -1707,7 +1715,9 @@ def _get_timestamp_range_edges(
     return first, last
 
 
-def _get_period_range_edges(first, last, freq, closed="left", origin=None, offset=None):
+def _get_period_range_edges(
+    first, last, freq, closed="left", origin="start_day", offset=None
+):
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -1736,7 +1746,7 @@ def _get_period_range_edges(first, last, freq, closed="left", origin=None, offse
     if not all(isinstance(obj, Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
 
-    # GH 23882 & 31809
+    # GH 23882
     first = first.to_timestamp()
     last = last.to_timestamp()
     adjust_first = not freq.is_on_offset(first)
@@ -1751,16 +1761,20 @@ def _get_period_range_edges(first, last, freq, closed="left", origin=None, offse
     return first, last
 
 
-def _adjust_dates_anchored(first, last, freq, closed="right", origin=None, offset=None):
+def _adjust_dates_anchored(
+    first, last, freq, closed="right", origin="start_day", offset=None
+):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
     # not a multiple of the frequency. See GH 8683
     # To handle frequencies that are not multiple or divisible by a day we let
     # the possibility to define a fixed origin timestamp. See GH 31809
-    if origin is None:
-        origin_nanos = first.normalize().value
-    else:
+    if isinstance(origin, Timestamp):
         origin_nanos = origin.value
+    elif origin == "start":
+        origin_nanos = first.value
+    else:  # origin == "start_day"
+        origin_nanos = first.normalize().value
     origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,

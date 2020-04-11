@@ -7765,7 +7765,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Optional[TimestampCompatibleTypes] = None,
+        origin: Union[str, TimestampCompatibleTypes] = "start_day",
         offset: Optional[TimedeltaCompatibleTypes] = None,
     ) -> "Resampler":
         """
