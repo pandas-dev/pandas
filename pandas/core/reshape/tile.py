@@ -38,6 +38,7 @@ def cut(
     precision: int = 3,
     include_lowest: bool = False,
     duplicates: str = "raise",
+    ordered: bool = True,
 ):
     """
     Bin values into discrete intervals.
@@ -265,6 +266,7 @@ def cut(
         include_lowest=include_lowest,
         dtype=dtype,
         duplicates=duplicates,
+        ordered=ordered,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, dtype, original)
@@ -362,7 +364,10 @@ def _bins_to_cuts(
     include_lowest: bool = False,
     dtype=None,
     duplicates: str = "raise",
+    ordered: bool = True,
 ):
+    if not ordered and not labels:
+        raise ValueError("'labels' must be provided if 'ordered = False'")
 
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
@@ -413,7 +418,10 @@ def _bins_to_cuts(
                 )
 
         if not is_categorical_dtype(labels):
-            labels = Categorical(labels, categories=labels, ordered=True)
+            if len(set(labels)) == len(labels):
+                labels = Categorical(labels, categories=labels, ordered=ordered)
+            else:
+                labels = Categorical(labels, ordered=ordered)
 
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)

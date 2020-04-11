@@ -625,3 +625,43 @@ def test_cut_nullable_integer(bins, right, include_lowest):
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
     tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, bins, labels",
+    [
+        ([15, 17, 19], [14, 16, 18, 20], ["A", "B", "A"]),
+        ([1, 3, 5], [0, 2, 4, 6, 8], [2, 0, 1, 2]),
+    ],
+)
+def test_cut_non_unique_labels(data, bins, labels):
+    result = cut(data, bins=bins, labels=labels, ordered=False)
+    expected = cut(
+        data, bins=bins, labels=Categorical(labels, ordered=False), ordered=False
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, bins, labels",
+    [
+        ([15, 17, 19], [14, 16, 18, 20], ["C", "B", "A"]),
+        ([1, 3, 5], [0, 2, 4, 6, 8], [3, 0, 1, 2]),
+    ],
+)
+def test_cut_unordered_labels(data, bins, labels):
+    result = cut(data, bins=bins, labels=labels, ordered=False)
+    expected = cut(
+        data,
+        bins=bins,
+        labels=Categorical(labels, categories=labels, ordered=False),
+        ordered=False,
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize("data, bins,", [([0.5, 3], [0, 1, 2])])
+def test_cut_unordered_with_missing_labels_raises_error(data, bins):
+    msg = "'labels' must be provided if 'ordered = False'"
+    with pytest.raises(ValueError, match=msg):
+        cut(data, bins=bins, ordered=False)
