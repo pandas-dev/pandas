@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
 )
-
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
