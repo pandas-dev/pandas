@@ -364,7 +364,7 @@ class TestFactorize:
 
         # On windows builds, integer arrays are of type int32
         if compat.is_platform_windows():
-            expected_codes = expected_codes.astype("int32")
+            expected_codes = expected_codes.astype("int64")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
@@ -403,7 +403,7 @@ class TestFactorize:
 
         # On windows builds, integer arrays are of type int32
         if compat.is_platform_windows():
-            expected_codes = expected_codes.astype("int32")
+            expected_codes = expected_codes.astype("int64")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
 
