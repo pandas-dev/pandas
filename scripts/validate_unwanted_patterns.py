@@ -16,7 +16,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, FrozenSet, Iterable, List, Tuple
+from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
 
 PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
 
