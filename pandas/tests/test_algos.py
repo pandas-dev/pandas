@@ -326,10 +326,6 @@ class TestFactorize:
         else:
             tm.assert_extension_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.xfail(
-        compat.is_platform_windows(),
-        reason="Windows will be coelced to int32 other than int64",
-    )
     @pytest.mark.parametrize(
         "data, dropna, expected_codes, expected_uniques",
         [
@@ -367,10 +363,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
 
-    @pytest.mark.xfail(
-        compat.is_platform_windows(),
-        reason="Windows will be coelced to int32 other than int64",
-    )
     @pytest.mark.parametrize(
         "data, dropna, expected_codes, expected_uniques",
         [
