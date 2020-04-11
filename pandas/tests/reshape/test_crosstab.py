@@ -534,15 +534,49 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_dup_index_names(self):
-        # GH 13279
-        s = Series(range(3), name="foo")
+        # We test that duplicated column names do not produce issues
+        # GH Issue: #22529, GH#13279
 
-        result = crosstab(s, s)
-        expected_index = Index(range(3), name="foo")
-        expected = DataFrame(
-            np.eye(3, dtype=np.int64), index=expected_index, columns=expected_index
+        # Duplicate name shared between rows and columns
+        s1 = pd.Series(range(3), name="foo")
+        s2 = s1 + 1
+        expected = pd.crosstab(s1, s2.rename("bar")).rename_axis(
+            columns={"bar": "foo"}, axis=1
         )
+        result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
+        assert result.index.names == ["foo"]
+        assert result.columns.names == ["foo"]
+
+        # Row names duplicated
+        s1 = pd.Series(range(3), name="foo")
+        s2 = s1 + 1
+        s3 = pd.Series(range(3), name="bar_col")
+
+        expected = pd.crosstab([s1, s2.rename("bar")], s3).rename_axis(
+            index={"bar": "foo"}, axis=0
+        )
+        result = pd.crosstab([s1, s2], s3)
+
+        tm.assert_frame_equal(result, expected)
+
+        assert result.index.names == ["foo", "foo"]
+        assert result.columns.names == ["bar_col"]
+
+        # Column names duplicated
+        s1 = pd.Series(range(3), name="foo")
+        s2 = s1 + 1
+        s3 = pd.Series(range(3), name="bar_row")
+
+        expected = pd.crosstab(s3, [s1, s2.rename("bar")]).rename_axis(
+            columns={"bar": "foo"}, axis=1
+        )
+        result = pd.crosstab(s3, [s1, s2])
+
+        tm.assert_frame_equal(result, expected)
+
+        assert result.index.names == ["bar_row"]
+        assert result.columns.names == ["foo", "foo"]
 
     @pytest.mark.parametrize("names", [["a", ("b", "c")], [("a", "b"), "c"]])
     def test_crosstab_tuple_name(self, names):
