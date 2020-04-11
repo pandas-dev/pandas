@@ -321,7 +321,7 @@ def nargsort(
 
 
 def apply_key(index, key, level=None):
-        """
+    """
         Returns a new MultiIndex in which key has been applied
         to all levels specified in level (or all levels if level
         is None). Used for key sorting for MultiIndex.
@@ -346,28 +346,28 @@ def apply_key(index, key, level=None):
         labels : MultiIndex
             Resulting MultiIndex with modified levels.
         """
-        from pandas.core.indexes.api import MultiIndex
+    from pandas.core.indexes.api import MultiIndex
 
-        if level is not None:
-            if isinstance(level, (str, int)):
-                sort_levels = [level]
-            else:
-                sort_levels = level
-
-            sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+    if level is not None:
+        if isinstance(level, (str, int)):
+            sort_levels = [level]
         else:
-            sort_levels = range(index.nlevels)
+            sort_levels = level
 
-        mapped = [
-            ensure_key_mapped(index._get_level_values(level), key)
-            if level in sort_levels
-            else index._get_level_values(level)
-            for level in range(index.nlevels)
-        ]
+        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+    else:
+        sort_levels = range(index.nlevels)
 
-        labels = MultiIndex.from_arrays(mapped)
+    mapped = [
+        ensure_key_mapped(index._get_level_values(level), key)
+        if level in sort_levels
+        else index._get_level_values(level)
+        for level in range(index.nlevels)
+    ]
 
-        return labels
+    labels = MultiIndex.from_arrays(mapped)
+
+    return labels
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):
@@ -400,7 +400,9 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
             try:
                 result = _class(result)
             except TypeError:
-                raise TypeError("User-provided `key` function returned an invalid type.")
+                raise TypeError(
+                    "User-provided `key` function returned an invalid type."
+                )
 
         return result
 
