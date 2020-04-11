@@ -1142,7 +1142,10 @@ class IndexOpsMixin(Generic[ArrayLike]):
             values = self._values
             if na_action is not None:
                 raise NotImplementedError
-            map_f = lambda values, f: values.map(f)
+
+            def map_f(values, f):
+                return values.map(f)
+
         else:
             values = self.astype(object)
             values = getattr(values, "values", values)
