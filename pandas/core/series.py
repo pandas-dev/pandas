@@ -2738,7 +2738,6 @@ Keep all original rows and also all original values
         )
 
     def combine(self, other, func, fill_value=None) -> "Series":
-
         """
         Combine the Series with a Series or scalar according to `func`.
 
