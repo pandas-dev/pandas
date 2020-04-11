@@ -48,8 +48,6 @@ from pandas.core.internals.blocks import (
     make_block,
 )
 
-from pandas.io.formats.printing import pprint_thing
-
 # TODO: flexible with index=None and/or items=None
 
 T = TypeVar("T", bound="BlockManager")
@@ -325,7 +323,7 @@ class BlockManager(PandasObject):
                 output += f"\nAxis {i}: {ax}"
 
         for block in self.blocks:
-            output += f"\n{pprint_thing(block)}"
+            output += f"\n{block}"
         return output
 
     def _verify_integrity(self) -> None:
