@@ -361,6 +361,10 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
+
+        # On windows builds, integer arrays are of type int32
+        if compat.is_platform_windows():
+            expected_codes = expected_codes.astype("int32")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
@@ -396,6 +400,10 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
+
+        # On windows builds, integer arrays are of type int32
+        if compat.is_platform_windows():
+            expected_codes = expected_codes.astype("int32")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
 
