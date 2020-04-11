@@ -18,8 +18,6 @@ import token
 import tokenize
 from typing import IO, Callable, FrozenSet, Iterable, List, Tuple
 
-PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
-
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
     """
