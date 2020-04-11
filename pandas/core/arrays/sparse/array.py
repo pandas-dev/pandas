@@ -437,17 +437,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if ncol != 1:
             raise ValueError(f"'data' must have a single column, not '{ncol}'")
 
-        # when sparse data has explicit zeros, eliminate them.
-        if data.nnz != data.count_nonzero():
-            data.eliminate_zeros()
-
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
+        data = data.tocsc()
+        data.sort_indices()
         arr = data.data
-        idx, _ = data.nonzero()
-        loc = np.argsort(idx)
-        arr = arr.take(loc)
-        idx.sort()
+        idx = data.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)

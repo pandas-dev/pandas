@@ -41,6 +41,18 @@ class TestFrameAccessor:
         ).astype(sp_dtype)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("format", ["csc", "csr", "coo"])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_including_explicit_zero(self, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(10, 2, density=0.5, format=format, dtype="int64")
+        mat.data[0] = 0
+        result = pd.DataFrame.sparse.from_spmatrix(mat)
+        sp_dtype = SparseDtype("int64", np.array(0, dtype="int64").item())
+        expected = pd.DataFrame(mat.todense()).astype(sp_dtype)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "columns",
         [["a", "b"], pd.MultiIndex.from_product([["A"], ["a", "b"]]), ["a", "a"]],
