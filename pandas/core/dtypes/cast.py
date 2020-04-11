@@ -317,7 +317,6 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
         (np.dtype(np.bool), "add"): np.dtype(np.int64),
         (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
         (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-        (np.dtype(np.bool), "prod"): np.dtype(np.int64),
     }
     return d.get((dtype, how), dtype)
 
