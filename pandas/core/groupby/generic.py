@@ -1176,20 +1176,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         key_names = self.grouper.names
 
-        # GH12824.
-        def first_not_none(values):
-            try:
-                return next(com.not_none(*values))
-            except StopIteration:
-                return None
+        # GH12824
+        first_not_none = next(com.not_none(*values), None)
 
-        v = first_not_none(values)
-
-        if v is None:
+        if first_not_none is None:
             # GH9684. If all values are None, then this will throw an error.
             # We'd prefer it return an empty dataframe.
             return DataFrame()
-        elif isinstance(v, DataFrame):
+        elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         elif self.grouper.groupings is not None:
             if len(self.grouper.groupings) > 1:
@@ -1206,6 +1200,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     # reorder the values
                     values = [values[i] for i in indexer]
+
+                    # update due to the potential reorder
+                    first_not_none = next(com.not_none(*values), None)
                 else:
 
                     key_index = Index(keys, name=key_names[0])
@@ -1215,20 +1212,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     key_index = None
 
             # make Nones an empty object
-            v = first_not_none(values)
-            if v is None:
+            if first_not_none is None:
                 return DataFrame()
-            elif isinstance(v, NDFrame):
+            elif isinstance(first_not_none, NDFrame):
 
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
-                kwargs = v._construct_axes_dict()
-                if v._constructor is Series:
+                kwargs = first_not_none._construct_axes_dict()
+                if first_not_none._constructor is Series:
                     backup = create_series_with_explicit_dtype(
                         **kwargs, dtype_if_empty=object
                     )
                 else:
-                    backup = v._constructor(**kwargs)
+                    backup = first_not_none._constructor(**kwargs)
 
                 values = [x if (x is not None) else backup for x in values]
 
