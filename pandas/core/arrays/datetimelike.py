@@ -1179,7 +1179,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if new_freq is not None:
             # fastpath that doesnt require inference
             return type(self)(new_values, dtype=self.dtype, freq=new_freq)
-        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
+        return type(self)(new_values, dtype=self.dtype)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1209,7 +1209,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
 
-        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
+        return type(self)(new_values, dtype=self.dtype)
 
     def _add_nat(self):
         """

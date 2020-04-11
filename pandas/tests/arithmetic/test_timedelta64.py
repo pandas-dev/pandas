@@ -487,6 +487,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
+        back = back._with_freq("infer")
         tm.assert_index_equal(index, back)
 
         if freq == "D":
