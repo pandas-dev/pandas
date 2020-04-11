@@ -332,25 +332,25 @@ class TestFactorize:
             (
                 ["a", None, "b", "a"],
                 True,
-                np.array([0, -1, 1, 0]),
+                np.array([0, -1, 1, 0], dtype=np.int64),
                 np.array(["a", "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
                 True,
-                np.array([0, -1, 1, 0]),
+                np.array([0, -1, 1, 0], dtype=np.int64),
                 np.array(["a", "b"], dtype=object),
             ),
             (
                 ["a", None, "b", "a"],
                 False,
-                np.array([0, 2, 1, 0]),
+                np.array([0, 2, 1, 0], dtype=np.int64),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
                 False,
-                np.array([0, 2, 1, 0]),
+                np.array([0, 2, 1, 0], dtype=np.int64),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
         ],
@@ -361,10 +361,6 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
-
-        # On windows builds, integer arrays are of type int32
-        if compat.is_platform_windows():
-            expected_codes = expected_codes.astype("int64")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
@@ -373,25 +369,25 @@ class TestFactorize:
             (
                 [1, None, 1, 2],
                 True,
-                np.array([0, -1, 0, 1]),
+                np.array([0, -1, 0, 1], dtype=np.int64),
                 np.array([1, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
                 True,
-                np.array([0, -1, 0, 1]),
+                np.array([0, -1, 0, 1], dtype=np.int64),
                 np.array([1, 2], dtype=np.float64),
             ),
             (
                 [1, None, 1, 2],
                 False,
-                np.array([0, 2, 0, 1]),
+                np.array([0, 2, 0, 1], dtype=np.int64),
                 np.array([1, 2, np.nan], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
                 False,
-                np.array([0, 2, 0, 1]),
+                np.array([0, 2, 0, 1], dtype=np.int64),
                 np.array([1, 2, np.nan], dtype=np.float64),
             ),
         ],
@@ -400,10 +396,6 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
-
-        # On windows builds, integer arrays are of type int32
-        if compat.is_platform_windows():
-            expected_codes = expected_codes.astype("int64")
         tm.assert_numpy_array_equal(codes, expected_codes)
 
 
