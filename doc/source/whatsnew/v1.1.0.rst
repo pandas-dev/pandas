@@ -527,6 +527,8 @@ I/O
 - :func:`pandas.read_csv` now accepts engine="arrow" as an argument, allowing for faster csv parsing
   if pyarrow>0.13 is installed. However, the pyarrow engine is less feature-complete than its "c" or
   "python" counterparts. (:issue:`23697`)
+
+
 Plotting
 ^^^^^^^^
 

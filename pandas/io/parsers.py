@@ -975,7 +975,7 @@ class TextFileReader(abc.Iterator):
                         )
                     if self.nrows is not None:
                         fallback_reason = (
-                            "the pyarrow engine does not support using skipfooter"
+                            "the pyarrow engine does not support using nrows"
                         )
         # C and pyarrow engine not supported yet
         if engine == "c" or "pyarrow":
@@ -2305,9 +2305,9 @@ class ArrowParserWrapper(ParserBase):
                     columns=dict(zip(frame.columns, self.names), axis="columns")
                 )
 
-        index_col = self.kwds.get("index_col")[0]  # flatten list w/ 1 elem
+        index_col = self.kwds.get("index_col")  # need to flatten since returns list
         if index_col is not None:
-            frame.set_index(frame.columns[index_col], drop=True, inplace=True)
+            frame.set_index(frame.columns[index_col[0]], drop=True, inplace=True)
         return frame
 
 
