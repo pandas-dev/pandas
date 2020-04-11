@@ -5,7 +5,6 @@ import pandas as pd
 import pandas.testing as tm
 
 
-@pytest.mark.parametrize("na_value", [np.nan, None])
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -26,12 +25,12 @@ import pandas.testing as tm
     ],
 )
 def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
-    na_value, dropna, tuples, outputs
+    dropna, tuples, outputs, nulls_fixture
 ):
     # GH 3729 this is to test that NA is in one group
     df_list = [
         ["A", "B", 12, 12, 12],
-        ["A", na_value, 12.3, 233.0, 12],
+        ["A", nulls_fixture, 12.3, 233.0, 12],
         ["B", "A", 123.23, 123, 1],
         ["A", "B", 1, 1, 1.0],
     ]
@@ -39,14 +38,16 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
     grouped = df.groupby(["a", "b"], dropna=dropna).sum()
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
+
+    # Since right now, by default MI will drop NA from levels, so we need
+    # to set NA for level manually afterwards.
+    if not dropna:
+        mi = mi.set_levels(["A", "B", np.nan], level="b")
     expected = pd.DataFrame(outputs, index=mi)
 
-    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+    tm.assert_frame_equal(grouped, expected)
 
 
-@pytest.mark.parametrize(
-    "na_value1, na_value2", [(np.nan, np.nan), (None, None), (np.nan, None)]
-)
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -67,23 +68,28 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
     ],
 )
 def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
-    na_value1, na_value2, dropna, tuples, outputs
+    dropna, tuples, outputs, nulls_fixture, nulls_fixture2
 ):
     # GH 3729 this is to test that NA in different groups with different representations
     df_list = [
         ["A", "B", 12, 12, 12],
-        ["A", na_value1, 12.3, 233.0, 12],
+        ["A", nulls_fixture, 12.3, 233.0, 12],
         ["B", "A", 123.23, 123, 1],
-        [na_value2, "B", 1, 1, 1.0],
-        ["A", na_value2, 1, 1, 1.0],
+        [nulls_fixture2, "B", 1, 1, 1.0],
+        ["A", nulls_fixture2, 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
     grouped = df.groupby(["a", "b"], dropna=dropna).sum()
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
+
+    # Since right now, by default MI will drop NA from levels, so we need
+    # to set NA for level manually afterwards.
+    if not dropna:
+        mi = mi.set_levels([["A", "B", np.nan], ["A", "B", np.nan]])
     expected = pd.DataFrame(outputs, index=mi)
 
-    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+    tm.assert_frame_equal(grouped, expected)
 
 
 @pytest.mark.parametrize(
@@ -114,7 +120,7 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
 
     expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
 
-    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+    tm.assert_frame_equal(grouped, expected)
 
 
 @pytest.mark.parametrize(
@@ -188,9 +194,14 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
     grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
+
+    # Since right now, by default MI will drop NA from levels, so we need
+    # to set NA for level manually afterwards.
+    if not dropna:
+        mi = mi.set_levels(["A", "B", np.nan], level="b")
     expected = pd.DataFrame(outputs, index=mi)
 
-    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+    tm.assert_frame_equal(grouped, expected)
 
 
 @pytest.mark.parametrize(
@@ -229,7 +240,7 @@ def test_groupby_dropna_datetime_like_data(
     if dropna:
         indexes = [datetime1, datetime2]
     else:
-        indexes = [datetime1, datetime2, pd.NaT]
+        indexes = [datetime1, datetime2, np.nan]
 
     grouped = df.groupby("dt", dropna=dropna).agg({"values": sum})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
