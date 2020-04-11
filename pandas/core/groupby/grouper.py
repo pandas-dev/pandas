@@ -78,16 +78,51 @@ class Grouper:
     --------
     Syntactic sugar for ``df.groupby('A')``
 
-    >>> df.groupby(Grouper(key='A'))
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "Animal": ["Falcon", "Parrot", "Falcon", "Falcon", "Parrot"],
+    ...         "Speed": [100, 5, 200, 300, 15],
+    ...     }
+    ... )
+    >>> df
+       Animal  Speed
+    0  Falcon    100
+    1  Parrot      5
+    2  Falcon    200
+    3  Falcon    300
+    4  Parrot     15
+    >>> df.groupby(pd.Grouper(key="Animal")).mean()
+            Speed
+    Animal
+    Falcon    200
+    Parrot     10
 
-    Specify a resample operation on the column 'date'
+    Specify a resample operation on the column 'Publish date'
 
-    >>> df.groupby(Grouper(key='date', freq='60s'))
-
-    Specify a resample operation on the level 'date' on the columns axis
-    with a frequency of 60s
-
-    >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
+    >>> df = pd.DataFrame(
+    ...    {
+    ...        "Publish date": [
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-09"),
+    ...             pd.Timestamp("2000-01-16")
+    ...         ],
+    ...         "ID": [0, 1, 2, 3],
+    ...         "Price": [10, 20, 30, 40]
+    ...     }
+    ... )
+    >>> df
+      Publish date  ID  Price
+    0   2000-01-02   0     10
+    1   2000-01-02   1     20
+    2   2000-01-09   2     30
+    3   2000-01-16   3     40
+    >>> df.groupby(pd.Grouper(key="Publish date", freq="1W")).mean()
+                   ID  Price
+    Publish date
+    2000-01-02    0.5   15.0
+    2000-01-09    2.0   30.0
+    2000-01-16    3.0   40.0
     """
 
     _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
