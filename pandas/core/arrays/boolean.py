@@ -688,11 +688,7 @@ class BooleanArray(BaseMaskedArray):
 
         if name in {"sum", "prod", "min", "max"}:
             op = getattr(masked_reductions, name)
-            result = op(data, mask, skipna=skipna, **kwargs)
-            dtype = maybe_cast_result_dtype(dtype=data.dtype, how=name)
-            if notna(result) and (dtype != result.dtype):
-                result = result.astype(dtype)
-            return result
+            return op(data, mask, skipna=skipna, **kwargs)
 
         # coerce to a nan-aware float if needed
         if self._hasna:
