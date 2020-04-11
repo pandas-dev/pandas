@@ -92,12 +92,16 @@ class TestPeriodIndex(DatetimeLike):
     def test_shallow_copy_disallow_i8(self):
         # GH-24391
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        with pytest.raises(AssertionError, match="ndarray"):
+        with pytest.raises(
+            TypeError, match="_simple_new expects PeriodArray, got ndarray"
+        ):
             pi._shallow_copy(pi.asi8)
 
     def test_shallow_copy_requires_disallow_period_index(self):
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        with pytest.raises(AssertionError, match="PeriodIndex"):
+        with pytest.raises(
+            TypeError, match="_simple_new expects PeriodArray, got PeriodIndex"
+        ):
             pi._shallow_copy(pi)
 
     def test_view_asi8(self):
