@@ -1266,7 +1266,7 @@ class DataFrame(NDFrame):
             if len(data) > 0:
                 # TODO speed up Series case
                 if isinstance(list(data.values())[0], (Series, dict)):
-                    data = _from_nested_dict(data)
+                    data = lib.from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
         elif orient == "columns":
@@ -8817,12 +8817,3 @@ DataFrame._add_series_or_dataframe_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
-
-
-def _from_nested_dict(data):
-    # TODO: this should be seriously cythonized
-    new_data = collections.defaultdict(dict)
-    for index, s in data.items():
-        for col, v in s.items():
-            new_data[col][index] = v
-    return new_data

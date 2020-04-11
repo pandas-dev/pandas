@@ -1,3 +1,4 @@
+import collections
 from collections import abc
 from decimal import Decimal
 from fractions import Fraction
@@ -2526,3 +2527,13 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
+
+def from_nested_dict(object data) -> object:
+    cdef:
+        object new_data = collections.defaultdict(dict)
+        object index, column, value, nested_dict
+
+    for index, nested_dict in data.items():
+        for column, value in nested_dict.items():
+            new_data[column][index] = value
+    return new_data
