@@ -62,8 +62,18 @@ def concatenate_block_managers(
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif _is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
-            b.mgr_locs = placement
+            blk = join_units[0].block
+            vals = [ju.block.values for ju in join_units]
+            if not blk.is_extension:
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            elif blk.is_datetimetz or blk.is_categorical:
+                # These can have the same type but multiple dtypes,
+                #  we concatting does not necessarily preserve dtype
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            elif blk.is_extension:
+                values = blk._holder._concat_same_type(vals)
+
+            b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
             b = make_block(
                 _concatenate_join_units(join_units, concat_axis, copy=copy),
