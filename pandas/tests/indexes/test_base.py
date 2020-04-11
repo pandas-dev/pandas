@@ -1152,8 +1152,12 @@ class TestIndex(Base):
             ("bool", False),
             ("categorical", False),
             ("int", False),
-            ("datetime", True),
             ("float", False),
+            ("datetime", True),
+            ("datetime-tz", True),
+            ("period", True),
+            ("timedelta", True),
+            ("empty", False),
         ],
         indirect=["indices"],
     )
@@ -1162,7 +1166,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        ["datetime", "datetime-tz", "period", "timedelta", "empty"],
+        ["datetime", "datetime-tz", "period", "timedelta"],
         indirect=["index"],
     )
     def test_is_all_dates_consistency(self, index):

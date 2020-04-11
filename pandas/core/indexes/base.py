@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
-from pandas._libs.lib import is_datetime_array, no_default
+from pandas._libs.lib import no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
@@ -25,7 +25,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    ensure_object,
     ensure_platform_int,
     is_bool,
     is_bool_dtype,
