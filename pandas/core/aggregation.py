@@ -78,7 +78,6 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
-
     func = maybe_mangle_lambdas(func)
 
     return relabeling, func, columns, order
