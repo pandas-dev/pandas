@@ -74,7 +74,7 @@ def cut(
         the resulting bins. If False, returns only integer indicators of the
         bins. This affects the type of the output container (see below).
         This argument is ignored when `bins` is an IntervalIndex. If True,
-        raises an error.
+        raises an error. When `ordered=False`, labels must be provided.
     retbins : bool, default False
         Whether to return the bins or not. Useful when bins is provided
         as a scalar.
@@ -86,6 +86,13 @@ def cut(
         If bin edges are not unique, raise ValueError or drop non-uniques.
 
         .. versionadded:: 0.23.0
+    ordered : bool, default True
+        Whether the labels are ordered or not. Applies to returned types
+        Categorical and Series (with Categorical dtype). If True,
+        the resulting categorical will be ordered. If False, the resulting
+        categorical will be unordered (labels must be provided).
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -145,6 +152,13 @@ def cut(
     ...        3, labels=["bad", "medium", "good"])
     [bad, good, medium, medium, good, bad]
     Categories (3, object): [bad < medium < good]
+
+    ``ordered=False`` will result in unordered categories when labels are passed:
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
+    ...        3, labels=["B", "C", "A"])
+    [B, A, C, C, A, B]
+    Categories (3, object): [B < C < A]
 
     ``labels=False`` implies you just want the bins back.
 
