@@ -1851,7 +1851,7 @@ a Series, e.g.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"a" : ['B', 'a', 'C'], "b" : [1, 2, 3])
+   df = pd.DataFrame({"a" : ['B', 'a', 'C'], "b" : [1, 2, 3]})
    df.sort_values(by='a')
    df.sort_values(by='a', key=lambda col : col.str.lower())
 
