@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from numpy import timedelta64
+import numpy as np
 import pytest
 
 from pandas import Interval, Timedelta, Timestamp
@@ -8,7 +8,7 @@ from pandas import Interval, Timedelta, Timestamp
 
 @pytest.mark.parametrize("method", ["__add__", "__sub__"])
 @pytest.mark.parametrize(
-    "delta", [Timedelta(days=7), timedelta(7), timedelta64(7, "D")]
+    "delta", [Timedelta(days=7), timedelta(7), np.timedelta64(7, "D")]
 )
 def test_timestamp_interval_add_subtract_timedelta(method, delta):
     # https://github.com/pandas-dev/pandas/issues/32023
