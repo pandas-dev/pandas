@@ -402,7 +402,10 @@ cdef class Interval(IntervalMixin):
     def __add__(self, y):
         if isinstance(y, numbers.Number) or PyDelta_Check(y):
             return Interval(self.left + y, self.right + y, closed=self.closed)
-        elif isinstance(y, Interval) and (isinstance(self, numbers.Number) or PyDelta_Check(self)):
+        elif (
+            isinstance(y, Interval)
+            and (isinstance(self, numbers.Number) or PyDelta_Check(self))
+        ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
