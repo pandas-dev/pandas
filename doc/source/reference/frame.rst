@@ -170,6 +170,7 @@ Computations / descriptive stats
    DataFrame.std
    DataFrame.var
    DataFrame.nunique
+   DataFrame.value_counts
 
 Reindexing / selection / label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -250,7 +251,7 @@ Combining / joining / merging
    DataFrame.merge
    DataFrame.update
 
-Time series-related
+Time Series-related
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/

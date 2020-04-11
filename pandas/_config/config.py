@@ -51,19 +51,10 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 import warnings
+
+from pandas._typing import F
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
@@ -82,7 +73,8 @@ _reserved_keys: List[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
-    """Exception for pandas.options, backwards compatible with KeyError
+    """
+    Exception for pandas.options, backwards compatible with KeyError
     checks
     """
 
@@ -212,8 +204,8 @@ class DictWrapper:
         prefix += key
         try:
             v = object.__getattribute__(self, "d")[key]
-        except KeyError:
-            raise OptionError("No such option")
+        except KeyError as err:
+            raise OptionError("No such option") from err
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -395,7 +387,6 @@ class option_context:
 
     Examples
     --------
-
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     ...
     """
@@ -546,7 +537,8 @@ def deprecate_option(
 
 
 def _select_options(pat: str) -> List[str]:
-    """returns a list of keys matching `pat`
+    """
+    returns a list of keys matching `pat`
 
     if pat=="all", returns all registered options
     """
@@ -703,21 +695,19 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 #
 # helpers
 
-FuncType = Callable[..., Any]
-F = TypeVar("F", bound=FuncType)
-
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API with a common prefix
+    """
+    contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 
     Warning: This is not thread - safe, and won't work properly if you import
     the API functions into your module using the "from x import y" construct.
 
-    Example:
-
+    Example
+    -------
     import pandas._config.config as cf
     with cf.config_prefix("display.font"):
         cf.register_option("color", "red")

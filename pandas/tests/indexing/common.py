@@ -101,7 +101,8 @@ class Base:
             setattr(self, kind, d)
 
     def generate_indices(self, f, values=False):
-        """ generate the indices
+        """
+        generate the indices
         if values is True , use the axis values
         is False, use the range
         """

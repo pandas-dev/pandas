@@ -27,10 +27,9 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
     Examples
     --------
-    >>> is_multi_agg_with_relabel(a='max')
+    >>> is_multi_agg_with_relabel(a="max")
     False
-    >>> is_multi_agg_with_relabel(a_max=('a', 'max'),
-    ...                            a_min=('a', 'min'))
+    >>> is_multi_agg_with_relabel(a_max=("a", "max"), a_min=("a", "min"))
     True
     >>> is_multi_agg_with_relabel()
     False
@@ -61,8 +60,8 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
     Examples
     --------
-    >>> normalize_keyword_aggregation({'output': ('input', 'sum')})
-    ({'input': ['sum']}, ('output',), [('input', 'sum')])
+    >>> normalize_keyword_aggregation({"output": ("input", "sum")})
+    (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
@@ -98,7 +97,8 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 def _make_unique_kwarg_list(
     seq: Sequence[Tuple[Any, Any]]
 ) -> Sequence[Tuple[Any, Any]]:
-    """Uniquify aggfunc name of the pairs in the order list
+    """
+    Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------

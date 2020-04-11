@@ -7,7 +7,7 @@ from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     ensure_int64,
     is_bool_dtype,
     is_categorical_dtype,
@@ -171,24 +171,26 @@ def cut(
     ...               index=['a', 'b', 'c', 'd', 'e'])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
-     d    3.0
-     e    4.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+    (a    1.0
+     b    2.0
+     c    3.0
+     d    4.0
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6,  8, 10]))
 
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
     ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
+    (a    1.0
+     b    2.0
+     c    3.0
      d    3.0
-     e    3.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6, 10]))
 
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
@@ -197,7 +199,7 @@ def cut(
 
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
-    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
@@ -245,7 +247,7 @@ def cut(
 
     else:
         if is_datetime64tz_dtype(bins):
-            bins = np.asarray(bins, dtype=_NS_DTYPE)
+            bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -286,7 +288,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : int or list-like of int
+    q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
     labels : array or False, default None
@@ -587,7 +589,8 @@ def _round_frac(x, precision: int):
 
 
 def _infer_precision(base_precision: int, bins) -> int:
-    """Infer an appropriate precision for _round_frac
+    """
+    Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):
         levels = [_round_frac(b, precision) for b in bins]

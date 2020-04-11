@@ -111,10 +111,11 @@ def test_default_na_values(all_parsers):
         elif i > 0:
             buf = "".join([","] * i)
 
-        buf = "{0}{1}".format(buf, v)
+        buf = f"{buf}{v}"
 
         if i < nv - 1:
-            buf = "{0}{1}".format(buf, "".join([","] * (nv - i - 1)))
+            joined = "".join([","] * (nv - i - 1))
+            buf = f"{buf}{joined}"
 
         return buf
 

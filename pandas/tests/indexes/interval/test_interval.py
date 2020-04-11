@@ -147,7 +147,7 @@ class TestIntervalIndex:
         )
 
         # by-definition make a copy
-        result = IntervalIndex(index._ndarray_values, copy=False)
+        result = IntervalIndex(np.array(index), copy=False)
         tm.assert_numpy_array_equal(
             index.left.values, result.left.values, check_same="copy"
         )
@@ -845,7 +845,7 @@ class TestIntervalIndex:
     def test_set_closed_errors(self, bad_closed):
         # GH 21670
         index = interval_range(0, 5)
-        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        msg = f"invalid option for 'closed': {bad_closed}"
         with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
 
@@ -863,3 +863,25 @@ def test_dir():
     index = IntervalIndex.from_arrays([0, 1], [1, 2])
     result = dir(index)
     assert "str" not in result
+
+
+@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
+def test_searchsorted_different_argument_classes(klass):
+    # https://github.com/pandas-dev/pandas/issues/32762
+    values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
+    result = values.searchsorted(klass(values))
+    expected = np.array([0, 1], dtype=result.dtype)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = values._data.searchsorted(klass(values))
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+)
+def test_searchsorted_invalid_argument(arg):
+    values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
+    msg = "unorderable types"
+    with pytest.raises(TypeError, match=msg):
+        values.searchsorted(arg)

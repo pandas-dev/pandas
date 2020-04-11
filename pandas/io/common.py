@@ -74,8 +74,9 @@ def is_url(url) -> bool:
 def _expand_user(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Return the argument with an initial component of ~ or ~user
-       replaced by that user's home directory.
+    """
+    Return the argument with an initial component of ~ or ~user
+    replaced by that user's home directory.
 
     Parameters
     ----------
@@ -103,7 +104,8 @@ def validate_header_arg(header) -> None:
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Attempt to convert a path-like object to a string.
+    """
+    Attempt to convert a path-like object to a string.
 
     Parameters
     ----------
@@ -263,8 +265,8 @@ def get_compression_method(
         compression_args = dict(compression)
         try:
             compression = compression_args.pop("method")
-        except KeyError:
-            raise ValueError("If mapping, compression must have key 'method'")
+        except KeyError as err:
+            raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
     return compression, compression_args
@@ -349,14 +351,20 @@ def get_handle(
         'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-        no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', other entries passed as additional compression options.
+        no compression). If dict and compression mode is one of
+        {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
 
         .. versionchanged:: 1.0.0
 
            May now be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
+
+        .. versionchanged:: 1.1.0
+
+           Passing compression options as keys in dict is now
+           supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
 
     memory_map : boolean, default False
         See parsers._parser_params for more information.
@@ -392,19 +400,28 @@ def get_handle(
 
     if compression:
 
+        # GH33398 the type ignores here seem related to mypy issue #5382;
+        # it may be possible to remove them once that is resolved.
+
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode)
+                f = gzip.open(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf)
+                f = gzip.GzipFile(
+                    fileobj=path_or_buf, **compression_args  # type: ignore
+                )
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(path_or_buf, mode)
+                f = bz2.BZ2File(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = bz2.BZ2File(path_or_buf)
+                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
 
         # ZIP Compression
         elif compression == "zip":

@@ -695,10 +695,11 @@ class TestDataFrameReshape:
     def test_unstack_non_unique_index_names(self):
         idx = MultiIndex.from_tuples([("a", "b"), ("c", "d")], names=["c1", "c1"])
         df = DataFrame([1, 2], index=idx)
-        with pytest.raises(ValueError):
+        msg = "The name c1 occurs multiple times, use a level number"
+        with pytest.raises(ValueError, match=msg):
             df.unstack("c1")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.T.stack("c1")
 
     def test_unstack_unused_levels(self):
@@ -764,8 +765,64 @@ class TestDataFrameReshape:
         expected.index = expected.index.droplevel("C")
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_long_index(self):
+        # PH 32624: Error when using a lot of indices to unstack.
+        # The error occurred only, if a lot of indices are used.
+        df = pd.DataFrame(
+            [[1]],
+            columns=pd.MultiIndex.from_tuples([[0]], names=["c1"]),
+            index=pd.MultiIndex.from_tuples(
+                [[0, 0, 1, 0, 0, 0, 1]],
+                names=["i1", "i2", "i3", "i4", "i5", "i6", "i7"],
+            ),
+        )
+        result = df.unstack(["i2", "i3", "i4", "i5", "i6", "i7"])
+        expected = pd.DataFrame(
+            [[1]],
+            columns=pd.MultiIndex.from_tuples(
+                [[0, 0, 1, 0, 0, 0, 1]],
+                names=["c1", "i2", "i3", "i4", "i5", "i6", "i7"],
+            ),
+            index=pd.Index([0], name="i1"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_multi_level_cols(self):
+        # PH 24729: Unstack a df with multi level columns
+        df = pd.DataFrame(
+            [[0.0, 0.0], [0.0, 0.0]],
+            columns=pd.MultiIndex.from_tuples(
+                [["B", "C"], ["B", "D"]], names=["c1", "c2"]
+            ),
+            index=pd.MultiIndex.from_tuples(
+                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"],
+            ),
+        )
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
+
+    def test_unstack_multi_level_rows_and_cols(self):
+        # PH 28306: Unstack df with multi level cols and rows
+        df = pd.DataFrame(
+            [[1, 2], [3, 4], [-1, -2], [-3, -4]],
+            columns=pd.MultiIndex.from_tuples([["a", "b", "c"], ["d", "e", "f"]]),
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ["m1", "P3", 222],
+                    ["m1", "A5", 111],
+                    ["m2", "P3", 222],
+                    ["m2", "A5", 111],
+                ],
+                names=["i1", "i2", "i3"],
+            ),
+        )
+        result = df.unstack(["i3", "i2"])
+        expected = df.unstack(["i3"]).unstack(["i2"])
+        tm.assert_frame_equal(result, expected)
+
     def test_unstack_nan_index(self):  # GH7466
-        cast = lambda val: "{0:1}".format("" if val != val else val)
+        def cast(val):
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]

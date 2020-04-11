@@ -27,7 +27,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
 
@@ -35,7 +35,7 @@ import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import NDFrame
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
@@ -85,7 +85,7 @@ class Styler:
         number and ``<num_col>`` is the column number.
     na_rep : str, optional
         Representation for missing values.
-        If ``na_rep`` is None, no special formatting is applied
+        If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
 
@@ -192,18 +192,7 @@ class Styler:
         """
         return self.render()
 
-    @Appender(
-        _shared_docs["to_excel"]
-        % dict(
-            axes="index, columns",
-            klass="Styler",
-            axes_single_arg="{0 or 'index', 1 or 'columns'}",
-            optional_by="""
-            by : str or list of str
-                Name or list of names which refer to the axis items.""",
-            versionadded_to_excel="\n    .. versionadded:: 0.20",
-        )
-    )
+    @doc(NDFrame.to_excel, klass="Styler")
     def to_excel(
         self,
         excel_writer,
@@ -446,13 +435,13 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used
+            If ``formatter`` is None, the default formatter is used.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
         na_rep : str, optional
             Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied
+            If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
 
@@ -462,7 +451,6 @@ class Styler:
 
         Notes
         -----
-
         ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
         ``a`` is one of
 
@@ -474,7 +462,6 @@ class Styler:
 
         Examples
         --------
-
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
@@ -778,8 +765,6 @@ class Styler:
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
-        .. versionadded:: 0.21.0
-
         Parameters
         ----------
         cond : callable
@@ -1005,19 +990,27 @@ class Styler:
     def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color: str = "red") -> "Styler":
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[Union[Label, Sequence[Label]]] = None,
+    ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
-        null_color : str
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color)
+        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
         return self
 
     def background_gradient(

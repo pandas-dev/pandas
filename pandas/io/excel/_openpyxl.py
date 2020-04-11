@@ -366,11 +366,13 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
         initializer.
+
         Parameters
         ----------
         number_format_dict : dict
             A dict with zero or more of the following keys.
                 'format_code' : str
+
         Returns
         -------
         number_format : str
@@ -381,12 +383,14 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_protection(cls, protection_dict):
         """
         Convert ``protection_dict`` to an openpyxl v2 Protection object.
+
         Parameters
         ----------
         protection_dict : dict
             A dict with zero or more of the following keys.
                 'locked'
                 'hidden'
+
         Returns
         -------
         """
@@ -464,7 +468,8 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
-        """Reader using openpyxl engine.
+        """
+        Reader using openpyxl engine.
 
         Parameters
         ----------
@@ -486,6 +491,11 @@ class _OpenpyxlReader(_BaseExcelReader):
         return load_workbook(
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
+
+    def close(self):
+        # https://stackoverflow.com/questions/31416842/
+        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+        self.book.close()
 
     @property
     def sheet_names(self) -> List[str]:

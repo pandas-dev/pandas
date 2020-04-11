@@ -9,7 +9,8 @@ from pandas.io.excel._base import _BaseExcelReader
 
 class _XlrdReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer):
-        """Reader using xlrd engine.
+        """
+        Reader using xlrd engine.
 
         Parameters
         ----------
