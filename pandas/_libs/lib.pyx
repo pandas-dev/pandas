@@ -2529,6 +2529,8 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     return maybe_convert_objects(output)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def from_nested_dict(object data) -> object:
     cdef:
         object new_data = collections.defaultdict(dict)
