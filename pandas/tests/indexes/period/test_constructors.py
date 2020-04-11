@@ -339,15 +339,21 @@ class TestPeriodIndex:
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
-        with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
+        with pytest.raises(
+            TypeError, match="_simple_new expects PeriodArray, got PeriodIndex"
+        ):
             idx._simple_new(idx, name="p")
 
         result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
-    def test_constructor_floats(self, floats):
-        with pytest.raises(AssertionError, match="<class "):
+    @pytest.mark.parametrize(
+        "floats,box", [([1.1, 2.1], "list"), (np.array([1.1, 2.1]), "ndarray")]
+    )
+    def test_constructor_floats(self, floats, box):
+        with pytest.raises(
+            TypeError, match=f"_simple_new expects PeriodArray, got {box}"
+        ):
             PeriodIndex._simple_new(floats)
 
         msg = "PeriodIndex does not allow floating point in construction"
