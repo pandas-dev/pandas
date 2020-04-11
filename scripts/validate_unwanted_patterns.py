@@ -293,6 +293,7 @@ def main(
     source_path: str,
     output_format: str,
     file_extensions_to_check: str,
+    excluded_file_paths: str,
 ) -> bool:
     """
     Main entry point of the script.
@@ -305,6 +306,10 @@ def main(
         Source path representing path to a file/directory.
     output_format : str
         Output format of the error message.
+    file_extensions_to_check: str
+        Coma seperated values of what file extensions to check.
+    excluded_file_paths: str
+        Coma seperated values of what file paths to exclude during the check.
 
     Returns
     -------
@@ -322,13 +327,9 @@ def main(
     is_failed: bool = False
     file_path: str = ""
 
-    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
-        file_extensions_to_check.split(",")
-    )
-
     if os.path.isfile(source_path):
         file_path = source_path
-        with open(file_path, "r") as file_obj:
+        with open(file_path, mode="r") as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
@@ -337,9 +338,15 @@ def main(
                     )
                 )
 
+    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
+        file_extensions_to_check.split(",")
+    )
+    PATHS_TO_IGNORE: FrozenSet[str] = frozenset(excluded_file_paths.split(","))
+
     for subdir, _, files in os.walk(source_path):
         if any(path in subdir for path in PATHS_TO_IGNORE):
             continue
+
         for file_name in files:
             if not any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
@@ -347,7 +354,7 @@ def main(
                 continue
 
             file_path = os.path.join(subdir, file_name)
-            with open(file_path, "r") as file_obj:
+            with open(file_path, mode="r") as file_obj:
                 for line_number, msg in function(file_obj):
                     is_failed = True
                     print(
@@ -389,6 +396,11 @@ if __name__ == "__main__":
         default="py,pyx,pxd,pxi",
         help="Coma seperated file extensions to check.",
     )
+    parser.add_argument(
+        "--excluded-file-paths",
+        default="asv_bench/env",
+        help="Coma seperated file extensions to check.",
+    )
 
     args = parser.parse_args()
 
@@ -398,5 +410,6 @@ if __name__ == "__main__":
             source_path=args.path,
             output_format=args.format,
             file_extensions_to_check=args.included_file_extensions,
+            excluded_file_paths=args.excluded_file_paths,
         )
     )
