@@ -79,7 +79,6 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
-    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -942,9 +941,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if self.index.is_integer() or self.index.is_floating():
-                return self.loc[key]
-            elif isinstance(self.index, IntervalIndex):
+            if not self.index._should_fallback_to_positional():
                 return self.loc[key]
             else:
                 return self.iloc[key]
@@ -1067,7 +1064,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if self.index.inferred_type == "integer":
+                if not self.index._should_fallback_to_positional():
                     self._set_labels(key, value)
                 else:
                     self._set_values(key, value)

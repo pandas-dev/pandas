@@ -4597,9 +4597,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _should_fallback_to_positional(self) -> bool:
         """
-        If an integer key is not found, should we fall back to positional indexing?
+        Should an integer key be treated as positional?
         """
-        if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+        if self.holds_integer() or self.is_boolean():
             return False
         return True
 
