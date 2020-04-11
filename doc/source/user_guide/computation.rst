@@ -339,7 +339,7 @@ We provide a number of common statistical functions:
    it over the data, and in this case we should specify ``ddof=0`` when calling
    these methods to use population variance instead of sample variance. Using
    sample variance under the circumstances would result in a biased estimator
-   of the variable we are trying to determine. 
+   of the variable we are trying to determine.
 
 .. _stats.rolling_apply:
 
