@@ -1851,9 +1851,9 @@ a Series, e.g.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"a" : ['B', 'a', 'C'], "b" : [1, 2, 3]})
+   df = pd.DataFrame({"a": ['B', 'a', 'C'], "b": [1, 2, 3]})
    df.sort_values(by='a')
-   df.sort_values(by='a', key=lambda col : col.str.lower())
+   df.sort_values(by='a', key=lambda col: col.str.lower())
 
 The name or type of each column can be used to apply different functions to
 different columns.
