@@ -619,4 +619,17 @@ class SelectDtypes:
         self.df.select_dtypes(include="int")
 
 
+class MemoryUsage:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(100000, 2), columns=list("AB"))
+        self.df2 = self.df.copy()
+        self.df2["A"] = self.df2["A"].astype("object")
+
+    def time_memory_usage(self):
+        self.df.memory_usage(deep=True)
+
+    def time_memory_usage_object_dtype(self):
+        self.df2.memory_usage(deep=True)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

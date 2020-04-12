@@ -1226,10 +1226,10 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
-        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered), "Item": [1, 2]},
         columns=["Name", "Item"],
     )
     expected = df.copy()
@@ -1393,3 +1393,16 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     result = getattr(df_grouped, func)()
     expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
     tm.assert_series_equal(result, expected)
+
+
+
+def test_read_only_category_no_sort():
+    # GH33410
+    cats = np.array([1, 2])
+    cats.flags.writeable = False
+    df = DataFrame(
+        {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
+    )
+    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    result = df.groupby("b", sort=False).mean()
+    tm.assert_frame_equal(result, expected)
