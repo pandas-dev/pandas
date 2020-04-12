@@ -173,7 +173,8 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.13
     as a dependency however.
 
-    .. versionchanged:: (1.1)
+    .. versionchanged:: 1.1
+        The "pyarrow" engine was added.
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -958,11 +959,7 @@ class TextFileReader(abc.Iterator):
         # pyarrow engine not supported yet
         if engine == "pyarrow":
             for option in _pyarrow_unsupported:
-                if (
-                    option != "chunksize"
-                    and option != "skipfooter"
-                    and option != "nrows"
-                ):
+                if option not in ["chunksize", "skipfooter", "nrows"]:
                     if options[option] is not None:
                         fallback_reason = (
                             f"the pyarrow engine does not support the {option} argumnet"
@@ -2274,11 +2271,12 @@ class ArrowParserWrapper(ParserBase):
             read_options=pyarrow.ReadOptions(
                 skip_rows=self.kwds.get("skiprows"),
                 column_names=self.names,
-                autogenerate_column_names=True if self.header != 0 else False,
+                autogenerate_column_names=False if self.header == 0 else True,
             ),
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),
                 quote_char=self.kwds.get("quotechar"),
+                ignore_empty_lines=self.kwds.get("skip_blank_lines"),
             ),
             convert_options=pyarrow.ConvertOptions(
                 include_columns=self.usecols, column_types=self.kwds.get("dtype")
@@ -2289,21 +2287,15 @@ class ArrowParserWrapper(ParserBase):
         if self.names is None:
             if self.prefix:
                 self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-                frame = frame.rename(
-                    dict(zip(frame.columns, self.names), axis="columns")
-                )
+                frame.columns = self.names
             elif self.header is not None and self.header != 0:
                 header = self.header
                 self.names = frame.iloc[header]
                 frame = frame.drop(header, axis=0)
-                frame = frame.rename(
-                    columns=dict(zip(frame.columns, self.names), axis="columns")
-                )
+                frame.columns = self.names
             elif self.header is None:
-                self.names = range(len(frame.columns))
-                frame = frame.rename(
-                    columns=dict(zip(frame.columns, self.names), axis="columns")
-                )
+                self.names = range(num_cols)
+                frame.columns = self.names
 
         index_col = self.kwds.get("index_col")  # need to flatten since returns list
         if index_col is not None:
