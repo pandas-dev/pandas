@@ -1,0 +1,165 @@
+From c0be8032bffd42b194b99f1538c6040f0f2b354f Mon Sep 17 00:00:00 2001
+From: ziyi zhang <ziyi.zhang2@wsu.edu>
+Date: Sun, 12 Apr 2020 15:31:43 -0700
+Subject: [PATCH 2/2] add a new feature sample() into groupby
+
+---
+ pandas/core/groupby/groupby.py | 142 +++++++++++++++++++++++++++++++++
+ 1 file changed, 142 insertions(+)
+
+diff --git a/pandas/core/groupby/groupby.py b/pandas/core/groupby/groupby.py
+index 873f24b96..41b48055e 100644
+--- a/pandas/core/groupby/groupby.py
++++ b/pandas/core/groupby/groupby.py
+@@ -1436,6 +1436,148 @@ class GroupBy(_GroupBy[FrameOrSeries]):
+                 return result.T
+             return result.unstack()
+ 
++
++    def sample(groupby_result, size=None, frac=None, replace=False, weights=None):
++        """
++        Returns a random sample in dictionary.
++
++        Parameters
++        ----------
++        n : int, optional
++            Number of items from axis to return. Cannot be used with `frac`.
++            Default = 1 if `frac` = None.
++        frac : float, optional
++            Fraction of items to return. Cannot be used with `size`.
++        replace : boolean, optional
++            Sample with or without replacement. Default = False.
++        weights : list of float, optional
++            Default 'None' results in equal probability weighting.
++            Index values in sampled object not in weights will be assigned
++            weights of zero.
++            If weights do not sum to 1, they will be normalized to sum to 1.
++            Missing values in the weights column will be treated as zero.
++            inf and -inf values not allowed.
++    
++        Returns
++        -------
++        A new object of same type as caller.
++
++        Examples
++        --------
++        Generate an example ``DataFrame``:
++
++        >>> df = pd.DataFrame([['Male', 1], ['Female', 3], ['Female', 2], ['Other', 1]], columns=['gender', 'feature'])
++           gender  feature
++            0    Male        1
++            1  Female        3
++            2  Female        2
++            3   Other        1
++        
++        >>> grouped_df = df.groupby('gender')
++            <pandas.core.groupby.generic.DataFrameGroupBy object at 0x1034409b0>
++
++         Next extract a random sample:
++
++         2 random elements sample:
++
++        >>> sample=groupby.sample(size = 2)
++            {'Female': Int64Index([1, 2], dtype='int64'), 'Male': Int64Index([0], dtype='int64')}
++
++         2 random elements samplt with given weights:
++        >>> sample=groupby.sample(size = 2, weights = [0.1,0.1,0.2])
++            {'Male': Int64Index([0], dtype='int64'), 'Other': Int64Index([3], dtype='int64')}
++
++         A random 40% with replacement:
++        >>> sample=groupby.sample(frac = 0.4, replace = True)
++            {'Male': Int64Index([0], dtype='int64')}
++
++        """
++        groups_dictionary=groupby_result.groups
++   
++        #check size and frac:
++            #if no input sieze and no input frac: default sto size = 1
++        if(size == None and frac == None):
++            final_size=1
++    
++        #if no input size but have the frac:
++        elif(size == None and frac is not None):
++            final_size=int(round(frac*len(groups_dictionary)))
++
++        #if no input frac but have the size:
++        elif(size is not None and frac is None and size % 1 ==0):
++            final_size=size
++        elif(size is not None and frac is None and size % 1 !=0):
++            raise ValueError("Only integers accepted as size value")
++        #if both enter size and frac: error
++        elif(size is not None and frac is not None):
++            raise ValueError('Please enter a value for `frac` OR `size`, not both')
++
++        print("For the given group, the size of sample is %d" %final_size)
++
++        #errors:
++        if(size is not None):
++        #1. non-integer size error:
++        #if(size%1 !=0):
++        #    raise ValueError("Only integers accepted as size value")
++
++        #2. negative size error:
++            if size < 0:
++                raise ValueError("A negative number of sample size requested. Please provide a positive value.")
++                
++        #3. overflow error:
++            maximum_size=len(groups_dictionary)
++            if size > maximum_size:
++               raise ValueError("The size of requested sample is overflow. Please provide the value of size in range.")
++               
++        if(frac is not None):
++            if(frac >1):
++                raise ValueError("Only float between 0 an 1 accepted as frac value")
++
++
++        #edge warning:
++        if(size==0 or frac ==0):
++            raise Warning("Random sample is empty: the input sample size is 0")
++        if(size==len(groups_dictionary) or frac ==1):
++            raise Warning("Random sample equals to the given groupbt: the inplut size is the same as the size of the input group")
++
++        if weights is not None:
++            #weights is a list
++            if(len(weights) != len(groups_dictionary.keys())):
++                raise ValueError("Weights and axis to be sampled must be the same length")
++            for w in weights:
++                #if(w == np.inf() or w == -np.inf()):
++                #    raise ValueError("Weight vectr may not inclue `inf` values")
++                if(w < 0):
++                    raise ValueError("Weight vector may no include nagative value")
++                # If has nan, set to zero:
++                if(w==np.nan):
++                    w=0
++
++            # Renormalize if don's sum to 1:
++            if(sum(weights)!=1):
++                if(sum(weights)!=0):
++                    new_weights=[]
++                    for w in weights:
++                        new_w = w / sum(weights)
++                        new_weights.append(new_w)
++                    weights=new_weights
++                else:
++                    raise ValueError("Invalid weights: weights sum to zero")
++
++        #random sampling:
++        #sample=random.sample(groups_dictionary.keys(),final_size, replace=replace)
++        dictionary_keys=list(groups_dictionary.keys())
++        num_of_keys=len(dictionary_keys)
++        sample=np.random.choice(num_of_keys,size=final_size,replace=replace,p=weights)
++        sample_keys=[]
++        for i in sample:
++            sample_keys.append(dictionary_keys[i])
++        sample_dictionary={key: value for key, value in groups_dictionary.items() if key in sample_keys}
++
++        return(sample_dictionary)
++
++
++
+     def resample(self, rule, *args, **kwargs):
+         """
+         Provide resampling when using a TimeGrouper.
+-- 
+2.19.0
+

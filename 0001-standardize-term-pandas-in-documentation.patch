@@ -1,0 +1,1695 @@
+From 69f0641f92b94d42620b1382e58ed21a90bc9ce2 Mon Sep 17 00:00:00 2001
+From: ziyi zhang <ziyi.zhang2@wsu.edu>
+Date: Sun, 12 Apr 2020 15:00:25 -0700
+Subject: [PATCH 1/2] standardize term pandas in documentation
+
+---
+ doc/source/development/code_style.rst         |  2 +-
+ doc/source/development/contributing.rst       |  8 +++---
+ .../development/contributing_docstring.rst    |  2 +-
+ doc/source/development/developer.rst          |  2 +-
+ doc/source/development/extending.rst          |  2 +-
+ doc/source/development/maintaining.rst        |  2 +-
+ doc/source/ecosystem.rst                      | 28 +++++++++----------
+ .../comparison/comparison_with_sas.rst        |  2 +-
+ .../comparison/comparison_with_stata.rst      |  8 +++---
+ doc/source/getting_started/index.rst          |  2 +-
+ doc/source/getting_started/install.rst        |  4 +--
+ .../intro_tutorials/01_table_oriented.rst     |  2 +-
+ doc/source/getting_started/overview.rst       |  2 +-
+ doc/source/getting_started/tutorials.rst      | 16 +++++------
+ doc/source/reference/arrays.rst               | 14 +++++-----
+ doc/source/reference/extensions.rst           |  2 +-
+ doc/source/reference/series.rst               |  2 +-
+ doc/source/user_guide/basics.rst              | 18 ++++++------
+ doc/source/user_guide/boolean.rst             |  2 +-
+ doc/source/user_guide/categorical.rst         |  4 +--
+ doc/source/user_guide/cookbook.rst            |  4 +--
+ doc/source/user_guide/dsintro.rst             | 12 ++++----
+ doc/source/user_guide/groupby.rst             |  4 +--
+ doc/source/user_guide/indexing.rst            | 10 +++----
+ doc/source/user_guide/integer_na.rst          |  2 +-
+ doc/source/user_guide/io.rst                  | 16 +++++------
+ doc/source/user_guide/missing_data.rst        |  8 +++---
+ doc/source/user_guide/scale.rst               |  8 +++---
+ doc/source/user_guide/sparse.rst              |  4 +--
+ doc/source/user_guide/timedeltas.rst          |  2 +-
+ doc/source/user_guide/timeseries.rst          |  2 +-
+ doc/source/user_guide/visualization.rst       |  6 ++--
+ doc/source/whatsnew/v0.11.0.rst               |  4 +--
+ doc/source/whatsnew/v0.12.0.rst               |  8 +++---
+ doc/source/whatsnew/v0.13.0.rst               |  4 +--
+ doc/source/whatsnew/v0.13.1.rst               |  2 +-
+ doc/source/whatsnew/v0.14.0.rst               |  2 +-
+ doc/source/whatsnew/v0.15.0.rst               |  4 +--
+ doc/source/whatsnew/v0.16.1.rst               |  2 +-
+ doc/source/whatsnew/v0.16.2.rst               |  2 +-
+ doc/source/whatsnew/v0.17.0.rst               |  6 ++--
+ doc/source/whatsnew/v0.17.1.rst               |  2 +-
+ doc/source/whatsnew/v0.18.0.rst               |  2 +-
+ doc/source/whatsnew/v0.19.0.rst               |  6 ++--
+ doc/source/whatsnew/v0.19.2.rst               |  2 +-
+ doc/source/whatsnew/v0.20.0.rst               | 14 +++++-----
+ doc/source/whatsnew/v0.21.0.rst               |  4 +--
+ doc/source/whatsnew/v0.21.1.rst               |  2 +-
+ doc/source/whatsnew/v0.22.0.rst               |  2 +-
+ doc/source/whatsnew/v0.23.0.rst               | 12 ++++----
+ doc/source/whatsnew/v0.23.2.rst               |  2 +-
+ doc/source/whatsnew/v0.24.0.rst               | 20 ++++++-------
+ doc/source/whatsnew/v0.25.0.rst               | 18 ++++++------
+ doc/source/whatsnew/v0.25.1.rst               |  2 +-
+ doc/source/whatsnew/v0.25.2.rst               |  2 +-
+ doc/source/whatsnew/v1.0.0.rst                | 16 +++++------
+ 56 files changed, 171 insertions(+), 171 deletions(-)
+
+diff --git a/doc/source/development/code_style.rst b/doc/source/development/code_style.rst
+index 6d33537a4..53fda9703 100644
+--- a/doc/source/development/code_style.rst
++++ b/doc/source/development/code_style.rst
+@@ -9,7 +9,7 @@ pandas code style guide
+ .. contents:: Table of contents:
+    :local:
+ 
+-*pandas* follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
++pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+ standard and uses `Black <https://black.readthedocs.io/en/stable/>`_
+ and `Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a
+ consistent code format throughout the project. For details see the
+diff --git a/doc/source/development/contributing.rst b/doc/source/development/contributing.rst
+index ba7f7eb90..8f6a98a8a 100644
+--- a/doc/source/development/contributing.rst
++++ b/doc/source/development/contributing.rst
+@@ -134,7 +134,7 @@ want to clone your fork to your machine::
+     git remote add upstream https://github.com/pandas-dev/pandas.git
+ 
+ This creates the directory `pandas-yourname` and connects your repository to
+-the upstream (main project) *pandas* repository.
++the upstream (main project) pandas repository.
+ 
+ .. _contributing.dev_env:
+ 
+@@ -150,7 +150,7 @@ Using a Docker container
+ ~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ Instead of manually setting up a development environment, you can use Docker to
+-automatically create the environment with just several commands. Pandas provides a `DockerFile`
++automatically create the environment with just several commands. pandas provides a `DockerFile`
+ in the root directory to build a Docker image with a full pandas development environment.
+ 
+ Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+@@ -162,7 +162,7 @@ See https://code.visualstudio.com/docs/remote/containers for details.
+ Installing a C compiler
+ ~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas uses C extensions (mostly written using Cython) to speed up certain
++pandas uses C extensions (mostly written using Cython) to speed up certain
+ operations. To install pandas from source, you need to compile these C
+ extensions, which means you need a C compiler. This process depends on which
+ platform you're using.
+@@ -1157,7 +1157,7 @@ This test shows off several useful features of Hypothesis, as well as
+ demonstrating a good use-case: checking properties that should hold over
+ a large or complicated domain of inputs.
+ 
+-To keep the Pandas test suite running quickly, parametrized tests are
++To keep the pandas test suite running quickly, parametrized tests are
+ preferred if the inputs or logic are simple, with Hypothesis tests reserved
+ for cases with complex logic or where there are too many combinations of
+ options or subtle interactions to test (or think of!) all of them.
+diff --git a/doc/source/development/contributing_docstring.rst b/doc/source/development/contributing_docstring.rst
+index 0c780ad5f..24e14c7ca 100644
+--- a/doc/source/development/contributing_docstring.rst
++++ b/doc/source/development/contributing_docstring.rst
+@@ -998,4 +998,4 @@ mapping function names to docstrings. Wherever possible, we prefer using
+ 
+ See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
+ ``pandas.core.series.Series.fillna`` and ``pandas.core.generic.frame.fillna``
+-for the filled versions.
+\ No newline at end of file
++for the filled versions.
+diff --git a/doc/source/development/developer.rst b/doc/source/development/developer.rst
+index fbd83af3d..3859f8b83 100644
+--- a/doc/source/development/developer.rst
++++ b/doc/source/development/developer.rst
+@@ -182,4 +182,4 @@ As an example of fully-formed metadata:
+     'creator': {
+       'library': 'pyarrow',
+       'version': '0.13.0'
+-    }}
+\ No newline at end of file
++    }}
+diff --git a/doc/source/development/extending.rst b/doc/source/development/extending.rst
+index d9fb2643e..14c48b842 100644
+--- a/doc/source/development/extending.rst
++++ b/doc/source/development/extending.rst
+@@ -501,4 +501,4 @@ registers the default "matplotlib" backend as follows.
+ 
+ 
+ More information on how to implement a third-party plotting backend can be found at
+-https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
+\ No newline at end of file
++https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
+diff --git a/doc/source/development/maintaining.rst b/doc/source/development/maintaining.rst
+index 9f9e9dc26..1c0f88c45 100644
+--- a/doc/source/development/maintaining.rst
++++ b/doc/source/development/maintaining.rst
+@@ -190,4 +190,4 @@ The current list of core-team members is at
+ https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+ 
+ .. _governance documents: https://github.com/pandas-dev/pandas-governance
+-.. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization
+\ No newline at end of file
++.. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization
+diff --git a/doc/source/ecosystem.rst b/doc/source/ecosystem.rst
+index fd5e7c552..d0baa945c 100644
+--- a/doc/source/ecosystem.rst
++++ b/doc/source/ecosystem.rst
+@@ -93,7 +93,7 @@ With Altair, you can spend more time understanding your data and its
+ meaning. Altair's API is simple, friendly and consistent and built on
+ top of the powerful Vega-Lite JSON specification. This elegant
+ simplicity produces beautiful and effective visualizations with a
+-minimal amount of code. Altair works with Pandas DataFrames.
++minimal amount of code. Altair works with pandas DataFrames.
+ 
+ 
+ `Bokeh <https://bokeh.pydata.org>`__
+@@ -104,8 +104,8 @@ the latest web technologies. Its goal is to provide elegant, concise constructio
+ graphics in the style of Protovis/D3, while delivering high-performance interactivity over
+ large data to thin clients.
+ 
+-`Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
+-for Bokeh that can be loaded as a native Pandas plotting backend via
++`pandas-Bokeh <https://github.com/PatrikHlobil/pandas-Bokeh>`__ provides a high level API
++for Bokeh that can be loaded as a native pandas plotting backend via
+ 
+ .. code:: python
+ 
+@@ -147,7 +147,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
+ 
+ `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+ 
+-`QtPandas <https://github.com/draperjames/qtpandas>`__
++`Qtpandas <https://github.com/draperjames/qtpandas>`__
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
+@@ -163,7 +163,7 @@ IDE
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ IPython is an interactive command shell and distributed computing
+-environment. IPython tab completion works with Pandas methods and also
++environment. IPython tab completion works with pandas methods and also
+ attributes like DataFrame columns.
+ 
+ `Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
+@@ -177,7 +177,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
+ Python) through 'Download As' in the web interface and ``jupyter convert``
+ in a shell.
+ 
+-Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
++pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+ which are utilized by Jupyter Notebook for displaying
+ (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
+ (Note: HTML tables may or may not be
+@@ -205,7 +205,7 @@ Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
+ allows users to view, manipulate and edit pandas ``Index``, ``Series``,
+ and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
+ values, sorting, displaying a "heatmap", converting data types and more.
+-Pandas objects can also be renamed, duplicated, new columns added,
++pandas objects can also be renamed, duplicated, new columns added,
+ copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+ Spyder can also import data from a variety of plain text and binary files
+ or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
+@@ -252,13 +252,13 @@ The following data feeds are available:
+ `quandl/Python <https://github.com/quandl/Python>`__
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Quandl API for Python wraps the Quandl REST API to return
+-Pandas DataFrames with timeseries indexes.
++pandas DataFrames with timeseries indexes.
+ 
+ `pydatastream <https://github.com/vfilimonov/pydatastream>`__
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ PyDatastream is a Python interface to the
+ `Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
+-REST API to return indexed Pandas DataFrames with financial data.
++REST API to return indexed pandas DataFrames with financial data.
+ This package requires valid credentials for this API (non free).
+ 
+ `pandaSDMX <https://pandasdmx.readthedocs.io>`__
+@@ -312,7 +312,7 @@ Out-of-core
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ Blaze provides a standard API for doing computations with various
+-in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
++in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
+ PySpark.
+ 
+ `Dask <https://dask.readthedocs.io/en/latest/>`__
+@@ -358,7 +358,7 @@ If also displays progress bars.
+ `Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas on Ray is an early stage DataFrame library that wraps Pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous Pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use Pandas on Ray just like you would Pandas.
++pandas on Ray is an early stage DataFrame library that wraps pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous pandas notebooks while experiencing a considerable speedup from pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use pandas on Ray just like you would pandas.
+ 
+ .. code:: python
+ 
+@@ -369,7 +369,7 @@ Pandas on Ray is an early stage DataFrame library that wraps Pandas and transpar
+ `Vaex <https://docs.vaex.io/>`__
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to Pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
++Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+ 
+  * vaex.from_pandas
+  * vaex.to_pandas_df
+@@ -379,7 +379,7 @@ Increasingly, packages are being built on top of pandas to address specific need
+ Extension data types
+ --------------------
+ 
+-Pandas provides an interface for defining
++pandas provides an interface for defining
+ :ref:`extension types <extending.extension-types>` to extend NumPy's type
+ system. The following libraries implement that interface to provide types not
+ found in NumPy or pandas, which work well with pandas' data containers.
+@@ -411,4 +411,4 @@ Library         Accessor   Classes                   Description
+ .. _pdvega: https://altair-viz.github.io/pdvega/
+ .. _Altair: https://altair-viz.github.io/
+ .. _pandas_path: https://github.com/drivendataorg/pandas-path/
+-.. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
+\ No newline at end of file
++.. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
+diff --git a/doc/source/getting_started/comparison/comparison_with_sas.rst b/doc/source/getting_started/comparison/comparison_with_sas.rst
+index f12d97d1d..4a64b28dd 100644
+--- a/doc/source/getting_started/comparison/comparison_with_sas.rst
++++ b/doc/source/getting_started/comparison/comparison_with_sas.rst
+@@ -752,4 +752,4 @@ to interop data between SAS and pandas is to serialize to csv.
+    Wall time: 14.6 s
+ 
+    In [9]: %time df = pd.read_csv('big.csv')
+-   Wall time: 4.86 s
+\ No newline at end of file
++   Wall time: 4.86 s
+diff --git a/doc/source/getting_started/comparison/comparison_with_stata.rst b/doc/source/getting_started/comparison/comparison_with_stata.rst
+index decf12db7..3e277fbf0 100644
+--- a/doc/source/getting_started/comparison/comparison_with_stata.rst
++++ b/doc/source/getting_started/comparison/comparison_with_stata.rst
+@@ -144,7 +144,7 @@ the pandas command would be:
+    # alternatively, read_table is an alias to read_csv with tab delimiter
+    tips = pd.read_table('tips.csv', header=None)
+ 
+-Pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
++pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
+ 
+ .. code-block:: python
+ 
+@@ -170,7 +170,7 @@ Similarly in pandas, the opposite of ``read_csv`` is :meth:`DataFrame.to_csv`.
+ 
+    tips.to_csv('tips2.csv')
+ 
+-Pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
++pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
+ 
+ .. code-block:: python
+ 
+@@ -579,7 +579,7 @@ should be used for comparisons.
+    outer_join[pd.isna(outer_join['value_x'])]
+    outer_join[pd.notna(outer_join['value_x'])]
+ 
+-Pandas also provides a variety of methods to work with missing data -- some of
++pandas also provides a variety of methods to work with missing data -- some of
+ which would be challenging to express in Stata. For example, there are methods to
+ drop all rows with any missing values, replacing missing values with a specified
+ value, like the mean, or forward filling from previous rows. See the
+@@ -670,7 +670,7 @@ Other considerations
+ Disk vs memory
+ ~~~~~~~~~~~~~~
+ 
+-Pandas and Stata both operate exclusively in memory. This means that the size of
++pandas and Stata both operate exclusively in memory. This means that the size of
+ data able to be loaded in pandas is limited by your machine's memory.
+ If out of core processing is needed, one possibility is the
+ `dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_
+diff --git a/doc/source/getting_started/index.rst b/doc/source/getting_started/index.rst
+index 3f15c91f8..a925bd25e 100644
+--- a/doc/source/getting_started/index.rst
++++ b/doc/source/getting_started/index.rst
+@@ -650,7 +650,7 @@ Tutorials
+ 
+ For a quick overview of pandas functionality, see :ref:`10 Minutes to pandas<10min>`.
+ 
+-You can also reference the pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_
++You can also reference the pandas `cheat sheet <https://pandas.pydata.org/pandas_Cheat_Sheet.pdf>`_
+ for a succinct guide for manipulating data with pandas.
+ 
+ The community produces a wide variety of tutorials available online. Some of the
+diff --git a/doc/source/getting_started/install.rst b/doc/source/getting_started/install.rst
+index 7fa2233e7..9d28c8140 100644
+--- a/doc/source/getting_started/install.rst
++++ b/doc/source/getting_started/install.rst
+@@ -184,7 +184,7 @@ You can find simple installation instructions for pandas in this document: `inst
+ Installing from source
+ ~~~~~~~~~~~~~~~~~~~~~~
+ 
+-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
++See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
+ 
+ Running the test suite
+ ----------------------
+@@ -249,7 +249,7 @@ Recommended dependencies
+ Optional dependencies
+ ~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas has many optional dependencies that are only used for specific methods.
++pandas has many optional dependencies that are only used for specific methods.
+ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
+ :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
+ optional dependency is not installed, pandas will raise an ``ImportError`` when
+diff --git a/doc/source/getting_started/intro_tutorials/01_table_oriented.rst b/doc/source/getting_started/intro_tutorials/01_table_oriented.rst
+index 9ee3bfc3b..b6ccdf72d 100644
+--- a/doc/source/getting_started/intro_tutorials/01_table_oriented.rst
++++ b/doc/source/getting_started/intro_tutorials/01_table_oriented.rst
+@@ -215,4 +215,4 @@ A more extended explanation to ``DataFrame`` and ``Series`` is provided in the :
+ 
+ .. raw:: html
+ 
+-    </div>
+\ No newline at end of file
++    </div>
+diff --git a/doc/source/getting_started/overview.rst b/doc/source/getting_started/overview.rst
+index d8a40c540..02d13e2de 100644
+--- a/doc/source/getting_started/overview.rst
++++ b/doc/source/getting_started/overview.rst
+@@ -6,7 +6,7 @@
+ Package overview
+ ****************
+ 
+-**pandas** is a `Python <https://www.python.org>`__ package providing fast,
++pandas is a `Python <https://www.python.org>`__ package providing fast,
+ flexible, and expressive data structures designed to make working with
+ "relational" or "labeled" data both easy and intuitive. It aims to be the
+ fundamental high-level building block for doing practical, **real world** data
+diff --git a/doc/source/getting_started/tutorials.rst b/doc/source/getting_started/tutorials.rst
+index 4c2d0621c..edb1f68da 100644
+--- a/doc/source/getting_started/tutorials.rst
++++ b/doc/source/getting_started/tutorials.rst
+@@ -49,7 +49,7 @@ Tutorial series written in 2016 by
+ The source may be found in the GitHub repository
+ `TomAugspurger/effective-pandas <https://github.com/TomAugspurger/effective-pandas>`_.
+ 
+-* `Modern Pandas <https://tomaugspurger.github.io/modern-1-intro.html>`_
++* `Modern pandas <https://tomaugspurger.github.io/modern-1-intro.html>`_
+ * `Method Chaining <https://tomaugspurger.github.io/method-chaining.html>`_
+ * `Indexes <https://tomaugspurger.github.io/modern-3-indexes.html>`_
+ * `Performance <https://tomaugspurger.github.io/modern-4-performance.html>`_
+@@ -60,18 +60,18 @@ The source may be found in the GitHub repository
+ Excel charts with pandas, vincent and xlsxwriter
+ ------------------------------------------------
+ 
+-*  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
++*  `Using pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
+ 
+ Video tutorials
+ ---------------
+ 
+-* `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
++* `pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
+   (2015) (2:24)
+   `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`__
+-* `Introduction Into Pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_
++* `Introduction Into pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_
+   (2016) (1:28)
+   `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`__
+-* `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
++* `pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
+   (2016) (1:26)
+   `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
+ * `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
+@@ -90,8 +90,8 @@ Various tutorials
+ * `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
+ * `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
+ * `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
+-* `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
++* `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20pandas%20Basics.ipynb>`_
+ * `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
+-* `Pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
+-* `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
++* `pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
++* `pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
+ * `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_
+diff --git a/doc/source/reference/arrays.rst b/doc/source/reference/arrays.rst
+index 1725c415f..5c068d840 100644
+--- a/doc/source/reference/arrays.rst
++++ b/doc/source/reference/arrays.rst
+@@ -16,7 +16,7 @@ For some data types, pandas extends NumPy's type system. String aliases for thes
+ can be found at :ref:`basics.dtypes`.
+ 
+ =================== ========================= ================== =============================
+-Kind of Data        Pandas Data Type          Scalar             Array
++Kind of Data        pandas Data Type          Scalar             Array
+ =================== ========================= ================== =============================
+ TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.arrays.datetime`
+ Timedeltas          (none)                    :class:`Timedelta` :ref:`api.arrays.timedelta`
+@@ -29,7 +29,7 @@ Strings             :class:`StringDtype`      :class:`str`       :ref:`api.array
+ Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
+ =================== ========================= ================== =============================
+ 
+-Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
++pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+ The top-level :meth:`array` method can be used to create a new array, which may be
+ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
+ 
+@@ -43,7 +43,7 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
+ Datetime data
+ -------------
+ 
+-NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
++NumPy cannot natively represent timezone-aware datetimes. pandas supports this
+ with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
+ or timezone-aware values.
+ 
+@@ -162,7 +162,7 @@ If the data are tz-aware, then every value in the array must have the same timez
+ Timedelta data
+ --------------
+ 
+-NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
++NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
+ for symmetry with :class:`Timestamp`.
+ 
+ .. autosummary::
+@@ -217,7 +217,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
+ Timespan data
+ -------------
+ 
+-Pandas represents spans of times as :class:`Period` objects.
++pandas represents spans of times as :class:`Period` objects.
+ 
+ Period
+ ------
+@@ -352,7 +352,7 @@ Nullable integer
+ ----------------
+ 
+ :class:`numpy.ndarray` cannot natively represent integer-data with missing values.
+-Pandas provides this through :class:`arrays.IntegerArray`.
++pandas provides this through :class:`arrays.IntegerArray`.
+ 
+ .. autosummary::
+    :toctree: api/
+@@ -378,7 +378,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
+ Categorical data
+ ----------------
+ 
+-Pandas defines a custom data type for representing data that can take only a
++pandas defines a custom data type for representing data that can take only a
+ limited, fixed set of values. The dtype of a ``Categorical`` can be described by
+ a :class:`pandas.api.types.CategoricalDtype`.
+ 
+diff --git a/doc/source/reference/extensions.rst b/doc/source/reference/extensions.rst
+index 4c0763e09..277ac1f39 100644
+--- a/doc/source/reference/extensions.rst
++++ b/doc/source/reference/extensions.rst
+@@ -24,7 +24,7 @@ objects.
+    :template: autosummary/class_without_autosummary.rst
+ 
+    api.extensions.ExtensionArray
+-   arrays.PandasArray
++   arrays.pandasArray
+ 
+ .. We need this autosummary so that methods and attributes are generated.
+ .. Separate block, since they aren't classes.
+diff --git a/doc/source/reference/series.rst b/doc/source/reference/series.rst
+index ab0540a93..c6dc34389 100644
+--- a/doc/source/reference/series.rst
++++ b/doc/source/reference/series.rst
+@@ -270,7 +270,7 @@ Time Series-related
+ Accessors
+ ---------
+ 
+-Pandas provides dtype-specific methods under various accessors.
++pandas provides dtype-specific methods under various accessors.
+ These are separate namespaces within :class:`Series` that only apply
+ to specific data types.
+ 
+diff --git a/doc/source/user_guide/basics.rst b/doc/source/user_guide/basics.rst
+index 055b43bc1..2d3df5cc0 100644
+--- a/doc/source/user_guide/basics.rst
++++ b/doc/source/user_guide/basics.rst
+@@ -52,7 +52,7 @@ Note, **these attributes can be safely assigned to**!
+    df.columns = [x.lower() for x in df.columns]
+    df
+ 
+-Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
++pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+ thought of as containers for arrays, which hold the actual data and do the
+ actual computation. For many types, the underlying array is a
+ :class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
+@@ -410,7 +410,7 @@ data structure with a scalar value:
+    pd.Series(['foo', 'bar', 'baz']) == 'foo'
+    pd.Index(['foo', 'bar', 'baz']) == 'foo'
+ 
+-Pandas also handles element-wise comparisons between different array-like
++pandas also handles element-wise comparisons between different array-like
+ objects of the same length:
+ 
+ .. ipython:: python
+@@ -804,7 +804,7 @@ Is equivalent to:
+     (df_p.pipe(extract_city_name)
+          .pipe(add_country_name, country_name="US"))
+ 
+-Pandas encourages the second style, which is known as method chaining.
++pandas encourages the second style, which is known as method chaining.
+ ``pipe`` makes it easy to use your own or another library's functions
+ in method chains, alongside pandas' methods.
+ 
+@@ -1497,7 +1497,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
+        print(col)
+ 
+ 
+-Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
++pandas objects also have the dict-like :meth:`~DataFrame.items` method to
+ iterate over the (key, value) pairs.
+ 
+ To iterate over the rows of a DataFrame, you can use the following methods:
+@@ -1740,7 +1740,7 @@ always uses them).
+ .. note::
+ 
+    Prior to pandas 1.0, string methods were only available on ``object`` -dtype
+-   ``Series``. Pandas 1.0 added the :class:`StringDtype` which is dedicated
++   ``Series``. pandas 1.0 added the :class:`StringDtype` which is dedicated
+    to strings. See :ref:`text.types` for more.
+ 
+ Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
+@@ -1751,7 +1751,7 @@ description.
+ Sorting
+ -------
+ 
+-Pandas supports three kinds of sorting: sorting by index labels,
++pandas supports three kinds of sorting: sorting by index labels,
+ sorting by column values, and sorting by a combination of both.
+ 
+ .. _basics.sort_index:
+@@ -1938,7 +1938,7 @@ columns of a DataFrame. NumPy provides support for ``float``,
+ ``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
+ does not support timezone-aware datetimes).
+ 
+-Pandas and third-party libraries *extend* NumPy's type system in a few places.
++pandas and third-party libraries *extend* NumPy's type system in a few places.
+ This section describes the extensions pandas has made internally.
+ See :ref:`extending.extension-types` for how to write your own extension that
+ works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+@@ -1975,7 +1975,7 @@ documentation sections for more on each type.
+ | Boolean (with NA) | :class:`BooleanDtype`     | :class:`bool`      | :class:`arrays.BooleanArray`  | ``'boolean'``                           | :ref:`api.arrays.bool`        |
+ +-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+ 
+-Pandas has two ways to store strings.
++pandas has two ways to store strings.
+ 
+ 1. ``object`` dtype, which can hold any Python object, including strings.
+ 2. :class:`StringDtype`, which is dedicated to strings.
+@@ -2367,5 +2367,5 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
+ 
+ .. note::
+ 
+-    Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
++    pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
+     NumPy hierarchy and won't show up with the above function.
+diff --git a/doc/source/user_guide/boolean.rst b/doc/source/user_guide/boolean.rst
+index d690c1093..76c922fce 100644
+--- a/doc/source/user_guide/boolean.rst
++++ b/doc/source/user_guide/boolean.rst
+@@ -82,7 +82,7 @@ the ``NA`` really is ``True`` or ``False``, since ``True & True`` is ``True``,
+ but ``True & False`` is ``False``, so we can't determine the output.
+ 
+ 
+-This differs from how ``np.nan`` behaves in logical operations. Pandas treated
++This differs from how ``np.nan`` behaves in logical operations. pandas treated
+ ``np.nan`` is *always false in the output*.
+ 
+ In ``or``
+diff --git a/doc/source/user_guide/categorical.rst b/doc/source/user_guide/categorical.rst
+index 7def45ddc..d69009c0f 100644
+--- a/doc/source/user_guide/categorical.rst
++++ b/doc/source/user_guide/categorical.rst
+@@ -1012,7 +1012,7 @@ The following differences to R's factor functions can be observed:
+ * In contrast to R's `factor` function, using categorical data as the sole input to create a
+   new categorical series will *not* remove unused categories but create a new categorical series
+   which is equal to the passed in one!
+-* R allows for missing values to be included in its `levels` (pandas' `categories`). Pandas
++* R allows for missing values to be included in its `levels` (pandas' `categories`). pandas
+   does not allow `NaN` categories, but missing values can still be in the `values`.
+ 
+ 
+@@ -1108,7 +1108,7 @@ are not numeric data (even in the case that ``.categories`` is numeric).
+ dtype in apply
+ ~~~~~~~~~~~~~~
+ 
+-Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
++pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
+ a `Series` of ``object`` `dtype` (same as getting a row -> getting one element will return a
+ basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
+ You can use ``fillna`` to handle missing values before applying a function.
+diff --git a/doc/source/user_guide/cookbook.rst b/doc/source/user_guide/cookbook.rst
+index 992cdfa5d..aa9d1235f 100644
+--- a/doc/source/user_guide/cookbook.rst
++++ b/doc/source/user_guide/cookbook.rst
+@@ -15,7 +15,7 @@ Simplified, condensed, new-user friendly, in-line examples have been inserted wh
+ augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
+ above what the in-line examples offer.
+ 
+-Pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
++pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
+ explicitly imported for newer users.
+ 
+ These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
+@@ -893,7 +893,7 @@ The :ref:`Plotting <visualization>` docs.
+ `Annotate a time-series plot #2
+ <https://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
+ 
+-`Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
++`Generate Embedded plots in excel files using pandas, Vincent and xlsxwriter
+ <https://pandas-xlsxwriter-charts.readthedocs.io/>`__
+ 
+ `Boxplot for each quartile of a stratifying variable
+diff --git a/doc/source/user_guide/dsintro.rst b/doc/source/user_guide/dsintro.rst
+index 075787d3b..9cf27bc28 100644
+--- a/doc/source/user_guide/dsintro.rst
++++ b/doc/source/user_guide/dsintro.rst
+@@ -78,13 +78,13 @@ Series can be instantiated from dicts:
+ 
+    When the data is a dict, and an index is not passed, the ``Series`` index
+    will be ordered by the dict's insertion order, if you're using Python
+-   version >= 3.6 and Pandas version >= 0.23.
++   version >= 3.6 and pandas version >= 0.23.
+ 
+-   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
++   If you're using Python < 3.6 or pandas < 0.23, and an index is not passed,
+    the ``Series`` index will be the lexically ordered list of dict keys.
+ 
+ In the example above, if you were on a Python version lower than 3.6 or a
+-Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
++pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
+ order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
+ 
+ If an index is passed, the values in data corresponding to the labels in the
+@@ -151,7 +151,7 @@ index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
+ 
+ :attr:`Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
+ Briefly, an ExtensionArray is a thin wrapper around one or more *concrete* arrays like a
+-:class:`numpy.ndarray`. Pandas knows how to take an ``ExtensionArray`` and
++:class:`numpy.ndarray`. pandas knows how to take an ``ExtensionArray`` and
+ store it in a ``Series`` or a column of a ``DataFrame``.
+ See :ref:`basics.dtypes` for more.
+ 
+@@ -290,9 +290,9 @@ based on common sense rules.
+ 
+    When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
+    columns will be ordered by the dict's insertion order, if you are using
+-   Python version >= 3.6 and Pandas >= 0.23.
++   Python version >= 3.6 and pandas >= 0.23.
+ 
+-   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
++   If you are using Python < 3.6 or pandas < 0.23, and ``columns`` is not
+    specified, the ``DataFrame`` columns will be the lexically ordered list of dict
+    keys.
+ 
+diff --git a/doc/source/user_guide/groupby.rst b/doc/source/user_guide/groupby.rst
+index 5927f1a41..8f9afb95e 100644
+--- a/doc/source/user_guide/groupby.rst
++++ b/doc/source/user_guide/groupby.rst
+@@ -576,7 +576,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
+       grouped['C'].agg(['sum', 'sum'])
+ 
+ 
+-   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
++   pandas *does* allow you to provide multiple lambdas. In this case, pandas
+    will mangle the name of the (nameless) lambda functions, appending ``_<i>``
+    to each subsequent lambda.
+ 
+@@ -599,7 +599,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
+ 
+ - The keywords are the *output* column names
+ - The values are tuples whose first element is the column to select
+-  and the second element is the aggregation to apply to that column. Pandas
++  and the second element is the aggregation to apply to that column. pandas
+   provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']``
+   to make it clearer what the arguments are. As usual, the aggregation can
+   be a callable or a string alias.
+diff --git a/doc/source/user_guide/indexing.rst b/doc/source/user_guide/indexing.rst
+index fb815b3a9..c5279832f 100644
+--- a/doc/source/user_guide/indexing.rst
++++ b/doc/source/user_guide/indexing.rst
+@@ -46,7 +46,7 @@ Different choices for indexing
+ ------------------------------
+ 
+ Object selection has had a number of user-requested additions in order to
+-support more explicit location based indexing. Pandas now supports three types
++support more explicit location based indexing. pandas now supports three types
+ of multi-axis indexing.
+ 
+ * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
+@@ -237,7 +237,7 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+ 
+     In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+     In [2]: df.two = [4, 5, 6]
+-    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
++    UserWarning: pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
+     In [3]: df
+     Out[3]:
+        one
+@@ -431,7 +431,7 @@ Selection by position
+    This is sometimes called ``chained assignment`` and should be avoided.
+    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
+ 
+-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
++pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+ 
+ The ``.iloc`` attribute is the primary access method. The following are valid inputs:
+ 
+@@ -1801,7 +1801,7 @@ about!
+ 
+ Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
+ obvious chained indexing going on. **These** are the bugs that
+-``SettingWithCopy`` is designed to catch! Pandas is probably trying to warn you
++``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you
+ that you've done this:
+ 
+ .. code-block:: python
+@@ -1824,7 +1824,7 @@ When you use chained indexing, the order and type of the indexing operation
+ partially determine whether the result is a slice into the original object, or
+ a copy of the slice.
+ 
+-Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
++pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+ slice is frequently not intentional, but a mistake caused by chained indexing
+ returning a copy where a slice was expected.
+ 
+diff --git a/doc/source/user_guide/integer_na.rst b/doc/source/user_guide/integer_na.rst
+index a45d7a4fa..a0fb817c5 100644
+--- a/doc/source/user_guide/integer_na.rst
++++ b/doc/source/user_guide/integer_na.rst
+@@ -30,7 +30,7 @@ numbers.
+ Construction
+ ------------
+ 
+-Pandas can represent integer data with possibly missing values using
++pandas can represent integer data with possibly missing values using
+ :class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
+ implemented within pandas.
+ 
+diff --git a/doc/source/user_guide/io.rst b/doc/source/user_guide/io.rst
+index df6b44ac6..1e178b65f 100644
+--- a/doc/source/user_guide/io.rst
++++ b/doc/source/user_guide/io.rst
+@@ -930,7 +930,7 @@ take full advantage of the flexibility of the date parsing API:
+                     date_parser=pd.io.date_converters.parse_date_time)
+    df
+ 
+-Pandas will try to call the ``date_parser`` function in three different ways. If
++pandas will try to call the ``date_parser`` function in three different ways. If
+ an exception is raised, the next one is tried:
+ 
+ 1. ``date_parser`` is first called with one or more arrays as arguments,
+@@ -975,7 +975,7 @@ a single date rather than the entire array.
+ Parsing a CSV with mixed timezones
+ ++++++++++++++++++++++++++++++++++
+ 
+-Pandas cannot natively represent a column or index with mixed timezones. If your CSV
++pandas cannot natively represent a column or index with mixed timezones. If your CSV
+ file contains columns with a mixture of timezones, the default result will be
+ an object-dtype column with strings, even with ``parse_dates``.
+ 
+@@ -2230,7 +2230,7 @@ The full list of types supported are described in the Table Schema
+ spec. This table shows the mapping from pandas types:
+ 
+ =============== =================
+-Pandas type     Table Schema type
++pandas type     Table Schema type
+ =============== =================
+ int64           integer
+ float64         number
+@@ -2626,7 +2626,7 @@ that contain URLs.
+ .. ipython:: python
+ 
+    url_df = pd.DataFrame({
+-       'name': ['Python', 'Pandas'],
++       'name': ['Python', 'pandas'],
+        'url': ['https://www.python.org/', 'https://pandas.pydata.org']})
+    print(url_df.to_html(render_links=True))
+ 
+@@ -3113,7 +3113,7 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
+ Writing Excel files to memory
+ +++++++++++++++++++++++++++++
+ 
+-Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
++pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
+ ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
+ 
+ .. code-block:: python
+@@ -3147,7 +3147,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO``
+ Excel writer engines
+ ''''''''''''''''''''
+ 
+-Pandas chooses an Excel writer via two methods:
++pandas chooses an Excel writer via two methods:
+ 
+ 1. the ``engine`` keyword argument
+ 2. the filename extension (via the default specified in config options)
+@@ -4676,7 +4676,7 @@ Several caveats.
+ 
+ * Duplicate column names and non-string columns names are not supported.
+ * The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
+-  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
++  indexes. This extra column can cause problems for non-pandas consumers that are not expecting it. You can
+   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
+ * Index level names, if specified, must be strings.
+ * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+@@ -4834,7 +4834,7 @@ ORC
+ .. versionadded:: 1.0.0
+ 
+ Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
+-for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
++for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
+ ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+ 
+ .. _io.sql:
+diff --git a/doc/source/user_guide/missing_data.rst b/doc/source/user_guide/missing_data.rst
+index 2e68a0598..8df0757f0 100644
+--- a/doc/source/user_guide/missing_data.rst
++++ b/doc/source/user_guide/missing_data.rst
+@@ -78,7 +78,7 @@ Integer dtypes and missing data
+ -------------------------------
+ 
+ Because ``NaN`` is a float, a column of integers with even one missing values
+-is cast to floating-point dtype (see :ref:`gotchas.intna` for more). Pandas
++is cast to floating-point dtype (see :ref:`gotchas.intna` for more). pandas
+ provides a nullable integer array, which can be used by explicitly requesting
+ the dtype:
+ 
+@@ -278,9 +278,9 @@ known value" is available at every time point.
+ :meth:`~DataFrame.ffill` is equivalent to ``fillna(method='ffill')``
+ and :meth:`~DataFrame.bfill` is equivalent to ``fillna(method='bfill')``
+ 
+-.. _missing_data.PandasObject:
++.. _missing_data.pandasObject:
+ 
+-Filling with a PandasObject
++Filling with a pandasObject
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
+@@ -762,7 +762,7 @@ However, these can be filled in using :meth:`~DataFrame.fillna` and it will work
+    reindexed[crit.fillna(False)]
+    reindexed[crit.fillna(True)]
+ 
+-Pandas provides a nullable integer dtype, but you must explicitly request it
++pandas provides a nullable integer dtype, but you must explicitly request it
+ when creating the series or column. Notice that we use a capital "I" in
+ the ``dtype="Int64"``.
+ 
+diff --git a/doc/source/user_guide/scale.rst b/doc/source/user_guide/scale.rst
+index cddc3cb26..7024ca195 100644
+--- a/doc/source/user_guide/scale.rst
++++ b/doc/source/user_guide/scale.rst
+@@ -4,7 +4,7 @@
+ Scaling to large datasets
+ *************************
+ 
+-Pandas provides data structures for in-memory analytics, which makes using pandas
++pandas provides data structures for in-memory analytics, which makes using pandas
+ to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets
+ that are a sizable fraction of memory become unwieldy, as some pandas operations need
+ to make intermediate copies.
+@@ -13,7 +13,7 @@ This document provides a few recommendations for scaling your analysis to larger
+ It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis
+ for datasets that fit in memory.
+ 
+-But first, it's worth considering *not using pandas*. Pandas isn't the right
++But first, it's worth considering *not using pandas*. pandas isn't the right
+ tool for all situations. If you're working with very large datasets and a tool
+ like PostgreSQL fits your needs, then you should probably be using that.
+ Assuming you want or need the expressiveness and power of pandas, let's carry on.
+@@ -231,7 +231,7 @@ different library that implements these out-of-core algorithms for you.
+ Use other libraries
+ -------------------
+ 
+-Pandas is just one library offering a DataFrame API. Because of its popularity,
++pandas is just one library offering a DataFrame API. Because of its popularity,
+ pandas' API has become something of a standard that other libraries implement.
+ The pandas documentation maintains a list of libraries implementing a DataFrame API
+ in :ref:`our ecosystem page <ecosystem.out-of-core>`.
+@@ -260,7 +260,7 @@ Inspecting the ``ddf`` object, we see a few things
+ * There are new attributes like ``.npartitions`` and ``.divisions``
+ 
+ The partitions and divisions are how Dask parallelizes computation. A **Dask**
+-DataFrame is made up of many **Pandas** DataFrames. A single method call on a
++DataFrame is made up of many pandas DataFrames. A single method call on a
+ Dask DataFrame ends up making many pandas method calls, and Dask knows how to
+ coordinate everything to get the result.
+ 
+diff --git a/doc/source/user_guide/sparse.rst b/doc/source/user_guide/sparse.rst
+index 8588fac4a..6aef901c0 100644
+--- a/doc/source/user_guide/sparse.rst
++++ b/doc/source/user_guide/sparse.rst
+@@ -6,7 +6,7 @@
+ Sparse data structures
+ **********************
+ 
+-Pandas provides data structures for efficiently storing sparse data.
++pandas provides data structures for efficiently storing sparse data.
+ These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
+ objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
+ can be chosen, including 0) is omitted. The compressed values are not actually stored in the array.
+@@ -115,7 +115,7 @@ Sparse accessor
+ 
+ .. versionadded:: 0.24.0
+ 
+-Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
++pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
+ for categorical data, and ``.dt`` for datetime-like data. This namespace provides
+ attributes and methods that are specific to sparse data.
+ 
+diff --git a/doc/source/user_guide/timedeltas.rst b/doc/source/user_guide/timedeltas.rst
+index 3439a0a4c..b28e127be 100644
+--- a/doc/source/user_guide/timedeltas.rst
++++ b/doc/source/user_guide/timedeltas.rst
+@@ -103,7 +103,7 @@ The ``unit`` keyword argument specifies the unit of the Timedelta:
+ Timedelta limitations
+ ~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas represents ``Timedeltas`` in nanosecond resolution using
++pandas represents ``Timedeltas`` in nanosecond resolution using
+ 64 bit integers. As such, the 64 bit integer limits determine
+ the ``Timedelta`` limits.
+ 
+diff --git a/doc/source/user_guide/timeseries.rst b/doc/source/user_guide/timeseries.rst
+index a09a5576c..b8612242e 100644
+--- a/doc/source/user_guide/timeseries.rst
++++ b/doc/source/user_guide/timeseries.rst
+@@ -1519,7 +1519,7 @@ Converting to Python datetimes
+ Resampling
+ ----------
+ 
+-Pandas has a simple, powerful, and efficient functionality for performing
++pandas has a simple, powerful, and efficient functionality for performing
+ resampling operations during frequency conversion (e.g., converting secondly
+ data into 5-minutely data). This is extremely common in, but not limited to,
+ financial applications.
+diff --git a/doc/source/user_guide/visualization.rst b/doc/source/user_guide/visualization.rst
+index 451ddf046..dabb5b281 100644
+--- a/doc/source/user_guide/visualization.rst
++++ b/doc/source/user_guide/visualization.rst
+@@ -761,7 +761,7 @@ See the `matplotlib pie documentation <https://matplotlib.org/api/pyplot_api.htm
+ Plotting with missing data
+ --------------------------
+ 
+-Pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
++pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
+ that contain missing data. Missing values are dropped, left out, or filled
+ depending on the plot type.
+ 
+@@ -1197,7 +1197,7 @@ Custom formatters for timeseries plots
+ 
+ .. versionchanged:: 1.0.0
+ 
+-Pandas provides custom formatters for timeseries plots. These change the
++pandas provides custom formatters for timeseries plots. These change the
+ formatting of the axis labels for dates and times. By default,
+ the custom formatters are applied only to plots created by pandas with
+ :meth:`DataFrame.plot` or :meth:`Series.plot`. To have them apply to all
+@@ -1683,4 +1683,4 @@ to generate the plots. Some libraries implementing a backend for pandas are list
+ on the ecosystem :ref:`ecosystem.visualization` page.
+ 
+ Developers guide can be found at
+-https://dev.pandas.io/docs/development/extending.html#plotting-backends
+\ No newline at end of file
++https://dev.pandas.io/docs/development/extending.html#plotting-backends
+diff --git a/doc/source/whatsnew/v0.11.0.rst b/doc/source/whatsnew/v0.11.0.rst
+index 6c13a125a..256ee29d2 100644
+--- a/doc/source/whatsnew/v0.11.0.rst
++++ b/doc/source/whatsnew/v0.11.0.rst
+@@ -12,7 +12,7 @@ Data have had quite a number of additions, and Dtype support is now full-fledged
+ There are also a number of important API changes that long-time pandas users should
+ pay close attention to.
+ 
+-There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
++There is a new section in the documentation, :ref:`10 Minutes to pandas <10min>`,
+ primarily geared to new users.
+ 
+ There is a new section in the documentation, :ref:`Cookbook <cookbook>`, a collection
+@@ -24,7 +24,7 @@ Selection choices
+ ~~~~~~~~~~~~~~~~~
+ 
+ Starting in 0.11.0, object selection has had a number of user-requested additions in
+-order to support more explicit location based indexing. Pandas now supports
++order to support more explicit location based indexing. pandas now supports
+ three types of multi-axis indexing.
+ 
+ - ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found, allowed inputs are:
+diff --git a/doc/source/whatsnew/v0.12.0.rst b/doc/source/whatsnew/v0.12.0.rst
+index 9e864f63c..fa4d1a728 100644
+--- a/doc/source/whatsnew/v0.12.0.rst
++++ b/doc/source/whatsnew/v0.12.0.rst
+@@ -166,10 +166,10 @@ API changes
+     until success is also valid
+ 
+   - The internal ``pandas`` class hierarchy has changed (slightly). The
+-    previous ``PandasObject`` now is called ``PandasContainer`` and a new
+-    ``PandasObject`` has become the base class for ``PandasContainer`` as well
++    previous ``pandasObject`` now is called ``pandasContainer`` and a new
++    ``pandasObject`` has become the base class for ``pandasContainer`` as well
+     as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
+-    ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
++    ``SparseArray`` (+ their base classes). Currently, ``pandasObject``
+     provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
+ 
+   - New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
+@@ -492,7 +492,7 @@ Bug fixes
+     iterated over when regex=False (:issue:`4115`)
+   - Fixed bug in the parsing of microseconds when using the ``format``
+     argument in ``to_datetime`` (:issue:`4152`)
+-  - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
++  - Fixed bug in ``pandasAutoDateLocator`` where ``invert_xaxis`` triggered
+     incorrectly ``MilliSecondLocator``  (:issue:`3990`)
+   - Fixed bug in plotting that wasn't raising on invalid colormap for
+     matplotlib 1.1.1 (:issue:`4215`)
+diff --git a/doc/source/whatsnew/v0.13.0.rst b/doc/source/whatsnew/v0.13.0.rst
+index 5a904d6c8..68f16c73f 100644
+--- a/doc/source/whatsnew/v0.13.0.rst
++++ b/doc/source/whatsnew/v0.13.0.rst
+@@ -668,7 +668,7 @@ Enhancements
+ 
+ - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
+ 
+-- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into Pandas objects
++- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into pandas objects
+ 
+   .. code-block:: python
+ 
+@@ -1294,7 +1294,7 @@ Bug fixes
+   format which doesn't have a row for index names (:issue:`4702`)
+ - Bug when trying to use an out-of-bounds date as an object dtype
+   (:issue:`5312`)
+-- Bug when trying to display an embedded PandasObject (:issue:`5324`)
++- Bug when trying to display an embedded pandasObject (:issue:`5324`)
+ - Allows operating of Timestamps to return a datetime if the result is out-of-bounds
+   related (:issue:`5312`)
+ - Fix return value/type signature of ``initObjToJSON()`` to be compatible
+diff --git a/doc/source/whatsnew/v0.13.1.rst b/doc/source/whatsnew/v0.13.1.rst
+index 6fe010be8..ac1d0b609 100644
+--- a/doc/source/whatsnew/v0.13.1.rst
++++ b/doc/source/whatsnew/v0.13.1.rst
+@@ -17,7 +17,7 @@ Highlights include:
+ - Will intelligently limit display precision for datetime/timedelta formats.
+ - Enhanced Panel :meth:`~pandas.Panel.apply` method.
+ - Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
+-- Our pandas ecosystem is growing, We now feature related projects in a new :ref:`Pandas Ecosystem<ecosystem>` section.
++- Our pandas ecosystem is growing, We now feature related projects in a new :ref:`pandas Ecosystem<ecosystem>` section.
+ - Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
+ - Even though it may only be of interest to devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
+ 
+diff --git a/doc/source/whatsnew/v0.14.0.rst b/doc/source/whatsnew/v0.14.0.rst
+index 0041f6f03..fa1a54763 100644
+--- a/doc/source/whatsnew/v0.14.0.rst
++++ b/doc/source/whatsnew/v0.14.0.rst
+@@ -1084,4 +1084,4 @@ Bug fixes
+ Contributors
+ ~~~~~~~~~~~~
+ 
+-.. contributors:: v0.13.1..v0.14.0
+\ No newline at end of file
++.. contributors:: v0.13.1..v0.14.0
+diff --git a/doc/source/whatsnew/v0.15.0.rst b/doc/source/whatsnew/v0.15.0.rst
+index fc190908b..cbd18d089 100644
+--- a/doc/source/whatsnew/v0.15.0.rst
++++ b/doc/source/whatsnew/v0.15.0.rst
+@@ -42,7 +42,7 @@ users upgrade to this version.
+ .. warning::
+ 
+    In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
++   but instead subclass ``pandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
+    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
+ 
+ .. warning::
+@@ -887,7 +887,7 @@ Internal refactoring
+ ^^^^^^^^^^^^^^^^^^^^
+ 
+ In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
+-but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This
++but instead subclass ``pandasObject``, similarly to the rest of the pandas objects. This
+ change allows very easy sub-classing and creation of new index types. This should be
+ a transparent change with only very limited API implications (:issue:`5080`, :issue:`7439`, :issue:`7796`, :issue:`8024`, :issue:`8367`, :issue:`7997`, :issue:`8522`):
+ 
+diff --git a/doc/source/whatsnew/v0.16.1.rst b/doc/source/whatsnew/v0.16.1.rst
+index 502c1287e..5e0db2d5a 100644
+--- a/doc/source/whatsnew/v0.16.1.rst
++++ b/doc/source/whatsnew/v0.16.1.rst
+@@ -13,7 +13,7 @@ We recommend that all users upgrade to this version.
+ Highlights include:
+ 
+ - Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
+-- New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
++- New section on how-to-contribute to pandas, see :ref:`here <contributing>`
+ - Revised "Merge, join, and concatenate" documentation, including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
+ - New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enhancements.sample>`
+ - The default ``Index`` printing has changed to a more uniform format, see :ref:`here <whatsnew_0161.index_repr>`
+diff --git a/doc/source/whatsnew/v0.16.2.rst b/doc/source/whatsnew/v0.16.2.rst
+index 543f9c6bb..c71b440fd 100644
+--- a/doc/source/whatsnew/v0.16.2.rst
++++ b/doc/source/whatsnew/v0.16.2.rst
+@@ -14,7 +14,7 @@ We recommend that all users upgrade to this version.
+ Highlights include:
+ 
+ - A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
+-- Documentation on how to use numba_ with *pandas*, see :ref:`here <enhancingperf.numba>`
++- Documentation on how to use numba_ with pandas, see :ref:`here <enhancingperf.numba>`
+ 
+ 
+ .. contents:: What's new in v0.16.2
+diff --git a/doc/source/whatsnew/v0.17.0.rst b/doc/source/whatsnew/v0.17.0.rst
+index 67abad659..95db16a48 100644
+--- a/doc/source/whatsnew/v0.17.0.rst
++++ b/doc/source/whatsnew/v0.17.0.rst
+@@ -50,7 +50,7 @@ Highlights include:
+ - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
+ - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
+ - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
+-- Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
++- Documentation comparing SAS to pandas, see :ref:`here <compare_with_sas>`
+ - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+ - Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
+ - Compatibility with Python 3.5 (:issue:`11097`)
+@@ -762,7 +762,7 @@ Usually you simply want to know which values are null.
+ .. warning::
+ 
+    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
+-   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
++   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+ 
+    .. ipython:: python
+ 
+@@ -909,7 +909,7 @@ Other API changes
+ - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
+ - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
+ - When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
+-  was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
++  was automatically promoted to the ``complex128`` dtype. pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
+ - some numeric reduction operators would return ``ValueError``, rather than ``TypeError`` on object types that includes strings and numbers (:issue:`11131`)
+ - Passing currently unsupported ``chunksize`` argument to ``read_excel`` or ``ExcelFile.parse`` will now raise ``NotImplementedError`` (:issue:`8011`)
+ - Allow an ``ExcelFile`` object to be passed into ``read_excel`` (:issue:`11198`)
+diff --git a/doc/source/whatsnew/v0.17.1.rst b/doc/source/whatsnew/v0.17.1.rst
+index 55080240f..6a667cc0f 100644
+--- a/doc/source/whatsnew/v0.17.1.rst
++++ b/doc/source/whatsnew/v0.17.1.rst
+@@ -8,7 +8,7 @@ v0.17.1 (November 21, 2015)
+ 
+ .. note::
+ 
+-   We are proud to announce that *pandas* has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
++   We are proud to announce that pandas has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of pandas as a world-class open-source project.
+ 
+ .. _numfocus organization: http://www.numfocus.org/blog/numfocus-announces-new-fiscally-sponsored-project-pandas
+ 
+diff --git a/doc/source/whatsnew/v0.18.0.rst b/doc/source/whatsnew/v0.18.0.rst
+index e371f1d9f..181a5c1e1 100644
+--- a/doc/source/whatsnew/v0.18.0.rst
++++ b/doc/source/whatsnew/v0.18.0.rst
+@@ -1274,7 +1274,7 @@ Bug fixes
+ - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
+ - Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
+ - Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)
+-- Bug in building *pandas* with debugging symbols (:issue:`12123`)
++- Bug in building pandas with debugging symbols (:issue:`12123`)
+ 
+ 
+ - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
+diff --git a/doc/source/whatsnew/v0.19.0.rst b/doc/source/whatsnew/v0.19.0.rst
+index 7390b8021..c13e33a5d 100644
+--- a/doc/source/whatsnew/v0.19.0.rst
++++ b/doc/source/whatsnew/v0.19.0.rst
+@@ -301,7 +301,7 @@ Categorical concatenation
+ Semi-month offsets
+ ^^^^^^^^^^^^^^^^^^
+ 
+-Pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonthBegin`` ('SMS').
++pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonthBegin`` ('SMS').
+ These provide date offsets anchored (by default) to the 15th and end of month, and 15th and 1st of month respectively.
+ (:issue:`1543`)
+ 
+@@ -388,7 +388,7 @@ Google BigQuery enhancements
+ Fine-grained NumPy errstate
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. Pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas code base. (:issue:`13109`, :issue:`13145`)
++Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas code base. (:issue:`13109`, :issue:`13145`)
+ 
+ After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from your code. These are likely legitimate, and the underlying cause likely existed in the code when using previous versions of pandas that simply silenced the warning. Use `numpy.errstate <http://docs.scipy.org/doc/numpy/reference/generated/numpy.errstate.html>`__ around the source of the ``RuntimeWarning`` to control how these conditions are handled.
+ 
+@@ -1372,7 +1372,7 @@ Deprecations
+ - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
+ - ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
+ - ``pd.tseries.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property (:issue:`13727`)
+-- ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion (:issue:`13564`).
++- ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion (:issue:`13564`).
+ - ``pandas.tseries.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.tseries.frequencies.to_offset(freq).rule_code`` instead (:issue:`13874`)
+ - ``pandas.tseries.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq`` (:issue:`13874`)
+ - ``Categorical.from_array`` has been deprecated and will be removed in a future version (:issue:`13854`)
+diff --git a/doc/source/whatsnew/v0.19.2.rst b/doc/source/whatsnew/v0.19.2.rst
+index 023bc7808..f7985aa18 100644
+--- a/doc/source/whatsnew/v0.19.2.rst
++++ b/doc/source/whatsnew/v0.19.2.rst
+@@ -18,7 +18,7 @@ We recommend that all users upgrade to this version.
+ Highlights include:
+ 
+ - Compatibility with Python 3.6
+-- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
++- Added a `pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+ 
+ 
+ .. contents:: What's new in v0.19.2
+diff --git a/doc/source/whatsnew/v0.20.0.rst b/doc/source/whatsnew/v0.20.0.rst
+index 06bbd9679..1b6fd9708 100644
+--- a/doc/source/whatsnew/v0.20.0.rst
++++ b/doc/source/whatsnew/v0.20.0.rst
+@@ -26,7 +26,7 @@ Highlights include:
+ 
+ .. warning::
+ 
+-  Pandas has changed the internal structure and layout of the code base.
++  pandas has changed the internal structure and layout of the code base.
+   This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
+ 
+ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
+@@ -243,7 +243,7 @@ The default is to infer the compression type from the extension (``compression='
+ UInt64 support improved
+ ^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas has significantly improved support for operations involving unsigned,
++pandas has significantly improved support for operations involving unsigned,
+ or purely non-negative, integers. Previously, handling these integers would
+ result in improper rounding or data-type casting, leading to incorrect results.
+ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
+@@ -333,7 +333,7 @@ You must enable this by setting the ``display.html.table_schema`` option to ``Tr
+ SciPy sparse matrix from/to SparseDataFrame
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
++pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+ See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
+ 
+ All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+@@ -1184,8 +1184,8 @@ Other API changes
+ - ``NaT`` will now correctly return ``np.nan`` for ``Timedelta`` and ``Period`` accessors such as ``days`` and ``quarter`` (:issue:`15782`)
+ - ``NaT`` will now returns ``NaT`` for ``tz_localize`` and ``tz_convert``
+   methods (:issue:`15830`)
+-- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``PandasError``, if called with scalar inputs and not axes (:issue:`15541`)
+-- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
++- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandasError``, if called with scalar inputs and not axes (:issue:`15541`)
++- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.pandasError``, if called with scalar inputs and not axes; The exception ``pandasError`` is removed as well. (:issue:`15541`)
+ - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
+ 
+ 
+@@ -1355,7 +1355,7 @@ Deprecate Panel
+ ^^^^^^^^^^^^^^^
+ 
+ ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
+-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
++with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
+ provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
+ 
+ .. code-block:: ipython
+@@ -1565,7 +1565,7 @@ Removal of prior version deprecations/changes
+   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
+   See the `R interfacing docs <https://pandas.pydata.org/pandas-docs/version/0.20/r_interface.html>`__ for more details.
+ - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
+-  Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
++  Similar functionality can be found in the `Google2pandas <https://github.com/panalysis/Google2pandas>`__ package.
+ - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
+ - ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionality can be found in the `statsmodels <https://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
+ - The ``TimeSeries`` and ``SparseTimeSeries`` classes, aliases of ``Series``
+diff --git a/doc/source/whatsnew/v0.21.0.rst b/doc/source/whatsnew/v0.21.0.rst
+index 71969c4de..0ab575ba8 100644
+--- a/doc/source/whatsnew/v0.21.0.rst
++++ b/doc/source/whatsnew/v0.21.0.rst
+@@ -900,13 +900,13 @@ New behavior:
+ No automatic Matplotlib converters
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas no longer registers our ``date``, ``time``, ``datetime``,
++pandas no longer registers our ``date``, ``time``, ``datetime``,
+ ``datetime64``, and ``Period`` converters with matplotlib when pandas is
+ imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
+ nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
+ must explicitly register these methods:
+ 
+-Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
++pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
+ converters on first-use (:issue:`17710`).
+ 
+ .. note::
+diff --git a/doc/source/whatsnew/v0.21.1.rst b/doc/source/whatsnew/v0.21.1.rst
+index 64f333983..a27c77ceb 100644
+--- a/doc/source/whatsnew/v0.21.1.rst
++++ b/doc/source/whatsnew/v0.21.1.rst
+@@ -34,7 +34,7 @@ Highlights include:
+ Restore Matplotlib datetime converter registration
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas implements some matplotlib converters for nicely formatting the axis
++pandas implements some matplotlib converters for nicely formatting the axis
+ labels on plots with ``datetime`` or ``Period`` values. Prior to pandas 0.21.0,
+ these were implicitly registered with matplotlib, as a side effect of ``import
+ pandas``.
+diff --git a/doc/source/whatsnew/v0.22.0.rst b/doc/source/whatsnew/v0.22.0.rst
+index 75949a90d..1110e11b7 100644
+--- a/doc/source/whatsnew/v0.22.0.rst
++++ b/doc/source/whatsnew/v0.22.0.rst
+@@ -20,7 +20,7 @@ release note (singular!).
+ Backwards incompatible API changes
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
++pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
+ summary is that
+ 
+ * The sum of an empty or all-*NA* ``Series`` is now ``0``
+diff --git a/doc/source/whatsnew/v0.23.0.rst b/doc/source/whatsnew/v0.23.0.rst
+index b9e1b5060..34bb1c9cc 100644
+--- a/doc/source/whatsnew/v0.23.0.rst
++++ b/doc/source/whatsnew/v0.23.0.rst
+@@ -189,7 +189,7 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
+ Extending pandas with custom types (experimental)
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
++pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
+ arrays as columns in a DataFrame or values in a Series. This allows third-party
+ libraries to implement extensions to NumPy's types, similar to how pandas
+ implemented categoricals, datetimes with timezones, periods, and intervals.
+@@ -553,7 +553,7 @@ Other enhancements
+ - :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
+ - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
+ - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
+-  the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
++  the pandas-GBQ library version 0.4.0. Adds intersphinx mapping to pandas-GBQ
+   library. (:issue:`20564`)
+ - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
+ - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
+@@ -593,7 +593,7 @@ Instantiation from dicts preserves dict insertion order for python 3.6+
+ Until Python 3.6, dicts in Python had no formally defined ordering. For Python
+ version 3.6 and later, dicts are ordered by insertion order, see
+ `PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
+-Pandas will use the dict's insertion order, when creating a ``Series`` or
++pandas will use the dict's insertion order, when creating a ``Series`` or
+ ``DataFrame`` from a dict and you're using Python version 3.6 or
+ higher. (:issue:`19884`)
+ 
+@@ -643,7 +643,7 @@ Deprecate Panel
+ ^^^^^^^^^^^^^^^
+ 
+ ``Panel`` was deprecated in the 0.20.x release, showing as a ``DeprecationWarning``. Using ``Panel`` will now show a ``FutureWarning``. The recommended way to represent 3-D data are
+-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
++with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
+ provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`, :issue:`18324`).
+ 
+ .. code-block:: ipython
+@@ -884,7 +884,7 @@ Extraction of matching patterns from strings
+ 
+ By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+ ``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+-extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
++extracted). As of pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+ ``expand`` is set to ``False``. Finally, ``None`` was an accepted value for
+ the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
+ 
+@@ -1175,7 +1175,7 @@ Performance improvements
+ Documentation changes
+ ~~~~~~~~~~~~~~~~~~~~~
+ 
+-Thanks to all of the contributors who participated in the Pandas Documentation
++Thanks to all of the contributors who participated in the pandas Documentation
+ Sprint, which took place on March 10th. We had about 500 participants from over
+ 30 locations across the world. You should notice that many of the
+ :ref:`API docstrings <api>` have greatly improved.
+diff --git a/doc/source/whatsnew/v0.23.2.rst b/doc/source/whatsnew/v0.23.2.rst
+index 9f24092d1..99650e829 100644
+--- a/doc/source/whatsnew/v0.23.2.rst
++++ b/doc/source/whatsnew/v0.23.2.rst
+@@ -11,7 +11,7 @@ and bug fixes. We recommend that all users upgrade to this version.
+ 
+ .. note::
+ 
+-   Pandas 0.23.2 is first pandas release that's compatible with
++   pandas 0.23.2 is first pandas release that's compatible with
+    Python 3.7 (:issue:`20552`)
+ 
+ .. warning::
+diff --git a/doc/source/whatsnew/v0.24.0.rst b/doc/source/whatsnew/v0.24.0.rst
+index 45399792b..781ebfc3f 100644
+--- a/doc/source/whatsnew/v0.24.0.rst
++++ b/doc/source/whatsnew/v0.24.0.rst
+@@ -38,7 +38,7 @@ Enhancements
+ Optional integer NA support
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
++pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+ 
+ .. note::
+ 
+@@ -137,8 +137,8 @@ If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.t
+    pd.Series(idx).to_numpy()
+ 
+ For Series and Indexes backed by normal NumPy arrays, :attr:`Series.array` will return a
+-new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
+-:class:`numpy.ndarray`. :class:`~arrays.PandasArray` isn't especially useful on its own,
++new :class:`arrays.pandasArray`, which is a thin (no-copy) wrapper around a
++:class:`numpy.ndarray`. :class:`~arrays.pandasArray` isn't especially useful on its own,
+ but it does provide the same interface as any extension array defined in pandas or by
+ a third-party library.
+ 
+@@ -170,16 +170,16 @@ See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
+    pd.array(['a', 'b', 'c'], dtype='category')
+ 
+ Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
+-will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
++will return a new :class:`arrays.pandasArray`, which is just a thin (no-copy)
+ wrapper around a :class:`numpy.ndarray` that satisfies the pandas extension array interface.
+ 
+ .. ipython:: python
+ 
+    pd.array([1, 2, 3])
+ 
+-On their own, a :class:`~arrays.PandasArray` isn't a very useful object.
++On their own, a :class:`~arrays.pandasArray` isn't a very useful object.
+ But if you need write low-level code that works generically for any
+-:class:`~pandas.api.extensions.ExtensionArray`, :class:`~arrays.PandasArray`
++:class:`~pandas.api.extensions.ExtensionArray`, :class:`~arrays.pandasArray`
+ satisfies that need.
+ 
+ Notice that by default, if no ``dtype`` is specified, the dtype of the returned
+@@ -384,7 +384,7 @@ Other enhancements
+ - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
+ - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
+ - :func:`DataFrame.to_gbq` and :func:`read_gbq` signature and documentation updated to
+-  reflect changes from the `Pandas-GBQ library version 0.8.0
++  reflect changes from the `pandas-GBQ library version 0.8.0
+   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
+   Adds a ``credentials`` argument, which enables the use of any kind of
+   `google-auth credentials
+@@ -432,7 +432,7 @@ Other enhancements
+ Backwards incompatible API changes
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Pandas 0.24.0 includes a number of API breaking changes.
++pandas 0.24.0 includes a number of API breaking changes.
+ 
+ 
+ .. _whatsnew_0240.api_breaking.deps:
+@@ -1217,7 +1217,7 @@ Extension type changes
+ 
+ **Equality and hashability**
+ 
+-Pandas now requires that extension dtypes be hashable (i.e. the respective
++pandas now requires that extension dtypes be hashable (i.e. the respective
+ ``ExtensionDtype`` objects; hashability is not a requirement for the values
+ of the corresponding ``ExtensionArray``). The base class implements
+ a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
+@@ -1925,7 +1925,7 @@ Build changes
+ Other
+ ^^^^^
+ 
+-- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
++- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before pandas. (:issue:`24113`)
+ 
+ 
+ .. _whatsnew_0.24.0.contributors:
+diff --git a/doc/source/whatsnew/v0.25.0.rst b/doc/source/whatsnew/v0.25.0.rst
+index 44558fd63..5b4f054cd 100644
+--- a/doc/source/whatsnew/v0.25.0.rst
++++ b/doc/source/whatsnew/v0.25.0.rst
+@@ -36,7 +36,7 @@ Enhancements
+ Groupby aggregation with relabeling
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas has added special groupby behavior, known as "named aggregation", for naming the
++pandas has added special groupby behavior, known as "named aggregation", for naming the
+ output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
+ 
+ .. ipython:: python
+@@ -53,7 +53,7 @@ output columns when applying multiple aggregation functions to specific columns
+ 
+ Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
+ should be tuples where the first element is the column selection, and the second element is the
+-aggregation function to apply. Pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
++aggregation function to apply. pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
+ what the arguments to the function are, but plain tuples are accepted as well.
+ 
+ .. ipython:: python
+@@ -425,7 +425,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
+ Categorical dtypes are preserved during groupby
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
++Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. pandas now will preserve these dtypes. (:issue:`18502`)
+ 
+ .. ipython:: python
+ 
+@@ -545,14 +545,14 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
+ ``__str__`` methods now call ``__repr__`` rather than vice versa
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas has until now mostly defined string representations in a Pandas objects's
++pandas has until now mostly defined string representations in a pandas objects's
+ ``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
+ method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
+-In Pandas 0.25, the string representations of Pandas objects are now generally
++In pandas 0.25, the string representations of pandas objects are now generally
+ defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
+ the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
+-This change is backward compatible for direct usage of Pandas, but if you subclass
+-Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
++This change is backward compatible for direct usage of pandas, but if you subclass
++pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
+ you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
+ 
+ .. _whatsnew_0250.api_breaking.interval_indexing:
+@@ -881,7 +881,7 @@ Other API changes
+ - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
+ - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
+ - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
+-- Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
++- Most pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
+ - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
+ - Removed support of gtk package for clipboards (:issue:`26563`)
+ - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
+@@ -1113,7 +1113,7 @@ Indexing
+ - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
+ - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
+ - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
+-- Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
++- Fixed bug where assigning a :class:`arrays.pandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
+ - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
+ - Fixed a ``KeyError`` when indexing a :class:`MultiIndex`` level with a list containing exactly one label, which is missing (:issue:`27148`)
+ - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
+diff --git a/doc/source/whatsnew/v0.25.1.rst b/doc/source/whatsnew/v0.25.1.rst
+index 944021ca0..de2beb0b9 100644
+--- a/doc/source/whatsnew/v0.25.1.rst
++++ b/doc/source/whatsnew/v0.25.1.rst
+@@ -10,7 +10,7 @@ I/O and LZMA
+ ~~~~~~~~~~~~
+ 
+ Some users may unknowingly have an incomplete Python installation lacking the `lzma` module from the standard library. In this case, `import pandas` failed due to an `ImportError` (:issue:`27575`).
+-Pandas will now warn, rather than raising an `ImportError` if the `lzma` module is not present. Any subsequent attempt to use `lzma` methods will raise a `RuntimeError`.
++pandas will now warn, rather than raising an `ImportError` if the `lzma` module is not present. Any subsequent attempt to use `lzma` methods will raise a `RuntimeError`.
+ A possible fix for the lack of the `lzma` module is to ensure you have the necessary libraries and then re-install Python.
+ For example, on MacOS installing Python with `pyenv` may lead to an incomplete Python installation due to unmet system dependencies at compilation time (like `xz`). Compilation will succeed, but Python might fail at run time. The issue can be solved by installing the necessary dependencies and then re-installing Python.
+ 
+diff --git a/doc/source/whatsnew/v0.25.2.rst b/doc/source/whatsnew/v0.25.2.rst
+index c0c68ce4b..a5ea89337 100644
+--- a/doc/source/whatsnew/v0.25.2.rst
++++ b/doc/source/whatsnew/v0.25.2.rst
+@@ -8,7 +8,7 @@ including other versions of pandas.
+ 
+ .. note::
+ 
+-    Pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
++    pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
+ 
+ .. _whatsnew_0252.bug_fixes:
+ 
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index 4f0ca9731..f454ca867 100755
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -18,7 +18,7 @@ including other versions of pandas.
+ New deprecation policy
+ ~~~~~~~~~~~~~~~~~~~~~~
+ 
+-Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
++Starting with pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
+ version releases. Briefly,
+ 
+ * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
+@@ -27,7 +27,7 @@ version releases. Briefly,
+ 
+ See :ref:`policies.version` for more.
+ 
+-.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
++.. _2019 pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+ .. _SemVer: https://semver.org
+ 
+ {{ header }}
+@@ -443,12 +443,12 @@ Extended verbose info output for :class:`~pandas.DataFrame`
+ .. code-block:: python
+ 
+    >>> pd.array(["a", None])
+-   <PandasArray>
++   <pandasArray>
+    ['a', None]
+    Length: 2, dtype: object
+ 
+    >>> pd.array([1, None])
+-   <PandasArray>
++   <pandasArray>
+    [1, None]
+    Length: 2, dtype: object
+ 
+@@ -676,7 +676,7 @@ depending on how the results are cast back to the original dtype.
+ Increased minimum version for Python
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-Pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
++pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
+ 
+ .. _whatsnew_100.api_breaking.deps:
+ 
+@@ -749,7 +749,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
+ Build changes
+ ^^^^^^^^^^^^^
+ 
+-Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
++pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+ cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+ a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+ source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
+@@ -763,7 +763,7 @@ Other API changes
+ - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
+ - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
+ - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+-- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
++- In order to improve tab-completion, pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
+ - The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
+ - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
+@@ -1256,7 +1256,7 @@ Sparse
+ ExtensionArray
+ ^^^^^^^^^^^^^^
+ 
+-- Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
++- Bug in :class:`arrays.pandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
+ - Bug where nullable integers could not be compared to strings (:issue:`28930`)
+ - Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
+ 
+-- 
+2.19.0
+
