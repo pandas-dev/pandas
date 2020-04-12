@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -114,10 +115,10 @@ def test_resample_timedelta_values():
     # check that timedelta dtype is preserved when NaT values are
     # introduced by the resampling
 
-    times = timedelta_range("1 day", "4 day", freq="4D")
+    times = timedelta_range("1 day", "6 day", freq="4D")
     df = DataFrame({"time": times}, index=times)
 
-    times2 = timedelta_range("1 day", "4 day", freq="2D")
+    times2 = timedelta_range("1 day", "6 day", freq="2D")
     exp = Series(times2, index=times2, name="time")
     exp.iloc[1] = pd.NaT
 
@@ -125,3 +126,22 @@ def test_resample_timedelta_values():
     tm.assert_series_equal(res, exp)
     res = df["time"].resample("2D").first()
     tm.assert_series_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    "freq, resample_freq, start, periods, expected_resample_end",
+    [("10S", "3H", "8H", 5040, "20H")],
+)
+def test_resample_timedelta_end_already_included_in_bins(
+    freq, resample_freq, start, periods, expected_resample_end,
+):
+    # GH 30353
+    # check that the timedelta bins does not contains an extra bin
+    idx = pd.timedelta_range(start=start, freq=freq, periods=periods)
+    s = pd.Series(np.arange(periods), index=idx)
+    result = s.resample(resample_freq).min()
+    expected_index = pd.timedelta_range(
+        freq=resample_freq, start=start, end=expected_resample_end
+    )
+    tm.assert_index_equal(result.index, expected_index)
+    assert not np.isnan(result[-1])

@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays._ranges import _generate_range_overflow_safe
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -1054,14 +1055,15 @@ def _generate_regular_range(start, end, periods, offset):
     stride = offset.nanos
     if periods is None:
         b = Timedelta(start).value
-        e = Timedelta(end).value
-        e += stride - e % stride
+        # cannot just use e = Timestamp(end) + 1 because arange breaks when
+        # stride is too large, see GH 10887 & GH 30353
+        e = b + (Timedelta(end).value - b) // stride * stride + stride // 2 + 1
     elif start is not None:
         b = Timedelta(start).value
-        e = b + periods * stride
+        e = _generate_range_overflow_safe(b, periods, stride, side="start")
     elif end is not None:
         e = Timedelta(end).value + stride
-        b = e - periods * stride
+        b = _generate_range_overflow_safe(e, periods, stride, side="end")
     else:
         raise ValueError(
             "at least 'start' or 'end' should be specified if a 'period' is given."
