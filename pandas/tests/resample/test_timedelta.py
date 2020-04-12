@@ -145,3 +145,30 @@ def test_resample_timedelta_end_already_included_in_bins(
     )
     tm.assert_index_equal(result.index, expected_index)
     assert not np.isnan(result[-1])
+
+
+@pytest.mark.parametrize(
+    "freq, start, end", [("1day", "10day", "2D")],
+)
+def test_timedelta_range_large_stride(start, end, freq):
+    # GH 30353
+
+    def mock_timedelta_range(
+        start=None, end=None, periods=None, freq=None, name=None, closed=None
+    ):
+        epoch = pd.Timestamp(0)
+        if start is not None:
+            start = epoch + pd.Timedelta(start)
+        if end is not None:
+            end = epoch + pd.Timedelta(end)
+        res = pd.date_range(
+            start=start, end=end, periods=periods, freq=freq, name=name, closed=closed
+        )
+        res -= epoch
+        res.freq = freq
+        return res
+
+    res = pd.timedelta_range("1day", "10day", freq="2D")
+    exp = mock_timedelta_range("1day", "10day", freq="2D")
+
+    tm.assert_index_equal(res, exp)
