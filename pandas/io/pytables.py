@@ -1916,9 +1916,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
