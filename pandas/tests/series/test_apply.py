@@ -196,6 +196,16 @@ class TestSeriesApply:
         result = s.apply(lambda x: x)
         tm.assert_series_equal(result, s)
 
+    @pytest.mark.parametrize("klass", [np.array, list, tuple])
+    @pytest.mark.parametrize("function", [np.sin, np.log])
+    def test_apply_ufunc_over_series_of_iterable(self, klass, function):
+        # https://github.com/pandas-dev/pandas/issues/33492
+        values = klass([1, 2, 3])
+        s = pd.Series([values])
+        result = s.apply(function)
+        expected = pd.Series([function(values)])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesAggregate:
     def test_transform(self, string_series):

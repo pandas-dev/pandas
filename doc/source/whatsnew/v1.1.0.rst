@@ -567,6 +567,7 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :meth:`Series.apply` where ufuncs would raise a ``TypeError`` when the elements were list-like (:issue:`33492`)
 
 
 Sparse

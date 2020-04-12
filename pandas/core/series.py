@@ -3884,7 +3884,12 @@ Name: Max Speed, dtype: float64
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                return f(self)
+                try:
+                    return f(self)
+                except TypeError:
+                    # The elements themselves may be iterable (e.g., a list or
+                    # array of values)
+                    return self.map(f)
 
             # row-wise access
             if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
