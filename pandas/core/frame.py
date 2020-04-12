@@ -5913,8 +5913,6 @@ Wild         185.0
             duplicate values for one index/column pair.
         DataFrame.unstack : Pivot based on the index values instead of a
             column.
-        lreshape : Reshape wide-format data to format. Generalized inverse of
-            DataFrame.pivot.
         wide_to_long : Wide panel to long format. Less flexible but more
             user-friendly than melt.
 
@@ -6073,8 +6071,6 @@ Wild         185.0
             non-numeric data.
         DataFrame.melt: Unpivot a DataFrame from wide to long format,
             optionally leaving identifiers set.
-        lreshape : Reshape wide-format data to format. Generalized inverse of
-            DataFrame.pivot.
         wide_to_long : Wide panel to long format. Less flexible but more
             user-friendly than melt.
 
@@ -6524,8 +6520,6 @@ Wild         185.0
     wide_to_long : Wide panel to long format. Less flexible but more
         user-friendly than melt.
     pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
-    lreshape : Reshape wide-format data to format. Generalized inverse of
-        DataFrame.pivot.
     DataFrame.pivot : Return reshaped DataFrame organized
         by given index / column values.
     DataFrame.explode : Explode a DataFrame from list-like

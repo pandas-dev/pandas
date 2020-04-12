@@ -234,7 +234,6 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.swapaxes
    DataFrame.melt
-   lreshape
    wide_to_long
    DataFrame.explode
    DataFrame.squeeze

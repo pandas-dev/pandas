@@ -88,7 +88,7 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
-- Updated :meth:`pandas.lreshape` and :meth:`pandas.wide_to_long` documentation (:issue:`33417`)
+- Updated :meth:`pandas.wide_to_long` documentation (:issue:`33417`)
 
 .. ---------------------------------------------------------------------------
 

@@ -276,8 +276,6 @@ def wide_to_long(
         duplicate values for one index/column pair.
     DataFrame.unstack : Pivot based on the index values instead of a
         column.
-    lreshape : Reshape wide-format data to format. Generalized inverse of
-        DataFrame.pivot.
 
     Notes
     -----
