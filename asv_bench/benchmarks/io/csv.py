@@ -346,6 +346,7 @@ class ReadCSVCachedParseDates(StringIORewind):
 
 
 class ReadCSVMemoryGrowth(BaseIO):
+
     chunksize = 20
     num_rows = 1000
     fname = "__test__.csv"

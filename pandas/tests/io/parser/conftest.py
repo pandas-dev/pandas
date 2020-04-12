@@ -1,4 +1,5 @@
 import os
+import pkgutil
 from typing import List, Optional
 
 import pytest
@@ -73,12 +74,17 @@ _pyarrowParser = PyArrowParser()
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
 _pyarrow_parsers_only = [_pyarrowParser]
-_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
 _pyarrow_parser_ids = ["pyarrow"]
-_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
+
+if pkgutil.find_loader("pyarrow"):
+    _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
+    _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
+else:
+    _all_parsers = [*_c_parsers_only, *_py_parsers_only]
+    _all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
