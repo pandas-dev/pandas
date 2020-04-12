@@ -487,7 +487,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def asfreq(self, freq=None, how="E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
         """
         Convert the Period Array/Index to the specified frequency `freq`.
 

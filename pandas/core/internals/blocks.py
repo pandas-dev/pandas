@@ -218,7 +218,7 @@ class Block(PandasObject):
         """
         This is used in the JSON C code.
         """
-        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        # TODO(EA2D): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
     @property
@@ -353,6 +353,7 @@ class Block(PandasObject):
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
+            # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
@@ -1562,7 +1563,7 @@ class ExtensionBlock(Block):
         super().__init__(values, placement, ndim=ndim)
 
         if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(2DEA): check unnecessary with 2D EAs
+            # TODO(EA2D): check unnecessary with 2D EAs
             raise AssertionError("block.size != values.size")
 
     @property
@@ -2310,7 +2311,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
-        # kludge for 2D block with 1D values
+        # TODO(EA2D): kludge for 2D block with 1D values
         naive = naive.reshape(self.shape)
 
         blk = self.make_block(naive)
@@ -2435,7 +2436,7 @@ class ObjectBlock(Block):
                 copy=copy,
             )
             if isinstance(values, np.ndarray):
-                # TODO: allow EA once reshape is supported
+                # TODO(EA2D): allow EA once reshape is supported
                 values = values.reshape(shape)
 
             return values

@@ -4,7 +4,7 @@ import copy
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, tslibs
+from pandas._libs import NaT, internals as libinternals
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -395,7 +395,7 @@ def _get_empty_dtype_and_na(join_units):
         # GH-25014. We use NaT instead of iNaT, since this eventually
         # ends up in DatetimeArray.take, which does not allow iNaT.
         dtype = upcast_classes["datetimetz"]
-        return dtype[0], tslibs.NaT
+        return dtype[0], NaT
     elif "datetime" in upcast_classes:
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
