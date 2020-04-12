@@ -881,32 +881,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if key_is_scalar or isinstance(self.index, MultiIndex):
+        if is_integer(key) and self.index._should_fallback_to_positional():
+            return self._values[key]
+
+        elif key_is_scalar:
+            return self._get_value(key)
+
+        if (
+            isinstance(key, tuple)
+            and is_hashable(key)
+            and isinstance(self.index, MultiIndex)
+        ):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
-                result = self.index.get_value(self, key)
+                result = self._get_value(key)
 
                 return result
-            except InvalidIndexError:
-                if not isinstance(self.index, MultiIndex):
-                    raise
 
-            except (KeyError, ValueError):
-                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
-                    # kludge
-                    pass
-                else:
-                    raise
+            except KeyError:
+                # We still have the corner case where this tuple is a key
+                #  in the first level of our MultiIndex
+                return self._get_values_tuple(key)
 
-        if not key_is_scalar:
-            # avoid expensive checks if we know we have a scalar
-            if is_iterator(key):
-                key = list(key)
+        if is_iterator(key):
+            key = list(key)
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                key = np.asarray(key, dtype=bool)
-                return self._get_values(key)
+        if com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            key = np.asarray(key, dtype=bool)
+            return self._get_values(key)
 
         return self._get_with(key)
 
