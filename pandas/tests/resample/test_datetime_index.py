@@ -740,17 +740,55 @@ def test_resample_offset():
 
 def test_resample_origin():
     # GH 31809
-
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
+    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min")
 
-    resampled = ts.resample("5min", origin="12/31/1999 23:57:00").mean()
+    resampled = ts.resample("5min", origin="1999-12-31 23:57:00").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     offset_timestamp = pd.Timestamp(0) + pd.Timedelta("2min")
     resampled = ts.resample("5min", origin=offset_timestamp).mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    # origin of '1999-31-12 12:02:00' should be equivalent for this case
+    resampled = ts.resample("5min", origin="1999-12-31 12:02:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", offset="-3m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+
+def test_resample_origin_prime_freq():
+    # GH 31809
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+    rng = pd.date_range(start, end, freq="7min")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    exp_rng = date_range("2000-10-01 23:14:00", "2000-10-02 00:22:00", freq="17min")
+    resampled = ts.resample("17min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", origin="start_day").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:30:00", "2000-10-02 00:21:00", freq="17min")
+    resampled = ts.resample("17min", origin="start").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", offset="23h30min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", origin="start_day", offset="23h30min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:18:00", "2000-10-02 00:26:00", freq="17min")
+    resampled = ts.resample("17min", origin="epoch").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min")
+    resampled = ts.resample("17min", origin="2000-01-01").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
@@ -759,12 +797,18 @@ def test_resample_origin_with_tz():
     msg = "The origin must have the same timezone as the index."
 
     tz = "Europe/Paris"
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s", tz=tz)
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s", tz=tz)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min", tz=tz)
+    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz)
+    resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
 
-    resampled = ts.resample("5min", origin="12/31/1999 23:57:00+00:00").mean()
+    # origin of '1999-31-12 12:02:00+03:00' should be equivalent for this case
+    resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     with pytest.raises(ValueError, match=msg):
