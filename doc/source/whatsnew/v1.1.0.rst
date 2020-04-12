@@ -97,6 +97,8 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
+- :meth: `Series.update` now accepts objects that can be coerced to a Series,
+  such as `dict` and `list`, mirroring the behavior of `DataFrame.update` (:issue:`33215`)
 
 .. ---------------------------------------------------------------------------
 
