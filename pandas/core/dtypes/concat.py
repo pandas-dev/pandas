@@ -19,13 +19,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCDatetimeArray,
-    ABCIndexClass,
-    ABCRangeIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 
 def get_dtype_kinds(l):
@@ -405,7 +399,7 @@ def concat_datetime(to_concat, axis=0, typs=None):
         else:
             # when to_concat has different tz, len(typs) > 1.
             # thus no need to care
-            return _concat_datetimetz(to_concat)
+            return to_concat[0]._concat_same_type(to_concat)
 
     elif "timedelta" in typs:
         return _concatenate_2d([x.view(np.int64) for x in to_concat], axis=axis).view(
@@ -437,23 +431,6 @@ def _convert_datetimelike_to_object(x):
         x = x.reshape(shape)
 
     return x
-
-
-def _concat_datetimetz(to_concat, name=None):
-    """
-    concat DatetimeIndex with the same tz
-    all inputs must be DatetimeIndex
-    it is used in DatetimeIndex.append also
-    """
-    # Right now, internals will pass a List[DatetimeArray] here
-    # for reductions like quantile. I would like to disentangle
-    # all this before we get here.
-    sample = to_concat[0]
-
-    if isinstance(sample, ABCIndexClass):
-        return sample._concat_same_dtype(to_concat, name=name)
-    elif isinstance(sample, ABCDatetimeArray):
-        return sample._concat_same_type(to_concat)
 
 
 def _concat_sparse(to_concat, axis=0, typs=None):
