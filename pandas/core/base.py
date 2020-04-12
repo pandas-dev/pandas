@@ -1198,6 +1198,8 @@ class IndexOpsMixin:
             Number of rounding decimals. Largest remainder method will be used
             to sum up to 1.
 
+        .. versionadded:: 1.1.0
+
         Returns
         -------
         Series

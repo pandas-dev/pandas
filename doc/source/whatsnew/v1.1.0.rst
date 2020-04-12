@@ -97,6 +97,7 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
+- :meth:`Series.value_counts` now accepts ``round_decimals`` argument (and applies ``largest remainder method``)
 
 .. ---------------------------------------------------------------------------
 
