@@ -1395,7 +1395,6 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     tm.assert_series_equal(result, expected)
 
 
-
 def test_read_only_category_no_sort():
     # GH33410
     cats = np.array([1, 2])
