@@ -1372,15 +1372,13 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
+    def _unstack(self, unstacker, fill_value, new_placement):
         """
         Return a list of unstacked blocks of self
 
         Parameters
         ----------
         unstacker : reshape._Unstacker
-        new_columns : Index
-            All columns of the unstacked BlockManager.
         fill_value : int
             Only used in ExtensionBlock._unstack
 
@@ -1391,17 +1389,17 @@ class Block(PandasObject):
         mask : array_like of bool
             The mask of columns of `blocks` we should keep.
         """
-        new_items = unstacker.get_new_columns(value_columns)
-        new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values(
             self.values.T, fill_value=fill_value
         )
 
         mask = mask.any(0)
+        # TODO: in all tests we have mask.all(); can we rely on that?
+
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement)]
+        blocks = [self.make_block_same_class(new_values, placement=new_placement)]
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0):
@@ -1858,7 +1856,7 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
+    def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
@@ -1868,10 +1866,9 @@ class ExtensionBlock(Block):
         n_rows = self.shape[-1]
         dummy_arr = np.arange(n_rows)
 
-        new_items = unstacker.get_new_columns(value_columns)
-        new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
         mask = mask.any(0)
+        # TODO: in all tests we have mask.all(); can we rely on that?
 
         blocks = [
             self.make_block_same_class(
