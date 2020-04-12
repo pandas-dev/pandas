@@ -2059,35 +2059,24 @@ def test_groups_repr_truncates(max_seq_items, expected):
         assert result == expected
 
 
-def test_groupby_column_index_name_lost():
+@pytest.mark.parametrize("func", ["sum", "any", "shift"])
+def test_groupby_column_index_name_lost(func):
     # GH: 29764 groupby loses index sometimes
-    df = pd.DataFrame([[1]], columns=pd.Index(["a"], name="idx"))
-    result = df.groupby([1]).sum()
-    expected = pd.DataFrame([1], columns=pd.Index(["a"], name="idx"), index=[1])
-    tm.assert_frame_equal(result, expected)
+    expected = pd.Index(["a"], name="idx")
+    df = pd.DataFrame([[1]], columns=expected)
+    df_grouped = df.groupby([1])
+    result = getattr(df_grouped, func)().columns
+    tm.assert_index_equal(result, expected)
 
-    result = df.groupby([1]).any()
-    expected = pd.DataFrame([True], columns=pd.Index(["a"], name="idx"), index=[1])
-    tm.assert_frame_equal(result, expected)
 
-    result = df.groupby([1]).shift()
-    expected = pd.DataFrame([np.nan], columns=pd.Index(["a"], name="idx"), index=[0])
-    tm.assert_frame_equal(result, expected)
-
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+def test_groupby_column_index_name_lost_fill_funcs(func):
+    # GH: 29764 groupby loses index sometimes
     df = pd.DataFrame(
         [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
         columns=pd.Index(["type", "a", "b"], name="idx"),
     )
-    result = df.groupby(["type"])[["a", "b"]].ffill()
-    expected = pd.DataFrame(
-        [[1.0, -1.0], [1.0, -1.0], [2.0, -2.0]],
-        columns=pd.Index(["a", "b"], name="idx"),
-    )
-    tm.assert_frame_equal(result, expected)
-
-    result = df.groupby(["type"])[["a", "b"]].bfill()
-    expected = pd.DataFrame(
-        [[1.0, -1.0], [2.0, -2.0], [2.0, -2.0]],
-        columns=pd.Index(["a", "b"], name="idx"),
-    )
-    tm.assert_frame_equal(result, expected)
+    df_grouped = df.groupby(["type"])[["a", "b"]]
+    result = getattr(df_grouped, func)().columns
+    expected = pd.Index(["a", "b"], name="idx")
+    tm.assert_index_equal(result, expected)
