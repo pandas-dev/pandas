@@ -39,7 +39,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
+from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -759,7 +759,7 @@ def raise_on_incompatible(left, right):
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
     else:
-        other_freq = _delta_to_tick(Timedelta(right)).freqstr
+        other_freq = delta_to_tick(Timedelta(right)).freqstr
 
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=left.freqstr, other_freq=other_freq
