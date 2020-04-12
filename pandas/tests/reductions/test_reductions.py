@@ -912,8 +912,13 @@ class TestSeriesReductions:
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        result = s.all(level=0)
+        expected = Series([False, True, False], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        result = s.any(level=0)
+        expected = Series([False, True, True], dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
     def test_timedelta64_analytics(self):
 

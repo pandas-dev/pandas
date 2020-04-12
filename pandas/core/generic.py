@@ -9974,11 +9974,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise ValueError("Must specify 'axis' when aggregating by level.")
         grouped = self.groupby(level=level, axis=axis, sort=False)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)(**kwargs)
-        axis = self._get_axis_number(axis)
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
-        return grouped.aggregate(applyf)
+            result = getattr(grouped, name)(**kwargs)
+        else:
+            axis = self._get_axis_number(axis)
+            method = getattr(type(self), name)
+            applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
+            result = grouped.aggregate(applyf)
+        if isinstance(self, ABCSeries) and self.dtype.name == "boolean":
+            return result.astype("boolean")
+        return result
 
     @classmethod
     def _add_numeric_operations(cls):
