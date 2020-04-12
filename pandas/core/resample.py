@@ -1666,10 +1666,11 @@ def _get_timestamp_range_edges(
         The dateoffset to which the Timestamps will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
-    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
-        The timestamp on which to adjust the grouping. It must be timezone aware if
-        the index of the resampled data is.
+    origin : {'epoch', 'start', 'start_day'} or Timestamp, default 'start_day'
+        The timestamp on which to adjust the grouping. The timezone of origin must
+        match the timezone of the index.
         If a timestamp is not used, these values are also supported:
+
         - 'epoch': `origin` is 1970-01-01
         - 'start': `origin` is the first value of the timeseries
         - 'start_day': `origin` is the first day at midnight of the timeseries
@@ -1680,17 +1681,15 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
-        if origin not in {"epoch", "start", "start_day"}:
-            is_idx_tz_aware = first.tz is not None or last.tz is not None
-            if origin.tz is None and is_idx_tz_aware:
-                raise ValueError("The origin must have the same timezone as the index.")
+    index_tz = first.tz
+    if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+        raise ValueError("The origin must have the same timezone as the index.")
 
+    if isinstance(freq, Tick):
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
             # So "pretend" the dates are naive when adjusting the endpoints
-            tz = first.tz
             first = first.tz_localize(None)
             last = last.tz_localize(None)
 
@@ -1698,20 +1697,18 @@ def _get_timestamp_range_edges(
             first, last, freq, closed=closed, origin=origin, offset=offset,
         )
         if isinstance(freq, Day):
-            first = first.tz_localize(tz)
-            last = last.tz_localize(tz)
-        return first, last
-
+            first = first.tz_localize(index_tz)
+            last = last.tz_localize(index_tz)
     else:
         first = first.normalize()
         last = last.normalize()
 
-    if closed == "left":
-        first = Timestamp(freq.rollback(first))
-    else:
-        first = Timestamp(first - freq)
+        if closed == "left":
+            first = Timestamp(freq.rollback(first))
+        else:
+            first = Timestamp(first - freq)
 
-    last = Timestamp(last + freq)
+        last = Timestamp(last + freq)
 
     return first, last
 
@@ -1733,14 +1730,15 @@ def _get_period_range_edges(
         The freq to which the Periods will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
-    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
-        The timestamp on which to adjust the grouping. It must be timezone aware if
-        the index of the resampled data is.
+    origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
+        The timestamp on which to adjust the grouping. The timezone of origin must
+        match the timezone of the index.
 
         If a timestamp is not used, these values are also supported:
-        - If 'epoch': `origin` is 1970-01-01
-        - If 'start': then `origin` is the first value of the timeseries
-        - If 'start_day', then `origin` is the first day at midnight of the timeseries
+
+        - 'epoch': `origin` is 1970-01-01
+        - 'start': `origin` is the first value of the timeseries
+        - 'start_day': `origin` is the first day at midnight of the timeseries
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.
 

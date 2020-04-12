@@ -7821,8 +7821,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
         origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
-            The timestamp on which to adjust the grouping. It must be timezone aware if
-            the index of the resampled data is.
+            The timestamp on which to adjust the grouping. The timezone of origin
+            must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
 
             - 'epoch': `origin` is 1970-01-01
