@@ -34,7 +34,7 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    if op in {"sum", "min", "max"}:
+    if op in {"sum", "prod", "min", "max"}:
         assert isinstance(result, np.int64)
     else:
         assert isinstance(result, int)
