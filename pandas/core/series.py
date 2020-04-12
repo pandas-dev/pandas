@@ -2844,10 +2844,10 @@ Name: Max Speed, dtype: float64
         2    6
         dtype: int64
         """
-        
+
         if not isinstance(other, Series):
             other = Series(other)
-        
+
         other = other.reindex_like(self)
         mask = notna(other)
 
