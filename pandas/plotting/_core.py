@@ -21,6 +21,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
+    legend=False,
     backend=None,
     **kwargs,
 ):
@@ -50,6 +51,8 @@ def hist_series(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
+    legend : bool, default False
+        Whether to show the legend.
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -82,6 +85,7 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
+        legend=legend,
         **kwargs,
     )
 
@@ -101,6 +105,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
+    legend=False,
     backend=None,
     **kwargs,
 ):
@@ -154,6 +159,8 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
+    legend : bool, default False
+        Whether to show the legend.
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -203,6 +210,7 @@ def hist_frame(
         sharey=sharey,
         figsize=figsize,
         layout=layout,
+        legend=legend,
         bins=bins,
         **kwargs,
     )

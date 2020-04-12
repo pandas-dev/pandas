@@ -2,10 +2,11 @@
 
 
 import numpy as np
+import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 
@@ -65,3 +66,18 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         res = df.groupby("z").plot.scatter(x="x", y="y")
         assert len(res["a"].collections) == 1
+
+
+@td.skip_if_no_mpl
+@pytest.mark.parametrize("column", [None, "b"])
+@pytest.mark.parametrize("label", [None, "d"])
+def test_hist_with_legend(column, label):
+    index = Index(15 * [1] + 15 * [2], name="c")
+    df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+    g = df.groupby("c")
+
+    g.hist(column=column, label=label, legend=True)
+    tm.close()
+    if column != "b":
+        g["a"].hist(label=label, legend=True)
+        tm.close()
