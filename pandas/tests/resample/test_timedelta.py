@@ -129,46 +129,45 @@ def test_resample_timedelta_values():
 
 
 @pytest.mark.parametrize(
-    "freq, resample_freq, start, periods, expected_resample_end",
-    [("10S", "3H", "8H", 5040, "20H")],
+    "start, end, freq, resample_freq",
+    [
+        ("8H", "21h59min", "10S", "3H"),
+        ("3H", "22H", "1H", "5H"),
+        ("527D", "5006D", "3D", "10D")
+    ],
 )
-def test_resample_timedelta_end_already_included_in_bins(
-    freq, resample_freq, start, periods, expected_resample_end,
-):
+def test_resample_timedelta_edge_case(start, end, freq, resample_freq,):
     # GH 30353
     # check that the timedelta bins does not contains an extra bin
-    idx = pd.timedelta_range(start=start, freq=freq, periods=periods)
-    s = pd.Series(np.arange(periods), index=idx)
+    idx = pd.timedelta_range(start=start, end=end, freq=freq)
+    s = pd.Series(np.arange(len(idx)), index=idx)
     result = s.resample(resample_freq).min()
-    expected_index = pd.timedelta_range(
-        freq=resample_freq, start=start, end=expected_resample_end
-    )
+    expected_index = pd.timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
     assert not np.isnan(result[-1])
 
 
 @pytest.mark.parametrize(
-    "freq, start, end", [("1day", "10day", "2D")],
+    "start, end, freq", [
+        ("1day", "10day", "2D"),
+        ("2day", "30day", "3D"),
+        ("2s", "50s", "5s")
+    ],
 )
-def test_timedelta_range_large_stride(start, end, freq):
-    # GH 30353
+def test_timedelta_range_freq_divide_end(start, end, freq):
+    # GH 30353 only the cases where `(end % freq) == 0` used to fail
 
-    def mock_timedelta_range(
-        start=None, end=None, periods=None, freq=None, name=None, closed=None
-    ):
+    def mock_timedelta_range(start=None, end=None, **kwargs):
         epoch = pd.Timestamp(0)
         if start is not None:
             start = epoch + pd.Timedelta(start)
         if end is not None:
             end = epoch + pd.Timedelta(end)
-        res = pd.date_range(
-            start=start, end=end, periods=periods, freq=freq, name=name, closed=closed
-        )
-        res -= epoch
-        res.freq = freq
-        return res
+        result = pd.date_range(start=start, end=end, **kwargs) - epoch
+        result.freq = freq
+        return result
 
-    res = pd.timedelta_range("1day", "10day", freq="2D")
-    exp = mock_timedelta_range("1day", "10day", freq="2D")
+    res = pd.timedelta_range(start=start, end=end, freq=freq)
+    exp = mock_timedelta_range(start=start, end=end, freq=freq)
 
     tm.assert_index_equal(res, exp)
