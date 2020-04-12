@@ -1165,7 +1165,13 @@ class IndexOpsMixin:
         return new_values
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize=False,
+        sort=True,
+        ascending=False,
+        bins=None,
+        dropna=True,
+        round_decimals=None,
     ):
         """
         Return a Series containing counts of unique values.
@@ -1188,6 +1194,9 @@ class IndexOpsMixin:
             a convenience for ``pd.cut``, only works with numeric data.
         dropna : bool, default True
             Don't include counts of NaN.
+        round_decimals : int, default None
+            Number of rounding decimals. Largest remainder method will be used
+            to sum up to 1.
 
         Returns
         -------
@@ -1220,6 +1229,17 @@ class IndexOpsMixin:
         1.0    0.2
         dtype: float64
 
+        With `normalize` set to `True`, and `round_decimals` to an int,
+        it will round the decimals to sum up to 1.0:
+
+        >>> s = pd.Series([3, 1, 2, 3, 4, 3, 3, np.nan])
+        >>> s.value_counts(normalize=True, round_decimals=2)
+        3.0    0.58
+        1.0    0.14
+        2.0    0.14
+        4.0    0.14
+        dtype: float64
+
         **bins**
 
         Bins can be useful for going from a continuous variable to a
@@ -1227,6 +1247,7 @@ class IndexOpsMixin:
         apparitions of values, divide the index in the specified
         number of half-open bins.
 
+        >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(bins=3)
         (2.0, 3.0]      2
         (0.996, 2.0]    2
@@ -1252,6 +1273,7 @@ class IndexOpsMixin:
             normalize=normalize,
             bins=bins,
             dropna=dropna,
+            round_decimals=round_decimals,
         )
         return result
 

@@ -641,7 +641,13 @@ class SeriesGroupBy(GroupBy[Series]):
         return result.unstack()
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize=False,
+        sort=True,
+        ascending=False,
+        bins=None,
+        dropna=True,
+        round_decimals=None,
     ):
 
         from pandas.core.reshape.tile import cut
@@ -719,6 +725,16 @@ class SeriesGroupBy(GroupBy[Series]):
             else:
                 acc = rep(d)
             out /= acc
+
+            if round_decimals is not None:
+                floored = ((10 ** round_decimals * out).astype(np.int)).apply(np.floor)
+                diff = (10 ** round_decimals) - floored.sum().astype(np.int)
+                decimals_values = out - floored / (10 ** round_decimals)
+                sorted = decimals_values.sort_values(ascending=False, ignore_index=True)
+                binary_decimals = np.where(sorted.index < diff, 1, 0)
+                out = (
+                    (floored + binary_decimals) / (10 ** round_decimals)
+                ).sort_values(ascending=False)
 
         if sort and bins is None:
             cat = ids[inc][mask] if dropna else ids[inc]

@@ -657,6 +657,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
+    round_decimals=None,
 ) -> "Series":
     """
     Compute a histogram of the counts of non-null values.
@@ -675,6 +676,9 @@ def value_counts(
         convenience for pd.cut, only works with numeric data
     dropna : bool, default True
         Don't include counts of NaN
+    round_decimals : int, default None
+        Number of rounding decimals. Largest remainder method will be used
+        to sum up to 1.
 
     Returns
     -------
@@ -725,6 +729,16 @@ def value_counts(
 
     if normalize:
         result = result / float(counts.sum())
+
+        if round_decimals is not None:
+            floored = ((10 ** round_decimals * result).astype(np.int)).apply(np.floor)
+            diff = (10 ** round_decimals) - floored.sum().astype(np.int)
+            decimals_values = result - floored / (10 ** round_decimals)
+            sorted = decimals_values.sort_values(ascending=False, ignore_index=True)
+            binary_decimals = np.where(sorted.index < diff, 1, 0)
+            result = ((floored + binary_decimals) / (10 ** round_decimals)).sort_values(
+                ascending=False
+            )
 
     return result
 
