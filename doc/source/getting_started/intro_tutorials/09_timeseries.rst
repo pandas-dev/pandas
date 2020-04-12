@@ -96,7 +96,7 @@ objects. In pandas we call these datetime objects similar to
 
         pd.read_csv("../data/air_quality_no2_long.csv", parse_dates=["datetime"])
 
-Why are these :class:`pandas.Timestamp` objects useful. Let’s illustrate the added
+Why are these :class:`pandas.Timestamp` objects useful? Let’s illustrate the added
 value with some example cases.
 
    What is the start and end date of the time series data set working
@@ -106,7 +106,7 @@ value with some example cases.
 
     air_quality["datetime"].min(), air_quality["datetime"].max()
 
-Using :class:`pandas.Timestamp` for datetimes enable us to calculate with date
+Using :class:`pandas.Timestamp` for datetimes enables us to calculate with date
 information and make them comparable. Hence, we can use this to get the
 length of our time series:
 
@@ -122,7 +122,7 @@ from the standard Python library and defining a time duration.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The different time concepts supported by pandas are explained in the user guide section on :ref:`time related concepts <timeseries.overview>`.
+The various time concepts supported by pandas are explained in the user guide section on :ref:`time related concepts <timeseries.overview>`.
 
 .. raw:: html
 
@@ -157,7 +157,7 @@ accessible by the ``dt`` accessor.
 
 An overview of the existing date properties is given in the
 :ref:`time and date components overview table <timeseries.components>`. More details about the ``dt`` accessor
-to return datetime like properties is explained in a dedicated section on the  :ref:`dt accessor <basics.dt_accessors>`.
+to return datetime like properties are explained in a dedicated section on the  :ref:`dt accessor <basics.dt_accessors>`.
 
 .. raw:: html
 
@@ -353,7 +353,7 @@ Make a plot of the daily mean :math:`NO_2` value in each of the stations.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More details on the power of time series ``resampling`` is provided in the user gudie section on :ref:`resampling <timeseries.resampling>`.
+More details on the power of time series ``resampling`` is provided in the user guide section on :ref:`resampling <timeseries.resampling>`.
 
 .. raw:: html
 
@@ -366,7 +366,7 @@ More details on the power of time series ``resampling`` is provided in the user 
 
 -  Valid date strings can be converted to datetime objects using
    ``to_datetime`` function or as part of read functions.
--  Datetime objects in pandas supports calculations, logical operations
+-  Datetime objects in pandas support calculations, logical operations
    and convenient date-related properties using the ``dt`` accessor.
 -  A ``DatetimeIndex`` contains these date-related properties and
    supports convenient slicing.
@@ -382,7 +382,7 @@ More details on the power of time series ``resampling`` is provided in the user 
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A full overview on time series is given in the pages on :ref:`time series and date functionality <timeseries>`.
+A full overview on time series is given on the pages on :ref:`time series and date functionality <timeseries>`.
 
 .. raw:: html
 
