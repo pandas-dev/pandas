@@ -27,6 +27,11 @@ matrix:
   fast_finish: true
 
   include:
+    # In allowed failures
+    - dist: bionic
+      python: 3.9-dev
+      env:
+        - JOB="3.9-dev" PATTERN="(not slow and not network)"
     - env:
         - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
 
