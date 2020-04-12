@@ -54,8 +54,9 @@ matrix:
         - mysql
         - postgresql
   allow_failures:
+  - dist: bionic
     python: 3.9-dev
-      env:
+    env:
         - JOB="3.9-dev" PATTERN="(not slow and not network)"
 
 before_install:
