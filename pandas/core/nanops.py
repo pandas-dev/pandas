@@ -1,14 +1,14 @@
 import functools
 import itertools
 import operator
-from typing import Any, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Union, cast
 
 import numpy as np
 
 from pandas._config import get_option
 
 from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
-from pandas._typing import ArrayLike, Dtype, Scalar
+from pandas._typing import ArrayLike, Dtype, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
@@ -34,6 +34,9 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.construction import extract_array
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
+
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
@@ -57,7 +60,7 @@ class disallow:
     def check(self, obj) -> bool:
         return hasattr(obj, "dtype") and issubclass(obj.dtype.type, self.dtypes)
 
-    def __call__(self, f):
+    def __call__(self, f: F) -> F:
         @functools.wraps(f)
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
@@ -78,7 +81,7 @@ class disallow:
                     raise TypeError(e) from e
                 raise
 
-        return _f
+        return cast(F, _f)
 
 
 class bottleneck_switch:
@@ -879,15 +882,15 @@ nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 @disallow("O")
 def nanargmax(
-    values: np.ndarray,
+    values: Union[np.ndarray, "Series"],
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
-) -> int:
+) -> Union[int, np.ndarray]:
     """
     Parameters
     ----------
-    values : ndarray
+    values : ndarray or Series
     axis: int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
@@ -895,8 +898,8 @@ def nanargmax(
 
     Returns
     -------
-    result : int
-        The index of max value in specified axis or -1 in the NA case
+    result : int or ndarray[int]
+        The index/indices  of max value in specified axis or -1 in the NA case
 
     Examples
     --------
@@ -904,6 +907,16 @@ def nanargmax(
     >>> s = pd.Series([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(s)
     4
+
+    >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
+    >>> arr[2:, 2] = np.nan
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7., nan],
+           [ 9., 10., nan]])
+    >>> nanops.nanargmax(arr, axis=1)
+    array([2, 2, 1, 1], dtype=int64)
     """
     values, mask, dtype, _, _ = _get_values(
         values, True, fill_value_typ="-inf", mask=mask
@@ -915,15 +928,15 @@ def nanargmax(
 
 @disallow("O")
 def nanargmin(
-    values: np.ndarray,
+    values: Union[np.ndarray, "Series"],
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
-) -> int:
+) -> Union[int, np.ndarray]:
     """
     Parameters
     ----------
-    values : ndarray
+    values : ndarray or Series
     axis: int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
@@ -931,8 +944,8 @@ def nanargmin(
 
     Returns
     -------
-    result : int
-        The index of min value in specified axis or -1 in the NA case
+    result : int or ndarray[int]
+        The index/indices of min value in specified axis or -1 in the NA case
 
     Examples
     --------
@@ -940,6 +953,16 @@ def nanargmin(
     >>> s = pd.Series([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(s)
     0
+
+    >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
+    >>> arr[2:, 0] = np.nan
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [nan,  7.,  8.],
+           [nan, 10., 11.]])
+    >>> nanops.nanargmin(arr, axis=1)
+    array([0, 0, 1, 1], dtype=int64)
     """
     values, mask, dtype, _, _ = _get_values(
         values, True, fill_value_typ="+inf", mask=mask

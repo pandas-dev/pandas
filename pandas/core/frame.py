@@ -8305,7 +8305,7 @@ Wild         185.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True) -> Series:
+    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -8368,11 +8368,17 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+
+        # indices will always be np.ndarray since axis is not None and
+        # values is a 2d array for DataFrame
+        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
+        indices = cast(np.ndarray, indices)
+
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True) -> Series:
+    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -8435,6 +8441,12 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+
+        # indices will always be np.ndarray since axis is not None and
+        # values is a 2d array for DataFrame
+        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
+        indices = cast(np.ndarray, indices)
+
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
