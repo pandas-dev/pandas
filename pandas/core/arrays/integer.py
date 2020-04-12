@@ -577,7 +577,16 @@ class IntegerArray(BaseMaskedArray):
         if not skipna:
             mask = np.maximum.accumulate(mask)
 
-        vals = cum_function(values)
+        # makes target dtypes explicit since CI showed optimal UInt32
+        # dtype on test data occasionally. This was different across systems
+        dtype_out = dtype
+        if name in ["cumsum", "cumprod"]:
+            if dtype.name.lower().startswith("u"):
+                dtype_out = "UInt64"
+            else:
+                dtype_out = "Int64"
+
+        vals = cum_function(values, dtype=dtype_out)
         result = IntegerArray(vals, mask)
         return result
 
