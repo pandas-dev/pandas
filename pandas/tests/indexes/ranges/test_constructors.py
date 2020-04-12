@@ -43,7 +43,7 @@ class TestRangeIndexConstructors:
             r"kind, 0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
-            Index(0, 1000)
+            Index(0)
 
     @pytest.mark.parametrize(
         "args",
