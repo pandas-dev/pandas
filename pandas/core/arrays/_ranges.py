@@ -7,12 +7,12 @@ from typing import Tuple
 
 import numpy as np
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 
 from pandas.tseries.offsets import DateOffset, Tick, generate_range
 
 
-def generate_regular_range(
+def generate_timestamps_range(
     start: Timestamp, end: Timestamp, periods: int, freq: DateOffset
 ) -> Tuple[np.ndarray, str]:
     """
@@ -32,55 +32,77 @@ def generate_regular_range(
 
     Returns
     -------
-    ndarray[np.int64] representing nanosecond unix timestamps
+    (tuple): containing:
+
+        values : ndarray[np.int64] representing nanosecond unix timestamps
+        tz : the timezone of the range
     """
     if isinstance(freq, Tick):
-        stride = freq.nanos
-        if periods is None:
-            b = Timestamp(start).value
-            # cannot just use e = Timestamp(end) + 1 because arange breaks when
-            # stride is too large, see GH10887
-            e = b + (Timestamp(end).value - b) // stride * stride + stride // 2 + 1
-            # end.tz == start.tz by this point due to _generate implementation
-            tz = start.tz
-        elif start is not None:
-            b = Timestamp(start).value
-            e = _generate_range_overflow_safe(b, periods, stride, side="start")
-            tz = start.tz
-        elif end is not None:
-            e = Timestamp(end).value + stride
-            b = _generate_range_overflow_safe(e, periods, stride, side="end")
-            tz = end.tz
-        else:
-            raise ValueError(
-                "at least 'start' or 'end' should be specified "
-                "if a 'period' is given."
-            )
-
-        with np.errstate(over="raise"):
-            # If the range is sufficiently large, np.arange may overflow
-            #  and incorrectly return an empty array if not caught.
-            try:
-                values = np.arange(b, e, stride, dtype=np.int64)
-            except FloatingPointError:
-                xdr = [b]
-                while xdr[-1] != e:
-                    xdr.append(xdr[-1] + stride)
-                values = np.array(xdr[:-1], dtype=np.int64)
-
+        start_value = Timestamp(start).value if start is not None else None
+        end_value = Timestamp(end).value if end is not None else None
+        values = _generate_regular_range(start_value, end_value, periods, freq.nanos)
     else:
-        tz = None
-        # start and end should have the same timezone by this point
-        if start is not None:
-            tz = start.tz
-        elif end is not None:
-            tz = end.tz
-
         xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
-
         values = np.array([x.value for x in xdr], dtype=np.int64)
 
+    tz = start.tz if start is not None else end.tz
     return values, tz
+
+
+def generate_timedeltas_range(
+    start: Timedelta, end: Timedelta, periods: int, freq: DateOffset
+):
+    """
+    Generate a range of dates with the spans between dates described by
+    the given `freq` DateOffset.
+
+    Parameters
+    ----------
+    start : Timedelta or None
+        first point of produced date range
+    end : Timedelta or None
+        last point of produced date range
+    periods : int
+        number of periods in produced date range
+    freq : DateOffset
+        describes space between dates in produced date range
+
+    Returns
+    -------
+    ndarray[np.int64] representing nanosecond timedeltas
+    """
+    start_value = Timedelta(start).value if start is not None else None
+    end_value = Timedelta(end).value if end is not None else None
+    return _generate_regular_range(start_value, end_value, periods, freq.nanos)
+
+
+def _generate_regular_range(start: int, end: int, periods: int, stride: int):
+    b = start
+    if periods is None:
+        # cannot just use e = Timestamp(end) + 1 because arange breaks when
+        # stride is too large, see GH10887
+        e = b + (end - b) // stride * stride + stride // 2 + 1
+    elif start is not None:
+        e = _generate_range_overflow_safe(b, periods, stride, side="start")
+    elif end is not None:
+        e = end + stride
+        b = _generate_range_overflow_safe(e, periods, stride, side="end")
+    else:
+        raise ValueError(
+            "at least 'start' or 'end' should be specified if a 'period' is given."
+        )
+
+    with np.errstate(over="raise"):
+        # If the range is sufficiently large, np.arange may overflow
+        #  and incorrectly return an empty array if not caught.
+        try:
+            values = np.arange(b, e, stride, dtype=np.int64)
+        except FloatingPointError:
+            xdr = [b]
+            while xdr[-1] != e:
+                xdr.append(xdr[-1] + stride)
+            values = np.array(xdr[:-1], dtype=np.int64)
+    return values
 
 
 def _generate_range_overflow_safe(

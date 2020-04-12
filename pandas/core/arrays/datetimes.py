@@ -44,7 +44,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays._ranges import generate_timestamps_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
@@ -408,7 +408,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 if end is not None:
                     end = end.tz_localize(None)
 
-            values, _tz = generate_regular_range(start, end, periods, freq)
+            values, _tz = generate_timestamps_range(start, end, periods, freq)
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
