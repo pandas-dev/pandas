@@ -53,6 +53,10 @@ matrix:
       services:
         - mysql
         - postgresql
+  allow_failures:
+    python: 3.9-dev
+      env:
+        - JOB="3.9-dev" PATTERN="(not slow and not network)"
 
 before_install:
   - echo "before_install"
@@ -83,7 +87,7 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
-  - source activate pandas-dev
+  - if [ "$JOB" != "3.9-dev" ]; then source activate pandas-dev; fi
   - ci/run_tests.sh
 
 after_script:
