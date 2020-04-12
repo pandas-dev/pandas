@@ -1502,6 +1502,8 @@ class TimeGrouper(Grouper):
         # Addresses GH #10530
         if self.base > 0:
             labels += type(self.freq)(self.base)
+        if self.loffset:
+            labels += self.loffset
 
         return binner, bins, labels
 
