@@ -110,10 +110,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_sort_index_name(self, datetime_series):
-        result = datetime_series.sort_index(ascending=False)
-        assert result.name == datetime_series.name
-
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
         result = Series(d)

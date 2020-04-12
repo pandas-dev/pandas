@@ -902,7 +902,11 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-        img = ax.collections[0]
+
+        # GH33389, if ax is used multiple times, we should always
+        # use the last one which contains the latest information
+        # about the ax
+        img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if _mpl_ge_3_0_0():
@@ -934,6 +938,8 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
