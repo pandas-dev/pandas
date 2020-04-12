@@ -129,6 +129,33 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     return result.view(np.bool_)
 
 
+cpdef ndarray[uint8_t] ispdna(ndarray arr):
+    """
+    Return boolean mask denoting which elements of a 1-D array are pd.NA.
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+    """
+
+    cdef:
+        Py_ssize_t i, n
+        ndarray[uint8_t] result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
+
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i in range(n):
+        result[i] = arr[i] is C_NA
+
+    return result.view(np.bool_)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj_old(arr: ndarray) -> ndarray:

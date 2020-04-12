@@ -599,3 +599,9 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not is_null_datetimelike(value)
+
+    def test_ispdna(self):
+        values = np.array([0, np.nan, None, pd.NaT, pd.NA])
+        result = libmissing.ispdna(values)
+        expected = np.array([False, False, False, False, True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(result, expected)
