@@ -1322,6 +1322,7 @@ class BlockManager(PandasObject):
                 if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
 
+                # TODO: Any cases where we can optimize this to slice?
                 return [
                     blk.take_nd(
                         slobj,
@@ -1369,11 +1370,18 @@ class BlockManager(PandasObject):
                         blocks.append(newblk)
 
                 else:
-                    blocks.append(
-                        blk.take_nd(
-                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
-                        )
-                    )
+                    taker = blklocs[mgr_locs.indexer]
+                    # TODO: taker.max() probably isnt the Technically Correct
+                    #  way of calling this?
+                    taker = lib.maybe_indices_to_slice(taker, taker.max())
+
+                    if isinstance(taker, slice):
+                        nb = blk.getitem_block(taker)
+                        nb.mgr_locs = mgr_locs
+                    else:
+                        # TODO: just use getitem_block anyway?
+                        nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
+                    blocks.append(nb)
 
         return blocks
 
