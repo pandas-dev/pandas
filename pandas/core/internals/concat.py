@@ -65,13 +65,12 @@ def concatenate_block_managers(
             blk = join_units[0].block
             vals = [ju.block.values for ju in join_units]
 
-            if not blk.is_extension:
-                values = concat_compat(vals, axis=blk.ndim - 1)
-            elif blk.is_datetimetz or blk.is_categorical:
-                # These can have the same type but multiple dtypes,
-                #  we concatting does not necessarily preserve dtype
+            if not blk.is_extension or blk.is_datetimetz or blk.is_categorical:
+                # datetimetz and categorical can have the same type but multiple
+                #  dtypes, concatting does not necessarily preserve dtype
                 values = concat_compat(vals, axis=blk.ndim - 1)
             else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
 
             b = make_block(values, placement=placement, ndim=blk.ndim)
