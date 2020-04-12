@@ -89,6 +89,7 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
+        "isocalendar",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
