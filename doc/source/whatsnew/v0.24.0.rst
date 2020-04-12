@@ -38,7 +38,7 @@ Enhancements
 Optional integer NA support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
 
 .. note::
 
@@ -137,8 +137,8 @@ If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.t
    pd.Series(idx).to_numpy()
 
 For Series and Indexes backed by normal NumPy arrays, :attr:`Series.array` will return a
-new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
-:class:`numpy.ndarray`. :class:`~arrays.PandasArray` isn't especially useful on its own,
+new :class:`arrays.pandasArray`, which is a thin (no-copy) wrapper around a
+:class:`numpy.ndarray`. :class:`~arrays.pandasArray` isn't especially useful on its own,
 but it does provide the same interface as any extension array defined in pandas or by
 a third-party library.
 
@@ -170,16 +170,16 @@ See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
    pd.array(['a', 'b', 'c'], dtype='category')
 
 Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
-will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
+will return a new :class:`arrays.pandasArray`, which is just a thin (no-copy)
 wrapper around a :class:`numpy.ndarray` that satisfies the pandas extension array interface.
 
 .. ipython:: python
 
    pd.array([1, 2, 3])
 
-On their own, a :class:`~arrays.PandasArray` isn't a very useful object.
+On their own, a :class:`~arrays.pandasArray` isn't a very useful object.
 But if you need write low-level code that works generically for any
-:class:`~pandas.api.extensions.ExtensionArray`, :class:`~arrays.PandasArray`
+:class:`~pandas.api.extensions.ExtensionArray`, :class:`~arrays.pandasArray`
 satisfies that need.
 
 Notice that by default, if no ``dtype`` is specified, the dtype of the returned
@@ -384,7 +384,7 @@ Other enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`DataFrame.to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.8.0
+  reflect changes from the `pandas-GBQ library version 0.8.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
   Adds a ``credentials`` argument, which enables the use of any kind of
   `google-auth credentials
@@ -432,7 +432,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.24.0 includes a number of API breaking changes.
+pandas 0.24.0 includes a number of API breaking changes.
 
 
 .. _whatsnew_0240.api_breaking.deps:
@@ -1217,7 +1217,7 @@ Extension type changes
 
 **Equality and hashability**
 
-Pandas now requires that extension dtypes be hashable (i.e. the respective
+pandas now requires that extension dtypes be hashable (i.e. the respective
 ``ExtensionDtype`` objects; hashability is not a requirement for the values
 of the corresponding ``ExtensionArray``). The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
@@ -1925,7 +1925,7 @@ Build changes
 Other
 ^^^^^
 
-- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before pandas. (:issue:`24113`)
 
 
 .. _whatsnew_0.24.0.contributors:

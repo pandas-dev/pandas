@@ -6,7 +6,7 @@
 Sparse data structures
 **********************
 
-Pandas provides data structures for efficiently storing sparse data.
+pandas provides data structures for efficiently storing sparse data.
 These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
 objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
 can be chosen, including 0) is omitted. The compressed values are not actually stored in the array.
@@ -115,7 +115,7 @@ Sparse accessor
 
 .. versionadded:: 0.24.0
 
-Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
+pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
 for categorical data, and ``.dt`` for datetime-like data. This namespace provides
 attributes and methods that are specific to sparse data.
 

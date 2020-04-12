@@ -103,7 +103,7 @@ The ``unit`` keyword argument specifies the unit of the Timedelta:
 Timedelta limitations
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pandas represents ``Timedeltas`` in nanosecond resolution using
+pandas represents ``Timedeltas`` in nanosecond resolution using
 64 bit integers. As such, the 64 bit integer limits determine
 the ``Timedelta`` limits.
 

@@ -8,7 +8,7 @@ v0.17.1 (November 21, 2015)
 
 .. note::
 
-   We are proud to announce that *pandas* has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
+   We are proud to announce that pandas has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of pandas as a world-class open-source project.
 
 .. _numfocus organization: http://www.numfocus.org/blog/numfocus-announces-new-fiscally-sponsored-project-pandas
 

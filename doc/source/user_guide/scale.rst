@@ -4,7 +4,7 @@
 Scaling to large datasets
 *************************
 
-Pandas provides data structures for in-memory analytics, which makes using pandas
+pandas provides data structures for in-memory analytics, which makes using pandas
 to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets
 that are a sizable fraction of memory become unwieldy, as some pandas operations need
 to make intermediate copies.
@@ -13,7 +13,7 @@ This document provides a few recommendations for scaling your analysis to larger
 It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis
 for datasets that fit in memory.
 
-But first, it's worth considering *not using pandas*. Pandas isn't the right
+But first, it's worth considering *not using pandas*. pandas isn't the right
 tool for all situations. If you're working with very large datasets and a tool
 like PostgreSQL fits your needs, then you should probably be using that.
 Assuming you want or need the expressiveness and power of pandas, let's carry on.
@@ -231,7 +231,7 @@ different library that implements these out-of-core algorithms for you.
 Use other libraries
 -------------------
 
-Pandas is just one library offering a DataFrame API. Because of its popularity,
+pandas is just one library offering a DataFrame API. Because of its popularity,
 pandas' API has become something of a standard that other libraries implement.
 The pandas documentation maintains a list of libraries implementing a DataFrame API
 in :ref:`our ecosystem page <ecosystem.out-of-core>`.
@@ -260,7 +260,7 @@ Inspecting the ``ddf`` object, we see a few things
 * There are new attributes like ``.npartitions`` and ``.divisions``
 
 The partitions and divisions are how Dask parallelizes computation. A **Dask**
-DataFrame is made up of many **Pandas** DataFrames. A single method call on a
+DataFrame is made up of many pandas DataFrames. A single method call on a
 Dask DataFrame ends up making many pandas method calls, and Dask knows how to
 coordinate everything to get the result.
 

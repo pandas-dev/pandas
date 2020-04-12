@@ -50,7 +50,7 @@ Highlights include:
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
-- Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
+- Documentation comparing SAS to pandas, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
 - Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
 - Compatibility with Python 3.5 (:issue:`11097`)
@@ -762,7 +762,7 @@ Usually you simply want to know which values are null.
 .. warning::
 
    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
-   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
 
@@ -909,7 +909,7 @@ Other API changes
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
-  was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
+  was automatically promoted to the ``complex128`` dtype. pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 - some numeric reduction operators would return ``ValueError``, rather than ``TypeError`` on object types that includes strings and numbers (:issue:`11131`)
 - Passing currently unsupported ``chunksize`` argument to ``read_excel`` or ``ExcelFile.parse`` will now raise ``NotImplementedError`` (:issue:`8011`)
 - Allow an ``ExcelFile`` object to be passed into ``read_excel`` (:issue:`11198`)

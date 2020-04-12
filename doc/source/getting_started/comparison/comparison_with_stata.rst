@@ -144,7 +144,7 @@ the pandas command would be:
    # alternatively, read_table is an alias to read_csv with tab delimiter
    tips = pd.read_table('tips.csv', header=None)
 
-Pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
+pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
 
 .. code-block:: python
 
@@ -170,7 +170,7 @@ Similarly in pandas, the opposite of ``read_csv`` is :meth:`DataFrame.to_csv`.
 
    tips.to_csv('tips2.csv')
 
-Pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
+pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
 
 .. code-block:: python
 
@@ -579,7 +579,7 @@ should be used for comparisons.
    outer_join[pd.isna(outer_join['value_x'])]
    outer_join[pd.notna(outer_join['value_x'])]
 
-Pandas also provides a variety of methods to work with missing data -- some of
+pandas also provides a variety of methods to work with missing data -- some of
 which would be challenging to express in Stata. For example, there are methods to
 drop all rows with any missing values, replacing missing values with a specified
 value, like the mean, or forward filling from previous rows. See the
@@ -670,7 +670,7 @@ Other considerations
 Disk vs memory
 ~~~~~~~~~~~~~~
 
-Pandas and Stata both operate exclusively in memory. This means that the size of
+pandas and Stata both operate exclusively in memory. This means that the size of
 data able to be loaded in pandas is limited by your machine's memory.
 If out of core processing is needed, one possibility is the
 `dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_

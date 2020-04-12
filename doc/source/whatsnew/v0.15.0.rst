@@ -42,7 +42,7 @@ users upgrade to this version.
 .. warning::
 
    In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
+   but instead subclass ``pandasObject``, similarly to the rest of the pandas objects. This change allows very easy sub-classing and creation of new index types. This should be
    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
 
 .. warning::
@@ -887,7 +887,7 @@ Internal refactoring
 ^^^^^^^^^^^^^^^^^^^^
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
-but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This
+but instead subclass ``pandasObject``, similarly to the rest of the pandas objects. This
 change allows very easy sub-classing and creation of new index types. This should be
 a transparent change with only very limited API implications (:issue:`5080`, :issue:`7439`, :issue:`7796`, :issue:`8024`, :issue:`8367`, :issue:`7997`, :issue:`8522`):
 

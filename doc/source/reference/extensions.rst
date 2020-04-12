@@ -24,7 +24,7 @@ objects.
    :template: autosummary/class_without_autosummary.rst
 
    api.extensions.ExtensionArray
-   arrays.PandasArray
+   arrays.pandasArray
 
 .. We need this autosummary so that methods and attributes are generated.
 .. Separate block, since they aren't classes.

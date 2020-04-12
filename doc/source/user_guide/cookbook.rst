@@ -15,7 +15,7 @@ Simplified, condensed, new-user friendly, in-line examples have been inserted wh
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
 above what the in-line examples offer.
 
-Pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
+pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
 These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
@@ -893,7 +893,7 @@ The :ref:`Plotting <visualization>` docs.
 `Annotate a time-series plot #2
 <https://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
-`Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
+`Generate Embedded plots in excel files using pandas, Vincent and xlsxwriter
 <https://pandas-xlsxwriter-charts.readthedocs.io/>`__
 
 `Boxplot for each quartile of a stratifying variable

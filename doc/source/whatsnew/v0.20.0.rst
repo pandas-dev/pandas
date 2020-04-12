@@ -26,7 +26,7 @@ Highlights include:
 
 .. warning::
 
-  Pandas has changed the internal structure and layout of the code base.
+  pandas has changed the internal structure and layout of the code base.
   This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
@@ -243,7 +243,7 @@ The default is to infer the compression type from the extension (``compression='
 UInt64 support improved
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has significantly improved support for operations involving unsigned,
+pandas has significantly improved support for operations involving unsigned,
 or purely non-negative, integers. Previously, handling these integers would
 result in improper rounding or data-type casting, leading to incorrect results.
 Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
@@ -333,7 +333,7 @@ You must enable this by setting the ``display.html.table_schema`` option to ``Tr
 SciPy sparse matrix from/to SparseDataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
@@ -1184,8 +1184,8 @@ Other API changes
 - ``NaT`` will now correctly return ``np.nan`` for ``Timedelta`` and ``Period`` accessors such as ``days`` and ``quarter`` (:issue:`15782`)
 - ``NaT`` will now returns ``NaT`` for ``tz_localize`` and ``tz_convert``
   methods (:issue:`15830`)
-- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``PandasError``, if called with scalar inputs and not axes (:issue:`15541`)
-- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
+- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandasError``, if called with scalar inputs and not axes (:issue:`15541`)
+- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.pandasError``, if called with scalar inputs and not axes; The exception ``pandasError`` is removed as well. (:issue:`15541`)
 - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
 
 
@@ -1355,7 +1355,7 @@ Deprecate Panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
 
 .. code-block:: ipython
@@ -1565,7 +1565,7 @@ Removal of prior version deprecations/changes
   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
   See the `R interfacing docs <https://pandas.pydata.org/pandas-docs/version/0.20/r_interface.html>`__ for more details.
 - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
-  Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
+  Similar functionality can be found in the `Google2pandas <https://github.com/panalysis/Google2pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
 - ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionality can be found in the `statsmodels <https://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
 - The ``TimeSeries`` and ``SparseTimeSeries`` classes, aliases of ``Series``

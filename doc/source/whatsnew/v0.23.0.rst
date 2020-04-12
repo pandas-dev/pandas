@@ -189,7 +189,7 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
 Extending pandas with custom types (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
+pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
 arrays as columns in a DataFrame or values in a Series. This allows third-party
 libraries to implement extensions to NumPy's types, similar to how pandas
 implemented categoricals, datetimes with timezones, periods, and intervals.
@@ -553,7 +553,7 @@ Other enhancements
 - :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
-  the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
+  the pandas-GBQ library version 0.4.0. Adds intersphinx mapping to pandas-GBQ
   library. (:issue:`20564`)
 - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
@@ -593,7 +593,7 @@ Instantiation from dicts preserves dict insertion order for python 3.6+
 Until Python 3.6, dicts in Python had no formally defined ordering. For Python
 version 3.6 and later, dicts are ordered by insertion order, see
 `PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
-Pandas will use the dict's insertion order, when creating a ``Series`` or
+pandas will use the dict's insertion order, when creating a ``Series`` or
 ``DataFrame`` from a dict and you're using Python version 3.6 or
 higher. (:issue:`19884`)
 
@@ -643,7 +643,7 @@ Deprecate Panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` was deprecated in the 0.20.x release, showing as a ``DeprecationWarning``. Using ``Panel`` will now show a ``FutureWarning``. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`, :issue:`18324`).
 
 .. code-block:: ipython
@@ -884,7 +884,7 @@ Extraction of matching patterns from strings
 
 By default, extracting matching patterns from strings with :func:`str.extract` used to return a
 ``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
-extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+extracted). As of pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
 ``expand`` is set to ``False``. Finally, ``None`` was an accepted value for
 the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
 
@@ -1175,7 +1175,7 @@ Performance improvements
 Documentation changes
 ~~~~~~~~~~~~~~~~~~~~~
 
-Thanks to all of the contributors who participated in the Pandas Documentation
+Thanks to all of the contributors who participated in the pandas Documentation
 Sprint, which took place on March 10th. We had about 500 participants from over
 30 locations across the world. You should notice that many of the
 :ref:`API docstrings <api>` have greatly improved.

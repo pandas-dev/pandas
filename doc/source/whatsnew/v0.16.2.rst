@@ -14,7 +14,7 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
-- Documentation on how to use numba_ with *pandas*, see :ref:`here <enhancingperf.numba>`
+- Documentation on how to use numba_ with pandas, see :ref:`here <enhancingperf.numba>`
 
 
 .. contents:: What's new in v0.16.2

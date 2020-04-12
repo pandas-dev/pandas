@@ -49,7 +49,7 @@ Tutorial series written in 2016 by
 The source may be found in the GitHub repository
 `TomAugspurger/effective-pandas <https://github.com/TomAugspurger/effective-pandas>`_.
 
-* `Modern Pandas <https://tomaugspurger.github.io/modern-1-intro.html>`_
+* `Modern pandas <https://tomaugspurger.github.io/modern-1-intro.html>`_
 * `Method Chaining <https://tomaugspurger.github.io/method-chaining.html>`_
 * `Indexes <https://tomaugspurger.github.io/modern-3-indexes.html>`_
 * `Performance <https://tomaugspurger.github.io/modern-4-performance.html>`_
@@ -60,18 +60,18 @@ The source may be found in the GitHub repository
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------
 
-*  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
+*  `Using pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
 Video tutorials
 ---------------
 
-* `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
+* `pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
   (2015) (2:24)
   `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`__
-* `Introduction Into Pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_
+* `Introduction Into pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_
   (2016) (1:28)
   `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`__
-* `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
+* `pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
   (2016) (1:26)
   `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
 * `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
@@ -90,8 +90,8 @@ Various tutorials
 * `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
 * `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
 * `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
-* `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
+* `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20pandas%20Basics.ipynb>`_
 * `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
-* `Pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
-* `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
+* `pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
+* `pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
 * `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_

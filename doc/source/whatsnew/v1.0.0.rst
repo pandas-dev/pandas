@@ -18,7 +18,7 @@ including other versions of pandas.
 New deprecation policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
+Starting with pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
 version releases. Briefly,
 
 * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
@@ -27,7 +27,7 @@ version releases. Briefly,
 
 See :ref:`policies.version` for more.
 
-.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+.. _2019 pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
 .. _SemVer: https://semver.org
 
 {{ header }}
@@ -443,12 +443,12 @@ Extended verbose info output for :class:`~pandas.DataFrame`
 .. code-block:: python
 
    >>> pd.array(["a", None])
-   <PandasArray>
+   <pandasArray>
    ['a', None]
    Length: 2, dtype: object
 
    >>> pd.array([1, None])
-   <PandasArray>
+   <pandasArray>
    [1, None]
    Length: 2, dtype: object
 
@@ -676,7 +676,7 @@ depending on how the results are cast back to the original dtype.
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
+pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
 
 .. _whatsnew_100.api_breaking.deps:
 
@@ -749,7 +749,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Build changes
 ^^^^^^^^^^^^^
 
-Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
 cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
 a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
 source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
@@ -763,7 +763,7 @@ Other API changes
 - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
-- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+- In order to improve tab-completion, pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
@@ -1256,7 +1256,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
-- Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
+- Bug in :class:`arrays.pandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
 - Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
 

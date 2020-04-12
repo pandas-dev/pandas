@@ -650,7 +650,7 @@ Tutorials
 
 For a quick overview of pandas functionality, see :ref:`10 Minutes to pandas<10min>`.
 
-You can also reference the pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_
+You can also reference the pandas `cheat sheet <https://pandas.pydata.org/pandas_Cheat_Sheet.pdf>`_
 for a succinct guide for manipulating data with pandas.
 
 The community produces a wide variety of tutorials available online. Some of the

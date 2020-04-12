@@ -900,13 +900,13 @@ New behavior:
 No automatic Matplotlib converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas no longer registers our ``date``, ``time``, ``datetime``,
+pandas no longer registers our ``date``, ``time``, ``datetime``,
 ``datetime64``, and ``Period`` converters with matplotlib when pandas is
 imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
 nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
-Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
+pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
 converters on first-use (:issue:`17710`).
 
 .. note::

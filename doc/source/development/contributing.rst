@@ -134,7 +134,7 @@ want to clone your fork to your machine::
     git remote add upstream https://github.com/pandas-dev/pandas.git
 
 This creates the directory `pandas-yourname` and connects your repository to
-the upstream (main project) *pandas* repository.
+the upstream (main project) pandas repository.
 
 .. _contributing.dev_env:
 
@@ -150,7 +150,7 @@ Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Instead of manually setting up a development environment, you can use Docker to
-automatically create the environment with just several commands. Pandas provides a `DockerFile`
+automatically create the environment with just several commands. pandas provides a `DockerFile`
 in the root directory to build a Docker image with a full pandas development environment.
 
 Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
@@ -162,7 +162,7 @@ See https://code.visualstudio.com/docs/remote/containers for details.
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas uses C extensions (mostly written using Cython) to speed up certain
+pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
@@ -1157,7 +1157,7 @@ This test shows off several useful features of Hypothesis, as well as
 demonstrating a good use-case: checking properties that should hold over
 a large or complicated domain of inputs.
 
-To keep the Pandas test suite running quickly, parametrized tests are
+To keep the pandas test suite running quickly, parametrized tests are
 preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.

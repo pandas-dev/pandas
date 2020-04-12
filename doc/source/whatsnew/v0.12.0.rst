@@ -166,10 +166,10 @@ API changes
     until success is also valid
 
   - The internal ``pandas`` class hierarchy has changed (slightly). The
-    previous ``PandasObject`` now is called ``PandasContainer`` and a new
-    ``PandasObject`` has become the base class for ``PandasContainer`` as well
+    previous ``pandasObject`` now is called ``pandasContainer`` and a new
+    ``pandasObject`` has become the base class for ``pandasContainer`` as well
     as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
-    ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
+    ``SparseArray`` (+ their base classes). Currently, ``pandasObject``
     provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
 
   - New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
@@ -492,7 +492,7 @@ Bug fixes
     iterated over when regex=False (:issue:`4115`)
   - Fixed bug in the parsing of microseconds when using the ``format``
     argument in ``to_datetime`` (:issue:`4152`)
-  - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
+  - Fixed bug in ``pandasAutoDateLocator`` where ``invert_xaxis`` triggered
     incorrectly ``MilliSecondLocator``  (:issue:`3990`)
   - Fixed bug in plotting that wasn't raising on invalid colormap for
     matplotlib 1.1.1 (:issue:`4215`)

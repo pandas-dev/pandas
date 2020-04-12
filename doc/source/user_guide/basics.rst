@@ -52,7 +52,7 @@ Note, **these attributes can be safely assigned to**!
    df.columns = [x.lower() for x in df.columns]
    df
 
-Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
 thought of as containers for arrays, which hold the actual data and do the
 actual computation. For many types, the underlying array is a
 :class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
@@ -410,7 +410,7 @@ data structure with a scalar value:
    pd.Series(['foo', 'bar', 'baz']) == 'foo'
    pd.Index(['foo', 'bar', 'baz']) == 'foo'
 
-Pandas also handles element-wise comparisons between different array-like
+pandas also handles element-wise comparisons between different array-like
 objects of the same length:
 
 .. ipython:: python
@@ -804,7 +804,7 @@ Is equivalent to:
     (df_p.pipe(extract_city_name)
          .pipe(add_country_name, country_name="US"))
 
-Pandas encourages the second style, which is known as method chaining.
+pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
 in method chains, alongside pandas' methods.
 
@@ -1497,7 +1497,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
+pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1740,7 +1740,7 @@ always uses them).
 .. note::
 
    Prior to pandas 1.0, string methods were only available on ``object`` -dtype
-   ``Series``. Pandas 1.0 added the :class:`StringDtype` which is dedicated
+   ``Series``. pandas 1.0 added the :class:`StringDtype` which is dedicated
    to strings. See :ref:`text.types` for more.
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
@@ -1751,7 +1751,7 @@ description.
 Sorting
 -------
 
-Pandas supports three kinds of sorting: sorting by index labels,
+pandas supports three kinds of sorting: sorting by index labels,
 sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
@@ -1938,7 +1938,7 @@ columns of a DataFrame. NumPy provides support for ``float``,
 ``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
 does not support timezone-aware datetimes).
 
-Pandas and third-party libraries *extend* NumPy's type system in a few places.
+pandas and third-party libraries *extend* NumPy's type system in a few places.
 This section describes the extensions pandas has made internally.
 See :ref:`extending.extension-types` for how to write your own extension that
 works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
@@ -1975,7 +1975,7 @@ documentation sections for more on each type.
 | Boolean (with NA) | :class:`BooleanDtype`     | :class:`bool`      | :class:`arrays.BooleanArray`  | ``'boolean'``                           | :ref:`api.arrays.bool`        |
 +-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
 
-Pandas has two ways to store strings.
+pandas has two ways to store strings.
 
 1. ``object`` dtype, which can hold any Python object, including strings.
 2. :class:`StringDtype`, which is dedicated to strings.
@@ -2367,5 +2367,5 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 
 .. note::
 
-    Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
+    pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     NumPy hierarchy and won't show up with the above function.

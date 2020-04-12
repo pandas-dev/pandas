@@ -184,7 +184,7 @@ You can find simple installation instructions for pandas in this document: `inst
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -249,7 +249,7 @@ Recommended dependencies
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pandas has many optional dependencies that are only used for specific methods.
+pandas has many optional dependencies that are only used for specific methods.
 For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when

@@ -36,7 +36,7 @@ Enhancements
 Groupby aggregation with relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has added special groupby behavior, known as "named aggregation", for naming the
+pandas has added special groupby behavior, known as "named aggregation", for naming the
 output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
 
 .. ipython:: python
@@ -53,7 +53,7 @@ output columns when applying multiple aggregation functions to specific columns 
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
-aggregation function to apply. Pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
+aggregation function to apply. pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
 what the arguments to the function are, but plain tuples are accepted as well.
 
 .. ipython:: python
@@ -425,7 +425,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 Categorical dtypes are preserved during groupby
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
+Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. pandas now will preserve these dtypes. (:issue:`18502`)
 
 .. ipython:: python
 
@@ -545,14 +545,14 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has until now mostly defined string representations in a Pandas objects's
+pandas has until now mostly defined string representations in a pandas objects's
 ``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
 method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
-In Pandas 0.25, the string representations of Pandas objects are now generally
+In pandas 0.25, the string representations of pandas objects are now generally
 defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
 the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
-This change is backward compatible for direct usage of Pandas, but if you subclass
-Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
+This change is backward compatible for direct usage of pandas, but if you subclass
+pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
 
 .. _whatsnew_0250.api_breaking.interval_indexing:
@@ -881,7 +881,7 @@ Other API changes
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
-- Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
+- Most pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
@@ -1113,7 +1113,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
-- Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
+- Fixed bug where assigning a :class:`arrays.pandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
 - Fixed a ``KeyError`` when indexing a :class:`MultiIndex`` level with a list containing exactly one label, which is missing (:issue:`27148`)
 - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)

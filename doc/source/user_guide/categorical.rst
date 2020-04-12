@@ -1012,7 +1012,7 @@ The following differences to R's factor functions can be observed:
 * In contrast to R's `factor` function, using categorical data as the sole input to create a
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
-* R allows for missing values to be included in its `levels` (pandas' `categories`). Pandas
+* R allows for missing values to be included in its `levels` (pandas' `categories`). pandas
   does not allow `NaN` categories, but missing values can still be in the `values`.
 
 
@@ -1108,7 +1108,7 @@ are not numeric data (even in the case that ``.categories`` is numeric).
 dtype in apply
 ~~~~~~~~~~~~~~
 
-Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
+pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
 a `Series` of ``object`` `dtype` (same as getting a row -> getting one element will return a
 basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
 You can use ``fillna`` to handle missing values before applying a function.
