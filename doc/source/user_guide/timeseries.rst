@@ -1799,37 +1799,45 @@ For example:
 
 .. ipython:: python
 
-    start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
-    middle = "2000-10-02 00:00:00"
-    rng = pd.date_range(start, end, freq="7min")
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
     ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     ts
 
-Here we can see that, when not using ``origin``, the result after "2000-10-02 00:00:00" are not identical depending on the start of time series:
+Here we can see that, when using ``origin`` with its default value (``'start_day'``), the result after ``'2000-10-02 00:00:00'`` are not identical depending on the start of time series:
 
 .. ipython:: python
 
-    ts.resample("17min").sum()
-    ts[middle:end].resample("17min").sum()
+    ts.resample('17min').sum()
+    ts[middle:end].resample('17min').sum()
 
 
-Here we can see that, when using ``origin``, the result after "2000-10-02 00:00:00" are identical depending on the start of time series:
+Here we can see that, when setting ``origin`` to ``'epoch'``, the result after ``'2000-10-02 00:00:00'`` are identical depending on the start of time series:
 
 .. ipython:: python
 
-   origin = pd.Timestamp("1970-01-01")
-   ts.resample("17min", origin=origin).sum()
-   ts[middle:end].resample("17min", origin=origin).sum()
+   ts.resample('17min', origin='epoch').sum()
+   ts[middle:end].resample('17min', origin='epoch').sum()
 
+
+If needed you can use a custom timestamp for ``origin``:
+
+.. ipython:: python
+
+   ts.resample('17min', origin='2001-01-01').sum()
+   ts[middle:end].resample('17min', origin=pd.Timestamp('2001-01-01')).sum()
 
 If needed you can just adjust the bins with an ``offset`` Timedelta that would be added to the default ``origin``.
 Those two examples are equivalent for this time series:
 
 .. ipython:: python
 
-    ts.resample("17min", origin=start).sum()
-    ts.resample("17min", offset=pd.Timedelta("23h30min")).sum()
+    ts.resample('17min', origin='start').sum()
+    ts.resample('17min', offset='23h30min').sum()
 
+
+Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
 
 .. _timeseries.periods:
 

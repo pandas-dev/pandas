@@ -83,10 +83,14 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : Timestamp, str or datetime-like, default None
-        The timestamp on which to adjust the grouping. The timezone of the
-        timestamp must match the timezone of the index. If None is passed, the
-        first day of the time series at midnight is used.
+    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        The timestamp on which to adjust the grouping. It must be timezone aware if
+        the index of the resampled data is.
+        If a timestamp is not used, these values are also supported:
+
+        - 'epoch': `origin` is 1970-01-01
+        - 'start': `origin` is the first value of the timeseries
+        - 'start_day': `origin` is the first day at midnight of the timeseries
 
         .. versionadded:: 1.1.0
 
@@ -151,8 +155,8 @@ class Grouper:
 
     If you want to adjust the start of the bins based on a fixed timestamp:
 
-    >>> start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
-    >>> rng = pd.date_range(start, end, freq="7min")
+    >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    >>> rng = pd.date_range(start, end, freq='7min')
     >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     >>> ts
     2000-10-01 23:30:00     0
@@ -166,7 +170,7 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 7T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="17min")).sum()
+    >>> ts.groupby(pd.Grouper(freq='17min')).sum()
     2000-10-01 23:14:00     0
     2000-10-01 23:31:00     9
     2000-10-01 23:48:00    21
@@ -174,7 +178,7 @@ class Grouper:
     2000-10-02 00:22:00    24
     Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="17min", origin=pd.Timestamp("1970-01-01"))).sum()
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0
     2000-10-01 23:35:00    18
     2000-10-01 23:52:00    27
@@ -182,17 +186,24 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17T, dtype: int64
 
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
+    2000-10-01 23:24:00     3
+    2000-10-01 23:41:00    15
+    2000-10-01 23:58:00    45
+    2000-10-02 00:15:00    45
+    Freq: 17T, dtype: int64
+
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
 
-    >>> ts.groupby(pd.Grouper(freq="17min", origin=start)).sum()
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='start')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
     Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq="17min", offset=pd.Timedelta("23h30min"))).sum()
+    >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
@@ -201,7 +212,8 @@ class Grouper:
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
-    >>> ts.groupby(pd.Grouper(freq="17min", offset="2min")).sum()
+
+    >>> ts.groupby(pd.Grouper(freq='17min', offset='2min')).sum()
     2000-10-01 23:16:00     0
     2000-10-01 23:33:00     9
     2000-10-01 23:50:00    36

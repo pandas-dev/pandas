@@ -157,7 +157,7 @@ For example:
 Grouper and resample now supports the arguments origin and offset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Grouper` and :class:`DataFrame.resample` now supports the argument ``origin``. The timestamp on which to adjust the grouping. (:issue:`31809`)
+:class:`Grouper` and :class:`DataFrame.resample` now supports the arguments ``origin`` and ``offset``. It let the user control the timestamp on which to adjust the grouping. (:issue:`31809`)
 
 The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
 
@@ -165,23 +165,25 @@ For example:
 
 .. ipython:: python
 
-    start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
-    middle = "2000-10-02 00:00:00"
-    rng = pd.date_range(start, end, freq="7min")
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
     ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     ts
 
-Resample with the default behavior (origin is 2000-10-01 00:00:00):
+Resample with the default behavior 'start_day' (origin is 2000-10-01 00:00:00):
 
 .. ipython:: python
 
-    ts.resample("17min").sum()
+    ts.resample('17min').sum()
+    ts.resample('17min', origin='start_day').sum()
 
 Resample using a fixed origin:
 
 .. ipython:: python
 
-    ts.resample("17min", origin="1970-01-01").sum()
+    ts.resample('17min', origin='epoch').sum()
+    ts.resample('17min', origin='2000-01-01').sum()
 
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
@@ -190,29 +192,29 @@ Those two examples are equivalent for this time series:
 
 .. ipython:: python
 
-    ts.resample("17min", origin=start).sum()
-    ts.resample("17min", offset=pd.Timedelta("23h30min")).sum()
+    ts.resample('17min', origin='start').sum()
+    ts.resample('17min', offset='23h30min').sum()
 
 The argument ``base`` is now deprecated in favor of ``offset``. (:issue:`31809`)
 
 .. ipython:: python
     :okwarning:
 
-    ts.resample("17min", base=2).sum()
+    ts.resample('17min', base=2).sum()
 
 becomes:
 
 .. ipython:: python
 
-    ts.resample("17min", offset="2min").sum()
+    ts.resample('17min', offset='2min').sum()
 
 The argument ``loffset`` is now deprecated. You should now add an offset to the index DataFrame after being resampled. (:issue:`31809`)
 
 .. ipython:: python
 
     from pandas.tseries.frequencies import to_offset
-    loffset = "19min"
-    ts_out = ts.resample("17min").sum()
+    loffset = '19min'
+    ts_out = ts.resample('17min').sum()
     ts_out.index = ts_out.index + to_offset(loffset)
     ts_out
 
