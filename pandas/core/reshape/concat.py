@@ -17,14 +17,13 @@ from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
 )
-
 import pandas.core.common as com
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import (
     all_indexes_same,
     ensure_index,
-    get_objs_combined_axis,
     get_consensus_names,
+    get_objs_combined_axis,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
@@ -589,25 +588,6 @@ def _concat_indexes(indexes) -> Index:
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
-    """
-    Produce a MultiIndex which includes concatenated pieces in "indexes",
-    prepended by one or more levels defined by "keys".
-
-    Parameters
-    ----------
-    indexes : sequence of Index (or subclass) instances.
-        Pieces of new Index.
-    keys : sequence of labels, same length as "indexes".
-        Labels used to index the pieces in "indexes".
-    levels : list of sequences, default None
-        Used to override the ".levels" in the resulting hierarchical index.
-    names : list, default None
-        Names for the levels in the resulting hierarchical index.
-    Returns
-    -------
-    concatenated : MultiIndex
-
-    """
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
@@ -640,7 +620,6 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             for key, index in zip(hlevel, indexes):
                 try:
                     i = level.get_loc(key)
-                    print(i)
                 except KeyError as err:
                     raise ValueError(f"Key {key} not in level {level}") from err
 
