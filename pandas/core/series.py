@@ -3889,7 +3889,7 @@ Name: Max Speed, dtype: float64
                 except TypeError:
                     # The elements themselves may be iterable (e.g., a list or
                     # array of values)
-                    return self.map(f)
+                    return self.map(lambda x: f(x))
 
             # row-wise access
             if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
