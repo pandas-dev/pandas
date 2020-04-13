@@ -19,6 +19,7 @@ from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
+from pandas.io.sas.reader import ReaderBase
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -239,7 +240,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(abc.Iterator):
+class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(

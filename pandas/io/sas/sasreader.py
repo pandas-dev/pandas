@@ -1,24 +1,33 @@
 """
 Read SAS sas7bdat or xport files.
 """
-from typing import TYPE_CHECKING, AnyStr, Optional, Union
-
-from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import stringify_path
+from abc import ABCMeta, abstractmethod
 
-if TYPE_CHECKING:
-    from pandas.io.sas.sas_xport import XportReader  # noqa: F401
-    from pandas.io.sas.sas7bdat import SAS7BDATReader  # noqa: F401
+
+# TODO: replace with Protocol in Python 3.8
+class ReaderBase(metaclass=ABCMeta):
+    """
+    Protocol for XportReader and SAS7BDATReader classes.
+    """
+
+    @abstractmethod
+    def read(self, nrows=None):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass
 
 
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr],
-    format: Optional[str] = None,
+    filepath_or_buffer,
+    format=None,
     index=None,
-    encoding: Optional[str] = None,
-    chunksize: Optional[int] = None,
-    iterator: bool = False,
+    encoding=None,
+    chunksize=None,
+    iterator=False,
 ):
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
@@ -70,15 +79,15 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
-    reader: Union["XportReader", "SAS7BDATReader"]
+    reader: ReaderBase
     if format.lower() == "xport":
-        from pandas.io.sas.sas_xport import XportReader  # noqa: F811
+        from pandas.io.sas.sas_xport import XportReader
 
         reader = XportReader(
             filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
         )
     elif format.lower() == "sas7bdat":
-        from pandas.io.sas.sas7bdat import SAS7BDATReader  # noqa: F811
+        from pandas.io.sas.sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
             filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize

@@ -25,6 +25,7 @@ import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
+from pandas.io.sas.reader import ReaderBase
 import pandas.io.sas.sas_constants as const
 
 
@@ -37,7 +38,7 @@ class _column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(abc.Iterator):
+class SAS7BDATReader(ReaderBase, abc.Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
