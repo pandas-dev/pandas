@@ -436,6 +436,7 @@ Categorical
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
+- Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
 
 Datetimelike
 ^^^^^^^^^^^^

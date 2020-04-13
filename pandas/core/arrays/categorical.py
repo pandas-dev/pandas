@@ -2145,7 +2145,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         good = self._codes != -1
         if not good.all():
-            if skipna:
+            if skipna and good.any():
                 pointer = self._codes[good].min()
             else:
                 return np.nan
@@ -2180,7 +2180,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         good = self._codes != -1
         if not good.all():
-            if skipna:
+            if skipna and good.any():
                 pointer = self._codes[good].max()
             else:
                 return np.nan
