@@ -28,7 +28,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
-import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -557,7 +556,7 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "min", "max"}:
+        if name in {"sum", "prod", "min", "max"}:
             op = getattr(masked_reductions, name)
             return op(data, mask, skipna=skipna, **kwargs)
 
@@ -575,12 +574,6 @@ class IntegerArray(BaseMaskedArray):
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
             pass
-
-        # if we have a preservable numeric op,
-        # provide coercion back to an integer type if possible
-        elif name == "prod":
-            # GH#31409 more performant than casting-then-checking
-            result = com.cast_scalar_indexer(result)
 
         return result
 
