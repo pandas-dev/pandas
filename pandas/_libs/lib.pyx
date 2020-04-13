@@ -2532,14 +2532,16 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 @cython.boundscheck(False)
 def from_nested_dict(dict data) -> dict:
     cdef:
-        dict new_data = {}
         object index, column, value, dict_or_series
+        dict new_data = {}
+        dict new_value
 
     for index, dict_or_series in data.items():
         for column, value in dict_or_series.items():
+            new_value = dict([(index, value)])
             if column in new_data:
-                new_data[column].update(dict([(index, value)]))
+                new_data[column].update(new_value)
             else:
-                new_data.setdefault(column, dict([(index, value)]))
+                new_data.setdefault(column, new_value)
 
     return new_data
