@@ -885,7 +885,8 @@ b  2""",
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
         func = self._is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
+        if engine != 'numba':
+            f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output: Dict[base.OutputKey, np.ndarray] = {}

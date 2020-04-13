@@ -154,6 +154,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
+    _numba_func_cache: Dict[Callable, Callable] = {}
+
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
@@ -825,6 +827,8 @@ class SeriesGroupBy(GroupBy[Series]):
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
+
+    _numba_func_cache: Dict[Callable, Callable] = {}
 
     _agg_see_also_doc = dedent(
         """
