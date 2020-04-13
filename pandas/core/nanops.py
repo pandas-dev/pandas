@@ -1,7 +1,7 @@
 import functools
 import itertools
 import operator
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union, cast
+from typing import Any, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -33,9 +33,6 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.construction import extract_array
-
-if TYPE_CHECKING:
-    from pandas import Series  # noqa: F401
 
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
