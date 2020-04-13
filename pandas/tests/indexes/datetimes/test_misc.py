@@ -408,3 +408,20 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)
+
+
+def test_datetimelike_string():
+    # Related to PR 32739
+    # Ensure we do not compare strings and datetimelike type.
+    date_string = "2020-04-13"
+    i1 = pd.Index([date_string])
+    i2 = pd.Index([pd.to_datetime(date_string)])
+
+    assert i1.equals(i2) is False
+    assert i2.equals(i1) is False
+
+    assert len(i1.intersection(i2)) == 0
+    assert len(i2.intersection(i1)) == 0
+
+    assert len(i1.union(i2)) == 2
+    assert len(i2.union(i1)) == 2
