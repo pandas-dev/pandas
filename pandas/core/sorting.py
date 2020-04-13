@@ -401,7 +401,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         except TypeError:
             raise TypeError("User-provided `key` function returned an invalid type.")
 
-        return result
+    return result
 
 
 class _KeyMapper:
