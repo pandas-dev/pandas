@@ -882,7 +882,7 @@ nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 @disallow("O")
 def nanargmax(
-    values: Union[np.ndarray, "Series"],
+    values: np.ndarray,
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
@@ -890,7 +890,7 @@ def nanargmax(
     """
     Parameters
     ----------
-    values : ndarray or Series
+    values : ndarray
     axis: int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
@@ -904,8 +904,8 @@ def nanargmax(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1, 2, 3, np.nan, 4])
-    >>> nanops.nanargmax(s)
+    >>> arr = np.array([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmax(arr)
     4
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
@@ -928,7 +928,7 @@ def nanargmax(
 
 @disallow("O")
 def nanargmin(
-    values: Union[np.ndarray, "Series"],
+    values: np.ndarray,
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
@@ -936,7 +936,7 @@ def nanargmin(
     """
     Parameters
     ----------
-    values : ndarray or Series
+    values : ndarray
     axis: int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
@@ -950,8 +950,8 @@ def nanargmin(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1, 2, 3, np.nan, 4])
-    >>> nanops.nanargmin(s)
+    >>> arr = np.array([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmin(arr)
     0
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
