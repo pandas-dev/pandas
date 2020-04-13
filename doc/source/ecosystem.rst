@@ -105,7 +105,7 @@ graphics in the style of Protovis/D3, while delivering high-performance interact
 large data to thin clients.
 
 `Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
-for Bokeh that can be loaded as a native Pandas plotting backend via
+for Bokeh that can be loaded as a native pandas plotting backend via
 
 .. code:: python
 
@@ -163,7 +163,7 @@ IDE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
-environment. IPython tab completion works with Pandas methods and also
+environment. IPython tab completion works with pandas methods and also
 attributes like DataFrame columns.
 
 `Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
@@ -177,7 +177,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
 Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
 which are utilized by Jupyter Notebook for displaying
 (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
 (Note: HTML tables may or may not be
@@ -205,7 +205,7 @@ Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
 allows users to view, manipulate and edit pandas ``Index``, ``Series``,
 and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
 values, sorting, displaying a "heatmap", converting data types and more.
-Pandas objects can also be renamed, duplicated, new columns added,
+pandas objects can also be renamed, duplicated, new columns added,
 copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
 Spyder can also import data from a variety of plain text and binary files
 or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
@@ -252,13 +252,13 @@ The following data feeds are available:
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
-Pandas DataFrames with timeseries indexes.
+pandas DataFrames with timeseries indexes.
 
 `pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
-REST API to return indexed Pandas DataFrames with financial data.
+REST API to return indexed pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
@@ -312,7 +312,7 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
-in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
+in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
 
 `Dask <https://dask.readthedocs.io/en/latest/>`__
@@ -358,7 +358,7 @@ If also displays progress bars.
 `Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas on Ray is an early stage DataFrame library that wraps Pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous Pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use Pandas on Ray just like you would Pandas.
+pandas on Ray is an early stage DataFrame library that wraps pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use pandas on Ray just like you would pandas.
 
 .. code:: python
 
@@ -379,7 +379,7 @@ Increasingly, packages are being built on top of pandas to address specific need
 Extension data types
 --------------------
 
-Pandas provides an interface for defining
+pandas provides an interface for defining
 :ref:`extension types <extending.extension-types>` to extend NumPy's type
 system. The following libraries implement that interface to provide types not
 found in NumPy or pandas, which work well with pandas' data containers.
