@@ -438,7 +438,16 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                #return concat([result[k] for k in keys], keys=keys, axis=1), True
+                # #issue 32580: Grouped-by column loses name when empty list of aggregations is specified.
+                #Bug in the method `DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
+                keys_to_use=[k for k in keys if not result[k].empty]
+                # check: if at least one DataFrame is not empty
+                if keys_to_use !=[]:
+                    keys_to_use=keys_to_use
+                else:
+                    keys_to_use=keys_to_use
+                return(concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1), True)
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
