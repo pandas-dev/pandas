@@ -630,7 +630,7 @@ class TransformEngine:
     def setup(self):
         N = 10 ** 3
         data = DataFrame(
-            {0: ["a", "a", "b", "b", "a"] * N, 1: [1.0, 2.0, 3.0, 4.0, 5.0] * N},
+            {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
             columns=[0, 1],
         )
         self.grouper = data.groupby(0)
