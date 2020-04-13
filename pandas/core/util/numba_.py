@@ -12,6 +12,25 @@ from pandas.compat._optional import import_optional_dependency
 def check_kwargs_and_nopython(
     kwargs: Optional[Dict] = None, nopython: Optional[bool] = None
 ) -> None:
+    """
+    Validate that **kwargs and nopython=True was passed
+    https://github.com/numba/numba/issues/2916
+
+    Parameters
+    ----------
+    kwargs : dict, default None
+        user passed keyword arguments to pass into the JITed function
+    nopython : bool, default None
+        nopython parameter
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+    """
     if kwargs and nopython:
         raise ValueError(
             "numba does not support kwargs with nopython=True: "
@@ -24,6 +43,16 @@ def get_jit_arguments(
 ) -> Tuple[bool, bool, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.
+
+    Parameters
+    ----------
+    engine_kwargs : dict, default None
+        user passed keyword arguments for numba.JIT
+
+    Returns
+    -------
+    (bool, bool, bool)
+        nopython, nogil, parallel
     """
     if engine_kwargs is None:
         engine_kwargs = {}
@@ -39,6 +68,23 @@ def jit_user_function(
 ) -> Callable:
     """
     JIT the user's function given the configurable arguments.
+
+    Parameters
+    ----------
+    func : function
+        user defined function
+
+    nopython : bool
+        nopython parameter for numba.JIT
+    nogil : bool
+        nogil parameter for numba.JIT
+    parallel : bool
+        parallel parameter for numba.JIT
+
+    Returns
+    -------
+    function
+        Numba JITed function
     """
     numba = import_optional_dependency("numba")
 
@@ -67,6 +113,15 @@ def jit_user_function(
 def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Split pandas object into its components as numpy arrays for numba functions.
+
+    Parameters
+    ----------
+    arg : Series or DataFrame
+
+    Returns
+    -------
+    (ndarray, ndarray, ndarray)
+        values, index, columns
     """
     if getattr(arg, "columns", None) is not None:
         columns_as_array = arg.columns.to_numpy()
@@ -89,6 +144,18 @@ def validate_udf(func: Callable, include_columns: bool = False) -> None:
 
     def f(values, index, columns, ...):
         ...
+
+    Parameters
+    ----------
+    func : function, default False
+        user defined function
+
+    include_columns : bool
+        whether 'columns' should be in the signature
+
+    Returns
+    -------
+    None
     """
     udf_signature = list(inspect.signature(func).parameters.keys())
     expected_args = ["values", "index"]
