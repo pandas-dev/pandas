@@ -20,7 +20,12 @@ from pandas.core.arrays.categorical import (
 
 import pandas.core.common as com
 from pandas.core.generic import NDFrame
-from pandas.core.indexes.api import all_indexes_same, ensure_index, get_objs_combined_axis, get_consensus_names
+from pandas.core.indexes.api import (
+    all_indexes_same,
+    ensure_index,
+    get_objs_combined_axis,
+    get_consensus_names,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
