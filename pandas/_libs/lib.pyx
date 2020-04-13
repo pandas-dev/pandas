@@ -2534,11 +2534,9 @@ def from_nested_dict(dict data) -> dict:
     cdef:
         dict new_data = {}
         object index, column, value, dict_iterator
-        dict data_dct, nested_dict
+        dict nested_dict
 
-    data_dct = dict(data)
-
-    for index, dict_iterator in data_dct.items():
+    for index, dict_iterator in data.items():
         nested_dict = dict(dict_iterator)
         for column, value in nested_dict.items():
             if column in new_data:
