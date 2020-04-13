@@ -113,6 +113,17 @@ def test_value_counts_empty():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("min_count", [0, 4])
+def test_integer_array_sum(skipna, min_count):
+    arr = pd.array([1, 2, 3, None], dtype="Int64")
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == 6
+    else:
+        assert result is pd.NA
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

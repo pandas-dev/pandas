@@ -573,6 +573,12 @@ class IntegerArray(BaseMaskedArray):
 
         return result
 
+    def sum(self, skipna: bool = True, min_count: int = 0):
+        result = masked_reductions.sum(
+            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
+        )
+        return result
+
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
