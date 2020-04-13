@@ -90,13 +90,13 @@ def hash_pandas_object(
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCIndexClass):
-        h = hash_array(obj.values, encoding, hash_key, categorize).astype(
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         h = Series(h, index=obj, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCSeries):
-        h = hash_array(obj.values, encoding, hash_key, categorize).astype(
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         if index:
@@ -107,7 +107,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values
+                )._values
                 for _ in [None]
             )
             arrays = itertools.chain([h], index_iter)
@@ -116,7 +116,7 @@ def hash_pandas_object(
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series.values) for _, series in obj.items())
+        hashes = (hash_array(series._values) for _, series in obj.items())
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -126,7 +126,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values  # noqa
+                )._values
                 for _ in [None]
             )
             num_items += 1
@@ -185,28 +185,6 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     return h
 
 
-def hash_tuple(val, encoding: str = "utf8", hash_key: str = _default_hash_key):
-    """
-    Hash a single tuple efficiently
-
-    Parameters
-    ----------
-    val : single tuple
-    encoding : str, default 'utf8'
-    hash_key : str, default _default_hash_key
-
-    Returns
-    -------
-    hash
-
-    """
-    hashes = (_hash_scalar(v, encoding=encoding, hash_key=hash_key) for v in val)
-
-    h = _combine_hash_arrays(hashes, len(val))[0]
-
-    return h
-
-
 def _hash_categorical(c, encoding: str, hash_key: str):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
@@ -223,7 +201,7 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     ndarray of hashed values array, same size as len(c)
     """
     # Convert ExtensionArrays to ndarrays
-    values = np.asarray(c.categories.values)
+    values = np.asarray(c.categories._values)
     hashed = hash_array(values, encoding, hash_key, categorize=False)
 
     # we have uint64, as we don't directly support missing values
