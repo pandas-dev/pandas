@@ -131,13 +131,18 @@ def test_resample_timedelta_values():
 @pytest.mark.parametrize(
     "start, end, freq, resample_freq",
     [
-        ("8H", "21h59min", "10S", "3H"),
+        ("8H", "21h59min50s", "10S", "3H"),  # GH 30353 example
         ("3H", "22H", "1H", "5H"),
         ("527D", "5006D", "3D", "10D"),
+        ("1D", "10D", "1D", "2D"),  # GH 13022 example
+        # tests that worked before GH 33498:
+        ("8H", "21h59min50s", "10S", "2H"),
+        ("0H", "21h59min50s", "10S", "3H"),
+        ("10D", "85D", "D", "2D"),
     ],
 )
 def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
-    # GH 30353
+    # GH 33498
     # check that the timedelta bins does not contains an extra bin
     idx = pd.timedelta_range(start=start, end=end, freq=freq)
     s = pd.Series(np.arange(len(idx)), index=idx)
@@ -149,10 +154,17 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
 
 @pytest.mark.parametrize(
     "start, end, freq",
-    [("1day", "10day", "2D"), ("2day", "30day", "3D"), ("2s", "50s", "5s")],
+    [
+        ("1D", "10D", "2D"),
+        ("2D", "30D", "3D"),
+        ("2s", "50s", "5s"),
+        # tests that worked before GH 33498:
+        ("4D", "16D", "3D"),
+        ("8D", "16D", "40s"),
+    ],
 )
 def test_timedelta_range_freq_divide_end(start, end, freq):
-    # GH 30353 only the cases where `(end % freq) == 0` used to fail
+    # GH 33498 only the cases where `(end % freq) == 0` used to fail
 
     def mock_timedelta_range(start=None, end=None, **kwargs):
         epoch = pd.Timestamp(0)
