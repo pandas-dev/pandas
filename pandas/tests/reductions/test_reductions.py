@@ -1076,7 +1076,8 @@ class TestCategoricalSeriesReductions:
     def test_min_max_unordered_raises(self, function):
         # unordered cats have no min/max
         cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
-        with pytest.raises(TypeError):
+        msg = f"Categorical is not ordered for operation {function}"
+        with pytest.raises(TypeError, match=msg):
             getattr(cat, function)()
 
     @pytest.mark.parametrize(
