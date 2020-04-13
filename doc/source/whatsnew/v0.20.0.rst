@@ -356,7 +356,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
 .. _whatsnew_0200.enhancements.style_excel:
 
-Excel output for styled DataFrames
+Excel output for styled dataframes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Experimental support has been added to export ``DataFrame.style`` formats to Excel using the ``openpyxl`` engine. (:issue:`15530`)
@@ -813,7 +813,7 @@ New behavior:
 
 .. _whatsnew_0200.api_breaking.gbq:
 
-Pandas Google BigQuery support has moved
+pandas Google BigQuery support has moved
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``conda install pandas-gbq -c conda-forge`` or
@@ -1289,7 +1289,7 @@ A new public ``pandas.plotting`` module has been added that holds plotting funct
 
 .. _whatsnew_0200.privacy.development:
 
-Other Development Changes
+Other development changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)

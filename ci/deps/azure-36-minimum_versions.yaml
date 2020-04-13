@@ -22,7 +22,7 @@ dependencies:
   - numpy=1.13.3
   - openpyxl=2.5.7
   - pytables=3.4.2
-  - python-dateutil=2.6.1
+  - python-dateutil=2.7.3
   - pytz=2017.2
   - scipy=0.19.0
   - xlrd=1.1.0
