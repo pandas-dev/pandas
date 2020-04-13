@@ -14,7 +14,8 @@ dependencies:
   - pytz
   - pip
   - pip:
-    - cython>=0.29.16
+    - cython==0.29.16
+    # GH#33507 cython 3.0a1 is causing TypeErrors 2020-04-13
     - "git+git://github.com/dateutil/dateutil.git"
     - "-f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
     - "--pre"
