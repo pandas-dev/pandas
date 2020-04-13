@@ -20,6 +20,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     isna,
+    offsets,
 )
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -123,6 +124,13 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
+        pytest.param(
+            "fromisocalendar",
+            marks=pytest.mark.skipif(
+                not compat.PY38,
+                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
+            ),
+        ),
         "isocalendar",
         "strftime",
         "strptime",
@@ -297,6 +305,8 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+
+    # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
 
@@ -383,12 +393,14 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
         elif val_type == "str":
             # un-specific check here because the message comes from str
             #  and varies by method
-            msg = (
-                "can only concatenate str|"
-                "unsupported operand type|"
-                "can't multiply sequence|"
-                "Can't convert 'NaTType'|"
-                "must be str, not NaTType"
+            msg = "|".join(
+                [
+                    "can only concatenate str",
+                    "unsupported operand type",
+                    "can't multiply sequence",
+                    "Can't convert 'NaTType'",
+                    "must be str, not NaTType",
+                ]
             )
         else:
             msg = "unsupported operand type"
@@ -499,3 +511,38 @@ def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
     assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
     assert getattr(other, compare_operators_no_eq_ne)(NaT) is False
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        offsets.YearEnd(2),
+        offsets.YearBegin(2),
+        offsets.MonthBegin(1),
+        offsets.MonthEnd(2),
+        offsets.MonthEnd(12),
+        offsets.Day(2),
+        offsets.Day(5),
+        offsets.Hour(24),
+        offsets.Hour(3),
+        offsets.Minute(),
+        np.timedelta64(3, "h"),
+        np.timedelta64(4, "h"),
+        np.timedelta64(3200, "s"),
+        np.timedelta64(3600, "s"),
+        np.timedelta64(3600 * 24, "s"),
+        np.timedelta64(2, "D"),
+        np.timedelta64(365, "D"),
+        timedelta(-2),
+        timedelta(365),
+        timedelta(minutes=120),
+        timedelta(days=4, minutes=180),
+        timedelta(hours=23),
+        timedelta(hours=23, minutes=30),
+        timedelta(hours=48),
+    ],
+)
+def test_nat_addsub_tdlike_scalar(obj):
+    assert NaT + obj is NaT
+    assert obj + NaT is NaT
+    assert NaT - obj is NaT

@@ -47,8 +47,8 @@ def _get_default_writer(ext):
 def get_writer(engine_name):
     try:
         return _writers[engine_name]
-    except KeyError:
-        raise ValueError(f"No Excel writer '{engine_name}'")
+    except KeyError as err:
+        raise ValueError(f"No Excel writer '{engine_name}'") from err
 
 
 def _excel2num(x):
@@ -136,8 +136,7 @@ def _maybe_convert_usecols(usecols):
     if is_integer(usecols):
         raise ValueError(
             "Passing an integer for `usecols` is no longer supported.  "
-            "Please pass in a list of int from 0 to `usecols` "
-            "inclusive instead."
+            "Please pass in a list of int from 0 to `usecols` inclusive instead."
         )
 
     if isinstance(usecols, str):
@@ -154,8 +153,8 @@ def _validate_freeze_panes(freeze_panes):
             return True
 
         raise ValueError(
-            "freeze_panes must be of form (row, column)"
-            " where row and column are integers"
+            "freeze_panes must be of form (row, column) "
+            "where row and column are integers"
         )
 
     # freeze_panes wasn't specified, return False so it won't be applied
@@ -172,9 +171,11 @@ def _trim_excel_header(row):
 
 
 def _fill_mi_header(row, control_row):
-    """Forward fill blank entries in row but only inside the same parent index.
+    """
+    Forward fill blank entries in row but only inside the same parent index.
 
     Used for creating headers in Multiindex.
+
     Parameters
     ----------
     row : list

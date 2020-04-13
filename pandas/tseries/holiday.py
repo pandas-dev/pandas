@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.errors import PerformanceWarning
 
-from pandas import DateOffset, Series, Timestamp, date_range
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp, concat, date_range
 
 from pandas.tseries.offsets import Day, Easter
 
@@ -157,15 +157,34 @@ class Holiday:
         --------
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
         >>> from dateutil.relativedelta import MO
-        >>> USMemorialDay = Holiday('Memorial Day', month=5, day=31,
-                                    offset=pd.DateOffset(weekday=MO(-1)))
-        >>> USLaborDay = Holiday('Labor Day', month=9, day=1,
-                                offset=pd.DateOffset(weekday=MO(1)))
-        >>> July3rd = Holiday('July 3rd', month=7, day=3,)
-        >>> NewYears = Holiday('New Years Day', month=1,  day=1,
-                               observance=nearest_workday),
-        >>> July3rd = Holiday('July 3rd', month=7, day=3,
-                              days_of_week=(0, 1, 2, 3))
+
+        >>> USMemorialDay = Holiday(
+        ...     "Memorial Day", month=5, day=31, offset=pd.DateOffset(weekday=MO(-1))
+        ... )
+        >>> USMemorialDay
+        Holiday: Memorial Day (month=5, day=31, offset=<DateOffset: weekday=MO(-1)>)
+
+        >>> USLaborDay = Holiday(
+        ...     "Labor Day", month=9, day=1, offset=pd.DateOffset(weekday=MO(1))
+        ... )
+        >>> USLaborDay
+        Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
+
+        >>> July3rd = Holiday("July 3rd", month=7, day=3)
+        >>> July3rd
+        Holiday: July 3rd (month=7, day=3, )
+
+        >>> NewYears = Holiday(
+        ...     "New Years Day", month=1,  day=1, observance=nearest_workday
+        ... )
+        >>> NewYears  # doctest: +SKIP
+        Holiday: New Years Day (
+            month=1, day=1, observance=<function nearest_workday at 0x66545e9bc440>
+        )
+
+        >>> July3rd = Holiday("July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3))
+        >>> July3rd
+        Holiday: July 3rd (month=7, day=3, )
         """
         if offset is not None and observance is not None:
             raise NotImplementedError("Cannot use both offset and observance.")
@@ -186,16 +205,16 @@ class Holiday:
     def __repr__(self) -> str:
         info = ""
         if self.year is not None:
-            info += "year={year}, ".format(year=self.year)
-        info += "month={mon}, day={day}, ".format(mon=self.month, day=self.day)
+            info += f"year={self.year}, "
+        info += f"month={self.month}, day={self.day}, "
 
         if self.offset is not None:
-            info += "offset={offset}".format(offset=self.offset)
+            info += f"offset={self.offset}"
 
         if self.observance is not None:
-            info += "observance={obs}".format(obs=self.observance)
+            info += f"observance={self.observance}"
 
-        repr = "Holiday: {name} ({info})".format(name=self.name, info=info)
+        repr = f"Holiday: {self.name} ({info})"
         return repr
 
     def dates(self, start_date, end_date, return_name=False):
@@ -394,8 +413,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         if self.rules is None:
             raise Exception(
-                "Holiday Calendar {name} does not have any "
-                "rules specified".format(name=self.name)
+                f"Holiday Calendar {self.name} does not have any rules specified"
             )
 
         if start is None:
@@ -407,17 +425,14 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         start = Timestamp(start)
         end = Timestamp(end)
 
-        holidays = None
         # If we don't have a cache or the dates are outside the prior cache, we
         # get them again
         if self._cache is None or start < self._cache[0] or end > self._cache[1]:
-            for rule in self.rules:
-                rule_holidays = rule.dates(start, end, return_name=True)
-
-                if holidays is None:
-                    holidays = rule_holidays
-                else:
-                    holidays = holidays.append(rule_holidays)
+            holidays = [rule.dates(start, end, return_name=True) for rule in self.rules]
+            if holidays:
+                holidays = concat(holidays)
+            else:
+                holidays = Series(index=DatetimeIndex([]), dtype=object)
 
             self._cache = (start, end, holidays.sort_index())
 

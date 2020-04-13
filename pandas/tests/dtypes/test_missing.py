@@ -185,6 +185,21 @@ class TestIsNA:
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
+    def test_isna_old_datetimelike(self):
+        # isna_old should work for dt64tz, td64, and period, not just tznaive
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data
+        dta[-1] = pd.NaT
+        expected = np.array([False, False, True], dtype=bool)
+
+        objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
+
+        for obj in objs:
+            with cf.option_context("mode.use_inf_as_na", True):
+                result = pd.isna(obj)
+
+            tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "value, expected",
         [
@@ -293,6 +308,11 @@ def test_array_equivalent():
     assert array_equivalent(
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
+    )
+    # Check the handling of nested arrays in array_equivalent_object
+    assert array_equivalent(
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
     )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),

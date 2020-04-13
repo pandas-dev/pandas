@@ -3,7 +3,7 @@
 .. _api.arrays:
 
 =============
-Pandas arrays
+pandas arrays
 =============
 
 .. currentmodule:: pandas
@@ -444,13 +444,13 @@ Sparse data
 -----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
-be stored efficiently as a :class:`SparseArray`.
+be stored efficiently as a :class:`arrays.SparseArray`.
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   SparseArray
+   arrays.SparseArray
 
 .. autosummary::
    :toctree: api/

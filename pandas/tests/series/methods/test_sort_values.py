@@ -77,8 +77,8 @@ class TestSeriesSortValues:
         s = df.iloc[:, 0]
 
         msg = (
-            "This Series is a view of some other array, to sort in-place"
-            " you must create a copy"
+            "This Series is a view of some other array, to sort in-place "
+            "you must create a copy"
         )
         with pytest.raises(ValueError, match=msg):
             s.sort_values(inplace=True)

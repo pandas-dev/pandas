@@ -96,6 +96,22 @@ class TestSparseArray:
         with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
 
+    def test_constructor_warns_when_losing_timezone(self):
+        # GH#32501 warn when losing timezone inforamtion
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(dti)
+
+        tm.assert_sp_array_equal(result, expected)
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(pd.Series(dti))
+
+        tm.assert_sp_array_equal(result, expected)
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: Behavior change: specifying SparseIndex no longer changes the
@@ -470,7 +486,7 @@ class TestSparseArray:
             arr.astype("Sparse[i8]")
 
     def test_astype_bool(self):
-        a = pd.SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
+        a = SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
         result = a.astype(bool)
         expected = SparseArray([True, 0, 0, True], dtype=SparseDtype(bool, 0))
         tm.assert_sp_array_equal(result, expected)
@@ -682,7 +698,7 @@ class TestSparseArray:
             dense[4:, :]
 
     def test_boolean_slice_empty(self):
-        arr = pd.SparseArray([0, 1, 2])
+        arr = SparseArray([0, 1, 2])
         res = arr[[False, False, False]]
         assert res.dtype == arr.dtype
 
@@ -828,12 +844,12 @@ class TestSparseArray:
 
     def test_nonzero(self):
         # Tests regression #21172.
-        sa = pd.SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        sa = SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         expected = np.array([2, 5, 9], dtype=np.int32)
         (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
-        sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        sa = SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
@@ -1086,11 +1102,11 @@ class TestSparseArrayAnalytics:
     @pytest.mark.parametrize("fill_value", [0.0, np.nan])
     def test_modf(self, fill_value):
         # https://github.com/pandas-dev/pandas/issues/26946
-        sparse = pd.SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=fill_value)
+        sparse = SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=fill_value)
         r1, r2 = np.modf(sparse)
         e1, e2 = np.modf(np.asarray(sparse))
-        tm.assert_sp_array_equal(r1, pd.SparseArray(e1, fill_value=fill_value))
-        tm.assert_sp_array_equal(r2, pd.SparseArray(e2, fill_value=fill_value))
+        tm.assert_sp_array_equal(r1, SparseArray(e1, fill_value=fill_value))
+        tm.assert_sp_array_equal(r2, SparseArray(e2, fill_value=fill_value))
 
     def test_nbytes_integer(self):
         arr = SparseArray([1, 0, 0, 0, 2], kind="integer")
@@ -1102,11 +1118,11 @@ class TestSparseArrayAnalytics:
         arr = SparseArray([1, 2, 0, 0, 0], kind="block")
         result = arr.nbytes
         # (2 * 8) + 4 + 4
-        # sp_values, blocs, blenghts
+        # sp_values, blocs, blengths
         assert result == 24
 
     def test_asarray_datetime64(self):
-        s = pd.SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
+        s = SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
         np.asarray(s)
 
     def test_density(self):
@@ -1208,7 +1224,7 @@ def test_first_fill_value_loc(arr, loc):
 )
 @pytest.mark.parametrize("fill_value", [np.nan, 0, 1])
 def test_unique_na_fill(arr, fill_value):
-    a = pd.SparseArray(arr, fill_value=fill_value).unique()
+    a = SparseArray(arr, fill_value=fill_value).unique()
     b = pd.Series(arr).unique()
     assert isinstance(a, SparseArray)
     a = np.asarray(a)

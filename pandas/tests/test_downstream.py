@@ -8,7 +8,9 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas import DataFrame, Series
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -19,7 +21,7 @@ def import_module(name):
     try:
         return importlib.import_module(name)
     except ModuleNotFoundError:  # noqa
-        pytest.skip("skipping as {} not available".format(name))
+        pytest.skip(f"skipping as {name} not available")
 
 
 @pytest.fixture
@@ -45,6 +47,19 @@ def test_xarray(df):
     xarray = import_module("xarray")  # noqa
 
     assert df.to_xarray() is not None
+
+
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
+def test_xarray_cftimeindex_nearest():
+    # https://github.com/pydata/xarray/issues/3751
+    import cftime
+    import xarray
+
+    times = xarray.cftime_range("0001", periods=2)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
 
 
 def test_oo_optimizable():
@@ -114,26 +129,6 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
-def test_geopandas_coordinate_indexer():
-    # this test is included to have coverage of one case in the indexing.py
-    # code that is only kept for compatibility with geopandas, see
-    # https://github.com/pandas-dev/pandas/issues/27258
-    # We should be able to remove this after some time when its usage is
-    # removed in geopandas
-    from pandas.core.indexing import _NDFrameIndexer
-
-    class _CoordinateIndexer(_NDFrameIndexer):
-        def _getitem_tuple(self, tup):
-            obj = self.obj
-            xs, ys = tup
-            return obj[xs][ys]
-
-    Series._create_indexer("cx", _CoordinateIndexer)
-    s = Series(range(5))
-    res = s.cx[:, :]
-    tm.assert_series_equal(s, res)
-
-
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
@@ -156,7 +151,12 @@ def test_missing_required_dependency():
     # https://github.com/MacPython/pandas-wheels/pull/50
     call = ["python", "-sSE", "-c", "import pandas"]
 
-    with pytest.raises(subprocess.CalledProcessError) as exc:
+    msg = (
+        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        "returned non-zero exit status 1."
+    )
+
+    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()

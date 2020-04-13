@@ -16,7 +16,7 @@ import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
 import pandas._testing as tm
 
 
@@ -33,7 +33,6 @@ def _clean_dict(d):
     -------
     cleaned_dict : dict
     """
-
     return {str(k): v for k, v in d.items()}
 
 
@@ -47,6 +46,18 @@ def orient(request):
 @pytest.fixture(params=[None, True])
 def numpy(request):
     return request.param
+
+
+def get_int32_compat_dtype(numpy, orient):
+    # See GH#32527
+    dtype = np.int64
+    if not ((numpy is None or orient == "index") or (numpy is True and orient is None)):
+        if compat.is_platform_windows():
+            dtype = np.int32
+        else:
+            dtype = np.intp
+
+    return dtype
 
 
 class TestUltraJSONTests:
@@ -559,11 +570,6 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    def test_version(self):
-        assert re.match(
-            r"^\d+\.\d+(\.\d+)?$", ujson.__version__
-        ), "ujson.__version__ must be a string like '1.4.0'"
-
     def test_encode_numeric_overflow(self):
         with pytest.raises(OverflowError):
             ujson.encode(12839128391289382193812939)
@@ -839,13 +845,20 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
+        dtype = get_int32_compat_dtype(numpy, orient)
+
         df = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["a", "b"], columns=["x", "y", "z"]
+            [[1, 2, 3], [4, 5, 6]],
+            index=["a", "b"],
+            columns=["x", "y", "z"],
+            dtype=dtype,
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
+        assert (df.dtypes == dtype).all()
 
         # Ensure proper DataFrame initialization.
         if orient == "split":
@@ -863,7 +876,8 @@ class TestPandasJSONTests:
         elif orient == "index":
             df = df.transpose()
 
-        tm.assert_frame_equal(output, df, check_dtype=False)
+        assert (df.dtypes == dtype).all()
+        tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
         df = DataFrame(
@@ -903,14 +917,20 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
+        dtype = get_int32_compat_dtype(numpy, orient)
         s = Series(
-            [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
+            [10, 20, 30, 40, 50, 60],
+            name="series",
+            index=[6, 7, 8, 9, 10, 15],
+            dtype=dtype,
         ).sort_values()
+        assert s.dtype == dtype
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
+        assert s.dtype == dtype
 
         if orient == "split":
             dec = _clean_dict(output)
@@ -926,7 +946,8 @@ class TestPandasJSONTests:
             s.name = None
             s.index = [0, 1, 2, 3, 4, 5]
 
-        tm.assert_series_equal(output, s, check_dtype=False)
+        assert s.dtype == dtype
+        tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
         s = Series(
@@ -1082,3 +1103,24 @@ class TestPandasJSONTests:
 
         for v in dec:
             assert v in s
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta(days=366),
+            Timedelta(days=-1),
+            Timedelta(hours=13, minutes=5, seconds=5),
+            Timedelta(hours=13, minutes=20, seconds=30),
+            Timedelta(days=-1, nanoseconds=5),
+            Timedelta(nanoseconds=1),
+            Timedelta(microseconds=1, nanoseconds=1),
+            Timedelta(milliseconds=1, microseconds=1, nanoseconds=1),
+            Timedelta(milliseconds=999, microseconds=999, nanoseconds=999),
+        ],
+    )
+    def test_encode_timedelta_iso(self, td):
+        # GH 28256
+        result = ujson.encode(td, iso_dates=True)
+        expected = f'"{td.isoformat()}"'
+
+        assert result == expected

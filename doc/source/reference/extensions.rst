@@ -37,7 +37,6 @@ objects.
       api.extensions.ExtensionArray._from_factorized
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
-      api.extensions.ExtensionArray._ndarray_values
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
@@ -66,4 +65,9 @@ behaves correctly.
 .. autosummary::
   :toctree: api/
 
-  api.indexers.check_bool_array_indexer
+  api.indexers.check_array_indexer
+
+
+The sentinel ``pandas.api.extensions.no_default`` is used as the default
+value in some methods. Use an ``is`` comparison to check if the user
+provides a non-default value.

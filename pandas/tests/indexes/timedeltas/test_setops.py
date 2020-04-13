@@ -78,6 +78,21 @@ class TestTimedeltaIndex:
         exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
 
+    def test_union_freq_infer(self):
+        # When taking the union of two TimedeltaIndexes, we infer
+        #  a freq even if the arguments don't have freq.  This matches
+        #  DatetimeIndex behavior.
+        tdi = pd.timedelta_range("1 Day", periods=5)
+        left = tdi[[0, 1, 3, 4]]
+        right = tdi[[2, 3, 1]]
+
+        assert left.freq is None
+        assert right.freq is None
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+        assert result.freq == "D"
+
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(5)
@@ -92,7 +107,6 @@ class TestTimedeltaIndex:
         expected = timedelta_range("1 day 01:00:00", periods=3, freq="h")
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
         # for equal indicies intersection should return the original index
@@ -108,7 +122,6 @@ class TestTimedeltaIndex:
         assert inter is first
 
     @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_zero_length(self, period_1, period_2, sort):
         # GH 24471 test for non overlap the intersection should be zero length
         index_1 = timedelta_range("1 day", periods=period_1, freq="h")
@@ -117,7 +130,6 @@ class TestTimedeltaIndex:
         result = index_1.intersection(index_2, sort=sort)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_zero_length_input_index(self, sort):
         # GH 24966 test for 0-len intersections are copied
         index_1 = timedelta_range("1 day", periods=0, freq="h")
@@ -147,7 +159,6 @@ class TestTimedeltaIndex:
             ),
         ],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, rng, expected, sort):
         # GH 4690 (with tz)
         base = timedelta_range("1 day", periods=4, freq="h", name="idx")
@@ -180,7 +191,6 @@ class TestTimedeltaIndex:
             ),
         ],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_non_monotonic(self, rng, expected, sort):
         # 24471 non-monotonic
         base = TimedeltaIndex(["1 hour", "2 hour", "4 hour", "3 hour"], name="idx")
@@ -198,7 +208,6 @@ class TestTimedeltaIndex:
 
 
 class TestTimedeltaIndexDifference:
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: Difference of TimedeltaIndex should not preserve frequency
 
@@ -216,7 +225,6 @@ class TestTimedeltaIndexDifference:
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_sort(self, sort):
 
         index = pd.TimedeltaIndex(

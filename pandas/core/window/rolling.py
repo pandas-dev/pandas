@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -43,11 +42,12 @@ from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
     _flex_binary_moment,
-    _offset,
     _shared_docs,
-    _use_window,
-    _zsqrt,
+    calculate_center_offset,
     calculate_min_periods,
+    get_weighted_roll_func,
+    validate_baseindexer_support,
+    zsqrt,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
@@ -150,7 +150,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Split data into blocks & return conformed data.
         """
-
         obj = self._selected_obj
 
         # filter out the on from the object
@@ -173,7 +172,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -199,7 +197,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _get_win_type(self, kwargs: Dict):
         """
-        Exists for compatibility, overriden by subclass Window.
+        Exists for compatibility, overridden by subclass Window.
 
         Parameters
         ----------
@@ -239,7 +237,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Provide a nice str repr of our rolling object.
         """
-
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
@@ -251,19 +248,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def __iter__(self):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
         raise NotImplementedError(f"See issue #11704 {url}")
-
-    def _get_index(self) -> Optional[np.ndarray]:
-        """
-        Return integer representations as an ndarray if index is frequency.
-
-        Returns
-        -------
-        None or ndarray
-        """
-
-        if self.is_freq_type:
-            return self._on.asi8
-        return None
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
@@ -284,8 +268,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         else:
             try:
                 values = ensure_float64(values)
-            except (ValueError, TypeError):
-                raise TypeError(f"cannot handle this type -> {values.dtype}")
+            except (ValueError, TypeError) as err:
+                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -298,23 +282,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Wrap a single result.
         """
-
         if obj is None:
             obj = self._selected_obj
         index = obj.index
 
         if isinstance(result, np.ndarray):
-
-            # coerce if necessary
-            if block is not None:
-                if is_timedelta64_dtype(block.values.dtype):
-                    # TODO: do we know what result.dtype is at this point?
-                    #  i.e. can we just do an astype?
-                    from pandas import to_timedelta
-
-                    result = to_timedelta(result.ravel(), unit="ns").values.reshape(
-                        result.shape
-                    )
 
             if result.ndim == 1:
                 from pandas import Series
@@ -335,7 +307,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj : conformed data (may be resampled)
         exclude: list of columns to exclude, default to None
         """
-
         from pandas import Series, concat
 
         final = []
@@ -384,14 +355,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
 
-        offset = _offset(window, True)
+        offset = calculate_center_offset(window)
         if offset > 0:
-            if isinstance(result, (ABCSeries, ABCDataFrame)):
-                result = result.slice_shift(-offset, axis=self.axis)
-            else:
-                lead_indexer = [slice(None)] * result.ndim
-                lead_indexer[self.axis] = slice(offset, None)
-                result = np.copy(result[tuple(lead_indexer)])
+            lead_indexer = [slice(None)] * result.ndim
+            lead_indexer[self.axis] = slice(offset, None)
+            result = np.copy(result[tuple(lead_indexer)])
         return result
 
     def _get_roll_func(self, func_name: str) -> Callable:
@@ -424,17 +392,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(
-        self, index_as_array: Optional[np.ndarray], window: int
-    ) -> BaseIndexer:
+    def _get_window_indexer(self, window: int, func_name: Optional[str]) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support(func_name)
             return self.window
         if self.is_freq_type:
-            return VariableWindowIndexer(index_array=index_as_array, window_size=window)
-        return FixedWindowIndexer(index_array=index_as_array, window_size=window)
+            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
+        return FixedWindowIndexer(window_size=window)
 
     def _apply(
         self,
@@ -476,8 +443,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer(index_as_array, window)
+        window_indexer = self._get_window_indexer(window, name)
 
         results = []
         exclude: List[Scalar] = []
@@ -485,20 +451,20 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())
                 continue
 
             # calculation function
-            offset = _offset(window, center) if center else 0
+            offset = calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -882,7 +848,6 @@ class Window(_Window):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -903,6 +868,17 @@ class Window(_Window):
     3  NaN
     4  NaN
 
+    Rolling sum with a window length of 2, using the 'gaussian'
+    window type (note how we need to specify std).
+
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+              B
+    0       NaN
+    1  0.986207
+    2  2.958621
+    3       NaN
+    4       NaN
+
     Rolling sum with a window length of 2, min_periods defaults
     to the window length.
 
@@ -922,6 +898,17 @@ class Window(_Window):
     1  1.0
     2  3.0
     3  2.0
+    4  4.0
+
+    Same as above, but with forward-looking windows
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
     4  4.0
 
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
@@ -1041,7 +1028,6 @@ class Window(_Window):
         window : ndarray
             the window, weights
         """
-
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
@@ -1050,15 +1036,6 @@ class Window(_Window):
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
-
-    def _get_weighted_roll_func(
-        self, cfunc: Callable, check_minp: Callable, **kwargs
-    ) -> Callable:
-        def func(arg, window, min_periods=None, closed=None):
-            minp = check_minp(min_periods, len(window))
-            return cfunc(arg, window, minp, **kwargs)
-
-        return func
 
     _agg_see_also_doc = dedent(
         """
@@ -1073,33 +1050,18 @@ class Window(_Window):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
-    >>> df.rolling(3, win_type='boxcar').agg('mean')
-              A         B         C
-    0       NaN       NaN       NaN
-    1       NaN       NaN       NaN
-    2 -0.885035  0.212600 -0.711689
-    3 -0.323928 -0.200122 -1.093408
-    4 -0.071445 -0.431533 -1.075833
-    5  0.504739  0.676083 -0.996353
-    6  0.358206  1.903256 -0.774200
-    7  0.906020  1.283573  0.085482
-    8 -0.096361  0.818139  0.472290
-    9  0.070889  0.134399 -0.031308
+    >>> df.rolling(2, win_type="boxcar").agg("mean")
+         A    B    C
+    0  NaN  NaN  NaN
+    1  1.5  4.5  7.5
+    2  2.5  5.5  8.5
     """
     )
 
@@ -1127,7 +1089,7 @@ class Window(_Window):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="sum", **kwargs
         )
@@ -1137,7 +1099,7 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
@@ -1147,7 +1109,7 @@ class Window(_Window):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
@@ -1157,7 +1119,7 @@ class Window(_Window):
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(ddof=ddof, name="std", **kwargs))
+        return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
 class _Rolling(_Window):
@@ -1209,21 +1171,17 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("count")
 
         blocks, obj = self._create_blocks()
-        # Validate the index
-        self._get_index()
-
-        window = self._get_window()
-        window = min(window, len(obj)) if not self.center else window
-
         results = []
         for b in blocks:
             result = b.notna().astype(int)
             result = self._constructor(
                 result,
-                window=window,
-                min_periods=0,
+                window=self._get_window(),
+                min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
@@ -1234,7 +1192,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
@@ -1307,7 +1265,7 @@ class _Rolling_and_Expanding(_Rolling):
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
-        offset = _offset(window, self.center)
+        offset = calculate_center_offset(window) if self.center else 0
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
@@ -1331,13 +1289,14 @@ class _Rolling_and_Expanding(_Rolling):
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
+        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             center=False,
             floor=0,
             name=func,
             use_numba_cache=engine == "numba",
+            raw=raw,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1478,7 +1437,7 @@ class _Rolling_and_Expanding(_Rolling):
         window_func = self._get_cython_func_type("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
-            return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
+            return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
         # ddof passed again for compat with groupby.rolling
         return self._apply(
@@ -1668,6 +1627,9 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("cov")
+
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -1688,7 +1650,11 @@ class _Rolling_and_Expanding(_Rolling):
             mean = lambda x: x.rolling(
                 window, self.min_periods, center=self.center
             ).mean(**kwargs)
-            count = (X + Y).rolling(window=window, center=self.center).count(**kwargs)
+            count = (
+                (X + Y)
+                .rolling(window=window, min_periods=0, center=self.center)
+                .count(**kwargs)
+            )
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
@@ -1807,12 +1773,15 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
+        if isinstance(self.window, BaseIndexer):
+            validate_baseindexer_support("corr")
+
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other)
+        window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -1851,8 +1820,7 @@ class Rolling(_Rolling_and_Expanding):
         else:
             raise ValueError(
                 f"invalid on specified as {self.on}, "
-                "must be a column (of DataFrame), an Index "
-                "or None"
+                "must be a column (of DataFrame), an Index or None"
             )
 
     def validate(self):
@@ -1869,9 +1837,8 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center
             if self.center:
                 raise NotImplementedError(
-                    "center is not implemented "
-                    "for datetimelike and offset "
-                    "based windows"
+                    "center is not implemented for "
+                    "datetimelike and offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
@@ -1914,12 +1881,11 @@ class Rolling(_Rolling_and_Expanding):
 
         try:
             return to_offset(self.window)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as err:
             raise ValueError(
                 f"passed window {self.window} is not "
-                "compatible with a datetimelike "
-                "index"
-            )
+                "compatible with a datetimelike index"
+            ) from err
 
     _agg_see_also_doc = dedent(
         """
@@ -1934,46 +1900,24 @@ class Rolling(_Rolling_and_Expanding):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
-    >>> df.rolling(3).sum()
-              A         B         C
-    0       NaN       NaN       NaN
-    1       NaN       NaN       NaN
-    2 -2.655105  0.637799 -2.135068
-    3 -0.971785 -0.600366 -3.280224
-    4 -0.214334 -1.294599 -3.227500
-    5  1.514216  2.028250 -2.989060
-    6  1.074618  5.709767 -2.322600
-    7  2.718061  3.850718  0.256446
-    8 -0.289082  2.454418  1.416871
-    9  0.212668  0.403198 -0.093924
+    >>> df.rolling(2).sum()
+         A     B     C
+    0  NaN   NaN   NaN
+    1  3.0   9.0  15.0
+    2  5.0  11.0  17.0
 
-    >>> df.rolling(3).agg({'A':'sum', 'B':'min'})
-              A         B
-    0       NaN       NaN
-    1       NaN       NaN
-    2 -2.655105 -0.165272
-    3 -0.971785 -1.340923
-    4 -0.214334 -1.340923
-    5  1.514216 -1.340923
-    6  1.074618  0.211596
-    7  2.718061 -1.647453
-    8 -0.289082 -1.647453
-    9  0.212668 -1.647453
+    >>> df.rolling(2).agg({"A": "sum", "B": "min"})
+         A    B
+    0  NaN  NaN
+    1  3.0  4.0
+    2  5.0  5.0
     """
     )
 

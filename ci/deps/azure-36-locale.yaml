@@ -6,7 +6,7 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - pytest-asyncio
@@ -27,7 +27,7 @@ dependencies:
   - openpyxl
   # lowest supported version of pyarrow (putting it here instead of in
   # azure-36-minimum_versions because it needs numpy >= 1.14)
-  - pyarrow=0.12
+  - pyarrow=0.13
   - pytables
   - python-dateutil
   - pytz

@@ -7,13 +7,13 @@ Installation
 ============
 
 The easiest way to install pandas is to install it
-as part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution, a
+as part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution, a
 cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
-`development version <http://github.com/pandas-dev/pandas>`__ are also provided.
+`development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
 ----------------------
@@ -28,28 +28,28 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
-`SciPy <http://www.scipy.org/>`__ stack can be a little
+Installing pandas and the rest of the `NumPy <https://www.numpy.org/>`__ and
+`SciPy <https://www.scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
 The simplest way to install not only pandas, but Python and the most popular
-packages that make up the `SciPy <http://www.scipy.org/>`__ stack
-(`IPython <http://ipython.org/>`__, `NumPy <http://www.numpy.org/>`__,
-`Matplotlib <http://matplotlib.org/>`__, ...) is with
-`Anaconda <http://docs.continuum.io/anaconda/>`__, a cross-platform
+packages that make up the `SciPy <https://www.scipy.org/>`__ stack
+(`IPython <https://ipython.org/>`__, `NumPy <https://www.numpy.org/>`__,
+`Matplotlib <https://matplotlib.org/>`__, ...) is with
+`Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
 (Linux, Mac OS X, Windows) Python distribution for data analytics and
 scientific computing.
 
 After running the installer, the user will have access to pandas and the
-rest of the `SciPy <http://www.scipy.org/>`__ stack without needing to install
+rest of the `SciPy <https://www.scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
-Installation instructions for `Anaconda <http://docs.continuum.io/anaconda/>`__
-`can be found here <http://docs.continuum.io/anaconda/install.html>`__.
+Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
+`can be found here <https://docs.continuum.io/anaconda/install.html>`__.
 
 A full list of the packages available as part of the
-`Anaconda <http://docs.continuum.io/anaconda/>`__ distribution
-`can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
+`Anaconda <https://docs.continuum.io/anaconda/>`__ distribution
+`can be found here <https://docs.continuum.io/anaconda/packages/pkg-docs/>`__.
 
 Another advantage to installing Anaconda is that you don't need
 admin rights to install it. Anaconda can install in the user's home directory,
@@ -62,28 +62,28 @@ Installing with Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
-`Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
+`Anaconda <https://docs.continuum.io/anaconda/>`__ distribution.
 However this approach means you will install well over one hundred packages
 and involves downloading the installer which is a few hundred megabytes in size.
 
 If you want to have more control on which packages, or have a limited internet
 bandwidth, then installing pandas with
-`Miniconda <http://conda.pydata.org/miniconda.html>`__ may be a better solution.
+`Miniconda <https://conda.pydata.org/miniconda.html>`__ may be a better solution.
 
-`Conda <http://conda.pydata.org/docs/>`__ is the package manager that the
-`Anaconda <http://docs.continuum.io/anaconda/>`__ distribution is built upon.
+`Conda <https://conda.pydata.org/docs/>`__ is the package manager that the
+`Anaconda <https://docs.continuum.io/anaconda/>`__ distribution is built upon.
 It is a package manager that is both cross-platform and language agnostic
 (it can play a similar role to a pip and virtualenv combination).
 
-`Miniconda <http://conda.pydata.org/miniconda.html>`__ allows you to create a
+`Miniconda <https://conda.pydata.org/miniconda.html>`__ allows you to create a
 minimal self contained Python installation, and then use the
-`Conda <http://conda.pydata.org/docs/>`__ command to install additional packages.
+`Conda <https://conda.pydata.org/docs/>`__ command to install additional packages.
 
-First you will need `Conda <http://conda.pydata.org/docs/>`__ to be installed and
+First you will need `Conda <https://conda.pydata.org/docs/>`__ to be installed and
 downloading and running the `Miniconda
-<http://conda.pydata.org/miniconda.html>`__
+<https://conda.pydata.org/miniconda.html>`__
 will do this for you. The installer
-`can be found here <http://conda.pydata.org/miniconda.html>`__
+`can be found here <https://conda.pydata.org/miniconda.html>`__
 
 The next step is to create a new conda environment. A conda environment is like a
 virtualenv that allows you to specify a specific version of Python and set of libraries.
@@ -113,7 +113,7 @@ To install other packages, IPython for example::
 
     conda install ipython
 
-To install the full `Anaconda <http://docs.continuum.io/anaconda/>`__
+To install the full `Anaconda <https://docs.continuum.io/anaconda/>`__
 distribution::
 
     conda install anaconda
@@ -146,17 +146,16 @@ Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The commands in this table will install pandas for Python 3 from your distribution.
-To install pandas for Python 2, you may need to use the ``python-pandas`` package.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
     :widths: 10, 10, 20, 50
 
 
-    Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    Debian, stable, `official Debian repository <https://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
     Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
-    Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
-    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
+    Ubuntu, stable, `official Ubuntu repository <https://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    OpenSuse, stable, `OpenSuse Repository  <https://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
     Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
     Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
@@ -164,6 +163,23 @@ To install pandas for Python 2, you may need to use the ``python-pandas`` packag
 to get the newest version of pandas, it's recommended to install using the ``pip`` or ``conda``
 methods described above.
 
+Handling ImportErrors
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you encounter an ImportError, it usually means that Python couldn't find pandas in the list of available
+libraries. Python internally has a list of directories it searches through, to find packages. You can
+obtain these directories with::
+
+            import sys
+            sys.path
+
+One way you could be encountering this error is if you have multiple Python installations on your system
+and you don't have pandas installed in the Python installation you're currently using.
+In Linux/Mac you can run ``which python`` on your terminal and it will tell you which Python installation you're
+using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
+
+It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
+You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -177,7 +193,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
+<https://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -204,9 +220,9 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <http://www.numpy.org>`__                                 1.13.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.6.1
-`pytz <http://pytz.sourceforge.net/>`__                          2017.2
+`NumPy <https://www.numpy.org>`__                                1.13.3
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
+`pytz <https://pypi.org/project/pytz/>`__                        2017.2
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -264,6 +280,7 @@ pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
+pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.3.0              Amazon S3 access
 tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
@@ -302,6 +319,6 @@ top-level :func:`~pandas.read_html` function:
       usage of the above three libraries.
 
 .. _html5lib: https://github.com/html5lib/html5lib-python
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
-.. _lxml: http://lxml.de
+.. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
+.. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate

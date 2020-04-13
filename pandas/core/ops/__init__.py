@@ -3,22 +3,18 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-import datetime
 import operator
-from typing import Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Set
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib
+from pandas._libs import lib
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
+from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
@@ -31,7 +27,6 @@ from pandas.core.ops.array_ops import (
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
@@ -59,6 +54,9 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa:F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -153,65 +151,6 @@ def _maybe_match_name(a, b):
     return None
 
 
-def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
-    """
-    Cast non-pandas objects to pandas types to unify behavior of arithmetic
-    and comparison operations.
-
-    Parameters
-    ----------
-    obj: object
-    shape : tuple[int]
-
-    Returns
-    -------
-    out : object
-
-    Notes
-    -----
-    Be careful to call this *after* determining the `name` attribute to be
-    attached to the result of the arithmetic operation.
-    """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
-
-    if type(obj) is datetime.timedelta:
-        # GH#22390  cast up to Timedelta to rely on Timedelta
-        # implementation; otherwise operation against numeric-dtype
-        # raises TypeError
-        return Timedelta(obj)
-    elif isinstance(obj, np.datetime64):
-        # GH#28080 numpy casts integer-dtype to datetime64 when doing
-        #  array[int] + datetime64, which we do not allow
-        if isna(obj):
-            # Avoid possible ambiguities with pd.NaT
-            obj = obj.astype("datetime64[ns]")
-            right = np.broadcast_to(obj, shape)
-            return DatetimeArray(right)
-
-        return Timestamp(obj)
-
-    elif isinstance(obj, np.timedelta64):
-        if isna(obj):
-            # wrapping timedelta64("NaT") in Timedelta returns NaT,
-            #  which would incorrectly be treated as a datetime-NaT, so
-            #  we broadcast and wrap in a TimedeltaArray
-            obj = obj.astype("timedelta64[ns]")
-            right = np.broadcast_to(obj, shape)
-            return TimedeltaArray(right)
-
-        # In particular non-nanosecond timedelta64 needs to be cast to
-        #  nanoseconds, or else we get undesired behavior like
-        #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-        return Timedelta(obj)
-
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
-        # GH#22390 Unfortunately we need to special-case right-hand
-        # timedelta64 dtypes because numpy casts integer dtypes to
-        # timedelta64 when operating with timedelta64
-        return TimedeltaArray._from_sequence(obj)
-    return obj
-
-
 # -----------------------------------------------------------------------------
 
 
@@ -253,7 +192,6 @@ def _get_opstr(op):
     -------
     op_str : string or None
     """
-
     return {
         operator.add: "+",
         radd: "+",
@@ -265,7 +203,7 @@ def _get_opstr(op):
         rtruediv: "/",
         operator.floordiv: "//",
         rfloordiv: "//",
-        operator.mod: None,  # TODO: Why None for mod but '%' for rmod?
+        operator.mod: "%",
         rmod: "%",
         operator.pow: "**",
         rpow: "**",
@@ -286,7 +224,7 @@ def _get_opstr(op):
     }[op]
 
 
-def _get_op_name(op, special):
+def _get_op_name(op, special: bool) -> str:
     """
     Find the name to attach to this method according to conventions
     for special and non-special methods.
@@ -329,19 +267,25 @@ def fill_binop(left, right, fill_value):
 
     Notes
     -----
-    Makes copies if fill_value is not None
+    Makes copies if fill_value is not None and NAs are present.
     """
-    # TODO: can we make a no-copy implementation?
     if fill_value is not None:
         left_mask = isna(left)
         right_mask = isna(right)
-        left = left.copy()
-        right = right.copy()
 
         # one but not both
         mask = left_mask ^ right_mask
-        left[left_mask & mask] = fill_value
-        right[right_mask & mask] = fill_value
+
+        if left_mask.any():
+            # Avoid making a copy if we can
+            left = left.copy()
+            left[left_mask & mask] = fill_value
+
+        if right_mask.any():
+            # Avoid making a copy if we can
+            right = right.copy()
+            right[right_mask & mask] = fill_value
+
     return left, right
 
 
@@ -375,7 +319,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
         # Get the appropriate array-op to apply to each block's values.
         array_op = get_array_op(func, str_rep=str_rep)
-        bm = left._data.apply(array_op, right=right)
+        bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
     elif isinstance(right, ABCDataFrame):
@@ -423,7 +367,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
-
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
@@ -440,45 +383,6 @@ def _align_method_SERIES(left, right, align_asobject=False):
             left, right = left.align(right, copy=False)
 
     return left, right
-
-
-def _construct_result(
-    left: ABCSeries,
-    result: Union[np.ndarray, ABCExtensionArray],
-    index: ABCIndexClass,
-    name,
-):
-    """
-    Construct an appropriately-labelled Series from the result of an op.
-
-    Parameters
-    ----------
-    left : Series
-    result : ndarray or ExtensionArray
-    index : Index
-    name : object
-
-    Returns
-    -------
-    Series
-        In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
-    """
-    if isinstance(result, tuple):
-        # produced by divmod or rdivmod
-        return (
-            _construct_result(left, result[0], index=index, name=name),
-            _construct_result(left, result[1], index=index, name=name),
-        )
-
-    # We do not pass dtype to ensure that the Series constructor
-    #  does inference in the case where `result` has object-dtype.
-    out = left._constructor(result, index=index)
-    out = out.__finalize__(left)
-
-    # Set the result's name after __finalize__ is called because __finalize__
-    #  would set it back to self.name
-    out.name = name
-    return out
 
 
 def _arith_method_SERIES(cls, op, special):
@@ -499,7 +403,7 @@ def _arith_method_SERIES(cls, op, special):
         rvalues = extract_array(right, extract_numpy=True)
         result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
-        return _construct_result(left, result, index=left.index, name=res_name)
+        return left._construct_result(result, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -510,6 +414,7 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -523,9 +428,9 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op)
+        res_values = comparison_op(lvalues, rvalues, op, str_rep)
 
-        return _construct_result(self, res_values, index=self.index, name=res_name)
+        return self._construct_result(res_values, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -547,7 +452,7 @@ def _bool_method_SERIES(cls, op, special):
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = logical_op(lvalues, rvalues, op)
-        return _construct_result(self, res_values, index=self.index, name=res_name)
+        return self._construct_result(res_values, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -584,43 +489,63 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=None):
+def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     """
     Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the fill_value, axis, and level kwargs.
+    conventions determined by the axis argument.
 
     Parameters
     ----------
-    self : DataFrame
-    other : Series
+    left : DataFrame
+    right : Series
     func : binary operator
-    fill_value : object, default None
-    axis : {0, 1, 'columns', 'index', None}, default None
-    level : int or None, default None
+    axis : {0, 1}
+    str_rep : str
 
     Returns
     -------
     result : DataFrame
     """
-    if fill_value is not None:
-        raise NotImplementedError(f"fill_value {fill_value} not supported.")
-
-    if axis is None:
-        # default axis is columns
-        axis = 1
-
-    axis = self._get_axis_number(axis)
-    left, right = self.align(other, join="outer", axis=axis, level=level, copy=False)
+    # We assume that self.align(other, ...) has already been called
     if axis == 0:
-        new_data = left._combine_match_index(right, func)
+        values = right._values
+        if isinstance(values, np.ndarray):
+            # We can operate block-wise
+            values = values.reshape(-1, 1)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._mgr.apply(array_op, right=values.T)
+            return type(left)(bm)
+
+        new_data = dispatch_to_series(left, right, func)
+
     else:
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
     return left._construct_result(new_data)
 
 
-def _align_method_FRAME(left, right, axis):
-    """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
+def _align_method_FRAME(
+    left, right, axis, flex: Optional[bool] = False, level: Level = None
+):
+    """
+    Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : Any
+    axis: int, str, or None
+    flex: bool or None, default False
+        Whether this is a flex op, in which case we reindex.
+        None indicates not to check for alignment.
+    level : int or level name, default None
+
+    Returns
+    -------
+    left : DataFrame
+    right : Any
+    """
 
     def to_series(right):
         msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
@@ -664,15 +589,86 @@ def _align_method_FRAME(left, right, axis):
 
         elif right.ndim > 2:
             raise ValueError(
-                "Unable to coerce to Series/DataFrame, dim "
-                f"must be <= 2: {right.shape}"
+                "Unable to coerce to Series/DataFrame, "
+                f"dimension must be <= 2: {right.shape}"
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
         # GH17901
         right = to_series(right)
 
-    return right
+    if flex is not None and isinstance(right, ABCDataFrame):
+        if not left._indexed_same(right):
+            if flex:
+                left, right = left.align(right, join="outer", level=level, copy=False)
+            else:
+                raise ValueError(
+                    "Can only compare identically-labeled DataFrame objects"
+                )
+    elif isinstance(right, ABCSeries):
+        # axis=1 is default for DataFrame-with-Series op
+        axis = left._get_axis_number(axis) if axis is not None else 1
+        left, right = left.align(
+            right, join="outer", axis=axis, level=level, copy=False
+        )
+
+    return left, right
+
+
+def _should_reindex_frame_op(
+    left: "DataFrame", right, op, axis, default_axis: int, fill_value, level
+) -> bool:
+    """
+    Check if this is an operation between DataFrames that will need to reindex.
+    """
+    assert isinstance(left, ABCDataFrame)
+
+    if op is operator.pow or op is rpow:
+        # GH#32685 pow has special semantics for operating with null values
+        return False
+
+    if not isinstance(right, ABCDataFrame):
+        return False
+
+    if fill_value is None and level is None and axis is default_axis:
+        # TODO: any other cases we should handle here?
+        cols = left.columns.intersection(right.columns)
+        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+            return True
+
+    return False
+
+
+def _frame_arith_method_with_reindex(
+    left: "DataFrame", right: "DataFrame", op
+) -> "DataFrame":
+    """
+    For DataFrame-with-DataFrame operations that require reindexing,
+    operate only on shared columns, then reindex.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    op : binary operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # GH#31623, only operate on shared columns
+    cols = left.columns.intersection(right.columns)
+
+    new_left = left[cols]
+    new_right = right[cols]
+    result = op(new_left, new_right)
+
+    # Do the join on the columns instead of using _align_method_FRAME
+    #  to avoid constructing two potentially large/sparse DataFrames
+    join_columns, _, _ = left.columns.join(
+        right.columns, how="outer", level=None, return_indexers=True
+    )
+    return result.reindex(join_columns, axis=1)
 
 
 def _arith_method_FRAME(cls, op, special):
@@ -692,24 +688,33 @@ def _arith_method_FRAME(cls, op, special):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        other = _align_method_FRAME(self, other, axis)
+        if _should_reindex_frame_op(
+            self, other, op, axis, default_axis, fill_value, level
+        ):
+            return _frame_arith_method_with_reindex(self, other, op)
+
+        self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             pass_op = op if should_series_dispatch(self, other, op) else na_op
             pass_op = pass_op if not is_logical else op
 
-            left, right = self.align(other, join="outer", level=level, copy=False)
-            new_data = left._combine_frame(right, pass_op, fill_value)
-            return left._construct_result(new_data)
+            new_data = self._combine_frame(other, pass_op, fill_value)
+            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
             pass_op = op if axis in [0, "columns", None] else na_op
             pass_op = pass_op if not is_logical else op
+
+            if fill_value is not None:
+                raise NotImplementedError(f"fill_value {fill_value} not supported.")
+
+            axis = self._get_axis_number(axis) if axis is not None else 1
             return _combine_series_frame(
-                self, other, pass_op, fill_value=fill_value, axis=axis, level=level
+                self, other, pass_op, axis=axis, str_rep=str_rep
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
@@ -736,22 +741,19 @@ def _flex_comp_method_FRAME(cls, op, special):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
 
-        other = _align_method_FRAME(self, other, axis)
+        self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            if not self._indexed_same(other):
-                self, other = self.align(other, "outer", level=level, copy=False)
             new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
-            return _combine_series_frame(
-                self, other, op, fill_value=None, axis=axis, level=level
-            )
+            axis = self._get_axis_number(axis) if axis is not None else 1
+            return _combine_series_frame(self, other, op, axis=axis, str_rep=str_rep)
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -766,27 +768,26 @@ def _comp_method_FRAME(cls, op, special):
     @Appender(f"Wrapper for comparison method {op_name}")
     def f(self, other):
 
-        other = _align_method_FRAME(self, other, axis=None)
+        self, other = _align_method_FRAME(
+            self, other, axis=None, level=None, flex=False
+        )
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            if not self._indexed_same(other):
-                raise ValueError(
-                    "Can only compare identically-labeled DataFrame objects"
-                )
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
-            return _combine_series_frame(
-                self, other, op, fill_value=None, axis=None, level=None
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, axis="columns"
             )
+
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op)
-            return self._construct_result(new_data)
+            new_data = dispatch_to_series(self, other, op, str_rep)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 

@@ -27,7 +27,7 @@ class TestSeriesArgsort:
         assert issubclass(argsorted.dtype.type, np.integer)
 
         # GH#2967 (introduced bug in 0.11-dev I think)
-        s = Series([Timestamp("201301{i:02d}".format(i=i)) for i in range(1, 6)])
+        s = Series([Timestamp(f"201301{i:02d}") for i in range(1, 6)])
         assert s.dtype == "datetime64[ns]"
         shifted = s.shift(-1)
         assert shifted.dtype == "datetime64[ns]"
@@ -49,11 +49,11 @@ class TestSeriesArgsort:
         mexpected = np.argsort(s.values, kind="mergesort")
         qexpected = np.argsort(s.values, kind="quicksort")
 
-        tm.assert_series_equal(mindexer, Series(mexpected), check_dtype=False)
-        tm.assert_series_equal(qindexer, Series(qexpected), check_dtype=False)
+        tm.assert_series_equal(mindexer.astype(np.intp), Series(mexpected))
+        tm.assert_series_equal(qindexer.astype(np.intp), Series(qexpected))
         msg = (
-            r"ndarray Expected type <class 'numpy\.ndarray'>,"
-            r" found <class 'pandas\.core\.series\.Series'> instead"
+            r"ndarray Expected type <class 'numpy\.ndarray'>, "
+            r"found <class 'pandas\.core\.series\.Series'> instead"
         )
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)

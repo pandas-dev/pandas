@@ -1,11 +1,12 @@
 """
 Table Schema builders
 
-http://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/json-table-schema/
 """
 import warnings
 
 import pandas._libs.json as json
+from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -26,17 +27,17 @@ import pandas.core.common as com
 loads = json.loads
 
 
-def as_json_table_type(x):
+def as_json_table_type(x: DtypeObj) -> str:
     """
     Convert a NumPy / pandas type to its corresponding json_table.
 
     Parameters
     ----------
-    x : array or dtype
+    x : np.dtype or ExtensionDtype
 
     Returns
     -------
-    t : str
+    str
         the Table Schema data types
 
     Notes
@@ -96,8 +97,8 @@ def set_default_names(data):
     return data
 
 
-def convert_pandas_type_to_json_field(arr, dtype=None):
-    dtype = dtype or arr.dtype
+def convert_pandas_type_to_json_field(arr):
+    dtype = arr.dtype
     if arr.name is None:
         name = "values"
     else:

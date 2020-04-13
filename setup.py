@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Parts of this file were taken from the pyzmq project
@@ -9,6 +9,7 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import argparse
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
+import multiprocessing
 import os
 from os.path import join as pjoin
 import platform
@@ -33,33 +34,23 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.13.3"
-min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
-
-setuptools_kwargs = {
-    "install_requires": [
-        "python-dateutil >= 2.6.1",
-        "pytz >= 2017.2",
-        f"numpy >= {min_numpy_ver}",
-    ],
-    "setup_requires": [f"numpy >= {min_numpy_ver}"],
-    "zip_safe": False,
-}
-
+min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
     import Cython
 
-    ver = Cython.__version__
+    _CYTHON_VERSION = Cython.__version__
     from Cython.Build import cythonize
 
-    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
+    _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
 except ImportError:
+    _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
-# See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
+# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 
@@ -239,6 +230,7 @@ class CleanCommand(Command):
             pjoin(ujson_python, "ujson.c"),
             pjoin(ujson_python, "objToJSON.c"),
             pjoin(ujson_python, "JSONtoObj.c"),
+            pjoin(ujson_python, "date_conversions.c"),
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
@@ -355,7 +347,7 @@ class CheckSDist(sdist_class):
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
                         f"{extension}-source file '{sourcefile}' not found.\n"
-                        f"Run 'setup.py cython' before sdist."
+                        "Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
@@ -411,15 +403,14 @@ class DummyBuildSrc(Command):
 
 
 cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["build_ext"] = CheckingBuildExt
 
 if cython:
     suffix = ".pyx"
-    cmdclass["build_ext"] = CheckingBuildExt
     cmdclass["cython"] = CythonCommand
 else:
     suffix = ".c"
     cmdclass["build_src"] = DummyBuildSrc
-    cmdclass["build_ext"] = CheckingBuildExt
 
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
@@ -442,8 +433,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # args to ignore warnings
-    extra_compile_args = []
+    extra_compile_args = ["-Werror"]
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -463,6 +453,9 @@ if is_platform_mac():
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
+
+    if sys.version_info[:2] == (3, 8):  # GH 33239
+        extra_compile_args.append("-Wno-error=deprecated-declarations")
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -486,6 +479,14 @@ if linetrace:
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ < LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
@@ -506,6 +507,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
 
     elif not cython:
         # GH#28836 raise a helfpul error message
+        if _CYTHON_VERSION:
+            raise RuntimeError(
+                f"Cannot cythonize with old Cython version ({_CYTHON_VERSION} "
+                f"installed, needs {min_cython_ver})"
+            )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
@@ -525,11 +531,6 @@ def maybe_cythonize(extensions, *args, **kwargs):
         nthreads = parsed.parallel
     elif parsed.j:
         nthreads = parsed.j
-
-    # GH#30356 Cythonize doesn't support parallel on Windows
-    if is_platform_windows() and nthreads > 0:
-        print("Parallel build for cythonize ignored on Windows")
-        nthreads = 0
 
     kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
@@ -596,6 +597,7 @@ ext_data = {
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
+    "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
@@ -708,11 +710,15 @@ if suffix == ".pyx":
 
 ujson_ext = Extension(
     "pandas._libs.json",
-    depends=["pandas/_libs/src/ujson/lib/ultrajson.h"],
+    depends=[
+        "pandas/_libs/src/ujson/lib/ultrajson.h",
+        "pandas/_libs/src/ujson/python/date_conversions.h",
+    ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
             "pandas/_libs/src/ujson/python/objToJSON.c",
+            "pandas/_libs/src/ujson/python/date_conversions.c",
             "pandas/_libs/src/ujson/python/JSONtoObj.c",
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
@@ -738,37 +744,51 @@ extensions.append(ujson_ext)
 # ----------------------------------------------------------------------
 
 
-# The build cache system does string matching below this point.
-# if you change something, be careful.
+def setup_package():
+    setuptools_kwargs = {
+        "install_requires": [
+            "python-dateutil >= 2.7.3",
+            "pytz >= 2017.2",
+            f"numpy >= {min_numpy_ver}",
+        ],
+        "setup_requires": [f"numpy >= {min_numpy_ver}"],
+        "zip_safe": False,
+    }
 
-setup(
-    name=DISTNAME,
-    maintainer=AUTHOR,
-    version=versioneer.get_version(),
-    packages=find_packages(include=["pandas", "pandas.*"]),
-    package_data={"": ["templates/*", "_libs/*.dll"]},
-    ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
-    maintainer_email=EMAIL,
-    description=DESCRIPTION,
-    license=LICENSE,
-    cmdclass=cmdclass,
-    url=URL,
-    download_url=DOWNLOAD_URL,
-    project_urls=PROJECT_URLS,
-    long_description=LONG_DESCRIPTION,
-    classifiers=CLASSIFIERS,
-    platforms="any",
-    python_requires=">=3.6.1",
-    extras_require={
-        "test": [
-            # sync with setup.cfg minversion & install.rst
-            "pytest>=4.0.2",
-            "pytest-xdist",
-            "hypothesis>=3.58",
-        ]
-    },
-    entry_points={
-        "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
-    },
-    **setuptools_kwargs,
-)
+    setup(
+        name=DISTNAME,
+        maintainer=AUTHOR,
+        version=versioneer.get_version(),
+        packages=find_packages(include=["pandas", "pandas.*"]),
+        package_data={"": ["templates/*", "_libs/**/*.dll"]},
+        ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
+        maintainer_email=EMAIL,
+        description=DESCRIPTION,
+        license=LICENSE,
+        cmdclass=cmdclass,
+        url=URL,
+        download_url=DOWNLOAD_URL,
+        project_urls=PROJECT_URLS,
+        long_description=LONG_DESCRIPTION,
+        classifiers=CLASSIFIERS,
+        platforms="any",
+        python_requires=">=3.6.1",
+        extras_require={
+            "test": [
+                # sync with setup.cfg minversion & install.rst
+                "pytest>=4.0.2",
+                "pytest-xdist",
+                "hypothesis>=3.58",
+            ]
+        },
+        entry_points={
+            "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
+        },
+        **setuptools_kwargs,
+    )
+
+
+if __name__ == "__main__":
+    # Freeze to support parallel compilation when using spawn instead of fork
+    multiprocessing.freeze_support()
+    setup_package()

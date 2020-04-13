@@ -921,51 +921,6 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
-def test_mutate_groups():
-
-    # GH3380
-
-    df = DataFrame(
-        {
-            "cat1": ["a"] * 8 + ["b"] * 6,
-            "cat2": ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2
-            + ["f"] * 2
-            + ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2,
-            "cat3": [f"g{x}" for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
-        }
-    )
-
-    def f_copy(x):
-        x = x.copy()
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
-
-
-def test_no_mutate_but_looks_like():
-
-    # GH 8467
-    # first show's mutation indicator
-    # second does not, but should yield the same results
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    tm.assert_series_equal(result1, result2)
-
-
 def test_groupby_series_indexed_differently():
     s1 = Series(
         [5.0, -9.0, 4.0, 100.0, -5.0, 55.0, 6.7],
@@ -1496,7 +1451,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):
@@ -1765,7 +1720,7 @@ def test_tuple_as_grouping():
         }
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"('a', 'b')"):
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
@@ -1952,6 +1907,13 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ffill_missing_arguments():
+    # GH 14955
+    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    with pytest.raises(ValueError, match="Must specify a fill"):
+        df.groupby("b").fillna()
+
+
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2030,3 +1992,23 @@ def test_groupby_list_level():
     expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "max_seq_items, expected",
+    [
+        (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
+        (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+    ],
+)
+def test_groups_repr_truncates(max_seq_items, expected):
+    # GH 1135
+    df = pd.DataFrame(np.random.randn(5, 1))
+    df["a"] = df.index
+
+    with pd.option_context("display.max_seq_items", max_seq_items):
+        result = df.groupby("a").groups.__repr__()
+        assert result == expected
+
+        result = df.groupby(np.array(df.a)).groups.__repr__()
+        assert result == expected

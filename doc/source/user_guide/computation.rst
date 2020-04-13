@@ -58,7 +58,7 @@ series in the DataFrame, also excluding NA/null values.
     is not guaranteed to be positive semi-definite. This could lead to
     estimated correlations having absolute values which are greater than one,
     and/or a non-invertible covariance matrix. See `Estimation of covariance
-    matrices <http://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
     for more details.
 
 .. ipython:: python
@@ -210,7 +210,7 @@ parameter:
 
 .. _stats.moments:
 
-Window Functions
+Window functions
 ----------------
 
 .. currentmodule:: pandas.core.window
@@ -323,7 +323,7 @@ We provide a number of common statistical functions:
 
 .. _stats.rolling_apply:
 
-Rolling Apply
+Rolling apply
 ~~~~~~~~~~~~~
 
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
@@ -346,8 +346,9 @@ if installed as an optional dependency. The apply aggregation can be executed us
 ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
 Numba will be applied in potentially two routines:
 
-1. If ``func`` is a standard Python function, the engine will `JIT <http://numba.pydata.org/numba-doc/latest/user/overview.html>`__
+1. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__
 the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+
 2. The engine will JIT the for loop where the apply function is applied to each window.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
@@ -570,6 +571,20 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+.. versionadded:: 1.1
+
+For some problems knowledge of the future is available for analysis. For example, this occurs when
+each data point is a full time series read from an experiment, and the task is to extract underlying
+conditions. In these cases it can be useful to perform forward-looking rolling window computations.
+:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+forward-looking rolling window, and we can use it as follows:
+
+.. ipython:: ipython
+
+   from pandas.api.indexers import FixedForwardWindowIndexer
+   indexer = FixedForwardWindowIndexer(window_size=2)
+   df.rolling(indexer, min_periods=1).sum()
 
 .. _stats.rolling_window.endpoints:
 
@@ -1063,5 +1078,5 @@ are scaled by debiasing factors
 
 (For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
 with :math:`N = t + 1`.)
-See `Weighted Sample Variance <http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
+See `Weighted Sample Variance <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
 on Wikipedia for further details.

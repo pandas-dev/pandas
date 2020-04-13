@@ -15,10 +15,10 @@ class TestCategoricalAnalytics:
     def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        msg = "Categorical is not ordered for operation {}"
+        msg = f"Categorical is not ordered for operation {aggregation}"
         agg_func = getattr(cat, aggregation)
 
-        with pytest.raises(TypeError, match=msg.format(aggregation)):
+        with pytest.raises(TypeError, match=msg):
             agg_func()
 
     def test_min_max_ordered(self):
@@ -88,6 +88,14 @@ class TestCategoricalAnalytics:
             assert _min == 2
             assert _max == 1
 
+    @pytest.mark.parametrize("function", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_only_nan(self, function, skipna):
+        # https://github.com/pandas-dev/pandas/issues/33450
+        cat = Categorical([np.nan], categories=[1, 2], ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
+        assert result is np.nan
+
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_deprecate_numeric_only_min_max(self, method):
         # GH 25303
@@ -114,14 +122,14 @@ class TestCategoricalAnalytics:
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
-    def test_searchsorted(self, ordered_fixture):
+    def test_searchsorted(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
         cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=ordered_fixture,
+            ordered=ordered,
         )
         ser = Series(cat)
 

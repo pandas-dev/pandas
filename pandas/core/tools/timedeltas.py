@@ -49,28 +49,28 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
-
     Parsing a single string to a Timedelta:
 
     >>> pd.to_timedelta('1 days 06:05:01.00003')
     Timedelta('1 days 06:05:01.000030')
     >>> pd.to_timedelta('15.5us')
-    Timedelta('0 days 00:00:00.000015')
+    Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), unit='s')
-    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
-                    '00:00:03', '00:00:04'],
+    TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                    '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
@@ -110,7 +110,6 @@ def to_timedelta(arg, unit="ns", errors="raise"):
 
 def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     """Convert string 'r' to a timedelta object."""
-
     try:
         result = Timedelta(r, unit)
     except ValueError:
@@ -127,7 +126,6 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
 
 def _convert_listlike(arg, unit="ns", errors="raise", name=None):
     """Convert a list of objects to a timedelta index object."""
-
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up
         #  returning arg (errors == "ignore"), and where the input is a

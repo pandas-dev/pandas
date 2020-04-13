@@ -5,7 +5,7 @@ import pytest
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 import pandas._testing as tm
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -87,8 +87,8 @@ class TestCategoricalAPI:
     def test_rename_categories_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
-            "new categories need to have the same number of items as the"
-            " old categories!"
+            "new categories need to have the same number of items as the "
+            "old categories!"
         )
         with pytest.raises(ValueError, match=msg):
             cat.rename_categories(new_categories)
@@ -247,7 +247,7 @@ class TestCategoricalAPI:
         tm.assert_index_equal(c.categories, Index([1, 2, 3, 4]))
 
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.to_dense(), exp)
+        tm.assert_numpy_array_equal(np.asarray(c), exp)
 
         # all "pointers" to '4' must be changed from 3 to 0,...
         c = c.set_categories([4, 3, 2, 1])
@@ -260,7 +260,7 @@ class TestCategoricalAPI:
 
         # output is the same
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.to_dense(), exp)
+        tm.assert_numpy_array_equal(np.asarray(c), exp)
         assert c.min() == 4
         assert c.max() == 1
 
@@ -268,13 +268,19 @@ class TestCategoricalAPI:
         c2 = c.set_categories([4, 3, 2, 1], ordered=False)
         assert not c2.ordered
 
-        tm.assert_numpy_array_equal(c.to_dense(), c2.to_dense())
+        tm.assert_numpy_array_equal(np.asarray(c), np.asarray(c2))
 
         # set_categories should pass thru the ordering
         c2 = c.set_ordered(False).set_categories([4, 3, 2, 1])
         assert not c2.ordered
 
-        tm.assert_numpy_array_equal(c.to_dense(), c2.to_dense())
+        tm.assert_numpy_array_equal(np.asarray(c), np.asarray(c2))
+
+    def test_to_dense_deprecated(self):
+        cat = Categorical(["a", "b", "c", "a"], ordered=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat.to_dense()
 
     @pytest.mark.parametrize(
         "values, categories, new_categories",
@@ -498,7 +504,7 @@ class TestPrivateCategoricalAPI:
         expected = np.asanyarray(expected, dtype=np.int8)
         old = Index(old)
         new = Index(new)
-        result = _recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_recode_to_categories_large(self):
@@ -507,5 +513,5 @@ class TestPrivateCategoricalAPI:
         old = Index(codes)
         expected = np.arange(N - 1, -1, -1, dtype=np.int16)
         new = Index(expected)
-        result = _recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)

@@ -43,7 +43,7 @@ class TestDataFrameSortValues:
         sorted_df = frame.sort_values(by=["B", "A"], ascending=[True, False])
         tm.assert_frame_equal(sorted_df, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=2, inplace=True)
 
@@ -458,7 +458,7 @@ class TestDataFrameSortValues:
             }
         )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="invalid na_position: bad_position"):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
 
     @pytest.mark.parametrize("inplace", [True, False])
@@ -497,3 +497,22 @@ class TestDataFrameSortValues:
 
         tm.assert_frame_equal(result_df, expected)
         tm.assert_frame_equal(df, DataFrame(original_dict))
+
+    def test_sort_values_nat_na_position_default(self):
+        # GH 13230
+        expected = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 4],
+                "date": pd.DatetimeIndex(
+                    [
+                        "2010-01-01 09:00:00",
+                        "2010-01-01 09:00:01",
+                        "2010-01-01 09:00:02",
+                        "2010-01-01 09:00:03",
+                        "NaT",
+                    ]
+                ),
+            }
+        )
+        result = expected.sort_values(["A", "date"])
+        tm.assert_frame_equal(result, expected)

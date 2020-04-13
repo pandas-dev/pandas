@@ -6,7 +6,7 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -15,7 +15,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.29.13
+  - cython>=0.29.16
   - dask
   - fastparquet>=0.3.2
   - gcsfs
@@ -27,11 +27,10 @@ dependencies:
   - numexpr
   - numpy=1.15.*
   - odfpy
-  - openpyxl<=3.0.1
-  # https://github.com/pandas-dev/pandas/pull/30009 openpyxl 3.0.2 broke
+  - openpyxl
   - pandas-gbq
   - psycopg2
-  - pyarrow>=0.12.0
+  - pyarrow>=0.13.0
   - pymysql
   - pytables
   - python-snappy
@@ -51,3 +50,4 @@ dependencies:
     - coverage
     - pandas-datareader
     - python-dateutil
+    - pyxlsb

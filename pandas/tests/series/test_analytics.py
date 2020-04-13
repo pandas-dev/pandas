@@ -6,7 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
@@ -16,38 +16,6 @@ class TestSeriesAnalytics:
         result = s.prod()
 
         assert not isinstance(result, Series)
-
-    def test_dot(self):
-        a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
-        b = DataFrame(
-            np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
-        ).T
-
-        result = a.dot(b)
-        expected = Series(np.dot(a.values, b.values), index=["1", "2", "3"])
-        tm.assert_series_equal(result, expected)
-
-        # Check index alignment
-        b2 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_series_equal(result, expected)
-
-        # Check ndarray argument
-        result = a.dot(b.values)
-        assert np.all(result == expected.values)
-        tm.assert_almost_equal(a.dot(b["2"].values), expected["2"])
-
-        # Check series argument
-        tm.assert_almost_equal(a.dot(b["1"]), expected["1"])
-        tm.assert_almost_equal(a.dot(b2["1"]), expected["1"])
-
-        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match=msg):
-            a.dot(a.values[:3])
-        msg = "matrices are not aligned"
-        with pytest.raises(ValueError, match=msg):
-            a.dot(b.T)
 
     def test_matmul(self):
         # matmul test is for GH #10259
@@ -160,65 +128,6 @@ class TestSeriesAnalytics:
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
 
-    def test_unstack(self):
-
-        index = MultiIndex(
-            levels=[["bar", "foo"], ["one", "three", "two"]],
-            codes=[[1, 1, 0, 0], [0, 1, 0, 2]],
-        )
-
-        s = Series(np.arange(4.0), index=index)
-        unstacked = s.unstack()
-
-        expected = DataFrame(
-            [[2.0, np.nan, 3.0], [0.0, 1.0, np.nan]],
-            index=["bar", "foo"],
-            columns=["one", "three", "two"],
-        )
-
-        tm.assert_frame_equal(unstacked, expected)
-
-        unstacked = s.unstack(level=0)
-        tm.assert_frame_equal(unstacked, expected.T)
-
-        index = MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        s = Series(np.random.randn(6), index=index)
-        exp_index = MultiIndex(
-            levels=[["one", "two", "three"], [0, 1]],
-            codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        expected = DataFrame({"bar": s.values}, index=exp_index).sort_index(level=0)
-        unstacked = s.unstack(0).sort_index()
-        tm.assert_frame_equal(unstacked, expected)
-
-        # GH5873
-        idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
-        ts = pd.Series([1, 2], index=idx)
-        left = ts.unstack()
-        right = DataFrame(
-            [[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5]
-        )
-        tm.assert_frame_equal(left, right)
-
-        idx = pd.MultiIndex.from_arrays(
-            [
-                ["cat", "cat", "cat", "dog", "dog"],
-                ["a", "a", "b", "a", "b"],
-                [1, 2, 1, 1, np.nan],
-            ]
-        )
-        ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
-        right = DataFrame(
-            [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]],
-            columns=["cat", "dog"],
-        )
-        tpls = [("a", 1), ("a", 2), ("b", np.nan), ("b", 1)]
-        right.index = pd.MultiIndex.from_tuples(tpls)
-        tm.assert_frame_equal(ts.unstack(level=0), right)
-
     @pytest.mark.parametrize("func", [np.any, np.all])
     @pytest.mark.parametrize("kwargs", [dict(keepdims=True), dict(out=object())])
     @td.skip_if_np_lt("1.15")
@@ -228,10 +137,10 @@ class TestSeriesAnalytics:
         name = func.__name__
 
         msg = (
-            r"the '{arg}' parameter is not "
-            r"supported in the pandas "
-            r"implementation of {fname}\(\)"
-        ).format(arg=param, fname=name)
+            f"the '{param}' parameter is not "
+            "supported in the pandas "
+            fr"implementation of {name}\(\)"
+        )
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
@@ -268,3 +177,27 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
+
+    def test_td64_summation_overflow(self):
+        # GH 9442
+        s = pd.Series(pd.date_range("20130101", periods=100000, freq="H"))
+        s[0] += pd.Timedelta("1s 1ms")
+
+        # mean
+        result = (s - s.min()).mean()
+        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
+
+        # the computation is converted to float so
+        # might be some loss of precision
+        assert np.allclose(result.value / 1000, expected.value / 1000)
+
+        # sum
+        msg = "overflow in timedelta operation"
+        with pytest.raises(ValueError, match=msg):
+            (s - s.min()).sum()
+
+        s1 = s[0:10000]
+        with pytest.raises(ValueError, match=msg):
+            (s1 - s1.min()).sum()
+        s2 = s[0:1000]
+        (s2 - s2.min()).sum()

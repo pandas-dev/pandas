@@ -79,7 +79,7 @@ one,two
 3,4.5
 4,5.5"""
 
-    with pytest.raises(TypeError, match='data type "foo" not understood'):
+    with pytest.raises(TypeError, match="data type [\"']foo[\"'] not understood"):
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
@@ -192,7 +192,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
-    sep = ","
+    sep = "\t"
 
     expected = parser.read_csv(pth, sep=sep, encoding=encoding)
     expected = expected.apply(Categorical)
@@ -550,3 +550,35 @@ def test_numeric_dtype(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
+
+
+def test_boolean_dtype(all_parsers):
+    parser = all_parsers
+    data = "\n".join(
+        [
+            "a",
+            "True",
+            "TRUE",
+            "true",
+            "False",
+            "FALSE",
+            "false",
+            "NaN",
+            "nan",
+            "NA",
+            "null",
+            "NULL",
+        ]
+    )
+
+    result = parser.read_csv(StringIO(data), dtype="boolean")
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [True, True, True, False, False, False, None, None, None, None, None],
+                dtype="boolean",
+            )
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
