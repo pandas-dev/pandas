@@ -319,7 +319,7 @@ def nargsort(
     return indexer
 
 
-def apply_key(index, key, level=None):
+def ensure_key_mapped_multiindex(index, key, level=None):
     """
         Returns a new MultiIndex in which key has been applied
         to all levels specified in level (or all levels if level
@@ -386,22 +386,20 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         return values.copy()
 
     if isinstance(values, ABCMultiIndex):
-        return apply_key(values, key, level=levels)
-    else:
-        _class = type(values)
-        result = key(values.copy())
-        if len(result) != len(values):
-            raise ValueError(
-                "User-provided `key` function much not change the shape of the array."
-            )
+        return ensure_key_mapped_multiindex(values, key, level=levels)
 
-        if not isinstance(result, _class):  # recover from type error
-            try:
-                result = _class(result)
-            except TypeError:
-                raise TypeError(
-                    "User-provided `key` function returned an invalid type."
-                )
+    type_of_values = type(values)
+    result = key(values.copy())
+    if len(result) != len(values):
+        raise ValueError(
+            "User-provided `key` function much not change the shape of the array."
+        )
+
+    if not isinstance(result, type_of_values):  # recover from type error
+        try:
+            result = type_of_values(result)
+        except TypeError:
+            raise TypeError("User-provided `key` function returned an invalid type.")
 
         return result
 
