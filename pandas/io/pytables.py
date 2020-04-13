@@ -387,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset that is either compatible with Pandas data types "
+                    "or is a table could not be found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
