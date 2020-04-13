@@ -1267,6 +1267,10 @@ class DataFrame(NDFrame):
                 # TODO speed up Series case
                 first_val = next(iter((data.values())), None)
                 if isinstance(first_val, (Series, dict)):
+                    # If we are dealing with not a builtin dict,
+                    #  `collections.defaultdict` for example, we need to convert it
+                    #  to a regular dict so Cython will not raise.
+                    data = dict(data) if not type(data) is dict else data
                     data = lib.from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
