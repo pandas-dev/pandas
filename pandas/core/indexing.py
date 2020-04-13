@@ -827,7 +827,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # this is iterative
         obj = self.obj
         axis = 0
-        for i, key in enumerate(tup):
+        for key in tup:
 
             if com.is_null_slice(key):
                 axis += 1
@@ -1420,7 +1420,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(key) != self.ndim:
             return False
 
-        for i, k in enumerate(key):
+        for k in key:
             if not is_integer(k):
                 return False
 
@@ -2238,8 +2238,7 @@ def is_nested_tuple(tup, labels) -> bool:
     if not isinstance(tup, tuple):
         return False
 
-    for i, k in enumerate(tup):
-
+    for k in tup:
         if is_list_like(k) or isinstance(k, slice):
             return isinstance(labels, ABCMultiIndex)
 
