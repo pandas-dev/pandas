@@ -99,6 +99,18 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessHour",
     "BusinessDay",
     "DateOffset",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
     "Float64Index",
 }
 

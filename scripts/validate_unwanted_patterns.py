@@ -16,9 +16,8 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Tuple
+from typing import IO, Callable, FrozenSet, Iterable, List, Tuple
 
-FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
 PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
 
 
@@ -293,6 +292,7 @@ def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
     output_format: str,
+    file_extensions_to_check: str,
 ) -> bool:
     """
     Main entry point of the script.
@@ -321,6 +321,10 @@ def main(
 
     is_failed: bool = False
     file_path: str = ""
+
+    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
+        file_extensions_to_check.split(",")
+    )
 
     if os.path.isfile(source_path):
         file_path = source_path
@@ -370,7 +374,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}.",
+        default="{source_path}:{line_number}:{msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(
@@ -380,6 +384,11 @@ if __name__ == "__main__":
         required=True,
         help="Validation test case to check.",
     )
+    parser.add_argument(
+        "--included-file-extensions",
+        default="py,pyx,pxd,pxi",
+        help="Coma seperated file extensions to check.",
+    )
 
     args = parser.parse_args()
 
@@ -388,5 +397,6 @@ if __name__ == "__main__":
             function=globals().get(args.validation_type),  # type: ignore
             source_path=args.path,
             output_format=args.format,
+            file_extensions_to_check=args.included_file_extensions,
         )
     )
