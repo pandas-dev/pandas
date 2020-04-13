@@ -95,20 +95,22 @@ def concat_compat(to_concat, axis: int = 0):
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
     _contains_period = any(typ.startswith("period") for typ in typs)
 
+    from pandas.core.arrays import Categorical, SparseArray, datetimelike as dtl
+    from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
+
+    to_concat = [maybe_upcast_datetimelike_array(x) for x in to_concat]
+
     if "category" in typs:
         # this must be prior to concat_datetime,
         # to support Categorical + datetime-like
-        from pandas import Categorical
-
         return Categorical._concat_arrays(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs or _contains_period:
-        return concat_datetime(to_concat, axis=axis, typs=typs)
+        obj = [x for x in to_concat if isinstance(x, dtl.DatetimeLikeArrayMixin)][0]
+        return type(obj)._concat_arrays(to_concat, axis=axis)
 
     # these are mandated to handle empties as well
     elif "sparse" in typs:
-        from pandas.core.arrays import SparseArray
-
         return SparseArray._concat_arrays(to_concat, axis=axis)
 
     all_empty = not len(non_empties)
@@ -293,27 +295,3 @@ def union_categoricals(
         ordered = False
 
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
-
-
-def concat_datetime(to_concat, axis=0, typs=None):
-    """
-    provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
-
-    Parameters
-    ----------
-    to_concat : array of arrays
-    axis : axis to provide concatenation
-    typs : set of to_concat dtypes
-
-    Returns
-    -------
-    a single array, preserving the combined dtypes
-    """
-    from pandas.core.arrays import datetimelike as dtl
-    from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
-
-    to_concat = [maybe_upcast_datetimelike_array(x) for x in to_concat]
-
-    obj = [x for x in to_concat if isinstance(x, dtl.DatetimeLikeArrayMixin)][0]
-    return type(obj)._concat_arrays(to_concat, axis=axis)

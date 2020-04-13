@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_datetime
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -2264,7 +2263,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
-            values = concat_datetime([x.values for x in to_concat])
+            values = self._holder._concat_arrays([x.values for x in to_concat])
 
             values = values.astype(object, copy=False)
             placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
