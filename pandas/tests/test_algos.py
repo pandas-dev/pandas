@@ -7,7 +7,7 @@ from numpy.random import RandomState
 import pytest
 
 from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.compat.numpy import _is_numpy_dev, np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1646,6 +1646,7 @@ def test_unique_label_indices():
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
 
+@pytest.mark.xfail(_is_numpy_dev, reason="GH#33507")
 class TestRank:
     @td.skip_if_no_scipy
     def test_scipy_compat(self):
