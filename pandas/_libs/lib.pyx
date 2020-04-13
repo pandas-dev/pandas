@@ -2533,12 +2533,10 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 def from_nested_dict(dict data) -> dict:
     cdef:
         dict new_data = {}
-        object index, column, value, dict_iterator
-        dict nested_dict
+        object index, column, value, dict_or_series
 
-    for index, dict_iterator in data.items():
-        nested_dict = dict(dict_iterator)
-        for column, value in nested_dict.items():
+    for index, dict_or_series in data.items():
+        for column, value in dict_or_series.items():
             if column in new_data:
                 new_data[column].update(dict([(index, value)]))
             else:
