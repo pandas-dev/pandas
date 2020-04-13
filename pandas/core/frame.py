@@ -32,6 +32,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -4302,7 +4303,29 @@ class DataFrame(NDFrame):
         if not inplace:
             return frame
 
+    @overload
     def reset_index(
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        drop: bool = False,
+        *,
+        col_level: Hashable = 0,
+        col_fill: Label = "",
+    ) -> "DataFrame":
+        ...
+
+    @overload
+    def reset_index(  # noqa: F811
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        drop: bool = False,
+        inplace: bool = False,
+        col_level: Hashable = 0,
+        col_fill: Label = "",
+    ) -> Optional["DataFrame"]:
+        ...
+
+    def reset_index(  # noqa: F811
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         drop: bool = False,
@@ -6559,8 +6582,6 @@ Wild         185.0
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
-        # TODO: use overload to refine return type of reset_index
-        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         result.index = self.index.take(result.index)
