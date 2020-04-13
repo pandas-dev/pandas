@@ -1467,8 +1467,11 @@ class BlockManager(PandasObject):
 
         for blk in self.blocks:
             blk_cols = self.items[blk.mgr_locs.indexer]
+            new_items = unstacker.get_new_columns(blk_cols)
+            new_placement = new_columns.get_indexer(new_items)
+
             blocks, mask = blk._unstack(
-                unstacker, new_columns, fill_value, value_columns=blk_cols,
+                unstacker, fill_value, new_placement=new_placement
             )
 
             new_blocks.extend(blocks)
