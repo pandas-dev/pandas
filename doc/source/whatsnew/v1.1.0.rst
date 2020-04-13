@@ -556,7 +556,6 @@ Reshaping
 - Bug effecting all numeric and boolean reduction methods not returning subclassed data type. (:issue:`25596`)
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
 - Bug in :func:`concat` will fail when handling MultiIndex if index is the same (:issue:`20565`)
-- Bug in :func:`concat` will fail when concatenating list of ``Series`` objects given repeated keys (:issue:`20816`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` can take tuple names in MultiIndexed data (:issue:`19966`)
 - Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
 - Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
