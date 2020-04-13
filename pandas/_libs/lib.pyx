@@ -2539,9 +2539,7 @@ def from_nested_dict(dict data) -> dict:
     for index, dict_or_series in data.items():
         for column, value in dict_or_series.items():
             new_value = dict([(index, value)])
-            if column in new_data:
-                new_data[column].update(new_value)
-            else:
-                new_data.setdefault(column, new_value)
+            new_data.setdefault(column, new_value)
+            new_data[column].update(new_value)
 
     return new_data
