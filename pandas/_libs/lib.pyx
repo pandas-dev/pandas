@@ -1,13 +1,8 @@
 from collections import abc
 from decimal import Decimal
-from fractions import Fraction
-from numbers import Number
 
-import sys
-import warnings
-
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cython cimport Py_ssize_t
 
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ
 from cpython.ref cimport Py_INCREF
@@ -29,11 +24,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     NPY_OBJECT,
-    PyArray_Check,
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
     complex128_t,
     flatiter,
     float32_t,
@@ -67,7 +57,7 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 cimport pandas._libs.util as util
-from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
@@ -287,6 +277,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
         try:
             uniques.sort()
         except TypeError:
+            import warnings
             warnings.warn(
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
@@ -408,27 +399,27 @@ def fast_zip(list ndarrays):
 
     # initialize tuples on first pass
     arr = ndarrays[0]
-    it = <flatiter>PyArray_IterNew(arr)
+    it = <flatiter>cnp.PyArray_IterNew(arr)
     for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
         tup = PyTuple_New(k)
 
         PyTuple_SET_ITEM(tup, 0, val)
         Py_INCREF(val)
         result[i] = tup
-        PyArray_ITER_NEXT(it)
+        cnp.PyArray_ITER_NEXT(it)
 
     for j in range(1, k):
         arr = ndarrays[j]
-        it = <flatiter>PyArray_IterNew(arr)
+        it = <flatiter>cnp.PyArray_IterNew(arr)
         if len(arr) != n:
             raise ValueError("all arrays must be same length")
 
         for i in range(n):
-            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+            val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
             PyTuple_SET_ITEM(result[i], j, val)
             Py_INCREF(val)
-            PyArray_ITER_NEXT(it)
+            cnp.PyArray_ITER_NEXT(it)
 
     return result
 
@@ -578,13 +569,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
-            if PyArray_Check(x) and PyArray_Check(y):
+            if cnp.PyArray_Check(x) and cnp.PyArray_Check(y):
                 if not array_equivalent_object(x, y):
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            elif not (
+                PyObject_RichCompareBool(x, y, Py_EQ)
+                or (x is None or util.is_nan(x))
+                and (y is None or util.is_nan(y))
+            ):
                 return False
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
@@ -1164,13 +1158,11 @@ cdef class Seen:
 
     @property
     def is_bool(self):
-        return not (self.datetime_ or self.numeric_ or self.timedelta_
-                    or self.nat_)
+        return not (self.datetime_ or self.numeric_ or self.timedelta_ or self.nat_)
 
     @property
     def is_float_or_complex(self):
-        return not (self.bool_ or self.datetime_ or self.timedelta_
-                    or self.nat_)
+        return not (self.bool_ or self.datetime_ or self.timedelta_ or self.nat_)
 
 
 cdef object _try_infer_map(object v):
