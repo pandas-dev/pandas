@@ -4217,7 +4217,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Sorting with a key function
 
-        >>> df.sort_values(by='col4', key=lambda col : col.str.lower())
+        >>> df.sort_values(by='col4', key=lambda col: col.str.lower())
            col1  col2  col3 col4
         0    A     2     0    a
         1    A     1     1    B

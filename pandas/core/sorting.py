@@ -319,32 +319,32 @@ def nargsort(
     return indexer
 
 
-def ensure_key_mapped_multiindex(index, key, level=None):
+def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     """
-        Returns a new MultiIndex in which key has been applied
-        to all levels specified in level (or all levels if level
-        is None). Used for key sorting for MultiIndex.
+    Returns a new MultiIndex in which key has been applied
+    to all levels specified in level (or all levels if level
+    is None). Used for key sorting for MultiIndex.
 
-        Parameters
-        ----------
-        index : MultiIndex
-            Index to which to apply the key function on the
-            specified levels.
-        key : Callable
-            Function that takes an Index and returns an Index of
-            the same shape. This key is applied to each level
-            separately. The name of the level can be used to
-            distinguish different levels for application.
-        level : list-like, int or str, default None
-            Level or list of levels to apply the key function to.
-            If None, key function is applied to all levels. Other
-            levels are left unchanged.
+    Parameters
+    ----------
+    index : MultiIndex
+        Index to which to apply the key function on the
+        specified levels.
+    key : Callable
+        Function that takes an Index and returns an Index of
+        the same shape. This key is applied to each level
+        separately. The name of the level can be used to
+        distinguish different levels for application.
+    level : list-like, int or str, default None
+        Level or list of levels to apply the key function to.
+        If None, key function is applied to all levels. Other
+        levels are left unchanged.
 
-        Returns
-        -------
-        labels : MultiIndex
-            Resulting MultiIndex with modified levels.
-        """
+    Returns
+    -------
+    labels : MultiIndex
+        Resulting MultiIndex with modified levels.
+    """
     from pandas.core.indexes.api import MultiIndex
 
     if level is not None:

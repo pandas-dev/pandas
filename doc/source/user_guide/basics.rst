@@ -1786,7 +1786,7 @@ used to sort a pandas object by its index levels.
 .. versionadded:: 1.1.0
 
 Sorting by index also supports a ``key`` parameter that takes a callable
-function to apply to the index being sorted. for `MultiIndex` objects,
+function to apply to the index being sorted. For `MultiIndex` objects,
 the key is applied per-level to the levels specified by `level`.
 
 .. ipython:: python

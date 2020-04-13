@@ -185,9 +185,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # NB: using asi8 instead of _data matters in numpy 1.18
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
-            sorted_values = np.sort(idx.asi8)
+            _as = np.argsort(idx.asi8)
+            sorted_values = self.asi8[_as]
 
-            freq = idx.freq
+            freq = self.freq
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
@@ -197,7 +198,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            arr = type(idx._data)._simple_new(
+            arr = type(self._data)._simple_new(
                 sorted_values, dtype=self.dtype, freq=freq
             )
             return type(self)._simple_new(arr, name=self.name)

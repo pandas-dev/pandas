@@ -44,8 +44,8 @@ Sorting with keys
 We've added a ``key`` argument to the DataFrame and Series sorting methods, including
 :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
 and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
-to the each column of a DataFrame before sorting is performed (:issue:`27237`). See
-:ref:`sort_values with keys <basics.sort_value_key>` and :ref:`sort_index with keys
+column-by-column to each column used for sorting, before sorting is performed (:issue:`27237`). 
+See :ref:`sort_values with keys <basics.sort_value_key>` and :ref:`sort_index with keys
 <basics.sort_index_key>` for more information.
 
 .. ipython:: python
@@ -54,11 +54,12 @@ to the each column of a DataFrame before sorting is performed (:issue:`27237`). 
    s.sort_values()
 
 
-Note how this is sorted with capital letters first. If we apply the `ser.str.lower()` method, we get
+Note how this is sorted with capital letters first. If we apply the :meth:`Series.str.lower` 
+method, we get
 
 .. ipython:: python
 
-   s.sort_values(key=lambda x: x.str.lower)
+   s.sort_values(key=lambda x: x.str.lower())
 
 
 When applied to a `DataFrame`, they key is applied per-column to all columns or a subset if
