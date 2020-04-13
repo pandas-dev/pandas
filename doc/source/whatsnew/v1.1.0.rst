@@ -58,7 +58,7 @@ Note how this is sorted with capital letters first. If we apply the `ser.str.low
 
 .. ipython:: python
 
-   s.sort_values(key=lambda x: x.str.lower())
+   s.sort_values(key=lambda x : x.str.lower)
 
 
 When applied to a `DataFrame`, they key is applied per-column to all columns or a subset if
@@ -68,13 +68,11 @@ When applied to a `DataFrame`, they key is applied per-column to all columns or 
 
    df = pd.DataFrame({'a': ['C', 'C', 'a', 'a', 'B', 'B'],
                       'b': [1, 2, 3, 4, 5, 6]})
-   df.sort_values(by=['a', 'b'], key=lambda col: col.str.lower()
-                  if col.name == 'a' else -col)
+   df.sort_values(by=['a'], key=lambda col: col.str.lower())
 
 
-For :meth:`DataFrame.sort_index` with `MultiIndex`, the key function is applied per level. For
-more details, see examples and documentation in :meth:`DataFrame.sort_values`, :meth:`Series.sort_values`,
-and :meth:`~DataFrame.sort_index`.
+For more details, see examples and documentation in :meth:`DataFrame.sort_values`, 
+:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
 
 .. _whatsnew_110.timestamp_fold_support:
 
