@@ -1,13 +1,15 @@
 """
 Read SAS sas7bdat or xport files.
 """
-from typing import AnyStr, Optional, Union
+from typing import TYPE_CHECKING, AnyStr, Optional, Union
 
 from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import stringify_path
-from pandas.io.sas.sas7bdat import SAS7BDATReader
-from pandas.io.sas.sas_xport import XportReader
+
+if TYPE_CHECKING:
+    from pandas.io.sas.sas_xport import XportReader  # noqa: F401
+    from pandas.io.sas.sas7bdat import SAS7BDATReader  # noqa: F401
 
 
 def read_sas(
@@ -70,10 +72,14 @@ def read_sas(
 
     reader: Union["XportReader", "SAS7BDATReader"]
     if format.lower() == "xport":
+        from pandas.io.sas.sas_xport import XportReader  # noqa: F811
+
         reader = XportReader(
             filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
         )
     elif format.lower() == "sas7bdat":
+        from pandas.io.sas.sas7bdat import SAS7BDATReader  # noqa: F811
+
         reader = SAS7BDATReader(
             filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
         )
