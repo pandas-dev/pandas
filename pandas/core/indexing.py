@@ -2045,6 +2045,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
             key = _tuplify(self.ndim, key)
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
+
         key = list(self._convert_key(key, is_setter=True))
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
@@ -2071,22 +2072,21 @@ class _AtIndexer(_ScalarAccessIndexer):
         return self.obj.index.is_unique and self.obj.columns.is_unique
 
     def __getitem__(self, key):
+
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (getting)!")
             return self.obj.loc[key]
 
-        if self.ndim != 1 or not is_scalar(key):
-            # FIXME: is_scalar check is a kludge
-            return super().__getitem__(key)
-
-        # Like Index.get_value, but we do not allow positional fallback
-        obj = self.obj
-        loc = obj.index.get_loc(key)
-        return obj.index._get_values_for_loc(obj, loc, key)
+        return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (setting)!")
+
             self.obj.loc[key] = value
             return
 

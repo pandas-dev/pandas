@@ -146,6 +146,28 @@ class TestScalar2:
         expected = Series([2.0, 2.0], index=["A", "A"], name=1)
         tm.assert_series_equal(df.iloc[1], expected)
 
+    def test_frame_at_with_duplicate_axes_requires_scalar_lookup(self):
+        # GH#33041 check that falling back to loc doesn't allow non-scalar
+        #  args to slip in
+
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        msg = "Invalid call for scalar access"
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"]
+
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"] = 1
+
     def test_series_at_raises_type_error(self):
         # at should not fallback
         # GH 7814
