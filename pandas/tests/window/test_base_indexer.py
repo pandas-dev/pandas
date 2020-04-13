@@ -97,14 +97,13 @@ def test_notimplemented_functions(func):
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
-    "func,np_func,expected,pd_kwargs,np_kwargs",
+    "func,np_func,expected,np_kwargs",
     [
-        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {}, {},),
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
         (
             "max",
             np.max,
             [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan],
-            {},
             {},
         ),
         (
@@ -122,7 +121,6 @@ def test_notimplemented_functions(func):
                 0.70710678,
                 np.nan,
             ],
-            {},
             {"ddof": 1},
         ),
         (
@@ -140,14 +138,11 @@ def test_notimplemented_functions(func):
                 0.500000,
                 np.nan,
             ],
-            {},
             {"ddof": 1},
         ),
     ],
 )
-def test_rolling_forward_window(
-    constructor, func, np_func, expected, pd_kwargs, np_kwargs
-):
+def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
     # GH 32865
     values = np.arange(10)
     values[5] = 100.0
@@ -157,15 +152,15 @@ def test_rolling_forward_window(
     match = "Forward-looking windows can't have center=True"
     with pytest.raises(ValueError, match=match):
         rolling = constructor(values).rolling(window=indexer, center=True)
-        result = getattr(rolling, func)(**pd_kwargs)
+        result = getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
     with pytest.raises(ValueError, match=match):
         rolling = constructor(values).rolling(window=indexer, closed="right")
-        result = getattr(rolling, func)(**pd_kwargs)
+        result = getattr(rolling, func)()
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
-    result = getattr(rolling, func)(**pd_kwargs)
+    result = getattr(rolling, func)()
     expected = constructor(expected)
     tm.assert_equal(result, expected)
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
