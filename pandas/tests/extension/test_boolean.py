@@ -346,6 +346,10 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 
+class TestNumericAccumulation(base.BaseNumericAccumulateTests):
+    pass
+
+
 # TODO parsing not yet supported
 # class TestParsing(base.BaseParsingTests):
 #     pass

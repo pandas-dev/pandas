@@ -688,6 +688,35 @@ class BooleanArray(BaseMaskedArray):
         name = f"__{op.__name__}"
         return set_function_name(cmp_method, name, cls)
 
+    def _accumulate(
+        self, name: str, skipna: bool = True, **kwargs
+    ): # TODO Type hints not working propery here due to circular imports
+        data = self._data
+        mask = self._mask
+
+        cum_function, fill_value = {
+            "cumprod": (np.cumprod, 1),
+            "cummax": (np.maximum.accumulate, False),
+            "cumsum": (np.cumsum, 0),
+            "cummin": (np.minimum.accumulate, True),
+        }[name]
+        from ..nanops import _get_values
+
+        values, mask, dtype, dtype_max, fill_value = _get_values(
+            data, skipna=skipna, fill_value=fill_value, mask=mask
+        )
+
+        if not skipna:
+            mask = np.maximum.accumulate(mask)
+
+        if name in ["cumsum", "cumprod"]:
+            from pandas.core.arrays import IntegerArray
+
+            result = IntegerArray(cum_function(values, dtype="UInt64"), mask)
+        else:
+            result = BooleanArray(cum_function(values, dtype=bool), mask)
+        return result
+
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
