@@ -76,6 +76,14 @@ class TestCategoricalAnalytics:
             expected = categories[0] if function == "min" else categories[2]
             assert result == expected
 
+    @pytest.mark.parametrize("function", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_only_nan(self, function, skipna):
+        # https://github.com/pandas-dev/pandas/issues/33450
+        cat = Categorical([np.nan], categories=[1, 2], ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
+        assert result is np.nan
+
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_deprecate_numeric_only_min_max(self, method):
         # GH 25303
