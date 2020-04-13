@@ -645,6 +645,39 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
+    def test_merge_right_duplicate_suffix(self):
+        # https://github.com/pandas-dev/pandas/issues/29697
+
+        left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
+        right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
+
+        result = merge(left_df, right_df, on="A", how="right", suffixes=("_x", "_x"))
+        expected = DataFrame(
+            {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
+        )
+        expected.columns = ["A", "B_x", "B_x"]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_outer_duplicate_suffix(self):
+        # https://github.com/pandas-dev/pandas/issues/29697
+
+        left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
+        right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
+
+        result = merge(left_df, right_df, on="A", how="outer", suffixes=("_x", "_x"))
+
+        expected = DataFrame(
+            {
+                "A": [100, 200, 1, 300],
+                "B1": [60, 70, 80, np.nan],
+                "B2": [600, 700, np.nan, 800],
+            }
+        )
+        expected.columns = ["A", "B_x", "B_x"]
+
+        tm.assert_frame_equal(result, expected)
+
     def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
