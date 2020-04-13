@@ -71,7 +71,7 @@ When applied to a `DataFrame`, they key is applied per-column to all columns or 
    df.sort_values(by=['a'], key=lambda col: col.str.lower())
 
 
-For more details, see examples and documentation in :meth:`DataFrame.sort_values`, 
+For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
 :meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
 
 .. _whatsnew_110.timestamp_fold_support:
