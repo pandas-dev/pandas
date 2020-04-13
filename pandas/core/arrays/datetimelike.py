@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -723,7 +724,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat, axis: int = 0):
 
         # do not pass tz to set because tzlocal cannot be hashed
         dtypes = {str(x.dtype) for x in to_concat}
@@ -733,7 +734,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         obj = to_concat[0]
         dtype = obj.dtype
 
-        values = np.concatenate([x.asi8 for x in to_concat])
+        values = np.concatenate([x.asi8 for x in to_concat], axis=axis)
 
         if is_period_dtype(to_concat[0].dtype):
             new_freq = obj.freq
@@ -749,6 +750,30 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                     new_freq = obj.freq
 
         return cls._simple_new(values, dtype=dtype, freq=new_freq)
+
+    @classmethod
+    def _concat_arrays(cls, to_concat, axis: int = 0):
+        from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
+
+        to_concat = [maybe_upcast_datetimelike_array(x) for x in to_concat]
+
+        if len({x.dtype for x in to_concat}) == 1:
+            if axis == 1 and is_extension_array_dtype(to_concat[0].dtype):
+                # TODO(EA2D): not necessary with 2D EAs
+                axis = 0
+
+            result = cls._concat_same_type(to_concat, axis=axis)
+
+            if axis == 1 and result.ndim == 1:
+                # TODO(EA2D): not necessary with 2D EAs
+                result = result.reshape(1, -1)
+            return result
+
+        to_concat = [x.astype(object) for x in to_concat]
+        if axis == 1:
+            # TODO(EA2D): not necessary with 2D EAs
+            to_concat = [np.atleast_2d(x) for x in to_concat]
+        return np.concatenate(to_concat, axis=axis)
 
     def copy(self):
         values = self.asi8.copy()

@@ -4,11 +4,7 @@ Utility functions related to concat.
 
 import numpy as np
 
-from pandas._libs import tslib, tslibs
-
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    TD64NS_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -19,13 +15,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCDatetimeArray,
-    ABCIndexClass,
-    ABCRangeIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 
 def get_dtype_kinds(l):
@@ -147,31 +137,6 @@ def concat_compat(to_concat, axis: int = 0):
                 to_concat = [x.astype("object") for x in to_concat]
 
     return np.concatenate(to_concat, axis=axis)
-
-
-def concat_categorical(to_concat, axis: int = 0):
-    """
-    Concatenate an object/categorical array of arrays, each of which is a
-    single dtype
-
-    Parameters
-    ----------
-    to_concat : array of arrays
-    axis : int
-        Axis to provide concatenation in the current implementation this is
-        always 0, e.g. we only have 1D categoricals
-
-    Returns
-    -------
-    Categorical
-        A single array, preserving the combined dtypes
-    """
-    # we could have object blocks and categoricals here
-    # if we only have a single categoricals then combine everything
-    # else its a non-compat categorical
-    from pandas import Categorical
-
-    return Categorical._concat_arrays(to_concat, axis=axis)
 
 
 def union_categoricals(
@@ -330,13 +295,6 @@ def union_categoricals(
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
 
-def _concatenate_2d(to_concat, axis: int):
-    # coerce to 2d if needed & concatenate
-    if axis == 1:
-        to_concat = [np.atleast_2d(x) for x in to_concat]
-    return np.concatenate(to_concat, axis=axis)
-
-
 def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
@@ -352,70 +310,10 @@ def concat_datetime(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-    if typs is None:
-        typs = get_dtype_kinds(to_concat)
+    from pandas.core.arrays import datetimelike as dtl
+    from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
 
-    # multiple types, need to coerce to object
-    if len(typs) != 1:
-        return _concatenate_2d(
-            [_convert_datetimelike_to_object(x) for x in to_concat], axis=axis
-        )
+    to_concat = [maybe_upcast_datetimelike_array(x) for x in to_concat]
 
-    # must be single dtype
-    if any(typ.startswith("datetime") for typ in typs):
-
-        if "datetime" in typs:
-            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
-            return _concatenate_2d(to_concat, axis=axis).view(DT64NS_DTYPE)
-        else:
-            # when to_concat has different tz, len(typs) > 1.
-            # thus no need to care
-            return _concat_datetimetz(to_concat)
-
-    elif "timedelta" in typs:
-        return _concatenate_2d([x.view(np.int64) for x in to_concat], axis=axis).view(
-            TD64NS_DTYPE
-        )
-
-    elif any(typ.startswith("period") for typ in typs):
-        assert len(typs) == 1
-        cls = to_concat[0]
-        new_values = cls._concat_same_type(to_concat)
-        return new_values
-
-
-def _convert_datetimelike_to_object(x):
-    # coerce datetimelike array to object dtype
-
-    # if dtype is of datetimetz or timezone
-    if x.dtype.kind == DT64NS_DTYPE.kind:
-        if getattr(x, "tz", None) is not None:
-            x = np.asarray(x.astype(object))
-        else:
-            shape = x.shape
-            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(), box="timestamp")
-            x = x.reshape(shape)
-
-    elif x.dtype == TD64NS_DTYPE:
-        shape = x.shape
-        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
-        x = x.reshape(shape)
-
-    return x
-
-
-def _concat_datetimetz(to_concat, name=None):
-    """
-    concat DatetimeIndex with the same tz
-    all inputs must be DatetimeIndex
-    it is used in DatetimeIndex.append also
-    """
-    # Right now, internals will pass a List[DatetimeArray] here
-    # for reductions like quantile. I would like to disentangle
-    # all this before we get here.
-    sample = to_concat[0]
-
-    if isinstance(sample, ABCIndexClass):
-        return sample._concat_same_dtype(to_concat, name=name)
-    elif isinstance(sample, ABCDatetimeArray):
-        return sample._concat_same_type(to_concat)
+    obj = [x for x in to_concat if isinstance(x, dtl.DatetimeLikeArrayMixin)][0]
+    return type(obj)._concat_arrays(to_concat, axis=axis)

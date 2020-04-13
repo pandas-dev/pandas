@@ -48,7 +48,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_categorical, concat_datetime
+from pandas.core.dtypes.concat import concat_datetime
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -2642,7 +2642,7 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(concat_categorical)
+    _concatenator = staticmethod(Categorical._concat_arrays)
 
     should_store = Block.should_store
 
