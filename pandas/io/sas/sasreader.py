@@ -2,8 +2,9 @@
 Read SAS sas7bdat or xport files.
 """
 
-from pandas.io.common import stringify_path
 from abc import ABCMeta, abstractmethod
+
+from pandas.io.common import stringify_path
 
 
 # TODO: replace with Protocol in Python 3.8
