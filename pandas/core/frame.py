@@ -8305,7 +8305,7 @@ Wild         185.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmin(self, axis=0, skipna=True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -8378,7 +8378,7 @@ Wild         185.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmax(self, axis=0, skipna=True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 

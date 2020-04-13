@@ -353,7 +353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return axes, kwargs
 
     @classmethod
-    def _get_axis_number(cls, axis) -> int:
+    def _get_axis_number(cls, axis):
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
             if axis in cls._AXIS_NAMES:
