@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -2348,10 +2349,82 @@ class Categorical(ExtensionArray, PandasObject):
         return True
 
     @classmethod
-    def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import concat_categorical
+    def _concat_same_type(cls, to_concat):
+        return cls._concat_arrays(to_concat)
+        # TODO: lock down stricter behavior?
 
-        return concat_categorical(to_concat)
+    @classmethod
+    def _concat_same_dtype(
+        cls,
+        to_concat,
+        axis: int = 0,
+        sort_categories: bool = False,
+        ignore_order: bool = False,
+    ):
+        """
+        Like _concat_same_type, but with the added restriction of matching dtypes.
+        """
+        ordered = False
+
+        first = to_concat[0]
+
+        # identical categories - fastpath
+        categories = first.categories
+        ordered = first.ordered
+
+        if all(first.categories.equals(other.categories) for other in to_concat[1:]):
+            new_codes = np.concatenate([c.codes for c in to_concat])
+        else:
+            codes = [first.codes] + [
+                recode_for_categories(other.codes, other.categories, first.categories)
+                for other in to_concat[1:]
+            ]
+            new_codes = np.concatenate(codes)
+
+        if sort_categories and not ignore_order and ordered:
+            raise TypeError("Cannot use sort_categories=True with ordered Categoricals")
+
+        if sort_categories and not categories.is_monotonic_increasing:
+            categories = categories.sort_values()
+            indexer = categories.get_indexer(first.categories)
+
+            new_codes = take_1d(indexer, new_codes, fill_value=-1)
+
+        if ignore_order:
+            ordered = False
+
+        return cls(new_codes, categories=categories, ordered=ordered, fastpath=True)
+
+    @classmethod
+    def _concat_arrays(cls, to_concat, axis: int = 0):
+        from pandas.core.dtypes.concat import concat_compat, union_categoricals
+
+        categoricals = [x for x in to_concat if is_categorical_dtype(x.dtype)]
+
+        # validate the categories
+        if len(categoricals) != len(to_concat):
+            pass
+        else:
+            # when all categories are identical
+            first = to_concat[0]
+            if all(first.is_dtype_equal(other) for other in to_concat[1:]):
+                return union_categoricals(categoricals)
+
+        # extract the categoricals & coerce to object if needed
+        to_concat = [
+            x._internal_get_values()
+            if is_categorical_dtype(x.dtype)
+            else np.asarray(x).ravel()
+            if not is_datetime64tz_dtype(x)
+            else np.asarray(x.astype(object))
+            for x in to_concat
+        ]
+
+        result = concat_compat(to_concat)
+        if axis == 1:
+            # TODO(EA2D): this is a kludge for 1D EAs
+            result = result.reshape(1, len(result))
+        return result
 
     def isin(self, values):
         """

@@ -1023,6 +1023,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
+    @classmethod
+    def _concat_arrays(cls, to_concat, axis: int = 0):
+        fill_values = [x.fill_value for x in to_concat if isinstance(x, cls)]
+        fill_value = fill_values[0]
+
+        # TODO: Fix join unit generation so we aren't passed this.
+        to_concat = [
+            x if isinstance(x, cls) else cls(x.squeeze(), fill_value=fill_value)
+            for x in to_concat
+        ]
+
+        return cls._concat_same_type(to_concat)
+
     def astype(self, dtype=None, copy=True):
         """
         Change the dtype of a SparseArray.
