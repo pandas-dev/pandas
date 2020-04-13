@@ -11,7 +11,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -345,6 +345,9 @@ class JSONTableWriter(FrameWriter):
 
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
+@deprecate_nonkeyword_arguments(
+    version="2.0", allowed_args=["path_or_buf"], stacklevel=3
+)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -979,7 +982,7 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
         return data, False

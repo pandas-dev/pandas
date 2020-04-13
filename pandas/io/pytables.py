@@ -1916,9 +1916,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
@@ -3060,7 +3058,7 @@ class BlockManagerFixed(GenericFixed):
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
-        data = obj._data
+        data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
 
@@ -3855,18 +3853,18 @@ class Table(Fixed):
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
+        blocks = block_obj._mgr.blocks
+        blk_items = get_blk_items(block_obj._mgr, blocks)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
+            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr, blocks)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
+                mgr = block_obj.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
