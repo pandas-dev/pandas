@@ -388,8 +388,8 @@ def read_hdf(
             groups = store.groups()
             if len(groups) == 0:
                 raise ValueError(
-                    "Dataset that is either compatible with Pandas data types "
-                    "or is a table could not be found in HDF5 file."
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
                 )
             candidate_only_group = groups[0]
 
