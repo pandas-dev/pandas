@@ -328,7 +328,7 @@ We provide a number of common statistical functions:
    Please note that :meth:`~Rolling.std` and :meth:`~Rolling.var` use the sample
    variance formula by default, i.e. the sum of squared differences is divided by
    ``window_size - 1`` and not by ``window_size`` during averaging. In statistics,
-   we use sample  when the dataset is drawn from a larger population that we
+   we use sample when the dataset is drawn from a larger population that we
    don't have access to. Using it implies that the data in our window is a
    random sample from the population, and we are interested not in the variance
    inside the specific window but in the variance of some general window that
