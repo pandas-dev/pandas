@@ -1,4 +1,3 @@
-import collections
 from collections import abc
 from decimal import Decimal
 from fractions import Fraction
@@ -2533,7 +2532,7 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 @cython.boundscheck(False)
 def from_nested_dict(dict data) -> dict:
     cdef:
-        object new_data = collections.defaultdict(dict)
+        dict new_data = {}
         object index, column, value, dict_iterator
         dict data_dct, nested_dict
 
@@ -2542,6 +2541,9 @@ def from_nested_dict(dict data) -> dict:
     for index, dict_iterator in data_dct.items():
         nested_dict = dict(dict_iterator)
         for column, value in nested_dict.items():
-            new_data[column][index] = value
+            if column in new_data:
+                new_data[column].update(dict([(index, value)]))
+            else:
+                new_data.setdefault(column, dict([(index, value)]))
 
-    return dict(new_data)
+    return new_data
