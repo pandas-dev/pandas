@@ -108,6 +108,16 @@ class TestSeriesReplace:
         expected = pd.Series([pd.Timestamp.min, ts], dtype=object)
         tm.assert_series_equal(expected, result)
 
+    def test_replace_timedelta_td64(self):
+        tdi = pd.timedelta_range(0, periods=5)
+        ser = pd.Series(tdi)
+
+        # Using a single dict argument means we go through replace_list
+        result = ser.replace({ser[1]: ser[3]})
+
+        expected = pd.Series([ser[0], ser[3], ser[2], ser[3], ser[4]])
+        tm.assert_series_equal(result, expected)
+
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([1, 2, 3])
@@ -241,6 +251,13 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
+    def test_replace_with_dictlike_and_string_dtype(self):
+        # GH 32621
+        s = pd.Series(["one", "two", np.nan], dtype="string")
+        expected = pd.Series(["1", "2", np.nan])
+        result = s.replace({"one": "1", "two": "2"})
+        tm.assert_series_equal(expected, result)
+
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
@@ -294,7 +311,7 @@ class TestSeriesReplace:
         s = pd.Series(categorical)
         result = s.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric)
-        tm.assert_series_equal(expected, result, check_dtype=False)
+        tm.assert_series_equal(expected, result)
 
     def test_replace_categorical_single(self):
         # GH 26988
@@ -362,3 +379,30 @@ class TestSeriesReplace:
         expected = pd.Series(exp)
 
         tm.assert_series_equal(result, expected)
+
+    def test_replace_invalid_to_replace(self):
+        # GH 18634
+        # API: replace() should raise an exception if invalid argument is given
+        series = pd.Series(["a", "b", "c "])
+        msg = (
+            r"Expecting 'to_replace' to be either a scalar, array-like, "
+            r"dict or None, got invalid type.*"
+        )
+        with pytest.raises(TypeError, match=msg):
+            series.replace(lambda x: x.strip())
+
+    def test_replace_only_one_dictlike_arg(self):
+        # GH#33340
+
+        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        to_replace = {0: 1, 2: "A"}
+        value = "foo"
+        msg = "Series.replace cannot use dict-like to_replace and non-None value"
+        with pytest.raises(ValueError, match=msg):
+            ser.replace(to_replace, value)
+
+        to_replace = 1
+        value = {0: "foo", 2: "bar"}
+        msg = "Series.replace cannot use dict-value and non-None to_replace"
+        with pytest.raises(ValueError, match=msg):
+            ser.replace(to_replace, value)

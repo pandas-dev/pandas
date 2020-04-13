@@ -203,11 +203,18 @@ def test_is_scipy_sparse():
 
 def test_is_categorical():
     cat = pd.Categorical([1, 2, 3])
-    assert com.is_categorical(cat)
-    assert com.is_categorical(pd.Series(cat))
-    assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert com.is_categorical(cat)
+        assert com.is_categorical(pd.Series(cat))
+        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
-    assert not com.is_categorical([1, 2, 3])
+        assert not com.is_categorical([1, 2, 3])
+
+
+def test_is_categorical_deprecation():
+    # GH#33385
+    with tm.assert_produces_warning(FutureWarning):
+        com.is_categorical([1, 2, 3])
 
 
 def test_is_datetime64_dtype():
@@ -279,18 +286,6 @@ def test_is_string_dtype():
     assert com.is_string_dtype(np.array(["a", "b"]))
     assert com.is_string_dtype(pd.StringDtype())
     assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
-
-
-def test_is_period_arraylike():
-    assert not com.is_period_arraylike([1, 2, 3])
-    assert not com.is_period_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
-def test_is_datetime_arraylike():
-    assert not com.is_datetime_arraylike([1, 2, 3])
-    assert not com.is_datetime_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
 integer_dtypes: List = []

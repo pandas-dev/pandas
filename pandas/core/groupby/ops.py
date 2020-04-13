@@ -169,7 +169,7 @@ class BaseGrouper:
             and not sdata.index._has_complex_internals
         ):
             try:
-                result_values, mutated = splitter.fast_apply(f, group_keys)
+                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except libreduction.InvalidApply as err:
                 # This Exception is raised if `f` triggers an exception
@@ -217,7 +217,7 @@ class BaseGrouper:
             return self.groupings[0].indices
         else:
             codes_list = [ping.codes for ping in self.groupings]
-            keys = [com.values_from_object(ping.group_index) for ping in self.groupings]
+            keys = [ping.group_index for ping in self.groupings]
             return get_indexer_dict(codes_list, keys)
 
     @property
@@ -525,9 +525,7 @@ class BaseGrouper:
                 np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
-            result = self._aggregate(
-                result, counts, values, codes, func, is_datetimelike, min_count
-            )
+            result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = _maybe_fill(
                 np.empty_like(values, dtype=out_dtype), fill_value=np.nan
@@ -590,14 +588,7 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_datetimelike: bool,
-        min_count: int = -1,
+        self, result, counts, values, comp_ids, agg_func, min_count: int = -1,
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
@@ -691,7 +682,7 @@ class BaseGrouper:
 
         assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: try_cast back to EA?
+        # TODO: maybe_cast_to_extension_array?
 
         return result, counts
 
@@ -925,11 +916,9 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names):
+    def fast_apply(self, f, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-
-        sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
@@ -939,11 +928,13 @@ class FrameSplitter(DataSplitter):
             return sdata.iloc[:, slice_obj]
 
 
-def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
+def get_splitter(
+    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+) -> DataSplitter:
     if isinstance(data, Series):
         klass: Type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, *args, **kwargs)
+    return klass(data, labels, ngroups, axis)

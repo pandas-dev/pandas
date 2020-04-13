@@ -393,7 +393,7 @@ class TestSeriesConstructors:
         expected = Series(
             ["a", "a"], index=[0, 1], dtype=CategoricalDtype(["a", "b"], ordered=True)
         )
-        tm.assert_series_equal(result, expected, check_categorical=True)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_categorical_string(self):
         # GH 26336: the string 'category' maintains existing CategoricalDtype
@@ -626,7 +626,7 @@ class TestSeriesConstructors:
         s = pd.Series(index)
 
         # we make 1 copy; this is just a smoke test here
-        assert s._data.blocks[0].values is not index
+        assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -1115,7 +1115,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
-    def test_contructor_dict_tuple_indexer(self):
+    def test_constructor_dict_tuple_indexer(self):
         # GH 12948
         data = {(1, 1, None): -1.0}
         result = Series(data)
@@ -1124,9 +1124,9 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_mapping(self, non_mapping_dict_subclass):
+    def test_constructor_mapping(self, non_dict_mapping_subclass):
         # GH 29788
-        ndm = non_mapping_dict_subclass({3: "three"})
+        ndm = non_dict_mapping_subclass({3: "three"})
         result = Series(ndm)
         expected = Series(["three"], index=[3])
 
@@ -1329,6 +1329,7 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(s, Series(date_range("20130101", periods=3, freq="D")))
 
+        # FIXME: dont leave commented-out
         # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
 
@@ -1421,3 +1422,17 @@ class TestSeriesConstructors:
         result = Series(dt_list)
         expected = Series(dt_list, dtype=object)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH#25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
+        expected = Series([Timestamp("2019")])
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_datetime64(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        dates = np.asarray(rng)
+
+        series = Series(dates)
+        assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))

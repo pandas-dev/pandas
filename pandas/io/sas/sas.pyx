@@ -120,7 +120,7 @@ cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff)
 
     cdef:
         uint8_t cmd
-        uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
+        uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
         int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
         Py_ssize_t ipos = 0, length = len(inbuff)
@@ -431,7 +431,7 @@ cdef class Parser:
             elif column_types[j] == column_type_string:
                 # string
                 string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tostring().rstrip(b"\x00 ")
+                    start + lngt)]).tobytes().rstrip(b"\x00 ")
                 js += 1
 
         self.current_row_on_page_index += 1

@@ -13,8 +13,6 @@ import pytest
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -342,7 +340,7 @@ class TestHDFStore:
             df["timestamp2"] = Timestamp("20010103")
             df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
             df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-            df.loc[3:6, ["obj1"]] = np.nan
+            df.loc[df.index[3:6], ["obj1"]] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
             with catch_warnings(record=True):
@@ -846,7 +844,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -1057,18 +1055,7 @@ class TestHDFStore:
 
         s_nan = ser.replace(nan_rep, np.nan)
 
-        if is_categorical_dtype(s_nan):
-            assert is_categorical_dtype(retr)
-            tm.assert_series_equal(
-                s_nan, retr, check_dtype=False, check_categorical=False
-            )
-        else:
-            tm.assert_series_equal(s_nan, retr)
-
-        # FIXME: don't leave commented-out
-        # fails:
-        # for x in examples:
-        #     roundtrip(s, nan_rep=b'\xf8\xfc')
+        tm.assert_series_equal(s_nan, retr)
 
     def test_append_some_nans(self, setup_path):
 
@@ -1230,14 +1217,14 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
@@ -1372,11 +1359,11 @@ class TestHDFStore:
                 _maybe_remove(store, "df")
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[1:4, "string"] = np.nan
+                df.loc[df.index[1:4], "string"] = np.nan
                 df["string2"] = "bar"
-                df.loc[4:8, "string2"] = np.nan
+                df.loc[df.index[4:8], "string2"] = np.nan
                 df["string3"] = "bah"
-                df.loc[1:, "string3"] = np.nan
+                df.loc[df.index[1:], "string3"] = np.nan
                 store.append("df", df)
                 result = store.select("df")
                 tm.assert_frame_equal(result, df)
@@ -1492,8 +1479,8 @@ class TestHDFStore:
             # data column selection with a string data_column
             df_new = df.copy()
             df_new["string"] = "foo"
-            df_new.loc[1:4, "string"] = np.nan
-            df_new.loc[5:6, "string"] = "bar"
+            df_new.loc[df_new.index[1:4], "string"] = np.nan
+            df_new.loc[df_new.index[5:6], "string"] = "bar"
             _maybe_remove(store, "df")
             store.append("df", df_new, data_columns=["string"])
             result = store.select("df", "string='foo'")
@@ -1574,12 +1561,12 @@ class TestHDFStore:
             # doc example
             df_dc = df.copy()
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc["string2"] = "cool"
             df_dc["datetime"] = Timestamp("20010102")
             df_dc = df_dc._convert(datetime=True)
-            df_dc.loc[3:5, ["A", "B", "datetime"]] = np.nan
+            df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
             _maybe_remove(store, "df_dc")
             store.append(
@@ -1602,8 +1589,8 @@ class TestHDFStore:
                 np.random.randn(8, 3), index=index, columns=["A", "B", "C"]
             )
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
             df_dc["string2"] = "cool"
 
@@ -2024,7 +2011,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -2200,7 +2187,7 @@ class TestHDFStore:
 
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[0:4, "string"] = "bar"
+                df.loc[df.index[0:4], "string"] = "bar"
 
                 store.put("df", df, format="table")
 
@@ -2311,9 +2298,7 @@ class TestHDFStore:
         with catch_warnings(record=True):
             values = np.random.randn(2)
 
-            func = lambda l, r: tm.assert_series_equal(
-                l, r, check_dtype=True, check_index_type=True, check_series_type=True
-            )
+            func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
 
         with catch_warnings(record=True):
             ser = Series(values, [0, "y"])
@@ -2397,7 +2382,7 @@ class TestHDFStore:
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
             recons = store["df"]
-            assert recons._data.is_consolidated()
+            assert recons._mgr.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
@@ -3343,7 +3328,7 @@ class TestHDFStore:
 
             # test string ==/!=
             df["x"] = "none"
-            df.loc[2:7, "x"] = ""
+            df.loc[df.index[2:7], "x"] = ""
 
             store.append("df", df, data_columns=["x"])
 
@@ -3365,7 +3350,7 @@ class TestHDFStore:
 
             # int ==/!=
             df["int"] = 1
-            df.loc[2:7, "int"] = 2
+            df.loc[df.index[2:7], "int"] = 2
 
             store.append("df3", df, data_columns=["int"])
 
@@ -3419,7 +3404,7 @@ class TestHDFStore:
             # a data column with NaNs, result excludes the NaNs
             df3 = df.copy()
             df3["string"] = "foo"
-            df3.loc[4:6, "string"] = np.nan
+            df3.loc[df3.index[4:6], "string"] = np.nan
             store.append("df3", df3, data_columns=["string"])
             result = store.select_column("df3", "string")
             tm.assert_almost_equal(result.values, df3["string"].values)
