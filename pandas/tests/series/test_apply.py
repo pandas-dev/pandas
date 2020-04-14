@@ -1,14 +1,15 @@
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, defaultdict
 from itertools import chain
 
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
-from pandas.conftest import _get_cython_table_params
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 class TestSeriesApply:
@@ -162,6 +163,23 @@ class TestSeriesApply:
         with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
+    def test_apply_categorical(self):
+        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
+        ser = pd.Series(values, name="XX", index=list("abcdefg"))
+        result = ser.apply(lambda x: x.lower())
+
+        # should be categorical dtype when the number of categories are
+        # the same
+        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
+        exp = pd.Series(values, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        tm.assert_categorical_equal(result.values, exp.values)
+
+        result = ser.apply(lambda x: "A")
+        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        assert result.dtype == np.object
+
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
     def test_apply_categorical_with_nan_values(self, series):
         # GH 20714 bug fixed in: GH 24275
@@ -297,18 +315,16 @@ class TestSeriesAggregate:
         # this also tests a result set that is all scalars
         expected = string_series.describe()
         result = string_series.apply(
-            OrderedDict(
-                [
-                    ("count", "count"),
-                    ("mean", "mean"),
-                    ("std", "std"),
-                    ("min", "min"),
-                    ("25%", lambda x: x.quantile(0.25)),
-                    ("50%", "median"),
-                    ("75%", lambda x: x.quantile(0.75)),
-                    ("max", "max"),
-                ]
-            )
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
         )
         tm.assert_series_equal(result, expected)
 
@@ -333,13 +349,13 @@ class TestSeriesAggregate:
 
         # test when mixed w/ callable reducers
         result = s.agg(["size", "count", "mean"])
-        expected = Series(OrderedDict([("size", 3.0), ("count", 2.0), ("mean", 1.5)]))
+        expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
         tm.assert_series_equal(result[expected.index], expected)
 
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series(dtype=np.float64),
                 [
                     ("sum", 0),
@@ -354,7 +370,7 @@ class TestSeriesAggregate:
                     ("median", np.nan),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
                 [
                     ("sum", 6),
@@ -369,7 +385,7 @@ class TestSeriesAggregate:
                     ("median", 2),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()),
                 [
                     ("sum", "abc"),
@@ -394,21 +410,21 @@ class TestSeriesAggregate:
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series(dtype=np.float64),
                 [
                     ("cumprod", Series([], Index([]), dtype=np.float64)),
                     ("cumsum", Series([], Index([]), dtype=np.float64)),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
                 [
                     ("cumprod", Series([np.nan, 1, 2, 6])),
                     ("cumsum", Series([np.nan, 1, 3, 6])),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
             ),
         ),
@@ -423,7 +439,7 @@ class TestSeriesAggregate:
     @pytest.mark.parametrize(
         "series, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 Series("a b c".split()),
                 [
                     ("mean", TypeError),  # mean raises TypeError
@@ -499,9 +515,11 @@ class TestSeriesMap:
         exp = Series([np.nan, "B", "C", "D"])
         tm.assert_series_equal(a.map(c), exp)
 
-    @pytest.mark.parametrize("index", tm.all_index_generator(10))
-    def test_map_empty(self, index):
-        s = Series(index)
+    def test_map_empty(self, indices):
+        if isinstance(indices, ABCMultiIndex):
+            pytest.skip("Initializing a Series from a MultiIndex is not supported")
+
+        s = Series(indices)
         result = s.map({})
 
         expected = pd.Series(np.nan, index=s.index)
@@ -609,6 +627,30 @@ class TestSeriesMap:
         s = Series([1, 2, 3])
         dictionary = DictWithoutMissing({3: "three"})
         result = s.map(dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping(self, non_dict_mapping_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        s = Series([1, 2, 3])
+        not_a_dictionary = non_dict_mapping_subclass({3: "three"})
+        result = s.map(not_a_dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping_with_missing(self, non_dict_mapping_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        class NonDictMappingWithMissing(non_dict_mapping_subclass):
+            def __missing__(self, key):
+                return "missing"
+
+        s = Series([1, 2, 3])
+        not_a_dictionary = NonDictMappingWithMissing({3: "three"})
+        result = s.map(not_a_dictionary)
+        # __missing__ is a dict concept, not a Mapping concept,
+        # so it should not change the result!
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
 
@@ -741,3 +783,32 @@ class TestSeriesMap:
         series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
         result = pd.Series(series.index).apply(lambda x: 1)
         tm.assert_series_equal(result, pd.Series(np.ones(30), dtype="int64"))
+
+    def test_map_float_to_string_precision(self):
+        # GH 13228
+        ser = pd.Series(1 / 3)
+        result = ser.map(lambda val: str(val)).to_dict()
+        expected = {0: "0.3333333333333333"}
+        assert result == expected
+
+    def test_map_with_invalid_na_action_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32815
+        s = pd.Series([1, 2, 3])
+        msg = "na_action must either be 'ignore' or None"
+        with pytest.raises(ValueError, match=msg):
+            s.map(lambda x: x, na_action="____")
+
+    def test_apply_to_timedelta(self):
+        list_of_valid_strings = ["00:00:01", "00:00:02"]
+        a = pd.to_timedelta(list_of_valid_strings)
+        b = Series(list_of_valid_strings).apply(pd.to_timedelta)
+        # FIXME: dont leave commented-out
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)
+
+        list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
+
+        a = pd.to_timedelta(list_of_strings)  # noqa
+        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)

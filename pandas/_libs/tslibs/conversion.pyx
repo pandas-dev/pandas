@@ -8,8 +8,7 @@ cnp.import_array()
 import pytz
 
 # stdlib datetime imports
-from datetime import time as datetime_time
-from cpython.datetime cimport (datetime, tzinfo,
+from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -39,13 +38,14 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.tzconversion import (
     tz_localize_to_utc, tz_convert_single)
-from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
+from pandas._libs.tslibs.tzconversion cimport (
+    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc)
 
 # ----------------------------------------------------------------------
 # Constants
 
-NS_DTYPE = np.dtype('M8[ns]')
-TD_DTYPE = np.dtype('m8[ns]')
+DT64NS_DTYPE = np.dtype('M8[ns]')
+TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
 # ----------------------------------------------------------------------
@@ -84,12 +84,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------
-    result : ndarray with dtype datetime64[ns]
-
+    ndarray with dtype datetime64[ns]
     """
     cdef:
         Py_ssize_t i, n = arr.size
@@ -99,13 +98,18 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     shape = (<object>arr).shape
 
+    if (<object>arr).dtype.byteorder == ">":
+        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
+        dtype = arr.dtype
+        arr = arr.astype(dtype.newbyteorder("<"))
+
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype=NS_DTYPE)
+    result = np.empty(shape, dtype=DT64NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
-        result = arr.view(NS_DTYPE)
+        result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
         return result
@@ -141,13 +145,13 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     result : ndarray with dtype timedelta64[ns]
 
     """
-    return arr.astype(TD_DTYPE, copy=copy)
+    return arr.astype(TD64NS_DTYPE, copy=copy)
     # TODO: check for overflows when going from a lower-resolution to nanos
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(object[:] values):
+def datetime_to_datetime64(ndarray[object] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -202,31 +206,6 @@ def datetime_to_datetime64(object[:] values):
     return result, inferred_tz
 
 
-cdef inline maybe_datetimelike_to_i8(object val):
-    """
-    Try to convert to a nanosecond timestamp.  Fall back to returning the
-    input value.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    val : int64 timestamp or original input
-    """
-    cdef:
-        npy_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            return convert_datetime_to_tsobject(val, None).value
-        return val
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -236,32 +215,16 @@ cdef class _TSObject:
     #    npy_datetimestruct dts      # npy_datetimestruct
     #    int64_t value               # numpy dt64
     #    object tzinfo
+    #    bint fold
+
+    def __cinit__(self):
+        # GH 25057. As per PEP 495, set fold to 0 by default
+        self.fold = 0
 
     @property
     def value(self):
         # This is needed in order for `value` to be accessible in lib.pyx
         return self.value
-
-
-cpdef int64_t pydt_to_i8(object pydt) except? -1:
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-
-    Parameters
-    ----------
-    pydt : object
-
-    Returns
-    -------
-    i8value : np.int64
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -320,7 +283,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
-        ts = datetime.combine(ts, datetime_time())
+        ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "
@@ -364,6 +327,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     cdef:
         _TSObject obj = _TSObject()
 
+    obj.fold = ts.fold
     if tz is not None:
         tz = maybe_get_tz(tz)
 
@@ -422,6 +386,8 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
+        ndarray[int64_t] trans
+        int64_t[:] deltas
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -431,10 +397,23 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
+    # Infer fold from offset-adjusted obj.value
+    # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    if is_utc(tz):
+        pass
+    elif is_tzlocal(tz):
+        _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ == 'dateutil':
+            pos = trans.searchsorted(obj.value, side='right') - 1
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
-                  obj.dts.us, obj.tzinfo)
+                  obj.dts.us, obj.tzinfo, fold=obj.fold)
     obj = convert_datetime_to_tsobject(
         dt, tz, nanos=obj.dts.ps // 1000)
     return obj
@@ -444,15 +423,15 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
-    Convert a string-like (bytes or unicode) input `ts`, along with optional
-    timezone object `tz` to a _TSObject.
+    Convert a string input `ts`, along with optional timezone object`tz`
+    to a _TSObject.
 
     The optional arguments `dayfirst` and `yearfirst` are passed to the
     dateutil parser.
 
     Parameters
     ----------
-    ts : bytes or unicode
+    ts : str
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
@@ -585,7 +564,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
+        local_val = _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -604,6 +583,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
             # i.e. treat_tz_as_dateutil(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
+            # dateutil supports fold, so we infer fold from value
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
@@ -612,6 +593,49 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
 
     obj.tzinfo = tz
 
+
+cdef inline bint _infer_tsobject_fold(
+    _TSObject obj,
+    const int64_t[:] trans,
+    const int64_t[:] deltas,
+    int32_t pos,
+):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    obj : _TSObject
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
+    pos : int32_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if obj.value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
@@ -717,7 +741,7 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(int64_t[:] stamps, tzinfo tz):
+cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
     """
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight) for the
@@ -797,7 +821,7 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(int64_t[:] stamps, object tz=None):
+def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone

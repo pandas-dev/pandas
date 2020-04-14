@@ -15,12 +15,13 @@ from pandas import (
     Series,
     qcut,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):
     """ Reindex to a cartesian production for the groupers,
-    preserving the nature (Categorical) of each grouper """
+    preserving the nature (Categorical) of each grouper
+    """
 
     def f(a):
         if isinstance(a, (CategoricalIndex, Categorical)):
@@ -497,10 +498,10 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            "Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={}, observed={}, sort={})\n"
-            + "Result:\n{}"
-        ).format(ordered, observed, sort, result)
+            f"Labels and aggregation results not consistently sorted\n"
+            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            + "Result:\n{result}"
+        )
         assert False, msg
 
 
@@ -798,14 +799,14 @@ def test_groupby_empty_with_category():
 
 def test_sort():
 
-    # http://stackoverflow.com/questions/23814368/sorting-pandas-
+    # https://stackoverflow.com/questions/23814368/sorting-pandas-
     #        categorical-labels-after-groupby
     # This should result in a properly sorted Series so that the plot
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-    labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)
@@ -1225,10 +1226,10 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
-        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered), "Item": [1, 2]},
         columns=["Name", "Item"],
     )
     expected = df.copy()
@@ -1260,6 +1261,9 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
 
     df = pd.DataFrame(
         {
@@ -1330,3 +1334,61 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_o
     # If we expect unobserved values to be zero, we also expect the dtype to be int
     if zero_or_nan == 0:
         assert np.issubdtype(result.dtype, np.integer)
+
+
+def test_series_groupby_categorical_aggregation_getitem():
+    # GH 8870
+    d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}
+    df = pd.DataFrame(d)
+    cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
+    df["range"] = cat
+    groups = df.groupby(["range", "baz"], as_index=True, sort=True)
+    result = groups["foo"].agg("mean")
+    expected = groups.agg("mean")["foo"]
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, expected_values",
+    [(pd.Series.nunique, [1, 1, 2]), (pd.Series.count, [1, 2, 2])],
+)
+def test_groupby_agg_categorical_columns(func, expected_values):
+    # 31256
+    df = pd.DataFrame(
+        {
+            "id": [0, 1, 2, 3, 4],
+            "groups": [0, 1, 1, 2, 2],
+            "value": pd.Categorical([0, 0, 0, 0, 1]),
+        }
+    ).set_index("id")
+    result = df.groupby("groups").agg(func)
+
+    expected = pd.DataFrame(
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_non_numeric():
+    df = pd.DataFrame(
+        {"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])}
+    )
+    expected = pd.DataFrame({"A": [2, 1]}, index=[1, 2])
+
+    result = df.groupby([1, 2, 1]).agg(pd.Series.nunique)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1, 2, 1]).nunique()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_only_category_no_sort():
+    # GH33410
+    cats = np.array([1, 2])
+    cats.flags.writeable = False
+    df = DataFrame(
+        {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
+    )
+    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    result = df.groupby("b", sort=False).mean()
+    tm.assert_frame_equal(result, expected)

@@ -3,8 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, option_context
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestCaching:
@@ -273,7 +273,7 @@ class TestChaining:
         str(df)
 
         # from SO:
-        # http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
+        # https://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0, 9), columns=["count"])
         df["group"] = "b"
 
@@ -346,20 +346,17 @@ class TestChaining:
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from
         # 0.12
-        def check(result, expected):
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, np.ndarray)
 
         df = DataFrame({"A": 5 * [np.zeros(3)], "B": 5 * [np.ones(3)]})
         expected = df["A"].iloc[2]
         result = df.loc[2, "A"]
-        check(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
         result2 = df.iloc[2]["A"]
-        check(result2, expected)
+        tm.assert_numpy_array_equal(result2, expected)
         result3 = df["A"].loc[2]
-        check(result3, expected)
+        tm.assert_numpy_array_equal(result3, expected)
         result4 = df["A"].iloc[2]
-        check(result4, expected)
+        tm.assert_numpy_array_equal(result4, expected)
 
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem

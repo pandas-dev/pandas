@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_first_last_nth(df):
@@ -54,6 +54,46 @@ def test_first_last_nth(df):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["first", "last"])
+def test_first_last_with_na_object(method, nulls_fixture):
+    # https://github.com/pandas-dev/pandas/issues/32123
+    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
+        "a"
+    )
+    result = getattr(groups, method)()
+
+    if method == "first":
+        values = [1, 3]
+    else:
+        values = [2, 3]
+
+    values = np.array(values, dtype=result["b"].dtype)
+    idx = pd.Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": values}, index=idx)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index", [0, -1])
+def test_nth_with_na_object(index, nulls_fixture):
+    # https://github.com/pandas-dev/pandas/issues/32123
+    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
+        "a"
+    )
+    result = groups.nth(index)
+
+    if index == 0:
+        values = [1, 3]
+    else:
+        values = [2, nulls_fixture]
+
+    values = np.array(values, dtype=result["b"].dtype)
+    idx = pd.Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": values}, index=idx)
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_first_last_nth_dtypes(df_mixed_floats):
 
     df = df_mixed_floats.copy()
@@ -87,6 +127,25 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert s.dtype == "int64"
     f = s.groupby(level=0).first()
     assert f.dtype == "int64"
+
+
+def test_first_strings_timestamps():
+    # GH 11244
+    test = pd.DataFrame(
+        {
+            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            "name": ["e", "e"],
+            "aaaa": ["f", "g"],
+        }
+    )
+    result = test.groupby("name").first()
+    expected = DataFrame(
+        [["a", "c", "f"]],
+        columns=Index([Timestamp("2012-01-01"), Timestamp("2012-01-02"), "aaaa"]),
+        index=Index(["e"], name="name"),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_nth():
@@ -323,6 +382,32 @@ def test_first_last_tz_multi_column(method, ts, alpha):
         index=pd.Index([1, 2], name="group"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([True, False], dtype="boolean"),
+        pd.array([1, 2], dtype="Int64"),
+        pd.to_datetime(["2020-01-01", "2020-02-01"]),
+        pd.to_timedelta([1, 2], unit="D"),
+    ],
+)
+@pytest.mark.parametrize("function", ["first", "last", "min", "max"])
+def test_first_last_extension_array_keeps_dtype(values, function):
+    # https://github.com/pandas-dev/pandas/issues/33071
+    # https://github.com/pandas-dev/pandas/issues/32194
+    df = DataFrame({"a": [1, 2], "b": values})
+    grouped = df.groupby("a")
+    idx = Index([1, 2], name="a")
+    expected_series = Series(values, name="b", index=idx)
+    expected_frame = DataFrame({"b": values}, index=idx)
+
+    result_series = getattr(grouped["b"], function)()
+    tm.assert_series_equal(result_series, expected_series)
+
+    result_frame = grouped.agg({"b": function})
+    tm.assert_frame_equal(result_frame, expected_frame)
 
 
 def test_nth_multi_index_as_expected():

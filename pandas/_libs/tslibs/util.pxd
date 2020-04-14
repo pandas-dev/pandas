@@ -42,7 +42,7 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
-cdef extern from  "numpy/npy_common.h":
+cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
 
 
@@ -218,7 +218,7 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(object py_string,
+cdef inline const char* get_c_string_buf_and_size(str py_string,
                                                   Py_ssize_t *length):
     """
     Extract internal char* buffer of unicode or bytes object `py_string` with
@@ -231,7 +231,7 @@ cdef inline const char* get_c_string_buf_and_size(object py_string,
 
     Parameters
     ----------
-    py_string : object
+    py_string : str
     length : Py_ssize_t*
 
     Returns
@@ -241,12 +241,9 @@ cdef inline const char* get_c_string_buf_and_size(object py_string,
     cdef:
         const char *buf
 
-    if PyUnicode_Check(py_string):
-        buf = PyUnicode_AsUTF8AndSize(py_string, length)
-    else:
-        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
+    buf = PyUnicode_AsUTF8AndSize(py_string, length)
     return buf
 
 
-cdef inline const char* get_c_string(object py_string):
+cdef inline const char* get_c_string(str py_string):
     return get_c_string_buf_and_size(py_string, NULL)

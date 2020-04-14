@@ -3,7 +3,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_compression_roundtrip(compression):
@@ -90,10 +90,7 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
     if compression == "zip":
-        pytest.skip(
-            "{compression} is not supported "
-            "for to_csv".format(compression=compression)
-        )
+        pytest.skip(f"{compression} is not supported for to_csv")
 
     # We'll complete file extension subsequently.
     filename = "test."

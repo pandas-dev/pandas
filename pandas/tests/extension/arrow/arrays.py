@@ -1,4 +1,5 @@
-"""Rudimentary Apache Arrow-backed ExtensionArray.
+"""
+Rudimentary Apache Arrow-backed ExtensionArray.
 
 At the moment, just a boolean array / type is implemented.
 Eventually, we'll want to parametrize the type and support
@@ -7,6 +8,7 @@ current implementation is not efficient.
 """
 import copy
 import itertools
+from typing import Type
 
 import numpy as np
 import pyarrow as pa
@@ -29,17 +31,18 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
+    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+        """
+        Return the array type associated with this dtype.
 
-    @classmethod
-    def construct_array_type(cls):
+        Returns
+        -------
+        type
+        """
         return ArrowBoolArray
 
-    def _is_boolean(self):
+    @property
+    def _is_boolean(self) -> bool:
         return True
 
 
@@ -52,14 +55,14 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
+    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+        """
+        Return the array type associated with this dtype.
 
-    @classmethod
-    def construct_array_type(cls):
+        Returns
+        -------
+        type
+        """
         return ArrowStringArray
 
 
@@ -145,8 +148,8 @@ class ArrowExtensionArray(ExtensionArray):
 
         try:
             op = getattr(arr, method)
-        except AttributeError:
-            raise TypeError
+        except AttributeError as err:
+            raise TypeError from err
         return op(**kwargs)
 
     def any(self, axis=0, out=None):

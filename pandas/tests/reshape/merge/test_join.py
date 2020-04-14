@@ -6,8 +6,8 @@ from pandas._libs import join as libjoin
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
-import pandas.util.testing as tm
 
 a_ = np.array
 
@@ -212,8 +212,8 @@ class TestJoin:
         source_copy = source.copy()
         source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If"
-            " you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns. If "
+            "you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -226,9 +226,7 @@ class TestJoin:
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)},
             index=tm.makeCustomIndex(10, 2),
         )
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, left_on="a", right_index=True)
 
@@ -240,9 +238,7 @@ class TestJoin:
         df2 = DataFrame(
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)}
         )
-        msg = (
-            r"len\(right_on\) must equal the number of levels in the index" ' of "left"'
-        )
+        msg = r'len\(right_on\) must equal the number of levels in the index of "left"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on="b", left_index=True)
 
@@ -266,8 +262,9 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = "Can only merge Series or DataFrame objects, a {} was passed".format(
-            str(type(wrong_type))
+        msg = (
+            "Can only merge Series or DataFrame objects, "
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -301,7 +298,7 @@ class TestJoin:
 
         expected = df.join(df2, on="key")
         expected = expected[expected["value"].notna()]
-        tm.assert_series_equal(joined["key"], expected["key"], check_dtype=False)
+        tm.assert_series_equal(joined["key"], expected["key"])
         tm.assert_series_equal(joined["value"], expected["value"], check_dtype=False)
         tm.assert_index_equal(joined.index, expected.index)
 
@@ -737,9 +734,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(expected, result)
 
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             left.join(right, on="xy", how=join_type)
 
@@ -770,6 +765,35 @@ class TestJoin:
         expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    def test_join_datetime_string(self):
+        # GH 5647
+        dfa = DataFrame(
+            [
+                ["2012-08-02", "L", 10],
+                ["2012-08-02", "J", 15],
+                ["2013-04-06", "L", 20],
+                ["2013-04-06", "J", 25],
+            ],
+            columns=["x", "y", "a"],
+        )
+        dfa["x"] = pd.to_datetime(dfa["x"])
+        dfb = DataFrame(
+            [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
+            columns=["x", "y", "z"],
+            index=[2, 4],
+        )
+        dfb["x"] = pd.to_datetime(dfb["x"])
+        result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
+        expected = DataFrame(
+            [
+                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+            ],
+            index=[2, 4],
+            columns=["x", "y", "z", "a"],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix="_y"):
 
@@ -786,13 +810,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             lgroup = left_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(l_joined, left.columns, join_col)
         else:
@@ -800,13 +822,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             rgroup = right_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(r_joined, right.columns, join_col)
         else:

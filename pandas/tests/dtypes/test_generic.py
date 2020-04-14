@@ -5,7 +5,7 @@ import numpy as np
 from pandas.core.dtypes import generic as gt
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestABCClasses:
@@ -17,7 +17,7 @@ class TestABCClasses:
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
-    sparse_array = pd.SparseArray(np.random.randn(10))
+    sparse_array = pd.arrays.SparseArray(np.random.randn(10))
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
@@ -37,13 +37,10 @@ class TestABCClasses:
         assert isinstance(self.df, gt.ABCDataFrame)
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
         assert isinstance(self.categorical, gt.ABCCategorical)
-        assert isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCPeriod)
 
         assert isinstance(pd.DateOffset(), gt.ABCDateOffset)
         assert isinstance(pd.Period("2012", freq="A-DEC").freq, gt.ABCDateOffset)
         assert not isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCDateOffset)
-        assert isinstance(pd.Interval(0, 1.5), gt.ABCInterval)
-        assert not isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCInterval)
 
         assert isinstance(self.datetime_array, gt.ABCDatetimeArray)
         assert not isinstance(self.datetime_index, gt.ABCDatetimeArray)

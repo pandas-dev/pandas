@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Float64Index, Int64Index, MultiIndex
+import pandas._testing as tm
 
 
 class TestMultiIndexPartial:
@@ -126,7 +126,32 @@ class TestMultiIndexPartial:
 
         # this works...for now
         df["A"].iloc[14] = 5
-        assert df["A"][14] == 5
+        assert df["A"].iloc[14] == 5
+
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_getitem_intkey_leading_level(
+        self, multiindex_year_month_day_dataframe_random_data, dtype
+    ):
+        # GH#33355 dont fall-back to positional when leading level is int
+        ymd = multiindex_year_month_day_dataframe_random_data
+        levels = ymd.index.levels
+        ymd.index = ymd.index.set_levels([levels[0].astype(dtype)] + levels[1:])
+        ser = ymd["A"]
+        mi = ser.index
+        assert isinstance(mi, MultiIndex)
+        if dtype is int:
+            assert isinstance(mi.levels[0], Int64Index)
+        else:
+            assert isinstance(mi.levels[0], Float64Index)
+
+        assert 14 not in mi.levels[0]
+        assert not mi.levels[0]._should_fallback_to_positional()
+        assert not mi._should_fallback_to_positional()
+
+        with pytest.raises(KeyError, match="14"):
+            ser[14]
+        with pytest.raises(KeyError, match="14"):
+            mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
@@ -140,7 +165,7 @@ class TestMultiIndexPartial:
         tm.assert_series_equal(result, expected)
 
         # need to put in some work here
-
+        # FIXME: dont leave commented-out
         # self.ymd.loc[2000, 0] = 0
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 

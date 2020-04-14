@@ -2,11 +2,16 @@ from pathlib import Path
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     AnyStr,
+    Callable,
+    Collection,
     Dict,
-    Iterable,
+    Hashable,
     List,
+    Mapping,
     Optional,
+    Type,
     TypeVar,
     Union,
 )
@@ -21,24 +26,56 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
     from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas import Interval  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.frame import DataFrame  # noqa: F401
 
+# array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+
+# scalars
+
+PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
-Dtype = Union[str, np.dtype, "ExtensionDtype"]
+PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
+Scalar = Union[PythonScalar, PandasScalar]
+
+# other
+
+Dtype = Union[
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
-Scalar = Union[str, int, float, bool]
-Axis = Union[str, int]
-Ordered = Optional[bool]
-JSONSerializable = Union[Scalar, List, Dict]
+# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
+# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
+# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
+# in, either a DataFrame or a Series is returned.
+FrameOrSeriesUnion = Union["DataFrame", "Series"]
 
-# use Collection after we drop support for py35
-Axes = Iterable
+# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
+# Series is passed into a function, a Series is always returned and if a DataFrame is
+# passed in, a DataFrame is always returned.
+FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+
+Axis = Union[str, int]
+Label = Optional[Hashable]
+Level = Union[Label, int]
+Ordered = Optional[bool]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
+Axes = Collection
+
+# For functions like rename that convert one label to another
+Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
 
 # to maintain type information across generic functions and parametrization
-_T = TypeVar("_T")
+T = TypeVar("T")
+# used in decorators to preserve the signature of the function it decorates
+# see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)

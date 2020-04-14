@@ -18,15 +18,15 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 
 
 def test_agg_api():
     # GH 6337
-    # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
+    # https://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
     # different api for agg when passed custom function with mixed frame
 
     df = DataFrame(
@@ -209,7 +209,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"nested renamer is not supported"
+    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(SpecificationError, match=msg):
         grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
 
@@ -224,9 +224,11 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
+    msg = r"Column\(s\) \['ma'\] do not exist"
     with pytest.raises(SpecificationError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
+    msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         df.groupby("A").B.agg({"foo": "count"})
 
@@ -473,8 +475,7 @@ def test_agg_timezone_round_trip():
     assert result3 == ts
 
     dates = [
-        pd.Timestamp("2016-01-0{i:d} 12:00:00".format(i=i), tz="US/Pacific")
-        for i in range(1, 5)
+        pd.Timestamp(f"2016-01-0{i:d} 12:00:00", tz="US/Pacific") for i in range(1, 5)
     ]
     df = pd.DataFrame({"A": ["a", "b"] * 2, "B": dates})
     grouped = df.groupby("A")

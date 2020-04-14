@@ -9,9 +9,9 @@ import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-import pandas.util.testing as tm
 
 
 class TestGroupBy:
@@ -214,7 +214,7 @@ class TestGroupBy:
             result = df.groupby([pd.Grouper(freq="1M", level=0), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="The level foo is not valid"):
                 df.groupby([pd.Grouper(freq="1M", level="foo"), "Buyer"]).sum()
 
             # multi names
@@ -235,7 +235,8 @@ class TestGroupBy:
             tm.assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
-            with pytest.raises(ValueError):
+            msg = "The Grouper cannot specify both a key and a level!"
+            with pytest.raises(ValueError, match=msg):
                 df.groupby(
                     [pd.Grouper(freq="1M", key="Date", level="Date"), "Buyer"]
                 ).sum()

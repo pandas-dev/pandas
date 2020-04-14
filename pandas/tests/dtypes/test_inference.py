@@ -4,6 +4,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
+from collections import namedtuple
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
@@ -15,7 +16,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import iNaT, lib, missing as libmissing
+from pandas._libs import lib, missing as libmissing
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -49,10 +50,9 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
-    isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -239,7 +239,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
         if has_contains:
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return self.d.__contains__(key)
 
     d = DictLike({1: 2})
@@ -449,7 +449,7 @@ class TestInference:
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
-        arr = np.array([[10.0, 2], 1.0, "apple"])
+        arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
@@ -505,6 +505,13 @@ class TestInference:
         expected = case.astype(float) if coerce else case.copy()
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
+
+    def test_convert_numeric_string_uint64(self):
+        # GH32394
+        result = lib.maybe_convert_numeric(
+            np.array(["uint64"], dtype=object), set(), coerce_numeric=True
+        )
+        assert np.isnan(result)
 
     @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
@@ -566,6 +573,13 @@ class TestInference:
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
 
         tm.assert_extension_array_equal(result, exp)
+
+    def test_maybe_convert_objects_bool_nan(self):
+        # GH32146
+        ind = pd.Index([True, False, np.nan], dtype=object)
+        exp = np.array([True, False, np.nan], dtype=object)
+        out = lib.maybe_convert_objects(ind.values, safe=1)
+        tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
@@ -1113,28 +1127,28 @@ class TestTypeInference:
 
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
-            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
         )
         assert lib.is_string_array(
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
+        )
+        # NaN is not valid for string array, just NA
+        assert not lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
-        result = lib.to_object_array_tuples(values)
+        lib.to_object_array_tuples(values)
 
-        try:
-            # make sure record array works
-            from collections import namedtuple
-
-            record = namedtuple("record", "x y")
-            r = record(5, 6)
-            values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
-        except ImportError:
-            pass
+        # make sure record array works
+        record = namedtuple("record", "x y")
+        r = record(5, 6)
+        values = [r]
+        lib.to_object_array_tuples(values)
 
     def test_object(self):
 
@@ -1174,8 +1188,6 @@ class TestTypeInference:
     def test_categorical(self):
 
         # GH 8974
-        from pandas import Categorical, Series
-
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
@@ -1200,6 +1212,24 @@ class TestTypeInference:
 
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
+    def test_string_dtype(self, data, skipna, klass):
+        # StringArray
+        val = klass(data, dtype="string")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "string"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
+    def test_boolean_dtype(self, data, skipna, klass):
+        # BooleanArray
+        val = klass(data, dtype="boolean")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "boolean"
 
 
 class TestNumberScalar:
@@ -1320,7 +1350,7 @@ class TestNumberScalar:
         assert is_datetime64tz_dtype(tsa)
 
         for tz in ["US/Eastern", "UTC"]:
-            dtype = "datetime64[ns, {}]".format(tz)
+            dtype = f"datetime64[ns, {tz}]"
             assert not is_datetime64_dtype(dtype)
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64_ns_dtype(dtype)
@@ -1347,9 +1377,11 @@ class TestIsScalar:
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
-        assert is_scalar(Number())
         assert is_scalar(Fraction())
         assert is_scalar(0.0)
+        assert is_scalar(1)
+        assert is_scalar(complex(2))
+        assert is_scalar(float("NaN"))
         assert is_scalar(np.nan)
         assert is_scalar("foobar")
         assert is_scalar(b"foobar")
@@ -1358,6 +1390,7 @@ class TestIsScalar:
         assert is_scalar(time(12, 0))
         assert is_scalar(timedelta(hours=1))
         assert is_scalar(pd.NaT)
+        assert is_scalar(pd.NA)
 
     def test_is_scalar_builtin_nonscalars(self):
         assert not is_scalar({})
@@ -1372,6 +1405,7 @@ class TestIsScalar:
         assert is_scalar(np.int64(1))
         assert is_scalar(np.float64(1.0))
         assert is_scalar(np.int32(1))
+        assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
         assert is_scalar(np.unicode_("foobar"))
@@ -1402,6 +1436,7 @@ class TestIsScalar:
         assert is_scalar(Period("2014-01-01"))
         assert is_scalar(Interval(left=0, right=1))
         assert is_scalar(DateOffset(days=1))
+        assert is_scalar(pd.offsets.Minute(3))
 
     def test_is_scalar_pandas_containers(self):
         assert not is_scalar(Series(dtype=object))
@@ -1410,11 +1445,31 @@ class TestIsScalar:
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
+        assert not is_scalar(Categorical([]))
+        assert not is_scalar(DatetimeIndex([])._data)
+        assert not is_scalar(TimedeltaIndex([])._data)
+        assert not is_scalar(DatetimeIndex([])._data.to_period("D"))
+        assert not is_scalar(pd.array([1, 2, 3]))
+
+    def test_is_scalar_number(self):
+        # Number() is not recognied by PyNumber_Check, so by extension
+        #  is not recognized by is_scalar, but instances of non-abstract
+        #  subclasses are.
+
+        class Numeric(Number):
+            def __init__(self, value):
+                self.value = value
+
+            def __int__(self):
+                return self.value
+
+        num = Numeric(1)
+        assert is_scalar(num)
 
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype="datetime64[{unit}]".format(unit=unit)))
+        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
         assert len(idx) == 0
 
 
@@ -1424,14 +1479,12 @@ def test_nan_to_nat_conversions():
         dict({"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")})
     )
     df.iloc[3:6, :] = np.nan
-    result = df.loc[4, "B"].value
-    assert result == iNaT
+    result = df.loc[4, "B"]
+    assert result is pd.NaT
 
     s = df["B"].copy()
-    s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
-    assert isna(s[8])
-
-    assert s[8].value == np.datetime64("NaT").astype(np.int64)
+    s[8:9] = np.nan
+    assert s[8] is pd.NaT
 
 
 @td.skip_if_no_scipy

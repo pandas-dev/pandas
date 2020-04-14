@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -27,7 +27,8 @@ def salaries_table(datapath):
 
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file):
-    """Fixture for mocking S3 interaction.
+    """
+    Fixture for mocking S3 interaction.
 
     The primary bucket name is "pandas-test". The following datasets
     are loaded.

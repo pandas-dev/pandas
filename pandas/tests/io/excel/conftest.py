@@ -2,7 +2,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -35,7 +35,7 @@ def df_ref(datapath):
     return df_ref
 
 
-@pytest.fixture(params=[".xls", ".xlsx", ".xlsm", ".ods"])
+@pytest.fixture(params=[".xls", ".xlsx", ".xlsm", ".ods", ".xlsb"])
 def read_ext(request):
     """
     Valid extensions for reading Excel files.

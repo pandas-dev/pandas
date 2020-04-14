@@ -13,6 +13,13 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
     except (ImportError, TypeError, ValueError):
         pass
 
+# Compatibility import for the testing module
+try:
+    import pandas._testing as tm  # noqa
+except ImportError:
+    import pandas.util.testing as tm  # noqa
+
+
 numeric_dtypes = [
     np.int64,
     np.int32,
@@ -49,7 +56,7 @@ except AttributeError:
 def setup(*args, **kwargs):
     # This function just needs to be imported into each benchmark file to
     # set up the random seed before each function.
-    # http://asv.readthedocs.io/en/latest/writing_benchmarks.html
+    # https://asv.readthedocs.io/en/latest/writing_benchmarks.html
     np.random.seed(1234)
 
 

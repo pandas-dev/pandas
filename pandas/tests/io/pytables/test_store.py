@@ -3,6 +3,7 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+from pathlib import Path
 import re
 from warnings import catch_warnings, simplefilter
 
@@ -11,8 +12,6 @@ import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 from pandas import (
@@ -32,6 +31,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,
@@ -41,7 +41,6 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
-import pandas.util.testing as tm
 
 from pandas.io.pytables import (
     ClosedFileError,
@@ -63,10 +62,23 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
 
 @pytest.mark.single
 class TestHDFStore:
+    def test_format_type(self, setup_path):
+        df = pd.DataFrame({"A": [1, 2]})
+        with ensure_clean_path(setup_path) as path:
+            with HDFStore(path) as store:
+                store.put("a", df, format="fixed")
+                store.put("b", df, format="table")
+
+                assert store.get_storer("a").format_type == "fixed"
+                assert store.get_storer("b").format_type == "table"
+
     def test_format_kwarg_in_constructor(self, setup_path):
         # GH 13291
+
+        msg = "format is not a defined argument for HDFStore"
+
         with ensure_clean_path(setup_path) as path:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
@@ -202,21 +214,27 @@ class TestHDFStore:
             # Invalid.
             df = tm.makeDataFrame()
 
-            with pytest.raises(ValueError):
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="f")
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="fixed")
 
-            with pytest.raises(TypeError):
+            msg = r"invalid HDFStore format specified \[foo\]"
+
+            with pytest.raises(TypeError, match=msg):
                 df.to_hdf(path, "df", append=True, format="foo")
 
-            with pytest.raises(TypeError):
-                df.to_hdf(path, "df", append=False, format="bar")
+            with pytest.raises(TypeError, match=msg):
+                df.to_hdf(path, "df", append=False, format="foo")
 
         # File path doesn't exist
         path = ""
-        with pytest.raises(FileNotFoundError):
+        msg = f"File {path} does not exist"
+
+        with pytest.raises(FileNotFoundError, match=msg):
             read_hdf(path, "df")
 
     def test_api_default_format(self, setup_path):
@@ -229,7 +247,10 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.put("df", df)
             assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 store.append("df2", df)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -250,7 +271,7 @@ class TestHDFStore:
             df.to_hdf(path, "df")
             with HDFStore(path) as store:
                 assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df2", append=True)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -319,7 +340,7 @@ class TestHDFStore:
             df["timestamp2"] = Timestamp("20010103")
             df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
             df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-            df.loc[3:6, ["obj1"]] = np.nan
+            df.loc[df.index[3:6], ["obj1"]] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
             with catch_warnings(record=True):
@@ -383,7 +404,10 @@ class TestHDFStore:
             # this is an error because its table_type is appendable, but no
             # version info
             store.get_node("df2")._v_attrs.pandas_version = None
-            with pytest.raises(Exception):
+
+            msg = "'NoneType' object has no attribute 'startswith'"
+
+            with pytest.raises(Exception, match=msg):
                 store.select("df2")
 
     def test_mode(self, setup_path):
@@ -427,7 +451,11 @@ class TestHDFStore:
 
                 # conv read
                 if mode in ["w"]:
-                    with pytest.raises(ValueError):
+                    msg = (
+                        "mode w is not allowed while performing a read. "
+                        r"Allowed modes are r, r\+ and a."
+                    )
+                    with pytest.raises(ValueError, match=msg):
                         read_hdf(path, "df", mode=mode)
                 else:
                     result = read_hdf(path, "df", mode=mode)
@@ -623,7 +651,7 @@ class TestHDFStore:
 
             # not stores
             for x in ["mode", "path", "handle", "complib"]:
-                getattr(store, "_{x}".format(x=x))
+                getattr(store, f"_{x}")
 
     def test_put(self, setup_path):
 
@@ -660,9 +688,7 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
 
-            index = Index(
-                ["I am a very long string index: {i}".format(i=i) for i in range(20)]
-            )
+            index = Index([f"I am a very long string index: {i}" for i in range(20)])
             s = Series(np.arange(20), index=index)
             df = DataFrame({"A": s, "B": s})
 
@@ -675,7 +701,7 @@ class TestHDFStore:
             # mixed length
             index = Index(
                 ["abcdefghijklmnopqrstuvwxyz1234567890"]
-                + ["I am a very long string index: {i}".format(i=i) for i in range(20)]
+                + [f"I am a very long string index: {i}" for i in range(20)]
             )
             s = Series(np.arange(21), index=index)
             df = DataFrame({"A": s, "B": s})
@@ -818,7 +844,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -1029,18 +1055,7 @@ class TestHDFStore:
 
         s_nan = ser.replace(nan_rep, np.nan)
 
-        if is_categorical_dtype(s_nan):
-            assert is_categorical_dtype(retr)
-            tm.assert_series_equal(
-                s_nan, retr, check_dtype=False, check_categorical=False
-            )
-        else:
-            tm.assert_series_equal(s_nan, retr)
-
-        # FIXME: don't leave commented-out
-        # fails:
-        # for x in examples:
-        #     roundtrip(s, nan_rep=b'\xf8\xfc')
+        tm.assert_series_equal(s_nan, retr)
 
     def test_append_some_nans(self, setup_path):
 
@@ -1202,14 +1217,14 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
@@ -1272,7 +1287,7 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 store.append("df", df)
 
-            # store multile additional fields in different blocks
+            # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             with pytest.raises(ValueError):
                 store.append("df", df)
@@ -1344,11 +1359,11 @@ class TestHDFStore:
                 _maybe_remove(store, "df")
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[1:4, "string"] = np.nan
+                df.loc[df.index[1:4], "string"] = np.nan
                 df["string2"] = "bar"
-                df.loc[4:8, "string2"] = np.nan
+                df.loc[df.index[4:8], "string2"] = np.nan
                 df["string3"] = "bah"
-                df.loc[1:, "string3"] = np.nan
+                df.loc[df.index[1:], "string3"] = np.nan
                 store.append("df", df)
                 result = store.select("df")
                 tm.assert_frame_equal(result, df)
@@ -1464,8 +1479,8 @@ class TestHDFStore:
             # data column selection with a string data_column
             df_new = df.copy()
             df_new["string"] = "foo"
-            df_new.loc[1:4, "string"] = np.nan
-            df_new.loc[5:6, "string"] = "bar"
+            df_new.loc[df_new.index[1:4], "string"] = np.nan
+            df_new.loc[df_new.index[5:6], "string"] = "bar"
             _maybe_remove(store, "df")
             store.append("df", df_new, data_columns=["string"])
             result = store.select("df", "string='foo'")
@@ -1546,12 +1561,12 @@ class TestHDFStore:
             # doc example
             df_dc = df.copy()
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc["string2"] = "cool"
             df_dc["datetime"] = Timestamp("20010102")
             df_dc = df_dc._convert(datetime=True)
-            df_dc.loc[3:5, ["A", "B", "datetime"]] = np.nan
+            df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
             _maybe_remove(store, "df_dc")
             store.append(
@@ -1574,8 +1589,8 @@ class TestHDFStore:
                 np.random.randn(8, 3), index=index, columns=["A", "B", "C"]
             )
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
             df_dc["string2"] = "cool"
 
@@ -1996,7 +2011,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -2014,7 +2029,7 @@ class TestHDFStore:
                 df = tm.makeDataFrame()
                 df[n] = f
                 with pytest.raises(TypeError):
-                    store.append("df1_{n}".format(n=n), df)
+                    store.append(f"df1_{n}", df)
 
         # frame
         df = tm.makeDataFrame()
@@ -2172,7 +2187,7 @@ class TestHDFStore:
 
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[0:4, "string"] = "bar"
+                df.loc[df.index[0:4], "string"] = "bar"
 
                 store.put("df", df, format="table")
 
@@ -2283,9 +2298,7 @@ class TestHDFStore:
         with catch_warnings(record=True):
             values = np.random.randn(2)
 
-            func = lambda l, r: tm.assert_series_equal(
-                l, r, check_dtype=True, check_index_type=True, check_series_type=True
-            )
+            func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
 
         with catch_warnings(record=True):
             ser = Series(values, [0, "y"])
@@ -2369,7 +2382,7 @@ class TestHDFStore:
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
             recons = store["df"]
-            assert recons._data.is_consolidated()
+            assert recons._mgr.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
@@ -2659,16 +2672,12 @@ class TestHDFStore:
 
             expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
             for v in [True, "true", 1]:
-                result = store.select(
-                    "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
-                )
+                result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
             for v in [False, "false", 0]:
-                result = store.select(
-                    "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
-                )
+                result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             # integer index
@@ -2754,7 +2763,7 @@ class TestHDFStore:
                     users=["a"] * 50
                     + ["b"] * 50
                     + ["c"] * 100
-                    + ["a{i:03d}".format(i=i) for i in range(100)],
+                    + [f"a{i:03d}" for i in range(100)],
                 )
             )
             _maybe_remove(store, "df")
@@ -2775,7 +2784,7 @@ class TestHDFStore:
             tm.assert_frame_equal(expected, result)
 
             # big selector along the columns
-            selector = ["a", "b", "c"] + ["a{i:03d}".format(i=i) for i in range(60)]
+            selector = ["a", "b", "c"] + [f"a{i:03d}" for i in range(60)]
             result = store.select(
                 "df", "ts>=Timestamp('2012-02-01') and users=selector"
             )
@@ -2884,21 +2893,19 @@ class TestHDFStore:
 
             # select w/o iterator and where clause, single term, begin
             # of range, works
-            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
+            where = f"index >= '{beg_dt}'"
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
             # select w/o iterator and where clause, single term, end
             # of range, works
-            where = "index <= '{end_dt}'".format(end_dt=end_dt)
+            where = f"index <= '{end_dt}'"
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
             # select w/o iterator and where clause, inclusive range,
             # works
-            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
-                beg_dt=beg_dt, end_dt=end_dt
-            )
+            where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
             result = store.select("df", where=where)
             tm.assert_frame_equal(expected, result)
 
@@ -2918,21 +2925,19 @@ class TestHDFStore:
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
+            where = f"index >= '{beg_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '{end_dt}'".format(end_dt=end_dt)
+            where = f"index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
-                beg_dt=beg_dt, end_dt=end_dt
-            )
+            where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
@@ -2954,23 +2959,21 @@ class TestHDFStore:
             end_dt = expected.index[-2]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
+            where = f"index >= '{beg_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '{end_dt}'".format(end_dt=end_dt)
+            where = f"index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
-                beg_dt=beg_dt, end_dt=end_dt
-            )
+            where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[
@@ -2988,7 +2991,7 @@ class TestHDFStore:
             end_dt = expected.index[-1]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index > '{end_dt}'".format(end_dt=end_dt)
+            where = f"index > '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             assert 0 == len(results)
 
@@ -3010,14 +3013,14 @@ class TestHDFStore:
             end_dt = expected.index[chunksize - 1]
 
             # select w/iterator and where clause, single term, begin of range
-            where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
+            where = f"index >= '{beg_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
-            where = "index <= '{end_dt}'".format(end_dt=end_dt)
+            where = f"index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
 
             assert len(results) == 1
@@ -3026,9 +3029,7 @@ class TestHDFStore:
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, inclusive range
-            where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
-                beg_dt=beg_dt, end_dt=end_dt
-            )
+            where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be 1, is 10
@@ -3046,9 +3047,7 @@ class TestHDFStore:
             # return [] e.g. `for e in []: print True` never prints
             # True.
 
-            where = "index <= '{beg_dt}' & index >= '{end_dt}'".format(
-                beg_dt=beg_dt, end_dt=end_dt
-            )
+            where = f"index <= '{beg_dt}' & index >= '{end_dt}'"
             results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be []
@@ -3213,7 +3212,7 @@ class TestHDFStore:
             tm.assert_frame_equal(result, expected)
 
             result = store.select(
-                "df", "(index>df.index[3] & " 'index<=df.index[6]) | string="bar"'
+                "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
             )
             expected = df.loc[
                 ((df.index > df.index[3]) & (df.index <= df.index[6]))
@@ -3329,7 +3328,7 @@ class TestHDFStore:
 
             # test string ==/!=
             df["x"] = "none"
-            df.loc[2:7, "x"] = ""
+            df.loc[df.index[2:7], "x"] = ""
 
             store.append("df", df, data_columns=["x"])
 
@@ -3351,7 +3350,7 @@ class TestHDFStore:
 
             # int ==/!=
             df["int"] = 1
-            df.loc[2:7, "int"] = 2
+            df.loc[df.index[2:7], "int"] = 2
 
             store.append("df3", df, data_columns=["int"])
 
@@ -3405,7 +3404,7 @@ class TestHDFStore:
             # a data column with NaNs, result excludes the NaNs
             df3 = df.copy()
             df3["string"] = "foo"
-            df3.loc[4:6, "string"] = np.nan
+            df3.loc[df3.index[4:6], "string"] = np.nan
             store.append("df3", df3, data_columns=["string"])
             result = store.select_column("df3", "string")
             tm.assert_almost_equal(result.values, df3["string"].values)
@@ -3777,8 +3776,8 @@ class TestHDFStore:
     def test_select_filter_corner(self, setup_path):
 
         df = DataFrame(np.random.randn(50, 100))
-        df.index = ["{c:3d}".format(c=c) for c in df.index]
-        df.columns = ["{c:3d}".format(c=c) for c in df.columns]
+        df.index = [f"{c:3d}" for c in df.index]
+        df.columns = [f"{c:3d}" for c in df.columns]
 
         with ensure_clean_store(setup_path) as store:
             store.put("frame", df, format="table")
@@ -4044,6 +4043,21 @@ class TestHDFStore:
             )
             tm.assert_frame_equal(expected, result)
 
+    def test_legacy_table_fixed_format_read_datetime_py2(self, datapath, setup_path):
+        # GH 31750
+        # legacy table with fixed format and datetime64 column written in Python 2
+        with ensure_clean_store(
+            datapath("io", "data", "legacy_hdf", "legacy_table_fixed_datetime_py2.h5"),
+            mode="r",
+        ) as store:
+            result = store.select("df")
+            expected = pd.DataFrame(
+                [[pd.Timestamp("2020-02-06T18:00")]],
+                columns=["A"],
+                index=pd.Index(["date"]),
+            )
+            tm.assert_frame_equal(expected, result)
+
     def test_legacy_table_read_py2(self, datapath, setup_path):
         # issue: 24925
         # legacy table written in Python 2
@@ -4214,7 +4228,7 @@ class TestHDFStore:
         df5 = DataFrame({("1", 2, object): np.random.randn(10)})
 
         with ensure_clean_store(setup_path) as store:
-            name = "df_{}".format(tm.rands(10))
+            name = f"df_{tm.rands(10)}"
             store.append(name, df)
 
             for d in (df2, df3, df4, df5):
@@ -4498,9 +4512,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 with catch_warnings(record=True):
                     df.to_hdf(path, "df", format="table", data_columns=True)
-                    result = pd.read_hdf(
-                        path, "df", where="index = [{0}]".format(df.index[0])
-                    )
+                    result = pd.read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                     assert len(result)
 
     def test_read_hdf_open_store(self, setup_path):
@@ -4594,12 +4606,9 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 read_hdf(path)
 
-    @td.skip_if_no("pathlib")
     def test_read_from_pathlib_path(self, setup_path):
 
         # GH11773
-        from pathlib import Path
-
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )
@@ -4636,16 +4645,16 @@ class TestHDFStore:
             store.append("test", df, format="table", data_columns=True)
 
             cutoff = 1000000000.0006
-            result = store.select("test", "A < {cutoff:.4f}".format(cutoff=cutoff))
+            result = store.select("test", f"A < {cutoff:.4f}")
             assert result.empty
 
             cutoff = 1000000000.0010
-            result = store.select("test", "A > {cutoff:.4f}".format(cutoff=cutoff))
+            result = store.select("test", f"A > {cutoff:.4f}")
             expected = df.loc[[1, 2], :]
             tm.assert_frame_equal(expected, result)
 
             exact = 1000000000.0011
-            result = store.select("test", "A == {exact:.4f}".format(exact=exact))
+            result = store.select("test", f"A == {exact:.4f}")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
@@ -4672,21 +4681,21 @@ class TestHDFStore:
             for op in ["<", ">", "=="]:
                 # non strings to string column always fail
                 for v in [2.1, True, pd.Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
-                    query = "date {op} v".format(op=op)
+                    query = f"date {op} v"
                     with pytest.raises(TypeError):
                         store.select("test", where=query)
 
                 # strings to other columns must be convertible to type
                 v = "a"
                 for col in ["int", "float", "real_date"]:
-                    query = "{col} {op} v".format(op=op, col=col)
+                    query = f"{col} {op} v"
                     with pytest.raises(ValueError):
                         store.select("test", where=query)
 
                 for v, col in zip(
                     ["1", "1.1", "2014-01-01"], ["int", "float", "real_date"]
                 ):
-                    query = "{col} {op} v".format(op=op, col=col)
+                    query = f"{col} {op} v"
                     result = store.select("test", where=query)
 
                     if op == "==":

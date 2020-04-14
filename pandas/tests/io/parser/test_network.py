@@ -11,7 +11,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -205,7 +205,7 @@ class TestS3:
         with caplog.at_level(logging.DEBUG, logger="s3fs"):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert (0, 5505024) in {x.args[-2:] for x in caplog.records}
+            assert (0, 5505024) in (x.args[-2:] for x in caplog.records)
 
     def test_read_s3_with_hash_in_key(self, tips_df):
         # GH 25945

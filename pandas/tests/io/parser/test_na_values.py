@@ -7,10 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+from pandas._libs.parsers import STR_NA_VALUES
 
-import pandas.io.common as com
+from pandas import DataFrame, Index, MultiIndex
+import pandas._testing as tm
 
 
 def test_string_nas(all_parsers):
@@ -89,6 +89,7 @@ def test_default_na_values(all_parsers):
         "N/A",
         "n/a",
         "NA",
+        "<NA>",
         "#NA",
         "NULL",
         "null",
@@ -99,7 +100,7 @@ def test_default_na_values(all_parsers):
         "#N/A N/A",
         "",
     }
-    assert _NA_VALUES == com._NA_VALUES
+    assert _NA_VALUES == STR_NA_VALUES
 
     parser = all_parsers
     nv = len(_NA_VALUES)
@@ -110,10 +111,11 @@ def test_default_na_values(all_parsers):
         elif i > 0:
             buf = "".join([","] * i)
 
-        buf = "{0}{1}".format(buf, v)
+        buf = f"{buf}{v}"
 
         if i < nv - 1:
-            buf = "{0}{1}".format(buf, "".join([","] * (nv - i - 1)))
+            joined = "".join([","] * (nv - i - 1))
+            buf = f"{buf}{joined}"
 
         return buf
 

@@ -5,7 +5,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_shift(idx):
@@ -55,23 +55,6 @@ def test_truncate():
     msg = "after < before"
     with pytest.raises(ValueError, match=msg):
         index.truncate(3, 1)
-
-
-def test_where():
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(True)
-
-
-@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-def test_where_array_like(klass):
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    cond = [False, True]
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(klass(cond))
 
 
 # TODO: reshape
@@ -146,83 +129,6 @@ def test_append_mixed_dtypes():
     tm.assert_index_equal(res, exp)
 
 
-def test_take(idx):
-    indexer = [4, 3, 0, 2]
-    result = idx.take(indexer)
-    expected = idx[indexer]
-    assert result.equals(expected)
-
-    # TODO: Remove Commented Code
-    # if not isinstance(idx,
-    #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-    # GH 10791
-    msg = "'MultiIndex' object has no attribute 'freq'"
-    with pytest.raises(AttributeError, match=msg):
-        idx.freq
-
-
-def test_take_invalid_kwargs(idx):
-    idx = idx
-    indices = [1, 2]
-
-    msg = r"take\(\) got an unexpected keyword argument 'foo'"
-    with pytest.raises(TypeError, match=msg):
-        idx.take(indices, foo=2)
-
-    msg = "the 'out' parameter is not supported"
-    with pytest.raises(ValueError, match=msg):
-        idx.take(indices, out=indices)
-
-    msg = "the 'mode' parameter is not supported"
-    with pytest.raises(ValueError, match=msg):
-        idx.take(indices, mode="clip")
-
-
-def test_take_fill_value():
-    # GH 12631
-    vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
-    idx = pd.MultiIndex.from_product(vals, names=["str", "dt"])
-
-    result = idx.take(np.array([1, 0, -1]))
-    exp_vals = [
-        ("A", pd.Timestamp("2011-01-02")),
-        ("A", pd.Timestamp("2011-01-01")),
-        ("B", pd.Timestamp("2011-01-02")),
-    ]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
-    tm.assert_index_equal(result, expected)
-
-    # fill_value
-    result = idx.take(np.array([1, 0, -1]), fill_value=True)
-    exp_vals = [
-        ("A", pd.Timestamp("2011-01-02")),
-        ("A", pd.Timestamp("2011-01-01")),
-        (np.nan, pd.NaT),
-    ]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
-    tm.assert_index_equal(result, expected)
-
-    # allow_fill=False
-    result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-    exp_vals = [
-        ("A", pd.Timestamp("2011-01-02")),
-        ("A", pd.Timestamp("2011-01-01")),
-        ("B", pd.Timestamp("2011-01-02")),
-    ]
-    expected = pd.MultiIndex.from_tuples(exp_vals, names=["str", "dt"])
-    tm.assert_index_equal(result, expected)
-
-    msg = "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-    with pytest.raises(ValueError, match=msg):
-        idx.take(np.array([1, 0, -2]), fill_value=True)
-    with pytest.raises(ValueError, match=msg):
-        idx.take(np.array([1, 0, -5]), fill_value=True)
-
-    msg = "index -5 is out of bounds for size 4"
-    with pytest.raises(IndexError, match=msg):
-        idx.take(np.array([1, -5]))
-
-
 def test_iter(idx):
     result = list(idx)
     expected = [
@@ -277,7 +183,7 @@ def test_map(idx):
 def test_map_dictlike(idx, mapper):
 
     if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip("skipping tests for {}".format(type(idx)))
+        pytest.skip(f"skipping tests for {type(idx)}")
 
     identity = mapper(idx.values, idx)
 
@@ -326,17 +232,17 @@ def test_map_dictlike(idx, mapper):
 )
 def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     if _np_version_under1p17:
         expected_exception = AttributeError
-        msg = "'tuple' object has no attribute '{}'".format(func.__name__)
+        msg = f"'tuple' object has no attribute '{func.__name__}'"
     else:
         expected_exception = TypeError
         msg = (
-            "loop of ufunc does not support argument 0 of type tuple which"
-            " has no callable {} method"
-        ).format(func.__name__)
+            "loop of ufunc does not support argument 0 of type tuple which "
+            f"has no callable {func.__name__} method"
+        )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 
@@ -348,9 +254,9 @@ def test_numpy_ufuncs(idx, func):
 )
 def test_numpy_type_funcs(idx, func):
     msg = (
-        "ufunc '{}' not supported for the input types, and the inputs"
-        " could not be safely coerced to any supported types according to"
-        " the casting rule ''safe''"
-    ).format(func.__name__)
+        f"ufunc '{func.__name__}' not supported for the input types, and the inputs "
+        "could not be safely coerced to any supported types according to "
+        "the casting rule ''safe''"
+    )
     with pytest.raises(TypeError, match=msg):
         func(idx)

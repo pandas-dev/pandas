@@ -5,7 +5,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_drop(idx):
@@ -108,8 +108,8 @@ def test_droplevel_list():
     assert dropped.equals(expected)
 
     msg = (
-        "Cannot remove 3 levels from an index with 3 levels: at least one"
-        " level must be left"
+        "Cannot remove 3 levels from an index with 3 levels: "
+        "at least one level must be left"
     )
     with pytest.raises(ValueError, match=msg):
         index[:2].droplevel(["one", "two", "three"])

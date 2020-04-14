@@ -5,12 +5,13 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
+from pandas.core.resample import _asfreq_compat
 
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
@@ -84,8 +85,8 @@ def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-        " but got an instance of 'Index'"
+        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "but got an instance of 'Index'"
     )
     with pytest.raises(TypeError, match=msg):
         xp.resample("A").mean()
@@ -93,20 +94,18 @@ def test_raises_on_non_datetimelike_index():
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series, resample_method):
+def test_resample_empty_series(freq, empty_series_dti, resample_method):
     # GH12771 & GH12868
 
     if resample_method == "ohlc":
         pytest.skip("need to test for ohlc from GH13083")
 
-    s = empty_series
+    s = empty_series_dti
     result = getattr(s.resample(freq), resample_method)()
 
     expected = s.copy()
-    if isinstance(s.index, PeriodIndex):
-        expected.index = s.index.asfreq(freq=freq)
-    else:
-        expected.index = s.index._shallow_copy(freq=freq)
+    expected.index = _asfreq_compat(s.index, freq)
+
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     tm.assert_series_equal(result, expected, check_dtype=False)
@@ -115,24 +114,22 @@ def test_resample_empty_series(freq, empty_series, resample_method):
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
 @pytest.mark.parametrize("resample_method", ["count", "size"])
-def test_resample_count_empty_series(freq, empty_series, resample_method):
+def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
-    result = getattr(empty_series.resample(freq), resample_method)()
+    result = getattr(empty_series_dti.resample(freq), resample_method)()
 
-    if isinstance(empty_series.index, PeriodIndex):
-        index = empty_series.index.asfreq(freq=freq)
-    else:
-        index = empty_series.index._shallow_copy(freq=freq)
-    expected = pd.Series([], dtype="int64", index=index, name=empty_series.name)
+    index = _asfreq_compat(empty_series_dti.index, freq)
+
+    expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
     tm.assert_series_equal(result, expected)
 
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_dataframe(empty_frame, freq, resample_method):
+def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
-    df = empty_frame
+    df = empty_frame_dti
     # count retains dimensions too
     result = getattr(df.resample(freq), resample_method)()
     if resample_method != "size":
@@ -141,10 +138,8 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
         # GH14962
         expected = Series([], dtype=object)
 
-    if isinstance(df.index, PeriodIndex):
-        expected.index = df.index.asfreq(freq=freq)
-    else:
-        expected.index = df.index._shallow_copy(freq=freq)
+    expected.index = _asfreq_compat(df.index, freq)
+
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     tm.assert_almost_equal(result, expected, check_dtype=False)
@@ -154,18 +149,15 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_count_empty_dataframe(freq, empty_frame):
+def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).count()
+    result = empty_frame_dti.resample(freq).count()
 
-    if isinstance(empty_frame.index, PeriodIndex):
-        index = empty_frame.index.asfreq(freq=freq)
-    else:
-        index = empty_frame.index._shallow_copy(freq=freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
+
     expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
 
     tm.assert_frame_equal(result, expected)
@@ -173,18 +165,15 @@ def test_resample_count_empty_dataframe(freq, empty_frame):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_size_empty_dataframe(freq, empty_frame):
+def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).size()
+    result = empty_frame_dti.resample(freq).size()
 
-    if isinstance(empty_frame.index, PeriodIndex):
-        index = empty_frame.index.asfreq(freq=freq)
-    else:
-        index = empty_frame.index._shallow_copy(freq=freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
+
     expected = pd.Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)
@@ -197,9 +186,9 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
-    empty_series = Series([], index, dtype)
+    empty_series_dti = Series([], index, dtype)
     try:
-        getattr(empty_series.resample("d"), resample_method)()
+        getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object)
@@ -236,9 +225,9 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
 
 
 @all_ts
-def test_apply_to_empty_series(empty_series):
+def test_apply_to_empty_series(empty_series_dti):
     # GH 14313
-    s = empty_series
+    s = empty_series_dti
     for freq in ["M", "D", "H"]:
         result = s.resample(freq).apply(lambda x: 1)
         expected = s.resample(freq).apply(np.sum)

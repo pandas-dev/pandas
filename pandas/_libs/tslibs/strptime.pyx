@@ -4,7 +4,6 @@ import time
 import locale
 import calendar
 import re
-from datetime import date as datetime_date
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -13,6 +12,7 @@ import pytz
 import numpy as np
 from numpy cimport int64_t
 
+cimport cpython.datetime as datetime
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
@@ -45,8 +45,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'u': 22}
 
 
-def array_strptime(object[:] values, object fmt,
-                   bint exact=True, errors='raise'):
+def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
 
@@ -78,12 +77,9 @@ def array_strptime(object[:] values, object fmt,
     if fmt is not None:
         if '%W' in fmt or '%U' in fmt:
             if '%Y' not in fmt and '%y' not in fmt:
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
-            if ('%A' not in fmt and '%a' not in fmt and '%w' not
-                    in fmt):
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
+            if '%A' not in fmt and '%a' not in fmt and '%w' not in fmt:
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
         elif '%Z' in fmt and '%z' in fmt:
             raise ValueError("Cannot parse both %Z and %z")
 
@@ -278,8 +274,8 @@ def array_strptime(object[:] values, object fmt,
                                  "the ISO year directive '%G' and a weekday "
                                  "directive '%A', '%a', '%w', or '%u'.")
             else:
-                raise ValueError("ISO week directive '%V' is incompatible with"
-                                 " the year directive '%Y'. Use the ISO year "
+                raise ValueError("ISO week directive '%V' is incompatible with "
+                                 "the year directive '%Y'. Use the ISO year "
                                  "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
@@ -292,20 +288,20 @@ def array_strptime(object[:] values, object fmt,
             elif iso_year != -1 and iso_week != -1:
                 year, julian = _calc_julian_from_V(iso_year, iso_week,
                                                    weekday + 1)
-        # Cannot pre-calculate datetime_date() since can change in Julian
+        # Cannot pre-calculate datetime.date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
         try:
             if julian == -1:
                 # Need to add 1 to result since first day of the year is 1, not
                 # 0.
-                ordinal = datetime_date(year, month, day).toordinal()
-                julian = ordinal - datetime_date(year, 1, 1).toordinal() + 1
+                ordinal = datetime.date(year, month, day).toordinal()
+                julian = ordinal - datetime.date(year, 1, 1).toordinal() + 1
             else:
                 # Assume that if they bothered to include Julian day it will
                 # be accurate.
-                datetime_result = datetime_date.fromordinal(
-                    (julian - 1) + datetime_date(year, 1, 1).toordinal())
+                datetime_result = datetime.date.fromordinal(
+                    (julian - 1) + datetime.date(year, 1, 1).toordinal())
                 year = datetime_result.year
                 month = datetime_result.month
                 day = datetime_result.day
@@ -315,7 +311,7 @@ def array_strptime(object[:] values, object fmt,
                 continue
             raise
         if weekday == -1:
-            weekday = datetime_date(year, month, day).weekday()
+            weekday = datetime.date(year, month, day).weekday()
 
         dts.year = year
         dts.month = month
@@ -588,7 +584,7 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = f'(?P<{directive}>{regex})'
+        regex = f"(?P<{directive}>{regex})"
         return regex
 
     def pattern(self, format):
@@ -653,7 +649,7 @@ cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
     cdef:
         int first_weekday, week_0_length, days_to_week
 
-    first_weekday = datetime_date(year, 1, 1).weekday()
+    first_weekday = datetime.date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's
     # easier to just shift the view to Sunday being the first day of the
     # week.
@@ -696,14 +692,14 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
     cdef:
         int correction, ordinal
 
-    correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
+    correction = datetime.date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:
-        ordinal += datetime_date(iso_year, 1, 1).toordinal()
+        ordinal += datetime.date(iso_year, 1, 1).toordinal()
         iso_year -= 1
-        ordinal -= datetime_date(iso_year, 1, 1).toordinal()
+        ordinal -= datetime.date(iso_year, 1, 1).toordinal()
     return iso_year, ordinal
 
 
@@ -749,6 +745,6 @@ cdef parse_timezone_directive(str z):
     microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
 
     total_minutes = ((hours * 60) + minutes + (seconds // 60) +
-                     (microseconds // 60000000))
+                     (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)

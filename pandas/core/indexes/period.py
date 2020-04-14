@@ -1,47 +1,56 @@
 from datetime import datetime, timedelta
-import warnings
+from typing import Any
 import weakref
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, frequencies as libfrequencies, iNaT, resolution
-from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas._libs.lib import no_default
+from pandas._libs.tslibs import frequencies as libfrequencies, resolution
+from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.period import Period
+from pandas._typing import DtypeObj, Label
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_datetime64_any_dtype,
+    is_dtype_equal,
     is_float,
-    is_float_dtype,
     is_integer,
-    is_integer_dtype,
+    is_object_dtype,
+    is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 
-from pandas.core.accessor import delegate_names
-from pandas.core.algorithms import unique1d
-from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
-from pandas.core.base import _shared_docs
+from pandas.core.arrays.period import (
+    PeriodArray,
+    period_array,
+    raise_on_incompatible,
+    validate_dtype_freq,
+)
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import _index_shared_docs, ensure_index
-from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin,
-    DatetimelikeDelegateMixin,
+from pandas.core.indexes.base import (
+    InvalidIndexError,
+    _index_shared_docs,
+    ensure_index,
+    maybe_extract_name,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
-from pandas.core.missing import isna
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.extension import inherit_names
+from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.datetimes import DateParseError, parse_time_string
+from pandas.core.tools.datetimes import DateParseError
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
-
 
 # --- Period index sketch
 
@@ -57,28 +66,16 @@ def _new_PeriodIndex(cls, **d):
         return cls(values, **d)
 
 
-class PeriodDelegateMixin(DatetimelikeDelegateMixin):
-    """
-    Delegate from PeriodIndex to PeriodArray.
-    """
-
-    _delegate_class = PeriodArray
-    _delegated_properties = PeriodArray._datetimelike_ops
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | {
-        "_addsub_int_array",
-        "strftime",
-    }
-    _raw_properties = {"is_leap_year"}
-
-
-@delegate_names(PeriodArray, PeriodDelegateMixin._delegated_properties, typ="property")
-@delegate_names(
-    PeriodArray, PeriodDelegateMixin._delegated_methods, typ="method", overwrite=True
+@inherit_names(
+    ["strftime", "to_timestamp", "asfreq", "start_time", "end_time"]
+    + PeriodArray._field_ops,
+    PeriodArray,
+    wrap=True,
 )
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
+@inherit_names(["is_leap_year", "freq", "_format_native_types"], PeriodArray)
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
-    Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc.
+    Immutable ndarray holding ordinal values indicating regular periods in time.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
@@ -86,11 +83,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Parameters
     ----------
     data : array-like (1d int np.ndarray or PeriodArray), optional
-        Optional period-like data to construct index with
+        Optional period-like data to construct index with.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or period object, optional
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -99,7 +96,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
     tz : object, default None
-        Timezone for converting datetime64 data to Periods
+        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -141,7 +138,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Examples
     --------
-    >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
+    >>> idx = pd.PeriodIndex(year=[2000, 2002], quarter=[1, 3])
+    >>> idx
+    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]', freq='Q-DEC')
     """
 
     _typ = "periodindex"
@@ -152,6 +151,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _infer_as_myclass = True
 
     _data: PeriodArray
+    freq: DateOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -182,14 +182,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         }
 
         if not set(fields).issubset(valid_field_set):
-            raise TypeError(
-                "__new__() got an unexpected keyword argument {}".format(
-                    list(set(fields) - valid_field_set)[0]
-                )
-            )
+            argument = list(set(fields) - valid_field_set)[0]
+            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if data is None and ordinal is None:
             # range-based.
@@ -224,35 +220,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+    def _simple_new(cls, values: PeriodArray, name: Label = None):
         """
         Create a new PeriodIndex.
 
         Parameters
         ----------
-        values : PeriodArray, PeriodIndex, Index[int64], ndarray[int64]
+        values : PeriodArray
             Values that can be converted to a PeriodArray without inference
             or coercion.
-
         """
-        # TODO: raising on floats is tested, but maybe not useful.
-        # Should the callers know not to pass floats?
-        # At the very least, I think we can ensure that lists aren't passed.
-        if isinstance(values, list):
-            values = np.asarray(values)
-        if is_float_dtype(values):
-            raise TypeError("PeriodIndex._simple_new does not accept floats.")
-        if freq:
-            freq = Period._maybe_convert_freq(freq)
-        values = PeriodArray(values, freq=freq)
+        assert isinstance(values, PeriodArray), type(values)
 
-        if not isinstance(values, PeriodArray):
-            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._data
         result.name = name
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -264,57 +249,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return np.asarray(self)
 
     @property
-    def freq(self) -> DateOffset:
-        return self._data.freq
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
-    def _shallow_copy(self, values=None, **kwargs):
-        # TODO: simplify, figure out type of values
+    def _shallow_copy(self, values=None, name: Label = no_default):
+        name = name if name is not no_default else self.name
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._values
-
-        if not isinstance(values, PeriodArray):
-            if isinstance(values, np.ndarray) and is_integer_dtype(values.dtype):
-                values = PeriodArray(values, freq=self.freq)
-            else:
-                # in particular, I would like to avoid period_array here.
-                # Some people seem to be calling use with unexpected types
-                # Index.difference -> ndarray[Period]
-                # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
-                # I think that once all of Datetime* are EAs, we can simplify
-                # this quite a bit.
-                values = period_array(values, freq=self.freq)
-
-        # We don't allow changing `freq` in _shallow_copy.
-        validate_dtype_freq(self.dtype, kwargs.get("freq"))
-        attributes = self._get_attributes_dict()
-
-        attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-        return self._simple_new(values, **attributes)
-
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
-        """ we always want to return a PeriodIndex """
-        return self._shallow_copy(values=values, **kwargs)
-
-    @property
-    def _box_func(self):
-        """Maybe box an ordinal or Period"""
-        # TODO(DatetimeArray): Avoid double-boxing
-        # PeriodArray takes care of boxing already, so we need to check
-        # whether we're given an ordinal or a Period. It seems like some
-        # places outside of indexes/period.py are calling this _box_func,
-        # but passing data that's already boxed.
-        def func(x):
-            if isinstance(x, Period) or x is NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-
-        return func
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -345,10 +292,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             if base == self.freq.rule_code:
                 return other.n
 
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -356,21 +300,22 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return other
 
         # raise when input doesn't have freq
-        msg = DIFFERENT_FREQ.format(
-            cls=type(self).__name__, own_freq=self.freqstr, other_freq=None
-        )
-        raise IncompatibleFrequency(msg)
+        raise raise_on_incompatible(self, None)
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not isinstance(dtype, PeriodDtype):
+            return False
+        return dtype.freq == self.freq
 
     # ------------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep="NaT", quoting=None, **kwargs):
-        # just dispatch, return ndarray
-        return self._data._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
-
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.astype(object).values
+        return self.astype(object)._values
 
     @property
     def _formatter_func(self):
@@ -381,47 +326,31 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     @cache_readonly
     def _engine(self):
-        # To avoid a reference cycle, pass a weakref of self to _engine_type.
-        period = weakref.ref(self)
+        # To avoid a reference cycle, pass a weakref of self._values to _engine_type.
+        period = weakref.ref(self._values)
         return self._engine_type(period, len(self))
 
-    @Appender(_index_shared_docs["contains"])
-    def __contains__(self, key) -> bool:
+    @doc(Index.__contains__)
+    def __contains__(self, key: Any) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
                 return False
             else:
                 return key.ordinal in self._engine
         else:
+            hash(key)
             try:
                 self.get_loc(key)
                 return True
-            except (TypeError, KeyError):
-                # TypeError can be reached if we pass a tuple that is not hashable
+            except KeyError:
                 return False
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self.asi8, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Methods
-
-    def _coerce_scalar_to_index(self, item):
-        """
-        we need to coerce a scalar to a compat for our index type
-
-        Parameters
-        ----------
-        item : scalar item to coerce
-        """
-        return PeriodIndex([item], **self._get_attributes_dict())
-
-    def __array__(self, dtype=None):
-        if is_integer_dtype(dtype):
-            return self.asi8
-        else:
-            return self.astype(object).values
 
     def __array_wrap__(self, result, context=None):
         """
@@ -445,10 +374,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     return Index(result, name=name)
             elif isinstance(func, np.ufunc):
                 if "M->M" not in func.types:
-                    msg = "ufunc '{0}' not supported for the PeriodIndex"
+                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
-                    raise ValueError(msg.format(func.__name__))
+                    raise ValueError(msg)
 
         if is_bool_dtype(result):
             return result
@@ -456,31 +385,30 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
-
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
+        elif not isinstance(where_idx, PeriodIndex):
+            raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
+        elif where_idx.freq != self.freq:
+            raise raise_on_incompatible(self, where_idx)
 
-        locs = self._ndarray_values[mask].searchsorted(
-            where_idx._ndarray_values, side="right"
-        )
+        locs = self.asi8[mask].searchsorted(where_idx.asi8, side="right")
 
         locs = np.where(locs > 0, locs - 1, 0)
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[
-            (locs == 0) & (where_idx._ndarray_values < self._ndarray_values[first])
-        ] = -1
+        result[(locs == 0) & (where_idx.asi8 < self.asi8[first])] = -1
 
         return result
 
-    @Appender(_index_shared_docs["astype"])
+    @doc(Index.astype)
     def astype(self, dtype, copy=True, how="start"):
         dtype = pandas_dtype(dtype)
 
@@ -491,30 +419,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         # TODO: should probably raise on `how` here, so we don't ignore it.
         return super().astype(dtype, copy=copy)
-
-    @Substitution(klass="PeriodIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, Period):
-            if value.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=value.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
-            value = value.ordinal
-        elif isinstance(value, str):
-            try:
-                value = Period(value, freq=self.freq).ordinal
-            except DateParseError:
-                raise KeyError("Cannot interpret '{}' as period".format(value))
-
-        return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
-
-    @property
-    def is_all_dates(self) -> bool:
-        return True
 
     @property
     def is_full(self) -> bool:
@@ -535,59 +439,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # indexing
         return "period"
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        s = com.values_from_object(series)
-        try:
-            return com.maybe_box(self, super().get_value(s, key), series, key)
-        except (KeyError, IndexError):
-            if isinstance(key, str):
-                asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = resolution.Resolution.get_freq_group(reso)
-                freqn = resolution.get_freq_group(self.freq)
-
-                vals = self._ndarray_values
-
-                # if our data is higher resolution than requested key, slice
-                if grp < freqn:
-                    iv = Period(asdt, freq=(grp, 1))
-                    ord1 = iv.asfreq(self.freq, how="S").ordinal
-                    ord2 = iv.asfreq(self.freq, how="E").ordinal
-
-                    if ord2 < vals[0] or ord1 > vals[-1]:
-                        raise KeyError(key)
-
-                    pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
-                    key = slice(pos[0], pos[1] + 1)
-                    return series[key]
-                elif grp == freqn:
-                    key = Period(asdt, freq=self.freq).ordinal
-                    return com.maybe_box(
-                        self, self._int64index.get_value(s, key), series, key
-                    )
-                else:
-                    raise KeyError(key)
-
-            period = Period(key, self.freq)
-            key = period.value if isna(period) else period.ordinal
-            return com.maybe_box(self, self._int64index.get_value(s, key), series, key)
-
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if hasattr(target, "freq") and target.freq != self.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=target.freqstr,
-            )
-            raise IncompatibleFrequency(msg)
-
         if isinstance(target, PeriodIndex):
+            if target.freq != self.freq:
+                # No matches
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches
+
             target = target.asi8
             self_index = self._int64index
         else:
@@ -595,86 +456,95 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+            if self_index is not self:
+                # convert tolerance to i8
+                tolerance = self._maybe_convert_timedelta(tolerance)
+
         return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            target = target.asi8
-            if hasattr(target, "freq") and target.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=target.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
+        target = target.asi8
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
 
-    def _get_unique_index(self, dropna=False):
-        """
-        wrap Index._get_unique_index to handle NaT
-        """
-        res = super()._get_unique_index(dropna=dropna)
-        if dropna:
-            res = res.dropna()
-        return res
-
-    @Appender(Index.unique.__doc__)
-    def unique(self, level=None):
-        # override the Index.unique method for performance GH#23083
-        if level is not None:
-            # this should never occur, but is retained to make the signature
-            # match Index.unique
-            self._validate_index_level(level)
-
-        values = self._ndarray_values
-        result = unique1d(values)
-        return self._shallow_copy(result)
-
     def get_loc(self, key, method=None, tolerance=None):
         """
-        Get integer location for requested label
+        Get integer location for requested label.
+
+        Parameters
+        ----------
+        key : Period, NaT, str, or datetime
+            String or datetime key must be parseable as Period.
 
         Returns
         -------
-        loc : int
+        loc : int or ndarray[int64]
+
+        Raises
+        ------
+        KeyError
+            Key is not present in the index.
+        TypeError
+            If key is listlike or otherwise not hashable.
         """
-        try:
-            return self._engine.get_loc(key)
-        except KeyError:
-            if is_integer(key):
-                raise
+        orig_key = key
+
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
+
+        if isinstance(key, str):
 
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
-                key = asdt
-            except TypeError:
+                loc = self._get_string_slice(key)
+                return loc
+            except (TypeError, ValueError):
                 pass
-            except DateParseError:
+
+            try:
+                asdt, reso = parse_time_string(key, self.freq)
+            except DateParseError as err:
                 # A string with invalid format
-                raise KeyError("Cannot interpret '{}' as period".format(key))
+                raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            try:
-                key = Period(key, freq=self.freq)
-            except ValueError:
-                # we cannot construct the Period
-                # as we have an invalid type
+            grp = resolution.Resolution.get_freq_group(reso)
+            freqn = resolution.get_freq_group(self.freq)
+
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
+
+            if grp == freqn:
+                key = Period(asdt, freq=self.freq)
+                loc = self.get_loc(key, method=method, tolerance=tolerance)
+                return loc
+            elif method is None:
                 raise KeyError(key)
+            else:
+                key = asdt
 
-            try:
-                ordinal = iNaT if key is NaT else key.ordinal
-                if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-                return self._int64index.get_loc(ordinal, method, tolerance)
+        elif is_integer(key):
+            # Period constructor will cast to string, which we dont want
+            raise KeyError(key)
 
-            except KeyError:
-                raise KeyError(key)
+        try:
+            key = Period(key, freq=self.freq)
+        except ValueError as err:
+            # we cannot construct the Period
+            raise KeyError(orig_key) from err
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+        try:
+            return Index.get_loc(self, key, method, tolerance)
+        except KeyError as err:
+            raise KeyError(orig_key) from err
+
+    def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
@@ -683,7 +553,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'}
 
         Returns
         -------
@@ -694,95 +564,60 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["ix", "loc", "getitem"]
+        assert kind in ["loc", "getitem"]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                _, parsed, reso = parse_time_string(label, self.freq)
+                parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
-            except ValueError:
+            except ValueError as err:
                 # string cannot be parsed as datetime-like
                 # TODO: we need tests for this case
-                raise KeyError(label)
+                raise KeyError(label) from err
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
 
         return label
 
-    def _parsed_string_to_bounds(self, reso, parsed):
-        if reso == "year":
-            t1 = Period(year=parsed.year, freq="A")
-        elif reso == "month":
-            t1 = Period(year=parsed.year, month=parsed.month, freq="M")
-        elif reso == "quarter":
-            q = (parsed.month - 1) // 3 + 1
-            t1 = Period(year=parsed.year, quarter=q, freq="Q-DEC")
-        elif reso == "day":
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day, freq="D")
-        elif reso == "hour":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                freq="H",
-            )
-        elif reso == "minute":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                freq="T",
-            )
-        elif reso == "second":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                second=parsed.second,
-                freq="S",
-            )
-        else:
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
             raise KeyError(reso)
-        return (t1.asfreq(self.freq, how="start"), t1.asfreq(self.freq, how="end"))
 
-    def _get_string_slice(self, key):
-        if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for ordered time series")
+        grp = resolution.Resolution.get_freq_group(reso)
+        iv = Period(parsed, freq=(grp, 1))
+        return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-        key, parsed, reso = parse_time_string(key, self.freq)
+    def _validate_partial_date_slice(self, reso: str):
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
-        if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
-            raise KeyError(key)
 
-        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        return slice(
-            self.searchsorted(t1.ordinal, side="left"),
-            self.searchsorted(t2.ordinal, side="right"),
-        )
+        if not grp < freqn:
+            # TODO: we used to also check for
+            #  reso in ["day", "hour", "minute", "second"]
+            #  why is that check not needed?
+            raise ValueError
 
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return self._maybe_convert_timedelta(tolerance)
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        parsed, reso = parse_time_string(key, self.freq)
+
+        try:
+            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        idx = np.concatenate(
+        i8result = np.concatenate(
             (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
         )
-        return self._shallow_copy(idx)
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """
@@ -809,9 +644,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
-    @Appender(Index.intersection.__doc__)
-    def intersection(self, other, sort=False):
-        return Index.intersection(self, other, sort=sort)
+    # ------------------------------------------------------------------------
+    # Set Operation Methods
 
     def _assert_can_do_setop(self, other):
         super()._assert_can_do_setop(other)
@@ -819,72 +653,80 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # *Can't* use PeriodIndexes of different freqs
         # *Can* use PeriodIndex/DatetimeIndex
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        result = self._apply_meta(result)
-        result.name = name
+    def _setop(self, other, sort, opname: str):
+        """
+        Perform a set operation by dispatching to the Int64Index implementation.
+        """
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = getattr(i8self, opname)(i8other, sort=sort)
+
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
         return result
 
-    def _apply_meta(self, rawarr):
+    def intersection(self, other, sort=False):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other = ensure_index(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            # TODO: fastpath for if we have a different PeriodDtype
+            this = self.astype("O")
+            other = other.astype("O")
+            return this.intersection(other, sort=sort)
+
+        return self._setop(other, sort, opname="intersection")
+
+    def difference(self, other, sort=None):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other = ensure_index(other)
+
+        if self.equals(other):
+            # pass an empty PeriodArray with the appropriate dtype
+            return type(self)._simple_new(self._data[:0], name=self.name)
+
+        if is_object_dtype(other):
+            return self.astype(object).difference(other).astype(self.dtype)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            return self
+
+        return self._setop(other, sort, opname="difference")
+
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
+
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, type(self))
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            this = self.astype("O")
+            other = other.astype("O")
+            return this._union(other, sort=sort)
+
+        return self._setop(other, sort, opname="_union")
+
+    # ------------------------------------------------------------------------
+
+    def _apply_meta(self, rawarr) -> "PeriodIndex":
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq, name=self.name)
+            if not isinstance(rawarr, PeriodArray):
+                rawarr = PeriodArray(rawarr, freq=self.freq)
+            rawarr = PeriodIndex._simple_new(rawarr, name=self.name)
         return rawarr
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-
-        if isinstance(state, dict):
-            super().__setstate__(state)
-
-        elif isinstance(state, tuple):
-
-            # < 0.15 compat
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-
-                # backcompat
-                freq = Period._maybe_convert_freq(own_state[1])
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(self, state)
-                freq = None  # ?
-
-            data = PeriodArray(data, freq=freq)
-            self._data = data
-
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
-
-    def item(self):
-        """
-        Return the first element of the underlying data as a python
-        scalar
-
-        .. deprecated:: 0.25.0
-
-        """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # TODO(DatetimeArray): remove
-        if len(self) == 1:
-            return self[0]
-        else:
-            # TODO: is this still necessary?
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
@@ -893,10 +735,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return result
 
 
-PeriodIndex._add_comparison_ops()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
-PeriodIndex._add_datetimelike_methods()
 
 
 def period_range(
@@ -932,16 +772,15 @@ def period_range(
     must be specified.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
-
     >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
-    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
-                 '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',
-                 '2017-10', '2017-11', '2017-12', '2018-01'],
-                dtype='period[M]', freq='M')
+    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
+             '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
+             '2018-01'],
+            dtype='period[M]', freq='M')
 
     If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
     endpoints for a ``PeriodIndex`` with frequency matching that of the

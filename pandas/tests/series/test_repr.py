@@ -8,14 +8,14 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
-from pandas.core.index import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesRepr:
@@ -217,6 +217,25 @@ class TestSeriesRepr:
         exp = """1.0    1\nNaN    2\ndtype: int64"""
 
         assert repr(s) == exp
+
+    def test_format_pre_1900_dates(self):
+        rng = date_range("1/1/1850", "1/1/1950", freq="A-DEC")
+        rng.format()
+        ts = Series(1, index=rng)
+        repr(ts)
+
+    def test_series_repr_nat(self):
+        series = Series([0, 1000, 2000, pd.NaT.value], dtype="M8[ns]")
+
+        result = repr(series)
+        expected = (
+            "0   1970-01-01 00:00:00.000000\n"
+            "1   1970-01-01 00:00:00.000001\n"
+            "2   1970-01-01 00:00:00.000002\n"
+            "3                          NaT\n"
+            "dtype: datetime64[ns]"
+        )
+        assert result == expected
 
 
 class TestCategoricalRepr:

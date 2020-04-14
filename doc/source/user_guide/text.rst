@@ -8,7 +8,7 @@ Working with text data
 
 .. _text.types:
 
-Text Data Types
+Text data types
 ---------------
 
 .. versionadded:: 1.0.0
@@ -74,6 +74,7 @@ These are places where the behavior of ``StringDtype`` objects differ from
 l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
+   Methods returning **boolean** output will return a nullable boolean dtype.
 
    .. ipython:: python
 
@@ -86,22 +87,33 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
 
    .. ipython:: python
 
-      s.astype(object).str.count("a")
-      s.astype(object).dropna().str.count("a")
+      s2 = pd.Series(["a", None, "b"], dtype="object")
+      s2.str.count("a")
+      s2.dropna().str.count("a")
 
-   When NA values are present, the output dtype is float64.
+   When NA values are present, the output dtype is float64. Similarly for
+   methods returning boolean values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
 
 2. Some string methods, like :meth:`Series.str.decode` are not available
    on ``StringArray`` because ``StringArray`` only holds strings, not
    bytes.
-
+3. In comparison operations, :class:`arrays.StringArray` and ``Series`` backed
+   by a ``StringArray`` will return an object with :class:`BooleanDtype`,
+   rather than a ``bool`` dtype object. Missing values in a ``StringArray``
+   will propagate in comparison operations, rather than always comparing
+   unequal like :attr:`numpy.nan`.
 
 Everything else that follows in the rest of this document applies equally to
 ``string`` and ``object`` dtype.
 
 .. _text.string_methods:
 
-String Methods
+String methods
 --------------
 
 Series and Index are equipped with a set of string processing methods
@@ -177,11 +189,10 @@ and replacing any remaining whitespaces with underscores:
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
 
+.. _text.split:
 
 Splitting and replacing strings
 -------------------------------
-
-.. _text.split:
 
 Methods like ``split`` return a Series of lists:
 
@@ -622,7 +633,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"], dtype="string").str.extractall(two_groups)
 
 
-Testing for Strings that match or contain a pattern
+Testing for strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:
@@ -630,21 +641,40 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r'[0-9][a-z]'
-   pd.Series(['1', '2', '3a', '3b', '03c'],
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.contains(pattern)
 
 Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c'],
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.match(pattern)
 
-The distinction between ``match`` and ``contains`` is strictness: ``match``
-relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
+.. versionadded:: 1.1.0
 
-Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
-an extra ``na`` argument so missing values can be considered True or False:
+.. ipython:: python
+
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
+             dtype="string").str.fullmatch(pattern)
+
+.. note::
+
+    The distinction between ``match``, ``fullmatch``, and ``contains`` is strictness:
+    ``fullmatch`` tests whether the entire string matches the regular expression;
+    ``match`` tests whether there is a match of the regular expression that begins
+    at the first character of the string; and ``contains`` tests whether there is
+    a match of the regular expression at any position within the string.
+
+    The corresponding functions in the ``re`` package for these three match modes are
+    `re.fullmatch <https://docs.python.org/3/library/re.html#re.fullmatch>`_,
+    `re.match <https://docs.python.org/3/library/re.html#re.match>`_, and
+    `re.search <https://docs.python.org/3/library/re.html#re.search>`_,
+    respectively.
+
+Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
+``endswith`` take an extra ``na`` argument so missing values can be considered
+True or False:
 
 .. ipython:: python
 

@@ -6,6 +6,7 @@ The ListArray stores an ndarray of lists.
 import numbers
 import random
 import string
+from typing import Type
 
 import numpy as np
 
@@ -21,7 +22,7 @@ class ListDtype(ExtensionDtype):
     na_value = np.nan
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ListArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -30,13 +31,6 @@ class ListDtype(ExtensionDtype):
         type
         """
         return ListArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
 
 class ListArray(ExtensionArray):
@@ -92,13 +86,13 @@ class ListArray(ExtensionArray):
                 output = [
                     self.data[loc] if loc != -1 else fill_value for loc in indexer
                 ]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
 
         return self._from_sequence(output)
 

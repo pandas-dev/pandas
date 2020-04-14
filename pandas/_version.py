@@ -79,17 +79,17 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
             if e.errno == errno.ENOENT:
                 continue
             if verbose:
-                print("unable to run {dispcmd}".format(dispcmd=dispcmd))
+                print(f"unable to run {dispcmd}")
                 print(e)
             return None
     else:
         if verbose:
-            print("unable to find command, tried %s" % (commands,))
+            print(f"unable to find command, tried {commands}")
         return None
     stdout = p.communicate()[0].strip().decode()
     if p.returncode != 0:
         if verbose:
-            print("unable to run {dispcmd} (error)".format(dispcmd=dispcmd))
+            print(f"unable to run {dispcmd} (error)")
         return None
     return stdout
 
@@ -101,10 +101,8 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
     if not dirname.startswith(parentdir_prefix):
         if verbose:
             print(
-                "guessing rootdir is '{root}', but '{dirname}' "
-                "doesn't start with prefix '{parentdir_prefix}'".format(
-                    root=root, dirname=dirname, parentdir_prefix=parentdir_prefix
-                )
+                f"guessing rootdir is '{root}', but '{dirname}' "
+                f"doesn't start with prefix '{parentdir_prefix}'"
             )
         raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
     return {
@@ -163,15 +161,15 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # "stabilization", as well as "HEAD" and "master".
         tags = {r for r in refs if re.search(r"\d", r)}
         if verbose:
-            print("discarding '{}', no digits".format(",".join(refs - tags)))
+            print(f"discarding '{','.join(refs - tags)}', no digits")
     if verbose:
-        print("likely tags: {}".format(",".join(sorted(tags))))
+        print(f"likely tags: {','.join(sorted(tags))}")
     for ref in sorted(tags):
         # sorting will prefer e.g. "2.0" over "2.0rc1"
         if ref.startswith(tag_prefix):
             r = ref[len(tag_prefix) :]
             if verbose:
-                print("picking {r}".format(r=r))
+                print(f"picking {r}")
             return {
                 "version": r,
                 "full-revisionid": keywords["full"].strip(),
@@ -198,7 +196,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
 
     if not os.path.exists(os.path.join(root, ".git")):
         if verbose:
-            print("no .git in {root}".format(root=root))
+            print(f"no .git in {root}")
         raise NotThisMethod("no .git directory")
 
     GITS = ["git"]
@@ -240,17 +238,13 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         mo = re.search(r"^(.+)-(\d+)-g([0-9a-f]+)$", git_describe)
         if not mo:
             # unparseable. Maybe git-describe is misbehaving?
-            pieces["error"] = (
-                "unable to parse git-describe output: "
-                "'{describe_out}'".format(describe_out=describe_out)
-            )
+            pieces["error"] = f"unable to parse git-describe output: '{describe_out}'"
             return pieces
 
         # tag
         full_tag = mo.group(1)
         if not full_tag.startswith(tag_prefix):
-            fmt = "tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
-            msg = fmt.format(full_tag=full_tag, tag_prefix=tag_prefix)
+            msg = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
             if verbose:
                 print(msg)
             pieces["error"] = msg
@@ -291,12 +285,12 @@ def render_pep440(pieces):
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
             rendered += plus_or_dot(pieces)
-            rendered += "{:d}.g{}".format(pieces["distance"], pieces["short"])
+            rendered += f"{pieces['distance']:d}.g{pieces['short']}"
             if pieces["dirty"]:
                 rendered += ".dirty"
     else:
         # exception #1
-        rendered = "0+untagged.{:d}.g{}".format(pieces["distance"], pieces["short"])
+        rendered = f"0+untagged.{pieces['distance']:d}.g{pieces['short']}"
         if pieces["dirty"]:
             rendered += ".dirty"
     return rendered
@@ -311,10 +305,10 @@ def render_pep440_pre(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"]:
-            rendered += ".post.dev%d" % pieces["distance"]
+            rendered += f".post.dev{pieces['distance']:d}"
     else:
         # exception #1
-        rendered = "0.post.dev%d" % pieces["distance"]
+        rendered = f"0.post.dev{pieces['distance']:d}"
     return rendered
 
 
@@ -330,17 +324,17 @@ def render_pep440_post(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
-            rendered += ".post{:d}".format(pieces["distance"])
+            rendered += f".post{pieces['distance']:d}"
             if pieces["dirty"]:
                 rendered += ".dev0"
             rendered += plus_or_dot(pieces)
-            rendered += "g{}".format(pieces["short"])
+            rendered += f"g{pieces['short']}"
     else:
         # exception #1
-        rendered = "0.post%d" % pieces["distance"]
+        rendered = f"0.pos{pieces['distance']:d}"
         if pieces["dirty"]:
             rendered += ".dev0"
-        rendered += "+g{}".format(pieces["short"])
+        rendered += f"+g{pieces['short']}"
     return rendered
 
 
@@ -353,12 +347,12 @@ def render_pep440_old(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
-            rendered += ".post%d" % pieces["distance"]
+            rendered += f".post{pieces['distance']:d}"
             if pieces["dirty"]:
                 rendered += ".dev0"
     else:
         # exception #1
-        rendered = "0.post%d" % pieces["distance"]
+        rendered = f"0.post{pieces['distance']:d}"
         if pieces["dirty"]:
             rendered += ".dev0"
     return rendered
@@ -374,7 +368,7 @@ def render_git_describe(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"]:
-            rendered += "-{:d}-g{}".format(pieces["distance"], pieces["short"])
+            rendered += f"-{pieces['distance']:d}-g{pieces['short']}"
     else:
         # exception #1
         rendered = pieces["short"]
@@ -392,7 +386,7 @@ def render_git_describe_long(pieces):
 
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
-        rendered += "-{:d}-g{}".format(pieces["distance"], pieces["short"])
+        rendered += f"-{pieces['distance']:d}-g{pieces['short']}"
     else:
         # exception #1
         rendered = pieces["short"]
@@ -426,7 +420,7 @@ def render(pieces, style):
     elif style == "git-describe-long":
         rendered = render_git_describe_long(pieces)
     else:
-        raise ValueError("unknown style '{style}'".format(style=style))
+        raise ValueError(f"unknown style '{style}'")
 
     return {
         "version": rendered,

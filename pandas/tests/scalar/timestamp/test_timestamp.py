@@ -5,21 +5,18 @@ from datetime import datetime, timedelta
 import locale
 import unicodedata
 
-import dateutil
 from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
 from pytz import timezone, utc
 
-from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Period, Timedelta, Timestamp
-import pandas.util.testing as tm
+from pandas import NaT, Timedelta, Timestamp
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
@@ -197,510 +194,6 @@ class TestTimestampProperties:
         assert Timestamp.resolution == Timedelta(nanoseconds=1)
 
 
-class TestTimestampConstructors:
-    def test_constructor(self):
-        base_str = "2014-07-01 09:00"
-        base_dt = datetime(2014, 7, 1, 9)
-        base_expected = 1404205200000000000
-
-        # confirm base representation is correct
-        assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
-
-        tests = [
-            (base_str, base_dt, base_expected),
-            (
-                "2014-07-01 10:00",
-                datetime(2014, 7, 1, 10),
-                base_expected + 3600 * 1000000000,
-            ),
-            (
-                "2014-07-01 09:00:00.000008000",
-                datetime(2014, 7, 1, 9, 0, 0, 8),
-                base_expected + 8000,
-            ),
-            (
-                "2014-07-01 09:00:00.000000005",
-                Timestamp("2014-07-01 09:00:00.000000005"),
-                base_expected + 5,
-            ),
-        ]
-
-        timezones = [
-            (None, 0),
-            ("UTC", 0),
-            (pytz.utc, 0),
-            ("Asia/Tokyo", 9),
-            ("US/Eastern", -4),
-            ("dateutil/US/Pacific", -7),
-            (pytz.FixedOffset(-180), -3),
-            (dateutil.tz.tzoffset(None, 18000), 5),
-        ]
-
-        for date_str, date, expected in tests:
-            for result in [Timestamp(date_str), Timestamp(date)]:
-                # only with timestring
-                assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
-
-                # re-creation shouldn't affect to internal value
-                result = Timestamp(result)
-                assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
-
-            # with timezone
-            for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
-                    expected_tz = expected - offset * 3600 * 1000000000
-                    assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
-
-                    # should preserve tz
-                    result = Timestamp(result)
-                    assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
-
-                    # should convert to UTC
-                    if tz is not None:
-                        result = Timestamp(result).tz_convert("UTC")
-                    else:
-                        result = Timestamp(result, tz="UTC")
-                    expected_utc = expected - offset * 3600 * 1000000000
-                    assert result.value == expected_utc
-                    assert conversion.pydt_to_i8(result) == expected_utc
-
-    def test_constructor_with_stringoffset(self):
-        # GH 7833
-        base_str = "2014-07-01 11:00:00+02:00"
-        base_dt = datetime(2014, 7, 1, 9)
-        base_expected = 1404205200000000000
-
-        # confirm base representation is correct
-        assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
-
-        tests = [
-            (base_str, base_expected),
-            ("2014-07-01 12:00:00+02:00", base_expected + 3600 * 1000000000),
-            ("2014-07-01 11:00:00.000008000+02:00", base_expected + 8000),
-            ("2014-07-01 11:00:00.000000005+02:00", base_expected + 5),
-        ]
-
-        timezones = [
-            (None, 0),
-            ("UTC", 0),
-            (pytz.utc, 0),
-            ("Asia/Tokyo", 9),
-            ("US/Eastern", -4),
-            ("dateutil/US/Pacific", -7),
-            (pytz.FixedOffset(-180), -3),
-            (dateutil.tz.tzoffset(None, 18000), 5),
-        ]
-
-        for date_str, expected in tests:
-            for result in [Timestamp(date_str)]:
-                # only with timestring
-                assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
-
-                # re-creation shouldn't affect to internal value
-                result = Timestamp(result)
-                assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
-
-            # with timezone
-            for tz, offset in timezones:
-                result = Timestamp(date_str, tz=tz)
-                expected_tz = expected
-                assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
-
-                # should preserve tz
-                result = Timestamp(result)
-                assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
-
-                # should convert to UTC
-                result = Timestamp(result).tz_convert("UTC")
-                expected_utc = expected
-                assert result.value == expected_utc
-                assert conversion.pydt_to_i8(result) == expected_utc
-
-        # This should be 2013-11-01 05:00 in UTC
-        # converted to Chicago tz
-        result = Timestamp("2013-11-01 00:00:00-0500", tz="America/Chicago")
-        assert result.value == Timestamp("2013-11-01 05:00").value
-        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"  # noqa
-        assert repr(result) == expected
-        assert result == eval(repr(result))
-
-        # This should be 2013-11-01 05:00 in UTC
-        # converted to Tokyo tz (+09:00)
-        result = Timestamp("2013-11-01 00:00:00-0500", tz="Asia/Tokyo")
-        assert result.value == Timestamp("2013-11-01 05:00").value
-        expected = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
-        assert repr(result) == expected
-        assert result == eval(repr(result))
-
-        # GH11708
-        # This should be 2015-11-18 10:00 in UTC
-        # converted to Asia/Katmandu
-        result = Timestamp("2015-11-18 15:45:00+05:45", tz="Asia/Katmandu")
-        assert result.value == Timestamp("2015-11-18 10:00").value
-        expected = "Timestamp('2015-11-18 15:45:00+0545', tz='Asia/Katmandu')"
-        assert repr(result) == expected
-        assert result == eval(repr(result))
-
-        # This should be 2015-11-18 10:00 in UTC
-        # converted to Asia/Kolkata
-        result = Timestamp("2015-11-18 15:30:00+05:30", tz="Asia/Kolkata")
-        assert result.value == Timestamp("2015-11-18 10:00").value
-        expected = "Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')"
-        assert repr(result) == expected
-        assert result == eval(repr(result))
-
-    def test_constructor_invalid(self):
-        with pytest.raises(TypeError, match="Cannot convert input"):
-            Timestamp(slice(2))
-        with pytest.raises(ValueError, match="Cannot convert Period"):
-            Timestamp(Period("1000-01-01"))
-
-    def test_constructor_invalid_tz(self):
-        # GH#17690
-        with pytest.raises(TypeError, match="must be a datetime.tzinfo"):
-            Timestamp("2017-10-22", tzinfo="US/Eastern")
-
-        with pytest.raises(ValueError, match="at most one of"):
-            Timestamp("2017-10-22", tzinfo=utc, tz="UTC")
-
-        with pytest.raises(ValueError, match="Invalid frequency:"):
-            # GH#5168
-            # case where user tries to pass tz as an arg, not kwarg, gets
-            # interpreted as a `freq`
-            Timestamp("2012-01-01", "US/Pacific")
-
-    def test_constructor_strptime(self):
-        # GH25016
-        # Test support for Timestamp.strptime
-        fmt = "%Y%m%d-%H%M%S-%f%z"
-        ts = "20190129-235348-000001+0000"
-        with pytest.raises(NotImplementedError):
-            Timestamp.strptime(ts, fmt)
-
-    def test_constructor_tz_or_tzinfo(self):
-        # GH#17943, GH#17690, GH#5168
-        stamps = [
-            Timestamp(year=2017, month=10, day=22, tz="UTC"),
-            Timestamp(year=2017, month=10, day=22, tzinfo=utc),
-            Timestamp(year=2017, month=10, day=22, tz=utc),
-            Timestamp(datetime(2017, 10, 22), tzinfo=utc),
-            Timestamp(datetime(2017, 10, 22), tz="UTC"),
-            Timestamp(datetime(2017, 10, 22), tz=utc),
-        ]
-        assert all(ts == stamps[0] for ts in stamps)
-
-    def test_constructor_positional(self):
-        # see gh-10758
-        with pytest.raises(TypeError):
-            Timestamp(2000, 1)
-        with pytest.raises(ValueError):
-            Timestamp(2000, 0, 1)
-        with pytest.raises(ValueError):
-            Timestamp(2000, 13, 1)
-        with pytest.raises(ValueError):
-            Timestamp(2000, 1, 0)
-        with pytest.raises(ValueError):
-            Timestamp(2000, 1, 32)
-
-        # see gh-11630
-        assert repr(Timestamp(2015, 11, 12)) == repr(Timestamp("20151112"))
-        assert repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)) == repr(
-            Timestamp("2015-11-12 01:02:03.999999")
-        )
-
-    def test_constructor_keyword(self):
-        # GH 10758
-        with pytest.raises(TypeError):
-            Timestamp(year=2000, month=1)
-        with pytest.raises(ValueError):
-            Timestamp(year=2000, month=0, day=1)
-        with pytest.raises(ValueError):
-            Timestamp(year=2000, month=13, day=1)
-        with pytest.raises(ValueError):
-            Timestamp(year=2000, month=1, day=0)
-        with pytest.raises(ValueError):
-            Timestamp(year=2000, month=1, day=32)
-
-        assert repr(Timestamp(year=2015, month=11, day=12)) == repr(
-            Timestamp("20151112")
-        )
-
-        assert repr(
-            Timestamp(
-                year=2015,
-                month=11,
-                day=12,
-                hour=1,
-                minute=2,
-                second=3,
-                microsecond=999999,
-            )
-        ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
-
-    def test_constructor_fromordinal(self):
-        base = datetime(2000, 1, 1)
-
-        ts = Timestamp.fromordinal(base.toordinal(), freq="D")
-        assert base == ts
-        assert ts.freq == "D"
-        assert base.toordinal() == ts.toordinal()
-
-        ts = Timestamp.fromordinal(base.toordinal(), tz="US/Eastern")
-        assert Timestamp("2000-01-01", tz="US/Eastern") == ts
-        assert base.toordinal() == ts.toordinal()
-
-        # GH#3042
-        dt = datetime(2011, 4, 16, 0, 0)
-        ts = Timestamp.fromordinal(dt.toordinal())
-        assert ts.to_pydatetime() == dt
-
-        # with a tzinfo
-        stamp = Timestamp("2011-4-16", tz="US/Eastern")
-        dt_tz = stamp.to_pydatetime()
-        ts = Timestamp.fromordinal(dt_tz.toordinal(), tz="US/Eastern")
-        assert ts.to_pydatetime() == dt_tz
-
-    @pytest.mark.parametrize(
-        "result",
-        [
-            Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), nanosecond=1),
-            Timestamp(
-                year=2000,
-                month=1,
-                day=2,
-                hour=3,
-                minute=4,
-                second=5,
-                microsecond=6,
-                nanosecond=1,
-            ),
-            Timestamp(
-                year=2000,
-                month=1,
-                day=2,
-                hour=3,
-                minute=4,
-                second=5,
-                microsecond=6,
-                nanosecond=1,
-                tz="UTC",
-            ),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
-        ],
-    )
-    def test_constructor_nanosecond(self, result):
-        # GH 18898
-        expected = Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), tz=result.tz)
-        expected = expected + Timedelta(nanoseconds=1)
-        assert result == expected
-
-    @pytest.mark.parametrize("z", ["Z0", "Z00"])
-    def test_constructor_invalid_Z0_isostring(self, z):
-        # GH 8910
-        with pytest.raises(ValueError):
-            Timestamp("2014-11-02 01:00{}".format(z))
-
-    @pytest.mark.parametrize(
-        "arg",
-        [
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "microsecond",
-            "nanosecond",
-        ],
-    )
-    def test_invalid_date_kwarg_with_string_input(self, arg):
-        kwarg = {arg: 1}
-        with pytest.raises(ValueError):
-            Timestamp("2010-10-10 12:59:59.999999999", **kwarg)
-
-    def test_out_of_bounds_integer_value(self):
-        # GH#26651 check that we raise OutOfBoundsDatetime, not OverflowError
-        with pytest.raises(OutOfBoundsDatetime):
-            Timestamp(Timestamp.max.value * 2)
-        with pytest.raises(OutOfBoundsDatetime):
-            Timestamp(Timestamp.min.value * 2)
-
-    def test_out_of_bounds_value(self):
-        one_us = np.timedelta64(1).astype("timedelta64[us]")
-
-        # By definition we can't go out of bounds in [ns], so we
-        # convert the datetime64s to [us] so we can go out of bounds
-        min_ts_us = np.datetime64(Timestamp.min).astype("M8[us]")
-        max_ts_us = np.datetime64(Timestamp.max).astype("M8[us]")
-
-        # No error for the min/max datetimes
-        Timestamp(min_ts_us)
-        Timestamp(max_ts_us)
-
-        # One us less than the minimum is an error
-        with pytest.raises(ValueError):
-            Timestamp(min_ts_us - one_us)
-
-        # One us more than the maximum is an error
-        with pytest.raises(ValueError):
-            Timestamp(max_ts_us + one_us)
-
-    def test_out_of_bounds_string(self):
-        with pytest.raises(ValueError):
-            Timestamp("1676-01-01")
-        with pytest.raises(ValueError):
-            Timestamp("2263-01-01")
-
-    def test_barely_out_of_bounds(self):
-        # GH#19529
-        # GH#19382 close enough to bounds that dropping nanos would result
-        # in an in-bounds datetime
-        with pytest.raises(OutOfBoundsDatetime):
-            Timestamp("2262-04-11 23:47:16.854775808")
-
-    def test_bounds_with_different_units(self):
-        out_of_bounds_dates = ("1677-09-21", "2262-04-12")
-
-        time_units = ("D", "h", "m", "s", "ms", "us")
-
-        for date_string in out_of_bounds_dates:
-            for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
-                with pytest.raises(ValueError):
-                    Timestamp(dt64)
-
-        in_bounds_dates = ("1677-09-23", "2262-04-11")
-
-        for date_string in in_bounds_dates:
-            for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
-                Timestamp(dt64)
-
-    def test_min_valid(self):
-        # Ensure that Timestamp.min is a valid Timestamp
-        Timestamp(Timestamp.min)
-
-    def test_max_valid(self):
-        # Ensure that Timestamp.max is a valid Timestamp
-        Timestamp(Timestamp.max)
-
-    def test_now(self):
-        # GH#9000
-        ts_from_string = Timestamp("now")
-        ts_from_method = Timestamp.now()
-        ts_datetime = datetime.now()
-
-        ts_from_string_tz = Timestamp("now", tz="US/Eastern")
-        ts_from_method_tz = Timestamp.now(tz="US/Eastern")
-
-        # Check that the delta between the times is less than 1s (arbitrarily
-        # small)
-        delta = Timedelta(seconds=1)
-        assert abs(ts_from_method - ts_from_string) < delta
-        assert abs(ts_datetime - ts_from_method) < delta
-        assert abs(ts_from_method_tz - ts_from_string_tz) < delta
-        assert (
-            abs(
-                ts_from_string_tz.tz_localize(None)
-                - ts_from_method_tz.tz_localize(None)
-            )
-            < delta
-        )
-
-    def test_today(self):
-        ts_from_string = Timestamp("today")
-        ts_from_method = Timestamp.today()
-        ts_datetime = datetime.today()
-
-        ts_from_string_tz = Timestamp("today", tz="US/Eastern")
-        ts_from_method_tz = Timestamp.today(tz="US/Eastern")
-
-        # Check that the delta between the times is less than 1s (arbitrarily
-        # small)
-        delta = Timedelta(seconds=1)
-        assert abs(ts_from_method - ts_from_string) < delta
-        assert abs(ts_datetime - ts_from_method) < delta
-        assert abs(ts_from_method_tz - ts_from_string_tz) < delta
-        assert (
-            abs(
-                ts_from_string_tz.tz_localize(None)
-                - ts_from_method_tz.tz_localize(None)
-            )
-            < delta
-        )
-
-    @pytest.mark.parametrize("tz", [None, pytz.timezone("US/Pacific")])
-    def test_disallow_setting_tz(self, tz):
-        # GH 3746
-        ts = Timestamp("2010")
-        with pytest.raises(AttributeError):
-            ts.tz = tz
-
-    @pytest.mark.parametrize("offset", ["+0300", "+0200"])
-    def test_construct_timestamp_near_dst(self, offset):
-        # GH 20854
-        expected = Timestamp(
-            "2016-10-30 03:00:00{}".format(offset), tz="Europe/Helsinki"
-        )
-        result = Timestamp(expected).tz_convert("Europe/Helsinki")
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "arg", ["2013/01/01 00:00:00+09:00", "2013-01-01 00:00:00+09:00"]
-    )
-    def test_construct_with_different_string_format(self, arg):
-        # GH 12064
-        result = Timestamp(arg)
-        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
-        assert result == expected
-
-    def test_construct_timestamp_preserve_original_frequency(self):
-        # GH 22311
-        result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
-        expected = offsets.Day()
-        assert result == expected
-
-    def test_constructor_invalid_frequency(self):
-        # GH 22311
-        with pytest.raises(ValueError, match="Invalid frequency:"):
-            Timestamp("2012-01-01", freq=[])
-
-    @pytest.mark.parametrize("box", [datetime, Timestamp])
-    def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
-        # GH 23579
-        kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": utc}
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
-            Timestamp(box(**kwargs), tz="US/Pacific")
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
-            Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
-
-    def test_dont_convert_dateutil_utc_to_pytz_utc(self):
-        result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
-        expected = Timestamp(datetime(2018, 1, 1)).tz_localize(tzutc())
-        assert result == expected
-
-    def test_constructor_subclassed_datetime(self):
-        # GH 25851
-        # ensure that subclassed datetime works for
-        # Timestamp creation
-        class SubDatetime(datetime):
-            pass
-
-        data = SubDatetime(2000, 1, 1)
-        result = Timestamp(data)
-        expected = Timestamp(2000, 1, 1)
-        assert result == expected
-
-
 class TestTimestamp:
     def test_tz(self):
         tstr = "2014-02-01 09:00"
@@ -725,7 +218,7 @@ class TestTimestamp:
         assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
 
     def test_asm8(self):
-        np.random.seed(7960929)
+        np.random.seed(7_960_929)
         ns = [Timestamp.min.value, Timestamp.max.value, 1000]
 
         for n in ns:
@@ -737,7 +230,7 @@ class TestTimestamp:
 
     def test_class_ops_pytz(self):
         def compare(x, y):
-            assert int(Timestamp(x).value / 1e9) == int(Timestamp(y).value / 1e9)
+            assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
@@ -761,8 +254,12 @@ class TestTimestamp:
 
     def test_class_ops_dateutil(self):
         def compare(x, y):
-            assert int(np.round(Timestamp(x).value / 1e9)) == int(
-                np.round(Timestamp(y).value / 1e9)
+            assert (
+                int(
+                    np.round(Timestamp(x).value / 1e9)
+                    - np.round(Timestamp(y).value / 1e9)
+                )
+                == 0
             )
 
         compare(Timestamp.now(), datetime.now())
@@ -786,7 +283,7 @@ class TestTimestamp:
         )
 
     def test_basics_nanos(self):
-        val = np.int64(946684800000000000).view("M8[ns]")
+        val = np.int64(946_684_800_000_000_000).view("M8[ns]")
         stamp = Timestamp(val.view("i8") + 500)
         assert stamp.year == 2000
         assert stamp.month == 1
@@ -794,7 +291,7 @@ class TestTimestamp:
         assert stamp.nanosecond == 500
 
         # GH 14415
-        val = np.iinfo(np.int64).min + 80000000000000
+        val = np.iinfo(np.int64).min + 80_000_000_000_000
         stamp = Timestamp(val)
         assert stamp.year == 1677
         assert stamp.month == 9
@@ -807,8 +304,8 @@ class TestTimestamp:
         [
             [946688461000000000, {}],
             [946688461000000000 / 1000, dict(unit="us")],
-            [946688461000000000 / 1000000, dict(unit="ms")],
-            [946688461000000000 / 1000000000, dict(unit="s")],
+            [946688461000000000 / 1_000_000, dict(unit="ms")],
+            [946688461000000000 / 1_000_000_000, dict(unit="s")],
             [10957, dict(unit="D", h=0)],
             [
                 (946688461000000000 + 500000) / 1000000000,
@@ -852,24 +349,24 @@ class TestTimestamp:
         base = Timestamp("20140101 00:00:00")
 
         result = Timestamp(base.value + Timedelta("5ms").value)
-        assert result == Timestamp(str(base) + ".005000")
+        assert result == Timestamp(f"{base}.005000")
         assert result.microsecond == 5000
 
         result = Timestamp(base.value + Timedelta("5us").value)
-        assert result == Timestamp(str(base) + ".000005")
+        assert result == Timestamp(f"{base}.000005")
         assert result.microsecond == 5
 
         result = Timestamp(base.value + Timedelta("5ns").value)
-        assert result == Timestamp(str(base) + ".000000005")
+        assert result == Timestamp(f"{base}.000000005")
         assert result.nanosecond == 5
         assert result.microsecond == 0
 
         result = Timestamp(base.value + Timedelta("6ms 5us").value)
-        assert result == Timestamp(str(base) + ".006005")
+        assert result == Timestamp(f"{base}.006005")
         assert result.microsecond == 5 + 6 * 1000
 
         result = Timestamp(base.value + Timedelta("200ms 5us").value)
-        assert result == Timestamp(str(base) + ".200005")
+        assert result == Timestamp(f"{base}.200005")
         assert result.microsecond == 5 + 200 * 1000
 
     def test_hash_equivalent(self):
@@ -890,12 +387,12 @@ class TestTimestampNsOperations:
         ts = Timestamp("2013-05-01 07:15:45.123456789")
         # GH 7878
         expected_repr = "2013-05-01 07:15:45.123456789"
-        expected_value = 1367392545123456789
+        expected_value = 1_367_392_545_123_456_789
         assert ts.value == expected_value
         assert expected_repr in repr(ts)
 
         ts = Timestamp("2013-05-01 07:15:45.123456789+09:00", tz="Asia/Tokyo")
-        assert ts.value == expected_value - 9 * 3600 * 1000000000
+        assert ts.value == expected_value - 9 * 3600 * 1_000_000_000
         assert expected_repr in repr(ts)
 
         ts = Timestamp("2013-05-01 07:15:45.123456789", tz="UTC")
@@ -903,7 +400,7 @@ class TestTimestampNsOperations:
         assert expected_repr in repr(ts)
 
         ts = Timestamp("2013-05-01 07:15:45.123456789", tz="US/Eastern")
-        assert ts.value == expected_value + 4 * 3600 * 1000000000
+        assert ts.value == expected_value + 4 * 3600 * 1_000_000_000
         assert expected_repr in repr(ts)
 
         # GH 10041
@@ -913,7 +410,7 @@ class TestTimestampNsOperations:
 
     def test_nanosecond_timestamp(self):
         # GH 7610
-        expected = 1293840000000000005
+        expected = 1_293_840_000_000_000_005
         t = Timestamp("2011-01-01") + offsets.Nano(5)
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t.value == expected
@@ -929,7 +426,7 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 5
 
-        expected = 1293840000000000010
+        expected = 1_293_840_000_000_000_010
         t = t + offsets.Nano(5)
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000010')"
         assert t.value == expected
@@ -949,23 +446,23 @@ class TestTimestampNsOperations:
 class TestTimestampToJulianDate:
     def test_compare_1700(self):
         r = Timestamp("1700-06-23").to_julian_date()
-        assert r == 2342145.5
+        assert r == 2_342_145.5
 
     def test_compare_2000(self):
         r = Timestamp("2000-04-12").to_julian_date()
-        assert r == 2451646.5
+        assert r == 2_451_646.5
 
     def test_compare_2100(self):
         r = Timestamp("2100-08-12").to_julian_date()
-        assert r == 2488292.5
+        assert r == 2_488_292.5
 
     def test_compare_hour01(self):
         r = Timestamp("2000-08-12T01:00:00").to_julian_date()
-        assert r == 2451768.5416666666666666
+        assert r == 2_451_768.5416666666666666
 
     def test_compare_hour13(self):
         r = Timestamp("2000-08-12T13:00:00").to_julian_date()
-        assert r == 2451769.0416666666666666
+        assert r == 2_451_769.0416666666666666
 
 
 class TestTimestampConversion:

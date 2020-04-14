@@ -27,7 +27,7 @@ class BaseReshapingTests(BaseExtensionTests):
             dtype = result.dtype
 
         assert dtype == data.dtype
-        assert isinstance(result._data.blocks[0], ExtensionBlock)
+        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
@@ -92,6 +92,19 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1, df2], axis=1)
         self.assert_frame_equal(result, expected)
         result = pd.concat([df1["A"], df2["B"]], axis=1)
+        self.assert_frame_equal(result, expected)
+
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
+        # GH 20756
+        df1 = pd.DataFrame({"A": data[:3]})
+        df2 = pd.DataFrame({"B": data[3:7]})
+        expected = pd.DataFrame(
+            {
+                "A": data._from_sequence(list(data[:3]) + [na_value], dtype=data.dtype),
+                "B": data[3:7],
+            }
+        )
+        result = pd.concat([df1, df2], axis=1, copy=False)
         self.assert_frame_equal(result, expected)
 
     def test_align(self, data, na_value):
@@ -282,6 +295,14 @@ class BaseReshapingTests(BaseExtensionTests):
             assert all(
                 isinstance(result[col].array, type(data)) for col in result.columns
             )
+
+            if obj == "series":
+                # We should get the same result with to_frame+unstack+droplevel
+                df = ser.to_frame()
+
+                alt = df.unstack(level=level).droplevel(0, axis=1)
+                self.assert_frame_equal(result, alt)
+
             expected = ser.astype(object).unstack(level=level)
             result = result.astype(object)
 
@@ -295,3 +316,19 @@ class BaseReshapingTests(BaseExtensionTests):
         # Check that we have a view, not a copy
         result[0] = result[1]
         assert data[0] == data[1]
+
+    def test_transpose(self, data):
+        df = pd.DataFrame({"A": data[:4], "B": data[:4]}, index=["a", "b", "c", "d"])
+        result = df.T
+        expected = pd.DataFrame(
+            {
+                "a": type(data)._from_sequence([data[0]] * 2, dtype=data.dtype),
+                "b": type(data)._from_sequence([data[1]] * 2, dtype=data.dtype),
+                "c": type(data)._from_sequence([data[2]] * 2, dtype=data.dtype),
+                "d": type(data)._from_sequence([data[3]] * 2, dtype=data.dtype),
+            },
+            index=["A", "B"],
+        )
+        self.assert_frame_equal(result, expected)
+        self.assert_frame_equal(np.transpose(np.transpose(df)), df)
+        self.assert_frame_equal(np.transpose(np.transpose(df[["A"]])), df[["A"]])

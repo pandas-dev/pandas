@@ -600,7 +600,7 @@ Rolling/expanding moments improvements
 
 .. _whatsnew_0150.sql:
 
-Improvements in the sql io module
+Improvements in the SQL io module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function. This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`).
@@ -852,7 +852,7 @@ Other notable API changes:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
 
-     See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument (:issue:`7737`).

@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 
@@ -119,7 +119,6 @@ def test_aaa_group_order():
 
 def test_aggregate_normal(resample_method):
     """Check TimeGrouper's aggregation is identical as normal groupby."""
-
     if resample_method == "ohlc":
         pytest.xfail(reason="DataError: No numeric types to aggregate")
 

@@ -3,10 +3,9 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, Series, json_normalize
+import pandas._testing as tm
 
-from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
 
@@ -463,6 +462,40 @@ class TestJSONNormalize:
         # They should be the same.
         tm.assert_frame_equal(df1, df2)
 
+    def test_nonetype_record_path(self, nulls_fixture):
+        # see gh-30148
+        # should not raise TypeError
+        result = json_normalize(
+            [
+                {"state": "Texas", "info": nulls_fixture},
+                {"state": "Florida", "info": [{"i": 2}]},
+            ],
+            record_path=["info"],
+        )
+        expected = DataFrame({"i": 2}, index=[0])
+        tm.assert_equal(result, expected)
+
+    def test_non_interable_record_path_errors(self):
+        # see gh-30148
+        test_input = {"state": "Texas", "info": 1}
+        test_path = "info"
+        msg = (
+            f"{test_input} has non iterable value 1 for path {test_path}. "
+            "Must be iterable or null."
+        )
+        with pytest.raises(TypeError, match=msg):
+            json_normalize([test_input], record_path=[test_path])
+
+    def test_meta_non_iterable(self):
+        # GH 31507
+        data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
+
+        result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
+        expected = DataFrame(
+            {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -698,3 +731,31 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
+
+    def test_deprecated_import(self):
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.io.json import json_normalize
+
+            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
+            json_normalize(recs)
+
+    def test_series_non_zero_index(self):
+        # GH 19020
+        data = {
+            0: {"id": 1, "name": "Foo", "elements": {"a": 1}},
+            1: {"id": 2, "name": "Bar", "elements": {"b": 2}},
+            2: {"id": 3, "name": "Baz", "elements": {"c": 3}},
+        }
+        s = Series(data)
+        s.index = [1, 2, 3]
+        result = json_normalize(s)
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "name": ["Foo", "Bar", "Baz"],
+                "elements.a": [1.0, np.nan, np.nan],
+                "elements.b": [np.nan, 2.0, np.nan],
+                "elements.c": [np.nan, np.nan, 3.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)

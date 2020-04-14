@@ -16,33 +16,11 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 
 class TestSlicing:
-    def test_dti_slicing(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
-        dti2 = dti[[1, 3, 5]]
-
-        v1 = dti2[0]
-        v2 = dti2[1]
-        v3 = dti2[2]
-
-        assert v1 == Timestamp("2/28/2005")
-        assert v2 == Timestamp("4/30/2005")
-        assert v3 == Timestamp("6/30/2005")
-
-        # don't carry freq through irregular slicing
-        assert dti2.freq is None
-
-    def test_slice_keeps_name(self):
-        # GH4226
-        st = pd.Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
-        et = pd.Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
-        dr = pd.date_range(st, et, freq="H", name="timebucket")
-        assert dr[1:].name == dr.name
-
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20), date_range("2014-01-01", periods=20, freq="MS"))
         SLC = pd.IndexSlice
@@ -79,25 +57,6 @@ class TestSlicing:
             ts.loc[::0]
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             ts.loc[::0]
-
-    def test_slice_bounds_empty(self):
-        # GH#14354
-        empty_idx = date_range(freq="1H", periods=0, end="2015")
-
-        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
-        exp = Timestamp("2015-01-02 23:59:59.999999999")
-        assert right == exp
-
-        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
-        exp = Timestamp("2015-01-02 00:00:00")
-        assert left == exp
-
-    def test_slice_duplicate_monotonic(self):
-        # https://github.com/pandas-dev/pandas/issues/16515
-        idx = pd.DatetimeIndex(["2017", "2017"])
-        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
-        expected = Timestamp("2017-01-01")
-        assert result == expected
 
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
@@ -141,6 +100,26 @@ class TestSlicing:
         result = rng.get_loc("2009")
         expected = slice(3288, 3653)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "partial_dtime",
+        [
+            "2019",
+            "2019Q4",
+            "Dec 2019",
+            "2019-12-31",
+            "2019-12-31 23",
+            "2019-12-31 23:59",
+        ],
+    )
+    def test_slice_end_of_period_resolution(self, partial_dtime):
+        # GH#31064
+        dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
+
+        ser = pd.Series(range(10), index=dti)
+        result = ser[partial_dtime]
+        expected = ser.iloc[:5]
+        tm.assert_series_equal(result, expected)
 
     def test_slice_quarter(self):
         dti = date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
@@ -274,7 +253,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -302,7 +281,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -311,7 +290,7 @@ class TestSlicing:
             for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df["a"][ts_string]
                 with pytest.raises(KeyError, match=msg):

@@ -85,7 +85,7 @@ See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.multiple_lambdas:
 
-Groupby Aggregation with multiple lambdas
+Groupby aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
@@ -170,7 +170,7 @@ which level to end normalization (:issue:`23843`):
 
 The repr now looks like this:
 
-.. ipython:: python
+.. code-block:: ipython
 
     from pandas.io.json import json_normalize
     data = [{
@@ -354,6 +354,7 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
@@ -910,6 +911,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 **New way**
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
    df.dtypes
@@ -1241,7 +1243,7 @@ Sparse
 - Bug in :func:`numpy.modf` on a :class:`SparseArray`. Now a tuple of :class:`SparseArray` is returned (:issue:`26946`).
 
 
-Build Changes
+Build changes
 ^^^^^^^^^^^^^
 
 - Fix install error with PyPy on macOS (:issue:`26536`)

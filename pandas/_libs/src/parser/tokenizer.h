@@ -155,11 +155,8 @@ typedef struct parser_t {
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
     int64_t skip_footer;
-    // pick one, depending on whether the converter requires GIL
-    double (*double_converter_nogil)(const char *, char **,
-                                     char, char, char, int, int *, int *);
-    double (*double_converter_withgil)(const char *, char **,
-                                       char, char, char, int, int *, int *);
+    double (*double_converter)(const char *, char **,
+                               char, char, char, int, int *, int *);
 
     // error handling
     char *warn_msg;
@@ -226,6 +223,8 @@ double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
 double precise_xstrtod(const char *p, char **q, char decimal,
                        char sci, char tsep, int skip_trailing,
                        int *error, int *maybe_int);
+
+// GH-15140 - round_trip requires and acquires the GIL on its own
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);

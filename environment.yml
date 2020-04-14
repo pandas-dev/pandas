@@ -4,15 +4,15 @@ channels:
 dependencies:
   # required
   - numpy>=1.15
-  - python=3.7
-  - python-dateutil>=2.6.1
+  - python=3
+  - python-dateutil>=2.7.3
   - pytz
 
   # benchmarks
   - asv
 
   # building
-  - cython>=0.29.13
+  - cython>=0.29.16
 
   # code checks
   - black=19.10b0
@@ -26,14 +26,15 @@ dependencies:
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
+  - gitdb2=2.0.6  # GH-32060
   - sphinx
-  - numpydoc>=0.9.0
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
-  # Dask and its dependencies
+
+  # Dask and its dependencies (that dont install with dask)
   - dask-core
   - toolz>=0.7.3
   - fsspec>=0.5.1
@@ -54,6 +55,9 @@ dependencies:
   - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
+  - pytest-asyncio
+
+  # downstream tests
   - seaborn
   - statsmodels
 
@@ -67,29 +71,39 @@ dependencies:
   - blosc
   - bottleneck>=1.2.1
   - ipykernel
-  - ipython>=5.6.0
+  - ipython>=7.11.1
   - jinja2  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.1
+  - numba>=0.46.0
 
   # optional for io
-  - beautifulsoup4>=4.6.0  # pandas.read_html
+  # ---------------
+  # pd.read_html
+  - beautifulsoup4>=4.6.0
+  - html5lib
+  - lxml
+
+  # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
+  - openpyxl
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - odfpy
+
   - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
-  - html5lib  # pandas.read_html
-  - lxml  # pandas.read_html
-  - openpyxl<=3.0.1  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - python-snappy  # required by pyarrow
+
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
-  - python-snappy  # required by pyarrow
   - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
-  - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - odfpy  # pandas.read_excel
+  - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
+  - tabulate>=0.8.3  # DataFrame.to_markdown
   - pip:
-    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+    - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
+    - git+https://github.com/numpy/numpydoc

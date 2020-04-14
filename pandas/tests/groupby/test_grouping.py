@@ -13,8 +13,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
-import pandas.util.testing as tm
 
 # selection
 # --------------------------------
@@ -71,14 +71,12 @@ class TestSelection:
         )
 
         result = df.groupby("A")[["C", "D"]].mean()
-        result2 = df.groupby("A")["C", "D"].mean()
-        result3 = df.groupby("A")[df.columns[2:4]].mean()
+        result2 = df.groupby("A")[df.columns[2:4]].mean()
 
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
 
     def test_getitem_numeric_column_names(self):
         # GH #13731
@@ -91,14 +89,40 @@ class TestSelection:
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
-        result2 = df.groupby(0)[2, 4].mean()
-        result3 = df.groupby(0)[[2, 4]].mean()
+        result2 = df.groupby(0)[[2, 4]].mean()
 
         expected = df.loc[:, [0, 2, 4]].groupby(0).mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
+
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby(0)[2, 4].mean()
+
+    def test_getitem_single_list_of_columns(self, df):
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby("A")["C", "D"].mean()
+
+    def test_getitem_single_column(self):
+        df = DataFrame(
+            {
+                "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+                "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+                "C": np.random.randn(8),
+                "D": np.random.randn(8),
+                "E": np.random.randn(8),
+            }
+        )
+
+        result = df.groupby("A")["C"].mean()
+
+        as_frame = df.loc[:, ["A", "C"]].groupby("A").mean()
+        as_series = as_frame.iloc[:, 0]
+        expected = as_series
+
+        tm.assert_series_equal(result, expected)
 
 
 # grouping
@@ -364,7 +388,7 @@ class TestGrouping:
         # if it fails on the elements, map tries it on the entire index as
         # a sequence. That can yield invalid results that cause trouble
         # down the line.
-        # the surprise comes from using key[0:6] rather then str(key)[0:6]
+        # the surprise comes from using key[0:6] rather than str(key)[0:6]
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
@@ -501,15 +525,17 @@ class TestGrouping:
         with pytest.raises(ValueError, match=msg):
             df.groupby(level=1)
 
-    def test_groupby_level_index_names(self):
+    def test_groupby_level_index_names(self, axis):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
             "exp"
         )
-        df.groupby(level="exp")
-        msg = "level name foo is not the name of the index"
+        if axis in (1, "columns"):
+            df = df.T
+        df.groupby(level="exp", axis=axis)
+        msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
-            df.groupby(level="foo")
+            df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
@@ -650,6 +676,19 @@ class TestGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_multiindex_level_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/31670
+        df = pd.DataFrame(
+            [[123, "a", 1.0], [123, "b", 2.0]], columns=["id", "category", "value"]
+        )
+        df = df.set_index(["id", "category"])
+        empty = df[df.value < 0]
+        result = empty.groupby("id").sum()
+        expected = pd.DataFrame(
+            dtype="float64", columns=["value"], index=pd.Int64Index([], name="id")
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 # get_group
 # --------------------------------
@@ -699,10 +738,7 @@ class TestGetGroup:
             g.get_group("foo")
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo"))
-        msg = (
-            "must supply a same-length tuple to get_group with multiple"
-            " grouping keys"
-        )
+        msg = "must supply a same-length tuple to get_group with multiple grouping keys"
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo", "bar", "baz"))
 

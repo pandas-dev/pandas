@@ -9,7 +9,7 @@ from pandas._libs import iNaT, tslib
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas import Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

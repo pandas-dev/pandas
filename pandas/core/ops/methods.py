@@ -93,16 +93,18 @@ def add_special_arithmetic_methods(cls):
 
         def f(self, other):
             result = method(self, other)
-
+            # Delete cacher
+            self._reset_cacher()
             # this makes sure that we are aligned like the input
             # we are updating inplace so we want to ignore is_copy
             self._update_inplace(
-                result.reindex_like(self, copy=False)._data, verify_is_copy=False
+                result.reindex_like(self, copy=False), verify_is_copy=False
             )
 
             return self
 
-        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
+        name = method.__name__.strip("__")
+        f.__name__ = f"__i{name}__"
         return f
 
     new_methods.update(
@@ -162,7 +164,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
     have_divmod = issubclass(cls, ABCSeries)
     # divmod is available for Series
 
-    # yapf: disable
     new_methods = dict(
         add=arith_method(cls, operator.add, special),
         radd=arith_method(cls, radd, special),
@@ -181,8 +182,8 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         rtruediv=arith_method(cls, rtruediv, special),
         rfloordiv=arith_method(cls, rfloordiv, special),
         rpow=arith_method(cls, rpow, special),
-        rmod=arith_method(cls, rmod, special))
-    # yapf: enable
+        rmod=arith_method(cls, rmod, special),
+    )
     new_methods["div"] = new_methods["truediv"]
     new_methods["rdiv"] = new_methods["rtruediv"]
     if have_divmod:
@@ -215,7 +216,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         )
 
     if special:
-        dunderize = lambda x: "__{name}__".format(name=x.strip("_"))
+        dunderize = lambda x: f"__{x.strip('_')}__"
     else:
         dunderize = lambda x: x
     new_methods = {dunderize(k): v for k, v in new_methods.items()}

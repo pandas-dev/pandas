@@ -6,15 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
-import pandas.util.testing as tm
+import pandas._testing as tm
 
-from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
-
-try:
-    DataFrame({"A": [1, 2]}).to_clipboard()
-    _DEPS_INSTALLED = 1
-except (PyperclipException, RuntimeError):
-    _DEPS_INSTALLED = 0
+from pandas.io.clipboard import clipboard_get, clipboard_set
 
 
 def build_kwargs(sep, excel):
@@ -81,7 +75,11 @@ def df(request):
         )
     elif data_type == "mixed":
         return DataFrame(
-            {"a": np.arange(1.0, 6.0) + 0.01, "b": np.arange(1, 6), "c": list("abcde")}
+            {
+                "a": np.arange(1.0, 6.0) + 0.01,
+                "b": np.arange(1, 6).astype(np.int64),
+                "c": list("abcde"),
+            }
         )
     elif data_type == "float":
         return tm.makeCustomDataframe(
@@ -120,7 +118,6 @@ def mock_clipboard(monkeypatch, request):
     This returns the local dictionary, for direct manipulation by
     tests.
     """
-
     # our local clipboard for tests
     _mock_data = {}
 
@@ -148,13 +145,12 @@ def test_mock_clipboard(mock_clipboard):
 
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
         result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
-        tm.assert_frame_equal(data, result, check_dtype=False)
+        tm.assert_frame_equal(data, result)
 
     # Test that default arguments copy as tab delimited
     def test_round_trip_frame(self, df):
@@ -256,9 +252,7 @@ class TestClipboard:
 
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
-@pytest.mark.xfail(reason="flaky in CI", strict=False)
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)

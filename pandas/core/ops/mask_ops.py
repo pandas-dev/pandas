@@ -1,5 +1,5 @@
 """
-Ops for masked ararys.
+Ops for masked arrays.
 """
 from typing import Optional, Union
 

@@ -1,7 +1,7 @@
 .. _whatsnew_0131:
 
-v0.13.1 (February 3, 2014)
---------------------------
+Version 0.13.1 (February 3, 2014)
+---------------------------------
 
 {{ header }}
 
@@ -224,7 +224,7 @@ Enhancements
 
   .. code-block:: ipython
 
-      In [28]: import pandas.util.testing as tm
+      In [28]: import pandas._testing as tm
 
       In [29]: panel = tm.makePanel(5)
 

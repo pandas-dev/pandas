@@ -2,12 +2,11 @@ name: pandas-dev
 channels:
   - defaults
   - conda-forge
-  - c3i_test
 dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -20,6 +19,7 @@ dependencies:
   - pyarrow
   - pytz
   - s3fs
+  - tabulate
   - pyreadstat
   - pip
   - pip:

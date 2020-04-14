@@ -3,8 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, Timestamp
+import pandas._testing as tm
 
 
 class TestCounting:
@@ -197,11 +197,8 @@ class TestCounting:
     @pytest.mark.parametrize(
         "datetimelike",
         [
-            [
-                Timestamp("2016-05-{i:02d} 20:09:25+00:00".format(i=i))
-                for i in range(1, 4)
-            ],
-            [Timestamp("2016-05-{i:02d} 20:09:25".format(i=i)) for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25+00:00") for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25") for i in range(1, 4)],
             [Timedelta(x, unit="h") for x in range(1, 4)],
             [Period(freq="2W", year=2017, month=x) for x in range(1, 4)],
         ],
@@ -223,3 +220,12 @@ class TestCounting:
         mi = MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
         expected = Series([], index=mi, dtype=np.int64, name="C")
         tm.assert_series_equal(result, expected, check_index_type=False)
+
+    def test_count_groupby_column_with_nan_in_groupby_column(self):
+        # https://github.com/pandas-dev/pandas/issues/32841
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        res = df.groupby(["B"]).count()
+        expected = DataFrame(
+            index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
+        )
+        tm.assert_frame_equal(expected, res)

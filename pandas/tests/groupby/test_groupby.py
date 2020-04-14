@@ -9,9 +9,9 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_repr():
@@ -588,6 +588,20 @@ def test_groupby_multiple_columns(df, op):
     tm.assert_series_equal(result, expected)
 
 
+def test_as_index_select_column():
+    # GH 5764
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    expected = pd.Series([2, 4], name="B")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    expected = pd.Series(
+        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
@@ -771,7 +785,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -905,51 +919,6 @@ def test_groupby_complex():
 
     result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
-
-
-def test_mutate_groups():
-
-    # GH3380
-
-    df = DataFrame(
-        {
-            "cat1": ["a"] * 8 + ["b"] * 6,
-            "cat2": ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2
-            + ["f"] * 2
-            + ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2,
-            "cat3": ["g{}".format(x) for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
-        }
-    )
-
-    def f_copy(x):
-        x = x.copy()
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
-
-
-def test_no_mutate_but_looks_like():
-
-    # GH 8467
-    # first show's mutation indicator
-    # second does not, but should yield the same results
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    tm.assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1482,7 +1451,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):
@@ -1715,9 +1684,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1753,7 +1720,7 @@ def test_tuple_as_grouping():
         }
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"('a', 'b')"):
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
@@ -1940,6 +1907,13 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ffill_missing_arguments():
+    # GH 14955
+    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    with pytest.raises(ValueError, match="Must specify a fill"):
+        df.groupby("b").fillna()
+
+
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -1994,3 +1968,47 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
+
+
+def test_groupby_crash_on_nunique(axis):
+    # Fix following 30253
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+
+    axis_number = df._get_axis_number(axis)
+    if not axis_number:
+        df = df.T
+
+    result = df.groupby(axis=axis_number, level=0).nunique()
+
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_list_level():
+    # GH 9790
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    result = expected.groupby(level=[0]).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "max_seq_items, expected",
+    [
+        (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
+        (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+    ],
+)
+def test_groups_repr_truncates(max_seq_items, expected):
+    # GH 1135
+    df = pd.DataFrame(np.random.randn(5, 1))
+    df["a"] = df.index
+
+    with pd.option_context("display.max_seq_items", max_seq_items):
+        result = df.groupby("a").groups.__repr__()
+        assert result == expected
+
+        result = df.groupby(np.array(df.a)).groups.__repr__()
+        assert result == expected

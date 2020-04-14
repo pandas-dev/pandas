@@ -6,6 +6,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p17
+
 import pandas as pd
 from pandas import Series, Timestamp
 from pandas.core import ops
@@ -59,11 +61,35 @@ def test_random_state():
     # check with no arg random state
     assert com.random_state() is np.random
 
+    # check array-like
+    # GH32503
+    state_arr_like = npr.randint(0, 2 ** 31, size=624, dtype="uint32")
+    assert (
+        com.random_state(state_arr_like).uniform()
+        == npr.RandomState(state_arr_like).uniform()
+    )
+
+    # Check BitGenerators
+    # GH32503
+    if not _np_version_under1p17:
+        assert (
+            com.random_state(npr.MT19937(3)).uniform()
+            == npr.RandomState(npr.MT19937(3)).uniform()
+        )
+        assert (
+            com.random_state(npr.PCG64(11)).uniform()
+            == npr.RandomState(npr.PCG64(11)).uniform()
+        )
+
     # Error for floats or strings
-    with pytest.raises(ValueError):
+    msg = (
+        "random_state must be an integer, array-like, a BitGenerator, "
+        "a numpy RandomState, or None"
+    )
+    with pytest.raises(ValueError, match=msg):
         com.random_state("test")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         com.random_state(5.5)
 
 
@@ -93,15 +119,17 @@ def test_dict_compat():
 
 def test_standardize_mapping():
     # No uninitialized defaultdicts
-    with pytest.raises(TypeError):
+    msg = r"to_dict\(\) only accepts initialized defaultdicts"
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping(collections.defaultdict)
 
     # No non-mapping subtypes, instance
-    with pytest.raises(TypeError):
+    msg = "unsupported type: <class 'list'>"
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping([])
 
     # No non-mapping subtypes, class
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping(list)
 
     fill = {"bad": "data"}

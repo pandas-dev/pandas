@@ -5,21 +5,24 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas.compat import PY37
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameMisc:
-    def test_copy_index_name_checking(self, float_frame):
+    @pytest.mark.parametrize("attr", ["index", "columns"])
+    def test_copy_index_name_checking(self, float_frame, attr):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
-        for attr in ("index", "columns"):
-            ind = getattr(float_frame, attr)
-            ind.name = None
-            cp = float_frame.copy()
-            getattr(cp, attr).name = "foo"
-            assert getattr(float_frame, attr).name is None
+        ind = getattr(float_frame, attr)
+        ind.name = None
+        cp = float_frame.copy()
+        getattr(cp, attr).name = "foo"
+        assert getattr(float_frame, attr).name is None
 
     def test_getitem_pop_assign_name(self, float_frame):
         s = float_frame["A"]
@@ -43,19 +46,19 @@ class TestDataFrameMisc:
 
     def test_add_prefix_suffix(self, float_frame):
         with_prefix = float_frame.add_prefix("foo#")
-        expected = pd.Index(["foo#{c}".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"foo#{c}" for c in float_frame.columns])
         tm.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = float_frame.add_suffix("#foo")
-        expected = pd.Index(["{c}#foo".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"{c}#foo" for c in float_frame.columns])
         tm.assert_index_equal(with_suffix.columns, expected)
 
         with_pct_prefix = float_frame.add_prefix("%")
-        expected = pd.Index(["%{c}".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"%{c}" for c in float_frame.columns])
         tm.assert_index_equal(with_pct_prefix.columns, expected)
 
         with_pct_suffix = float_frame.add_suffix("%")
-        expected = pd.Index(["{c}%".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"{c}%" for c in float_frame.columns])
         tm.assert_index_equal(with_pct_suffix.columns, expected)
 
     def test_get_axis(self, float_frame):
@@ -123,6 +126,14 @@ class TestDataFrameMisc:
             hash(df)
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
+
+    def test_column_name_contains_unicode_surrogate(self):
+        # GH 25509
+        colname = "\ud83d"
+        df = DataFrame({colname: []})
+        # this should not crash
+        assert colname not in dir(df)
+        assert df.columns[0] == colname
 
     def test_new_empty_index(self):
         df1 = DataFrame(np.random.randn(0, 3))
@@ -261,8 +272,27 @@ class TestDataFrameMisc:
         df3 = DataFrame({"f" + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
-        assert not hasattr(tup3, "_fields")
         assert isinstance(tup3, tuple)
+        if PY37:
+            assert hasattr(tup3, "_fields")
+        else:
+            assert not hasattr(tup3, "_fields")
+
+        # GH 28282
+        df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
+        result_254_columns = next(df_254_columns.itertuples(index=False))
+        assert isinstance(result_254_columns, tuple)
+        assert hasattr(result_254_columns, "_fields")
+
+        df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
+        result_255_columns = next(df_255_columns.itertuples(index=False))
+        assert isinstance(result_255_columns, tuple)
+
+        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
+        if PY37:
+            assert hasattr(result_255_columns, "_fields")
+        else:
+            assert not hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 
@@ -336,33 +366,12 @@ class TestDataFrameMisc:
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is None
 
-    def test_transpose(self, float_frame):
-        frame = float_frame
-        dft = frame.T
-        for idx, series in dft.items():
-            for col, value in series.items():
-                if np.isnan(value):
-                    assert np.isnan(frame[col][idx])
-                else:
-                    assert value == frame[col][idx]
-
-        # mixed type
-        index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
-
-        mixed_T = mixed.T
-        for col, s in mixed_T.items():
-            assert s.dtype == np.object_
-
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
         tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
         tm.assert_frame_equal(df, df.swapaxes(0, 0))
-        msg = (
-            "No axis named 2 for object type"
-            r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
-        )
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
 
@@ -448,12 +457,6 @@ class TestDataFrameMisc:
         for idx, value in series.items():
             assert float_frame["A"][idx] != value
 
-    def test_transpose_get_view(self, float_frame):
-        dft = float_frame.T
-        dft.values[:, 5:10] = 5
-
-        assert (float_frame.values[5:10] == 5).all()
-
     def test_inplace_return_self(self):
         # GH 1893
 
@@ -518,13 +521,40 @@ class TestDataFrameMisc:
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; df = pd.DataFrame()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
+
+    def test_attrs(self):
+        df = pd.DataFrame({"A": [2, 3]})
+        assert df.attrs == {}
+        df.attrs["version"] = 1
+
+        result = df.rename(columns=str)
+        assert result.attrs == {"version": 1}
+
+    def test_cache_on_copy(self):
+        # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
+        df = DataFrame({"a": [1]})
+
+        df["x"] = [0]
+        df["a"]
+
+        df.copy()
+
+        df["a"].values[0] = -1
+
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
+
+        df["y"] = [0]
+
+        assert df["a"].values[0] == -1
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))

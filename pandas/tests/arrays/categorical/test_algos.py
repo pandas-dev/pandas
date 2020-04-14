@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("ordered", [True, False])
@@ -60,17 +60,23 @@ def test_isin_cats():
 
 
 @pytest.mark.parametrize(
-    "to_replace, value, result",
-    [("b", "c", ["a", "c"]), ("c", "d", ["a", "b"]), ("b", None, ["a", None])],
+    "to_replace, value, result, expected_error_msg",
+    [
+        ("b", "c", ["a", "c"], "Categorical.categories are different"),
+        ("c", "d", ["a", "b"], None),
+        # https://github.com/pandas-dev/pandas/issues/33288
+        ("a", "a", ["a", "b"], None),
+        ("b", None, ["a", None], "Categorical.categories length are different"),
+    ],
 )
-def test_replace(to_replace, value, result):
+def test_replace(to_replace, value, result, expected_error_msg):
     # GH 26988
     cat = pd.Categorical(["a", "b"])
     expected = pd.Categorical(result)
     result = cat.replace(to_replace, value)
     tm.assert_categorical_equal(result, expected)
     if to_replace == "b":  # the "c" test is supposed to be unchanged
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
     cat.replace(to_replace, value, inplace=True)
@@ -84,6 +90,21 @@ def test_isin_empty(empty):
 
     result = s.isin(empty)
     tm.assert_numpy_array_equal(expected, result)
+
+
+def test_diff():
+    s = pd.Series([1, 2, 3], dtype="category")
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.diff()
+    expected = pd.Series([np.nan, 1, 1])
+    tm.assert_series_equal(result, expected)
+
+    expected = expected.to_frame(name="A")
+    df = s.to_frame(name="A")
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.diff()
+
+    tm.assert_frame_equal(result, expected)
 
 
 class TestTake:
@@ -104,32 +125,38 @@ class TestTake:
     def test_take_bounds(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
         cat = pd.Categorical(["a", "b", "a"])
-        with pytest.raises(IndexError):
+        if allow_fill:
+            msg = "indices are out-of-bounds"
+        else:
+            msg = "index 4 is out of bounds for( axis 0 with)? size 3"
+        with pytest.raises(IndexError, match=msg):
             cat.take([4, 5], allow_fill=allow_fill)
 
     def test_take_empty(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
         cat = pd.Categorical([], categories=["a", "b"])
-        with pytest.raises(IndexError):
+        if allow_fill:
+            msg = "indices are out-of-bounds"
+        else:
+            msg = "cannot do a non-empty take from an empty axes"
+        with pytest.raises(IndexError, match=msg):
             cat.take([0], allow_fill=allow_fill)
 
-    def test_positional_take(self, ordered_fixture):
+    def test_positional_take(self, ordered):
         cat = pd.Categorical(
-            ["a", "a", "b", "b"], categories=["b", "a"], ordered=ordered_fixture
+            ["a", "a", "b", "b"], categories=["b", "a"], ordered=ordered
         )
         result = cat.take([0, 1, 2], allow_fill=False)
         expected = pd.Categorical(
-            ["a", "a", "b"], categories=cat.categories, ordered=ordered_fixture
+            ["a", "a", "b"], categories=cat.categories, ordered=ordered
         )
         tm.assert_categorical_equal(result, expected)
 
-    def test_positional_take_unobserved(self, ordered_fixture):
-        cat = pd.Categorical(
-            ["a", "b"], categories=["a", "b", "c"], ordered=ordered_fixture
-        )
+    def test_positional_take_unobserved(self, ordered):
+        cat = pd.Categorical(["a", "b"], categories=["a", "b", "c"], ordered=ordered)
         result = cat.take([1, 0], allow_fill=False)
         expected = pd.Categorical(
-            ["b", "a"], categories=cat.categories, ordered=ordered_fixture
+            ["b", "a"], categories=cat.categories, ordered=ordered
         )
         tm.assert_categorical_equal(result, expected)
 
@@ -165,3 +192,7 @@ class TestTake:
         cat = pd.Categorical(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning):
             cat.take_nd([0, 1])
+
+        ci = pd.Index(cat)
+        with tm.assert_produces_warning(FutureWarning):
+            ci.take_nd([0, 1])

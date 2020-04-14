@@ -405,7 +405,6 @@ def test_maybe_promote_any_with_datetime64(
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-@pytest.mark.xfail(reason="Fails to upcast to object")
 def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     tz_aware_fixture, any_numpy_dtype_reduced
 ):
@@ -435,7 +434,6 @@ def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fix
         expected_dtype = dtype
     else:
         expected_dtype = np.dtype(object)
-        pytest.xfail("fails to cast to object")
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 

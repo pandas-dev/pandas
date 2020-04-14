@@ -15,7 +15,6 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
     function is called with too many arguments.
-
     """
     if max_fname_arg_count < 0:
         raise ValueError("'max_fname_arg_count' must be non-negative")
@@ -26,13 +25,8 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
         argument = "argument" if max_arg_count == 1 else "arguments"
 
         raise TypeError(
-            "{fname}() takes at most {max_arg} {argument} "
-            "({given_arg} given)".format(
-                fname=fname,
-                max_arg=max_arg_count,
-                argument=argument,
-                given_arg=actual_arg_count,
-            )
+            f"{fname}() takes at most {max_arg_count} {argument} "
+            f"({actual_arg_count} given)"
         )
 
 
@@ -43,7 +37,6 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
     Note that this function is to be called only when it has been
     checked that arg_val_dict.keys() is a subset of compat_args
-
     """
     for key in arg_val_dict:
         # try checking equality directly with '=' operator,
@@ -70,11 +63,8 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
         if not match:
             raise ValueError(
-                (
-                    "the '{arg}' parameter is not "
-                    "supported in the pandas "
-                    "implementation of {fname}()".format(fname=fname, arg=key)
-                )
+                f"the '{key}' parameter is not supported in "
+                f"the pandas implementation of {fname}()"
             )
 
 
@@ -84,32 +74,31 @@ def validate_args(fname, args, max_fname_arg_count, compat_args):
     has at most `len(compat_args)` arguments and whether or not all of these
     elements in `args` are set to their default values.
 
-    fname: str
+    Parameters
+    ----------
+    fname : str
         The name of the function being passed the `*args` parameter
-
-    args: tuple
+    args : tuple
         The `*args` parameter passed into a function
-
-    max_fname_arg_count: int
+    max_fname_arg_count : int
         The maximum number of arguments that the function `fname`
         can accept, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-
-    compat_args: OrderedDict
-        A ordered dictionary of keys and their associated default values.
+    compat_args : dict
+        A dictionary of keys and their associated default values.
         In order to accommodate buggy behaviour in some versions of `numpy`,
         where a signature displayed keyword arguments but then passed those
         arguments **positionally** internally when calling downstream
-        implementations, an ordered dictionary ensures that the original
-        order of the keyword arguments is enforced. Note that if there is
-        only one key, a generic dict can be passed in as well.
+        implementations, a dict ensures that the original
+        order of the keyword arguments is enforced.
 
     Raises
     ------
-    TypeError if `args` contains more values than there are `compat_args`
-    ValueError if `args` contains values that do not correspond to those
-    of the default values specified in `compat_args`
-
+    TypeError
+        If `args` contains more values than there are `compat_args`
+    ValueError
+        If `args` contains values that do not correspond to those
+        of the default values specified in `compat_args`
     """
     _check_arg_length(fname, args, max_fname_arg_count, compat_args)
 
@@ -124,19 +113,13 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
-
     """
     # set(dict) --> set of the dictionary's keys
     diff = set(kwargs) - set(compat_args)
 
     if diff:
         bad_arg = list(diff)[0]
-        raise TypeError(
-            (
-                "{fname}() got an unexpected "
-                "keyword argument '{arg}'".format(fname=fname, arg=bad_arg)
-            )
-        )
+        raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
 def validate_kwargs(fname, kwargs, compat_args):
@@ -147,12 +130,10 @@ def validate_kwargs(fname, kwargs, compat_args):
 
     Parameters
     ----------
-    fname: str
+    fname : str
         The name of the function being passed the `**kwargs` parameter
-
-    kwargs: dict
+    kwargs : dict
         The `**kwargs` parameter passed into `fname`
-
     compat_args: dict
         A dictionary of keys that `kwargs` is allowed to have and their
         associated default values
@@ -162,7 +143,6 @@ def validate_kwargs(fname, kwargs, compat_args):
     TypeError if `kwargs` contains keys not in `compat_args`
     ValueError if `kwargs` contains keys in `compat_args` that do not
     map to the default values specified in `compat_args`
-
     """
     kwds = kwargs.copy()
     _check_for_invalid_keys(fname, kwargs, compat_args)
@@ -179,22 +159,17 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     ----------
     fname: str
         The name of the function being passed the `**kwargs` parameter
-
     args: tuple
         The `*args` parameter passed into a function
-
     kwargs: dict
         The `**kwargs` parameter passed into `fname`
-
     max_fname_arg_count: int
         The minimum number of arguments that the function `fname`
         requires, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-
-    compat_args: OrderedDict
-        A ordered dictionary of keys that `kwargs` is allowed to
-        have and their associated default values. Note that if there
-        is only one key, a generic dict can be passed in as well.
+    compat_args: dict
+        A dictionary of keys that `kwargs` is allowed to
+        have and their associated default values.
 
     Raises
     ------
@@ -223,8 +198,7 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     for key in args_dict:
         if key in kwargs:
             raise TypeError(
-                "{fname}() got multiple values for keyword "
-                "argument '{arg}'".format(fname=fname, arg=key)
+                f"{fname}() got multiple values for keyword argument '{key}'"
             )
 
     kwargs.update(args_dict)
@@ -235,14 +209,15 @@ def validate_bool_kwarg(value, arg_name):
     """ Ensures that argument passed in arg_name is of type bool. """
     if not (is_bool(value) or value is None):
         raise ValueError(
-            'For argument "{arg}" expected type bool, received '
-            "type {typ}.".format(arg=arg_name, typ=type(value).__name__)
+            f'For argument "{arg_name}" expected type bool, received '
+            f"type {type(value).__name__}."
         )
     return value
 
 
 def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
-    """Argument handler for mixed index, columns / axis functions
+    """
+    Argument handler for mixed index, columns / axis functions
 
     In an attempt to handle both `.method(index, columns)`, and
     `.method(arg, axis=.)`, we have to do some bad things to argument
@@ -289,9 +264,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     # First fill with explicit values provided by the user...
     if arg_name in kwargs:
         if args:
-            msg = "{} got multiple values for argument '{}'".format(
-                method_name, arg_name
-            )
+            msg = f"{method_name} got multiple values for argument '{arg_name}'"
             raise TypeError(msg)
 
         axis = data._get_axis_name(kwargs.get("axis", 0))
@@ -326,19 +299,20 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
             "arguments to remove any ambiguity. In the future, using "
             "positional arguments for 'index' or 'columns' will raise "
-            " a 'TypeError'."
+            "a 'TypeError'."
         )
         warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
         out[data._AXIS_NAMES[0]] = args[0]
         out[data._AXIS_NAMES[1]] = args[1]
     else:
-        msg = "Cannot specify all of '{}', 'index', 'columns'."
-        raise TypeError(msg.format(arg_name))
+        msg = f"Cannot specify all of '{arg_name}', 'index', 'columns'."
+        raise TypeError(msg)
     return out
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
-    """Validate the keyword arguments to 'fillna'.
+    """
+    Validate the keyword arguments to 'fillna'.
 
     This checks that exactly one of 'value' and 'method' is specified.
     If 'method' is specified, this validates that it's a valid method.
@@ -366,7 +340,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
             raise TypeError(
                 '"value" parameter must be a scalar or dict, but '
-                'you passed a "{0}"'.format(type(value).__name__)
+                f'you passed a "{type(value).__name__}"'
             )
 
     elif value is not None and method is not None:

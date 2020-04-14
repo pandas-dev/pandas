@@ -16,8 +16,8 @@ from pandas import (
     Timestamp,
     conftest,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.util.testing as tm
 
 
 class TestCategoricalIndex:
@@ -74,19 +74,15 @@ class TestCategoricalIndex:
             df.loc["d"] = 10
 
         msg = (
-            "cannot insert an item into a CategoricalIndex that is not"
-            " already an existing category"
+            "cannot insert an item into a CategoricalIndex that is not "
+            "already an existing category"
         )
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "A"] = 10
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
-        msg = (
-            r"cannot do label indexing on <class 'pandas\.core\.indexes\.category"
-            r"\.CategoricalIndex'> with these indexers \[1\] of <class 'int'>"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1$"):
             df.loc[1]
 
     def test_getitem_scalar(self):
@@ -98,15 +94,6 @@ class TestCategoricalIndex:
         expected = s.iloc[0]
         result = s[cats[0]]
         assert result == expected
-
-    def test_slicing_directly(self):
-        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
-        sliced = cat[3]
-        assert sliced == "d"
-        sliced = cat[3:5]
-        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
-        tm.assert_numpy_array_equal(sliced._codes, expected._codes)
-        tm.assert_index_equal(sliced.categories, expected.categories)
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
@@ -365,8 +352,9 @@ class TestCategoricalIndex:
         # not all labels in the categories
         with pytest.raises(
             KeyError,
-            match="'a list-indexer must only include values that are in the"
-            " categories'",
+            match=(
+                "'a list-indexer must only include values that are in the categories'"
+            ),
         ):
             self.df2.loc[["a", "d"]]
 
@@ -781,9 +769,9 @@ class TestCategoricalIndex:
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
+    def test_loc_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
-        cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+        cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
         sl = slice(idx_values[0], idx_values[1])
 

@@ -6,9 +6,11 @@ is invoked inside specific modules, they will not be registered until that
 module is imported, which may or may not be a problem.
 
 If you need to make sure options are available even before a certain
-module is imported, register them here rather then in the module.
+module is imported, register them here rather than in the module.
 
 """
+import warnings
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
@@ -300,14 +302,15 @@ def table_schema_cb(key):
     _enable_data_resource_formatter(cf.get_option(key))
 
 
-def is_terminal():
+def is_terminal() -> bool:
     """
     Detect if Python is running in a terminal.
 
     Returns True if Python is running in a terminal or False if not.
     """
     try:
-        ip = get_ipython()
+        # error: Name 'get_ipython' is not defined
+        ip = get_ipython()  # type: ignore
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -340,8 +343,26 @@ with cf.config_prefix("display"):
         validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
+
+    def _deprecate_negative_int_max_colwidth(key):
+        value = cf.get_option(key)
+        if value is not None and value < 0:
+            warnings.warn(
+                "Passing a negative integer is deprecated in version 1.0 and "
+                "will not be supported in future version. Instead, use None "
+                "to not limit the column width.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
     cf.register_option(
-        "max_colwidth", 50, max_colwidth_doc, validator=is_nonnegative_int
+        # FIXME: change `validator=is_nonnegative_int`
+        # in version 1.2
+        "max_colwidth",
+        50,
+        max_colwidth_doc,
+        validator=is_instance_factory([type(None), int]),
+        cb=_deprecate_negative_int_max_colwidth,
     )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
@@ -478,6 +499,7 @@ _xls_options = ["xlrd"]
 _xlsm_options = ["xlrd", "openpyxl"]
 _xlsx_options = ["xlrd", "openpyxl"]
 _ods_options = ["odf"]
+_xlsb_options = ["pyxlsb"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -514,6 +536,13 @@ with cf.config_prefix("io.excel.ods"):
         validator=str,
     )
 
+with cf.config_prefix("io.excel.xlsb"):
+    cf.register_option(
+        "reader",
+        "auto",
+        reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
+        validator=str,
+    )
 
 # Set up the io.excel specific writer configuration.
 writer_engine_doc = """

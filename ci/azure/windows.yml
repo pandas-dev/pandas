@@ -23,32 +23,34 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
+
     - script: conda update -q -n base conda
       displayName: 'Update conda'
+
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
+
     - bash: |
         source activate pandas-dev
         conda list
-        ci\\incremental\\build.cmd
+        python setup.py build_ext -q -i -j 4
+        python -m pip install --no-build-isolation -e .
       displayName: 'Build'
+
     - bash: |
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
+
     - task: PublishTestResults@2
+      condition: succeededOrFailed()
       inputs:
+        failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
-        testRunTitle: 'Windows-$(CONDA_PY)'
-    - powershell: |
-        $(Get-Content "test-data.xml" | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0) {
-          Write-Host "No test failures in test-data"
-        } else {
-          Write-Error "$($matches[1]) tests failed"  # will produce $LASTEXITCODE=1
-        }
-      displayName: 'Check for test failures'
+        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+      displayName: 'Publish test results'
+
     - bash: |
         source activate pandas-dev
         python ci/print_skipped.py

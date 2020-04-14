@@ -19,14 +19,13 @@ from pandas import (
     PeriodIndex,
     Series,
     TimedeltaIndex,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestSeriesDatetimeValues:
@@ -66,7 +65,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result):
+            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -75,6 +74,8 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
+            elif isinstance(a, pd.DataFrame):
+                tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
 
@@ -622,18 +623,6 @@ class TestSeriesDatetimeValues:
         result = s.dt.date
         assert result[0] == result[2]
 
-    def test_between(self):
-        s = Series(bdate_range("1/1/2000", periods=20).astype(object))
-        s[::2] = np.nan
-
-        result = s[s.between(s[3], s[17])]
-        expected = s[3:18].dropna()
-        tm.assert_series_equal(result, expected)
-
-        result = s[s.between(s[3], s[17], inclusive=False)]
-        expected = s[5:16].dropna()
-        tm.assert_series_equal(result, expected)
-
     def test_date_tz(self):
         # GH11757
         rng = pd.DatetimeIndex(
@@ -644,15 +633,6 @@ class TestSeriesDatetimeValues:
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
         tm.assert_series_equal(s.dt.date, expected)
         tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
-
-    def test_datetime_understood(self):
-        # Ensures it doesn't fail to create the right series
-        # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
-        offset = pd.offsets.DateOffset(days=6)
-        result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
-        tm.assert_series_equal(result, expected)
 
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358
@@ -687,3 +667,19 @@ class TestSeriesDatetimeValues:
             dtype=object,
         )
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "input_series, expected_output",
+        [
+            [["2020-01-01"], [[2020, 1, 3]]],
+            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
+            [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+        ],
+    )
+    def test_isocalendar(self, input_series, expected_output):
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar
+        expected_frame = pd.DataFrame(
+            expected_output, columns=["year", "week", "day"], dtype="UInt32"
+        )
+        tm.assert_frame_equal(result, expected_frame)

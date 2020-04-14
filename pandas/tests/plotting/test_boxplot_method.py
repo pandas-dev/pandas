@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import itertools
 import string
 
@@ -10,8 +8,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -202,6 +200,23 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
+
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.boxplot(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
 
 
 @td.skip_if_no_mpl

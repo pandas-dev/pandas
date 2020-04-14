@@ -528,7 +528,7 @@ Deprecations
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_ for similar
   but more refined functionality (:issue:`3445`).
   The documentation includes some examples how to convert your existing code
-  from ``rplot`` to seaborn `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html#trellis-plotting-interface>`__.
+  from ``rplot`` to seaborn `here <https://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html#trellis-plotting-interface>`__.
 
 - The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)

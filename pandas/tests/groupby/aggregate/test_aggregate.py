@@ -6,12 +6,25 @@ import functools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
-from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
-import pandas.util.testing as tm
+
+
+def test_groupby_agg_no_extra_calls():
+    # GH#31760
+    df = pd.DataFrame({"key": ["a", "b", "c", "c"], "value": [1, 2, 3, 4]})
+    gb = df.groupby("key")["value"]
+
+    def dummy_func(x):
+        assert len(x) != 0
+        return x.sum()
+
+    gb.agg(dummy_func)
 
 
 def test_agg_regression1(tsframe):
@@ -329,6 +342,30 @@ def test_groupby_agg_coercing_bools():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda x: x.sum(),
+        lambda x: x.cumsum(),
+        lambda x: x.transform("sum"),
+        lambda x: x.transform("cumsum"),
+        lambda x: x.agg("sum"),
+        lambda x: x.agg("cumsum"),
+    ],
+)
+def test_bool_agg_dtype(op):
+    # GH 7001
+    # Bool sum aggregations result in int
+    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
+    s = df.set_index("a")["b"]
+
+    result = op(df.groupby("a"))["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = op(s.groupby("a")).dtype
+    assert is_integer_dtype(result)
+
+
 def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
@@ -359,6 +396,82 @@ def test_func_duplicates_raises():
     df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
     with pytest.raises(SpecificationError, match=msg):
         df.groupby("A").agg(["min", "min"])
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.CategoricalIndex(list("abc")),
+        pd.interval_range(0, 3),
+        pd.period_range("2020", periods=3, freq="D"),
+        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+    ],
+)
+def test_agg_index_has_complex_internals(index):
+    # GH 31223
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    result = df.groupby("group").agg({"value": Series.nunique})
+    expected = DataFrame({"group": [1, 2], "value": [2, 1]}).set_index("group")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_split_block():
+    # https://github.com/pandas-dev/pandas/issues/31522
+    df = pd.DataFrame(
+        {
+            "key1": ["a", "a", "b", "b", "a"],
+            "key2": ["one", "two", "one", "two", "one"],
+            "key3": ["three", "three", "three", "six", "six"],
+        }
+    )
+    result = df.groupby("key1").min()
+    expected = pd.DataFrame(
+        {"key2": ["one", "one"], "key3": ["six", "six"]},
+        index=pd.Index(["a", "b"], name="key1"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_split_object_part_datetime():
+    # https://github.com/pandas-dev/pandas/pull/31616
+    df = pd.DataFrame(
+        {
+            "A": pd.date_range("2000", periods=4),
+            "B": ["a", "b", "c", "d"],
+            "C": [1, 2, 3, 4],
+            "D": ["b", "c", "d", "e"],
+            "E": pd.date_range("2000", periods=4),
+            "F": [1, 2, 3, 4],
+        }
+    ).astype(object)
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame(
+        {
+            "A": [pd.Timestamp("2000")],
+            "B": ["a"],
+            "C": [1],
+            "D": ["b"],
+            "E": [pd.Timestamp("2000")],
+            "F": [1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_cython_category_not_implemented_fallback():
+    # https://github.com/pandas-dev/pandas/issues/31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    result = df.groupby("col_num").col_cat.first()
+    expected = pd.Series(
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
 
 
 class TestNamedAggregationSeries:
@@ -604,6 +717,19 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
+)
+def test_multiindex_custom_func(func):
+    # GH 31777
+    data = [[1, 4, 2], [5, 7, 1]]
+    df = pd.DataFrame(data, columns=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    result = df.groupby(np.array([0, 1])).agg(func)
+    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected = pd.DataFrame(expected_dict)
+    tm.assert_frame_equal(result, expected)
+
+
 def myfunc(s):
     return np.percentile(s, q=0.90)
 
@@ -631,42 +757,72 @@ def test_lambda_named_agg(func):
     tm.assert_frame_equal(result, expected)
 
 
+def test_aggregate_mixed_types():
+    # GH 16916
+    df = pd.DataFrame(
+        data=np.array([0] * 9).reshape(3, 3), columns=list("XYZ"), index=list("abc")
+    )
+    df["grouping"] = ["group 1", "group 1", 2]
+    result = df.groupby("grouping").aggregate(lambda x: x.tolist())
+    expected_data = [[[0], [0], [0]], [[0, 0], [0, 0], [0, 0]]]
+    expected = pd.DataFrame(
+        expected_data,
+        index=Index([2, "group 1"], dtype="object", name="grouping"),
+        columns=Index(["X", "Y", "Z"], dtype="object"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_aggregate_udf_na_extension_type():
+    # https://github.com/pandas-dev/pandas/pull/31359
+    # This is currently failing to cast back to Int64Dtype.
+    # The presence of the NA causes two problems
+    # 1. NA is not an instance of Int64Dtype.type (numpy.int64)
+    # 2. The presence of an NA forces object type, so the non-NA values is
+    #    a Python int rather than a NumPy int64. Python ints aren't
+    #    instances of numpy.int64.
+    def aggfunc(x):
+        if all(x > 2):
+            return 1
+        else:
+            return pd.NA
+
+    df = pd.DataFrame({"A": pd.array([1, 2, 3])})
+    result = df.groupby([1, 1, 2]).agg(aggfunc)
+    expected = pd.DataFrame({"A": pd.array([1, pd.NA], dtype="Int64")}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_column(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a")["b"], func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.Series(periods, index=idx, name="b")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_frame(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a"), func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": periods}, index=idx)
+
+    tm.assert_frame_equal(result, expected)
+
+
 class TestLambdaMangling:
-    def test_maybe_mangle_lambdas_passthrough(self):
-        assert _maybe_mangle_lambdas("mean") == "mean"
-        assert _maybe_mangle_lambdas(lambda x: x).__name__ == "<lambda>"
-        # don't mangel single lambda.
-        assert _maybe_mangle_lambdas([lambda x: x])[0].__name__ == "<lambda>"
-
-    def test_maybe_mangle_lambdas_listlike(self):
-        aggfuncs = [lambda x: 1, lambda x: 2]
-        result = _maybe_mangle_lambdas(aggfuncs)
-        assert result[0].__name__ == "<lambda_0>"
-        assert result[1].__name__ == "<lambda_1>"
-        assert aggfuncs[0](None) == result[0](None)
-        assert aggfuncs[1](None) == result[1](None)
-
-    def test_maybe_mangle_lambdas(self):
-        func = {"A": [lambda x: 0, lambda x: 1]}
-        result = _maybe_mangle_lambdas(func)
-        assert result["A"][0].__name__ == "<lambda_0>"
-        assert result["A"][1].__name__ == "<lambda_1>"
-
-    def test_maybe_mangle_lambdas_args(self):
-        func = {"A": [lambda x, a, b=1: (0, a, b), lambda x: 1]}
-        result = _maybe_mangle_lambdas(func)
-        assert result["A"][0].__name__ == "<lambda_0>"
-        assert result["A"][1].__name__ == "<lambda_1>"
-
-        assert func["A"][0](0, 1) == (0, 1, 1)
-        assert func["A"][0](0, 1, 2) == (0, 1, 2)
-        assert func["A"][0](0, 2, b=3) == (0, 2, 3)
-
-    def test_maybe_mangle_lambdas_named(self):
-        func = {"C": np.mean, "D": {"foo": np.mean, "bar": np.mean}}
-        result = _maybe_mangle_lambdas(func)
-        assert result == func
-
     def test_basic(self):
         df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
         result = df.groupby("A").agg({"B": [lambda x: 0, lambda x: 1]})
@@ -784,48 +940,3 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
-
-    @pytest.mark.parametrize(
-        "order, expected_reorder",
-        [
-            (
-                [
-                    ("height", "<lambda>"),
-                    ("height", "max"),
-                    ("weight", "max"),
-                    ("height", "<lambda>"),
-                    ("weight", "<lambda>"),
-                ],
-                [
-                    ("height", "<lambda>_0"),
-                    ("height", "max"),
-                    ("weight", "max"),
-                    ("height", "<lambda>_1"),
-                    ("weight", "<lambda>"),
-                ],
-            ),
-            (
-                [
-                    ("col2", "min"),
-                    ("col1", "<lambda>"),
-                    ("col1", "<lambda>"),
-                    ("col1", "<lambda>"),
-                ],
-                [
-                    ("col2", "min"),
-                    ("col1", "<lambda>_0"),
-                    ("col1", "<lambda>_1"),
-                    ("col1", "<lambda>_2"),
-                ],
-            ),
-            (
-                [("col", "<lambda>"), ("col", "<lambda>"), ("col", "<lambda>")],
-                [("col", "<lambda>_0"), ("col", "<lambda>_1"), ("col", "<lambda>_2")],
-            ),
-        ],
-    )
-    def test_make_unique(self, order, expected_reorder):
-        # GH 27519, test if make_unique function reorders correctly
-        result = _make_unique(order)
-
-        assert result == expected_reorder

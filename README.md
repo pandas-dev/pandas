@@ -5,82 +5,17 @@
 -----------------
 
 # pandas: powerful Python data analysis toolkit
-
-<table>
-<tr>
-  <td>Latest Release</td>
-  <td>
-    <a href="https://pypi.org/project/pandas/">
-    <img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" />
-    </a>
-  </td>
-</tr>
-  <td></td>
-  <td>
-    <a href="https://anaconda.org/anaconda/pandas/">
-    <img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" />
-    </a>
-</td>
-</tr>
-<tr>
-  <td>Package Status</td>
-  <td>
-		<a href="https://pypi.org/project/pandas/">
-		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" />
-		</a>
-  </td>
-</tr>
-<tr>
-  <td>License</td>
-  <td>
-    <a href="https://github.com/pandas-dev/pandas/blob/master/LICENSE">
-    <img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" />
-    </a>
-</td>
-</tr>
-<tr>
-  <td>Build Status</td>
-  <td>
-    <a href="https://travis-ci.org/pandas-dev/pandas">
-    <img src="https://travis-ci.org/pandas-dev/pandas.svg?branch=master" alt="travis build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td></td>
-  <td>
-    <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
-      <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>Coverage</td>
-  <td>
-    <a href="https://codecov.io/gh/pandas-dev/pandas">
-    <img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>Downloads</td>
-  <td>
-    <a href="https://pandas.pydata.org">
-    <img src="https://anaconda.org/conda-forge/pandas/badges/downloads.svg" alt="conda-forge downloads" />
-    </a>
-  </td>
-</tr>
-<tr>
-	<td>Gitter</td>
-	<td>
-		<a href="https://gitter.im/pydata/pandas">
-		<img src="https://badges.gitter.im/Join%20Chat.svg" />
-		</a>
-	</td>
-</tr>
-</table>
-
-
+[![PyPI Latest Release](https://img.shields.io/pypi/v/pandas.svg)](https://pypi.org/project/pandas/)
+[![Conda Latest Release](https://anaconda.org/conda-forge/pandas/badges/version.svg)](https://anaconda.org/anaconda/pandas/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3509134.svg)](https://doi.org/10.5281/zenodo.3509134)
+[![Package Status](https://img.shields.io/pypi/status/pandas.svg)](https://pypi.org/project/pandas/)
+[![License](https://img.shields.io/pypi/l/pandas.svg)](https://github.com/pandas-dev/pandas/blob/master/LICENSE)
+[![Travis Build Status](https://travis-ci.org/pandas-dev/pandas.svg?branch=master)](https://travis-ci.org/pandas-dev/pandas)
+[![Azure Build Status](https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master)](https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master)
+[![Coverage](https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master)](https://codecov.io/gh/pandas-dev/pandas)
+[![Downloads](https://anaconda.org/conda-forge/pandas/badges/downloads.svg)](https://pandas.pydata.org)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas)
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 
 ## What is it?
 
@@ -124,7 +59,7 @@ Here are just a few of the things that pandas does well:
     and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
   - [**Time series**][timeseries]-specific functionality: date range
     generation and frequency conversion, moving window statistics,
-    moving window linear regressions, date shifting and lagging, etc.
+    date shifting and lagging.
 
 
    [missing-data]: https://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
@@ -224,7 +159,7 @@ Most development discussion is taking place on github in this repo. Further, the
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/docs/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas.pydata.org/docs/dev/development/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 

@@ -2,9 +2,8 @@ from typing import List
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas._typing import FilePathOrBuffer, Scalar
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
@@ -52,7 +51,6 @@ class _OpenpyxlWriter(ExcelWriter):
         ----------
         style_dict : style dictionary to convert
         """
-
         from openpyxl.style import Style
 
         xls_style = Style()
@@ -93,14 +91,13 @@ class _OpenpyxlWriter(ExcelWriter):
             value has been replaced with a native openpyxl style object of the
             appropriate class.
         """
-
         _style_key_map = {"borders": "border"}
 
         style_kwargs = {}
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, "_convert_to_{k}".format(k=k), lambda x: None)
+            _conv_to_x = getattr(cls, f"_convert_to_{k}", lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
                 style_kwargs[k] = new_v
@@ -129,7 +126,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         color : openpyxl.styles.Color
         """
-
         from openpyxl.styles import Color
 
         if isinstance(color_spec, str):
@@ -165,7 +161,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         font : openpyxl.styles.Font
         """
-
         from openpyxl.styles import Font
 
         _font_key_map = {
@@ -203,7 +198,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         stop : list of openpyxl.styles.Color
         """
-
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
@@ -231,7 +225,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-
         from openpyxl.styles import PatternFill, GradientFill
 
         _pattern_fill_key_map = {
@@ -287,7 +280,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         side : openpyxl.styles.Side
         """
-
         from openpyxl.styles import Side
 
         _side_key_map = {"border_style": "style"}
@@ -330,7 +322,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         border : openpyxl.styles.Border
         """
-
         from openpyxl.styles import Border
 
         _border_key_map = {"diagonalup": "diagonalUp", "diagonaldown": "diagonalDown"}
@@ -366,7 +357,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         alignment : openpyxl.styles.Alignment
         """
-
         from openpyxl.styles import Alignment
 
         return Alignment(**alignment_dict)
@@ -376,11 +366,13 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
         initializer.
+
         Parameters
         ----------
         number_format_dict : dict
             A dict with zero or more of the following keys.
                 'format_code' : str
+
         Returns
         -------
         number_format : str
@@ -391,16 +383,17 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_protection(cls, protection_dict):
         """
         Convert ``protection_dict`` to an openpyxl v2 Protection object.
+
         Parameters
         ----------
         protection_dict : dict
             A dict with zero or more of the following keys.
                 'locked'
                 'hidden'
+
         Returns
         -------
         """
-
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)
@@ -475,7 +468,8 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
-        """Reader using openpyxl engine.
+        """
+        Reader using openpyxl engine.
 
         Parameters
         ----------
@@ -497,6 +491,11 @@ class _OpenpyxlReader(_BaseExcelReader):
         return load_workbook(
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
+
+    def close(self):
+        # https://stackoverflow.com/questions/31416842/
+        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+        self.book.close()
 
     @property
     def sheet_names(self) -> List[str]:

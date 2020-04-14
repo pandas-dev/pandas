@@ -3,15 +3,10 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timedelta, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSlicing:
-    def test_slice_keeps_name(self):
-        # GH4226
-        dr = pd.timedelta_range("1d", "5d", freq="H", name="timebucket")
-        assert dr[1:].name == dr.name
-
     def test_partial_slice(self):
         rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
         s = Series(np.arange(len(rng)), index=rng)

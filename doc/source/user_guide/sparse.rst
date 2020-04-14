@@ -15,7 +15,7 @@ can be chosen, including 0) is omitted. The compressed values are not actually s
 
    arr = np.random.randn(10)
    arr[2:-2] = np.nan
-   ts = pd.Series(pd.SparseArray(arr))
+   ts = pd.Series(pd.arrays.SparseArray(arr))
    ts
 
 Notice the dtype, ``Sparse[float64, nan]``. The ``nan`` means that elements in the
@@ -51,7 +51,7 @@ identical to their dense counterparts.
 SparseArray
 -----------
 
-:class:`SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray`
+:class:`arrays.SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray`
 for storing an array of sparse values (see :ref:`basics.dtypes` for more
 on extension arrays). It is a 1-dimensional ndarray-like object storing
 only values distinct from the ``fill_value``:
@@ -61,7 +61,7 @@ only values distinct from the ``fill_value``:
    arr = np.random.randn(10)
    arr[2:5] = np.nan
    arr[7:8] = np.nan
-   sparr = pd.SparseArray(arr)
+   sparr = pd.arrays.SparseArray(arr)
    sparr
 
 A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.asarray`
@@ -144,7 +144,7 @@ to ``SparseArray`` and get a ``SparseArray`` as a result.
 
 .. ipython:: python
 
-   arr = pd.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   arr = pd.arrays.SparseArray([1., np.nan, np.nan, -2., np.nan])
    np.abs(arr)
 
 
@@ -153,7 +153,7 @@ the correct dense result.
 
 .. ipython:: python
 
-   arr = pd.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   arr = pd.arrays.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
    np.abs(arr)
    np.abs(arr).to_dense()
 
@@ -194,7 +194,7 @@ From an array-like, use the regular :class:`Series` or
 .. ipython:: python
 
    # New way
-   pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
 
 From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
 
@@ -256,10 +256,10 @@ Instead, you'll need to ensure that the values being assigned are sparse
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
    df['B'] = [0, 0]  # remains dense
    df['B'].dtype
-   df['B'] = pd.SparseArray([0, 0])
+   df['B'] = pd.arrays.SparseArray([0, 0])
    df['B'].dtype
 
 The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes

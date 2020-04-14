@@ -6,7 +6,7 @@ import textwrap
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.common as icom
 
@@ -44,14 +44,14 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
         with f:
             getattr(obj, method)(f)
             assert not f.closed
         assert f.closed
         compressed_size = os.path.getsize(path)
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=None)
+        f, handles = icom.get_handle(path, "w", compression=None)
         with f:
             getattr(obj, method)(f)
             assert not f.closed
@@ -108,7 +108,7 @@ def test_compression_warning(compression_only):
         columns=["X", "Y", "Z"],
     )
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
         with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)
@@ -129,7 +129,8 @@ def test_with_missing_lzma():
 
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
-    having the module available."""
+    having the module available.
+    """
     code = textwrap.dedent(
         """
         import sys
@@ -142,3 +143,44 @@ def test_with_missing_lzma_runtime():
         """
     )
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        pd.DataFrame(
+            100 * [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+            columns=["X", "Y", "Z"],
+        ),
+        pd.Series(100 * [0.123456, 0.234567, 0.567567], name="X"),
+    ],
+)
+@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+def test_gzip_compression_level(obj, method):
+    # GH33196
+    with tm.ensure_clean() as path:
+        getattr(obj, method)(path, compression="gzip")
+        compressed_size_default = os.path.getsize(path)
+        getattr(obj, method)(path, compression={"method": "gzip", "compresslevel": 1})
+        compressed_size_fast = os.path.getsize(path)
+        assert compressed_size_default < compressed_size_fast
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        pd.DataFrame(
+            100 * [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+            columns=["X", "Y", "Z"],
+        ),
+        pd.Series(100 * [0.123456, 0.234567, 0.567567], name="X"),
+    ],
+)
+@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+def test_bzip_compression_level(obj, method):
+    """GH33196 bzip needs file size > 100k to show a size difference between
+    compression levels, so here we just check if the call works when
+    compression is passed as a dict.
+    """
+    with tm.ensure_clean() as path:
+        getattr(obj, method)(path, compression={"method": "bz2", "compresslevel": 1})

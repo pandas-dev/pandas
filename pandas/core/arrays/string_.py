@@ -1,5 +1,5 @@
 import operator
-from typing import Type
+from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
 
@@ -13,9 +13,14 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+
+if TYPE_CHECKING:
+    import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
@@ -47,36 +52,36 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
+    name = "string"
+
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[str]:
         return str
 
-    @property
-    def name(self) -> str:
-        """
-        The alias for StringDtype is ``'string'``.
-        """
-        return "string"
-
     @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "string":
-            return cls()
-        return super().construct_from_string(string)
+    def construct_array_type(cls) -> Type["StringArray"]:
+        """
+        Return the array type associated with this dtype.
 
-    @classmethod
-    def construct_array_type(cls) -> "Type[StringArray]":
+        Returns
+        -------
+        type
+        """
         return StringArray
 
     def __repr__(self) -> str:
         return "StringDtype"
 
-    def __from_arrow__(self, array):
-        """Construct StringArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "StringArray":
+        """
+        Construct StringArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -86,7 +91,7 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            # using _from_sequence to ensure None is convered to np.nan
+            # using _from_sequence to ensure None is converted to NA
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
@@ -104,9 +109,6 @@ class StringArray(PandasArray):
        StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, the NA value used may change to no longer be
-       ``numpy.nan``.
-
     Parameters
     ----------
     values : array-like
@@ -115,8 +117,11 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings. This may
-           change without warning in the future.
+           where the elements are Python strings or :attr:`pandas.NA`.
+           This may change without warning in the future. Use
+           :meth:`pandas.array` with ``dtype="string"`` for a stable way of
+           creating a `StringArray` from any sequence.
+
     copy : bool, default False
         Whether to copy the array of data.
 
@@ -130,15 +135,21 @@ class StringArray(PandasArray):
 
     See Also
     --------
+    array
+        The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
         a StringArray.
+
+    Notes
+    -----
+    StringArray returns a BooleanArray for comparison methods.
 
     Examples
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', NA, 'data.']
+    ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
@@ -148,6 +159,13 @@ class StringArray(PandasArray):
     Traceback (most recent call last):
     ...
     ValueError: StringArray requires an object-dtype ndarray of strings.
+
+    For comparison methods, this returns a :class:`pandas.BooleanArray`
+
+    >>> pd.array(["a", None, "c"], dtype="string") == "a"
+    <BooleanArray>
+    [True, <NA>, False]
+    Length: 3, dtype: boolean
     """
 
     # undo the PandasArray hack
@@ -165,12 +183,10 @@ class StringArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArray requires a sequence of strings or missing values."
-            )
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "StringArray requires a sequence of strings. Got "
+                "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
@@ -178,12 +194,22 @@ class StringArray(PandasArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
-        result = super()._from_sequence(scalars, dtype=object, copy=copy)
+
+        result = np.asarray(scalars, dtype="object")
+        if copy and result is scalars:
+            result = result.copy()
+
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        result[result.isna()] = StringDtype.na_value
-        return result
+        na_values = isna(result)
+        if na_values.any():
+            if result is scalars:
+                # force a copy now, if we haven't already
+                result = result.copy()
+            result[na_values] = StringDtype.na_value
+
+        return cls(result)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -197,7 +223,10 @@ class StringArray(PandasArray):
 
         if type is None:
             type = pa.string()
-        return pa.array(self._ndarray, type=type, from_pandas=True)
+
+        values = self._ndarray.copy()
+        values[self.isna()] = None
+        return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
@@ -211,6 +240,7 @@ class StringArray(PandasArray):
             # extract_array doesn't extract PandasArray subclasses
             value = value._ndarray
 
+        key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
         if scalar_key and not scalar_value:
@@ -242,6 +272,13 @@ class StringArray(PandasArray):
             if copy:
                 return self.copy()
             return self
+        elif isinstance(dtype, _IntegerDtype):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype.numpy_dtype)
+            return IntegerArray(values, mask, copy=False)
+
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -250,12 +287,17 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    # Overrride parent because we have different return types.
+    # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
+        # Note: this handles both arithmetic and comparison methods.
         def method(self, other):
+            from pandas.arrays import BooleanArray
+
+            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+
             if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
@@ -275,15 +317,16 @@ class StringArray(PandasArray):
                 other = np.asarray(other)
                 other = other[valid]
 
-            result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = StringDtype.na_value
-            result[valid] = op(self._ndarray[valid], other)
-
-            if op.__name__ in {"add", "radd", "mul", "rmul"}:
+            if op.__name__ in ops.ARITHMETIC_BINOPS:
+                result = np.empty_like(self._ndarray, dtype="object")
+                result[mask] = StringDtype.na_value
+                result[valid] = op(self._ndarray[valid], other)
                 return StringArray(result)
             else:
-                dtype = "object" if mask.any() else "bool"
-                return np.asarray(result, dtype=dtype)
+                # logical
+                result = np.zeros(len(self._ndarray), dtype="bool")
+                result[valid] = op(self._ndarray[valid], other)
+                return BooleanArray(result, mask)
 
         return compat.set_function_name(method, f"__{op.__name__}__", cls)
 

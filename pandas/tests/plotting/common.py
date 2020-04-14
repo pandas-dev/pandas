@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import os
 import warnings
 
@@ -14,7 +11,7 @@ from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 """
@@ -34,6 +31,7 @@ class TestPlotBase:
         self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
         self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat._mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -92,7 +90,6 @@ class TestPlotBase:
             expected legend visibility. labels are checked only when visible is
             True
         """
-
         if visible and (labels is None):
             raise ValueError("labels must be specified when visible is True")
         axes = self._flatten_visible(axes)
@@ -190,7 +187,6 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-
         from matplotlib.lines import Line2D
         from matplotlib.collections import Collection, PolyCollection, LineCollection
 

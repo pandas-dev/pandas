@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
@@ -23,7 +22,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")
@@ -186,6 +185,21 @@ class TestIsNA:
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
+    def test_isna_old_datetimelike(self):
+        # isna_old should work for dt64tz, td64, and period, not just tznaive
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data
+        dta[-1] = pd.NaT
+        expected = np.array([False, False, True], dtype=bool)
+
+        objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
+
+        for obj in objs:
+            with cf.option_context("mode.use_inf_as_na", True):
+                result = pd.isna(obj)
+
+            tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "value, expected",
         [
@@ -295,6 +309,11 @@ def test_array_equivalent():
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
     )
+    # Check the handling of nested arrays in array_equivalent_object
+    assert array_equivalent(
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+    )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
@@ -315,23 +334,21 @@ def test_array_equivalent():
     assert not array_equivalent(
         TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan])
     )
-    with catch_warnings():
-        filterwarnings("ignore", "Converting timezone", FutureWarning)
-        assert array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([1, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="CET"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([1, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="CET"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 

@@ -11,7 +11,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.index import MultiIndex
+from pandas.core.indexes.api import MultiIndex
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -70,6 +70,7 @@ class WindowGroupByMixin(GroupByMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
+        use_numba_cache: bool = False,
         **kwargs,
     ):
         """
@@ -97,14 +98,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
     ):
         raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
         )
 
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
         arg2, (np.ndarray, ABCSeries)
     ):
-        X, Y = _prep_binary(arg1, arg2)
+        X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
 
     elif isinstance(arg1, ABCDataFrame):
@@ -151,7 +151,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = results[j][i]
                         else:
                             results[i][j] = f(
-                                *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
+                                *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
                 from pandas import concat
@@ -212,7 +212,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 raise ValueError("'pairwise' is not True/False")
         else:
             results = {
-                i: f(*_prep_binary(arg1.iloc[:, i], arg2))
+                i: f(*prep_binary(arg1.iloc[:, i], arg2))
                 for i, col in enumerate(arg1.columns)
             }
             return dataframe_from_int_dict(results, arg1)
@@ -249,31 +249,10 @@ def _get_center_of_mass(comass, span, halflife, alpha):
     return float(comass)
 
 
-def _offset(window, center):
+def calculate_center_offset(window):
     if not is_integer(window):
         window = len(window)
-    offset = (window - 1) / 2.0 if center else 0
-    try:
-        return int(offset)
-    except TypeError:
-        return offset.astype(int)
-
-
-def _require_min_periods(p):
-    def _check_func(minp, window):
-        if minp is None:
-            return window
-        else:
-            return max(p, minp)
-
-    return _check_func
-
-
-def _use_window(minp, window):
-    if minp is None:
-        return window
-    else:
-        return minp
+    return int((window - 1) / 2.0)
 
 
 def calculate_min_periods(
@@ -311,13 +290,13 @@ def calculate_min_periods(
     return max(min_periods, floor)
 
 
-def _zsqrt(x):
+def zsqrt(x):
     with np.errstate(all="ignore"):
         result = np.sqrt(x)
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():
@@ -326,7 +305,7 @@ def _zsqrt(x):
     return result
 
 
-def _prep_binary(arg1, arg2):
+def prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
         raise Exception("Input arrays must be of the same type!")
 
@@ -335,3 +314,22 @@ def _prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
+
+
+def get_weighted_roll_func(cfunc: Callable) -> Callable:
+    def func(arg, window, min_periods=None):
+        if min_periods is None:
+            min_periods = len(window)
+        return cfunc(arg, window, min_periods)
+
+    return func
+
+
+def validate_baseindexer_support(func_name: Optional[str]) -> None:
+    # GH 32865: These functions work correctly with a BaseIndexer subclass
+    BASEINDEXER_WHITELIST = {"min", "max", "mean", "sum", "median", "kurt", "quantile"}
+    if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
+        raise NotImplementedError(
+            f"{func_name} is not supported with using a BaseIndexer "
+            f"subclasses. You can use .apply() with {func_name}."
+        )

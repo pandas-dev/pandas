@@ -121,8 +121,8 @@ def _generate_range_overflow_safe(
         #  we cannot salvage the operation by recursing, so raise
         try:
             addend = np.uint64(periods) * np.uint64(np.abs(stride))
-        except FloatingPointError:
-            raise OutOfBoundsDatetime(msg)
+        except FloatingPointError as err:
+            raise OutOfBoundsDatetime(msg) from err
 
     if np.abs(addend) <= i64max:
         # relatively easy case without casting concerns
@@ -179,7 +179,6 @@ def _generate_range_overflow_safe_signed(
             # watch out for very special case in which we just slightly
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
-            assert endpoint >= 0
             result = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max

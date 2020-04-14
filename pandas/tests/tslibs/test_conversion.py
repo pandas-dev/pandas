@@ -8,7 +8,7 @@ from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones, tzconversion
 
 from pandas import Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _compare_utc_to_local(tz_didx):
@@ -70,6 +70,15 @@ def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
     result = conversion.ensure_datetime64ns(arr, copy=copy)
     assert result.base is (None if copy else arr)
+
+
+def test_ensure_datetime64ns_bigendian():
+    # GH#29684
+    arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
+    result = conversion.ensure_datetime64ns(arr)
+
+    expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 class SubDatetime(datetime):

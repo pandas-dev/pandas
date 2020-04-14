@@ -51,7 +51,8 @@ class BaseOpsUtil(BaseExtensionTests):
 
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
-    """Various Series and DataFrame arithmetic ops methods.
+    """
+    Various Series and DataFrame arithmetic ops methods.
 
     Subclasses supporting various ops should set the class variables
     to indicate that they support ops of that kind
@@ -168,3 +169,11 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             assert result is NotImplemented
         else:
             raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+
+
+class BaseUnaryOpsTests(BaseOpsUtil):
+    def test_invert(self, data):
+        s = pd.Series(data, name="name")
+        result = ~s
+        expected = pd.Series(~data, name="name")
+        self.assert_series_equal(result, expected)

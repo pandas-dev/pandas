@@ -4,7 +4,7 @@ import pytest
 from pandas.core.dtypes.cast import maybe_upcast_putmask
 
 from pandas import Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("result", [Series([10, 11, 12]), [10, 11, 12], (10, 11, 12)])
@@ -12,7 +12,7 @@ def test_upcast_error(result):
     # GH23823 require result arg to be ndarray
     mask = np.array([False, True, False])
     other = np.array([61, 62, 63])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The result input must be a ndarray"):
         result, _ = maybe_upcast_putmask(result, mask, other)
 
 

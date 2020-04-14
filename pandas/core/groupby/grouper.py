@@ -3,10 +3,11 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Hashable, List, Optional, Tuple
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import numpy as np
 
+from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -19,14 +20,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -34,8 +35,7 @@ from pandas.io.formats.printing import pprint_thing
 
 class Grouper:
     """
-    A Grouper allows the user to specify a groupby instruction for a target
-    object.
+    A Grouper allows the user to specify a groupby instruction for an object.
 
     This specification will select a column via the key parameter, or if the
     level and/or axis parameters are given, a level of the index of the target
@@ -47,17 +47,18 @@ class Grouper:
     Parameters
     ----------
     key : str, defaults to None
-        groupby key, which selects the grouping column of the target
+        Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
-        the level for the target index
+        The level for the target index.
     freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
-    axis : number/name of the axis, defaults to 0
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
+    axis : str, int, defaults to 0
+        Number/name of the axis.
     sort : bool, default to False
-        whether to sort the resulting labels
+        Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -76,19 +77,53 @@ class Grouper:
 
     Examples
     --------
-
     Syntactic sugar for ``df.groupby('A')``
 
-    >>> df.groupby(Grouper(key='A'))
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "Animal": ["Falcon", "Parrot", "Falcon", "Falcon", "Parrot"],
+    ...         "Speed": [100, 5, 200, 300, 15],
+    ...     }
+    ... )
+    >>> df
+       Animal  Speed
+    0  Falcon    100
+    1  Parrot      5
+    2  Falcon    200
+    3  Falcon    300
+    4  Parrot     15
+    >>> df.groupby(pd.Grouper(key="Animal")).mean()
+            Speed
+    Animal
+    Falcon    200
+    Parrot     10
 
-    Specify a resample operation on the column 'date'
+    Specify a resample operation on the column 'Publish date'
 
-    >>> df.groupby(Grouper(key='date', freq='60s'))
-
-    Specify a resample operation on the level 'date' on the columns axis
-    with a frequency of 60s
-
-    >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
+    >>> df = pd.DataFrame(
+    ...    {
+    ...        "Publish date": [
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-09"),
+    ...             pd.Timestamp("2000-01-16")
+    ...         ],
+    ...         "ID": [0, 1, 2, 3],
+    ...         "Price": [10, 20, 30, 40]
+    ...     }
+    ... )
+    >>> df
+      Publish date  ID  Price
+    0   2000-01-02   0     10
+    1   2000-01-02   1     20
+    2   2000-01-09   2     30
+    3   2000-01-16   3     40
+    >>> df.groupby(pd.Grouper(key="Publish date", freq="1W")).mean()
+                   ID  Price
+    Publish date
+    2000-01-02    0.5   15.0
+    2000-01-09    2.0   30.0
+    2000-01-16    3.0   40.0
     """
 
     _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
@@ -129,9 +164,8 @@ class Grouper:
         -------
         a tuple of binner, grouper, obj (possibly sorted)
         """
-
         self._set_grouper(obj)
-        self.grouper, exclusions, self.obj = get_grouper(
+        self.grouper, _, self.obj = get_grouper(
             self.obj,
             [self.key],
             axis=self.axis,
@@ -194,7 +228,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis)
 
         self.obj = obj
         self.grouper = ax
@@ -419,7 +453,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> dict:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -491,8 +525,11 @@ def get_grouper(
                     raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
-                if obj.index.name != level:
-                    raise ValueError(f"level name {level} is not the name of the index")
+                if obj._get_axis(axis).name != level:
+                    raise ValueError(
+                        f"level name {level} is not the name "
+                        f"of the {obj._get_axis_name(axis)}"
+                    )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 
@@ -559,10 +596,11 @@ def get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
         if not _is_label_like(key):
-            items = obj._data.items
+            # items -> .columns for DataFrame, .index for Series
+            items = obj.axes[-1]
             try:
                 items.get_loc(key)
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
                 # TypeError shows up here if we pass e.g. Int64Index
                 return False
 
@@ -602,8 +640,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
-                " must be same length"
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
+                "must be same length"
             )
 
         # create the Grouping

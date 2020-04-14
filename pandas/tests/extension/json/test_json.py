@@ -4,8 +4,8 @@ import operator
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -79,7 +79,8 @@ class BaseJSON:
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by
     # converting the UserDicts to dicts.
-    def assert_series_equal(self, left, right, **kwargs):
+    @classmethod
+    def assert_series_equal(cls, left, right, *args, **kwargs):
         if left.dtype.name == "json":
             assert left.dtype == right.dtype
             left = pd.Series(
@@ -90,9 +91,11 @@ class BaseJSON:
                 index=right.index,
                 name=right.name,
             )
-        tm.assert_series_equal(left, right, **kwargs)
+        tm.assert_series_equal(left, right, *args, **kwargs)
 
-    def assert_frame_equal(self, left, right, *args, **kwargs):
+    @classmethod
+    def assert_frame_equal(cls, left, right, *args, **kwargs):
+        obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
             left.columns,
             right.columns,
@@ -100,13 +103,13 @@ class BaseJSON:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{obj_type}.columns",
         )
 
         jsons = (left.dtypes == "json").index
 
         for col in jsons:
-            self.assert_series_equal(left[col], right[col], *args, **kwargs)
+            cls.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=jsons)
         right = right.drop(columns=jsons)
@@ -133,10 +136,11 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         self.assert_frame_equal(a.to_frame(), a.to_frame())
 
         b = pd.Series(data.take([0, 0, 1]))
-        with pytest.raises(AssertionError):
+        msg = r"ExtensionArray are different"
+        with pytest.raises(AssertionError, match=msg):
             self.assert_series_equal(a, b)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
 
