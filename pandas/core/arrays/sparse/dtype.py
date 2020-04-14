@@ -322,7 +322,7 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
-            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
+            fill_value = astype_nansafe(np.array([self.fill_value]), dtype)[0]
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype

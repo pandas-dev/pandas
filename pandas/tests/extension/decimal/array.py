@@ -7,6 +7,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
@@ -130,8 +131,13 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        from pandas.core.arrays.string_ import StringDtype
+
+        dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
         return np.asarray(self, dtype=dtype)
 
     def __setitem__(self, key, value):

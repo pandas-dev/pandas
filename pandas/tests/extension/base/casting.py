@@ -36,6 +36,11 @@ class BaseCastingTests(BaseExtensionTests):
         expected = pd.Series(data[:5].astype(str))
         self.assert_series_equal(result, expected)
 
+    def test_astype_string(self, data):
+        result = pd.Series(data[:5]).astype("string")
+        expected = pd.Series(data[:5].astype("string"))
+        self.assert_series_equal(result, expected)
+
     def test_to_numpy(self, data):
         expected = np.asarray(data)
 
