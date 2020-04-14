@@ -535,7 +535,7 @@ class TestTimedelta64ArithmeticUnsorted:
     def test_tda_add_dt64_object_array(self, box_df_fail, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
         dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
-        dti._set_freq(None)
+        dti = dti._with_freq(None)
         tdi = dti - dti
 
         obj = tm.box_expected(tdi, box_df_fail)

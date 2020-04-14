@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import DateOffset
+from pandas.tseries.frequencies import DateOffset, to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -80,8 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
-    DatetimeLikeArrayMixin,
+    ["mean", "asi8", "_box_values", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -613,17 +612,41 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+    _freq = lib.no_default
 
-    def _set_freq(self, freq):
+    @property
+    def freq(self):
         """
-        Set the _freq attribute on our underlying DatetimeArray.
+        In limited circumstances, our freq may differ from that of our _data.
+        """
+        if self._freq is not lib.no_default:
+            return self._freq
+        return self._data.freq
 
-        Parameters
-        ----------
-        freq : DateOffset, None, or "infer"
+    @property
+    def freqstr(self):
         """
-        # GH#29843
-        self._data._with_freq(freq)
+        Return the frequency object as a string if its set, otherwise None.
+        """
+        if self.freq is None:
+            return None
+        return self.freq.freqstr
+
+    def _with_freq(self, freq):
+        index = self.copy(deep=False)
+        if freq is None:
+            # Even if we _can_ have a freq, we might want to set it to None
+            index._freq = None
+        elif len(self) == 0 and isinstance(freq, DateOffset):
+            # Always valid.  In the TimedeltaArray case, we assume this
+            #  is a Tick offset.
+            index._freq = freq
+        else:
+            assert freq == "infer", freq
+            freq = to_offset(self.inferred_freq)
+            index._freq = freq
+
+        return index
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
@@ -645,8 +668,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)
-        new_idx._set_freq(None)
+        new_idx = super().difference(other, sort=sort)._with_freq(None)
         return new_idx
 
     def intersection(self, other, sort=False):
@@ -691,7 +713,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
-                    result._set_freq("infer")
+                    result = result._with_freq("infer")
             return result
 
         elif (
@@ -702,14 +724,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             or (not self.is_monotonic or not other.is_monotonic)
         ):
             result = Index.intersection(self, other, sort=sort)
-
-            # Invalidate the freq of `result`, which may not be correct at
-            # this point, depending on the values.
-
-            result._set_freq(None)
-            result = self._shallow_copy(result._data, name=result.name)
-            if result.freq is None:
-                result._set_freq("infer")
+            result = result._with_freq("infer")
             return result
 
         # to make our life easier, "sort" the two ranges
@@ -780,9 +795,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            result = self._shallow_copy(dates)
-            result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
+            result = self._shallow_copy(dates)._with_freq("infer")
             return result
         else:
             left, right = other, self
@@ -795,9 +809,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
             dates = concat_compat((left.values, right_chunk))
-            result = self._shallow_copy(dates)
-            result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
+            result = self._shallow_copy(dates)._with_freq("infer")
             return result
         else:
             return left
@@ -814,7 +827,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             result = this._fast_union(other, sort=sort)
             if result.freq is None:
-                result._set_freq("infer")
+                result = result._with_freq("infer")
             return result
         else:
             i8self = Int64Index._simple_new(self.asi8, name=self.name)
