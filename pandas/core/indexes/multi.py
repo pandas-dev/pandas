@@ -2464,6 +2464,7 @@ class MultiIndex(Index):
         else:
             indexer = self._engine.get_indexer(target)
 
+        self._engine.clear_mapping()
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
