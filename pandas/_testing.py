@@ -248,16 +248,10 @@ def write_to_compressed(compression, path, data, dest="test"):
     ValueError : An invalid compression value was passed in.
     """
     if compression == "zip":
-        import zipfile
-
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        import gzip
-
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        import bz2
-
         compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = _get_lzma_file(lzma)

@@ -276,7 +276,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Cannot construct a Series from an ndarray with "
                         "compound dtype.  Use DataFrame instead."
                     )
-                pass
             elif isinstance(data, ABCSeries):
                 if index is None:
                     index = data.index
