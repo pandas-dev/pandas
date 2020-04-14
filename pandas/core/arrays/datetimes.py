@@ -973,7 +973,16 @@ default 'raise'
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
         dtype = tz_to_dtype(tz)
-        return self._simple_new(new_dates, dtype=dtype, freq=self.freq)
+
+        freq = None
+        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            freq = self.freq
+        elif tz is None and self.tz is None:
+            # no-op
+            freq = self.freq
+        return self._simple_new(new_dates, dtype=dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
