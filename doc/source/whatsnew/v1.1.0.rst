@@ -25,7 +25,7 @@ For example:
 
     In [1]: pd.Series([1, "abc", np.nan], dtype="string")
     Out[1]: ValueError: StringArray requires a sequence of strings or pandas.NA
-    In [2]: pd.Series([1,2, np.nan], dtype="Int64").astype("string")
+    In [2]: pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
     Out[2]: ValueError: StringArray requires a sequence of strings or pandas.NA
 
 This meant that in order to convert arbitrary data to :class:`StringDtype`, you would often have to use ``.astype(str).astype('string')``, which was not intuitive.
@@ -36,7 +36,7 @@ This meant that in order to convert arbitrary data to :class:`StringDtype`, you 
    ser = pd.Series([1, "abc", np.nan], dtype="string")
    ser
    ser[0]
-   pd.Series([1,2, np.nan], dtype="Int64").astype("string")
+   pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
 
 
 .. _whatsnew_110.period_index_partial_string_slicing:
