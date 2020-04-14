@@ -49,6 +49,7 @@ class TestSeriesDatetimeValues:
             "ceil",
             "day_name",
             "month_name",
+            "isocalendar",
         ]
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = [
@@ -678,7 +679,7 @@ class TestSeriesDatetimeValues:
         ],
     )
     def test_isocalendar(self, input_series, expected_output):
-        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar()
         expected_frame = pd.DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )

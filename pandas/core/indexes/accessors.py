@@ -219,7 +219,6 @@ class DatetimeProperties(Properties):
     def freq(self):
         return self._get_values().inferred_freq
 
-    @property
     def isocalendar(self):
         """
         Returns a DataFrame with the year, week, and day calculated according to
@@ -240,16 +239,16 @@ class DatetimeProperties(Properties):
         Examples
         --------
         >>> ser = pd.to_datetime(pd.Series(["2010-01-01", pd.NaT]))
-        >>> ser.dt.isocalendar
+        >>> ser.dt.isocalendar()
            year  week  day
         0  2009    53     5
         1  <NA>  <NA>  <NA>
-        >>> ser.dt.isocalendar.week
+        >>> ser.dt.isocalendar().week
         0      53
         1    <NA>
         Name: week, dtype: UInt32
         """
-        return self._get_values().isocalendar.set_index(self._parent.index)
+        return self._get_values().isocalendar().set_index(self._parent.index)
 
 
 @delegate_names(
