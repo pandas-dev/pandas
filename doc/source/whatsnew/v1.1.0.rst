@@ -88,6 +88,7 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
+- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`).
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
@@ -377,7 +378,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement in reductions (sum, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`).
+- Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 
 
 .. ---------------------------------------------------------------------------
@@ -396,6 +397,7 @@ Categorical
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
+- Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -409,6 +411,8 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
 - Bug where :meth:`PeriodIndex` raised when passed a :class:`Series` of strings (:issue:`26109`)
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
+- Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
+
 
 Timedelta
 ^^^^^^^^^
