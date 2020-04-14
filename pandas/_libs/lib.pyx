@@ -1173,14 +1173,15 @@ cdef class Seen:
                     or self.nat_)
 
 
-cdef _try_infer_map(v):
+cdef _try_infer_map(dtype):
     """
     If its in our map, just return the dtype.
     """
     cdef:
-        object attr, val
-    for attr in ['name', 'kind', 'base']:
-        val = getattr(v.dtype, attr)
+        str attr
+        object val
+    for attr in ["name", "kind", "base"]:
+        val = getattr(dtype, attr)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1293,44 +1294,49 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(value, 'dtype'):
+    elif hasattr(value, "inferred_type") and skipna is False:
+        # Index, use the cached attribute if possible, populate the cache otherwise
+        return value.inferred_type
+    elif hasattr(value, "dtype"):
         # this will handle ndarray-like
         # e.g. categoricals
-        try:
-            values = getattr(value, '_values', getattr(value, 'values', value))
-        except TypeError:
-            # This gets hit if we have an EA, since cython expects `values`
-            #  to be an ndarray
-            value = _try_infer_map(value)
+        dtype = value.dtype
+        if not isinstance(dtype, np.dtype):
+            value = _try_infer_map(value.dtype)
             if value is not None:
                 return value
 
-            # its ndarray like but we can't handle
+            # its ndarray-like but we can't handle
             raise ValueError(f"cannot infer type for {type(value)}")
+
+        # Unwrap Series/Index
+        values = np.asarray(value)
 
     else:
         if not isinstance(value, list):
             value = list(value)
-        from pandas.core.dtypes.cast import (
-            construct_1d_object_array_from_listlike)
-        values = construct_1d_object_array_from_listlike(value)
+
+        # See also: construct_1d_object_array_from_listlike
+        values = np.empty(len(value), dtype=object)
+        values[:] = value
 
     # make contiguous
-    values = values.ravel()
+    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
+    values = values.ravel(order="K")
 
-    val = _try_infer_map(values)
+    val = _try_infer_map(values.dtype)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
-        values = values.astype('O')
+        values = values.astype("O")
 
     if skipna:
         values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
-        return 'empty'
+        return "empty"
 
     # try to use a valid value
     for i in range(n):
