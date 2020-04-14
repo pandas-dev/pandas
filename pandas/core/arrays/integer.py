@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -573,7 +574,19 @@ class IntegerArray(BaseMaskedArray):
 
         return result
 
-    def sum(self, skipna: bool = True, min_count: int = 0):
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        skipna=True,
+        min_count=0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
         result = masked_reductions.sum(
             values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
         )

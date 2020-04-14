@@ -124,6 +124,15 @@ def test_integer_array_sum(skipna, min_count):
         assert result is pd.NA
 
 
+@pytest.mark.parametrize(
+    "values, expected", [([1, 2, 3], 6), ([1, 2, 3, None], 6), ([None], 0)]
+)
+def test_integer_array_numpy_sum(values, expected):
+    arr = pd.array(values, dtype="Int64")
+    result = np.sum(arr)
+    assert result == expected
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift
