@@ -514,7 +514,7 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self:
             object.__setattr__(group, "name", name)
             if engine == "numba":
-                values, index, _ = split_for_numba(group)
+                values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if func not in self._numba_func_cache:
                     self._numba_func_cache[func] = numba_func
@@ -1396,7 +1396,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if engine == "numba":
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func, include_columns=True)
+            validate_udf(func)
             numba_func = self._numba_func_cache.get(
                 func, jit_user_function(func, nopython, nogil, parallel)
             )
@@ -1407,8 +1407,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             object.__setattr__(group, "name", name)
 
             if engine == "numba":
-                values, index, columns = split_for_numba(group)
-                res = numba_func(values, index, columns, *args)
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
                 if func not in self._numba_func_cache:
                     self._numba_func_cache[func] = numba_func
                 # Return the result as a DataFrame for concatenation later

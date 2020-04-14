@@ -648,7 +648,7 @@ class TransformEngine:
         self.grouper[1].transform(function, engine="cython")
 
     def time_dataframe_numba(self):
-        def function(values, index, columns):
+        def function(values, index):
             return values * 5
 
         self.grouper.transform(function, engine="numba")
