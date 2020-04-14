@@ -300,11 +300,8 @@ def _get_values(
         dtype, fill_value=fill_value, fill_value_typ=fill_value_typ
     )
 
-    copy = (mask is not None) and (fill_value is not None)
-
-    if skipna and copy:
+    if skipna and (mask is not None) and (fill_value is not None):
         values = values.copy()
-        assert mask is not None  # for mypy
         if dtype_ok and mask.any():
             np.putmask(values, mask, fill_value)
 
