@@ -25,8 +25,8 @@ import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
-from pandas.io.sas.reader import ReaderBase
 import pandas.io.sas.sas_constants as const
+from pandas.io.sas.sasreader import ReaderBase
 
 
 class _subheader_pointer:

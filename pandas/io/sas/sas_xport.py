@@ -19,7 +19,7 @@ from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
-from pandas.io.sas.reader import ReaderBase
+from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
