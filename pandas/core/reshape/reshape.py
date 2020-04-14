@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
-from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
@@ -143,7 +142,7 @@ class _Unstacker:
         indexer, to_sort = self._indexer_and_to_sort
         return [l.take(indexer) for l in to_sort]
 
-    def _make_sorted_values(self, values):
+    def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
 
         sorted_values = algos.take_nd(values, indexer, axis=0)
@@ -206,6 +205,9 @@ class _Unstacker:
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
+            # TODO: Under what circumstances can we rely on sorted_values
+            #  matching values?  When that holds, we can slice instead
+            #  of take (in particular for EAs)
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)
@@ -413,7 +415,7 @@ def unstack(obj, level, fill_value=None):
         level = obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
-        if isinstance(obj.index, MultiIndex):
+        if isinstance(obj.index, MultiIndex) or not obj._can_fast_transpose:
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
@@ -429,14 +431,14 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
-    if obj._is_mixed_type:
+    if not obj._can_fast_transpose:
         unstacker = _Unstacker(obj.index, level=level)
-        blocks = obj._mgr.unstack(unstacker, fill_value=fill_value)
-        return obj._constructor(blocks)
+        mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
+        return obj._constructor(mgr)
     else:
         return _Unstacker(
             obj.index, level=level, constructor=obj._constructor,
-        ).get_result(obj.values, value_columns=obj.columns, fill_value=fill_value)
+        ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
 
 
 def _unstack_extension_series(series, level, fill_value):
@@ -462,31 +464,10 @@ def _unstack_extension_series(series, level, fill_value):
         Each column of the DataFrame will have the same dtype as
         the input Series.
     """
-    # Implementation note: the basic idea is to
-    # 1. Do a regular unstack on a dummy array of integers
-    # 2. Followup with a columnwise take.
-    # We use the dummy take to discover newly-created missing values
-    # introduced by the reshape.
-    from pandas.core.reshape.concat import concat
-
-    dummy_arr = np.arange(len(series))
-    # fill_value=-1, since we will do a series.values.take later
-    result = _Unstacker(series.index, level=level).get_result(
-        dummy_arr, value_columns=None, fill_value=-1
-    )
-
-    out = []
-    values = extract_array(series, extract_numpy=False)
-
-    for col, indices in result.items():
-        out.append(
-            Series(
-                values.take(indices.values, allow_fill=True, fill_value=fill_value),
-                name=col,
-                index=result.index,
-            )
-        )
-    return concat(out, axis="columns", copy=False, keys=result.columns)
+    # Defer to the logic in ExtensionBlock._unstack
+    df = series.to_frame()
+    result = df.unstack(level=level, fill_value=fill_value)
+    return result.droplevel(level=0, axis=1)
 
 
 def stack(frame, level=-1, dropna=True):

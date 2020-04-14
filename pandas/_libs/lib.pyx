@@ -1,9 +1,6 @@
 from collections import abc
 from decimal import Decimal
-from fractions import Fraction
-from numbers import Number
 
-import sys
 import warnings
 
 import cython
@@ -1001,34 +998,34 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets):
 
 
 _TYPE_MAP = {
-    'categorical': 'categorical',
-    'category': 'categorical',
-    'int8': 'integer',
-    'int16': 'integer',
-    'int32': 'integer',
-    'int64': 'integer',
-    'i': 'integer',
-    'uint8': 'integer',
-    'uint16': 'integer',
-    'uint32': 'integer',
-    'uint64': 'integer',
-    'u': 'integer',
-    'float32': 'floating',
-    'float64': 'floating',
-    'f': 'floating',
-    'complex64': 'complex',
-    'complex128': 'complex',
-    'c': 'complex',
-    'string': 'string',
-    'S': 'bytes',
-    'U': 'string',
-    'bool': 'boolean',
-    'b': 'boolean',
-    'datetime64[ns]': 'datetime64',
-    'M': 'datetime64',
-    'timedelta64[ns]': 'timedelta64',
-    'm': 'timedelta64',
-    'interval': 'interval',
+    "categorical": "categorical",
+    "category": "categorical",
+    "int8": "integer",
+    "int16": "integer",
+    "int32": "integer",
+    "int64": "integer",
+    "i": "integer",
+    "uint8": "integer",
+    "uint16": "integer",
+    "uint32": "integer",
+    "uint64": "integer",
+    "u": "integer",
+    "float32": "floating",
+    "float64": "floating",
+    "f": "floating",
+    "complex64": "complex",
+    "complex128": "complex",
+    "c": "complex",
+    "string": "string",
+    "S": "bytes",
+    "U": "string",
+    "bool": "boolean",
+    "b": "boolean",
+    "datetime64[ns]": "datetime64",
+    "M": "datetime64",
+    "timedelta64[ns]": "timedelta64",
+    "m": "timedelta64",
+    "interval": "interval",
 }
 
 # types only exist on certain platform
@@ -1173,13 +1170,13 @@ cdef class Seen:
                     or self.nat_)
 
 
-cdef _try_infer_map(dtype):
+cdef object _try_infer_map(object dtype):
     """
     If its in our map, just return the dtype.
     """
     cdef:
-        str attr
         object val
+        str attr
     for attr in ["name", "kind", "base"]:
         val = getattr(dtype, attr)
         if val in _TYPE_MAP:
