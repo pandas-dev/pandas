@@ -104,7 +104,9 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     result = grouped.transform(func_2, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x * 5, engine="cython")
     tm.assert_equal(result, expected)
+    assert func_2 in grouped._numba_func_cache
 
+    # Retest func_1 which should use the cache
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x + 1, engine="cython")
     tm.assert_equal(result, expected)
