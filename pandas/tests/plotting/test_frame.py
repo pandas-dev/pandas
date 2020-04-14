@@ -3364,6 +3364,13 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match="invalid names: {'bad_name'}"):
             df.plot(subplots=[("a", "bad_name")])
 
+    def test_group_subplot_duplicated_column(self):
+        d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
+        df = pd.DataFrame(d)
+
+        with pytest.raises(ValueError, match="should be in only one subplot"):
+            df.plot(subplots=[("a", "b"), ("a", "c")])
+
     @pytest.mark.parametrize("kind", ("box", "scatter", "hexbin"))
     def test_group_subplot_invalid_kind(self, kind):
         d = {"a": np.arange(10), "b": np.arange(10)}

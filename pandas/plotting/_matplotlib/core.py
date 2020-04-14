@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections import Iterable, Counter
 import re
 from typing import Optional
 import warnings
@@ -143,7 +143,17 @@ class MPLPlot:
                     "should be a list/tuple of column names."
                 )
 
-            cols_in_groups = {col for group in subplots for col in group}
+            cols_in_groups = [col for group in subplots for col in group]
+            duplicates = {
+                col for (col, cnt) in Counter(cols_in_groups).items() if cnt > 1
+            }
+            if duplicates:
+                raise ValueError(
+                    f"Each column should be in only one subplot. Columns {duplicates} "
+                    "were found in multiple sublots."
+                )
+
+            cols_in_groups = set(cols_in_groups)
             cols_remaining = set(data.columns) - cols_in_groups
             bad_columns = cols_in_groups - set(data.columns)
 
