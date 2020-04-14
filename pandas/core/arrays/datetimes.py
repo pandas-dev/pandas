@@ -18,6 +18,7 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
+import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -182,7 +183,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "microsecond",
         "nanosecond",
     ]
-    _other_ops = ["date", "time", "timetz"]
+    _other_ops = ["date", "time", "timetz", "isocalendar"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = [
         "to_period",
@@ -613,8 +614,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         fmt = _get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
-        )
+            self.asi8.ravel(), tz=self.tz, format=fmt, na_rep=na_rep
+        ).reshape(self.shape)
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -1097,7 +1098,14 @@ default 'raise'
                     "You must pass a freq argument as current index has none."
                 )
 
-            freq = get_period_alias(freq)
+            res = get_period_alias(freq)
+
+            #  https://github.com/pandas-dev/pandas/issues/33358
+            if res is None:
+                base, stride = libfrequencies._base_and_stride(freq)
+                res = f"{stride}{base}"
+
+            freq = res
 
         return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
 
@@ -1234,11 +1242,71 @@ default 'raise'
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
+    @property
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+        >>> idx.isocalendar
+           year  week  day
+        0  2019    52    7
+        1  2020     1    1
+        2  2020     1    2
+        3  2020     1    3
+        >>> idx.isocalendar.week
+        0    52
+        1     1
+        2     1
+        3     1
+        Name: week, dtype: UInt32
+        """
+        from pandas import DataFrame
+
+        sarray = fields.build_isocalendar_sarray(self.asi8)
+        iso_calendar_df = DataFrame(
+            sarray, columns=["year", "week", "day"], dtype="UInt32"
+        )
+        if self._hasnans:
+            iso_calendar_df.iloc[self._isnan] = None
+        return iso_calendar_df
+
     year = _field_accessor(
         "year",
         "Y",
         """
         The year of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="Y")
+        ... )
+        >>> datetime_series
+        0   2000-12-31
+        1   2001-12-31
+        2   2002-12-31
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.year
+        0    2000
+        1    2001
+        2    2002
+        dtype: int64
         """,
     )
     month = _field_accessor(
@@ -1246,6 +1314,22 @@ default 'raise'
         "M",
         """
         The month as January=1, December=12.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="M")
+        ... )
+        >>> datetime_series
+        0   2000-01-31
+        1   2000-02-29
+        2   2000-03-31
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.month
+        0    1
+        1    2
+        2    3
+        dtype: int64
         """,
     )
     day = _field_accessor(
@@ -1253,6 +1337,22 @@ default 'raise'
         "D",
         """
         The day of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="D")
+        ... )
+        >>> datetime_series
+        0   2000-01-01
+        1   2000-01-02
+        2   2000-01-03
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.day
+        0    1
+        1    2
+        2    3
+        dtype: int64
         """,
     )
     hour = _field_accessor(
@@ -1260,6 +1360,22 @@ default 'raise'
         "h",
         """
         The hours of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="h")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00
+        1   2000-01-01 01:00:00
+        2   2000-01-01 02:00:00
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.hour
+        0    0
+        1    1
+        2    2
+        dtype: int64
         """,
     )
     minute = _field_accessor(
@@ -1267,6 +1383,22 @@ default 'raise'
         "m",
         """
         The minutes of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="T")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00
+        1   2000-01-01 00:01:00
+        2   2000-01-01 00:02:00
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.minute
+        0    0
+        1    1
+        2    2
+        dtype: int64
         """,
     )
     second = _field_accessor(
@@ -1274,6 +1406,22 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="s")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00
+        1   2000-01-01 00:00:01
+        2   2000-01-01 00:00:02
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.second
+        0    0
+        1    1
+        2    2
+        dtype: int64
         """,
     )
     microsecond = _field_accessor(
@@ -1281,6 +1429,22 @@ default 'raise'
         "us",
         """
         The microseconds of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="us")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00.000000
+        1   2000-01-01 00:00:00.000001
+        2   2000-01-01 00:00:00.000002
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.microsecond
+        0       0
+        1       1
+        2       2
+        dtype: int64
         """,
     )
     nanosecond = _field_accessor(
@@ -1288,6 +1452,22 @@ default 'raise'
         "ns",
         """
         The nanoseconds of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="ns")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00.000000000
+        1   2000-01-01 00:00:00.000000001
+        2   2000-01-01 00:00:00.000000002
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.nanosecond
+        0       0
+        1       1
+        2       2
+        dtype: int64
         """,
     )
     weekofyear = _field_accessor(

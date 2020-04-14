@@ -14,7 +14,7 @@ import glob
 import os
 import re
 import sys
-from typing import Generator, List, Tuple
+from typing import Iterable, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -99,6 +99,19 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessHour",
     "BusinessDay",
     "DateOffset",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+    "Float64Index",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -148,7 +161,7 @@ def correct_title_capitalization(title: str) -> str:
     return correct_title
 
 
-def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
+def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
     """
     Algorithm to identify particular text that should be considered headings in an
     RST file.
@@ -184,7 +197,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
             previous_line = line
 
 
-def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
+def find_rst_files(source_paths: List[str]) -> Iterable[str]:
     """
     Given the command line arguments of directory paths, this method
     yields the strings of the .rst file directories that these paths contain.
@@ -214,7 +227,7 @@ def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
                 yield filename
 
 
-def main(source_paths: List[str], output_format: str) -> bool:
+def main(source_paths: List[str], output_format: str) -> int:
     """
     The main method to print all headings with incorrect capitalization.
 

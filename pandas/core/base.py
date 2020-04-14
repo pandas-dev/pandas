@@ -1520,4 +1520,4 @@ class IndexOpsMixin:
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
+            ).__finalize__(self, method="duplicated")
