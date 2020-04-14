@@ -613,8 +613,8 @@ class PlotAccessor(PandasObject):
         * ``list of iterables`` - create a subplots for each group of columns.
           For example `[('a', 'c'), ('b', 'd')]` will create 2 subplots: one
           with columns 'a' and 'c', and one with columns 'b' and 'd'.
-          Remaining columns that aren't specified will be grouped into a
-          third additional subplot.
+          Remaining columns that aren't specified will be plotted in
+          additional subplots (one per column).
 
     figsize : a tuple (width, height) in inches
     use_index : bool, default True
