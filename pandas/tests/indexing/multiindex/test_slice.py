@@ -118,11 +118,11 @@ class TestMultiIndexSlicers:
         with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), np.array([True, False])), :]
 
-        # ambiguous notation
-        # this is interpreted as slicing on both axes (GH #16396)
-        result = df.loc[slice(None), [1]]
-        expected = df.iloc[:, []]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match=r"\[1\] not in index"):
+            # slice(None) is on the index, [1] is on the columns, but 1 is
+            #  not in the columns, so we raise
+            #  This used to treat [1] as positional GH#16396
+            df.loc[slice(None), [1]]
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
