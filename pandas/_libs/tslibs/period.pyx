@@ -891,7 +891,8 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     elif freq == FR_MIN:
         factor = 10**9 * 60
 
-    elif freq == FR_HR:
+    else:
+        # We must have freq == FR_HR
         factor = 10**9 * 3600
 
     sub = ordinal - unix_date * 24 * 3600 * 10**9 / factor
