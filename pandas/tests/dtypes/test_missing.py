@@ -564,7 +564,7 @@ class TestLibMissing:
         for value in never_na_vals:
             assert not libmissing.checknull(value)
 
-    def checknull_old(self):
+    def test_checknull_old(self):
         for value in na_vals:
             assert libmissing.checknull_old(value)
 
