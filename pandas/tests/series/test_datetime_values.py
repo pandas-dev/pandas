@@ -684,3 +684,11 @@ class TestSeriesDatetimeValues:
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)
+
+
+def test_week_and_weekofyear_are_deprecated():
+    series = pd.to_datetime(pd.Series(["2020-01-01"]))
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.week
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.weekofyear

@@ -383,6 +383,14 @@ def test_iter_readonly():
     list(dti)
 
 
+def test_week_and_weekofyear_are_deprecated():
+    idx = pd.date_range(start="2019-12-29", freq="D", periods=4)
+    with tm.assert_produces_warning(FutureWarning):
+        idx.week
+    with tm.assert_produces_warning(FutureWarning):
+        idx.weekofyear
+
+
 def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
     # GH 6538: Check that DatetimeIndex and its TimeStamp elements
     # return the same weekofyear accessor close to new year w/ tz
