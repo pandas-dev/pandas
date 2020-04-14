@@ -262,7 +262,7 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 class ReadCSVEngine(StringIORewind):
     def setup(self):
-        data = ["A,B,C"] + (["1,2,3"] * 100000)
+        data = ["A,B,C"] + (["1,2,3"] * 1000000)
         self.StringIO_input = StringIO("\n".join(data))
 
     def time_read_csv_c(self):

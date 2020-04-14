@@ -63,6 +63,7 @@ def test_override_set_noconvert_columns():
         "parse_dates": parse_dates,
         "delimiter": ",",
     }
+    parser.engine = "c"
     parser._engine = MyCParserWrapper(StringIO(data), **parser.options)
 
     result = parser.read()

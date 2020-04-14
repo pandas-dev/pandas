@@ -531,6 +531,7 @@ _pyarrow_unsupported = {
     "chunksize",
     "comment",
     "nrows",
+    "thousands",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -959,12 +960,11 @@ class TextFileReader(abc.Iterator):
         # pyarrow engine not supported yet
         if engine == "pyarrow":
             for option in _pyarrow_unsupported:
-                if option not in ["chunksize", "skipfooter", "nrows"]:
+                if option not in ["chunksize", "nrows"]:
                     if options[option] is not None:
                         fallback_reason = (
                             f"the pyarrow engine does not support the {option} argumnet"
                         )
-                        engine = "python"
                 else:
                     if self.chunksize is not None:
                         fallback_reason = (
@@ -974,10 +974,10 @@ class TextFileReader(abc.Iterator):
                         fallback_reason = (
                             "the pyarrow engine does not support using nrows"
                         )
-        # C and pyarrow engine not supported yet
-        if engine == "c" or "pyarrow":
+        # C engine not supported yet
+        if engine == "c":
             if options["skipfooter"] > 0:
-                fallback_reason = f"the {engine} engine does not support skipfooter"
+                fallback_reason = f"the 'c' engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
@@ -1157,7 +1157,7 @@ class TextFileReader(abc.Iterator):
             else:
                 raise ValueError(
                     f"Unknown engine: {engine} (valid options "
-                    'are "c", "python", "arrow", or "python-fwf")'
+                    'are "c", "python", "pyarrow", or "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -2266,13 +2266,24 @@ class ArrowParserWrapper(ParserBase):
         pyarrow = import_optional_dependency(
             "pyarrow.csv", extra="pyarrow is required to use the pyarrow engine"
         )
+        try:
+            read_options = pyarrow.ReadOptions(
+                skip_rows=self.kwds.get("skiprows"),
+                autogenerate_column_names=False if self.header == 0 else True,
+            )
+        except TypeError as e:
+            msg = "__init__() got an unexpected keyword argument"
+            if msg in str(e):
+                raise ImportError(
+                    "Pyarrow version >= 0.15.0 is needed in order "
+                    "to use skiprows kwarg with engine=pyarrow. "
+                    "Please upgrade Pyarrow or switch engines."
+                )
+            else:
+                raise e
         table = pyarrow.read_csv(
             self.src,
-            read_options=pyarrow.ReadOptions(
-                skip_rows=self.kwds.get("skiprows"),
-                column_names=self.names,
-                autogenerate_column_names=False if self.header == 0 else True,
-            ),
+            read_options=read_options,
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),
                 quote_char=self.kwds.get("quotechar"),
@@ -2287,17 +2298,13 @@ class ArrowParserWrapper(ParserBase):
         if self.names is None:
             if self.prefix:
                 self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-                frame.columns = self.names
             elif self.header is not None and self.header != 0:
-                header = self.header
-                self.names = frame.iloc[header]
-                frame = frame.drop(header, axis=0)
-                frame.columns = self.names
+                self.names = frame.iloc[self.header]
+                frame = frame.drop(self.header, axis=0)
             elif self.header is None:
                 self.names = range(num_cols)
-                frame.columns = self.names
-
-        index_col = self.kwds.get("index_col")  # need to flatten since returns list
+        frame.columns = self.names
+        index_col = self.index_col  # need to flatten since returns list
         if index_col is not None:
             frame.set_index(frame.columns[index_col[0]], drop=True, inplace=True)
         return frame
