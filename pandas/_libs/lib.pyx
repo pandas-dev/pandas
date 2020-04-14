@@ -1,9 +1,6 @@
 from collections import abc
 from decimal import Decimal
-from fractions import Fraction
-from numbers import Number
 
-import sys
 import warnings
 
 import cython
