@@ -198,7 +198,7 @@ can be used to filter the ``DataFrame`` by putting it in between the
 selection brackets ``[]``. Only rows for which the value is ``True``
 will be selected.
 
-We now from before that the original titanic ``DataFrame`` consists of
+We know from before that the original titanic ``DataFrame`` consists of
 891 rows. Let’s have a look at the amount of rows which satisfy the
 condition by checking the ``shape`` attribute of the resulting
 ``DataFrame`` ``above_35``:
