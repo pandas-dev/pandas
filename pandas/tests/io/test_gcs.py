@@ -29,7 +29,7 @@ def test_read_csv_gcs(monkeypatch):
     )
 
     class MockGCSFileSystem:
-        def open(*args):
+        def open(self, path, mode, *args):
             return StringIO(df1.to_csv(index=False))
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
@@ -51,7 +51,7 @@ def test_to_csv_gcs(monkeypatch):
     s = StringIO()
 
     class MockGCSFileSystem:
-        def open(*args):
+        def open(self, path, mode, *args):
             return s
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)

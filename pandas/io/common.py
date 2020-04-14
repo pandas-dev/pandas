@@ -158,6 +158,23 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def is_fsspec_url(url) -> bool:
+    """
+    Returns true if fsspec is installed and the URL references a known
+    fsspec filesystem.
+    """
+
+    if not isinstance(url, str):
+        return False
+
+    try:
+        from fsspec.registry import known_implementations
+        scheme = parse_url(url).scheme
+        return scheme != "file" and scheme in known_implementations
+    except ImportError:
+        return False
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
@@ -194,19 +211,26 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
-        from pandas.io import s3
+    if is_fsspec_url(filepath_or_buffer):
+        import fsspec
+        scheme = parse_url(filepath_or_buffer).scheme
+        filesystem = fsspec.filesystem(scheme)
+        file_obj = filesystem.open(filepath_or_buffer, mode=mode or "rb")
+        return file_obj, encoding, compression, True
 
-        return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+    # if is_s3_url(filepath_or_buffer):
+    #     from pandas.io import s3
 
-    if is_gcs_url(filepath_or_buffer):
-        from pandas.io import gcs
+    #     return s3.get_filepath_or_buffer(
+    #         filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+    #     )
 
-        return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+    # if is_gcs_url(filepath_or_buffer):
+    #     from pandas.io import gcs
+
+    #     return gcs.get_filepath_or_buffer(
+    #         filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+    #     )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
