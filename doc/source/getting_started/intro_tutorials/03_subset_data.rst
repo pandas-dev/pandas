@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -72,7 +72,7 @@ How do I select specific columns from a ``DataFrame``?
     <ul class="task-bullet">
         <li>
 
-I’m interested in the age of the titanic passengers.
+I’m interested in the age of the Titanic passengers.
 
 .. ipython:: python
 
@@ -111,7 +111,7 @@ the number of rows is returned.
     <ul class="task-bullet">
         <li>
 
-I’m interested in the age and sex of the titanic passengers.
+I’m interested in the age and sex of the Titanic passengers.
 
 .. ipython:: python
 
@@ -198,7 +198,7 @@ can be used to filter the ``DataFrame`` by putting it in between the
 selection brackets ``[]``. Only rows for which the value is ``True``
 will be selected.
 
-We know from before that the original titanic ``DataFrame`` consists of
+We know from before that the original Titanic ``DataFrame`` consists of
 891 rows. Let’s have a look at the amount of rows which satisfy the
 condition by checking the ``shape`` attribute of the resulting
 ``DataFrame`` ``above_35``:
@@ -212,7 +212,7 @@ condition by checking the ``shape`` attribute of the resulting
     <ul class="task-bullet">
         <li>
 
-I’m interested in the titanic passengers from cabin class 2 and 3.
+I’m interested in the Titanic passengers from cabin class 2 and 3.
 
 .. ipython:: python
 
