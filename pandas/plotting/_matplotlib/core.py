@@ -1,4 +1,4 @@
-from collections import Iterable, Counter
+from collections import Counter, Iterable
 import re
 from typing import Optional
 import warnings
