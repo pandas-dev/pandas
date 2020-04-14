@@ -606,6 +606,15 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot
         - 'hexbin' : hexbin plot.
+    subplots : bool or list of iterables
+
+        * ``False`` - no subplots will be used
+        * ``True`` - create a subplot for each column
+        * ``list of iterables`` - create a subplots for each group of columns.
+          For example `[('a', 'c'), ('b', 'd')]` will create 2 subplots: one
+          with columns 'a' and 'c', and one with columns 'b' and 'd'.
+          Remaining columns that aren't specified will be grouped into a
+          third additional subplot.
 
     figsize : a tuple (width, height) in inches
     use_index : bool, default True

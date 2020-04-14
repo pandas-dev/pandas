@@ -115,11 +115,9 @@ class MPLPlot:
 
         self.sort_columns = sort_columns
 
-        self.subplots = subplots
-        if not isinstance(self.subplots, (bool, Iterable)):
-            raise ValueError("subplots should be a bool or an iterable")
-        if isinstance(self.subplots, Iterable):
-
+        if isinstance(subplots, bool):
+            self.subplots = subplots
+        elif isinstance(subplots, Iterable):
             supported_kinds = (
                 "line",
                 "bar",
@@ -133,7 +131,7 @@ class MPLPlot:
             if self._kind not in supported_kinds:
                 raise ValueError(
                     "When subplots is an iterable, kind must be "
-                    f"one of {', '.join(supported_kinds)}. Got {self._kind}"
+                    f"one of {', '.join(supported_kinds)}. Got {self._kind}."
                 )
 
             if any(
@@ -142,11 +140,10 @@ class MPLPlot:
             ):
                 raise ValueError(
                     "When subplots is an iterable, each entry "
-                    "should be a list/tuple of column names "
-                    "or column indices."
+                    "should be a list/tuple of column names."
                 )
 
-            cols_in_groups = {col for group in self.subplots for col in group}
+            cols_in_groups = {col for group in subplots for col in group}
             cols_remaining = set(data.columns) - cols_in_groups
             bad_columns = cols_in_groups - set(data.columns)
 
@@ -169,14 +166,14 @@ class MPLPlot:
             # later.
             # TODO: also accept indexes instead of just names?
 
-            subplots = []
+            self.subplots = []
             index = list(data.columns).index
-            for group in self.subplots:
-                subplots.append(tuple(index(col) for col in group))
+            for group in subplots:
+                self.subplots.append(tuple(index(col) for col in group))
             for col in cols_remaining:
-                subplots.append((index(col),))
-
-            self.subplots = subplots
+                self.subplots.append((index(col),))
+        else:
+            raise ValueError("subplots should be a bool or an iterable")
 
         if sharex is None:
             if ax is None:
