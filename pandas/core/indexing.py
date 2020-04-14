@@ -616,6 +616,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # invalid indexer type vs 'other' indexing errors
             if "cannot do" in str(e):
                 raise
+            elif "unhashable type" in str(e):
+                raise
             raise IndexingError(key) from e
 
     def _ensure_listlike_indexer(self, key, axis=None):
