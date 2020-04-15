@@ -472,6 +472,7 @@ _series = {
     for index_id, index in indices_dict.items()
 }
 
+
 @pytest.fixture
 def period_series():
     """Fixture for Series with Period-type index.
@@ -479,6 +480,7 @@ def period_series():
     s = tm.makePeriodSeries()
     s.name = 'ps'
     return s
+
 
 @pytest.fixture
 def series_with_simple_index(indices):
