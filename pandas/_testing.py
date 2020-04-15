@@ -999,7 +999,12 @@ def assert_numpy_array_equal(
 
 
 def assert_extension_array_equal(
-    left, right, check_dtype=True, check_less_precise=False, check_exact=False
+    left,
+    right,
+    check_dtype=True,
+    check_less_precise=False,
+    check_exact=False,
+    index_values=None,
 ):
     """
     Check that left and right ExtensionArrays are equal.
@@ -1016,6 +1021,8 @@ def assert_extension_array_equal(
         If int, then specify the digits to compare.
     check_exact : bool, default False
         Whether to compare number exactly.
+    index_values : numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
 
     Notes
     -----
@@ -1031,17 +1038,23 @@ def assert_extension_array_equal(
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
-        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
+        assert_numpy_array_equal(
+            np.asarray(left.asi8), np.asarray(right.asi8), index_values=index_values
+        )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-    assert_numpy_array_equal(left_na, right_na, obj="ExtensionArray NA mask")
+    assert_numpy_array_equal(
+        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+    )
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
     if check_exact:
-        assert_numpy_array_equal(left_valid, right_valid, obj="ExtensionArray")
+        assert_numpy_array_equal(
+            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+        )
     else:
         _testing.assert_almost_equal(
             left_valid,
@@ -1049,6 +1062,7 @@ def assert_extension_array_equal(
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
             obj="ExtensionArray",
+            index_values=index_values,
         )
 
 
@@ -1181,12 +1195,17 @@ def assert_series_equal(
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values, right._values, index_values=np.asarray(left.index)
+        )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values, right._values, index_values=np.asarray(left.index)
+        )
     else:
         _testing.assert_almost_equal(
             left._values,
