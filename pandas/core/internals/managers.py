@@ -1371,9 +1371,9 @@ class BlockManager(PandasObject):
 
                 else:
                     taker = blklocs[mgr_locs.indexer]
-                    # TODO: taker.max() probably isnt the Technically Correct
+                    # TODO: taker.max()+1 probably isnt the Technically Correct
                     #  way of calling this?
-                    taker = lib.maybe_indices_to_slice(taker, taker.max())
+                    taker = lib.maybe_indices_to_slice(taker, taker.max() + 1)
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block(taker)
