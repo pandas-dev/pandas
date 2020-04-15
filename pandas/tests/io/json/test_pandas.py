@@ -658,7 +658,7 @@ class TestPandasContainer:
         expected = period_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
-        if orient in ("index","columns"):
+        if orient in ("index", "columns"):
             result.index = result.index.to_period()
         if orient != "split":
             expected.name = None
