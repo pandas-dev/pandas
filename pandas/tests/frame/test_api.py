@@ -531,7 +531,7 @@ class TestDataFrameMisc:
         await ip.run_code(code)
 
         # TODO: remove it when Ipython updates
-        # jedi version raises Deprecation warning in Ipython
+        # GH 33567, jedi version raises Deprecation warning in Ipython
         import jedi
 
         if jedi.__version__ < "0.17.0":
