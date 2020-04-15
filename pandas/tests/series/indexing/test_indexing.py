@@ -293,7 +293,7 @@ def test_setitem_empty_series():
     expected = pd.Series(47, [key])
     tm.assert_series_equal(series, expected)
 
-    # GH#???? our index should retain its freq
+    # GH#33573 our index should retain its freq
     series = pd.Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
     series[key] = 47
     expected = pd.Series(47, pd.DatetimeIndex([key], freq="D"))
