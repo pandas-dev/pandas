@@ -650,6 +650,21 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
+    def test_series_roundtrip_periodseries(self, orient, period_series):
+        # GH32665: Fix to_json when converting Period column/series
+        data = period_series.to_json(orient=orient)
+        result = pd.read_json(data, typ="series", orient=orient)
+
+        expected = period_series
+        if orient in ("values", "records"):
+            expected = expected.reset_index(drop=True)
+        if orient in ("index","columns"):
+            result.index = result.index.to_period()
+        if orient != "split":
+            expected.name = None
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", [np.float64, np.int])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_numeric(self, orient, numpy, dtype):
