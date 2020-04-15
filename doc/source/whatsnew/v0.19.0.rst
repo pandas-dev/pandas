@@ -187,7 +187,7 @@ default of the index) in a DataFrame.
 .. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
 
 Method ``read_csv`` has improved support for duplicate column names
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. ipython:: python
    :suppress:

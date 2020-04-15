@@ -62,7 +62,7 @@ Tuesday after MLK Day (Monday is skipped because it's a holiday)
 .. _whatsnew_0181.deferred_ops:
 
 Method ``.GroupBy(..)`` syntax with window and resample operations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see (:issue:`12486`, :issue:`12738`).
 
@@ -306,8 +306,8 @@ API changes
 
 .. _whatsnew_0181.api.groubynth:
 
-Method ``.groupby(..).nth()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.GroupBy(..).nth()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
