@@ -42,7 +42,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "Arrow",
     "Parquet",
     "MultiIndex",
-    "MultiIndexing",
     "NumFOCUS",
     "sklearn",
     "Docker",

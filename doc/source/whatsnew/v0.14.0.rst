@@ -473,8 +473,8 @@ Some other enhancements to the sql functions include:
 
 .. _whatsnew_0140.slicers:
 
-Multiindexing using slicers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Multi-indexing using slicers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In 0.14.0 we added a new way to slice MultiIndexed objects.
 You can slice a MultiIndex by providing multiple indexers.
