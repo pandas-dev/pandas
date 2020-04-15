@@ -109,7 +109,6 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
-    _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
@@ -307,16 +306,6 @@ class Block(PandasObject):
     @property
     def dtype(self):
         return self.values.dtype
-
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._concatenator(
-            [blk.values for blk in to_concat], axis=self.ndim - 1
-        )
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        return self.make_block_same_class(values, placement=placement)
 
     def iget(self, i):
         return self.values[i]
@@ -1769,14 +1758,6 @@ class ExtensionBlock(Block):
 
         return self.values[slicer]
 
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._holder._concat_same_type([blk.values for blk in to_concat])
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        return self.make_block_same_class(values, placement=placement)
-
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
@@ -2257,20 +2238,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         new_values = new_values.astype("timedelta64[ns]")
         return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
-    def concat_same_type(self, to_concat):
-        # need to handle concat([tz1, tz2]) here, since DatetimeArray
-        # only handles cases where all the tzs are the same.
-        # Instead of placing the condition here, it could also go into the
-        # is_uniform_join_units check, but I'm not sure what is better.
-        if len({x.dtype for x in to_concat}) > 1:
-            values = self._holder._concat_arrays([x.values for x in to_concat])
-
-            values = values.astype(object, copy=False)
-            placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-
-            return self.make_block(values, placement=placement)
-        return super().concat_same_type(to_concat)
-
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
@@ -2641,7 +2608,6 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(Categorical._concat_arrays)
 
     should_store = Block.should_store
 
@@ -2654,26 +2620,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-
-        Note that this CategoricalBlock._concat_same_type *may* not
-        return a CategoricalBlock. When the categories in `to_concat`
-        differ, this will return an object ndarray.
-
-        If / when we decide we don't like that behavior:
-
-        1. Change Categorical._concat_same_type to use union_categoricals
-        2. Delete this method.
-        """
-        values = self._concatenator(
-            [blk.values for blk in to_concat], axis=self.ndim - 1
-        )
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        # not using self.make_block_same_class as values can be object dtype
-        return self.make_block(values, placement=placement)
 
     def replace(
         self,
