@@ -1313,9 +1313,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if not isinstance(value, list):
             value = list(value)
 
-        # See also: construct_1d_object_array_from_listlike
-        values = np.empty(len(value), dtype=object)
-        values[:] = value
+        from pandas.core.dtypes.cast import (
+            construct_1d_object_array_from_listlike)
+        values = construct_1d_object_array_from_listlike(value)
 
     # make contiguous
     # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
