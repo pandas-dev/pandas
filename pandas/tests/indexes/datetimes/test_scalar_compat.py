@@ -40,8 +40,6 @@ class TestDatetimeIndexOps:
         [
             "dayofweek",
             "dayofyear",
-            "week",
-            "weekofyear",
             "quarter",
             "days_in_month",
             "is_month_start",

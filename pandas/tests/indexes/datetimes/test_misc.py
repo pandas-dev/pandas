@@ -205,6 +205,9 @@ class TestDatetime64:
 
             # non boolean accessors -> return Index
             for accessor in DatetimeIndex._field_ops:
+                if accessor in ["week", "weekofyear"]:
+                    # GH#33595 Deprecate week and weekofyear
+                    continue
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, Index)

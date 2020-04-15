@@ -89,7 +89,8 @@ class TestSeriesDatetimeValues:
         for s in cases:
             for prop in ok_for_dt:
                 # we test freq below
-                if prop != "freq":
+                # we ignore week and weekofyear because they are deprecated
+                if prop not in ["freq", "week", "weekofyear"]:
                     compare(s, prop)
 
             for prop in ok_for_dt_methods:
@@ -122,7 +123,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            if prop != "freq":
+            # we ignore week and weekofyear because they are deprecated
+            if prop not in ["freq", "week", "weekofyear"]:
                 compare(s, prop)
 
         for prop in ok_for_dt_methods:
