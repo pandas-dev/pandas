@@ -1659,3 +1659,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 31615
         result = pd.DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
+
+    def test_readjson_bool_series(self):
+        # GH31464
+        result = read_json("[true, true, false]", typ="series")
+        expected = pd.Series([True, True, False])
+        tm.assert_series_equal(result, expected)

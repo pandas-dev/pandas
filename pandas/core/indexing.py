@@ -625,7 +625,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         Parameters
         ----------
-        key : _LocIndexer key or list-like of column labels
+        key : list-like of column labels
             Target labels.
         axis : key axis if known
         """
@@ -636,7 +636,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             return
 
         if isinstance(key, tuple):
-            # key may be a tuple if key is a _LocIndexer key
+            # key may be a tuple if we are .loc
             # in that case, set key to the column part of key
             key = key[column_axis]
             axis = column_axis
@@ -649,9 +649,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             and all(is_hashable(k) for k in key)
         ):
             for k in key:
-                try:
-                    self.obj[k]
-                except KeyError:
+                if k not in self.obj:
                     self.obj[k] = np.nan
 
     def __setitem__(self, key, value):
@@ -829,7 +827,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # this is iterative
         obj = self.obj
         axis = 0
-        for i, key in enumerate(tup):
+        for key in tup:
 
             if com.is_null_slice(key):
                 axis += 1
@@ -1422,7 +1420,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(key) != self.ndim:
             return False
 
-        for i, k in enumerate(key):
+        for k in key:
             if not is_integer(k):
                 return False
 
@@ -2236,8 +2234,7 @@ def is_nested_tuple(tup, labels) -> bool:
     if not isinstance(tup, tuple):
         return False
 
-    for i, k in enumerate(tup):
-
+    for k in tup:
         if is_list_like(k) or isinstance(k, slice):
             return isinstance(labels, ABCMultiIndex)
 
