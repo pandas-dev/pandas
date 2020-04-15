@@ -341,7 +341,7 @@ def test_set_levels_with_changed_multiindex():
     ]
     ran_array = np.random.rand(8, 4)
     test_df = pd.DataFrame(ran_array, index=arrays)
-    test_df.index.set_levels([3, 4], level=2, inplace=True)
+    test_df.index.set_levels([3, 4], level=2, inplace=True, change_codes=True)
     correct_df = pd.DataFrame(ran_array, index=arrays)
     correct_df.index = pd.MultiIndex.from_arrays(
         [

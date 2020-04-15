@@ -741,7 +741,14 @@ class MultiIndex(Index):
         self._tuples = None
         self._reset_cache()
 
-    def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
+    def set_levels(
+        self,
+        levels,
+        level=None,
+        inplace=False,
+        verify_integrity=True,
+        change_codes=False,
+    ):
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -845,6 +852,29 @@ class MultiIndex(Index):
         idx._set_levels(
             levels, level=level, validate=True, verify_integrity=verify_integrity
         )
+        # reset codes
+        if change_codes:
+            all_codes = []
+            for lev_nums, lev in zip(levels, level):
+                # for each lev, construct a code
+                codes = []
+                code = 0
+                for num in lev_nums:
+                    if num not in codes:
+                        codes.append(code)
+                        code += 1
+                    else:
+                        codes.append(code)
+                new_codes = []
+                index = 0
+                for i in range(len(self._codes[lev])):
+                    if self._codes[lev][i] != -1:
+                        new_codes.append(codes[index % len(codes)])
+                    else:
+                        new_codes.append(-1)
+                    index += 1
+                all_codes.append(new_codes)
+            idx._set_codes(all_codes, level=level, verify_integrity=verify_integrity)
         if not inplace:
             return idx
 
