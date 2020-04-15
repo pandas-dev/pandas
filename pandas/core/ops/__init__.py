@@ -325,8 +325,15 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
+        array_op = get_array_op(func, str_rep=str_rep)
+
+        arrays = []
+        for l, r in zip(left._iter_column_arrays(), right._iter_column_arrays()):
+            arrays.append(array_op(l, r))
+
+        return type(left)._from_arrays(
+            arrays, left.columns, left.index, verify_integrity=False
+        )
 
     elif isinstance(right, ABCSeries) and axis == "columns":
         # We only get here if called via _combine_series_frame,
