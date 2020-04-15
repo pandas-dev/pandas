@@ -390,11 +390,7 @@ class BlockManager(PandasObject):
         if f == "where":
             align_copy = True
 
-        aligned_args = {
-            k: kwargs[k]
-            for k in align_keys
-            if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
-        }
+        aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
@@ -402,8 +398,14 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
+                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        axis = obj._info_axis_number
+                        kwargs[k] = obj.reindex(
+                            b_items, axis=axis, copy=align_copy
+                        )._values
+                    else:
+                        # otherwise we have an ndarray
+                        kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
@@ -935,35 +937,6 @@ class BlockManager(PandasObject):
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
 
-    def get(self, item):
-        """
-        Return values for selected item (ndarray or BlockManager).
-        """
-        if self.items.is_unique:
-
-            if not isna(item):
-                loc = self.items.get_loc(item)
-            else:
-                indexer = np.arange(len(self.items))[isna(self.items)]
-
-                # allow a single nan location indexer
-                if not is_scalar(indexer):
-                    if len(indexer) == 1:
-                        loc = indexer.item()
-                    else:
-                        raise ValueError("cannot label index with a null key")
-
-            return self.iget(loc)
-        else:
-
-            if isna(item):
-                raise TypeError("cannot label index with a null key")
-
-            indexer = self.items.get_indexer_for([item])
-            return self.reindex_indexer(
-                new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
-            )
-
     def iget(self, i: int) -> "SingleBlockManager":
         """
         Return the data as a SingleBlockManager.
@@ -1441,8 +1414,11 @@ class BlockManager(PandasObject):
 
         for blk in self.blocks:
             blk_cols = self.items[blk.mgr_locs.indexer]
+            new_items = unstacker.get_new_columns(blk_cols)
+            new_placement = new_columns.get_indexer(new_items)
+
             blocks, mask = blk._unstack(
-                unstacker, new_columns, fill_value, value_columns=blk_cols,
+                unstacker, fill_value, new_placement=new_placement
             )
 
             new_blocks.extend(blocks)

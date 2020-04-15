@@ -3558,17 +3558,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._mgr.get(item)
-            res = self._box_item_values(item, values)
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc)
+
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
@@ -5552,6 +5554,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         0    10
         1     2
         dtype: int64
+
+        Create a series of dates:
+
+        >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
+        >>> ser_date
+        0   2020-01-01
+        1   2020-01-02
+        2   2020-01-03
+        dtype: datetime64[ns]
+
+        Datetimes are localized to UTC first before
+        converting to the specified timezone:
+
+        >>> ser_date.astype('datetime64[ns, US/Eastern]')
+        0   2019-12-31 19:00:00-05:00
+        1   2020-01-01 19:00:00-05:00
+        2   2020-01-02 19:00:00-05:00
+        dtype: datetime64[ns, US/Eastern]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
