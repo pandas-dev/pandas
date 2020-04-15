@@ -1277,7 +1277,11 @@ default 'raise'
         """
         from pandas import DataFrame
 
-        sarray = fields.build_isocalendar_sarray(self.asi8)
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
+        else:
+            values = self.asi8
+        sarray = fields.build_isocalendar_sarray(values)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
