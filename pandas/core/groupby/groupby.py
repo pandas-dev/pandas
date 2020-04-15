@@ -255,16 +255,16 @@ Parameters
 ----------
 f : function
     Function to apply to each group.
-    
-    Can also accept a Numba JIT function with 
+
+    Can also accept a Numba JIT function with
     ``engine='numba'`` specified.
-    
+
     If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the 
+    a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
-    
+
     .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func
