@@ -1,7 +1,7 @@
 .. _whatsnew_0210:
 
-v0.21.0 (October 27, 2017)
---------------------------
+Version 0.21.0 (October 27, 2017)
+---------------------------------
 
 {{ header }}
 
@@ -55,8 +55,8 @@ For more details, see see :ref:`the IO docs on Parquet <io.parquet>`.
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
-``infer_objects`` type conversion
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``infer_objects`` type conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects`
 methods have been added to perform dtype inference on object columns, replacing
@@ -115,8 +115,8 @@ Setting a list-like data structure into a new attribute now raises a ``UserWarni
 
 .. _whatsnew_0210.enhancements.drop_api:
 
-``drop`` now also accepts index/columns keywords
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``drop`` now also accepts Index/columns keywords
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an
 alternative to specifying the ``axis``. This is similar to the behavior of ``reindex``
@@ -135,8 +135,8 @@ For example:
 
 .. _whatsnew_0210.enhancements.rename_reindex_axis:
 
-``rename``, ``reindex`` now also accept axis keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Methods ``rename``, ``reindex`` now also accept axis keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`DataFrame.rename` and :meth:`DataFrame.reindex` methods have gained
 the ``axis`` keyword to specify the axis to target with the operation
@@ -380,7 +380,7 @@ Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 
 .. _whatsnew_0210.api_breaking.bottleneck:
 
-Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
+Sum/prod of all-NaN or empty Series/DataFrames is now consistently NaN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
@@ -814,7 +814,7 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
 .. _whatsnew_0210.api.utc_localization_with_series:
 
-UTC Localization with Series
+UTC localization with Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
@@ -1085,8 +1085,8 @@ Indexing
 - Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_hdf` when reading a timezone aware index from ``fixed`` format HDFStore (:issue:`17618`)
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
@@ -1115,7 +1115,7 @@ Plotting
 - Bug causing ``plotting.parallel_coordinates`` to reset the random seed when using random colors (:issue:`17525`)
 
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)

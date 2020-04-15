@@ -1,7 +1,7 @@
 .. _whatsnew_0181:
 
-v0.18.1 (May 3, 2016)
----------------------
+Version 0.18.1 (May 3, 2016)
+----------------------------
 
 {{ header }}
 
@@ -61,8 +61,8 @@ Tuesday after MLK Day (Monday is skipped because it's a holiday)
 
 .. _whatsnew_0181.deferred_ops:
 
-``.groupby(..)`` syntax with window and resample operations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.GroupBy(..)`` syntax with window and resample operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see (:issue:`12486`, :issue:`12738`).
 
@@ -111,7 +111,7 @@ Now you can do:
 .. _whatsnew_0181.enhancements.method_chain:
 
 Method chaining improvements
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following methods / indexers now accept a ``callable``. It is intended to make
 these more useful in method chains, see the :ref:`documentation <indexing.callable>`.
@@ -121,8 +121,8 @@ these more useful in method chains, see the :ref:`documentation <indexing.callab
 - ``.loc[]``, ``iloc[]`` and ``.ix[]``
 - ``[]`` indexing
 
-``.where()`` and ``.mask()``
-""""""""""""""""""""""""""""
+Methods ``.where()`` and ``.mask()``
+""""""""""""""""""""""""""""""""""""
 
 These can accept a callable for the condition and ``other``
 arguments.
@@ -134,8 +134,8 @@ arguments.
                       'C': [7, 8, 9]})
    df.where(lambda x: x > 4, lambda x: x + 10)
 
-``.loc[]``, ``.iloc[]``, ``.ix[]``
-""""""""""""""""""""""""""""""""""
+Methods ``.loc[]``, ``.iloc[]``, ``.ix[]``
+""""""""""""""""""""""""""""""""""""""""""
 
 These can accept a callable, and a tuple of callable as a slicer. The callable
 can return a valid boolean indexer or anything which is valid for these indexer's input.
@@ -148,8 +148,8 @@ can return a valid boolean indexer or anything which is valid for these indexer'
    # callable returns list of labels
    df.loc[lambda x: [1, 2], lambda x: ['A', 'B']]
 
-``[]`` indexing
-"""""""""""""""
+Indexing with``[]``
+"""""""""""""""""""
 
 Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Panel.
 The callable must return a valid input for ``[]`` indexing depending on its
@@ -171,7 +171,7 @@ without using temporary variable.
 
 .. _whatsnew_0181.partial_string_indexing:
 
-Partial string indexing on ``DateTimeIndex`` when part of a ``MultiIndex``
+Partial string indexing on ``DatetimeIndex`` when part of a ``MultiIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiIndex`` (:issue:`10331`)
@@ -306,8 +306,8 @@ API changes
 
 .. _whatsnew_0181.api.groubynth:
 
-``.groupby(..).nth()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.groupby(..).nth()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
@@ -414,7 +414,7 @@ New behaviour:
 
 .. _whatsnew_0181.apply_resample:
 
-Using ``.apply`` on groupby resampling
+Using ``.apply`` on GroupBy resampling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as similar ``apply`` calls on other groupby operations. (:issue:`11742`).
@@ -513,8 +513,8 @@ In addition to this error change, several others have been made as well:
 
 .. _whatsnew_0181.api.to_datetime:
 
-``to_datetime`` error changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``to_datetime`` error changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'``. Furthermore, an ``OutOfBoundsDateime`` exception will be raised when an out-of-range value is encountered for that unit when ``errors='raise'``. (:issue:`11758`, :issue:`13052`, :issue:`13059`)
 

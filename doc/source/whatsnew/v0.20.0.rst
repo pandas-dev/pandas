@@ -1,7 +1,7 @@
 .. _whatsnew_0200:
 
-v0.20.1 (May 5, 2017)
----------------------
+Version 0.20.1 (May 5, 2017)
+----------------------------
 
 {{ header }}
 
@@ -47,8 +47,8 @@ New features
 
 .. _whatsnew_0200.enhancements.agg:
 
-``agg`` API for DataFrame/Series
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``agg`` API for DataFrame/Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Series & DataFrame have been enhanced to support the aggregation API. This is a familiar API
 from groupby, window operations, and resampling. This allows aggregation operations in a concise way
@@ -110,8 +110,8 @@ aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
 
-``dtype`` keyword for data IO
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Keyword argument ``dtype`` for data IO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``'python'`` engine for :func:`read_csv`, as well as the :func:`read_fwf` function for parsing
 fixed-width text files and :func:`read_excel` for parsing Excel files, now accept the ``dtype`` keyword argument for specifying the types of specific columns (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
@@ -129,8 +129,8 @@ fixed-width text files and :func:`read_excel` for parsing Excel files, now accep
 
 .. _whatsnew_0120.enhancements.datetime_origin:
 
-``.to_datetime()`` has gained an ``origin`` parameter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.to_datetime()`` has gained an ``origin`` parameter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`to_datetime` has gained a new parameter, ``origin``, to define a reference date
 from where to compute the resulting timestamps when parsing numerical values with a specific ``unit`` specified. (:issue:`11276`, :issue:`11745`)
@@ -151,7 +151,7 @@ commonly called 'unix epoch' or POSIX time. This was the previous default, so th
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
-Groupby enhancements
+GroupBy enhancements
 ^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names. Previously, only column names could be referenced. This allows to easily group by a column and index level at the same time. (:issue:`5677`)
@@ -197,8 +197,8 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
 .. _whatsnew_0200.enhancements.pickle_compression:
 
-Pickle file I/O now supports compression
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Pickle file IO now supports compression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle`
 can now read from and write to compressed pickle files. Compression methods
@@ -928,7 +928,7 @@ New behavior:
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
-Groupby describe formatting
+GroupBy describe formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The output formatting of ``groupby.describe()`` now labels the ``describe()`` metrics in the columns instead of the index.
@@ -1351,7 +1351,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
 
-Deprecate Panel
+Deprecate panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
@@ -1420,7 +1420,7 @@ Convert to an xarray DataArray
 
 .. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
 
-Deprecate groupby.agg() with a dictionary when renaming
+Deprecate GroupBy.agg() with a dictionary when renaming
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
@@ -1670,8 +1670,8 @@ Indexing
 - Bug in in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
 - Bug in indexing with a scalar and a ``CategoricalIndex`` (:issue:`16123`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in ``pd.to_numeric()`` in which float and unsigned integer elements were being improperly casted (:issue:`14941`, :issue:`15005`)
 - Bug in ``pd.read_fwf()`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
@@ -1712,7 +1712,7 @@ Plotting
 - Bug in the date and time converters pandas registers with matplotlib not handling multiple dimensions (:issue:`16026`)
 - Bug in ``pd.scatter_matrix()`` could accept either ``color`` or ``c``, but not both (:issue:`14855`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
