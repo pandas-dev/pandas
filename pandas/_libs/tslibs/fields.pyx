@@ -8,14 +8,14 @@ from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, int32_t, int8_t
+from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import (
     get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS)
 from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year)
+    get_day_of_year, get_iso_calendar, iso_calendar_t)
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
     td64_to_tdstruct)
@@ -670,3 +670,42 @@ cpdef isleapyear_arr(ndarray years):
                       np.logical_and(years % 4 == 0,
                                      years % 100 > 0))] = 1
     return out.view(bool)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def build_isocalendar_sarray(const int64_t[:] dtindex):
+    """
+    Given a int64-based datetime array, return the ISO 8601 year, week, and day
+    as a structured array.
+    """
+    cdef:
+        Py_ssize_t i, count = len(dtindex)
+        npy_datetimestruct dts
+        ndarray[uint32_t] iso_years, iso_weeks, days
+        iso_calendar_t ret_val
+
+    sa_dtype = [
+        ("year", "u4"),
+        ("week", "u4"),
+        ("day", "u4"),
+    ]
+
+    out = np.empty(count, dtype=sa_dtype)
+
+    iso_years = out["year"]
+    iso_weeks = out["week"]
+    days = out["day"]
+
+    with nogil:
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                ret_val = 0, 0, 0
+            else:
+                dt64_to_dtstruct(dtindex[i], &dts)
+                ret_val = get_iso_calendar(dts.year, dts.month, dts.day)
+
+            iso_years[i] = ret_val[0]
+            iso_weeks[i] = ret_val[1]
+            days[i] = ret_val[2]
+    return out
