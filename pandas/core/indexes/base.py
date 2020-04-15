@@ -1,3 +1,4 @@
+from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
@@ -47,6 +48,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -67,6 +69,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -291,9 +294,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         name = maybe_extract_name(name, data, cls)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+        if "tz" in kwargs:
+            tz = kwargs.pop("tz")
+            validate_tz_from_dtype(dtype, tz)
+            dtype = tz_to_dtype(tz)
+
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
+
+        data_dtype = getattr(data, "dtype", None)
 
         # range
         if isinstance(data, RangeIndex):
@@ -302,43 +314,39 @@ class Index(IndexOpsMixin, PandasObject):
             return RangeIndex.from_range(data, dtype=dtype, name=name)
 
         # categorical
-        elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
+        elif is_categorical_dtype(data_dtype) or is_categorical_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.category import CategoricalIndex
 
             return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
 
         # interval
-        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+        elif is_interval_dtype(data_dtype) or is_interval_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.interval import IntervalIndex
 
             return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
-        elif (
-            is_datetime64_any_dtype(data)
-            or is_datetime64_any_dtype(dtype)
-            or "tz" in kwargs
-        ):
+        elif is_datetime64_any_dtype(data_dtype) or is_datetime64_any_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
             return _maybe_asobject(dtype, DatetimeIndex, data, copy, name, **kwargs)
 
-        elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(data_dtype) or is_timedelta64_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import TimedeltaIndex
 
             return _maybe_asobject(dtype, TimedeltaIndex, data, copy, name, **kwargs)
 
-        elif is_period_dtype(data) or is_period_dtype(dtype):
+        elif is_period_dtype(data_dtype) or is_period_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import PeriodIndex
 
             return _maybe_asobject(dtype, PeriodIndex, data, copy, name, **kwargs)
 
         # extension dtype
-        elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
+        elif is_extension_array_dtype(data_dtype) or is_extension_array_dtype(dtype):
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
@@ -3285,7 +3293,7 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = _ensure_has_len(target)  # target may be an iterator
+        target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
             if isinstance(self, ABCRangeIndex):
@@ -3837,7 +3845,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @cache_readonly
-    @doc(IndexOpsMixin.array)  # type: ignore
+    @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
@@ -4232,7 +4240,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.equals(idx2)
         False
 
-        The oreder is compared
+        The order is compared
 
         >>> ascending_idx = pd.Index([1, 2, 3])
         >>> ascending_idx
@@ -4567,10 +4575,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
-        if not is_scalar(key):
-            # if key is not a scalar, directly raise an error (the code below
-            # would convert to numpy arrays and raise later any way) - GH29926
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             # GH 20882, 21257
@@ -4590,6 +4595,12 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         return self._get_values_for_loc(series, loc, key)
+
+    def _check_indexing_error(self, key):
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
@@ -5313,7 +5324,7 @@ class Index(IndexOpsMixin, PandasObject):
         Add in numeric unary methods.
         """
 
-        def _make_evaluate_unary(op, opstr):
+        def _make_evaluate_unary(op, opstr: str_t):
             def _evaluate_numeric_unary(self):
 
                 attrs = self._get_attributes_dict()
@@ -5419,7 +5430,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         )
 
-        def _make_logical_function(name, desc, f):
+        def _make_logical_function(name: str_t, desc: str_t, f):
             @Substitution(outname=name, desc=desc)
             @Appender(_index_shared_docs["index_" + name])
             @Appender(_doc)
@@ -5508,15 +5519,15 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy=False):
+def ensure_index(index_like, copy: bool = False):
     """
     Ensure that we have an index from some index-like object.
 
     Parameters
     ----------
-    index : sequence
+    index_like : sequence
         An Index or other sequence
-    copy : bool
+    copy : bool, default False
 
     Returns
     -------
@@ -5567,14 +5578,12 @@ def ensure_index(index_like, copy=False):
         # clean_index_list does the equivalent of copying
         # so only need to do this if not list instance
         if copy:
-            from copy import copy
-
-            index_like = copy(index_like)
+            index_like = copy_func(index_like)
 
     return Index(index_like)
 
 
-def _ensure_has_len(seq):
+def ensure_has_len(seq):
     """
     If seq is an iterator, put its values into a list.
     """
@@ -5596,7 +5605,7 @@ def _trim_front(strings):
     return trimmed
 
 
-def _validate_join_method(method):
+def _validate_join_method(method: str):
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
 

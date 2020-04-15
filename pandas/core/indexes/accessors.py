@@ -219,6 +219,37 @@ class DatetimeProperties(Properties):
     def freq(self):
         return self._get_values().inferred_freq
 
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> ser = pd.to_datetime(pd.Series(["2010-01-01", pd.NaT]))
+        >>> ser.dt.isocalendar()
+           year  week  day
+        0  2009    53     5
+        1  <NA>  <NA>  <NA>
+        >>> ser.dt.isocalendar().week
+        0      53
+        1    <NA>
+        Name: week, dtype: UInt32
+        """
+        return self._get_values().isocalendar().set_index(self._parent.index)
+
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
@@ -241,9 +272,9 @@ class TimedeltaProperties(Properties):
     ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
     ... )
     >>> seconds_series
-    0   00:00:01
-    1   00:00:02
-    2   00:00:03
+    0   0 days 00:00:01
+    1   0 days 00:00:02
+    2   0 days 00:00:03
     dtype: timedelta64[ns]
     >>> seconds_series.dt.seconds
     0    1
@@ -301,11 +332,11 @@ class TimedeltaProperties(Properties):
         --------
         >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='s'))
         >>> s
-        0   00:00:00
-        1   00:00:01
-        2   00:00:02
-        3   00:00:03
-        4   00:00:04
+        0   0 days 00:00:00
+        1   0 days 00:00:01
+        2   0 days 00:00:02
+        3   0 days 00:00:03
+        4   0 days 00:00:04
         dtype: timedelta64[ns]
         >>> s.dt.components
            days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
