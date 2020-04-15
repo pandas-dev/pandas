@@ -762,6 +762,8 @@ class MultiIndex(Index):
             If True, mutates in place.
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
+        change_codes : bool, default False
+            If True, resets the codes for the levels specified.
 
         Returns
         -------
