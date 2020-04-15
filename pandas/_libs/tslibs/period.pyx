@@ -806,24 +806,22 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
         return unix_date_to_week(unix_date, freq - FR_WK)
 
 
-cdef void get_date_info(int64_t ordinal, int freq,
-                        npy_datetimestruct *dts) nogil:
+cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
     cdef:
-        int64_t unix_date
-        double abstime
+        int64_t unix_date, nanos
+        npy_datetimestruct dts2
 
     unix_date = get_unix_date(ordinal, freq)
-    abstime = get_abs_time(freq, unix_date, ordinal)
+    nanos = get_time_nanos(freq, unix_date, ordinal)
 
-    while abstime < 0:
-        abstime += 86400
-        unix_date -= 1
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
 
-    while abstime >= 86400:
-        abstime -= 86400
-        unix_date += 1
-
-    date_info_from_days_and_time(dts, unix_date, abstime)
+    dt64_to_dtstruct(nanos, &dts2)
+    dts.hour = dts2.hour
+    dts.min = dts2.min
+    dts.sec = dts2.sec
+    dts.us = dts2.us
+    dts.ps = dts2.ps
 
 
 cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
@@ -855,74 +853,50 @@ cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
 
 
 @cython.cdivision
-cdef void date_info_from_days_and_time(npy_datetimestruct *dts,
-                                       int64_t unix_date,
-                                       double abstime) nogil:
+cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     """
-    Set the instance's value using the given date and time.
+    Find the number of nanoseconds after midnight on the given unix_date
+    that the ordinal represents in the given frequency.
 
     Parameters
     ----------
-    dts : npy_datetimestruct*
+    freq : int
     unix_date : int64_t
-        days elapsed since datetime(1970, 1, 1)
-    abstime : double
-        seconds elapsed since beginning of day described by unix_date
+    ordinal : int64_t
 
-    Notes
-    -----
-    Updates dts inplace
+    Returns
+    -------
+    int64_t
     """
     cdef:
-        int inttime
-        int hour, minute
-        double second, subsecond_fraction
+        int64_t sub, factor
 
-    # Bounds check
-    # The calling function is responsible for ensuring that
-    # abstime >= 0.0 and abstime <= 86400
-
-    # Calculate the date
-    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
-
-    # Calculate the time
-    inttime = <int>abstime
-    hour = inttime / 3600
-    minute = (inttime % 3600) / 60
-    second = abstime - <double>(hour * 3600 + minute * 60)
-
-    dts.hour = hour
-    dts.min = minute
-    dts.sec = <int>second
-
-    subsecond_fraction = second - dts.sec
-    dts.us = int((subsecond_fraction) * 1e6)
-    dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
-
-
-@cython.cdivision
-cdef double get_abs_time(int freq, int64_t unix_date, int64_t ordinal) nogil:
-    cdef:
-        int freq_index, day_index, base_index
-        int64_t per_day, start_ord
-        double unit, result
+    freq = get_freq_group(freq)
 
     if freq <= FR_DAY:
         return 0
 
-    freq_index = freq // 1000
-    day_index = FR_DAY // 1000
-    base_index = FR_SEC // 1000
+    elif freq == FR_NS:
+        factor = 1
 
-    per_day = get_daytime_conversion_factor(day_index, freq_index)
-    unit = get_daytime_conversion_factor(freq_index, base_index)
+    elif freq == FR_US:
+        factor = 10**3
 
-    if base_index < freq_index:
-        unit = 1 / unit
+    elif freq == FR_MS:
+        factor = 10**6
 
-    start_ord = unix_date * per_day
-    result = <double>(unit * (ordinal - start_ord))
-    return result
+    elif freq == FR_SEC:
+        factor = 10 **9
+
+    elif freq == FR_MIN:
+        factor = 10**9 * 60
+
+    else:
+        # We must have freq == FR_HR
+        factor = 10**9 * 3600
+
+    sub = ordinal - unix_date * 24 * 3600 * 10**9 / factor
+    return sub * factor
 
 
 cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
@@ -1176,11 +1150,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     if ordinal == NPY_NAT:
         return NPY_NAT
 
-    if freq == 11000:
-        # Microsecond, avoid get_date_info to prevent floating point errors
-        pandas_datetime_to_datetimestruct(ordinal, NPY_FR_us, &dts)
-    else:
-        get_date_info(ordinal, freq, &dts)
+    get_date_info(ordinal, freq, &dts)
 
     check_dts_bounds(&dts)
     return dtstruct_to_dt64(&dts)
