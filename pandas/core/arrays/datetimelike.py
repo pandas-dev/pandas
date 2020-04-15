@@ -723,7 +723,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat, axis: int = 0):
 
         # do not pass tz to set because tzlocal cannot be hashed
         dtypes = {str(x.dtype) for x in to_concat}
@@ -733,14 +733,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         obj = to_concat[0]
         dtype = obj.dtype
 
-        values = np.concatenate([x.asi8 for x in to_concat])
+        i8values = [x.asi8 for x in to_concat]
+        values = np.concatenate(i8values, axis=axis)
 
-        if is_period_dtype(to_concat[0].dtype):
+        new_freq = None
+        if is_period_dtype(dtype):
             new_freq = obj.freq
-        else:
+        elif axis == 0:
             # GH 3232: If the concat result is evenly spaced, we can retain the
             # original frequency
-            new_freq = None
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
