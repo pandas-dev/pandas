@@ -340,18 +340,20 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
             right = np.asarray(right)
 
             def column_op(a, b):
-                return {i: func(a.iloc[:, i], b[i]) for i in range(len(a.columns))}
+                return {i: func(a._ixs(i, axis=1), b[i]) for i in range(len(a.columns))}
 
         else:
 
             def column_op(a, b):
-                return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
+                return {
+                    i: func(a._ixs(i, axis=1), b.iloc[i]) for i in range(len(a.columns))
+                }
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
 
         def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
+            return {i: func(a._get_column_array(i), b) for i in range(len(a.columns))}
 
     else:
         # Remaining cases have less-obvious dispatch rules
@@ -520,6 +522,16 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
         new_data = dispatch_to_series(left, right, func)
 
     else:
+        rvalues = right._values
+        if isinstance(rvalues, np.ndarray):
+            # We can operate block-wise
+            rvalues = rvalues.reshape(1, -1)
+            rvalues = np.broadcast_to(rvalues, left.shape)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
+            return type(left)(bm)
+
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
     return left._construct_result(new_data)

@@ -390,11 +390,7 @@ class BlockManager(PandasObject):
         if f == "where":
             align_copy = True
 
-        aligned_args = {
-            k: kwargs[k]
-            for k in align_keys
-            if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
-        }
+        aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
@@ -402,8 +398,14 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
+                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        axis = obj._info_axis_number
+                        kwargs[k] = obj.reindex(
+                            b_items, axis=axis, copy=align_copy
+                        )._values
+                    else:
+                        # e.g. ndarray passed from combine_series_frame
+                        kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
