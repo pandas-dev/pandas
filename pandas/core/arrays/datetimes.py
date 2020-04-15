@@ -894,7 +894,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[ns]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
