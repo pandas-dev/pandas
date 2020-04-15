@@ -778,7 +778,8 @@ def group_quantile(ndarray[float64_t] out,
             if not mask[i]:
                 non_na_counts[lab] += 1
 
-    # Get an index of values sorted by labels and then values
+    # Get an index of values sorted by labels and then values,
+    # make sure missing labels sort to the back of the array
     order = (values, np.where(labels == -1, labels.max() + 1, labels))
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
