@@ -529,7 +529,18 @@ class TestDataFrameMisc:
 
         code = "import pandas as pd; df = pd.DataFrame()"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # TODO: remove it when Ipython updates
+        # jedi version raises Deprecation warning in Ipython
+        import jedi
+
+        if jedi.__version__ < "0.16.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with tm.assert_produces_warning(warning):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
 
