@@ -190,6 +190,46 @@ def test_group_apply_once_per_group(df, group_names):
         assert names == group_names
 
 
+def test_apply_fast_slow_identical():
+    # GH 31613
+
+    df = DataFrame({"A": [0, 0, 1], "b": range(3)})
+
+    # For simple index structures we check for fast/slow apply using
+    # an identity check on in/output
+    def slow(group):
+        return group
+
+    def fast(group):
+        return group.copy()
+
+    fast_df = df.groupby("A").apply(fast)
+    slow_df = df.groupby("A").apply(slow)
+
+    tm.assert_frame_equal(fast_df, slow_df)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x,
+        lambda x: x[:],
+        lambda x: x.copy(deep=False),
+        lambda x: x.copy(deep=True),
+    ],
+)
+def test_groupby_apply_identity_maybecopy_index_identical(func):
+    # GH 14927
+    # Whether the function returns a copy of the input data or not should not
+    # have an impact on the index structure of the result since this is not
+    # transparent to the user
+
+    df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+
+    result = df.groupby("g").apply(func)
+    tm.assert_frame_equal(result, df)
+
+
 def test_apply_with_mixed_dtype():
     # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
     df = DataFrame(
@@ -921,39 +961,3 @@ def test_apply_function_with_indexing():
         name="col2",
     )
     tm.assert_series_equal(result, expected)
-
-
-def test_apply_fast_slow_identical():
-    # GH 31613
-
-    df = DataFrame({"A": [0, 0, 1], "b": range(3)})
-
-    # For simple index structures we check for fast/slow apply using
-    # an identity check on in/output
-    def slow(group):
-        return group
-
-    def fast(group):
-        return group.copy()
-
-    fast_df = df.groupby("A").apply(fast)
-    slow_df = df.groupby("A").apply(slow)
-
-    tm.assert_frame_equal(fast_df, slow_df)
-
-
-def test_gh14927():
-    # GH 14927
-    df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
-
-    df1 = df.groupby("g").apply(lambda x: x)
-
-    df2 = df.groupby("g").apply(lambda x: x[:])
-
-    df3 = df.groupby("g").apply(lambda x: x.copy(deep=False))
-
-    df4 = df.groupby("g").apply(lambda x: x.copy(deep=True))
-
-    tm.assert_frame_equal(df1, df2)
-    tm.assert_frame_equal(df2, df3)
-    tm.assert_frame_equal(df3, df4)
