@@ -99,7 +99,7 @@ class TestSeriesToXArray:
 
         from xarray import DataArray
 
-        s = Series(range(len(indices)), index=indices)
+        s = Series(range(len(indices)), index=indices, dtype="int64")
         s.index.name = "foo"
         result = s.to_xarray()
         repr(result)
@@ -123,7 +123,7 @@ class TestSeriesToXArray:
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, DataArray)
 
-        s = Series(range(6))
+        s = Series(range(6), dtype="int64")
         s.index.name = "foo"
         s.index = pd.MultiIndex.from_product(
             [["a", "b"], range(3)], names=["one", "two"]
