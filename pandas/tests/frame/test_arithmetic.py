@@ -1,13 +1,16 @@
 from collections import deque
 from datetime import datetime
 import operator
+import re
 
 import numpy as np
 import pytest
 import pytz
 
 import pandas as pd
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
+import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -46,13 +49,16 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                with pytest.raises(TypeError):
+                msg = re.escape(
+                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
+                )
+                with pytest.raises(TypeError, match=msg):
                     x >= y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x > y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x < y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x <= y
 
         # GH4968
@@ -98,9 +104,13 @@ class TestFrameComparisons:
                 result = right_f(pd.Timestamp("20010109"), df)
                 tm.assert_frame_equal(result, expected)
             else:
-                with pytest.raises(TypeError):
+                msg = (
+                    "'(<|>)=?' not supported between "
+                    "instances of 'Timestamp' and 'float'"
+                )
+                with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     right_f(pd.Timestamp("20010109"), df)
             # nats
             expected = left_f(df, pd.Timestamp("nat"))
@@ -348,6 +358,25 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
+    def test_floordiv_axis0_numexpr_path(self, opname):
+        # case that goes through numexpr and has to fall back to masked_arith_op
+        op = getattr(operator, opname)
+
+        arr = np.arange(10 ** 6).reshape(100, -1)
+        df = pd.DataFrame(arr)
+        df["C"] = 1.0
+
+        ser = df[0]
+        result = getattr(df, opname)(ser, axis=0)
+
+        expected = pd.DataFrame({col: op(df[col], ser) for col in df.columns})
+        tm.assert_frame_equal(result, expected)
+
+        result2 = getattr(df, opname)(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -502,6 +531,15 @@ class TestFrameFlexArithmetic:
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             df_len0.sub(df["A"], axis=None, fill_value=3)
+
+    def test_flex_add_scalar_fill_value(self):
+        # GH#12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype="float")
+        df = pd.DataFrame({"foo": dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        tm.assert_frame_equal(res, exp)
 
 
 class TestFrameArithmetic:
@@ -804,3 +842,650 @@ class TestFrameArithmeticUnsorted:
         half = ts[::2]
         result = ts + half.take(np.random.permutation(len(half)))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "op", [operator.add, operator.sub, operator.mul, operator.truediv]
+    )
+    def test_operators_none_as_na(self, op):
+        df = DataFrame(
+            {"col1": [2, 5.0, 123, None], "col2": [1, 2, 3, 4]}, dtype=object
+        )
+
+        # since filling converts dtypes from object, changed expected to be
+        # object
+        filled = df.fillna(np.nan)
+        result = op(df, 3)
+        expected = op(filled, 3).astype(object)
+        expected[com.isna(expected)] = None
+        tm.assert_frame_equal(result, expected)
+
+        result = op(df, df)
+        expected = op(filled, filled).astype(object)
+        expected[com.isna(expected)] = None
+        tm.assert_frame_equal(result, expected)
+
+        result = op(df, df.fillna(7))
+        tm.assert_frame_equal(result, expected)
+
+        result = op(df.fillna(7), df)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
+    # TODO: not sure what's correct here.
+    @pytest.mark.filterwarnings("ignore:elementwise:FutureWarning")
+    def test_logical_typeerror_with_non_valid(self, op, res, float_frame):
+        # we are comparing floats vs a string
+        result = getattr(float_frame, op)("foo")
+        assert bool(result.all().all()) is res
+
+    def test_binary_ops_align(self):
+
+        # test aligning binary ops
+
+        # GH 6681
+        index = MultiIndex.from_product(
+            [list("abc"), ["one", "two", "three"], [1, 2, 3]],
+            names=["first", "second", "third"],
+        )
+
+        df = DataFrame(
+            np.arange(27 * 3).reshape(27, 3),
+            index=index,
+            columns=["value1", "value2", "value3"],
+        ).sort_index()
+
+        idx = pd.IndexSlice
+        for op in ["add", "sub", "mul", "div", "truediv"]:
+            opa = getattr(operator, op, None)
+            if opa is None:
+                continue
+
+            x = Series([1.0, 10.0, 100.0], [1, 2, 3])
+            result = getattr(df, op)(x, level="third", axis=0)
+
+            expected = pd.concat(
+                [opa(df.loc[idx[:, :, i], :], v) for i, v in x.items()]
+            ).sort_index()
+            tm.assert_frame_equal(result, expected)
+
+            x = Series([1.0, 10.0], ["two", "three"])
+            result = getattr(df, op)(x, level="second", axis=0)
+
+            expected = (
+                pd.concat([opa(df.loc[idx[:, i], :], v) for i, v in x.items()])
+                .reindex_like(df)
+                .sort_index()
+            )
+            tm.assert_frame_equal(result, expected)
+
+        # GH9463 (alignment level of dataframe with series)
+
+        midx = MultiIndex.from_product([["A", "B"], ["a", "b"]])
+        df = DataFrame(np.ones((2, 4), dtype="int64"), columns=midx)
+        s = pd.Series({"a": 1, "b": 2})
+
+        df2 = df.copy()
+        df2.columns.names = ["lvl0", "lvl1"]
+        s2 = s.copy()
+        s2.index.name = "lvl1"
+
+        # different cases of integer/string level names:
+        res1 = df.mul(s, axis=1, level=1)
+        res2 = df.mul(s2, axis=1, level=1)
+        res3 = df2.mul(s, axis=1, level=1)
+        res4 = df2.mul(s2, axis=1, level=1)
+        res5 = df2.mul(s, axis=1, level="lvl1")
+        res6 = df2.mul(s2, axis=1, level="lvl1")
+
+        exp = DataFrame(
+            np.array([[1, 2, 1, 2], [1, 2, 1, 2]], dtype="int64"), columns=midx
+        )
+
+        for res in [res1, res2]:
+            tm.assert_frame_equal(res, exp)
+
+        exp.columns.names = ["lvl0", "lvl1"]
+        for res in [res3, res4, res5, res6]:
+            tm.assert_frame_equal(res, exp)
+
+    def test_add_with_dti_mismatched_tzs(self):
+        base = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
+        idx1 = base.tz_convert("Asia/Tokyo")[:2]
+        idx2 = base.tz_convert("US/Eastern")[1:]
+
+        df1 = DataFrame({"A": [1, 2]}, index=idx1)
+        df2 = DataFrame({"A": [1, 1]}, index=idx2)
+        exp = DataFrame({"A": [np.nan, 3, np.nan]}, index=base)
+        tm.assert_frame_equal(df1 + df2, exp)
+
+    def test_combineFrame(self, float_frame, mixed_float_frame, mixed_int_frame):
+        frame_copy = float_frame.reindex(float_frame.index[::2])
+
+        del frame_copy["D"]
+        frame_copy["C"][:5] = np.nan
+
+        added = float_frame + frame_copy
+
+        indexer = added["A"].dropna().index
+        exp = (float_frame["A"] * 2).copy()
+
+        tm.assert_series_equal(added["A"].dropna(), exp.loc[indexer])
+
+        exp.loc[~exp.index.isin(indexer)] = np.nan
+        tm.assert_series_equal(added["A"], exp.loc[added["A"].index])
+
+        assert np.isnan(added["C"].reindex(frame_copy.index)[:5]).all()
+
+        # assert(False)
+
+        assert np.isnan(added["D"]).all()
+
+        self_added = float_frame + float_frame
+        tm.assert_index_equal(self_added.index, float_frame.index)
+
+        added_rev = frame_copy + float_frame
+        assert np.isnan(added["D"]).all()
+        assert np.isnan(added_rev["D"]).all()
+
+        # corner cases
+
+        # empty
+        plus_empty = float_frame + DataFrame()
+        assert np.isnan(plus_empty.values).all()
+
+        empty_plus = DataFrame() + float_frame
+        assert np.isnan(empty_plus.values).all()
+
+        empty_empty = DataFrame() + DataFrame()
+        assert empty_empty.empty
+
+        # out of order
+        reverse = float_frame.reindex(columns=float_frame.columns[::-1])
+
+        tm.assert_frame_equal(reverse + float_frame, float_frame * 2)
+
+        # mix vs float64, upcast
+        added = float_frame + mixed_float_frame
+        _check_mixed_float(added, dtype="float64")
+        added = mixed_float_frame + float_frame
+        _check_mixed_float(added, dtype="float64")
+
+        # mix vs mix
+        added = mixed_float_frame + mixed_float_frame
+        _check_mixed_float(added, dtype=dict(C=None))
+
+        # with int
+        added = float_frame + mixed_int_frame
+        _check_mixed_float(added, dtype="float64")
+
+    def test_combine_series(
+        self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
+    ):
+
+        # Series
+        series = float_frame.xs(float_frame.index[0])
+
+        added = float_frame + series
+
+        for key, s in added.items():
+            tm.assert_series_equal(s, float_frame[key] + series[key])
+
+        larger_series = series.to_dict()
+        larger_series["E"] = 1
+        larger_series = Series(larger_series)
+        larger_added = float_frame + larger_series
+
+        for key, s in float_frame.items():
+            tm.assert_series_equal(larger_added[key], s + series[key])
+        assert "E" in larger_added
+        assert np.isnan(larger_added["E"]).all()
+
+        # no upcast needed
+        added = mixed_float_frame + series
+        _check_mixed_float(added)
+
+        # vs mix (upcast) as needed
+        added = mixed_float_frame + series.astype("float32")
+        _check_mixed_float(added, dtype=dict(C=None))
+        added = mixed_float_frame + series.astype("float16")
+        _check_mixed_float(added, dtype=dict(C=None))
+
+        # FIXME: don't leave commented-out
+        # these raise with numexpr.....as we are adding an int64 to an
+        # uint64....weird vs int
+
+        # added = mixed_int_frame + (100*series).astype('int64')
+        # _check_mixed_int(added, dtype = dict(A = 'int64', B = 'float64', C =
+        # 'int64', D = 'int64'))
+        # added = mixed_int_frame + (100*series).astype('int32')
+        # _check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C =
+        # 'int32', D = 'int64'))
+
+        # TimeSeries
+        ts = datetime_frame["A"]
+
+        # 10890
+        # we no longer allow auto timeseries broadcasting
+        # and require explicit broadcasting
+        added = datetime_frame.add(ts, axis="index")
+
+        for key, col in datetime_frame.items():
+            result = col + ts
+            tm.assert_series_equal(added[key], result, check_names=False)
+            assert added[key].name == key
+            if col.name == ts.name:
+                assert result.name == "A"
+            else:
+                assert result.name is None
+
+        smaller_frame = datetime_frame[:-5]
+        smaller_added = smaller_frame.add(ts, axis="index")
+
+        tm.assert_index_equal(smaller_added.index, datetime_frame.index)
+
+        smaller_ts = ts[:-5]
+        smaller_added2 = datetime_frame.add(smaller_ts, axis="index")
+        tm.assert_frame_equal(smaller_added, smaller_added2)
+
+        # length 0, result is all-nan
+        result = datetime_frame.add(ts[:0], axis="index")
+        expected = DataFrame(
+            np.nan, index=datetime_frame.index, columns=datetime_frame.columns
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Frame is all-nan
+        result = datetime_frame[:0].add(ts, axis="index")
+        expected = DataFrame(
+            np.nan, index=datetime_frame.index, columns=datetime_frame.columns
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # empty but with non-empty index
+        frame = datetime_frame[:1].reindex(columns=[])
+        result = frame.mul(ts, axis="index")
+        assert len(result) == len(ts)
+
+    def test_combineFunc(self, float_frame, mixed_float_frame):
+        result = float_frame * 2
+        tm.assert_numpy_array_equal(result.values, float_frame.values * 2)
+
+        # vs mix
+        result = mixed_float_frame * 2
+        for c, s in result.items():
+            tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
+        _check_mixed_float(result, dtype=dict(C=None))
+
+        result = DataFrame() * 2
+        assert result.index.equals(DataFrame().index)
+        assert len(result.columns) == 0
+
+    def test_comparisons(self, simple_frame, float_frame):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame()
+
+        row = simple_frame.xs("a")
+        ndim_5 = np.ones(df1.shape + (1, 1, 1))
+
+        def test_comp(func):
+            result = func(df1, df2)
+            tm.assert_numpy_array_equal(result.values, func(df1.values, df2.values))
+
+            msg = (
+                "Unable to coerce to Series/DataFrame, "
+                "dimension must be <= 2: (30, 4, 1, 1, 1)"
+            )
+            with pytest.raises(ValueError, match=re.escape(msg)):
+                func(df1, ndim_5)
+
+            result2 = func(simple_frame, row)
+            tm.assert_numpy_array_equal(
+                result2.values, func(simple_frame.values, row.values)
+            )
+
+            result3 = func(float_frame, 0)
+            tm.assert_numpy_array_equal(result3.values, func(float_frame.values, 0))
+
+            msg = "Can only compare identically-labeled DataFrame"
+            with pytest.raises(ValueError, match=msg):
+                func(simple_frame, simple_frame[:2])
+
+        test_comp(operator.eq)
+        test_comp(operator.ne)
+        test_comp(operator.lt)
+        test_comp(operator.gt)
+        test_comp(operator.ge)
+        test_comp(operator.le)
+
+    def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
+        # GH 11565
+        df = DataFrame(
+            {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
+        )
+
+        f = getattr(operator, compare_operators_no_eq_ne)
+        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            f(df, 0)
+
+    def test_comparison_protected_from_errstate(self):
+        missing_df = tm.makeDataFrame()
+        missing_df.iloc[0]["A"] = np.nan
+        with np.errstate(invalid="ignore"):
+            expected = missing_df.values < 0
+        with np.errstate(invalid="raise"):
+            result = (missing_df < 0).values
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_boolean_comparison(self):
+
+        # GH 4576
+        # boolean comparisons with a tuple/list give unexpected results
+        df = DataFrame(np.arange(6).reshape((3, 2)))
+        b = np.array([2, 2])
+        b_r = np.atleast_2d([2, 2])
+        b_c = b_r.T
+        lst = [2, 2, 2]
+        tup = tuple(lst)
+
+        # gt
+        expected = DataFrame([[False, False], [False, True], [True, True]])
+        result = df > b
+        tm.assert_frame_equal(result, expected)
+
+        result = df.values > b
+        tm.assert_numpy_array_equal(result, expected.values)
+
+        msg1d = "Unable to coerce to Series, length must be 2: given 3"
+        msg2d = "Unable to coerce to DataFrame, shape must be"
+        msg2db = "operands could not be broadcast together with shapes"
+        with pytest.raises(ValueError, match=msg1d):
+            # wrong shape
+            df > lst
+
+        with pytest.raises(ValueError, match=msg1d):
+            # wrong shape
+            result = df > tup
+
+        # broadcasts like ndarray (GH#23000)
+        result = df > b_r
+        tm.assert_frame_equal(result, expected)
+
+        result = df.values > b_r
+        tm.assert_numpy_array_equal(result, expected.values)
+
+        with pytest.raises(ValueError, match=msg2d):
+            df > b_c
+
+        with pytest.raises(ValueError, match=msg2db):
+            df.values > b_c
+
+        # ==
+        expected = DataFrame([[False, False], [True, False], [False, False]])
+        result = df == b
+        tm.assert_frame_equal(result, expected)
+
+        with pytest.raises(ValueError, match=msg1d):
+            result = df == lst
+
+        with pytest.raises(ValueError, match=msg1d):
+            result = df == tup
+
+        # broadcasts like ndarray (GH#23000)
+        result = df == b_r
+        tm.assert_frame_equal(result, expected)
+
+        result = df.values == b_r
+        tm.assert_numpy_array_equal(result, expected.values)
+
+        with pytest.raises(ValueError, match=msg2d):
+            df == b_c
+
+        assert df.values.shape != b_c.shape
+
+        # with alignment
+        df = DataFrame(
+            np.arange(6).reshape((3, 2)), columns=list("AB"), index=list("abc")
+        )
+        expected.index = df.index
+        expected.columns = df.columns
+
+        with pytest.raises(ValueError, match=msg1d):
+            result = df == lst
+
+        with pytest.raises(ValueError, match=msg1d):
+            result = df == tup
+
+    def test_inplace_ops_alignment(self):
+
+        # inplace ops / ops alignment
+        # GH 8511
+
+        columns = list("abcdefg")
+        X_orig = DataFrame(
+            np.arange(10 * len(columns)).reshape(-1, len(columns)),
+            columns=columns,
+            index=range(10),
+        )
+        Z = 100 * X_orig.iloc[:, 1:-1].copy()
+        block1 = list("bedcf")
+        subs = list("bcdef")
+
+        # add
+        X = X_orig.copy()
+        result1 = (X[block1] + Z).reindex(columns=subs)
+
+        X[block1] += Z
+        result2 = X.reindex(columns=subs)
+
+        X = X_orig.copy()
+        result3 = (X[block1] + Z[block1]).reindex(columns=subs)
+
+        X[block1] += Z[block1]
+        result4 = X.reindex(columns=subs)
+
+        tm.assert_frame_equal(result1, result2)
+        tm.assert_frame_equal(result1, result3)
+        tm.assert_frame_equal(result1, result4)
+
+        # sub
+        X = X_orig.copy()
+        result1 = (X[block1] - Z).reindex(columns=subs)
+
+        X[block1] -= Z
+        result2 = X.reindex(columns=subs)
+
+        X = X_orig.copy()
+        result3 = (X[block1] - Z[block1]).reindex(columns=subs)
+
+        X[block1] -= Z[block1]
+        result4 = X.reindex(columns=subs)
+
+        tm.assert_frame_equal(result1, result2)
+        tm.assert_frame_equal(result1, result3)
+        tm.assert_frame_equal(result1, result4)
+
+    def test_inplace_ops_identity(self):
+
+        # GH 5104
+        # make sure that we are actually changing the object
+        s_orig = Series([1, 2, 3])
+        df_orig = DataFrame(np.random.randint(0, 5, size=10).reshape(-1, 5))
+
+        # no dtype change
+        s = s_orig.copy()
+        s2 = s
+        s += 1
+        tm.assert_series_equal(s, s2)
+        tm.assert_series_equal(s_orig + 1, s)
+        assert s is s2
+        assert s._mgr is s2._mgr
+
+        df = df_orig.copy()
+        df2 = df
+        df += 1
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df_orig + 1, df)
+        assert df is df2
+        assert df._mgr is df2._mgr
+
+        # dtype change
+        s = s_orig.copy()
+        s2 = s
+        s += 1.5
+        tm.assert_series_equal(s, s2)
+        tm.assert_series_equal(s_orig + 1.5, s)
+
+        df = df_orig.copy()
+        df2 = df
+        df += 1.5
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df_orig + 1.5, df)
+        assert df is df2
+        assert df._mgr is df2._mgr
+
+        # mixed dtype
+        arr = np.random.randint(0, 10, size=5)
+        df_orig = DataFrame({"A": arr.copy(), "B": "foo"})
+        df = df_orig.copy()
+        df2 = df
+        df["A"] += 1
+        expected = DataFrame({"A": arr.copy() + 1, "B": "foo"})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df2, expected)
+        assert df._mgr is df2._mgr
+
+        df = df_orig.copy()
+        df2 = df
+        df["A"] += 1.5
+        expected = DataFrame({"A": arr.copy() + 1.5, "B": "foo"})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df2, expected)
+        assert df._mgr is df2._mgr
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            "add",
+            "and",
+            "div",
+            "floordiv",
+            "mod",
+            "mul",
+            "or",
+            "pow",
+            "sub",
+            "truediv",
+            "xor",
+        ],
+    )
+    def test_inplace_ops_identity2(self, op):
+
+        if op == "div":
+            return
+
+        df = DataFrame({"a": [1.0, 2.0, 3.0], "b": [1, 2, 3]})
+
+        operand = 2
+        if op in ("and", "or", "xor"):
+            # cannot use floats for boolean ops
+            df["a"] = [True, False, True]
+
+        df_copy = df.copy()
+        iop = f"__i{op}__"
+        op = f"__{op}__"
+
+        # no id change and value is correct
+        getattr(df, iop)(operand)
+        expected = getattr(df_copy, op)(operand)
+        tm.assert_frame_equal(df, expected)
+        expected = id(df)
+        assert id(df) == expected
+
+    def test_alignment_non_pandas(self):
+        index = ["A", "B", "C"]
+        columns = ["X", "Y", "Z"]
+        df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+
+        align = pd.core.ops._align_method_FRAME
+        for val in [
+            [1, 2, 3],
+            (1, 2, 3),
+            np.array([1, 2, 3], dtype=np.int64),
+            range(1, 4),
+        ]:
+
+            tm.assert_series_equal(
+                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
+            )
+            tm.assert_series_equal(
+                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
+            )
+
+        # length mismatch
+        msg = "Unable to coerce to Series, length must be 3: given 2"
+        for val in [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)]:
+
+            with pytest.raises(ValueError, match=msg):
+                align(df, val, "index")
+
+            with pytest.raises(ValueError, match=msg):
+                align(df, val, "columns")
+
+        val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        tm.assert_frame_equal(
+            align(df, val, "index")[1],
+            DataFrame(val, index=df.index, columns=df.columns),
+        )
+        tm.assert_frame_equal(
+            align(df, val, "columns")[1],
+            DataFrame(val, index=df.index, columns=df.columns),
+        )
+
+        # shape mismatch
+        msg = "Unable to coerce to DataFrame, shape must be"
+        val = np.array([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(ValueError, match=msg):
+            align(df, val, "index")
+
+        with pytest.raises(ValueError, match=msg):
+            align(df, val, "columns")
+
+        val = np.zeros((3, 3, 3))
+        msg = re.escape(
+            "Unable to coerce to Series/DataFrame, dimension must be <= 2: (3, 3, 3)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            align(df, val, "index")
+        with pytest.raises(ValueError, match=msg):
+            align(df, val, "columns")
+
+    def test_no_warning(self, all_arithmetic_operators):
+        df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
+        b = df["B"]
+        with tm.assert_produces_warning(None):
+            getattr(df, all_arithmetic_operators)(b, 0)
+
+
+def test_pow_with_realignment():
+    # GH#32685 pow has special semantics for operating with null values
+    left = pd.DataFrame({"A": [0, 1, 2]})
+    right = pd.DataFrame(index=[0, 1, 2])
+
+    result = left ** right
+    expected = pd.DataFrame({"A": [np.nan, 1.0, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+# TODO: move to tests.arithmetic and parametrize
+def test_pow_nan_with_zero():
+    left = pd.DataFrame({"A": [np.nan, np.nan, np.nan]})
+    right = pd.DataFrame({"A": [0, 0, 0]})
+
+    expected = pd.DataFrame({"A": [1.0, 1.0, 1.0]})
+
+    result = left ** right
+    tm.assert_frame_equal(result, expected)
+
+    result = left["A"] ** right["A"]
+    tm.assert_series_equal(result, expected["A"])

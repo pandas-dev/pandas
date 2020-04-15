@@ -1472,14 +1472,18 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : scalar or array_like, optional
+        s : str, scalar or array_like, optional
             The size of each point. Possible values are:
+
+            - A string with the name of the column to be used for marker's size.
 
             - A single scalar so all points have the same size.
 
             - A sequence of scalars, which will be used for each point's size
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
+
+              .. versionchanged:: 1.1.0
 
         c : str, int or array_like, optional
             The color of each point. Possible values are:

@@ -4,11 +4,7 @@ Utility functions related to concat.
 
 import numpy as np
 
-from pandas._libs import tslib, tslibs
-
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    _TD_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -19,13 +15,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCDatetimeArray,
-    ABCIndexClass,
-    ABCRangeIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 
 def get_dtype_kinds(l):
@@ -97,6 +87,9 @@ def concat_compat(to_concat, axis: int = 0):
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
+    non_empties = [x for x in to_concat if is_nonempty(x)]
+    if non_empties and axis == 0:
+        to_concat = non_empties
 
     typs = get_dtype_kinds(to_concat)
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
@@ -114,9 +107,16 @@ def concat_compat(to_concat, axis: int = 0):
     elif "sparse" in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    all_empty = all(not is_nonempty(x) for x in to_concat)
-    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
+    all_empty = not len(non_empties)
+    single_dtype = len({x.dtype for x in to_concat}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+
+    if any_ea and axis == 1:
         to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+
+    elif any_ea and single_dtype and axis == 0:
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
 
     if all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -283,7 +283,7 @@ def union_categoricals(
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical
-    from pandas.core.arrays.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError("No Categoricals to union")
@@ -315,7 +315,7 @@ def union_categoricals(
             new_codes = np.concatenate([c.codes for c in to_union])
         else:
             codes = [first.codes] + [
-                _recode_for_categories(other.codes, other.categories, first.categories)
+                recode_for_categories(other.codes, other.categories, first.categories)
                 for other in to_union[1:]
             ]
             new_codes = np.concatenate(codes)
@@ -338,7 +338,7 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            _recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories) for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:
@@ -380,70 +380,39 @@ def concat_datetime(to_concat, axis=0, typs=None):
     if typs is None:
         typs = get_dtype_kinds(to_concat)
 
+    to_concat = [_wrap_datetimelike(x) for x in to_concat]
+    single_dtype = len({x.dtype for x in to_concat}) == 1
+
     # multiple types, need to coerce to object
-    if len(typs) != 1:
-        return _concatenate_2d(
-            [_convert_datetimelike_to_object(x) for x in to_concat], axis=axis
-        )
+    if not single_dtype:
+        # wrap_datetimelike ensures that astype(object) wraps in Timestamp/Timedelta
+        return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
-    # must be single dtype
-    if any(typ.startswith("datetime") for typ in typs):
+    if axis == 1:
+        # TODO(EA2D): kludge not necessary with 2D EAs
+        to_concat = [x.reshape(1, -1) if x.ndim == 1 else x for x in to_concat]
 
-        if "datetime" in typs:
-            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
-            return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
-        else:
-            # when to_concat has different tz, len(typs) > 1.
-            # thus no need to care
-            return _concat_datetimetz(to_concat)
+    result = type(to_concat[0])._concat_same_type(to_concat, axis=axis)
 
-    elif "timedelta" in typs:
-        return _concatenate_2d([x.view(np.int64) for x in to_concat], axis=axis).view(
-            _TD_DTYPE
-        )
-
-    elif any(typ.startswith("period") for typ in typs):
-        assert len(typs) == 1
-        cls = to_concat[0]
-        new_values = cls._concat_same_type(to_concat)
-        return new_values
+    if result.ndim == 2 and is_extension_array_dtype(result.dtype):
+        # TODO(EA2D): kludge not necessary with 2D EAs
+        assert result.shape[0] == 1
+        result = result[0]
+    return result
 
 
-def _convert_datetimelike_to_object(x):
-    # coerce datetimelike array to object dtype
-
-    # if dtype is of datetimetz or timezone
-    if x.dtype.kind == _NS_DTYPE.kind:
-        if getattr(x, "tz", None) is not None:
-            x = np.asarray(x.astype(object))
-        else:
-            shape = x.shape
-            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(), box="timestamp")
-            x = x.reshape(shape)
-
-    elif x.dtype == _TD_DTYPE:
-        shape = x.shape
-        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
-        x = x.reshape(shape)
-
-    return x
-
-
-def _concat_datetimetz(to_concat, name=None):
+def _wrap_datetimelike(arr):
     """
-    concat DatetimeIndex with the same tz
-    all inputs must be DatetimeIndex
-    it is used in DatetimeIndex.append also
-    """
-    # Right now, internals will pass a List[DatetimeArray] here
-    # for reductions like quantile. I would like to disentangle
-    # all this before we get here.
-    sample = to_concat[0]
+    Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
 
-    if isinstance(sample, ABCIndexClass):
-        return sample._concat_same_dtype(to_concat, name=name)
-    elif isinstance(sample, ABCDatetimeArray):
-        return sample._concat_same_type(to_concat)
+    DTA/TDA handle .astype(object) correctly.
+    """
+    from pandas.core.construction import array as pd_array, extract_array
+
+    arr = extract_array(arr, extract_numpy=True)
+    if isinstance(arr, np.ndarray) and arr.dtype.kind in ["m", "M"]:
+        arr = pd_array(arr)
+    return arr
 
 
 def _concat_sparse(to_concat, axis=0, typs=None):

@@ -28,10 +28,7 @@ class HistPlot(LinePlot):
             values = values[~isna(values)]
 
             _, self.bins = np.histogram(
-                values,
-                bins=self.bins,
-                range=self.kwds.get("range", None),
-                weights=self.kwds.get("weights", None),
+                values, bins=self.bins, range=self.kwds.get("range", None)
             )
 
         if is_list_like(self.bottom):
@@ -88,6 +85,14 @@ class HistPlot(LinePlot):
                 kwds["style"] = style
 
             kwds = self._make_plot_keywords(kwds, y)
+
+            # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
+            # and each sub-array (10,) will be called in each iteration. If users only
+            # provide 1D array, we assume the same weights is used for all iterations
+            weights = kwds.get("weights", None)
+            if weights is not None and np.ndim(weights) != 1:
+                kwds["weights"] = weights[:, i]
+
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
             self._add_legend_handle(artists[0], label, index=i)
 
