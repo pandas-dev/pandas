@@ -96,6 +96,11 @@ class TestTimedeltaIndexInsert:
         idx = timedelta_range("1 Day", periods=3)
         td = idx[0]
 
-        idx[:0].insert(0, td)
-        idx[:0].insert(1, td)
-        idx[:0].insert(-1, td)
+        result = idx[:0].insert(0, td)
+        assert result.freq == "D"
+
+        result = idx[:0].insert(1, td)
+        assert result.freq == "D"
+
+        result = idx[:0].insert(-1, td)
+        assert result.freq == "D"
