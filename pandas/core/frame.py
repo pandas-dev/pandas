@@ -23,6 +23,7 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Optional,
     Sequence,
@@ -40,7 +41,16 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
+from pandas._typing import (
+    ArrayLike,
+    Axes,
+    Axis,
+    Dtype,
+    FilePathOrBuffer,
+    Label,
+    Level,
+    Renamer,
+)
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -431,9 +441,14 @@ class DataFrame(NDFrame):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            data = data._data
+            data = data._mgr
 
         if isinstance(data, BlockManager):
+            if index is None and columns is None and dtype is None and copy is False:
+                # GH#33357 fastpath
+                NDFrame.__init__(self, data)
+                return
+
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
@@ -590,10 +605,20 @@ class DataFrame(NDFrame):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if self._data.any_extension_types:
-            return len({block.dtype for block in self._data.blocks}) == 1
+        if self._mgr.any_extension_types:
+            return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._data.is_mixed_type
+            return not self._mgr.is_mixed_type
+
+    @property
+    def _can_fast_transpose(self) -> bool:
+        """
+        Can we transpose this DataFrame without creating any new array objects.
+        """
+        if self._data.any_extension_types:
+            # TODO(EA2D) special case would be unnecessary with 2D EAs
+            return False
+        return len(self._data.blocks) == 1
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -2058,18 +2083,24 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path) -> None:
+    def to_feather(self, path, **kwargs) -> None:
         """
-        Write out the binary feather-format for DataFrames.
+        Write a DataFrame to the binary Feather format.
 
         Parameters
         ----------
         path : str
             String file path.
+        **kwargs :
+            Additional keywords passed to :func:`pyarrow.feather.write_feather`.
+            Starting with pyarrow 0.17, this includes the `compression`,
+            `compression_level`, `chunksize` and `version` keywords.
+
+            .. versionadded:: 1.1.0
         """
         from pandas.io.feather_format import to_feather
 
-        to_feather(self, path)
+        to_feather(self, path, **kwargs)
 
     @Appender(
         """
@@ -2515,7 +2546,7 @@ class DataFrame(NDFrame):
                 new_values, index=self.columns, columns=self.index
             )
 
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="transpose")
 
     @property
     def T(self) -> "DataFrame":
@@ -2537,7 +2568,7 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            new_values = self._data.fast_xs(i)
+            new_values = self._mgr.fast_xs(i)
 
             # if we are a copy, mark as such
             copy = isinstance(new_values, np.ndarray) and new_values.base is None
@@ -2554,13 +2585,28 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
 
-            values = self._data.iget(i)
-            result = self._box_col_values(values, label)
+            values = self._mgr.iget(i)
+            result = self._box_col_values(values, i)
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
 
             return result
+
+    def _get_column_array(self, i: int) -> ArrayLike:
+        """
+        Get the values of the i'th column (ndarray or ExtensionArray, as stored
+        in the Block)
+        """
+        return self._data.iget_values(i)
+
+    def _iter_column_arrays(self) -> Iterator[ArrayLike]:
+        """
+        Iterate over the arrays of all columns in order.
+        This returns the values as stored in the Block (ndarray or ExtensionArray).
+        """
+        for i in range(len(self.columns)):
+            yield self._get_column_array(i)
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -2645,7 +2691,7 @@ class DataFrame(NDFrame):
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
         loc = self.columns.get_loc(key)
-        if isinstance(loc, (slice, Series, np.ndarray, Index)):
+        if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
@@ -2678,7 +2724,8 @@ class DataFrame(NDFrame):
             result._set_is_copy(self)
             return result
         else:
-            return self._get_item_cache(key)
+            # loc is neither a slice nor ndarray, so must be an int
+            return self._ixs(loc, axis=1)
 
     def _get_value(self, index, col, takeable: bool = False):
         """
@@ -2865,23 +2912,19 @@ class DataFrame(NDFrame):
                     "and a value that cannot be converted to a Series"
                 ) from err
 
-            self._data = self._data.reindex_axis(
+            self._mgr = self._mgr.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
             )
 
-    def _box_item_values(self, key, values):
-        items = self.columns[self.columns.get_loc(key)]
-        if values.ndim == 2:
-            return self._constructor(values.T, columns=items, index=self.index)
-        else:
-            return self._box_col_values(values, items)
-
-    def _box_col_values(self, values, items):
+    def _box_col_values(self, values, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
+        # Lookup in columns so that if e.g. a str datetime was passed
+        #  we attach the Timestamp object as the name.
+        name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=items, fastpath=True)
+        return klass(values, index=self.index, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -3313,7 +3356,7 @@ class DataFrame(NDFrame):
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
-        self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> "DataFrame":
         r"""
@@ -3494,7 +3537,7 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._data.iget(idx), index=self.index, name=item)
+            item: Series(self._mgr.iget(idx), index=self.index, name=item)
             for idx, item in enumerate(self.columns)
         }
 
@@ -3625,7 +3668,7 @@ class DataFrame(NDFrame):
                 fill_value=fill_value,
             )
 
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4006,7 +4049,7 @@ class DataFrame(NDFrame):
             downcast=downcast,
         )
 
-    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4025,7 +4068,42 @@ class DataFrame(NDFrame):
             method=method,
         )
 
-    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
+    def _replace_columnwise(
+        self, mapping: Dict[Label, Tuple[Any, Any]], inplace: bool, regex
+    ):
+        """
+        Dispatch to Series.replace column-wise.
+
+
+        Parameters
+        ----------
+        mapping : dict
+            of the form {col: (target, value)}
+        inplace : bool
+        regex : bool or same types as `to_replace` in DataFrame.replace
+
+        Returns
+        -------
+        DataFrame or None
+        """
+        # Operate column-wise
+        res = self if inplace else self.copy()
+        ax = self.columns
+
+        for i in range(len(ax)):
+            if ax[i] in mapping:
+                ser = self.iloc[:, i]
+
+                target, value = mapping[ax[i]]
+                newobj = ser.replace(target, value, regex=regex)
+
+                res.iloc[:, i] = newobj
+
+        if inplace:
+            return
+        return res.__finalize__(self)
+
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -4403,7 +4481,7 @@ class DataFrame(NDFrame):
                     values_dtype = values.dtype
 
                     if issubclass(values_type, DatetimeLikeArray):
-                        values = values._data
+                        values = values._data  # TODO: can we de-kludge yet?
 
                     if mask.any():
                         values, _ = maybe_upcast_putmask(values, mask, np.nan)
@@ -4470,7 +4548,7 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "DataFrame":
         result = self._constructor(self._data.isna(func=isna))
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="isna")
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
     def isnull(self) -> "DataFrame":
@@ -4663,6 +4741,47 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
+
+        Examples
+        --------
+        Consider dataset containing ramen rating.
+
+        >>> df = pd.DataFrame({
+        ...     'brand': ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie'],
+        ...     'style': ['cup', 'cup', 'cup', 'pack', 'pack'],
+        ...     'rating': [4, 4, 3.5, 15, 5]
+        ... })
+        >>> df
+            brand style  rating
+        0  Yum Yum   cup     4.0
+        1  Yum Yum   cup     4.0
+        2  Indomie   cup     3.5
+        3  Indomie  pack    15.0
+        4  Indomie  pack     5.0
+
+        By default, it removes duplicate rows based on all columns.
+
+        >>> df.drop_duplicates()
+            brand style  rating
+        0  Yum Yum   cup     4.0
+        2  Indomie   cup     3.5
+        3  Indomie  pack    15.0
+        4  Indomie  pack     5.0
+
+        To remove duplicates on specific column(s), use ``subset``.
+
+        >>> df.drop_duplicates(subset=['brand'])
+            brand style  rating
+        0  Yum Yum   cup     4.0
+        2  Indomie   cup     3.5
+
+        To remove duplicates and keep last occurences, use ``keep``.
+
+        >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
+            brand style  rating
+        1  Yum Yum   cup     4.0
+        2  Indomie   cup     3.5
+        4  Indomie  pack     5.0
         """
         if self.empty:
             return self.copy()
@@ -4705,6 +4824,73 @@ class DataFrame(NDFrame):
         Returns
         -------
         Series
+            Boolean series for each duplicated rows.
+
+        See Also
+        --------
+        Index.duplicated : Equivalent method on index.
+        Series.duplicated : Equivalent method on Series.
+        Series.drop_duplicates : Remove duplicate values from Series.
+        DataFrame.drop_duplicates : Remove duplicate values from DataFrame.
+
+        Examples
+        --------
+        Consider dataset containing ramen rating.
+
+        >>> df = pd.DataFrame({
+        ...     'brand': ['Yum Yum', 'Yum Yum', 'Indomie', 'Indomie', 'Indomie'],
+        ...     'style': ['cup', 'cup', 'cup', 'pack', 'pack'],
+        ...     'rating': [4, 4, 3.5, 15, 5]
+        ... })
+        >>> df
+            brand style  rating
+        0  Yum Yum   cup     4.0
+        1  Yum Yum   cup     4.0
+        2  Indomie   cup     3.5
+        3  Indomie  pack    15.0
+        4  Indomie  pack     5.0
+
+        By default, for each set of duplicated values, the first occurrence
+        is set on False and all others on True.
+
+        >>> df.duplicated()
+        0    False
+        1     True
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True.
+
+        >>> df.duplicated(keep='last')
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        By setting ``keep`` on False, all duplicates are True.
+
+        >>> df.duplicated(keep=False)
+        0     True
+        1     True
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        To find duplicates on specific column(s), use ``subset``.
+
+        >>> df.duplicated(subset=['brand'])
+        0    False
+        1     True
+        2    False
+        3     True
+        4     True
+        dtype: bool
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
@@ -4787,7 +4973,7 @@ class DataFrame(NDFrame):
                 k, kind=kind, ascending=ascending, na_position=na_position
             )
 
-        new_data = self._data.take(
+        new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
 
@@ -4798,7 +4984,7 @@ class DataFrame(NDFrame):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_values")
 
     def sort_index(
         self,
@@ -4922,7 +5108,7 @@ class DataFrame(NDFrame):
             )
 
         baxis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer, axis=baxis, verify=False)
+        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -4934,7 +5120,7 @@ class DataFrame(NDFrame):
         if inplace:
             return self._update_inplace(result)
         else:
-            return result.__finalize__(self)
+            return result.__finalize__(self, method="sort_index")
 
     def value_counts(
         self,
@@ -6661,7 +6847,12 @@ Wild         185.0
         5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.diff(n=periods, axis=bm_axis)
+        self._consolidate_inplace()
+
+        if bm_axis == 0 and periods != 0:
+            return self.T.diff(periods, axis=0).T
+
+        new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
 
     # ----------------------------------------------------------------------
@@ -7855,7 +8046,7 @@ Wild         185.0
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type or frame._data.any_extension_types:
+            if frame._is_mixed_type or frame._mgr.any_extension_types:
                 # the or any_extension_types is really only hit for single-
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
@@ -7918,8 +8109,12 @@ Wild         185.0
 
         assert filter_type is None or filter_type == "bool", filter_type
 
-        dtype_is_dt = self.dtypes.apply(
-            lambda x: is_datetime64_any_dtype(x) or is_period_dtype(x)
+        dtype_is_dt = np.array(
+            [
+                is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
+                for values in self._iter_column_arrays()
+            ],
+            dtype=bool,
         )
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
@@ -7979,7 +8174,7 @@ Wild         185.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(blk_func)
+            res = df._mgr.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
@@ -8421,7 +8616,7 @@ Wild         185.0
                 return self._constructor([], index=q, columns=cols)
             return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
-        result = data._data.quantile(
+        result = data._mgr.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
         )
 

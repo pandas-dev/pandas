@@ -24,7 +24,7 @@ class CustomBlock(ExtensionBlock):
 @pytest.fixture
 def df():
     df1 = pd.DataFrame({"a": [1, 2, 3]})
-    blocks = df1._data.blocks
+    blocks = df1._mgr.blocks
     values = np.arange(3, dtype="int64")
     custom_block = CustomBlock(values, placement=slice(1, 2))
     blocks = blocks + (custom_block,)
@@ -32,14 +32,8 @@ def df():
     return pd.DataFrame(block_manager)
 
 
-def test_concat_dataframe(df):
-    # GH17728
-    res = pd.concat([df, df])
-    assert isinstance(res._data.blocks[1], CustomBlock)
-
-
 def test_concat_axis1(df):
     # GH17954
     df2 = pd.DataFrame({"c": [0.1, 0.2, 0.3]})
     res = pd.concat([df, df2], axis=1)
-    assert isinstance(res._data.blocks[1], CustomBlock)
+    assert isinstance(res._mgr.blocks[1], CustomBlock)

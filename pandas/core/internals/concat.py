@@ -1,6 +1,7 @@
 # TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
+from typing import List
 
 import numpy as np
 
@@ -23,9 +24,67 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.internals.blocks import make_block
+from pandas.core.internals.managers import BlockManager
 
 
-def get_mgr_concatenation_plan(mgr, indexers):
+def concatenate_block_managers(
+    mgrs_indexers, axes, concat_axis: int, copy: bool
+) -> BlockManager:
+    """
+    Concatenate block managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    BlockManager
+    """
+    concat_plans = [
+        _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
+    ]
+    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    blocks = []
+
+    for placement, join_units in concat_plan:
+
+        if len(join_units) == 1 and not join_units[0].indexers:
+            b = join_units[0].block
+            values = b.values
+            if copy:
+                values = values.copy()
+            else:
+                values = values.view()
+            b = b.make_block_same_class(values, placement=placement)
+        elif _is_uniform_join_units(join_units):
+            blk = join_units[0].block
+            vals = [ju.block.values for ju in join_units]
+
+            if not blk.is_extension or blk.is_datetimetz or blk.is_categorical:
+                # datetimetz and categorical can have the same type but multiple
+                #  dtypes, concatting does not necessarily preserve dtype
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
+                values = concat_compat(vals)
+
+            b = make_block(values, placement=placement, ndim=blk.ndim)
+        else:
+            b = make_block(
+                _concatenate_join_units(join_units, concat_axis, copy=copy),
+                placement=placement,
+            )
+        blocks.append(b)
+
+    return BlockManager(blocks, axes)
+
+
+def _get_mgr_concatenation_plan(mgr, indexers):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -232,7 +291,7 @@ class JoinUnit:
         return values
 
 
-def concatenate_join_units(join_units, concat_axis, copy):
+def _concatenate_join_units(join_units, concat_axis, copy):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -371,13 +430,15 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def is_uniform_join_units(join_units) -> bool:
+def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
-    concatenate_join_units (which uses `concat_compat`).
+    _concatenate_join_units (which uses `concat_compat`).
 
     """
+    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
+    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)
@@ -429,7 +490,7 @@ def _trim_join_unit(join_unit, length):
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def combine_concat_plans(plans, concat_axis):
+def _combine_concat_plans(plans, concat_axis):
     """
     Combine multiple concatenation plans into one.
 

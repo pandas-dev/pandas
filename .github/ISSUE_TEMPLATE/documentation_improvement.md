@@ -11,7 +11,7 @@ labels: "Docs, Needs Triage"
 
 [this should provide the location of the documentation, e.g. "pandas.read_csv" or the URL of the documentation, e.g. "https://dev.pandas.io/docs/reference/api/pandas.read_csv.html"]
 
-**Note**: You can check the latest versions of the docs on `master` [here](https://dev.pandas.io/docs).
+**Note**: You can check the latest versions of the docs on `master` [here](https://pandas.pydata.org/docs/dev/).
 
 #### Documentation problem
 
