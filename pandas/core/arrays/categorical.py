@@ -2143,7 +2143,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         good = self._codes != -1
         if not good.all():
-            if skipna:
+            if skipna and good.any():
                 pointer = self._codes[good].min()
             else:
                 return np.nan
@@ -2178,7 +2178,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         good = self._codes != -1
         if not good.all():
-            if skipna:
+            if skipna and good.any():
                 pointer = self._codes[good].max()
             else:
                 return np.nan
@@ -2447,6 +2447,8 @@ class Categorical(ExtensionArray, PandasObject):
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
         for replace_value, new_value in replace_dict.items():
+            if new_value == replace_value:
+                continue
             if replace_value in cat.categories:
                 if isna(new_value):
                     cat.remove_categories(replace_value, inplace=True)
