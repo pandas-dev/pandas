@@ -551,6 +551,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
+- Bug in :meth:`DataFrameGroupBy.quantile` where incorrect values would be returned when missing group keys were present (:issue:`33569`)
 
 Reshaping
 ^^^^^^^^^
