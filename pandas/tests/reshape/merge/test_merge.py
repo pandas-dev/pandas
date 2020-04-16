@@ -2030,7 +2030,7 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
         (
             "right",
             DataFrame(
-                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800], }
+                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800],}
             ),
         ),
         (
