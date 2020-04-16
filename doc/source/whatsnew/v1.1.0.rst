@@ -406,9 +406,9 @@ Deprecations
   arguments (:issue:`27573`).
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
-- :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`TBD`)
-- :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`TBD`)
-- :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`TBD`)
+- :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`33595`)
 
 .. ---------------------------------------------------------------------------
 
