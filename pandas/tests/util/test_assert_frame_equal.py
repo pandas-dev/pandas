@@ -219,7 +219,7 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, obj_fixture):
     #
     # Test ensures that `tm.assert_frame_equals` raises the right exception
     # when comparing DataFrames containing differing unicode objects.
-    msg = msg.format(obj=obj_fixture)
+    msg = f"{obj_fixture}"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2, by_blocks=by_blocks_fixture, obj=obj_fixture)
 
