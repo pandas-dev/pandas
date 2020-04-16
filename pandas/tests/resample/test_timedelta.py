@@ -149,34 +149,5 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     result = s.resample(resample_freq).min()
     expected_index = pd.timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
+    assert result.index.freq == expected_index.freq
     assert not np.isnan(result[-1])
-
-
-@pytest.mark.parametrize(
-    "start, end, freq",
-    [
-        ("1D", "10D", "2D"),
-        ("2D", "30D", "3D"),
-        ("2s", "50s", "5s"),
-        # tests that worked before GH 33498:
-        ("4D", "16D", "3D"),
-        ("8D", "16D", "40s"),
-    ],
-)
-def test_timedelta_range_freq_divide_end(start, end, freq):
-    # GH 33498 only the cases where `(end % freq) == 0` used to fail
-
-    def mock_timedelta_range(start=None, end=None, **kwargs):
-        epoch = pd.Timestamp(0)
-        if start is not None:
-            start = epoch + pd.Timedelta(start)
-        if end is not None:
-            end = epoch + pd.Timedelta(end)
-        result = pd.date_range(start=start, end=end, **kwargs) - epoch
-        result.freq = freq
-        return result
-
-    res = pd.timedelta_range(start=start, end=end, freq=freq)
-    exp = mock_timedelta_range(start=start, end=end, freq=freq)
-
-    tm.assert_index_equal(res, exp)

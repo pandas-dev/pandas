@@ -12,7 +12,7 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas.tseries.offsets import DateOffset
 
 
-def generate_time_range(
+def generate_regular_range(
     start: Union[Timestamp, Timedelta],
     end: Union[Timestamp, Timedelta],
     periods: int,
@@ -25,18 +25,18 @@ def generate_time_range(
     Parameters
     ----------
     start : Timedelta, Timestamp or None
-        first point of produced date range
+        First point of produced date range.
     end : Timedelta, Timestamp or None
-        last point of produced date range
+        Last point of produced date range.
     periods : int
-        number of periods in produced date range
+        Number of periods in produced date range.
     freq : DateOffset
-        describes space between dates in produced date range
+        Describes space between dates in produced date range.
+        It should be an instance of Tick.
 
     Returns
     -------
-    ndarray[np.int64]
-        Representing nanosecond unix timestamps.
+    ndarray[np.int64] Representing nanoseconds.
     """
     start = start.value if start is not None else None
     end = end.value if end is not None else None

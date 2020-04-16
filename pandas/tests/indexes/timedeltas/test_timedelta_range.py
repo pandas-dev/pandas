@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import timedelta_range, to_timedelta
+from pandas import Timedelta, Timestamp, date_range, timedelta_range, to_timedelta
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, Second
@@ -61,3 +61,33 @@ class TestTimedeltas:
         # too many params
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start="0 days", end="5 days", periods=10, freq="H")
+
+    @pytest.mark.parametrize(
+        "start, end, freq",
+        [
+            ("1D", "10D", "2D"),
+            ("2D", "30D", "3D"),
+            ("2s", "50s", "5s"),
+            # tests that worked before GH 33498:
+            ("4D", "16D", "3D"),
+            ("8D", "16D", "40s"),
+        ],
+    )
+    def test_timedelta_range_freq_divide_end(self, start, end, freq):
+        # GH 33498 only the cases where `(end % freq) == 0` used to fail
+
+        def mock_timedelta_range(start=None, end=None, **kwargs):
+            epoch = Timestamp(0)
+            if start is not None:
+                start = epoch + Timedelta(start)
+            if end is not None:
+                end = epoch + Timedelta(end)
+            result = date_range(start=start, end=end, **kwargs) - epoch
+            result.freq = freq
+            return result
+
+        res = timedelta_range(start=start, end=end, freq=freq)
+        exp = mock_timedelta_range(start=start, end=end, freq=freq)
+
+        tm.assert_index_equal(res, exp)
+        assert res.freq == exp.freq
