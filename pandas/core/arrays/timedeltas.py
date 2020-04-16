@@ -518,11 +518,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self._data / other
 
         elif is_object_dtype(other.dtype):
-            # We do inference on the result if we're 2-dimensional
-            # Note: we do not do type inference on the result, so either
-            #  an object array or numeric-dtyped (if numpy does inference)
-            #  will be returned.  GH#23829
-            # FIXME: the above comment is no longer accurate... sometimes
             result = [self[n] / other[n] for n in range(len(self))]
             result = np.array(result)
 
