@@ -239,23 +239,23 @@ def _json_normalize(
             result = result[spec]
         return result
 
-    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
         """
         Interal function to pull field for records, and similar to
-        _pull_field, but require to return Iterable. And will raise error
+        _pull_field, but require to return list. And will raise error
         if has non iterable value.
         """
         result = _pull_field(js, spec)
 
-        # GH 31507 GH 30145, if result is not Iterable, raise TypeError if not
+        # GH 31507 GH 30145, GH 26284 if result is not list, raise TypeError if not
         # null, otherwise return an empty list
-        if not isinstance(result, Iterable):
+        if not isinstance(result, list):
             if pd.isnull(result):
                 result = []
             else:
                 raise TypeError(
-                    f"{js} has non iterable value {result} for path {spec}. "
-                    "Must be iterable or null."
+                    f"{js} has non list value {result} for path {spec}. "
+                    "Must be list or null."
                 )
         return result
 
