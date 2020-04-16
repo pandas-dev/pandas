@@ -620,7 +620,8 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        assert reindexed.nblocks == 2
+        assert reindexed.nblocks == 3
+        assert all(b.mgr_locs.is_slice_like for b in reindexed)
         tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()
@@ -956,6 +957,13 @@ class TestBlockPlacement:
         msg = "unbounded slice"
         with pytest.raises(ValueError, match=msg):
             BlockPlacement(slc)
+
+    def test_slice_canonize_negative_stop(self):
+        # GH#???? negative stop is OK with negative step and positive start
+        slc = slice(3, -1, -2)
+
+        bp = BlockPlacement(slc)
+        assert bp.indexer == slice(3, None, -2)
 
     @pytest.mark.parametrize(
         "slc",

@@ -1324,7 +1324,6 @@ class BlockManager(PandasObject):
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
-
                 blocks.append(
                     self._make_na_block(placement=mgr_locs, fill_value=fill_value)
                 )
@@ -1343,15 +1342,17 @@ class BlockManager(PandasObject):
 
                 else:
                     taker = blklocs[mgr_locs.indexer]
-                    max_len = max(len(mgr_locs), taker.max() + 1)
-                    taker = lib.maybe_indices_to_slice(taker, max_len)
 
-                    if isinstance(taker, slice):
-                        nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
-                    else:
-                        # TODO: just use getitem_block anyway?
-                        nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
-                    blocks.append(nb)
+                    bp = libinternals.BlockPlacement(taker)
+                    bps = bp.to_slices()
+
+                    left, right = 0, 0
+                    for sub in bps:
+                        right += len(sub)
+                        new_locs = mgr_locs[left:right]
+                        b = blk.getitem_block(sub.indexer, new_mgr_locs=new_locs)
+                        blocks.append(b)
+                        left += len(sub)
 
         return blocks
 

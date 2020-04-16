@@ -196,13 +196,27 @@ cdef class BlockPlacement:
 
         return self._as_slice
 
+    def to_slices(self):
+        """
+        Decompose a BlockPlacement into a list of BlockPlacements, each of
+        which is slice-like.
+
+        Returns
+        -------
+        List[BlockPlacement]
+        """
+        if self.is_slice_like:
+            return [self]
+        slices = indexer_as_slices(self.indexer)
+        return [BlockPlacement(x) for x in slices]
+
 
 cdef slice slice_canonize(slice s):
     """
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
+        Py_ssize_t start = 0, stop = 0, step = 1
 
     if s.step is None:
         step = 1
@@ -234,8 +248,8 @@ cdef slice slice_canonize(slice s):
             if stop > start:
                 stop = start
 
-    if start < 0 or (stop < 0 and s.stop is not None):
-        raise ValueError("unbounded slice")
+    if start < 0 or (stop < 0 and s.stop is not None and step > 0):
+        raise ValueError("unbounded slice", start, stop, step, s)
 
     if stop < 0:
         return slice(start, None, step)
@@ -316,6 +330,50 @@ cdef slice_getitem(slice slc, ind):
         # this is the C-optimized equivalent of
         # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
         return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef list indexer_as_slices(int64_t[:] vals):
+    """
+    Convert an indexer to a list of slices.
+    """
+    # TODO: there may be more efficient ways to decompose an indexer into slices
+    cdef:
+        Py_ssize_t i, n, start, stop
+        int64_t d
+
+    if vals is None:
+        raise TypeError("vals must be ndarray")
+
+    n = vals.shape[0]
+
+    if n == 0:
+        return []
+
+    if n == 1:
+        return [slice(vals[0], vals[0] + 1, 1)]
+
+    # n >= 2
+    d = vals[1] - vals[0]
+
+    if d == 0:
+        # i guess we have duplicate values (TODO: how?)
+        return [slice(vals[0], vals[0] + 1, 1)] + indexer_as_slices(vals[1:])
+
+    for i in range(2, n):
+        if vals[i] - vals[i - 1] != d:
+            # we need to start a new slice
+            start = vals[0]
+            stop = vals[i - 1] + d
+            return [slice(start, stop, d)] + indexer_as_slices(vals[i:])
+
+    start = vals[0]
+    stop = start + n * d
+    if stop < 0 and d < 0:
+        return [slice(start, None, d)]
+    else:
+        return [slice(start, stop, d)]
 
 
 @cython.boundscheck(False)
