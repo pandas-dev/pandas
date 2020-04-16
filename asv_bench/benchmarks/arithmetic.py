@@ -67,7 +67,7 @@ class OpWithFillValue:
         self.ser.add(self.ser, fill_value=4)
 
 
-class MixedFrameWithSeriesAxis0:
+class MixedFrameWithSeries:
     params = [
         [
             "eq",
@@ -92,9 +92,13 @@ class MixedFrameWithSeriesAxis0:
         df["C"] = 1.0
         self.df = df
         self.ser = df[0]
+        self.row = df.iloc[0]
 
     def time_frame_op_with_series_axis0(self, opname):
         getattr(self.df, opname)(self.ser, axis=0)
+
+    def time_frame_op_with_series_axis1(self, opname):
+        getattr(self.df, f"__{opname}__")(self.row)
 
 
 class Ops:

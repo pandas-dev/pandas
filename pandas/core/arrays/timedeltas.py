@@ -39,7 +39,7 @@ from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
+from pandas.core.construction import extract_array
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
@@ -518,6 +518,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self._data / other
 
         elif is_object_dtype(other.dtype):
+            # We do inference on the result if we're 2-dimensional
             # Note: we do not do type inference on the result, so either
             #  an object array or numeric-dtyped (if numpy does inference)
             #  will be returned.  GH#23829
@@ -525,13 +526,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             result = [self[n] / other[n] for n in range(len(self))]
             result = np.array(result)
 
-            if self.ndim == 2:
-                # FIXME: kludge, just trying to get the tests passing
-                res = extract_array(pd_array(result.ravel()), extract_numpy=True)
-                result = res.reshape(result.shape)
-                if result.dtype.kind == "m":
-                    # TODO: no real reason for this, but we test it
-                    result = np.asarray(result)
+            # We need to do dtype inference in order to keep DataFrame ops
+            #  behavior consistent with Series behavior
+            inferred = lib.infer_dtype(result)
+            if inferred == "timedelta":
+                flat = result.ravel()
+                result = type(self)._from_sequence(flat).reshape(result.shape)
+            elif inferred == "floating":
+                result = result.astype(float)
 
             return result
 

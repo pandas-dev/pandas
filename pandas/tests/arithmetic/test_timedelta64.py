@@ -2025,6 +2025,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 
