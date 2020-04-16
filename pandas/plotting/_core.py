@@ -606,15 +606,14 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot
         - 'hexbin' : hexbin plot.
-    
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
         Make separate subplots for each column.
     sharex : bool, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels
-        to invisible; defaults to True if ax is None otherwise False if 
-        an ax is passed in; Be aware, that passing in both an ax and 
+        to invisible; defaults to True if ax is None otherwise False if
+        an ax is passed in; Be aware, that passing in both an ax and
         sharex=True will alter all x axis labels for all axis in a figure.
     sharey : bool, default False
         In case aubplots=True, share y axis and set some y axis labels to invisible.
