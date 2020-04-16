@@ -443,7 +443,7 @@ class SelectionMixin:
 		# #issue 32580: Grouped-by column loses name when empty list of aggregations is specified.
                 #Bug in the method `DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
                 #return concat([result[k] for k in keys], keys=keys, axis=1), True
-                keys_to_use=[k for k in keys if not result[k].empty]
+                keys_to_use = [k for k in keys if not result[k].empty]
                 # check: if at least one DataFrame is not empty
                 if keys_to_use !=[]:
                     keys_to_use=keys_to_use
