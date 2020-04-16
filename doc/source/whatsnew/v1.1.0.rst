@@ -457,7 +457,7 @@ Datetimelike
 - Bug where :meth:`PeriodIndex` raised when passed a :class:`Series` of strings (:issue:`26109`)
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 - Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
-
+- Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
 
 Timedelta
 ^^^^^^^^^
