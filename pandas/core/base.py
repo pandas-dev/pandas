@@ -445,7 +445,7 @@ class SelectionMixin:
                 #return concat([result[k] for k in keys], keys=keys, axis=1), True
                 keys_to_use = [k for k in keys if not result[k].empty]
                 # check: if at least one DataFrame is not empty
-                if keys_to_use !=[]:
+                if not keys_to_use:
                     keys_to_use=keys_to_use
                 else:
                     keys_to_use=keys_to_use
