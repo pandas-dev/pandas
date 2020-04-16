@@ -3,64 +3,30 @@ Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
 
-from typing import Tuple
+from typing import Union
 
 import numpy as np
 
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 
-from pandas.tseries.offsets import DateOffset, Tick, generate_range
+from pandas.tseries.offsets import DateOffset
 
 
-def generate_timestamps_range(
-    start: Timestamp, end: Timestamp, periods: int, freq: DateOffset
-) -> Tuple[np.ndarray, str]:
-    """
-    Generate a range of dates with the spans between dates described by
-    the given `freq` DateOffset.
-
-    Parameters
-    ----------
-    start : Timestamp or None
-        first point of produced date range
-    end : Timestamp or None
-        last point of produced date range
-    periods : int
-        number of periods in produced date range
-    freq : DateOffset
-        describes space between dates in produced date range
-
-    Returns
-    -------
-    (tuple): containing:
-
-        values : ndarray[np.int64] representing nanosecond unix timestamps
-        tz : the timezone of the range
-    """
-    if isinstance(freq, Tick):
-        start_value = Timestamp(start).value if start is not None else None
-        end_value = Timestamp(end).value if end is not None else None
-        values = _generate_regular_range(start_value, end_value, periods, freq.nanos)
-    else:
-        xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
-        values = np.array([x.value for x in xdr], dtype=np.int64)
-
-    tz = start.tz if start is not None else end.tz
-    return values, tz
-
-
-def generate_timedeltas_range(
-    start: Timedelta, end: Timedelta, periods: int, freq: DateOffset
+def generate_regular_range(
+    start: Union[Timestamp, Timedelta],
+    end: Union[Timestamp, Timedelta],
+    periods: int,
+    freq: DateOffset,
 ):
     """
-    Generate a range of dates with the spans between dates described by
-    the given `freq` DateOffset.
+    Generate a range of dates or timestamps with the spans between dates
+    described by the given `freq` DateOffset.
 
     Parameters
     ----------
-    start : Timedelta or None
+    start : Timedelta, Timestamp or None
         first point of produced date range
-    end : Timedelta or None
+    start : Timedelta, Timestamp or None
         last point of produced date range
     periods : int
         number of periods in produced date range
@@ -69,14 +35,13 @@ def generate_timedeltas_range(
 
     Returns
     -------
-    ndarray[np.int64] representing nanosecond timedeltas
+    ndarray[np.int64]
+        Representing nanosecond unix timestamps.
     """
-    start_value = Timedelta(start).value if start is not None else None
-    end_value = Timedelta(end).value if end is not None else None
-    return _generate_regular_range(start_value, end_value, periods, freq.nanos)
+    start = start.value if start is not None else None
+    end = end.value if end is not None else None
+    stride = freq.nanos
 
-
-def _generate_regular_range(start: int, end: int, periods: int, stride: int):
     b = start
     if periods is None:
         # cannot just use e = Timestamp(end) + 1 because arange breaks when

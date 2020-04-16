@@ -44,11 +44,11 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_timestamps_range
+from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Day, Tick
+from pandas.tseries.offsets import Day, Tick, generate_range
 
 _midnight = time(0, 0)
 
@@ -370,33 +370,22 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if end is not None:
             end = Timestamp(end)
 
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError(
-                    "Closed has to be None if not both of start and end are defined"
-                )
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
-
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
-
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
             # Localize the start and end arguments
+            start_tz = None if start is None else start.tz
+            end_tz = None if end is None else end.tz
             start = _maybe_localize_point(
-                start,
-                getattr(start, "tz", None),
-                start,
-                freq,
-                tz,
-                ambiguous,
-                nonexistent,
+                start, start_tz, start, freq, tz, ambiguous, nonexistent
             )
             end = _maybe_localize_point(
-                end, getattr(end, "tz", None), end, freq, tz, ambiguous, nonexistent
+                end, end_tz, end, freq, tz, ambiguous, nonexistent
             )
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -408,7 +397,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 if end is not None:
                     end = end.tz_localize(None)
 
-            values, _tz = generate_timestamps_range(start, end, periods, freq)
+            if isinstance(freq, Tick):
+                values = generate_regular_range(start, end, periods, freq)
+            else:
+                xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
+                values = np.array([x.value for x in xdr], dtype=np.int64)
+
+            _tz = start.tz if start is not None else end.tz
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
