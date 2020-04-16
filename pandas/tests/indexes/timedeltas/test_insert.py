@@ -93,6 +93,7 @@ class TestTimedeltaIndexInsert:
 
     def test_insert_empty(self):
         # Corner case inserting with length zero doesnt raise IndexError
+        # GH#33573 for freq preservation
         idx = timedelta_range("1 Day", periods=3)
         td = idx[0]
 

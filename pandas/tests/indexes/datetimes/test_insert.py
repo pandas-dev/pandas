@@ -25,6 +25,7 @@ class TestInsert:
             idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert_empty_preserves_freq(self, tz_naive_fixture):
+        # GH#33573
         tz = tz_naive_fixture
         dti = DatetimeIndex([], tz=tz, freq="D")
         item = Timestamp("2017-04-05").tz_localize(tz)
