@@ -381,7 +381,7 @@ fi
 ### Checking for standardized documentation ###
 echo "Checking which files in pandas/doc/source have standardized documentation"
 for entry in $(find ../doc/source/ -type f)
-do	
+do
 	if grep -q Pandas "$entry" || grep -q *pandas* "$entry"  ; then
 		echo "$entry"
 	fi
