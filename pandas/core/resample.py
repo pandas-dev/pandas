@@ -1499,10 +1499,11 @@ class TimeGrouper(Grouper):
         end_stamps = labels + self.freq
         bins = ax.searchsorted(end_stamps, side="left")
 
-        # Addresses GH #10530
         if self.base > 0:
+            # GH #10530
             labels += type(self.freq)(self.base)
         if self.loffset:
+            # GH #33498
             labels += self.loffset
 
         return binner, bins, labels
