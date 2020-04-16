@@ -30,9 +30,8 @@ def generate_regular_range(
         Last point of produced date range.
     periods : int
         Number of periods in produced date range.
-    freq : DateOffset
+    freq : Tick
         Describes space between dates in produced date range.
-        It should be an instance of Tick.
 
     Returns
     -------
