@@ -310,10 +310,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     -------
     DataFrame
     """
-    # Note: we use iloc to access columns for compat with cases
-    #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
-
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
 
@@ -322,18 +318,14 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
-    elif isinstance(right, ABCDataFrame):
-        assert right._indexed_same(left)
+    array_op = get_array_op(func, str_rep=str_rep)
 
-        array_op = get_array_op(func, str_rep=str_rep)
+    if isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
 
         arrays = []
         for l, r in zip(left._iter_column_arrays(), right._iter_column_arrays()):
             arrays.append(array_op(l, r))
-
-        return type(left)._from_arrays(
-            arrays, left.columns, left.index, verify_integrity=False
-        )
 
     elif isinstance(right, ABCSeries) and axis == "columns":
         # We only get here if called via _combine_series_frame,
@@ -345,27 +337,28 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
             # Note: we do not do this unconditionally as it may be lossy or
             #  expensive for EA dtypes.
             right = np.asarray(right)
-
-            def column_op(a, b):
-                return {i: func(a.iloc[:, i], b[i]) for i in range(len(a.columns))}
-
         else:
+            right = right._values
 
-            def column_op(a, b):
-                return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
+        arrays = []
+        for l, r in zip(left._iter_column_arrays(), right):
+            arrays.append(array_op(l, r))
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
+        right = right._values
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
+        arrays = []
+        for l in left._iter_column_arrays():
+            arrays.append(array_op(l, right))
 
     else:
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
-    return new_data
+    return type(left)._from_arrays(
+        arrays, left.columns, left.index, verify_integrity=False
+    )
 
 
 # -----------------------------------------------------------------------------
