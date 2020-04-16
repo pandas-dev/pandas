@@ -396,6 +396,9 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_dtype([1, 2, 3])
     False
     """
+    if isinstance(arr_or_dtype, np.dtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
 
 
@@ -431,6 +434,10 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
+
     if arr_or_dtype is None:
         return False
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
@@ -463,6 +470,10 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_dtype('0 days')
     False
     """
+    if isinstance(arr_or_dtype, np.dtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "m"
+
     return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
 
 
@@ -493,6 +504,10 @@ def is_period_dtype(arr_or_dtype) -> bool:
     >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.type is Period
+
     # TODO: Consider making Period an instance of PeriodDtype
     if arr_or_dtype is None:
         return False
@@ -528,6 +543,10 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.type is Interval
+
     # TODO: Consider making Interval an instance of IntervalDtype
     if arr_or_dtype is None:
         return False
@@ -561,6 +580,10 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     >>> is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.name == "category"
+
     if arr_or_dtype is None:
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
@@ -938,6 +961,10 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
+    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
+
     if arr_or_dtype is None:
         return False
     return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
@@ -1503,41 +1530,6 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
     return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
-
-
-def is_ea_dtype(dtype) -> bool:
-    return isinstance(dtype, ExtensionDtype)
-
-
-def is_dt64_dtype(dtype) -> bool:
-    return isinstance(dtype, np.dtype) and dtype.kind == "M"
-
-
-def is_dt64tz_dtype(dtype) -> bool:
-    return isinstance(dtype, ExtensionDtype) and dtype.kind == "M"
-
-
-def is_dt64_any_dtype(dtype) -> bool:
-    return isinstance(dtype, (np.dtype, ExtensionDtype)) and dtype.kind == "M"
-
-
-def is_td64_dtype(dtype) -> bool:
-    return isinstance(dtype, np.dtype) and dtype.kind == "m"
-
-
-def is_period_dtype_obj(dtype) -> bool:
-    return isinstance(dtype, ExtensionDtype) and dtype.type is Period
-
-
-def is_interval_dtype_obj(dtype) -> bool:
-    return isinstance(dtype, ExtensionDtype) and dtype.type is Interval
-
-
-def is_cat_dtype(dtype) -> bool:
-    """
-    Check if we have a CategoricalDtype object.
-    """
-    return isinstance(dtype, ExtensionDtype) and dtype.name == "category"
 
 
 def is_complex_dtype(arr_or_dtype) -> bool:
