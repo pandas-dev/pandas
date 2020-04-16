@@ -356,7 +356,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
 .. _whatsnew_0200.enhancements.style_excel:
 
-Excel output for styled dataframes
+Excel output for styled DataFrames
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Experimental support has been added to export ``DataFrame.style`` formats to Excel using the ``openpyxl`` engine. (:issue:`15530`)
@@ -1351,7 +1351,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
 
-Deprecate panel
+Deprecate Panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
