@@ -575,6 +575,7 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
 - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
+- Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
 
 Plotting
 ^^^^^^^^
