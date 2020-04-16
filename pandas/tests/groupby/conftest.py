@@ -123,3 +123,21 @@ def transformation_func(request):
 def groupby_func(request):
     """yields both aggregation and transformation functions."""
     return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """parallel keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nogil(request):
+    """nogil keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nopython(request):
+    """nopython keyword argument for numba.jit"""
+    return request.param
