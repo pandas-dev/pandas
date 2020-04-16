@@ -621,7 +621,7 @@ class TestBlockManager:
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 3
-        assert all(b.mgr_locs.is_slice_like for b in reindexed)
+        assert all(b.mgr_locs.is_slice_like for b in reindexed.blocks)
         tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()
