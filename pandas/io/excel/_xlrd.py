@@ -7,8 +7,6 @@ from pandas._typing import Scalar, Union
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
-from pandas.io.parsers import _validate_integer
-
 
 class _XlrdReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer):
@@ -109,9 +107,7 @@ class _XlrdReader(_BaseExcelReader):
 
         for i in range(sheet.nrows):
 
-            should_continue, should_break = self.should_read_row(
-                i, header, skiprows, nrows
-            )
+            should_continue, should_break = self.should_read_row(i, header, skiprows, nrows)
             if should_continue:
                 table.append([])
                 continue
