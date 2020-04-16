@@ -42,12 +42,13 @@ def generate_regular_range(
     end = end.value if end is not None else None
     stride = freq.nanos
 
-    b = start
     if periods is None:
+        b = start
         # cannot just use e = Timestamp(end) + 1 because arange breaks when
         # stride is too large, see GH10887
         e = b + (end - b) // stride * stride + stride // 2 + 1
     elif start is not None:
+        b = start
         e = _generate_range_overflow_safe(b, periods, stride, side="start")
     elif end is not None:
         e = end + stride
