@@ -12,7 +12,7 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas.tseries.offsets import DateOffset
 
 
-def generate_regular_range(
+def generate_time_range(
     start: Union[Timestamp, Timedelta],
     end: Union[Timestamp, Timedelta],
     periods: int,

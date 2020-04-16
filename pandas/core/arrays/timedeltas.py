@@ -33,7 +33,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays._ranges import generate_time_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -259,7 +259,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
         if freq is not None:
-            index = generate_regular_range(start, end, periods, freq)
+            index = generate_time_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
             if len(index) >= 2:
