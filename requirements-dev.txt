@@ -2,7 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
-python-dateutil>=2.6.1
+python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.16
@@ -55,7 +55,7 @@ numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
-openpyxl<=3.0.1
+openpyxl
 xlrd
 xlsxwriter
 xlwt

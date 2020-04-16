@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import ArrayLike, Level
+from pandas._typing import Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like
@@ -224,7 +224,7 @@ def _get_opstr(op):
     }[op]
 
 
-def _get_op_name(op, special):
+def _get_op_name(op, special: bool) -> str:
     """
     Find the name to attach to this method according to conventions
     for special and non-special methods.
@@ -385,42 +385,6 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
-def _construct_result(
-    left: ABCSeries, result: ArrayLike, index: ABCIndexClass, name,
-):
-    """
-    Construct an appropriately-labelled Series from the result of an op.
-
-    Parameters
-    ----------
-    left : Series
-    result : ndarray or ExtensionArray
-    index : Index
-    name : object
-
-    Returns
-    -------
-    Series
-        In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
-    """
-    if isinstance(result, tuple):
-        # produced by divmod or rdivmod
-        return (
-            _construct_result(left, result[0], index=index, name=name),
-            _construct_result(left, result[1], index=index, name=name),
-        )
-
-    # We do not pass dtype to ensure that the Series constructor
-    #  does inference in the case where `result` has object-dtype.
-    out = left._constructor(result, index=index)
-    out = out.__finalize__(left)
-
-    # Set the result's name after __finalize__ is called because __finalize__
-    #  would set it back to self.name
-    out.name = name
-    return out
-
-
 def _arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -439,7 +403,7 @@ def _arith_method_SERIES(cls, op, special):
         rvalues = extract_array(right, extract_numpy=True)
         result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
-        return _construct_result(left, result, index=left.index, name=res_name)
+        return left._construct_result(result, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -466,7 +430,7 @@ def _comp_method_SERIES(cls, op, special):
 
         res_values = comparison_op(lvalues, rvalues, op, str_rep)
 
-        return _construct_result(self, res_values, index=self.index, name=res_name)
+        return self._construct_result(res_values, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -488,7 +452,7 @@ def _bool_method_SERIES(cls, op, special):
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = logical_op(lvalues, rvalues, op)
-        return _construct_result(self, res_values, index=self.index, name=res_name)
+        return self._construct_result(res_values, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -546,11 +510,13 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     if axis == 0:
         values = right._values
         if isinstance(values, np.ndarray):
+            # TODO(EA2D): no need to special-case with 2D EAs
             # We can operate block-wise
             values = values.reshape(-1, 1)
+            values = np.broadcast_to(values, left.shape)
 
             array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._mgr.apply(array_op, right=values.T)
+            bm = left._mgr.apply(array_op, right=values.T, align_keys=["right"])
             return type(left)(bm)
 
         new_data = dispatch_to_series(left, right, func)
