@@ -2332,7 +2332,8 @@ Name: Max Speed, dtype: float64
         >>> s.diff()
         0      NaN
         1    255.0
-        dtype: float64"""),
+        dtype: float64"""
+        ),
     )
     def diff(self, periods: int = 1) -> "Series":
         """
