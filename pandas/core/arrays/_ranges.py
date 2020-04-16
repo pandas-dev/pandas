@@ -26,7 +26,7 @@ def generate_regular_range(
     ----------
     start : Timedelta, Timestamp or None
         first point of produced date range
-    start : Timedelta, Timestamp or None
+    end : Timedelta, Timestamp or None
         last point of produced date range
     periods : int
         number of periods in produced date range
