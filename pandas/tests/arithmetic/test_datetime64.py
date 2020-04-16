@@ -964,9 +964,7 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        warn = None
-        if box_with_array is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
+        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
@@ -1446,7 +1444,8 @@ class TestDatetime64DateOffsetArithmetic:
         s = DatetimeIndex([Timestamp("2000-1-1"), Timestamp("2000-2-1")])
         s = tm.box_expected(s, box_with_array)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        with tm.assert_produces_warning(warn):
             other = pd.Index([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()])
             other = tm.box_expected(other, box_with_array)
             result = s + other

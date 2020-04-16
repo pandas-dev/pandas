@@ -6,7 +6,6 @@ from datetime import timedelta
 from functools import partial
 import operator
 from typing import Any, Optional, Tuple
-import warnings
 
 import numpy as np
 
@@ -76,14 +75,7 @@ def masked_arith_op(x: np.ndarray, y, op):
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
-            if not _can_broadcast(x, y):
-                raise ValueError(x.shape, y.shape)
-
-            # Call notna on pre-broadcasted y for performance
-            ymask = notna(y)
-            y = np.broadcast_to(y, x.shape)
-            ymask = np.broadcast_to(ymask, x.shape)
-
+            raise ValueError(x.shape, y.shape)
         else:
             ymask = notna(y)
 
@@ -128,7 +120,7 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: Optional[str]):
+def define_na_arithmetic_op(op, str_rep: str):
     def na_op(x, y):
         return na_arithmetic_op(x, y, op, str_rep)
 
@@ -212,51 +204,6 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     return res_values
 
 
-def _broadcast_comparison_op(lvalues, rvalues, op) -> np.ndarray:
-    """
-    Broadcast a comparison operation between two 2D arrays.
-
-    Parameters
-    ----------
-    lvalues : np.ndarray or ExtensionArray
-    rvalues : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    np.ndarray[bool]
-    """
-    if isinstance(rvalues, np.ndarray):
-        rvalues = np.broadcast_to(rvalues, lvalues.shape)
-        result = comparison_op(lvalues, rvalues, op)
-    else:
-        result = np.empty(lvalues.shape, dtype=bool)
-        for i in range(len(lvalues)):
-            result[i, :] = comparison_op(lvalues[i], rvalues[:, 0], op)
-    return result
-
-
-def _can_broadcast(lvalues, rvalues) -> bool:
-    """
-    Check if we can broadcast rvalues to match the shape of lvalues.
-
-    Parameters
-    ----------
-    lvalues : np.ndarray or ExtensionArray
-    rvalues : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    bool
-    """
-    # We assume that lengths dont match
-    if lvalues.ndim == rvalues.ndim == 2:
-        # See if we can broadcast unambiguously
-        if lvalues.shape[1] == rvalues.shape[-1]:
-            if rvalues.shape[0] == 1:
-                return True
-    return False
-
-
 def comparison_op(
     left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
 ) -> ArrayLike:
@@ -288,8 +235,6 @@ def comparison_op(
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
         if len(lvalues) != len(rvalues):
-            if _can_broadcast(lvalues, rvalues):
-                return _broadcast_comparison_op(lvalues, rvalues, op)
             raise ValueError(
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
@@ -309,13 +254,8 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with warnings.catch_warnings():
-            # suppress warnings from numpy about element-wise comparison
-            warnings.simplefilter("ignore", DeprecationWarning)
-            with np.errstate(all="ignore"):
-                res_values = na_arithmetic_op(
-                    lvalues, rvalues, op, str_rep, is_cmp=True
-                )
+        with np.errstate(all="ignore"):
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
 
     return res_values
 

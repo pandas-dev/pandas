@@ -237,15 +237,13 @@ def _format_argument_list(allow_args: Union[List[str], int]):
     elif allow_args == 1:
         return " except for the first argument"
     elif isinstance(allow_args, int):
-        return " except for the first {num_args} arguments".format(num_args=allow_args)
+        return f" except for the first {allow_args} arguments"
     elif len(allow_args) == 1:
-        return " except for the argument '{arg}'".format(arg=allow_args[0])
+        return f" except for the argument '{allow_args[0]}'"
     else:
         last = allow_args[-1]
         args = ", ".join(["'" + x + "'" for x in allow_args[:-1]])
-        return " except for the arguments {args} and '{last}'".format(
-            args=args, last=last
-        )
+        return f" except for the arguments {args} and '{last}'"
 
 
 def deprecate_nonkeyword_arguments(

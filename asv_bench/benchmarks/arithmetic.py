@@ -97,56 +97,6 @@ class MixedFrameWithSeriesAxis0:
         getattr(self.df, opname)(self.ser, axis=0)
 
 
-class FrameWithFrameWide:
-    # Many-columns, mixed dtypes
-
-    params = [
-        [
-            operator.add,
-            operator.sub,
-            operator.mul,
-            operator.truediv,
-            operator.floordiv,
-            operator.pow,
-            operator.mod,
-            operator.eq,
-            operator.ne,
-            operator.gt,
-            operator.ge,
-            operator.lt,
-            operator.le,
-        ]
-    ]
-    param_names = ["op"]
-
-    def setup(self, op):
-        # we choose dtypes so as to make the blocks
-        #  a) not perfectly match between right and left
-        #  b) appreciably bigger than single columns
-        arr = np.random.randn(10 ** 6).reshape(500, 2000).astype(np.float64)
-        df = pd.DataFrame(arr)
-        df[1000] = df[1000].astype(np.float32)
-        df.iloc[:, 1000:] = df.iloc[:, 1000:].astype(np.float32)
-        df._consolidate_inplace()
-
-        # TODO: GH#33198 the setting here shoudlnt need two steps
-        df2 = pd.DataFrame(arr)
-        df2[1000] = df2[1000].astype(np.int64)
-        df2.iloc[:, 500:1500] = df2.iloc[:, 500:1500].astype(np.int64)
-        df2._consolidate_inplace()
-
-        self.left = df
-        self.right = df
-
-    def time_op_different_blocks(self, op):
-        # blocks (and dtypes) are not aligned
-        op(self.left, self.right)
-
-    def time_op_same_blocks(self, op):
-        # blocks (and dtypes) are aligned
-        op(self.left, self.left)
-
-
 class Ops:
 
     params = [[True, False], ["default", 1]]

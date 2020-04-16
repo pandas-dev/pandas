@@ -4,13 +4,13 @@ Arithmetic operations for PandasObjects
 This is not a public API.
 """
 import operator
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Optional, Set
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import ArrayLike, Level
+from pandas._typing import Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like
@@ -57,7 +57,6 @@ from pandas.core.ops.roperator import (  # noqa:F401
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
-    from pandas.core.internals.blocks import Block  # noqa: F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -294,90 +293,6 @@ def fill_binop(left, right, fill_value):
 # Dispatch logic
 
 
-def operate_blockwise(left, right, array_op):
-    assert right._indexed_same(left)
-
-    def get_same_shape_values(
-        lblk: "Block", rblk: "Block", left_ea: bool, right_ea: bool
-    ) -> Tuple[ArrayLike, ArrayLike]:
-        """
-        Slice lblk.values to align with rblk.  Squeeze if we have EAs.
-        """
-        lvals = lblk.values
-        rvals = rblk.values
-
-        # TODO(EA2D): with 2D EAs pnly this first clause would be needed
-        if not (left_ea or right_ea):
-            lvals = lvals[rblk.mgr_locs.indexer, :]
-            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-        elif left_ea and right_ea:
-            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-        elif right_ea:
-            # lvals are 2D, rvals are 1D
-            lvals = lvals[rblk.mgr_locs.indexer, :]
-            assert lvals.shape[0] == 1, lvals.shape
-            lvals = lvals[0, :]
-        else:
-            # lvals are 1D, rvals are 2D
-            assert rvals.shape[0] == 1, rvals.shape
-            rvals = rvals[0, :]
-
-        return lvals, rvals
-
-    res_blks: List["Block"] = []
-    rmgr = right._mgr
-    for n, blk in enumerate(left._mgr.blocks):
-        locs = blk.mgr_locs
-        blk_vals = blk.values
-
-        left_ea = not isinstance(blk_vals, np.ndarray)
-
-        # TODO: joris says this is costly, see if we can optimize
-        rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
-
-        # Assertions are disabled for performance, but should hold:
-        # if left_ea:
-        #    assert len(locs) == 1, locs
-        #    assert len(rblks) == 1, rblks
-        #    assert rblks[0].shape[0] == 1, rblks[0].shape
-
-        for k, rblk in enumerate(rblks):
-            right_ea = not isinstance(rblk.values, np.ndarray)
-
-            lvals, rvals = get_same_shape_values(blk, rblk, left_ea, right_ea)
-
-            res_values = array_op(lvals, rvals)
-            if left_ea and not right_ea and hasattr(res_values, "reshape"):
-                res_values = res_values.reshape(1, -1)
-            nbs = rblk._split_op_result(res_values)
-
-            # Assertions are disabled for performance, but should hold:
-            # if right_ea or left_ea:
-            #    assert len(nbs) == 1
-            # else:
-            #    assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
-
-            for nb in nbs:
-                # Reset mgr_locs to correspond to our original DataFrame
-                nblocs = locs.as_array[nb.mgr_locs.indexer]
-                nb.mgr_locs = nblocs
-                # Assertions are disabled for performance, but should hold:
-                #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
-                #  assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
-
-            res_blks.extend(nbs)
-
-    # Assertions are disabled for performance, but should hold:
-    #  slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
-    #  nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
-    #  assert nlocs == len(left.columns), (nlocs, len(left.columns))
-    #  assert len(slocs) == nlocs, (len(slocs), nlocs)
-    #  assert slocs == set(range(nlocs)), slocs
-
-    new_mgr = type(rmgr)(res_blks, axes=rmgr.axes, do_integrity_check=False)
-    return new_mgr
-
-
 def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
@@ -410,9 +325,8 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        array_op = get_array_op(func, str_rep=str_rep)
-        bm = operate_blockwise(left, right, array_op)
-        return type(left)(bm)
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries) and axis == "columns":
         # We only get here if called via _combine_series_frame,
@@ -596,11 +510,13 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     if axis == 0:
         values = right._values
         if isinstance(values, np.ndarray):
+            # TODO(EA2D): no need to special-case with 2D EAs
             # We can operate block-wise
             values = values.reshape(-1, 1)
+            values = np.broadcast_to(values, left.shape)
 
             array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._mgr.apply(array_op, right=values.T)
+            bm = left._mgr.apply(array_op, right=values.T, align_keys=["right"])
             return type(left)(bm)
 
         new_data = dispatch_to_series(left, right, func)
