@@ -623,7 +623,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
--
+- Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 -
 
 ExtensionArray
