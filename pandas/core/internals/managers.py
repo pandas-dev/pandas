@@ -404,7 +404,7 @@ class BlockManager(PandasObject):
                             b_items, axis=axis, copy=align_copy
                         )._values
                     else:
-                        # e.g. ndarray passed from combine_series_frame
+                        # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
@@ -936,35 +936,6 @@ class BlockManager(PandasObject):
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
-
-    def get(self, item):
-        """
-        Return values for selected item (ndarray or BlockManager).
-        """
-        if self.items.is_unique:
-
-            if not isna(item):
-                loc = self.items.get_loc(item)
-            else:
-                indexer = np.arange(len(self.items))[isna(self.items)]
-
-                # allow a single nan location indexer
-                if not is_scalar(indexer):
-                    if len(indexer) == 1:
-                        loc = indexer.item()
-                    else:
-                        raise ValueError("cannot label index with a null key")
-
-            return self.iget(loc)
-        else:
-
-            if isna(item):
-                raise TypeError("cannot label index with a null key")
-
-            indexer = self.items.get_indexer_for([item])
-            return self.reindex_indexer(
-                new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
-            )
 
     def iget(self, i: int) -> "SingleBlockManager":
         """
