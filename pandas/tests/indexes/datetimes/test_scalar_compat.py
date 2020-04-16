@@ -57,6 +57,12 @@ class TestDatetimeIndexOps:
         result = getattr(Timestamp(idx[-1]), field)
         assert result == expected
 
+    def test_dti_timestamp_isocalendar_fields(self):
+        idx = tm.makeDateIndex(100)
+        expected = tuple(idx.isocalendar().iloc[-1].to_list())
+        result = idx[-1].isocalendar()
+        assert result == expected
+
     def test_dti_timestamp_freq_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
