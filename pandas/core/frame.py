@@ -6747,7 +6747,8 @@ Wild         185.0
         >>> df.diff()
                a
         0    NaN
-        1  255.0"""),
+        1  255.0"""
+        ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
 
