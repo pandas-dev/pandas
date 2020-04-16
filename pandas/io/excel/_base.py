@@ -389,6 +389,15 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
         pass
 
+    def should_read_row(self, index, header, skiprows, nrows):
+        if nrows is not None:
+            if index <= header - 1 + skiprows:
+                return True, False
+            if index <= header - 1 + skiprows + nrows + 1:
+                return False, False
+            return False, True
+        return False, False
+
     def parse(
         self,
         sheet_name=0,
@@ -442,7 +451,15 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float, header, skiprows, nrows)
+            gsd_header = 0 if header is None else header
+            gsd_skiprows = 0 if skiprows is None else skiprows
+            gsd_nrows = nrows
+            if isinstance(gsd_header, list) or isinstance(gsd_skiprows, list):
+                gsd_nrows = None
+
+            data = self.get_sheet_data(
+                sheet, convert_float, gsd_header, gsd_skiprows, gsd_nrows
+            )
             usecols = _maybe_convert_usecols(usecols)
 
             if not data:
