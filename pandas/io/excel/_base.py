@@ -28,7 +28,7 @@ from pandas.io.excel._util import (
     _pop_header_name,
     get_writer,
 )
-from pandas.io.parsers import TextParser, _validate_integer
+from pandas.io.parsers import TextParser
 
 _read_excel_doc = (
     """
@@ -440,8 +440,6 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     ):
 
         validate_header_arg(header)
-        if nrows is not None:
-            _validate_integer("nrows", nrows)
 
         ret_dict = False
 
@@ -471,7 +469,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
             gsd_header = 0 if header is None else header
             gsd_skiprows = 0 if skiprows is None else skiprows
-            gsd_nrows = nrows
+            gsd_nrows = nrows if isinstance(nrows, int) else None
             if isinstance(gsd_header, list) or isinstance(gsd_skiprows, list):
                 gsd_nrows = None
 
