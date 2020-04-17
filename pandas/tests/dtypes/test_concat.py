@@ -94,8 +94,9 @@ def test_concat_mismatched_categoricals_with_empty():
 def test_no_tz_concat_without_copy(_COPY_):
     # This will raise a ValueError issue if it fails
     # Regression test for issue 25257
-    df = pd.DataFrame({'timestamp': [pd.Timestamp('2020-04-08 09:00:00.709949+0000',
-                      tz='UTC')], })
+    df = pd.DataFrame(
+        {"timestamp": [pd.Timestamp("2020-04-08 09:00:00.709949+0000", tz="UTC")],}
+    )
     result = pd.concat([df], copy=_COPY_)
     expected = df
     tm.assert_frame_equal(result, expected)
