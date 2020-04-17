@@ -181,7 +181,7 @@ class AttributesMixin:
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
         10000000000
         """
         raise AbstractMethodError(self)
@@ -550,10 +550,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 key = np.asarray(key, dtype=bool)
 
             key = check_array_indexer(self, key)
-            if key.all():
-                key = slice(0, None, None)
-            else:
-                key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
         elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
             # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
             # this for now (would otherwise raise in check_array_indexer)
@@ -561,7 +558,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             key = check_array_indexer(self, key)
 
-        is_period = is_period_dtype(self)
+        is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
         else:
@@ -577,11 +574,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
-        if result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            return result
-
+        if lib.is_scalar(result):
+            return self._box_func(result)
         return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
@@ -729,7 +723,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat, axis: int = 0):
 
         # do not pass tz to set because tzlocal cannot be hashed
         dtypes = {str(x.dtype) for x in to_concat}
@@ -739,14 +733,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         obj = to_concat[0]
         dtype = obj.dtype
 
-        values = np.concatenate([x.asi8 for x in to_concat])
+        i8values = [x.asi8 for x in to_concat]
+        values = np.concatenate(i8values, axis=axis)
 
-        if is_period_dtype(to_concat[0].dtype):
+        new_freq = None
+        if is_period_dtype(dtype):
             new_freq = obj.freq
-        else:
+        elif axis == 0:
             # GH 3232: If the concat result is evenly spaced, we can retain the
             # original frequency
-            new_freq = None
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
@@ -792,7 +787,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=9,
             )
             fill_value = new_fill
 

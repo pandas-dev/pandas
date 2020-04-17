@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -44,7 +43,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -596,7 +595,11 @@ class _MergeOperation:
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
-        self.axis = axis
+
+        # bm_axis -> the axis on the BlockManager
+        self.bm_axis = axis
+        # axis --> the axis on the Series/DataFrame
+        self.axis = 1 - axis if self.left.ndim == 2 else 0
 
         self.on = com.maybe_make_list(on)
         self.left_on = com.maybe_make_list(left_on)
@@ -664,18 +667,17 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -864,8 +866,8 @@ class _MergeOperation:
         )
 
     def _get_join_info(self):
-        left_ax = self.left._data.axes[self.axis]
-        right_ax = self.right._data.axes[self.axis]
+        left_ax = self.left.axes[self.axis]
+        right_ax = self.right.axes[self.axis]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1478,12 +1480,10 @@ class _OrderedMerge(_MergeOperation):
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        # this is a bit kludgy
-        ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
 
         llabels, rlabels = _items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf
+            self.left._info_axis, lsuf, self.right._info_axis, rsuf
         )
 
         if self.fill_method == "ffill":
@@ -1497,7 +1497,7 @@ class _OrderedMerge(_MergeOperation):
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
         result_data = concatenate_block_managers(
-            [(ldata, lindexers), (rdata, rindexers)],
+            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
             copy=self.copy,
@@ -1935,15 +1935,14 @@ def _factorize_keys(
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
-        assert is_categorical(lk) and is_categorical(rk)
-        lk = cast(Categorical, lk)
-        rk = cast(Categorical, rk)
+        assert isinstance(lk, Categorical)
+        assert isinstance(rk, Categorical)
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
-            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
