@@ -87,7 +87,7 @@ class MixedFrameWithSeries:
     param_names = ["opname"]
 
     def setup(self, opname):
-        arr = np.arange(10 ** 6).reshape(100, -1)
+        arr = np.arange(10 ** 6).reshape(1000, -1)
         df = DataFrame(arr)
         df["C"] = 1.0
         self.df = df
