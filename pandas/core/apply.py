@@ -14,7 +14,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCMultiIndex,
+)
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
@@ -283,9 +286,10 @@ class FrameApply(metaclass=abc.ABCMeta):
             # Disallow complex_internals since libreduction shortcut raises a TypeError
             and not self.agg_axis._has_complex_internals
         )
-        return_result = None
 
-        if can_reduce:
+        column_by_column = (self.axis != 0 and self.axis != "index") or self.obj._is_homogeneous_type
+
+        if can_reduce and column_by_column:
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
@@ -312,19 +316,17 @@ class FrameApply(metaclass=abc.ABCMeta):
                 # reached via numexpr; fall back to python implementation
                 pass
             else:
-                return_result = self.obj._constructor_sliced(result, index=labels)
-                if (
-                    self.axis != 0 and self.axis != "index"
-                ) or self.dtypes.nunique() <= 1:
-                    return return_result
+                return self.obj._constructor_sliced(result, index=labels)
+
 
         # compute the result using the series generator
         results, res_index = self.apply_series_generator()
 
-        if can_reduce and return_result is not None:
-            results = np.array(list(results.values()))
+        if can_reduce and not column_by_column:
+            results = list(results.values())
+            results = np.array(results)
             return self.obj._constructor_sliced(
-                results, index=res_index, dtype=return_result.dtype
+                results, index=res_index
             )
 
         # wrap results
