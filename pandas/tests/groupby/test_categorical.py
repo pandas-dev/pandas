@@ -1393,6 +1393,7 @@ def test_read_only_category_no_sort():
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 
+
 def test_sorted_missing_category_values():
     # GH 28597
     df = pd.DataFrame(
