@@ -378,6 +378,7 @@ class TestSeriesComparison:
 
         # datetime64tz dtype
         dti = dti.tz_localize("US/Central")
+        dti._set_freq("infer")  # freq not preserved by tz_localize
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
         assert result.name == names[2]
