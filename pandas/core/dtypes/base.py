@@ -344,6 +344,10 @@ class ExtensionDtype:
         -------
         Common dtype (np.dtype or ExtensionDtype) or None
         """
+        # QUESTIONS:
+        # - do we guarantee that `dtypes` is already deduplicated? (list of uniques)
+        # - do we call this method if `len(dtypes) == 1`, or does this method
+        #   need to handle that case
         if len(set(dtypes)) == 1:
             # only itself
             return self

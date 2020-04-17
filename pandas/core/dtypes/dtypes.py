@@ -21,7 +21,7 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
-from pandas._typing import Ordered
+from pandas._typing import DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
@@ -639,6 +639,23 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.dtypes.common import is_bool_dtype
 
         return is_bool_dtype(self.categories)
+
+    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+
+        # check if we have all categorical dtype with identical categories
+        if all(isinstance(x, CategoricalDtype) for x in dtypes):
+            first = dtypes[0]
+            if all(first == other for other in dtypes[1:]):
+                return first
+
+        # extract the categories' dtype
+        non_cat_dtypes = [
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+        ]
+        # TODO should categorical always give an answer?
+        from pandas.core.dtypes.cast import find_common_type
+
+        return find_common_type(non_cat_dtypes)
 
 
 @register_extension_dtype

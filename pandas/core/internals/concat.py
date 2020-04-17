@@ -24,6 +24,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -65,13 +66,15 @@ def concatenate_block_managers(
             blk = join_units[0].block
             vals = [ju.block.values for ju in join_units]
 
-            if not blk.is_extension or blk.is_datetimetz or blk.is_categorical:
+            if not blk.is_extension or blk.is_datetimetz:
                 # datetimetz and categorical can have the same type but multiple
                 #  dtypes, concatting does not necessarily preserve dtype
                 values = concat_compat(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
+                if not isinstance(values, ExtensionArray):
+                    values = values.reshape(1, len(values))
 
             b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
