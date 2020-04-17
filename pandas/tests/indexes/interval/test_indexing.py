@@ -24,11 +24,7 @@ class TestGetLoc:
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
             # if get_loc is supplied an interval, it should only search
             # for exact matches, not overlaps or covers, else KeyError.
-            msg = re.escape(
-                "Interval({bound[0]}, {bound[1]}, closed='{side}')".format(
-                    bound=bound, side=side
-                )
-            )
+            msg = re.escape(f"Interval({bound[0]}, {bound[1]}, closed='{side}')")
             if closed == side:
                 if bound == [0, 1]:
                     assert idx.get_loc(Interval(0, 1, closed=side)) == 0
@@ -86,11 +82,7 @@ class TestGetLoc:
         else:
             with pytest.raises(
                 KeyError,
-                match=re.escape(
-                    "Interval({left}, {right}, closed='{other_closed}')".format(
-                        left=left, right=right, other_closed=other_closed
-                    )
-                ),
+                match=re.escape(f"Interval({left}, {right}, closed='{other_closed}')"),
             ):
                 index.get_loc(interval)
 
@@ -248,10 +240,10 @@ class TestGetIndexer:
             ["foo", "foo", "bar", "baz"],
         ],
     )
-    def test_get_indexer_categorical(self, target, ordered_fixture):
+    def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
-        categorical_target = CategoricalIndex(target, ordered=ordered_fixture)
+        categorical_target = CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
         expected = index.get_indexer(target)
@@ -311,6 +303,18 @@ class TestGetIndexer:
 
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
+
+    def test_get_indexer_non_monotonic(self):
+        # GH 16410
+        idx1 = IntervalIndex.from_tuples([(2, 3), (4, 5), (0, 1)])
+        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (6, 7), (8, 9)])
+        result = idx1.get_indexer(idx2)
+        expected = np.array([2, 0, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = idx1.get_indexer(idx1[1:])
+        expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSliceLocs:

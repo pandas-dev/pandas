@@ -1,7 +1,7 @@
 .. _maintaining:
 
 ******************
-Pandas Maintenance
+pandas maintenance
 ******************
 
 This guide is for pandas' maintainers. It may also be interesting to contributors
@@ -13,7 +13,7 @@ The main contributing guide is available at :ref:`contributing`.
 Roles
 -----
 
-Pandas uses two levels of permissions: **triage** and **core** team members.
+pandas uses two levels of permissions: **triage** and **core** team members.
 
 Triage members can label and close issues and pull requests.
 
@@ -25,7 +25,7 @@ GitHub publishes the full `list of permissions`_.
 Tasks
 -----
 
-Pandas is largely a volunteer project, so these tasks shouldn't be read as
+pandas is largely a volunteer project, so these tasks shouldn't be read as
 "expectations" of triage and maintainers. Rather, they're general descriptions
 of what it means to be a maintainer.
 
@@ -36,12 +36,12 @@ of what it means to be a maintainer.
 * Provide experience / wisdom on API design questions to ensure consistency and maintainability
 * Project organization (run / attend developer meetings, represent pandas)
 
-http://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background
+https://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background
 reading.
 
 .. _maintaining.triage:
 
-Issue Triage
+Issue triage
 ------------
 
 
@@ -78,7 +78,7 @@ Here's a typical workflow for triaging a newly opened issue.
 4. **Is the issue minimal and reproducible**?
 
    For bug reports, we ask that the reporter provide a minimal reproducible
-   example. See http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
+   example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
    and example or simplify the provided one. Do acknowledge that writing
@@ -123,7 +123,7 @@ Here's a typical workflow for triaging a newly opened issue.
 
 .. _maintaining.closing:
 
-Closing Issues
+Closing issues
 --------------
 
 Be delicate here: many people interpret closing an issue as us saying that the
@@ -132,7 +132,7 @@ respond or self-close their issue if it's determined that the behavior is not a 
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
 
-Reviewing Pull Requests
+Reviewing pull requests
 -----------------------
 
 Anybody can review a pull request: regular contributors, triagers, or core-team
@@ -144,7 +144,7 @@ members. Here are some guidelines to check.
 * User-facing changes should have a whatsnew in the appropriate file.
 * Regression tests should reference the original GitHub issue number like ``# GH-1234``.
 
-Cleaning up old Issues
+Cleaning up old issues
 ----------------------
 
 Every open issue in pandas has a cost. Open issues make finding duplicates harder,
@@ -164,7 +164,7 @@ If an older issue lacks a reproducible example, label it as "Needs Info" and
 ask them to provide one (or write one yourself if possible). If one isn't
 provide reasonably soon, close it according to the policies in :ref:`maintaining.closing`.
 
-Cleaning up old Pull Requests
+Cleaning up old pull requests
 -----------------------------
 
 Occasionally, contributors are unable to finish off a pull request.

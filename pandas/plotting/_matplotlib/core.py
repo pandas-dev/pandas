@@ -432,7 +432,6 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-
         if self.orientation == "vertical" or self.orientation is None:
             self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -509,12 +508,12 @@ class MPLPlot:
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        """ Tick creation within matplotlib is reasonably expensive and is
-            internally deferred until accessed as Ticks are created/destroyed
-            multiple times per draw. It's therefore beneficial for us to avoid
-            accessing unless we will act on the Tick.
         """
-
+        Tick creation within matplotlib is reasonably expensive and is
+        internally deferred until accessed as Ticks are created/destroyed
+        multiple times per draw. It's therefore beneficial for us to avoid
+        accessing unless we will act on the Tick.
+        """
         if rot is not None or fontsize is not None:
             # rot=0 is a valid setting, hence the explicit None check
             labels = axis.get_majorticklabels() + axis.get_minorticklabels()
@@ -726,7 +725,10 @@ class MPLPlot:
         has_color = "color" in kwds or self.colormap is not None
         nocolor_style = style is None or re.match("[a-z]+", style) is None
         if (has_color or self.subplots) and nocolor_style:
-            kwds["color"] = colors[col_num % len(colors)]
+            if isinstance(colors, dict):
+                kwds["color"] = colors[label]
+            else:
+                kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
@@ -752,7 +754,6 @@ class MPLPlot:
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
         """
-
         if err is None:
             return None
 
@@ -901,7 +902,11 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-        img = ax.collections[0]
+
+        # GH33389, if ax is used multiple times, we should always
+        # use the last one which contains the latest information
+        # about the ax
+        img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if _mpl_ge_3_0_0():
@@ -933,6 +938,8 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -1347,6 +1354,8 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
+            elif isinstance(colors, dict):
+                kwds["color"] = colors[label]
             else:
                 kwds["color"] = colors[i % ncolors]
 

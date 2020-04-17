@@ -1,12 +1,12 @@
 import numbers
-from typing import Union
+from typing import Optional, Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -18,9 +18,8 @@ from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
 
 
@@ -35,53 +34,66 @@ class PandasDtype(ExtensionDtype):
 
     Parameters
     ----------
-    dtype : numpy.dtype
+    dtype : object
+        Object to be converted to a NumPy data type object.
+
+    See Also
+    --------
+    numpy.dtype
     """
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype):
-        dtype = np.dtype(dtype)
-        self._dtype = dtype
-        self._name = dtype.name
-        self._type = dtype.type
+    def __init__(self, dtype: object):
+        self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
         return f"PandasDtype({repr(self.name)})"
 
     @property
-    def numpy_dtype(self):
-        """The NumPy dtype this PandasDtype wraps."""
+    def numpy_dtype(self) -> np.dtype:
+        """
+        The NumPy dtype this PandasDtype wraps.
+        """
         return self._dtype
 
     @property
-    def name(self):
-        return self._name
+    def name(self) -> str:
+        """
+        A bit-width name for this data-type.
+        """
+        return self._dtype.name
 
     @property
-    def type(self):
-        return self._type
+    def type(self) -> Type[np.generic]:
+        """
+        The type object used to instantiate a scalar of this NumPy data-type.
+        """
+        return self._dtype.type
 
     @property
-    def _is_numeric(self):
+    def _is_numeric(self) -> bool:
         # exclude object, str, unicode, void.
         return self.kind in set("biufc")
 
     @property
-    def _is_boolean(self):
+    def _is_boolean(self) -> bool:
         return self.kind == "b"
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str) -> "PandasDtype":
         try:
-            return cls(np.dtype(string))
+            dtype = np.dtype(string)
         except TypeError as err:
-            raise TypeError(
-                f"Cannot construct a 'PandasDtype' from '{string}'"
-            ) from err
+            if not isinstance(string, str):
+                msg = f"'construct_from_string' expects a string, got {type(string)}"
+            else:
+                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
+            raise TypeError(msg) from err
+        return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["PandasArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -92,12 +104,17 @@ class PandasDtype(ExtensionDtype):
         return PandasArray
 
     @property
-    def kind(self):
+    def kind(self) -> str:
+        """
+        A character code (one of 'biufcmMOSUV') identifying the general kind of data.
+        """
         return self._dtype.kind
 
     @property
-    def itemsize(self):
-        """The element size of this data-type object."""
+    def itemsize(self) -> int:
+        """
+        The element size of this data-type object.
+        """
         return self._dtype.itemsize
 
 
@@ -155,7 +172,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -165,18 +182,18 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return cls(result)
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls, values, original) -> "PandasArray":
         return cls(values)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat) -> "PandasArray":
         return cls(np.concatenate(to_concat))
 
     # ------------------------------------------------------------------------
     # Data
 
     @property
-    def dtype(self):
+    def dtype(self) -> PandasDtype:
         return self._dtype
 
     # ------------------------------------------------------------------------
@@ -187,7 +204,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/\
         # numpy.lib.mixins.NDArrayOperatorsMixin.html
@@ -235,22 +252,18 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(item, type(self)):
             item = item._ndarray
 
-        elif com.is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
+        item = check_array_indexer(self, item)
 
         result = self._ndarray[item]
         if not lib.is_scalar(item):
             result = type(self)(result)
         return result
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
 
-        scalar_key = lib.is_scalar(key)
+        key = check_array_indexer(self, key)
         scalar_value = lib.is_scalar(value)
-
-        if not scalar_key and scalar_value:
-            key = np.asarray(key)
 
         if not scalar_value:
             value = np.asarray(value, dtype=self._ndarray.dtype)
@@ -264,10 +277,12 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
+    ) -> "PandasArray":
         # TODO(_values_for_fillna): remove this
         value, method = validate_fillna_kwargs(value, method)
 
@@ -294,7 +309,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             new_values = self.copy()
         return new_values
 
-    def take(self, indices, allow_fill=False, fill_value=None):
+    def take(self, indices, allow_fill=False, fill_value=None) -> "PandasArray":
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
@@ -303,16 +318,16 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         )
         return type(self)(result)
 
-    def copy(self):
+    def copy(self) -> "PandasArray":
         return type(self)(self._ndarray.copy())
 
-    def _values_for_argsort(self):
+    def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
-    def _values_for_factorize(self):
+    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
 
-    def unique(self):
+    def unique(self) -> "PandasArray":
         return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------
@@ -420,7 +435,10 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     # ------------------------------------------------------------------------
     # Additional Methods
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 
         if (copy or na_value is not lib.no_default) and result is self._ndarray:
@@ -431,7 +449,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         return result
 
-    @Appender(ExtensionArray.searchsorted.__doc__)
+    @doc(ExtensionArray.searchsorted)
     def searchsorted(self, value, side="left", sorter=None):
         return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 

@@ -112,9 +112,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # subtraction for bools raises TypeError (but not yet in 1.13)
                 if _np_version_under1p14:
                     pytest.skip("__sub__ does not yet raise in numpy 1.13")
-                with pytest.raises(TypeError):
+                msg = r"numpy boolean subtract"
+                with pytest.raises(TypeError, match=msg):
                     op(s, other)
-
                 return
 
             result = op(s, other)
@@ -327,7 +327,9 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         result = getattr(s, op_name)(skipna=skipna)
         expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
-        if op_name in ("min", "max") and not pd.isna(expected):
+        if np.isnan(expected):
+            expected = pd.NA
+        elif op_name in ("min", "max"):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
@@ -337,6 +339,10 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestPrinting(base.BasePrintingTests):
+    pass
+
+
+class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 

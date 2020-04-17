@@ -467,9 +467,9 @@ at the new values.
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
-.. _scipy: http://www.scipy.org
-.. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _scipy: https://www.scipy.org
+.. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 
@@ -806,7 +806,8 @@ dtype, it will use ``pd.NA``:
 
 Currently, pandas does not yet use those data types by default (when creating
 a DataFrame or Series, or when reading in data), so you need to specify
-the dtype explicitly.
+the dtype explicitly.  An easy way to convert to those dtypes is explained
+:ref:`here <missing_data.NA.conversion>`.
 
 Propagation in arithmetic and comparison operations
 ---------------------------------------------------
@@ -825,13 +826,10 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
 There are a few special cases when the result is known, even when one of the
 operands is ``NA``.
 
+.. ipython:: python
 
-================ ======
-Operation        Result
-================ ======
-``pd.NA ** 0``   0
-``1 ** pd.NA``   1
-================ ======
+   pd.NA ** 0
+   1 ** pd.NA
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
@@ -945,3 +943,29 @@ work with ``NA``, and generally return ``NA``:
    in the future.
 
 See :ref:`dsintro.numpy_interop` for more on ufuncs.
+
+.. _missing_data.NA.conversion:
+
+Conversion
+----------
+
+If you have a DataFrame or Series using traditional types that have missing data
+represented using ``np.nan``, there are convenience methods
+:meth:`~Series.convert_dtypes` in Series and :meth:`~DataFrame.convert_dtypes`
+in DataFrame that can convert data to use the newer dtypes for integers, strings and
+booleans listed :ref:`here <basics.dtypes>`. This is especially helpful after reading
+in data sets when letting the readers such as :meth:`read_csv` and :meth:`read_excel`
+infer default dtypes.
+
+In this example, while the dtypes of all columns are changed, we show the results for
+the first 10 columns.
+
+.. ipython:: python
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   bb[bb.columns[:10]].dtypes
+
+.. ipython:: python
+
+   bbn = bb.convert_dtypes()
+   bbn[bbn.columns[:10]].dtypes

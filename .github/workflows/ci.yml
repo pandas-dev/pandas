@@ -125,35 +125,18 @@ jobs:
     - name: Check ipython directive errors
       run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
-    - name: Merge website and docs
+    - name: Install ssh key
       run: |
-        mkdir -p pandas_web/docs
-        cp -r web/build/* pandas_web/
-        cp -r doc/build/html/* pandas_web/docs/
+        mkdir -m 700 -p ~/.ssh
+        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
       if: github.event_name == 'push'
 
-    - name: Install Rclone
-      run: sudo apt install rclone -y
+    - name: Upload web
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: github.event_name == 'push'
 
-    - name: Set up Rclone
-      run: |
-        RCLONE_CONFIG_PATH=$HOME/.config/rclone/rclone.conf
-        mkdir -p `dirname $RCLONE_CONFIG_PATH`
-        echo "[ovh_cloud_pandas_web]" > $RCLONE_CONFIG_PATH
-        echo "type = swift" >> $RCLONE_CONFIG_PATH
-        echo "env_auth = false" >> $RCLONE_CONFIG_PATH
-        echo "auth_version = 3" >> $RCLONE_CONFIG_PATH
-        echo "auth = https://auth.cloud.ovh.net/v3/" >> $RCLONE_CONFIG_PATH
-        echo "endpoint_type = public" >> $RCLONE_CONFIG_PATH
-        echo "tenant_domain = default" >> $RCLONE_CONFIG_PATH
-        echo "tenant = 2977553886518025" >> $RCLONE_CONFIG_PATH
-        echo "domain = default" >> $RCLONE_CONFIG_PATH
-        echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
-        echo "key = ${{ secrets.ovh_object_store_key }}" >> $RCLONE_CONFIG_PATH
-        echo "region = BHS" >> $RCLONE_CONFIG_PATH
-      if: github.event_name == 'push'
-
-    - name: Sync web
-      run: rclone sync pandas_web ovh_cloud_pandas_web:dev
+    - name: Upload dev docs
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'

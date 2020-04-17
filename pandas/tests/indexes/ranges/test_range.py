@@ -30,7 +30,7 @@ class TestRangeIndex(Numeric):
     def indices(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> RangeIndex:
         return RangeIndex(start=0, stop=20, step=2)
 
     def test_can_hold_identifiers(self):
@@ -257,211 +257,6 @@ class TestRangeIndex(Numeric):
 
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
-    def test_get_indexer(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_pad(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="pad")
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_backfill(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="backfill")
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_limit(self):
-        # GH 28631
-        idx = RangeIndex(4)
-        target = RangeIndex(6)
-        result = idx.get_indexer(target, method="pad", limit=1)
-        expected = np.array([0, 1, 2, 3, 3, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("stop", [0, -1, -2])
-    def test_get_indexer_decreasing(self, stop):
-        # GH 28678
-        index = RangeIndex(7, stop, -3)
-        result = index.get_indexer(range(9))
-        expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_join_outer(self):
-        # join with Int64Index
-        index = self.create_index()
-        other = Int64Index(np.arange(25, 14, -1))
-
-        res, lidx, ridx = index.join(other, how="outer", return_indexers=True)
-        noidx_res = index.join(other, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        eres = Int64Index(
-            [0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
-        )
-        elidx = np.array(
-            [0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9, -1, -1, -1, -1, -1, -1, -1],
-            dtype=np.intp,
-        )
-        eridx = np.array(
-            [-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
-            dtype=np.intp,
-        )
-
-        assert isinstance(res, Int64Index)
-        assert not isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # join with RangeIndex
-        other = RangeIndex(25, 14, -1)
-
-        res, lidx, ridx = index.join(other, how="outer", return_indexers=True)
-        noidx_res = index.join(other, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        assert isinstance(res, Int64Index)
-        assert not isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_inner(self):
-        # Join with non-RangeIndex
-        index = self.create_index()
-        other = Int64Index(np.arange(25, 14, -1))
-
-        res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
-
-        # no guarantee of sortedness, so sort for comparison purposes
-        ind = res.argsort()
-        res = res.take(ind)
-        lidx = lidx.take(ind)
-        ridx = ridx.take(ind)
-
-        eres = Int64Index([16, 18])
-        elidx = np.array([8, 9], dtype=np.intp)
-        eridx = np.array([9, 7], dtype=np.intp)
-
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # Join two RangeIndex
-        other = RangeIndex(25, 14, -1)
-
-        res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
-
-        assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_left(self):
-        # Join with Int64Index
-        index = self.create_index()
-        other = Int64Index(np.arange(25, 14, -1))
-
-        res, lidx, ridx = index.join(other, how="left", return_indexers=True)
-        eres = index
-        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
-
-        assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # Join withRangeIndex
-        other = Int64Index(np.arange(25, 14, -1))
-
-        res, lidx, ridx = index.join(other, how="left", return_indexers=True)
-
-        assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_right(self):
-        # Join with Int64Index
-        index = self.create_index()
-        other = Int64Index(np.arange(25, 14, -1))
-
-        res, lidx, ridx = index.join(other, how="right", return_indexers=True)
-        eres = other
-        elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1], dtype=np.intp)
-
-        assert isinstance(other, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        assert ridx is None
-
-        # Join withRangeIndex
-        other = RangeIndex(25, 14, -1)
-
-        res, lidx, ridx = index.join(other, how="right", return_indexers=True)
-        eres = other
-
-        assert isinstance(other, RangeIndex)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        assert ridx is None
-
-    def test_join_non_int_index(self):
-        index = self.create_index()
-        other = Index([3, 6, 7, 8, 10], dtype=object)
-
-        outer = index.join(other, how="outer")
-        outer2 = other.join(index, how="outer")
-        expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14, 16, 18])
-        tm.assert_index_equal(outer, outer2)
-        tm.assert_index_equal(outer, expected)
-
-        inner = index.join(other, how="inner")
-        inner2 = other.join(index, how="inner")
-        expected = Index([6, 8, 10])
-        tm.assert_index_equal(inner, inner2)
-        tm.assert_index_equal(inner, expected)
-
-        left = index.join(other, how="left")
-        tm.assert_index_equal(left, index.astype(object))
-
-        left2 = other.join(index, how="left")
-        tm.assert_index_equal(left2, other)
-
-        right = index.join(other, how="right")
-        tm.assert_index_equal(right, other)
-
-        right2 = other.join(index, how="right")
-        tm.assert_index_equal(right2, index.astype(object))
-
-    def test_join_non_unique(self):
-        index = self.create_index()
-        other = Index([4, 4, 3, 3])
-
-        res, lidx, ridx = index.join(other, return_indexers=True)
-
-        eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
-        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp)
-        eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
-
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_self(self, join_type):
-        index = self.create_index()
-        joined = index.join(index, how=join_type)
-        assert index is joined
-
     def test_nbytes(self):
 
         # memory savings vs int index
@@ -472,14 +267,19 @@ class TestRangeIndex(Numeric):
         i2 = RangeIndex(0, 10)
         assert i.nbytes == i2.nbytes
 
-    def test_cant_or_shouldnt_cast(self):
-        # can't
-        with pytest.raises(TypeError):
-            RangeIndex("foo", "bar", "baz")
-
-        # shouldn't
-        with pytest.raises(TypeError):
-            RangeIndex("0", "1", "2")
+    @pytest.mark.parametrize(
+        "start,stop,step",
+        [
+            # can't
+            ("foo", "bar", "baz"),
+            # shouldn't
+            ("0", "1", "2"),
+        ],
+    )
+    def test_cant_or_shouldnt_cast(self, start, stop, step):
+        msg = f"Wrong type {type(start)} for value {start}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(start, stop, step)
 
     def test_view_index(self):
         index = self.create_index()
@@ -489,41 +289,6 @@ class TestRangeIndex(Numeric):
         index = self.create_index()
         result = index.astype("O")
         assert result.dtype == np.object_
-
-    def test_take_preserve_name(self):
-        index = RangeIndex(1, 5, name="foo")
-        taken = index.take([3, 0, 1])
-        assert index.name == taken.name
-
-    def test_take_fill_value(self):
-        # GH 12631
-        idx = pd.RangeIndex(1, 4, name="xxx")
-        result = idx.take(np.array([1, 0, -1]))
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        # fill_value
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
-
-        # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
-
-        with pytest.raises(IndexError):
-            idx.take(np.array([1, -5]))
-
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_roundtrip(self):
         index = self.create_index()
@@ -704,7 +469,6 @@ class TestRangeIndex(Numeric):
     )
     def appends(self, request):
         """Inputs and expected outputs for RangeIndex.append test"""
-
         return request.param
 
     def test_append(self, appends):
@@ -735,8 +499,9 @@ class TestRangeIndex(Numeric):
 
         assert "_engine" not in idx._cache
 
-        # The engine is still required for lookup of a different dtype scalar:
+        # Different types of scalars can be excluded immediately, no need to
+        #  use the _engine
         with pytest.raises(KeyError, match="'a'"):
-            assert idx.get_loc("a") == -1
+            idx.get_loc("a")
 
-        assert "_engine" in idx._cache
+        assert "_engine" not in idx._cache

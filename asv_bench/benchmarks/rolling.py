@@ -11,7 +11,7 @@ class Methods:
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
@@ -44,6 +44,27 @@ class Apply:
         self.roll.apply(function, raw=raw)
 
 
+class Engine:
+    params = (
+        ["DataFrame", "Series"],
+        ["int", "float"],
+        [np.sum, lambda x: np.sum(x) + 5],
+        ["cython", "numba"],
+    )
+    param_names = ["constructor", "dtype", "function", "engine"]
+
+    def setup(self, constructor, dtype, function, engine):
+        N = 10 ** 3
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.data = getattr(pd, constructor)(arr)
+
+    def time_rolling_apply(self, constructor, dtype, function, engine):
+        self.data.rolling(10).apply(function, raw=True, engine=engine)
+
+    def time_expanding_apply(self, constructor, dtype, function, engine):
+        self.data.expanding().apply(function, raw=True, engine=engine)
+
+
 class ExpandingMethods:
 
     params = (
@@ -51,7 +72,7 @@ class ExpandingMethods:
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, dtype, method):
         N = 10 ** 5
@@ -65,7 +86,7 @@ class ExpandingMethods:
 class EWMMethods:
 
     params = (["DataFrame", "Series"], [10, 1000], ["int", "float"], ["mean", "std"])
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
@@ -83,7 +104,7 @@ class VariableWindowMethods(Methods):
         ["int", "float"],
         ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
     )
-    param_names = ["contructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
@@ -142,6 +163,28 @@ class PeakMemFixed:
         # 6000 iterations is enough for most types of leaks to be detected
         for x in range(6000):
             self.roll.max()
+
+
+class ForwardWindowMethods:
+    params = (
+        ["DataFrame", "Series"],
+        [10, 1000],
+        ["int", "float"],
+        ["median", "mean", "max", "min", "kurt", "sum"],
+    )
+    param_names = ["constructor", "window_size", "dtype", "method"]
+
+    def setup(self, constructor, window_size, dtype, method):
+        N = 10 ** 5
+        arr = np.random.random(N).astype(dtype)
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=window_size)
+        self.roll = getattr(pd, constructor)(arr).rolling(window=indexer)
+
+    def time_rolling(self, constructor, window_size, dtype, method):
+        getattr(self.roll, method)()
+
+    def peakmem_rolling(self, constructor, window_size, dtype, method):
+        getattr(self.roll, method)()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

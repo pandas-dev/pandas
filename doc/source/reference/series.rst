@@ -46,6 +46,7 @@ Conversion
    :toctree: api/
 
    Series.astype
+   Series.convert_dtypes
    Series.infer_objects
    Series.copy
    Series.bool
@@ -109,7 +110,7 @@ Binary operator functions
    Series.product
    Series.dot
 
-Function application, groupby & window
+Function application, GroupBy & window
 --------------------------------------
 .. autosummary::
    :toctree: api/
@@ -248,7 +249,7 @@ Combining / joining / merging
    Series.replace
    Series.update
 
-Time series-related
+Time Series-related
 -------------------
 .. autosummary::
    :toctree: api/

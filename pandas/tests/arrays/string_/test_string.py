@@ -194,6 +194,33 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array([]))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", np.nan], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", None], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
+
+
+@pytest.mark.parametrize("copy", [True, False])
+def test_from_sequence_no_mutate(copy):
+    a = np.array(["a", np.nan], dtype=object)
+    original = a.copy()
+    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    tm.assert_extension_array_equal(result, expected)
+    tm.assert_numpy_array_equal(a, original)
+
+
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")

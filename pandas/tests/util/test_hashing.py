@@ -1,12 +1,10 @@
-import datetime
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
-from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
+from pandas.core.util.hashing import hash_tuples
 from pandas.util import hash_array, hash_pandas_object
 
 
@@ -111,46 +109,6 @@ def test_hash_tuples():
     assert result == expected[0]
 
 
-@pytest.mark.parametrize(
-    "tup",
-    [(1, "one"), (1, np.nan), (1.0, pd.NaT, "A"), ("A", pd.Timestamp("2012-01-01"))],
-)
-def test_hash_tuple(tup):
-    # Test equivalence between
-    # hash_tuples and hash_tuple.
-    result = hash_tuple(tup)
-    expected = hash_tuples([tup])[0]
-
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "val",
-    [
-        1,
-        1.4,
-        "A",
-        b"A",
-        pd.Timestamp("2012-01-01"),
-        pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
-        datetime.datetime(2012, 1, 1),
-        pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),
-        pd.Timedelta("1 days"),
-        datetime.timedelta(1),
-        pd.Period("2012-01-01", freq="D"),
-        pd.Interval(0, 1),
-        np.nan,
-        pd.NaT,
-        None,
-    ],
-)
-def test_hash_scalar(val):
-    result = _hash_scalar(val)
-    expected = hash_array(np.array([val], dtype=object), categorize=True)
-
-    assert result[0] == expected[0]
-
-
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
 def test_hash_tuples_err(val):
     msg = "must be convertible to a list-of-tuples"
@@ -177,23 +135,6 @@ def test_multiindex_objects():
     # These are equal.
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
-
-    # _hashed_values and hash_pandas_object(..., index=False) equivalency.
-    expected = hash_pandas_object(mi, index=False).values
-    result = mi._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = hash_pandas_object(recons, index=False).values
-    result = recons._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = mi._hashed_values
-    result = recons._hashed_values
-
-    # Values should match, but in different order.
-    tm.assert_numpy_array_equal(np.sort(result), np.sort(expected))
 
 
 @pytest.mark.parametrize(

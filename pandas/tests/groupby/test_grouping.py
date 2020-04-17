@@ -388,7 +388,7 @@ class TestGrouping:
         # if it fails on the elements, map tries it on the entire index as
         # a sequence. That can yield invalid results that cause trouble
         # down the line.
-        # the surprise comes from using key[0:6] rather then str(key)[0:6]
+        # the surprise comes from using key[0:6] rather than str(key)[0:6]
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
@@ -673,6 +673,19 @@ class TestGrouping:
             ),
             columns=["C"],
             dtype="int64",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_multiindex_level_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/31670
+        df = pd.DataFrame(
+            [[123, "a", 1.0], [123, "b", 2.0]], columns=["id", "category", "value"]
+        )
+        df = df.set_index(["id", "category"])
+        empty = df[df.value < 0]
+        result = empty.groupby("id").sum()
+        expected = pd.DataFrame(
+            dtype="float64", columns=["value"], index=pd.Int64Index([], name="id")
         )
         tm.assert_frame_equal(result, expected)
 

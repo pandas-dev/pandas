@@ -37,6 +37,7 @@ def test_registered():
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
         (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
+        (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
 )
 def test_period_array_ok(data, freq, expected):
@@ -371,7 +372,8 @@ def test_arrow_array(data, freq):
     assert result.equals(expected)
 
     # unsupported conversions
-    with pytest.raises(TypeError):
+    msg = "Not supported to convert PeriodArray to 'double' type"
+    with pytest.raises(TypeError, match=msg):
         pa.array(periods, type="float64")
 
     with pytest.raises(TypeError, match="different 'freq'"):

@@ -13,26 +13,28 @@ from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
-
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
     if engine == "auto":
         # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
+        engine_classes = [PyArrowImpl, FastParquetImpl]
 
-        try:
-            return FastParquetImpl()
-        except ImportError:
-            pass
+        error_msgs = ""
+        for engine_class in engine_classes:
+            try:
+                return engine_class()
+            except ImportError as err:
+                error_msgs += "\n - " + str(err)
 
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet support"
+            "A suitable version of "
+            "pyarrow or fastparquet is required for parquet "
+            "support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
         )
 
     if engine == "pyarrow":
@@ -51,7 +53,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
@@ -85,7 +87,6 @@ class PyArrowImpl(BaseImpl):
         df: DataFrame,
         path,
         compression="snappy",
-        coerce_timestamps="ms",
         index: Optional[bool] = None,
         partition_cols=None,
         **kwargs,
@@ -103,18 +104,11 @@ class PyArrowImpl(BaseImpl):
                 table,
                 path,
                 compression=compression,
-                coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table,
-                path,
-                compression=compression,
-                coerce_timestamps=coerce_timestamps,
-                **kwargs,
-            )
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)
@@ -267,8 +261,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     path : str, path object or file-like object
@@ -294,8 +286,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
-        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 
@@ -303,6 +293,5 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     -------
     DataFrame
     """
-
     impl = get_engine(engine)
     return impl.read(path, columns=columns, **kwargs)

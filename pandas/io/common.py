@@ -3,11 +3,23 @@
 import bz2
 from collections import abc
 import gzip
-from io import BufferedIOBase, BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -37,6 +49,10 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
 
 
+if TYPE_CHECKING:
+    from io import IOBase  # noqa: F401
+
+
 def is_url(url) -> bool:
     """
     Check to see if a URL has a valid protocol.
@@ -58,8 +74,9 @@ def is_url(url) -> bool:
 def _expand_user(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Return the argument with an initial component of ~ or ~user
-       replaced by that user's home directory.
+    """
+    Return the argument with an initial component of ~ or ~user
+    replaced by that user's home directory.
 
     Parameters
     ----------
@@ -87,7 +104,8 @@ def validate_header_arg(header) -> None:
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Attempt to convert a path-like object to a string.
+    """
+    Attempt to convert a path-like object to a string.
 
     Parameters
     ----------
@@ -160,10 +178,9 @@ def get_filepath_or_buffer(
 
     Returns
     -------
-    tuple of ({a filepath_ or buffer or S3File instance},
-              encoding, str,
-              compression, str,
-              should_close, bool)
+    Tuple[FilePathOrBuffer, str, str, bool]
+        Tuple containing the filepath or buffer, the encoding, the compression
+        and should_close.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -248,8 +265,8 @@ def get_compression_method(
         compression_args = dict(compression)
         try:
             compression = compression_args.pop("method")
-        except KeyError:
-            raise ValueError("If mapping, compression must have key 'method'")
+        except KeyError as err:
+            raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
     return compression, compression_args
@@ -281,7 +298,6 @@ def infer_compression(
     ------
     ValueError on invalid compression specified.
     """
-
     # No compression has been explicitly specified
     if compression is None:
         return None
@@ -335,14 +351,20 @@ def get_handle(
         'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-        no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', other entries passed as additional compression options.
+        no compression). If dict and compression mode is one of
+        {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
 
         .. versionchanged:: 1.0.0
 
            May now be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
+
+        .. versionchanged:: 1.1.0
+
+           Passing compression options as keys in dict is now
+           supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
 
     memory_map : boolean, default False
         See parsers._parser_params for more information.
@@ -357,12 +379,13 @@ def get_handle(
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
+    need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BufferedIOBase, S3File)
+        need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
-        need_text_wrapping = BufferedIOBase  # type: ignore
+        need_text_wrapping = (BufferedIOBase, RawIOBase)
 
     handles: List[IO] = list()
     f = path_or_buf
@@ -377,19 +400,28 @@ def get_handle(
 
     if compression:
 
+        # GH33398 the type ignores here seem related to mypy issue #5382;
+        # it may be possible to remove them once that is resolved.
+
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode)
+                f = gzip.open(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf)
+                f = gzip.GzipFile(
+                    fileobj=path_or_buf, **compression_args  # type: ignore
+                )
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(path_or_buf, mode)
+                f = bz2.BZ2File(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = bz2.BZ2File(path_or_buf)
+                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
 
         # ZIP Compression
         elif compression == "zip":
@@ -406,8 +438,8 @@ def get_handle(
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
-                        "Multiple files found in ZIP file."
-                        f" Only one file per ZIP: {zip_names}"
+                        "Multiple files found in ZIP file. "
+                        f"Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
@@ -438,7 +470,7 @@ def get_handle(
         from io import TextIOWrapper
 
         g = TextIOWrapper(f, encoding=encoding, newline="")
-        if not isinstance(f, BufferedIOBase):
+        if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g
 
