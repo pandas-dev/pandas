@@ -2830,13 +2830,13 @@ class DataFrame(NDFrame):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _iset_item(self, loc: int, value, clear: bool = True):
+    def _iset_item(self, loc: int, value):
         self._ensure_valid_index(value)
 
         # technically _sanitize_column expects a label, not a position,
         #  but the behavior is the same as long as we pass broadcast=False
         value = self._sanitize_column(loc, value, broadcast=False)
-        NDFrame._iset_item(self, loc, value, clear=clear)
+        NDFrame._iset_item(self, loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -2844,7 +2844,7 @@ class DataFrame(NDFrame):
         if len(self):
             self._check_setitem_copy()
 
-    def _set_item(self, key, value, clear: bool = True):
+    def _set_item(self, key, value):
         """
         Add series to DataFrame in specified column.
 
@@ -2856,7 +2856,7 @@ class DataFrame(NDFrame):
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value, clear=clear)
+        NDFrame._set_item(self, key, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid

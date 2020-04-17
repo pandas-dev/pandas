@@ -3217,7 +3217,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        NDFrame._set_item(self, item, value, clear=False)
+        loc = self._info_axis.get_loc(item)
+        self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3589,12 +3590,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
-    def _iset_item(self, loc: int, value, clear: bool_t = True) -> None:
+    def _iset_item(self, loc: int, value) -> None:
         self._mgr.iset(loc, value)
-        if clear:
-            self._clear_item_cache()
+        self._clear_item_cache()
 
-    def _set_item(self, key, value, clear: bool_t = True) -> None:
+    def _set_item(self, key, value) -> None:
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
@@ -3602,7 +3602,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._mgr.insert(len(self._info_axis), key, value)
             return
 
-        NDFrame._iset_item(self, loc, value, clear=clear)
+        NDFrame._iset_item(self, loc, value)
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
