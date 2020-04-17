@@ -66,7 +66,7 @@ def get_dtype_kinds(l):
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
-    Helper function for `arr.astype(common_type)` but handling all special
+    Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
     if (

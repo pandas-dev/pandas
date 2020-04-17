@@ -331,8 +331,9 @@ class ExtensionDtype:
         Used in `find_common_type` implementation. This is for example used
         to determine the resulting dtype in a concat operation.
 
-        If no common dtype exists, return None. If all dtypes in the list
-        will return None, then the common dtype will be "object" dtype.
+        If no common dtype exists, return None (which gives the other dtypes
+        the chance to determine a common dtype). If all dtypes in the list
+        return None, then the common dtype will be "object" dtype.
 
         Parameters
         ----------
