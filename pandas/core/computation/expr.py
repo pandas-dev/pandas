@@ -659,11 +659,15 @@ class BaseExprVisitor(ast.NodeVisitor):
             raise ValueError(f"Invalid function call {node.func.id}")
         if hasattr(res, "value"):
             res = res.value
-
-        if isinstance(res, FuncNode):
-
-            new_args = [self.visit(arg) for arg in node.args]
-
+        print(type(res))
+        if isinstance(res, FuncNode) or isinstance(res, np.ufunc):
+            # new_args = [self.visit(arg) for arg in node.args]
+            new_args = []
+            for arg in node.args:
+                temp_visit = self.visit(arg)
+                if hasattr(temp_visit, "value"):
+                    temp_visit = temp_visit.value
+                new_args.append(temp_visit)
             if node.keywords:
                 raise TypeError(
                     f'Function "{res.name}" does not support keyword arguments'
@@ -672,9 +676,20 @@ class BaseExprVisitor(ast.NodeVisitor):
             return res(*new_args)
 
         else:
+            import logging, sys
+            logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+            logging.debug(str(self.visit(arg).value for arg in node.args))
+            logging.debug(ast.dump(node))
+            # for arg in node.args:
+                # logging.debug("this is the next arg")
+                # logging.debug(arg)
+                # logging.debug(self.visit(arg).value)
+            print([self.visit(arg) for arg in node.args])
 
+            print([self.visit(arg).value for arg in node.args])
             new_args = [self.visit(arg).value for arg in node.args]
-
+            # import copy
+            # new_args = copy.deepcopy(node.args)
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
                     raise ValueError(f"keyword error in function call '{node.func.id}'")
