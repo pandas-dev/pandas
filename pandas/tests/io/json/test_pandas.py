@@ -365,6 +365,41 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient="garbage")
 
+
+    def test_frame_roundtrip_period_index(self, orient, period_frame):
+        # GH32665: Fix to_json when converting Period column/series
+        data = period_frame.to_json(orient=orient)
+        result = pd.read_json(data, typ="frame", orient=orient)
+
+        expected = period_frame.copy()
+        if orient in ("values", "records"):
+            expected = expected.reset_index(drop=True)
+            if orient == 'values':
+                # drop column names as well
+                expected = expected.T.reset_index(drop=True).T
+        if orient in ("index", "columns"):
+            result.index = result.index.to_period()
+        if orient != "split":
+            expected.name = None
+
+        tm.assert_frame_equal(result, expected)
+
+
+    def test_frame_roundtrip_period_columns(self, orient, period_frame):
+        # GH32665: Fix to_json when converting Period column/series
+        test_frame = period_frame.reset_index()
+        data = test_frame.to_json(orient=orient)
+        result = pd.read_json(data, typ="frame", orient=orient)
+
+        expected = test_frame
+        if orient == 'values':
+            expected.colummns = range(len(expected.columns))
+        if orient != "split":
+            expected.name = None
+
+        tm.assert_frame_equal(result, expected)
+
+
     def test_frame_empty(self):
         df = DataFrame(columns=["jim", "joe"])
         assert not df._is_mixed_type
