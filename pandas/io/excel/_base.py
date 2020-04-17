@@ -392,8 +392,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def should_read_row(self, index, header, skiprows, nrows):
         """
         Determines whether row should be read.
- 
-	Parameters
+
+        Parameters
         ----------
         index : int
             Index of row.
@@ -406,7 +406,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        Tuple with the first bool element determining if row should be skipped and second bool element determining if reading should be stopped.
+        Tuple with the first bool element determining if row should be 
+        skipped and second bool element determining if reading should be stopped.
         """
         if nrows is not None:
             if index <= header - 1 + skiprows:
