@@ -102,7 +102,7 @@ def jit_user_function(
     return numba_func
 
 
-def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
     """
     Split pandas object into its components as numpy arrays for numba functions.
     Parameters
@@ -110,40 +110,28 @@ def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray, np.ndar
     arg : Series or DataFrame
     Returns
     -------
-    (ndarray, ndarray, ndarray)
-        values, index, columns
+    (ndarray, ndarray)
+        values, index
     """
-    if getattr(arg, "columns", None) is not None:
-        columns_as_array = arg.columns.to_numpy()
-    else:
-        columns_as_array = None
-    return arg.to_numpy(), arg.index.to_numpy(), columns_as_array
+    return arg.to_numpy(), arg.index.to_numpy()
 
 
-def validate_udf(func: Callable, include_columns: bool = False) -> None:
+def validate_udf(func: Callable) -> None:
     """
     Validate user defined function for ops when using Numba.
-    For routines that pass Series objects, the first signature arguments should include:
+    The first signature arguments should include:
     def f(values, index, ...):
-        ...
-    For routines that pass DataFrame objects, the first signature arguments should
-    include:
-    def f(values, index, columns, ...):
         ...
     Parameters
     ----------
     func : function, default False
         user defined function
-    include_columns : bool
-        whether 'columns' should be in the signature
     Returns
     -------
     None
     """
     udf_signature = list(inspect.signature(func).parameters.keys())
     expected_args = ["values", "index"]
-    if include_columns:
-        expected_args.append("columns")
     min_number_args = len(expected_args)
     if (
         len(udf_signature) < min_number_args
