@@ -701,10 +701,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = self[item]
         del self[item]
-        try:
+        if self.ndim == 2:
             result._reset_cacher()
-        except AttributeError:
-            pass
 
         return result
 
@@ -3254,14 +3252,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if ref is None:
                 del self._cacher
             else:
-                # Note: we need to call ref._maybe_cache_changed even in the
-                #  case where it will raise.  (Uh, not clear why)
-                try:
+                if len(self) == len(ref):
+                    # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
-                except AssertionError:
-                    # ref._mgr.setitem can raise
-                    #  AssertionError because of shape mismatch
-                    pass
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
