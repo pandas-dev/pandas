@@ -638,8 +638,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         #   1. PeriodArray.astype handles period -> period
         #   2. DatetimeArray.astype handles conversion between tz.
         #   3. DatetimeArray.astype handles datetime -> period
-        from pandas import Categorical
-
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
@@ -667,7 +665,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
         elif is_categorical_dtype(dtype):
-            return Categorical(self, dtype=dtype)
+            arr_cls = dtype.construct_array_type()
+            return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
 

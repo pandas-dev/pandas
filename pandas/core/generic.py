@@ -3549,8 +3549,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs: Callable = xs
-
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
