@@ -310,17 +310,15 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     -------
     DataFrame
     """
+    # Get the appropriate array-op to apply to each column/block's values.
+    array_op = get_array_op(func, str_rep=str_rep)
+
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
-
-        # Get the appropriate array-op to apply to each block's values.
-        array_op = get_array_op(func, str_rep=str_rep)
         bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
-    array_op = get_array_op(func, str_rep=str_rep)
-
-    if isinstance(right, ABCDataFrame):
+    elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
         arrays = []
