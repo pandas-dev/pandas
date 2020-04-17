@@ -60,7 +60,7 @@ class TestToTimestamp:
         pindex = PeriodIndex(year=years, quarter=quarters)
 
         stamps = pindex.to_timestamp("D", "end")
-        expected = DatetimeIndex([x.to_timestamp("D", "end") for x in pindex])
+        expected = DatetimeIndex([x.to_timestamp("D", "end") for x in pindex], freq="Q")
         tm.assert_index_equal(stamps, expected)
 
     def test_to_timestamp_pi_mult(self):
