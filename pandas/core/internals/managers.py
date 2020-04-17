@@ -74,7 +74,6 @@ class BlockManager(PandasObject):
     set_axis(axis, new_labels)
     copy(deep=True)
 
-    get_dtype_counts
     get_dtypes
 
     apply(func, axes, block_filter_fn)
@@ -255,18 +254,6 @@ class BlockManager(PandasObject):
     @property
     def items(self) -> Index:
         return self.axes[0]
-
-    def _get_counts(self, f):
-        """ return a dict of the counts of the function in BlockManager """
-        self._consolidate_inplace()
-        counts = dict()
-        for b in self.blocks:
-            v = f(b)
-            counts[v] = counts.get(v, 0) + b.shape[0]
-        return counts
-
-    def get_dtype_counts(self):
-        return self._get_counts(lambda b: b.dtype.name)
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
@@ -1529,9 +1516,6 @@ class SingleBlockManager(BlockManager):
     @property
     def dtype(self) -> DtypeObj:
         return self._block.dtype
-
-    def get_dtype_counts(self):
-        return {self.dtype.name: 1}
 
     def get_dtypes(self) -> np.ndarray:
         return np.array([self._block.dtype])
