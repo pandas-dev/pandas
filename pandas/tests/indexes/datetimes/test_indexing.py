@@ -75,8 +75,9 @@ class TestGetItem:
     def test_dti_business_getitem(self):
         rng = pd.bdate_range(START, END)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="B")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
 
         assert smaller.freq == rng.freq
 
@@ -102,8 +103,9 @@ class TestGetItem:
     def test_dti_custom_getitem(self):
         rng = pd.bdate_range(START, END, freq="C")
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="C")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
         assert smaller.freq == rng.freq
 
         sliced = rng[::5]
