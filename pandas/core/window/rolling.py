@@ -1171,8 +1171,9 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("count")
+        # GH 32865. Using count with custom BaseIndexer subclass
+        # implementations shouldn't end up here
+        assert not isinstance(self.window, BaseIndexer)
 
         blocks, obj = self._create_blocks()
         results = []
@@ -1939,7 +1940,9 @@ class Rolling(_Rolling_and_Expanding):
     def count(self):
 
         # different impl for freq counting
-        if self.is_freq_type:
+        # GH 32865. Use a custom count function implementation
+        # when using a BaseIndexer subclass as a window
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
             return self._apply(window_func, center=self.center, name="count")
 

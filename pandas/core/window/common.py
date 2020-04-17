@@ -328,6 +328,7 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
 def validate_baseindexer_support(func_name: Optional[str]) -> None:
     # GH 32865: These functions work correctly with a BaseIndexer subclass
     BASEINDEXER_WHITELIST = {
+        "count",
         "min",
         "max",
         "mean",
