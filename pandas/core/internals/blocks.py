@@ -343,7 +343,6 @@ class Block(PandasObject):
         if is_extension_array_dtype(result) and result.ndim > 1:
             # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
-            # TODO(EA2D): not necessary with 2D EAs
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
                 vals = result[i]
