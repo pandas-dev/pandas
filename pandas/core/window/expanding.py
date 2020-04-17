@@ -88,9 +88,8 @@ class Expanding(_Rolling_and_Expanding):
         """
     See Also
     --------
-    DataFrame.expanding.aggregate
-    DataFrame.rolling.aggregate
-    DataFrame.aggregate
+    .DataFrame.aggregate : Similar DataFrame method.
+    .Series.aggregate : Similar Series method.
     """
     )
 
@@ -172,7 +171,7 @@ class Expanding(_Rolling_and_Expanding):
         nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(*args, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
     def max(self, *args, **kwargs):
@@ -208,7 +207,7 @@ class Expanding(_Rolling_and_Expanding):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="skew")
     @Appender(_doc_template)
     @Appender(_shared_docs["skew"])
     def skew(self, **kwargs):
@@ -252,7 +251,7 @@ class Expanding(_Rolling_and_Expanding):
             quantile=quantile, interpolation=interpolation, **kwargs
         )
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):

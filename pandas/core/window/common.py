@@ -22,8 +22,10 @@ _doc_template = """
 
         See Also
         --------
-        Series.%(name)s : Series %(name)s.
-        DataFrame.%(name)s : DataFrame %(name)s.
+        .Series.%(name)s : Calling object with Series data.
+        .DataFrame.%(name)s : Calling object with DataFrame data.
+        .Series.%(func_name)s : Similar method for Series.
+        .DataFrame.%(func_name)s : Similar method for DataFrame.
 """
 
 
