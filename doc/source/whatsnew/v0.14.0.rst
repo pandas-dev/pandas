@@ -1,7 +1,7 @@
 .. _whatsnew_0140:
 
-v0.14.0 (May 31 , 2014)
------------------------
+Version 0.14.0 (May 31 , 2014)
+------------------------------
 
 {{ header }}
 
@@ -321,7 +321,7 @@ Text parsing API changes
 
 .. _whatsnew_0140.groupby:
 
-Groupby API changes
+GroupBy API changes
 ~~~~~~~~~~~~~~~~~~~
 
 More consistent behavior for some groupby methods:
@@ -473,8 +473,8 @@ Some other enhancements to the sql functions include:
 
 .. _whatsnew_0140.slicers:
 
-Multiindexing using slicers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Multi-indexing using slicers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In 0.14.0 we added a new way to slice MultiIndexed objects.
 You can slice a MultiIndex by providing multiple indexers.
