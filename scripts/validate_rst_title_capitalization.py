@@ -58,6 +58,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "DatetimeIndex",
     "IntervalIndex",
     "CategoricalIndex",
+    "Categorical",
     "GroupBy",
     "SPSS",
     "ORC",
@@ -112,6 +113,14 @@ CAPITALIZATION_EXCEPTIONS = {
     "November",
     "December",
     "Float64Index",
+    "TZ",
+    "GIL",
+    "strftime",
+    "XPORT",
+    "Unicode",
+    "East",
+    "Asian",
+    "None",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
