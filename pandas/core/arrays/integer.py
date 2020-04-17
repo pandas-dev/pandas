@@ -1,11 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -94,6 +94,15 @@ class _IntegerDtype(ExtensionDtype):
         type
         """
         return IntegerArray
+
+    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # for now only handle other integer types
+        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+            return None
+        np_dtype = np.find_common_type([t.numpy_dtype for t in dtypes], [])
+        if np.issubdtype(np_dtype, np.integer):
+            return _dtypes[str(np_dtype)]
+        return None
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]

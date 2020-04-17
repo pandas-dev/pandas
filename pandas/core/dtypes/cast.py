@@ -1474,7 +1474,12 @@ def find_common_type(types):
         return first
 
     if any(isinstance(t, ExtensionDtype) for t in types):
-        return np.object
+        for t in types:
+            if isinstance(t, ExtensionDtype):
+                res = t._get_common_type(types)
+                if res is not None:
+                    return res
+        return np.dtype("object")
 
     # take lowest unit
     if all(is_datetime64_dtype(t) for t in types):

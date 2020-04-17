@@ -4,6 +4,7 @@ Utility functions related to concat.
 
 import numpy as np
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -16,6 +17,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
+
+from pandas.core.arrays import ExtensionArray
+from pandas.core.construction import array
 
 
 def get_dtype_kinds(l):
@@ -99,9 +103,23 @@ def concat_compat(to_concat, axis: int = 0):
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
-    if any_ea and single_dtype and axis == 0:
-        cls = type(to_concat[0])
-        return cls._concat_same_type(to_concat)
+    if any_ea and axis == 0:
+        if not single_dtype:
+            target_dtype = find_common_type([x.dtype for x in to_concat])
+
+            def cast(arr, dtype):
+                if is_extension_array_dtype(dtype):
+                    if isinstance(arr, np.ndarray):
+                        return array(arr, dtype=dtype, copy=False)
+                return arr.astype(dtype, copy=False)
+
+            to_concat = [cast(arr, target_dtype) for arr in to_concat]
+
+        if isinstance(to_concat[0], ExtensionArray):
+            cls = type(to_concat[0])
+            return cls._concat_same_type(to_concat)
+        else:
+            np.concatenate(to_concat)
 
     elif "category" in typs:
         # this must be prior to concat_datetime,
