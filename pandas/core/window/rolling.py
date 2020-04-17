@@ -1171,6 +1171,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
+        # GH 32865. Using count with custom BaseIndexer subclass
+        # implementations shouldn't end up here
         assert not isinstance(self.window, BaseIndexer)
 
         blocks, obj = self._create_blocks()
