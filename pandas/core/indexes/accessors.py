@@ -2,6 +2,7 @@
 datetimelike delegation
 """
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -260,8 +261,6 @@ class DatetimeProperties(Properties):
         Series.dt.weekofyear and Series.dt.week have been deprecated.
         Please use Series.dt.isocalendar().week instead.
         """
-        import warnings
-
         warnings.warn(
             "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
             "Please use Series.dt.isocalendar().week instead.",

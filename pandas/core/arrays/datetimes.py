@@ -1309,7 +1309,6 @@ default 'raise'
         Please use DatetimeIndex.isocalendar().week instead.
         """
         import pandas as pd
-        import warnings
 
         warnings.warn(
             "weekofyear and week have been deprecated, please use "
