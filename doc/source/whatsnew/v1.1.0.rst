@@ -88,6 +88,7 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
+- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`).
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
@@ -97,13 +98,15 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
+- :meth:`~pandas.core.groupby.GroupBy.transform` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`)
+-
 
 .. ---------------------------------------------------------------------------
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
@@ -112,6 +115,49 @@ If installed, we now require:
 | python-dateutil | 2.7.3           |    X     |         |
 +-----------------+-----------------+----------+---------+
 
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+| beautifulsoup4  | 4.6.0           |         |
++-----------------+-----------------+---------+
+| fastparquet     | 0.3.2           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.2.2           |         |
++-----------------+-----------------+---------+
+| lxml            | 3.8.0           |         |
++-----------------+-----------------+---------+
+| matplotlib      | 2.2.2           |         |
++-----------------+-----------------+---------+
+| numba           | 0.46.0          |         |
++-----------------+-----------------+---------+
+| openpyxl        | 2.5.7           |         |
++-----------------+-----------------+---------+
+| pyarrow         | 0.13.0          |         |
++-----------------+-----------------+---------+
+| pymysql         | 0.7.1           |         |
++-----------------+-----------------+---------+
+| pytables        | 3.4.3           |    X    |
++-----------------+-----------------+---------+
+| s3fs            | 0.3.0           |         |
++-----------------+-----------------+---------+
+| scipy           | 0.19.0          |         |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.1.4           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.8.2           |         |
++-----------------+-----------------+---------+
+| xlrd            | 1.1.0           |         |
++-----------------+-----------------+---------+
+| xlsxwriter      | 0.9.8           |         |
++-----------------+-----------------+---------+
+| xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
@@ -128,7 +174,7 @@ Other API changes
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``std``, ``var``, ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 -
@@ -377,7 +423,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement in reductions (sum, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`).
+- Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 
 
 .. ---------------------------------------------------------------------------
@@ -396,6 +442,7 @@ Categorical
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
+- Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -409,6 +456,8 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.searchsorted` not accepting a ``list`` or :class:`Series` as its argument (:issue:`32762`)
 - Bug where :meth:`PeriodIndex` raised when passed a :class:`Series` of strings (:issue:`26109`)
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
+- Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
+- Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
 
 Timedelta
 ^^^^^^^^^
@@ -463,6 +512,7 @@ Indexing
 - Bug in :meth:`DatetimeIndex.get_loc` raising ``KeyError`` with converted-integer key instead of the user-passed key (:issue:`31425`)
 - Bug in :meth:`Series.xs` incorrectly returning ``Timestamp`` instead of ``datetime64`` in some object-dtype cases (:issue:`31630`)
 - Bug in :meth:`DataFrame.iat` incorrectly returning ``Timestamp`` instead of ``datetime`` in some object-dtype cases (:issue:`32809`)
+- Bug in :meth:`DataFrame.at` when either columns or index is non-unique (:issue:`33041`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` when indexing with an integer key on a object-dtype :class:`Index` that is not all-integers (:issue:`31905`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` on a :class:`DataFrame` with duplicate columns incorrectly setting values for all matching columns (:issue:`15686`, :issue:`22036`)
 - Bug in :meth:`DataFrame.loc:` and :meth:`Series.loc` with a :class:`DatetimeIndex`, :class:`TimedeltaIndex`, or :class:`PeriodIndex` incorrectly allowing lookups of non-matching datetime-like dtypes (:issue:`32650`)
@@ -474,6 +524,7 @@ Indexing
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
 - Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
+- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
 
 Missing
 ^^^^^^^
@@ -524,10 +575,10 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
 - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
+- Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
 - :func:`pandas.read_csv` now accepts engine="arrow" as an argument, allowing for faster csv parsing
   if pyarrow>0.13 is installed. However, the pyarrow engine is less feature-complete than its "c" or
   "python" counterparts. (:issue:`23697`)
-
 
 Plotting
 ^^^^^^^^
@@ -550,6 +601,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
+- Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 
 Reshaping
 ^^^^^^^^^
@@ -576,7 +628,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
--
+- Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 -
 
 ExtensionArray

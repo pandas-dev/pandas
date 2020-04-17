@@ -778,8 +778,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[:loc]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -793,8 +793,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[loc:]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -940,6 +940,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            elif self.freq is not None:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
                     freq = self.freq
             item = item.asm8
 
