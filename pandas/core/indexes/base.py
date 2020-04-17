@@ -24,7 +24,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     ensure_int64,
     ensure_object,
     ensure_platform_int,
@@ -68,7 +67,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
@@ -3597,12 +3596,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        if is_extension_array_dtype(self.dtype):
-            lvalues = self._data._values_for_argsort()
-            rvalues = other._data._values_for_argsort()
-        else:
-            lvalues = self._values
-            rvalues = other._values
+        lvalues = self._get_engine_target()
+        rvalues = other._get_engine_target()
 
         left_idx, right_idx = _get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
@@ -3774,12 +3769,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return ret_index
 
-        if is_extension_array_dtype(self.dtype):
-            sv = self._data._values_for_argsort()
-            ov = other._data._values_for_argsort()
-        else:
-            sv = self._values
-            ov = other._values
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -4604,9 +4595,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _should_fallback_to_positional(self) -> bool:
         """
-        If an integer key is not found, should we fall back to positional indexing?
+        Should an integer key be treated as positional?
         """
-        if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+        if self.holds_integer() or self.is_boolean():
             return False
         return True
 
@@ -4727,8 +4718,8 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
         if isinstance(values, ABCMultiIndex):
-            values = values.values
-        values = ensure_categorical(values)
+            values = values._values
+        values = Categorical(values)
         result = values._reverse_indexer()
 
         # map to the label
