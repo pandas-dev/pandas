@@ -353,7 +353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return axes, kwargs
 
     @classmethod
-    def _get_axis_number(cls, axis):
+    def _get_axis_number(cls, axis) -> int:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
             if axis in cls._AXIS_NAMES:
@@ -366,7 +366,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     @classmethod
-    def _get_axis_name(cls, axis):
+    def _get_axis_name(cls, axis) -> str:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, str):
             if axis in cls._AXIS_NUMBERS:
@@ -378,12 +378,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 pass
         raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
-    def _get_axis(self, axis):
+    def _get_axis(self, axis) -> Index:
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
     @classmethod
-    def _get_block_manager_axis(cls, axis):
+    def _get_block_manager_axis(cls, axis) -> int:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         if cls._AXIS_REVERSED:
@@ -590,7 +590,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(
+        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
             self, method="swapaxes"
         )
 
@@ -3490,6 +3490,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
+            assert isinstance(labels, MultiIndex), type(labels)
             loc, new_ax = labels.get_loc_level(key, level=level, drop_level=drop_level)
 
             # create the tuple of the indexer
@@ -7621,11 +7622,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
 
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
+
+        indexer = index.indexer_at_time(time, asof=asof)
         return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
@@ -7704,16 +7705,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_between_time(
-                start_time,
-                end_time,
-                include_start=include_start,
-                include_end=include_end,
-            )
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
 
+        indexer = index.indexer_between_time(
+            start_time, end_time, include_start=include_start, include_end=include_end,
+        )
         return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
