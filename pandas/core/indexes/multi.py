@@ -2342,10 +2342,8 @@ class MultiIndex(Index):
 
     def _should_fallback_to_positional(self) -> bool:
         """
-        If an integer key is not found, should we fall back to positional indexing?
+        Should integer key(s) be treated as positional?
         """
-        if not self.nlevels:
-            return False
         # GH#33355
         return self.levels[0]._should_fallback_to_positional()
 

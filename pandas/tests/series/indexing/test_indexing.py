@@ -159,9 +159,9 @@ def test_getitem_out_of_bounds(datetime_series):
         datetime_series[len(datetime_series)]
 
     # GH #917
-    msg = r"index -\d+ is out of bounds for axis 0 with size \d+"
+    # With a RangeIndex, an int key gives a KeyError
     s = Series([], dtype=object)
-    with pytest.raises(IndexError, match=msg):
+    with pytest.raises(KeyError, match="-1"):
         s[-1]
 
 
