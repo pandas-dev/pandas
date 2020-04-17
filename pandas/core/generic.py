@@ -590,6 +590,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
+        # ignore needed because of NDFrame constructor is different than
+        # DataFrame/Series constructors.
         return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
             self, method="swapaxes"
         )
@@ -3490,7 +3492,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
-            assert isinstance(labels, MultiIndex), type(labels)
+            if not isinstance(labels, MultiIndex):
+                raise TypeError("Index must be a MultiIndex")
             loc, new_ax = labels.get_loc_level(key, level=level, drop_level=drop_level)
 
             # create the tuple of the indexer
