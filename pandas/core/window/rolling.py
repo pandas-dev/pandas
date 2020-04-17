@@ -1171,8 +1171,6 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("count")
 
         blocks, obj = self._create_blocks()
         results = []
