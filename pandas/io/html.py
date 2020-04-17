@@ -11,6 +11,7 @@ import re
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
+from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -904,7 +905,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "Since you passed a non-rewindable file "
                     "object, we can't rewind it to try "
                     "another parser. Try read_html() with a different flavor."
-                )
+                ) from caught
 
             retained = caught
         else:
@@ -921,6 +922,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     return ret
 
 
+@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io,
     match=".+",
@@ -1036,7 +1038,7 @@ def read_html(
 
     See Also
     --------
-    read_csv
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----
@@ -1056,8 +1058,6 @@ def read_html(
     If the function has a ``<thead>`` argument, it is used to construct
     the header, otherwise the function attempts to find the header within
     the body (by putting rows with only ``<th>`` elements into the header).
-
-        .. versionadded:: 0.21.0
 
     Similar to :func:`~read_csv` the `header` argument is applied
     **after** `skiprows` is applied.

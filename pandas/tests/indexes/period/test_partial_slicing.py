@@ -40,10 +40,6 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             ts.loc[::0]
 
-    def test_slice_keep_name(self):
-        idx = period_range("20010101", periods=10, freq="D", name="bob")
-        assert idx.name == idx[1:].name
-
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
         s = Series(np.random.rand(len(pi)), index=pi)
@@ -59,6 +55,7 @@ class TestPeriodIndex:
         didx = pd.date_range(start="2013/01/01", freq="D", periods=400)
         pidx = period_range(start="2013/01/01", freq="D", periods=400)
 
+        msg = "slice indices must be integers or None or have an __index__ method"
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = [
@@ -69,7 +66,7 @@ class TestPeriodIndex:
                 "2013/02/01 09:00",
             ]
             for v in values:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -81,13 +78,14 @@ class TestPeriodIndex:
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
             for v in invalid:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
     def test_range_slice_seconds(self):
         # GH#6716
         didx = pd.date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        msg = "slice indices must be integers or None or have an __index__ method"
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
@@ -99,7 +97,7 @@ class TestPeriodIndex:
                 "2013/02/01 09:00",
             ]
             for v in values:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)

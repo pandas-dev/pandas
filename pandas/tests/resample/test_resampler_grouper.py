@@ -28,7 +28,15 @@ async def test_tab_complete_ipython6_warning(ip):
     )
     await ip.run_code(code)
 
-    with tm.assert_produces_warning(None):
+    # TODO: remove it when Ipython updates
+    # GH 33567, jedi version raises Deprecation warning in Ipython
+    import jedi
+
+    if jedi.__version__ < "0.17.0":
+        warning = tm.assert_produces_warning(None)
+    else:
+        warning = tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False)
+    with warning:
         with provisionalcompleter("ignore"):
             list(ip.Completer.completions("rs.", 1))
 

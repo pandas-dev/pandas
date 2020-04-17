@@ -169,6 +169,7 @@ class TestSeriesInternals:
         result = s._convert(datetime=True, coerce=True)
         tm.assert_series_equal(result, s)
 
+        # FIXME: dont leave commented-out
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)
@@ -206,7 +207,7 @@ class TestSeriesInternals:
         ser = pd.Series([1, 2, 3])
         result = pd.Series(ser.array)
         tm.assert_series_equal(ser, result)
-        assert isinstance(result._data.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], IntBlock)
 
     def test_astype_no_pandas_dtype(self):
         # https://github.com/pandas-dev/pandas/pull/24866
@@ -218,20 +219,20 @@ class TestSeriesInternals:
 
     def test_from_array(self):
         result = pd.Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
-        assert result._data.blocks[0].is_extension is False
+        assert result._mgr.blocks[0].is_extension is False
 
         result = pd.Series(pd.array(["2015"], dtype="datetime64[ns]"))
-        assert result._data.blocks[0].is_extension is False
+        assert result._mgr.blocks[0].is_extension is False
 
     def test_from_list_dtype(self):
         result = pd.Series(["1H", "2H"], dtype="timedelta64[ns]")
-        assert result._data.blocks[0].is_extension is False
+        assert result._mgr.blocks[0].is_extension is False
 
         result = pd.Series(["2015"], dtype="datetime64[ns]")
-        assert result._data.blocks[0].is_extension is False
+        assert result._mgr.blocks[0].is_extension is False
 
 
-def test_hasnans_unchached_for_series():
+def test_hasnans_uncached_for_series():
     # GH#19700
     idx = pd.Index([0, 1])
     assert idx.hasnans is False

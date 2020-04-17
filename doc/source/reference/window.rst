@@ -75,7 +75,7 @@ Exponentially-weighted moving window functions
    EWM.corr
    EWM.cov
 
-Window Indexer
+Window indexer
 --------------
 .. currentmodule:: pandas
 
@@ -85,3 +85,4 @@ Base class for defining custom window boundaries.
    :toctree: api/
 
    api.indexers.BaseIndexer
+   api.indexers.FixedForwardWindowIndexer

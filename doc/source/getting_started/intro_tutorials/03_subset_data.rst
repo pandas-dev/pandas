@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -72,7 +72,7 @@ How do I select specific columns from a ``DataFrame``?
     <ul class="task-bullet">
         <li>
 
-I’m interested in the age of the titanic passengers.
+I’m interested in the age of the Titanic passengers.
 
 .. ipython:: python
 
@@ -88,7 +88,7 @@ name of the column of interest.
     </ul>
 
 Each column in a :class:`DataFrame` is a :class:`Series`. As a single column is
-selected, the returned object is a pandas :class:`DataFrame`. We can verify this
+selected, the returned object is a pandas :class:`Series`. We can verify this
 by checking the type of the output:
 
 .. ipython:: python
@@ -101,7 +101,7 @@ And have a look at the ``shape`` of the output:
 
     titanic["Age"].shape
 
-:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parantheses for attributes) of a
+:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parentheses for attributes) of a
 pandas ``Series`` and ``DataFrame`` containing the number of rows and
 columns: *(nrows, ncolumns)*. A pandas Series is 1-dimensional and only
 the number of rows is returned.
@@ -111,7 +111,7 @@ the number of rows is returned.
     <ul class="task-bullet">
         <li>
 
-I’m interested in the age and sex of the titanic passengers.
+I’m interested in the age and sex of the Titanic passengers.
 
 .. ipython:: python
 
@@ -198,7 +198,7 @@ can be used to filter the ``DataFrame`` by putting it in between the
 selection brackets ``[]``. Only rows for which the value is ``True``
 will be selected.
 
-We now from before that the original titanic ``DataFrame`` consists of
+We know from before that the original Titanic ``DataFrame`` consists of
 891 rows. Let’s have a look at the amount of rows which satisfy the
 condition by checking the ``shape`` attribute of the resulting
 ``DataFrame`` ``above_35``:
@@ -212,7 +212,7 @@ condition by checking the ``shape`` attribute of the resulting
     <ul class="task-bullet">
         <li>
 
-I’m interested in the titanic passengers from cabin class 2 and 3.
+I’m interested in the Titanic passengers from cabin class 2 and 3.
 
 .. ipython:: python
 

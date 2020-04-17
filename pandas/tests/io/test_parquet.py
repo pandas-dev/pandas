@@ -1,6 +1,7 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
+import locale
 import os
 from warnings import catch_warnings
 
@@ -33,6 +34,7 @@ try:
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
+
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
@@ -220,6 +222,49 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
         assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+
+
+def test_get_engine_auto_error_message():
+    # Expect different error messages from get_engine(engine="auto")
+    # if engines aren't installed vs. are installed but bad version
+    from pandas.compat._optional import VERSIONS
+
+    # Do we have engines installed, but a bad version of them?
+    pa_min_ver = VERSIONS.get("pyarrow")
+    fp_min_ver = VERSIONS.get("fastparquet")
+    have_pa_bad_version = (
+        False
+        if not _HAVE_PYARROW
+        else LooseVersion(pyarrow.__version__) < LooseVersion(pa_min_ver)
+    )
+    have_fp_bad_version = (
+        False
+        if not _HAVE_FASTPARQUET
+        else LooseVersion(fastparquet.__version__) < LooseVersion(fp_min_ver)
+    )
+    # Do we have usable engines installed?
+    have_usable_pa = _HAVE_PYARROW and not have_pa_bad_version
+    have_usable_fp = _HAVE_FASTPARQUET and not have_fp_bad_version
+
+    if not have_usable_pa and not have_usable_fp:
+        # No usable engines found.
+        if have_pa_bad_version:
+            match = f"Pandas requires version .{pa_min_ver}. or newer of .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+
+        if have_fp_bad_version:
+            match = f"Pandas requires version .{fp_min_ver}. or newer of .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
 
 
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
@@ -483,6 +528,11 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    # GH#33077 2020-03-27
+    @pytest.mark.xfail(
+        locale.getlocale()[0] == "zh_CN",
+        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
+    )
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")

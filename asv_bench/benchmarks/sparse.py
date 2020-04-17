@@ -2,7 +2,8 @@ import numpy as np
 import scipy.sparse
 
 import pandas as pd
-from pandas import MultiIndex, Series, SparseArray, date_range
+from pandas import MultiIndex, Series, date_range
+from pandas.arrays import SparseArray
 
 
 def make_array(size, dense_proportion, fill_value, dtype):
@@ -45,7 +46,6 @@ class SparseArrayConstructor:
 class SparseDataFrameConstructor:
     def setup(self):
         N = 1000
-        self.arr = np.arange(N)
         self.sparse = scipy.sparse.rand(N, N, 0.005)
 
     def time_from_scipy(self):
