@@ -1518,9 +1518,7 @@ def test_quantile_missing_group_values_no_segfaults():
 @pytest.mark.parametrize(
     "quantile, expected_value", [(0.0, 1.0), (0.5, 2.0), (1.0, 3.0)]
 )
-def test_quantile_missing_group_values_correct_results(
-    key, quantile, expected_value
-):
+def test_quantile_missing_group_values_correct_results(key, quantile, expected_value):
     # GH 28662
     # https://github.com/pandas-dev/pandas/issues/33569
     value = np.array([1.0, 2.0, 3.0, np.nan] * 2)
