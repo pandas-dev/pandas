@@ -784,8 +784,8 @@ def group_quantile(ndarray[float64_t] out,
         labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
     else:
         labels_for_lexsort = labels
-    order = (values, labels_for_lexsort)
-    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
+
+    sort_arr = np.lexsort((values, labels_for_lexsort)).astype(np.int64, copy=False)
 
     with nogil:
         for i in range(ngroups):
