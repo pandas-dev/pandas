@@ -406,7 +406,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        Tuple with the first bool element determining if row should be 
+        Tuple with the first bool element determining if row should be
         skipped and second bool element determining if reading should be stopped.
         """
         if nrows is not None:
