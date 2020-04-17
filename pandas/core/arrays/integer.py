@@ -99,7 +99,9 @@ class _IntegerDtype(ExtensionDtype):
         # for now only handle other integer types
         if not all(isinstance(t, _IntegerDtype) for t in dtypes):
             return None
-        np_dtype = np.find_common_type([t.numpy_dtype for t in dtypes], [])
+        np_dtype = np.find_common_type(
+            [t.numpy_dtype for t in dtypes], []  # type: ignore
+        )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]
         return None
