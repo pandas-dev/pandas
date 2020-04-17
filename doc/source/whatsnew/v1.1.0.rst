@@ -321,6 +321,36 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     ...
     KeyError: Timestamp('1970-01-01 00:00:00')
 
+.. _whatsnew_110.api_breaking.indexing_int_multiindex_raises_key_errors:
+
+Failed Integer Lookups on MultiIndex Raise KeyError
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Indexing with integers with a :class:`MultiIndex` that has a integer-dtype
+first level incorrectly failed to raise ``KeyError`` when one or more of
+those integer keys is not present in the first level of the index (:issue:`33539`)
+
+.. ipython:: python
+
+    idx = pd.Index(range(4))
+    dti = pd.date_range("2000-01-03", periods=3)
+    mi = pd.MultiIndex.from_product([idx, dti])
+    ser = pd.Series(range(len(mi)), index=mi)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [5]: ser[[5]]
+    Out[5]: Series([], dtype: int64)
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [5]: ser[[5]]
+    ...
+    KeyError: '[5] not in index'
+
 :meth:`DataFrame.merge` preserves right frame's row order
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
