@@ -98,8 +98,6 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
-- :func:`pandas.read_hdf` has a more explicit error message when loading an
-  unsupported HDF file (:issue:`9539`)
 
 .. ---------------------------------------------------------------------------
 
@@ -531,6 +529,8 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
 - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
+- :func:`pandas.read_hdf` has a more explicit error message when loading an
+  unsupported HDF file (:issue:`9539`)
 
 Plotting
 ^^^^^^^^
