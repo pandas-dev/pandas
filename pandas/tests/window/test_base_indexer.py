@@ -99,6 +99,7 @@ def test_notimplemented_functions(func):
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
     [
+        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {},),
         ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
         (
             "max",
