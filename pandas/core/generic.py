@@ -4971,9 +4971,174 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
-    def stratified_sample(msg):
-        print('my new function')
-        print(msg)
+
+    def stratified_sample(
+        self: FrameOrSeries,
+        strata=None,
+        n=None,
+        random_state=None,
+        reset_index=False
+    ) -> FrameOrSeries:
+        """
+        Return a random stratified sample from a data frame using proportionate stratification:
+        n1 = (N1/N) * n
+        where:
+            - n1 is the sample size of stratum 1
+            - N1 is the population size of stratum 1
+            - N is the total population size
+            - n is the sampling size
+
+        Parameters
+        ----------
+        strata: list, optional
+            List containing columns that will be used in the stratified sampling. If not provided, all
+            columns will be used.
+        n: int or float, optional
+            Sampling size to be returned. If int it must be between 1 and total population size. If float
+            it must be 0 < n < 1. If not informed, a sampling size will be calculated using Cochran adjusted 
+            sampling formula:
+                cochran_n = (Z**2 * p * q) /e**2
+            
+            where:
+                - Z is the z-value. In this case we use 1.96 representing 95%
+                - p is the estimated proportion of the population which has an
+                    attribute. In this case we use 0.5
+                - q is 1-p
+                - e is the margin of error. In this case we use 0.05
+
+            This formula is adjusted as follows:
+            adjusted_cochran = cochran_n / 1+((cochran_n -1)/N)
+
+            where:
+                - cochran_n = result of the previous formula
+                - N is the population size
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator.
+        reset_index: bool, optional
+            If True, returned data frame will have its axis reset, otherwise it will keep its original axis
+            values for the chosen samples.
+        
+        Returns
+        -------
+        Series or DataFrame
+            A new object of same type as caller containing `n` items randomly
+            sampled from the caller object following the given strata.
+
+        See Also
+        --------
+        pandas.DataFrame.stratified_sample_counts: This method returns total counts that a stratified sample
+            would return given a set of strata.
+
+        Examples
+        --------
+
+
+        """
+        
+
+        tmp_df = self.iloc[:]
+        population = len(tmp_df)
+
+        # parameter validation
+        if strata is None:
+            strata = list(tmp_df.columns)
+        elif not type(strata) is list: 
+            raise ValueError('The strata must be a list with the variable names to be used for each stratum.')
+        
+        
+        size = self._stratified_sample_size(population, n)
+        tmp_ = tmp_df[strata]
+        tmp_.insert(0, 'size', 1)
+        tmp_grpd = tmp_.groupby(strata).count().reset_index()
+        tmp_grpd['samp_size'] = round(size/population * tmp_grpd['size']).astype(int)
+        del(tmp_)
+
+        # controlling variable to create the dataframe or append to it
+        first = True 
+        for i in range(len(tmp_grpd)):
+            # query generator for each iteration
+            qry=''
+            for s in range(len(strata)):
+                stratum = strata[s]
+
+                if stratum not in tmp_df.columns:
+                    raise ValueError('Strata must be a list with data frame column names.')
+
+                value = tmp_grpd.iloc[i][stratum]
+                n = tmp_grpd.iloc[i]['samp_size']
+
+                if type(value) == str:
+                    value = "'" + str(value) + "'"
+                
+                if s != len(strata)-1:
+                    qry = qry + stratum + ' == ' + str(value) +' & '
+                else:
+                    qry = qry + stratum + ' == ' + str(value)
+            
+            # final dataframe
+            if first:
+                stratified_df = tmp_df.query(qry).sample(n=n, random_state=random_state).reset_index(drop=False)
+                first = False   
+            else:
+                tmp_ = tmp_df.query(qry).sample(n=n, random_state=random_state).reset_index(drop=False)
+                stratified_df = stratified_df.append(tmp_, ignore_index=True)
+
+        if reset_index:
+            stratified_df = stratified_df.drop('index', axis=1)
+        else:
+            stratified_df.set_index('index', inplace=True)
+            stratified_df.index.name = None
+
+        return stratified_df
+
+        
+
+    def stratified_sample_counts(
+        self: FrameOrSeries,
+        strata=None,
+        n=None
+    ) -> FrameOrSeries:
+        # DOCSTRINGS HERE
+
+        tmp_df = self.iloc[:]
+        population = len(tmp_df)
+
+        # parameter validation
+        if strata is None:
+            strata = list(tmp_df.columns)
+        elif not type(strata) is list: 
+            raise ValueError('The strata must be a list with the variable names to be used for each stratum.')
+        
+        size = self._stratified_sample_size(population, n)
+        tmp = tmp_df[strata]
+        tmp['size'] = 1
+        tmp_grpd = tmp.groupby(strata).count().reset_index()
+        tmp_grpd['samp_size'] = round(size/population * tmp_grpd['size']).astype(int)
+        return tmp_grpd
+
+
+    def _stratified_sample_size(
+        self: FrameOrSeries,
+        population,
+        size
+    ) -> FrameOrSeries:
+        """Calculates the stratified sample size."""
+        
+        if size is None:
+            cochran_n = round(((1.96)**2 * 0.5 * 0.5)/ 0.05**2)
+            n = round(cochran_n/(1+((cochran_n -1) /population)))
+        elif size >= 0 and size < 1:
+            n = round(population * size)
+        elif size < 0:
+            raise ValueError('Parameter "n" must be an integer or a proportion between 0 and 0.99.')
+        elif size >= 1 and size <= population:
+            n = size
+        elif size > population:
+            raise ValueError('Cannot take a sample larger than the population.')
+
+        return n
+
     
     _shared_docs[
         "pipe"
