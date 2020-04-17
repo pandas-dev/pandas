@@ -670,19 +670,26 @@ class BaseExprVisitor(ast.NodeVisitor):
                 )
 
             return res(*new_args)
+        elif isinstance(res, np.ufunc):
+            new_args = [self.visit(arg) for arg in node.args]
+            new_args = str(*new_args)
+            new_args = [eval(new_args)]
 
+            if node.keywords:
+                raise TypeError(
+                    f'Function "{res.name}" does not support keyword arguments'
+                )
         else:
-
             new_args = [self.visit(arg).value for arg in node.args]
 
-            for key in node.keywords:
-                if not isinstance(key, ast.keyword):
-                    raise ValueError(f"keyword error in function call '{node.func.id}'")
+        for key in node.keywords:
+            if not isinstance(key, ast.keyword):
+                raise ValueError(f"keyword error in function call '{node.func.id}'")
 
-                if key.arg:
-                    kwargs[key.arg] = self.visit(key.value).value
+            if key.arg:
+                kwargs[key.arg] = self.visit(key.value).value
 
-            return self.const_type(res(*new_args, **kwargs), self.env)
+        return self.const_type(res(*new_args, **kwargs), self.env)
 
     def translate_In(self, op):
         return op
