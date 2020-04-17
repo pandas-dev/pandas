@@ -1,11 +1,13 @@
 """Sparse Dtype"""
 
 import re
-from typing import TYPE_CHECKING, Any, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+import warnings
 
 import numpy as np
 
-from pandas._typing import Dtype
+from pandas._typing import Dtype, DtypeObj
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
@@ -352,3 +354,23 @@ class SparseDtype(ExtensionDtype):
         if isinstance(self.fill_value, str):
             return type(self.fill_value)
         return self.subtype
+
+    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+
+        fill_values = [x.fill_value for x in dtypes if isinstance(x, SparseDtype)]
+        fill_value = fill_values[0]
+
+        # np.nan isn't a singleton, so we may end up with multiple
+        # NaNs here, so we ignore tha all NA case too.
+        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+            warnings.warn(
+                "Concatenating sparse arrays with multiple fill "
+                f"values: '{fill_values}'. Picking the first and "
+                "converting the rest.",
+                PerformanceWarning,
+                stacklevel=6,
+            )
+
+        # TODO also handle non-numpy other dtypes
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        return SparseDtype(np.find_common_type(np_dtypes, []), fill_value=fill_value)

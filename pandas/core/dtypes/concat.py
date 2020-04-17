@@ -4,6 +4,8 @@ Utility functions related to concat.
 
 import numpy as np
 
+from pandas._typing import ArrayLike, DtypeObj
+
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -62,6 +64,30 @@ def get_dtype_kinds(l):
     return typs
 
 
+def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
+    """
+    Helper function for `arr.astype(common_type)` but handling all special
+    cases.
+    """
+    if (
+        is_categorical_dtype(arr.dtype)
+        and isinstance(dtype, np.dtype)
+        and np.issubdtype(dtype, np.integer)
+    ):
+        # problem case: categorical of int -> gives int as result dtype,
+        # but categorical can contain NAs -> fall back to object dtype
+        try:
+            return arr.astype(dtype, copy=False)
+        except ValueError:
+            return arr.astype(object, copy=False)
+
+    if is_extension_array_dtype(dtype):
+        if isinstance(arr, np.ndarray):
+            # numpy's astype cannot handle ExtensionDtypes
+            return array(arr, dtype=dtype, copy=False)
+    return arr.astype(dtype, copy=False)
+
+
 def concat_compat(to_concat, axis: int = 0):
     """
     provide concatenation of an array of arrays each of which is a single
@@ -106,27 +132,7 @@ def concat_compat(to_concat, axis: int = 0):
     if any_ea and axis == 0:
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
-
-            def cast(arr, dtype):
-                if (
-                    is_categorical_dtype(arr.dtype)
-                    and isinstance(dtype, np.dtype)
-                    and np.issubdtype(dtype, np.integer)
-                ):
-                    # problem case: categorical of int -> gives int as result dtype,
-                    # but categorical can contain NAs -> fall back to object dtype
-                    try:
-                        return arr.astype(dtype, copy=False)
-                    except ValueError:
-                        return arr.astype(object, copy=False)
-
-                if is_extension_array_dtype(dtype):
-                    if isinstance(arr, np.ndarray):
-                        # numpy's astype cannot handle ExtensionDtypes
-                        return array(arr, dtype=dtype, copy=False)
-                return arr.astype(dtype, copy=False)
-
-            to_concat = [cast(arr, target_dtype) for arr in to_concat]
+            to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
@@ -136,10 +142,6 @@ def concat_compat(to_concat, axis: int = 0):
 
     elif _contains_datetime or "timedelta" in typs or _contains_period:
         return concat_datetime(to_concat, axis=axis, typs=typs)
-
-    # these are mandated to handle empties as well
-    elif "sparse" in typs:
-        return _concat_sparse(to_concat, axis=axis, typs=typs)
 
     elif any_ea and axis == 1:
         to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
@@ -394,34 +396,3 @@ def _wrap_datetimelike(arr):
     if isinstance(arr, np.ndarray) and arr.dtype.kind in ["m", "M"]:
         arr = pd_array(arr)
     return arr
-
-
-def _concat_sparse(to_concat, axis=0, typs=None):
-    """
-    provide concatenation of an sparse/dense array of arrays each of which is a
-    single dtype
-
-    Parameters
-    ----------
-    to_concat : array of arrays
-    axis : axis to provide concatenation
-    typs : set of to_concat dtypes
-
-    Returns
-    -------
-    a single array, preserving the combined dtypes
-    """
-    from pandas.core.arrays import SparseArray
-
-    fill_values = [x.fill_value for x in to_concat if isinstance(x, SparseArray)]
-    fill_value = fill_values[0]
-
-    # TODO: Fix join unit generation so we aren't passed this.
-    to_concat = [
-        x
-        if isinstance(x, SparseArray)
-        else SparseArray(x.squeeze(), fill_value=fill_value)
-        for x in to_concat
-    ]
-
-    return SparseArray._concat_same_type(to_concat)
