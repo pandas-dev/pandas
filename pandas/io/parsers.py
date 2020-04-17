@@ -532,6 +532,24 @@ _pyarrow_unsupported = {
     "comment",
     "nrows",
     "thousands",
+    "memory_map",
+    "dialect",
+    "warn_bad_lines",
+    "error_bad_lines",
+    "delim_whitespace",
+    "quoting",
+    "lineterminator",
+    "converters",
+    "decimal",
+    "iterator",
+    "cache_dates",
+    "dayfirst",
+    "keep_date_col",
+    "infer_datetime_format",
+    "verbose",
+    "skipinitialspace",
+    "date_parser",
+    "cache_dates",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -902,6 +920,16 @@ class TextFileReader(abc.Iterator):
         for argname, default in _parser_defaults.items():
             value = kwds.get(argname, default)
 
+            if argname in _pyarrow_unsupported:
+                if engine == "pyarrow" and value != default:
+                    raise ValueError(
+                        f"The {repr(argname)} option is not supported with the "
+                        f"{repr(engine)} engine"
+                    )
+            if argname == "iterator" and engine == "pyarrow":
+                raise ValueError(
+                    "The iterator option is not supported with the" "pyarrow engine"
+                )
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
                 raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
@@ -957,27 +985,10 @@ class TextFileReader(abc.Iterator):
         sep = options["delimiter"]
         delim_whitespace = options["delim_whitespace"]
 
-        # pyarrow engine not supported yet
-        if engine == "pyarrow":
-            for option in _pyarrow_unsupported:
-                if option not in ["chunksize", "nrows"]:
-                    if options[option] is not None:
-                        fallback_reason = (
-                            f"the pyarrow engine does not support the {option} argumnet"
-                        )
-                else:
-                    if self.chunksize is not None:
-                        fallback_reason = (
-                            "the pyarrow engine does not support using chunksize"
-                        )
-                    if self.nrows is not None:
-                        fallback_reason = (
-                            "the pyarrow engine does not support using nrows"
-                        )
         # C engine not supported yet
         if engine == "c":
             if options["skipfooter"] > 0:
-                fallback_reason = f"the 'c' engine does not support skipfooter"
+                fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
@@ -2251,13 +2262,16 @@ class ArrowParserWrapper(ParserBase):
     def __init__(self, src, **kwds):
         self.kwds = kwds
         self.src = src
-        kwds = kwds.copy()
+        # kwds = kwds.copy()
 
         ParserBase.__init__(self, kwds)
 
         encoding = kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
 
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
+        self.na_values = _clean_na_values(
+            kwds["na_values"], keep_default_na=kwds["keep_default_na"]
+        )
 
         if isinstance(self.src, TextIOBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
@@ -2268,8 +2282,7 @@ class ArrowParserWrapper(ParserBase):
         )
         try:
             read_options = pyarrow.ReadOptions(
-                skip_rows=self.kwds.get("skiprows"),
-                autogenerate_column_names=False if self.header == 0 else True,
+                skip_rows=self.kwds.get("skiprows"), autogenerate_column_names=True,
             )
         except TypeError as e:
             msg = "__init__() got an unexpected keyword argument"
@@ -2287,10 +2300,14 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),
                 quote_char=self.kwds.get("quotechar"),
+                escape_char=self.kwds.get("escapechar"),
                 ignore_empty_lines=self.kwds.get("skip_blank_lines"),
             ),
             convert_options=pyarrow.ConvertOptions(
-                include_columns=self.usecols, column_types=self.kwds.get("dtype")
+                include_columns=self.usecols,
+                null_values=self.kwds.get("na_values"),
+                true_values=self.kwds.get("true_values"),
+                false_values=self.kwds.get("false_values"),
             ),
         )
         frame = table.to_pandas()
@@ -2298,16 +2315,56 @@ class ArrowParserWrapper(ParserBase):
         if self.names is None:
             if self.prefix:
                 self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-            elif self.header is not None and self.header != 0:
-                self.names = frame.iloc[self.header]
-                frame = frame.drop(self.header, axis=0)
+            elif self.header is not None:
+                self.names = frame.iloc[self.header].tolist()
+                frame.drop(range(self.header + 1), axis=0, inplace=True)
+                frame.reset_index(drop=True, inplace=True)
             elif self.header is None:
                 self.names = range(num_cols)
         frame.columns = self.names
-        index_col = self.index_col  # need to flatten since returns list
-        if index_col is not None:
-            frame.set_index(frame.columns[index_col[0]], drop=True, inplace=True)
+        if self.index_col is not None:
+            index_col = [frame.columns[i] for i in self.index_col]
+            frame.set_index(index_col, drop=True, inplace=True)
+        if self.kwds.get("dtype") is not None:
+            frame = frame.astype(self.kwds.get("dtype"))
+        else:
+            frame = frame.infer_objects()
         return frame
+
+    def _clean_na_values(na_values, keep_default_na=True):
+        if na_values is None:
+            if keep_default_na:
+                na_values = STR_NA_VALUES
+            else:
+                na_values = set()
+            na_fvalues = set()
+        elif isinstance(na_values, dict):
+            old_na_values = na_values.copy()
+            na_values = {}  # Prevent aliasing.
+
+            # Convert the values in the na_values dictionary
+            # into array-likes for further use. This is also
+            # where we append the default NaN values, provided
+            # that `keep_default_na=True`.
+            for k, v in old_na_values.items():
+                if not is_list_like(v):
+                    v = [v]
+
+                if keep_default_na:
+                    v = set(v) | STR_NA_VALUES
+
+                na_values[k] = v
+            na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
+        else:
+            if not is_list_like(na_values):
+                na_values = [na_values]
+            na_values = _stringify_na_values(na_values)
+            if keep_default_na:
+                na_values = na_values | STR_NA_VALUES
+
+            na_fvalues = _floatify_na_values(na_values)
+
+        return na_values, na_fvalues
 
 
 def TextParser(*args, **kwds):
