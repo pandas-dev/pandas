@@ -81,6 +81,16 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         except ValueError:
             return arr.astype(object, copy=False)
 
+    if (
+        isinstance(arr, np.ndarray)
+        and arr.dtype.kind in ["m", "M"]
+        and dtype is np.dtype("object")
+    ):
+        # wrap datetime-likes in EA to ensure astype(object) gives Timestamp/Timedelta
+        # this can happen when concat_compat is called directly on arrays (when arrays
+        # are not coming from Index/Series._values), eg in BlockManager.quantile
+        arr = array(arr)
+
     if is_extension_array_dtype(dtype):
         if isinstance(arr, np.ndarray):
             # numpy's astype cannot handle ExtensionDtypes
@@ -123,7 +133,6 @@ def concat_compat(to_concat, axis: int = 0):
 
     typs = get_dtype_kinds(to_concat)
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
-    _contains_period = any(typ.startswith("period") for typ in typs)
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
@@ -140,7 +149,7 @@ def concat_compat(to_concat, axis: int = 0):
         else:
             return np.concatenate(to_concat)
 
-    elif _contains_datetime or "timedelta" in typs or _contains_period:
+    elif _contains_datetime or "timedelta" in typs:
         return concat_datetime(to_concat, axis=axis, typs=typs)
 
     elif any_ea and axis == 1:
