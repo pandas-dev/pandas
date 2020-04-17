@@ -284,7 +284,7 @@ class TestDatetimeIndexSetOps:
         assert len(result) == 0
         assert result.freq == rng.freq
 
-        # no overlap
+        # no overlap GH#33604
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
         if freq != "T":
