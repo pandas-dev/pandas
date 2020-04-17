@@ -5,7 +5,6 @@ to disk
 
 import copy
 from datetime import date, tzinfo
-from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -4113,8 +4112,6 @@ class AppendableTable(Table):
         data_columns=None,
         track_times=True,
     ):
-        from tables import __version__ as tables_version
-
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4144,8 +4141,7 @@ class AppendableTable(Table):
             # set the table attributes
             table.set_attrs()
 
-            if LooseVersion(tables_version) >= LooseVersion("3.4.3"):
-                options["track_times"] = track_times
+            options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)
