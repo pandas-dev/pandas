@@ -689,6 +689,7 @@ class TestSeriesDatetimeValues:
 
 
 def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
     series = pd.to_datetime(pd.Series(["2020-01-01"]))
     with tm.assert_produces_warning(FutureWarning):
         series.dt.week

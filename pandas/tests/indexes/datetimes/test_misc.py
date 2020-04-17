@@ -387,6 +387,7 @@ def test_iter_readonly():
 
 
 def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
     idx = pd.date_range(start="2019-12-29", freq="D", periods=4)
     with tm.assert_produces_warning(FutureWarning):
         idx.week
