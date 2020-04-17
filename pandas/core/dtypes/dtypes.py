@@ -641,12 +641,21 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
     def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
-
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
             first = dtypes[0]
             if all(first == other for other in dtypes[1:]):
                 return first
+
+        # special case non-initialized categorical
+        # TODO we should figure out the expected return value in general
+        non_init_cats = [
+            isinstance(x, CategoricalDtype) and x.categories is None for x in dtypes
+        ]
+        if all(non_init_cats):
+            return self
+        elif any(non_init_cats):
+            return None
 
         # extract the categories' dtype
         non_cat_dtypes = [
