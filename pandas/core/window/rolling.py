@@ -1937,8 +1937,8 @@ class Rolling(_Rolling_and_Expanding):
     def count(self):
 
         # different impl for freq counting
-        # GH 32865. Also use custom rolling windows calculation
-        # when using a BaseIndexer subclass
+        # GH 32865. Use a custom count function implementation
+        # when using a BaseIndexer subclass as a window
         if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
             return self._apply(window_func, center=self.center, name="count")
