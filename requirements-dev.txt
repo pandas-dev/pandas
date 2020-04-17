@@ -64,7 +64,7 @@ fastparquet>=0.3.2
 pyarrow>=0.13.1
 python-snappy
 pyqt5>=5.9.2
-tables>=3.4.2
+tables>=3.4.3
 s3fs
 sqlalchemy
 xarray

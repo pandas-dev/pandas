@@ -98,13 +98,15 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
+- :meth:`~pandas.core.groupby.GroupBy.transform` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`)
+-
 
 .. ---------------------------------------------------------------------------
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
@@ -113,6 +115,49 @@ If installed, we now require:
 | python-dateutil | 2.7.3           |    X     |         |
 +-----------------+-----------------+----------+---------+
 
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+| beautifulsoup4  | 4.6.0           |         |
++-----------------+-----------------+---------+
+| fastparquet     | 0.3.2           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.2.2           |         |
++-----------------+-----------------+---------+
+| lxml            | 3.8.0           |         |
++-----------------+-----------------+---------+
+| matplotlib      | 2.2.2           |         |
++-----------------+-----------------+---------+
+| numba           | 0.46.0          |         |
++-----------------+-----------------+---------+
+| openpyxl        | 2.5.7           |         |
++-----------------+-----------------+---------+
+| pyarrow         | 0.13.0          |         |
++-----------------+-----------------+---------+
+| pymysql         | 0.7.1           |         |
++-----------------+-----------------+---------+
+| pytables        | 3.4.3           |    X    |
++-----------------+-----------------+---------+
+| s3fs            | 0.3.0           |         |
++-----------------+-----------------+---------+
+| scipy           | 0.19.0          |         |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.1.4           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.8.2           |         |
++-----------------+-----------------+---------+
+| xlrd            | 1.1.0           |         |
++-----------------+-----------------+---------+
+| xlsxwriter      | 0.9.8           |         |
++-----------------+-----------------+---------+
+| xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
@@ -412,7 +457,7 @@ Datetimelike
 - Bug where :meth:`PeriodIndex` raised when passed a :class:`Series` of strings (:issue:`26109`)
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 - Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
-
+- Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
 
 Timedelta
 ^^^^^^^^^
@@ -479,6 +524,7 @@ Indexing
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
 - Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
+- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
 
 Missing
 ^^^^^^^
@@ -529,6 +575,7 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
 - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
+- Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
 - :func:`pandas.read_hdf` has a more explicit error message when loading an
   unsupported HDF file (:issue:`9539`)
 
@@ -579,7 +626,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
--
+- Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 -
 
 ExtensionArray
