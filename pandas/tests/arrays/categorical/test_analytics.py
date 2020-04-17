@@ -78,13 +78,10 @@ class TestCategoricalAnalytics:
 
     @pytest.mark.parametrize("function", ["min", "max"])
     @pytest.mark.parametrize("skipna", [True, False])
-    @pytest.mark.parametrize("box_in_series", [True, False])
-    def test_min_max_only_nan(self, function, skipna, box_in_series):
+    def test_min_max_only_nan(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
-        arr = Categorical([np.nan], categories=[1, 2], ordered=True)
-        if box_in_series:
-            arr = Series(arr)
-        result = getattr(arr, function)(skipna=skipna)
+        cat = Categorical([np.nan], categories=[1, 2], ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
         assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
