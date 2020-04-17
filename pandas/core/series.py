@@ -1067,7 +1067,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if self.index.inferred_type == "integer":
+                if not self.index._should_fallback_to_positional():
                     self._set_labels(key, value)
                 else:
                     self._set_values(key, value)

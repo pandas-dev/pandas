@@ -91,6 +91,18 @@ class TestSeriesGetitemListLike:
         assert result.dtype == "Period[D]"
 
     @pytest.mark.parametrize("box", [list, np.array, pd.Index])
+    def test_getitem_intlist_intervalindex_non_int(self, box):
+        # GH#33404 fall back to positional since ints are unambiguous
+        dti = date_range("2000-01-03", periods=3)
+        ii = pd.IntervalIndex.from_breaks(dti)
+        ser = Series(range(len(ii)), index=ii)
+
+        expected = ser.iloc[:1]
+        key = box([0])
+        result = ser[key]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.uint64])
     def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):
         # GH#33404 do _not_ fall back to positional since ints are ambiguous

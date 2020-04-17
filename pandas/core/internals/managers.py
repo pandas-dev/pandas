@@ -74,7 +74,6 @@ class BlockManager(PandasObject):
     set_axis(axis, new_labels)
     copy(deep=True)
 
-    get_dtype_counts
     get_dtypes
 
     apply(func, axes, block_filter_fn)
@@ -256,18 +255,6 @@ class BlockManager(PandasObject):
     def items(self) -> Index:
         return self.axes[0]
 
-    def _get_counts(self, f):
-        """ return a dict of the counts of the function in BlockManager """
-        self._consolidate_inplace()
-        counts = dict()
-        for b in self.blocks:
-            v = f(b)
-            counts[v] = counts.get(v, 0) + b.shape[0]
-        return counts
-
-    def get_dtype_counts(self):
-        return self._get_counts(lambda b: b.dtype.name)
-
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_1d(dtypes, self.blknos, allow_fill=False)
@@ -390,11 +377,7 @@ class BlockManager(PandasObject):
         if f == "where":
             align_copy = True
 
-        aligned_args = {
-            k: kwargs[k]
-            for k in align_keys
-            if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
-        }
+        aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
@@ -402,8 +385,14 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
+                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        axis = obj._info_axis_number
+                        kwargs[k] = obj.reindex(
+                            b_items, axis=axis, copy=align_copy
+                        )._values
+                    else:
+                        # otherwise we have an ndarray
+                        kwargs[k] = obj[b.mgr_locs.indexer]
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
@@ -934,35 +923,6 @@ class BlockManager(PandasObject):
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
-
-    def get(self, item):
-        """
-        Return values for selected item (ndarray or BlockManager).
-        """
-        if self.items.is_unique:
-
-            if not isna(item):
-                loc = self.items.get_loc(item)
-            else:
-                indexer = np.arange(len(self.items))[isna(self.items)]
-
-                # allow a single nan location indexer
-                if not is_scalar(indexer):
-                    if len(indexer) == 1:
-                        loc = indexer.item()
-                    else:
-                        raise ValueError("cannot label index with a null key")
-
-            return self.iget(loc)
-        else:
-
-            if isna(item):
-                raise TypeError("cannot label index with a null key")
-
-            indexer = self.items.get_indexer_for([item])
-            return self.reindex_indexer(
-                new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
-            )
 
     def iget(self, i: int) -> "SingleBlockManager":
         """
@@ -1557,9 +1517,6 @@ class SingleBlockManager(BlockManager):
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
-    def get_dtype_counts(self):
-        return {self.dtype.name: 1}
-
     def get_dtypes(self) -> np.ndarray:
         return np.array([self._block.dtype])
 
@@ -1766,7 +1723,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
     return blocks
 
 
-def _simple_blockify(tuples, dtype):
+def _simple_blockify(tuples, dtype) -> List[Block]:
     """
     return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
@@ -1889,7 +1846,7 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: Union[ArrayLike, Scalar], b: Union[ArrayLike, Scalar], regex: bool = False
+    a: ArrayLike, b: Scalar, regex: bool = False
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1899,8 +1856,8 @@ def _compare_or_regex_search(
 
     Parameters
     ----------
-    a : array_like or scalar
-    b : array_like or scalar
+    a : array_like
+    b : scalar
     regex : bool, default False
 
     Returns
@@ -1909,29 +1866,21 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool],
-        a: Union[ArrayLike, Scalar],
-        b: Union[ArrayLike, Scalar],
-    ) -> Union[ArrayLike, bool]:
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Scalar,
+    ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
         """
-        if is_scalar(result) and (
-            isinstance(a, np.ndarray) or isinstance(b, np.ndarray)
-        ):
+        if is_scalar(result) and isinstance(a, np.ndarray):
             type_names = [type(a).__name__, type(b).__name__]
 
             if isinstance(a, np.ndarray):
                 type_names[0] = f"ndarray(dtype={a.dtype})"
 
-            if isinstance(b, np.ndarray):
-                type_names[1] = f"ndarray(dtype={b.dtype})"
-
             raise TypeError(
                 f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
             )
-        return result
 
     if not regex:
         op = lambda x: operator.eq(x, b)
@@ -1945,18 +1894,13 @@ def _compare_or_regex_search(
     # GH#32621 use mask to avoid comparing to NAs
     if isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
         mask = np.reshape(~(isna(a)), a.shape)
-    elif isinstance(b, np.ndarray) and not isinstance(a, np.ndarray):
-        mask = np.reshape(~(isna(b)), b.shape)
-    elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-        mask = ~(isna(a) | isna(b))
     if isinstance(a, np.ndarray):
         a = a[mask]
-    if isinstance(b, np.ndarray):
-        b = b[mask]
 
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
-        return _check_comparison_types(False, a, b)
+        _check_comparison_types(False, a, b)
+        return False
 
     result = op(a)
 
@@ -1967,7 +1911,8 @@ def _compare_or_regex_search(
         tmp[mask] = result
         result = tmp
 
-    return _check_comparison_types(result, a, b)
+    _check_comparison_types(result, a, b)
+    return result
 
 
 def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:

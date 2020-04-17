@@ -893,7 +893,9 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -986,7 +988,9 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1

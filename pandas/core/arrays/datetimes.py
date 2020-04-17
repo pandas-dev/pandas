@@ -183,7 +183,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "microsecond",
         "nanosecond",
     ]
-    _other_ops = ["date", "time", "timetz", "isocalendar"]
+    _other_ops = ["date", "time", "timetz"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = [
         "to_period",
@@ -886,7 +886,7 @@ default 'raise'
         DatetimeIndex(['2018-03-01 09:00:00-05:00',
                        '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq='D')
+                      dtype='datetime64[ns, US/Eastern]', freq=None)
 
         With the ``tz=None``, we can remove the time zone information
         while keeping the local time (not converted to UTC):
@@ -894,7 +894,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[ns]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -973,7 +973,16 @@ default 'raise'
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
         dtype = tz_to_dtype(tz)
-        return self._simple_new(new_dates, dtype=dtype, freq=self.freq)
+
+        freq = None
+        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            freq = self.freq
+        elif tz is None and self.tz is None:
+            # no-op
+            freq = self.freq
+        return self._simple_new(new_dates, dtype=dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1242,7 +1251,6 @@ default 'raise'
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    @property
     def isocalendar(self):
         """
         Returns a DataFrame with the year, week, and day calculated according to
@@ -1263,13 +1271,13 @@ default 'raise'
         Examples
         --------
         >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
-        >>> idx.isocalendar
+        >>> idx.isocalendar()
            year  week  day
         0  2019    52    7
         1  2020     1    1
         2  2020     1    2
         3  2020     1    3
-        >>> idx.isocalendar.week
+        >>> idx.isocalendar().week
         0    52
         1     1
         2     1
@@ -1278,7 +1286,11 @@ default 'raise'
         """
         from pandas import DataFrame
 
-        sarray = fields.build_isocalendar_sarray(self.asi8)
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
+        else:
+            values = self.asi8
+        sarray = fields.build_isocalendar_sarray(values)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
