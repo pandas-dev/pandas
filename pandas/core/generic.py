@@ -3217,7 +3217,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        self._mgr.set(item, value)
+        loc = self._info_axis.get_loc(item)
+        self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3548,8 +3549,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs: Callable = xs
-
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
@@ -3558,17 +3557,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._mgr.get(item)
-            res = self._box_item_values(item, values)
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc)
+
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
@@ -3592,8 +3593,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
-        self._mgr.set(key, value)
-        self._clear_item_cache()
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+            return
+
+        NDFrame._iset_item(self, loc, value)
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
