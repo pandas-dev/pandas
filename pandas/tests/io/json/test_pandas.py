@@ -378,7 +378,7 @@ class TestPandasContainer:
                 # drop column names as well
                 expected = expected.T.reset_index(drop=True).T
         if orient in ("index", "columns"):
-            result.index = result.index.to_period()
+            result.index = result.index.to_period(freq=expected.index.freq)
         if orient != "split":
             expected.name = None
 
@@ -694,7 +694,7 @@ class TestPandasContainer:
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient in ("index", "columns"):
-            result.index = result.index.to_period()
+            result.index = result.index.to_period(freq=expected.index.freq)
         if orient != "split":
             expected.name = None
 
