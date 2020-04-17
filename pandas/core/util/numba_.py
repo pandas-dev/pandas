@@ -15,15 +15,18 @@ def check_kwargs_and_nopython(
     """
     Validate that **kwargs and nopython=True was passed
     https://github.com/numba/numba/issues/2916
+
     Parameters
     ----------
     kwargs : dict, default None
         user passed keyword arguments to pass into the JITed function
     nopython : bool, default None
         nopython parameter
+
     Returns
     -------
     None
+
     Raises
     ------
     ValueError
@@ -40,10 +43,12 @@ def get_jit_arguments(
 ) -> Tuple[bool, bool, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.
+
     Parameters
     ----------
     engine_kwargs : dict, default None
         user passed keyword arguments for numba.JIT
+
     Returns
     -------
     (bool, bool, bool)
@@ -63,6 +68,7 @@ def jit_user_function(
 ) -> Callable:
     """
     JIT the user's function given the configurable arguments.
+
     Parameters
     ----------
     func : function
@@ -73,6 +79,7 @@ def jit_user_function(
         nogil parameter for numba.JIT
     parallel : bool
         parallel parameter for numba.JIT
+
     Returns
     -------
     function
@@ -105,9 +112,11 @@ def jit_user_function(
 def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
     """
     Split pandas object into its components as numpy arrays for numba functions.
+
     Parameters
     ----------
     arg : Series or DataFrame
+
     Returns
     -------
     (ndarray, ndarray)
@@ -119,13 +128,17 @@ def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
 def validate_udf(func: Callable) -> None:
     """
     Validate user defined function for ops when using Numba.
+
     The first signature arguments should include:
+
     def f(values, index, ...):
         ...
+
     Parameters
     ----------
     func : function, default False
         user defined function
+
     Returns
     -------
     None
