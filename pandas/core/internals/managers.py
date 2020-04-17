@@ -1253,11 +1253,20 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
+    def _slice_take_blocks_ax0(
+        self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
+    ):
         """
         Slice/take blocks along axis=0.
 
         Overloaded for SingleBlock
+
+        Parameters
+        ----------
+        slice_or_indexer : slice, ndarray[bool], or list-like of ints
+        fill_value : scalar, default lib.no_default
+        only_slice : bool, default False
+            If True, we always return views on existing arrays, never copies.
 
         Returns
         -------
@@ -1331,14 +1340,21 @@ class BlockManager(PandasObject):
                 else:
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    taker = lib.maybe_indices_to_slice(taker, max_len)
+                    if only_slice:
+                        taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
+                        blocks.append(nb)
+                    elif only_slice:
+                        # GH#33597 slice instead of take, so we get
+                        #  views instead of copies
+                        for i, ml in zip(taker, mgr_locs):
+                            nb = blk.getitem_block([i], new_mgr_locs=ml)
+                            blocks.append(nb)
                     else:
-                        # TODO: just use getitem_block anyway?
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
-                    blocks.append(nb)
+                        blocks.append(nb)
 
         return blocks
 

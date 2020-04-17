@@ -332,8 +332,7 @@ def operate_blockwise(left, right, array_op):
 
         left_ea = not isinstance(blk_vals, np.ndarray)
 
-        # TODO: joris says this is costly, see if we can optimize
-        rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
+        rblks = rmgr._slice_take_blocks_ax0(locs.indexer, only_slice=True)
 
         # Assertions are disabled for performance, but should hold:
         # if left_ea:
