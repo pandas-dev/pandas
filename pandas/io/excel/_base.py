@@ -307,9 +307,6 @@ def read_excel(
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
-    if nrows is not None:
-        _validate_integer("nrows", nrows)
-
     return io.parse(
         sheet_name=sheet_name,
         header=header,
@@ -443,6 +440,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     ):
 
         validate_header_arg(header)
+        if nrows is not None:
+            _validate_integer("nrows", nrows)
 
         ret_dict = False
 
