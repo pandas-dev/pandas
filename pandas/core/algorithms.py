@@ -616,7 +616,7 @@ def factorize(
     values = _ensure_arraylike(values)
     original = values
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
