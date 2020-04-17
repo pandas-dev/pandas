@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_categorical, concat_datetime
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -110,7 +109,6 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
-    _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
@@ -218,7 +216,7 @@ class Block(PandasObject):
         """
         This is used in the JSON C code.
         """
-        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        # TODO(EA2D): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
     @property
@@ -309,16 +307,6 @@ class Block(PandasObject):
     def dtype(self):
         return self.values.dtype
 
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._concatenator(
-            [blk.values for blk in to_concat], axis=self.ndim - 1
-        )
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        return self.make_block_same_class(values, placement=placement)
-
     def iget(self, i):
         return self.values[i]
 
@@ -353,6 +341,7 @@ class Block(PandasObject):
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
+            # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
@@ -596,8 +585,7 @@ class Block(PandasObject):
                 newb = self.copy() if copy else self
                 return newb
 
-        # TODO(extension)
-        # should we make this attribute?
+        # TODO(EA2D): special case not needed with 2D EAs
         if isinstance(values, np.ndarray):
             values = values.reshape(self.shape)
 
@@ -1384,15 +1372,13 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
+    def _unstack(self, unstacker, fill_value, new_placement):
         """
         Return a list of unstacked blocks of self
 
         Parameters
         ----------
         unstacker : reshape._Unstacker
-        new_columns : Index
-            All columns of the unstacked BlockManager.
         fill_value : int
             Only used in ExtensionBlock._unstack
 
@@ -1403,17 +1389,17 @@ class Block(PandasObject):
         mask : array_like of bool
             The mask of columns of `blocks` we should keep.
         """
-        new_items = unstacker.get_new_columns(value_columns)
-        new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values(
             self.values.T, fill_value=fill_value
         )
 
         mask = mask.any(0)
+        # TODO: in all tests we have mask.all(); can we rely on that?
+
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement)]
+        blocks = [self.make_block_same_class(new_values, placement=new_placement)]
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0):
@@ -1562,11 +1548,12 @@ class ExtensionBlock(Block):
         super().__init__(values, placement, ndim=ndim)
 
         if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(2DEA): check unnecessary with 2D EAs
+            # TODO(EA2D): check unnecessary with 2D EAs
             raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
+        # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return ((len(self.values)),)
         return (len(self.mgr_locs), len(self.values))
@@ -1574,6 +1561,7 @@ class ExtensionBlock(Block):
     def iget(self, col):
 
         if self.ndim == 2 and isinstance(col, tuple):
+            # TODO(EA2D): unnecessary with 2D EAs
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
@@ -1682,6 +1670,7 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if isinstance(indexer, tuple):
+            # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
             indexer = indexer[0]
 
@@ -1691,6 +1680,7 @@ class ExtensionBlock(Block):
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
+        # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
     def array_values(self) -> ExtensionArray:
@@ -1704,6 +1694,7 @@ class ExtensionBlock(Block):
         values = np.asarray(values.astype(object))
         values[mask] = na_rep
 
+        # TODO(EA2D): reshape not needed with 2D EAs
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
@@ -1716,6 +1707,7 @@ class ExtensionBlock(Block):
         if fill_value is lib.no_default:
             fill_value = None
 
+        # TODO(EA2D): special case not needed with 2D EAs
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
@@ -1771,14 +1763,6 @@ class ExtensionBlock(Block):
                 )
 
         return self.values[slicer]
-
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._holder._concat_same_type([blk.values for blk in to_concat])
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        return self.make_block_same_class(values, placement=placement)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
@@ -1878,7 +1862,7 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def _unstack(self, unstacker, new_columns, fill_value, value_columns):
+    def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
@@ -1888,10 +1872,9 @@ class ExtensionBlock(Block):
         n_rows = self.shape[-1]
         dummy_arr = np.arange(n_rows)
 
-        new_items = unstacker.get_new_columns(value_columns)
-        new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
         mask = mask.any(0)
+        # TODO: in all tests we have mask.all(); can we rely on that?
 
         blocks = [
             self.make_block_same_class(
@@ -2251,6 +2234,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         by apply.
         """
         if axis == 0:
+            # TODO(EA2D): special case not needed with 2D EAs
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
             raise NotImplementedError
@@ -2260,20 +2244,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         new_values = new_values.reshape(1, len(new_values))
         new_values = new_values.astype("timedelta64[ns]")
         return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
-
-    def concat_same_type(self, to_concat):
-        # need to handle concat([tz1, tz2]) here, since DatetimeArray
-        # only handles cases where all the tzs are the same.
-        # Instead of placing the condition here, it could also go into the
-        # is_uniform_join_units check, but I'm not sure what is better.
-        if len({x.dtype for x in to_concat}) > 1:
-            values = concat_datetime([x.values for x in to_concat])
-
-            values = values.astype(object, copy=False)
-            placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-
-            return self.make_block(values, placement=placement)
-        return super().concat_same_type(to_concat)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
@@ -2310,13 +2280,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
-        # kludge for 2D block with 1D values
+        # TODO(EA2D): kludge for 2D block with 1D values
         naive = naive.reshape(self.shape)
 
         blk = self.make_block(naive)
         res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
 
-        # ravel is kludge for 2D block with 1D values, assumes column-like
+        # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
         aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
@@ -2435,7 +2405,7 @@ class ObjectBlock(Block):
                 copy=copy,
             )
             if isinstance(values, np.ndarray):
-                # TODO: allow EA once reshape is supported
+                # TODO(EA2D): allow EA once reshape is supported
                 values = values.reshape(shape)
 
             return values
@@ -2645,7 +2615,6 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(concat_categorical)
 
     should_store = Block.should_store
 
@@ -2658,26 +2627,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    def concat_same_type(self, to_concat):
-        """
-        Concatenate list of single blocks of the same type.
-
-        Note that this CategoricalBlock._concat_same_type *may* not
-        return a CategoricalBlock. When the categories in `to_concat`
-        differ, this will return an object ndarray.
-
-        If / when we decide we don't like that behavior:
-
-        1. Change Categorical._concat_same_type to use union_categoricals
-        2. Delete this method.
-        """
-        values = self._concatenator(
-            [blk.values for blk in to_concat], axis=self.ndim - 1
-        )
-        placement = self.mgr_locs if self.ndim == 2 else slice(len(values))
-        # not using self.make_block_same_class as values can be object dtype
-        return self.make_block(values, placement=placement)
 
     def replace(
         self,
@@ -2750,6 +2699,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
         if ndim and ndim > 1:
+            # TODO(EA2D): special case not needed with 2D EAs
             values = np.atleast_2d(values)
 
     if isinstance(dtype, PandasDtype):
@@ -2816,6 +2766,7 @@ def _safe_reshape(arr, new_shape):
     if isinstance(arr, ABCSeries):
         arr = arr._values
     if not isinstance(arr, ABCExtensionArray):
+        # TODO(EA2D): special case not needed with 2D EAs
         arr = arr.reshape(new_shape)
     return arr
 

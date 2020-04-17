@@ -39,11 +39,14 @@ class TestAsFreq:
     def test_asfreq(self):
         ts = Series(
             [0.0, 1.0, 2.0],
-            index=[
-                datetime(2009, 10, 30),
-                datetime(2009, 11, 30),
-                datetime(2009, 12, 31),
-            ],
+            index=DatetimeIndex(
+                [
+                    datetime(2009, 10, 30),
+                    datetime(2009, 11, 30),
+                    datetime(2009, 12, 31),
+                ],
+                freq="BM",
+            ),
         )
 
         daily_ts = ts.asfreq("B")
