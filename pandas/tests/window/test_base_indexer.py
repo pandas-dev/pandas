@@ -82,7 +82,7 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize("func", ["std", "var", "count", "skew", "cov", "corr"])
+@pytest.mark.parametrize("func", ["count", "skew", "cov", "corr"])
 def test_notimplemented_functions(func):
     # GH 32865
     class CustomIndexer(BaseIndexer):
@@ -97,13 +97,52 @@ def test_notimplemented_functions(func):
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
-    "func,alt_func,expected",
+    "func,np_func,expected,np_kwargs",
     [
-        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan]),
-        ("max", np.max, [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan]),
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
+        (
+            "max",
+            np.max,
+            [2.0, 3.0, 4.0, 100.0, 100.0, 100.0, 8.0, 9.0, 9.0, np.nan],
+            {},
+        ),
+        (
+            "std",
+            np.std,
+            [
+                1.0,
+                1.0,
+                1.0,
+                55.71654452,
+                54.85739087,
+                53.9845657,
+                1.0,
+                1.0,
+                0.70710678,
+                np.nan,
+            ],
+            {"ddof": 1},
+        ),
+        (
+            "var",
+            np.var,
+            [
+                1.0,
+                1.0,
+                1.0,
+                3104.333333,
+                3009.333333,
+                2914.333333,
+                1.0,
+                1.0,
+                0.500000,
+                np.nan,
+            ],
+            {"ddof": 1},
+        ),
     ],
 )
-def test_rolling_forward_window(constructor, func, alt_func, expected):
+def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
     # GH 32865
     values = np.arange(10)
     values[5] = 100.0
@@ -124,5 +163,5 @@ def test_rolling_forward_window(constructor, func, alt_func, expected):
     result = getattr(rolling, func)()
     expected = constructor(expected)
     tm.assert_equal(result, expected)
-    expected2 = constructor(rolling.apply(lambda x: alt_func(x)))
+    expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
