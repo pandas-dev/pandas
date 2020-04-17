@@ -625,6 +625,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         # GH#29843
         self._data._with_freq(freq)
 
+    def _with_freq(self, freq):
+        index = self.copy(deep=False)
+        index._set_freq(freq)
+        return index
+
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
         cache = self._cache.copy() if values is None else {}
