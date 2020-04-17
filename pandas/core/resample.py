@@ -323,7 +323,7 @@ class Resampler(_GroupBy, ShallowMixin):
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
