@@ -690,7 +690,7 @@ class BaseGrouper:
 
         for label, group in splitter:
             if engine == "numba":
-                values, index, _ = split_for_numba(group)
+                values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if func not in self._numba_func_cache:
                     self._numba_func_cache[func] = numba_func
