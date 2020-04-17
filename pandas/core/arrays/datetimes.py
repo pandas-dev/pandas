@@ -22,8 +22,8 @@ import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
     DT64NS_DTYPE,
+    INT64_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -404,7 +404,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                     start = start.tz_localize(None)
                 if end is not None:
                     end = end.tz_localize(None)
-            # TODO: consider re-implementing _cached_range; GH#17914
+
             values, _tz = generate_regular_range(start, end, periods, freq)
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
@@ -698,7 +698,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return type(self)._from_sequence(result).tz_localize(self.tz)
 
-        return type(self)._from_sequence(result)._with_freq("infer")
+        return type(self)._from_sequence(result)
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -1963,7 +1963,7 @@ def sequence_to_dt64ns(
         if tz:
             tz = timezones.maybe_get_tz(tz)
 
-        if data.dtype != _INT64_DTYPE:
+        if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         result = data.view(DT64NS_DTYPE)
 
