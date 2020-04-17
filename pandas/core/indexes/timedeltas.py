@@ -48,7 +48,6 @@ from pandas.tseries.frequencies import to_offset
         "std",
         "median",
         "_format_native_types",
-        "freq",
     ],
     TimedeltaArray,
 )

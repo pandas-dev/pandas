@@ -174,8 +174,8 @@ Other API changes
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 -
 
@@ -458,6 +458,7 @@ Datetimelike
 - Bug in :class:`Timestamp` arithmetic when adding or subtracting a ``np.ndarray`` with ``timedelta64`` dtype (:issue:`33296`)
 - Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
 - Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
+- Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
 
 Timedelta
 ^^^^^^^^^
@@ -525,6 +526,7 @@ Indexing
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
 - Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
 - Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
+- Bug in :meth:`Series.__setitem__` with an :class:`IntervalIndex` and a list-like key of integers (:issue:`33473`)
 
 Missing
 ^^^^^^^
@@ -576,6 +578,8 @@ I/O
 - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
 - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
 - Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
+- :func:`pandas.read_hdf` has a more explicit error message when loading an
+  unsupported HDF file (:issue:`9539`)
 
 Plotting
 ^^^^^^^^
