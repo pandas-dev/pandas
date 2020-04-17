@@ -112,7 +112,7 @@ class _XlrdReader(_BaseExcelReader):
                 i, header, skiprows, nrows
             )
             if should_continue:
-                table.append([])
+                data.append([])
                 continue
             if should_break:
                 break
