@@ -1507,14 +1507,22 @@ def test_quantile_missing_group_values_no_segfaults():
         grp.quantile()
 
 
-def test_quantile_missing_group_values_correct_results():
-    # GH 28662
-    data = np.array([1.0, np.nan, 3.0, np.nan])
-    df = pd.DataFrame(dict(key=data, val=range(4)))
+@pytest.mark.parametrize(
+    "key, val, expected_key, expected_val",
+    [
+        ([1.0, np.nan, 3.0, np.nan], range(4), [1.0, 3.0], [0.0, 1.0]),
+        (["a", "b", "b", np.nan], range(4), ["a", "b"], [0, 1.5]),
+    ],
+)
+def test_quantile_missing_group_values_correct_results(
+    key, val, expected_key, expected_val
+):
+    # GH 28662, GH 33200
+    df = pd.DataFrame({"key": key, "val": val})
 
     result = df.groupby("key").quantile()
     expected = pd.DataFrame(
-        [1.0, 3.0], index=pd.Index([1.0, 3.0], name="key"), columns=["val"]
+        expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
     )
     tm.assert_frame_equal(result, expected)
 

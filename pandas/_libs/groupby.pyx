@@ -779,9 +779,10 @@ def group_quantile(ndarray[float64_t] out,
                 non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
-    order = (values, labels)
-    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
-
+    sort_arr = np.arange(len(labels), dtype=np.int64)
+    mask = labels != -1
+    order = (np.asarray(values)[mask], labels[mask])
+    sort_arr[mask] = np.lexsort(order).astype(np.int64, copy=False)
     with nogil:
         for i in range(ngroups):
             # Figure out how many group elements there are
@@ -819,7 +820,9 @@ def group_quantile(ndarray[float64_t] out,
 
             # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
-
+    print(out)
+    # out = np.roll(out, -(len(out) - np.sum(counts)))
+    print(out)
 
 # ----------------------------------------------------------------------
 # group_nth, group_last, group_rank
