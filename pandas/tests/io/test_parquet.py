@@ -533,11 +533,6 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    # GH#33077 2020-03-27
-    @pytest.mark.xfail(
-        locale.getlocale()[0] == "zh_CN",
-        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
-    )
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
@@ -545,6 +540,7 @@ class TestParquetPyArrow(Base):
     @td.skip_if_no("s3fs")
     def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa):
         from pandas.io.s3 import get_fs as get_s3_fs
+
         # GH #26388
         # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
         # As per pyarrow partitioned columns become 'categorical' dtypes
