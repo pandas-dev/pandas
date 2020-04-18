@@ -1688,6 +1688,7 @@ def validate_inferred_freq(freq, inferred_freq, freq_infer, freq_inherit):
     freq : DateOffset or None
     inferred_freq : DateOffset or None
     freq_infer : bool
+    freq_inherit : bool
 
     Returns
     -------
