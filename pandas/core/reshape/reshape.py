@@ -820,8 +820,8 @@ def from_dummies(
                 " pass a value to `prefix` with which to name"
                 " the decoded columns."
             )
-        # If no column contains `prefix_sep`, we add `prefix`_`prefix_sep` to
-        # each column.
+        # If no column contains `prefix_sep`, we prepend `prefix` and
+        # `prefix_sep` to each column.
         out = data.rename(columns=lambda x: f"{prefix}{prefix_sep}{x}").copy()
         columns_to_decode = out.columns
     else:
