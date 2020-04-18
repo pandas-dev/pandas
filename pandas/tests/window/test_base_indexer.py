@@ -141,6 +141,12 @@ def test_notimplemented_functions(func):
             ],
             {"ddof": 1},
         ),
+        (
+            "median",
+            np.median,
+            [1.0, 2.0, 3.0, 4.0, 6.0, 7.0, 7.0, 8.0, 8.5, np.nan],
+            {},
+        ),
     ],
 )
 def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
@@ -166,3 +172,8 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
     tm.assert_equal(result, expected)
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
+    # Check that function works without min_periods supplied
+    rolling3 = constructor(values).rolling(window=indexer)
+    result3 = getattr(rolling3, func)()
+    expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
+    tm.assert_equal(result3, expected3)
