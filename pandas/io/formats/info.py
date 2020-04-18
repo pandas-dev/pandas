@@ -211,7 +211,10 @@ def info(
             _verbose_repr()
 
     # groupby dtype.name to collect e.g. Categorical columns
-    counts = data.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    if isinstance(data, ABCDataFrame):
+        counts = data.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    else:
+        counts = {data.dtype.name: 1}
     dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
     lines.append(f"dtypes: {', '.join(dtypes)}")
 
