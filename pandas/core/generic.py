@@ -10727,17 +10727,17 @@ Returns
 """
 
 _num_ddof_doc = """
-%(desc)s
+{desc}
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : {axis_descr}
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s.
+    particular level, collapsing into a {name1}.
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
@@ -10747,7 +10747,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)
+{name1} or {name2} (if level specified)
 
 Notes
 -----
@@ -11455,8 +11455,7 @@ def _make_stat_function(
 def _make_stat_function_ddof(
     cls, name: str, name1: str, name2: str, axis_descr: str, desc: str, func: Callable
 ) -> Callable:
-    @Substitution(desc=desc, name1=name1, name2=name2, axis_descr=axis_descr)
-    @Appender(_num_ddof_doc)
+    @doc(_num_ddof_doc, desc=desc, name1=name1, name2=name2, axis_descr=axis_descr)
     def stat_func(
         self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
     ):
