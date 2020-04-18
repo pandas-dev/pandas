@@ -254,7 +254,7 @@ class TestSeriesReplace:
     def test_replace_with_dictlike_and_string_dtype(self):
         # GH 32621
         s = pd.Series(["one", "two", np.nan], dtype="string")
-        expected = pd.Series(["1", "2", np.nan])
+        expected = pd.Series(["1", "2", np.nan], dtype="string")
         result = s.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
 
@@ -406,3 +406,19 @@ class TestSeriesReplace:
         msg = "Series.replace cannot use dict-value and non-None to_replace"
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
+
+    @pytest.mark.parametrize(
+        "series, to_replace, expected",
+        [
+            (
+                pd.Series(["one", "two"], dtype="string"),
+                {"one": "1", "two": "2"},
+                "string",
+            ),
+            (pd.Series([1, 2], dtype="int64"), {1: 10, 2: 20}, "int64"),
+            (pd.Series([True, False], dtype="bool"), {True: False}, "bool"),
+        ],
+    )
+    def test_replace_dtype(self, series, to_replace, expected):
+        result = str(series.replace(to_replace).dtype)
+        assert expected == result

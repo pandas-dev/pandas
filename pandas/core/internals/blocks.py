@@ -1005,8 +1005,15 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        # if we cannot then coerce to object
-        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+        if type(other) == str:
+            dtype = "string"
+            if is_dtype_equal(self.dtype, dtype):
+                return self
+            else:
+                dtype = np.object_
+        else:
+            # if we cannot then coerce to object
+            dtype, _ = infer_dtype_from(other, pandas_dtype=True)
 
         if is_dtype_equal(self.dtype, dtype):
             return self
