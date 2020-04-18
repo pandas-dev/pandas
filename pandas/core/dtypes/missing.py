@@ -231,7 +231,11 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
-    values = getattr(obj, "_values", obj)
+    if not isinstance(obj, np.ndarray):
+        values = obj.to_numpy()
+    else:
+        values = obj
+
     dtype = values.dtype
 
     if is_string_dtype(dtype):

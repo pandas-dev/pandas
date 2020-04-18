@@ -443,6 +443,7 @@ Categorical
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
 - Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
+- Bug where :meth:`Series.isna` and :meth:`DataFrame.isna` would raise for categorical dtype when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -636,7 +637,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
--
+- Fixed bug where :class:`StringArray` would not return ``True`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True``
 
 
 Other

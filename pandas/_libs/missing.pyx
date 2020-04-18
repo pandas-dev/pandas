@@ -140,6 +140,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - INF
      - NEGINF
      - NaT
+     - NA
 
     Parameters
     ----------
@@ -160,7 +161,11 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = (
+            val is NaT
+            or _check_none_nan_inf_neginf(val)
+            or val is C_NA
+        )
     return result.view(np.bool_)
 
 
