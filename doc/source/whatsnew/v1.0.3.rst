@@ -22,8 +22,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-:issue: `25970` Fixed Series.value_counts so that normalize excludes NA values when dropna=False.
-
+Fixed Series.value_counts so that normalize excludes NA values when dropna=False. (:issue:`25970`)
+Fixed Dataframe Groupby value_counts with bins (:issue:`32471')
 Contributors
 ~~~~~~~~~~~~
 

@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
+from pandas import DataFrame, Grouper, MultiIndex, Series, cut, date_range, to_datetime
 import pandas._testing as tm
 
 
@@ -41,13 +41,12 @@ binned = []
 ids = []
 for seed_nans in [True, False]:
     for n, m in product((100, 1000), (5, 20)):
-
         df = seed_df(seed_nans, n, m)
         bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
         keys = "1st", "2nd", ["1st", "2nd"]
         for k, b in product(keys, bins):
             binned.append((df, k, b, n, m))
-            ids.append(f"{k}-{n}-{m}")
+            ids.append(f"{k}-{n}-{m}-{seed_nans} ")
 
 
 @pytest.mark.slow
@@ -71,6 +70,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)
+    left.index.names = left.index.names[:-1] + ["3rd"]
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
@@ -79,6 +79,22 @@ def test_series_groupby_value_counts(
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
     tm.assert_series_equal(left.sort_index(), right.sort_index())
+
+
+def test_groubpy_value_counts_bins():
+    # GH32471
+    BINS = [0, 20, 80, 100]
+    df = DataFrame(
+        [[0, 0], [1, 100], [0, 100], [2, 0], [3, 100]], columns=["key", "score"]
+    )
+    result = df.groupby("key")["score"].value_counts(bins=BINS)
+    result.sort_index(inplace=True)
+    intervals = cut(Series([0]), bins=BINS, include_lowest=True).cat.categories
+    index = MultiIndex.from_product(
+        [[0, 1, 2, 3], sorted(intervals)], names=("key", None)
+    )
+    expected = Series([1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1], index, name="score")
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_groupby_value_counts_with_grouper():
