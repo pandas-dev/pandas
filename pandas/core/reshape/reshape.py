@@ -816,9 +816,9 @@ def from_dummies(
     if not columns_to_decode:
         if prefix is None:
             raise ValueError(
-                "If no columns contain `prefix_sep`, you must"
-                " pass a value to `prefix` with which to name"
-                " the decoded columns."
+                "If no columns contain `prefix_sep`, you must "
+                "pass a value to `prefix` with which to name "
+                "the decoded columns."
             )
         # If no column contains `prefix_sep`, we prepend `prefix` and
         # `prefix_sep` to each column.
