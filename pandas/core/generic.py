@@ -8665,6 +8665,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
+        if align and isinstance(other, NDFrame):
+            other = other.reindex(self._info_axis, axis=self._info_axis_number)
+        if isinstance(cond, NDFrame):
+            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
+
         block_axis = self._get_block_manager_axis(axis)
 
         if inplace:
