@@ -202,14 +202,14 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+>>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
 ...    .pipe(f)
 ...    .pipe(g, arg1=a)
-...    .pipe(h, arg2=b, arg3=c))
+...    .pipe(h, arg2=b, arg3=c))  # doctest: +SKIP
 
 which is much more readable.
 
@@ -254,7 +254,36 @@ filled with the transformed values
 Parameters
 ----------
 f : function
-    Function to apply to each group
+    Function to apply to each group.
+
+    Can also accept a Numba JIT function with
+    ``engine='numba'`` specified.
+
+    If the ``'numba'`` engine is chosen, the function must be
+    a user defined function with ``values`` and ``index`` as the
+    first and second arguments respectively in the function signature.
+    Each group's index will be passed to the user defined function
+    and optionally available for use.
+
+    .. versionchanged:: 1.1.0
+*args
+    Positional arguments to pass to func
+engine : str, default 'cython'
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    Keyword arguments to be passed into func.
 
 Returns
 -------
@@ -2017,7 +2046,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Essentially this is equivalent to
 
-        >>> self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
+        .. code-block:: python
+
+            self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
 
         Parameters
         ----------

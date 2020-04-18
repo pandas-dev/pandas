@@ -108,6 +108,16 @@ class TestSeriesReplace:
         expected = pd.Series([pd.Timestamp.min, ts], dtype=object)
         tm.assert_series_equal(expected, result)
 
+    def test_replace_timedelta_td64(self):
+        tdi = pd.timedelta_range(0, periods=5)
+        ser = pd.Series(tdi)
+
+        # Using a single dict argument means we go through replace_list
+        result = ser.replace({ser[1]: ser[3]})
+
+        expected = pd.Series([ser[0], ser[3], ser[2], ser[3], ser[4]])
+        tm.assert_series_equal(result, expected)
+
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([1, 2, 3])
@@ -176,11 +186,7 @@ class TestSeriesReplace:
         check_replace(tr, v, e)
 
         # test an object with dates + floats + integers + strings
-        dr = (
-            pd.date_range("1/1/2001", "1/10/2001", freq="D")
-            .to_series()
-            .reset_index(drop=True)
-        )
+        dr = pd.Series(pd.date_range("1/1/2001", "1/10/2001", freq="D"))
         result = dr.astype(object).replace([dr[0], dr[1], dr[2]], [1.0, 2, "a"])
         expected = pd.Series([1.0, 2, "a"] + dr[3:].tolist(), dtype=object)
         tm.assert_series_equal(result, expected)
@@ -240,6 +246,13 @@ class TestSeriesReplace:
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
+
+    def test_replace_with_dictlike_and_string_dtype(self):
+        # GH 32621
+        s = pd.Series(["one", "two", np.nan], dtype="string")
+        expected = pd.Series(["1", "2", np.nan])
+        result = s.replace({"one": "1", "two": "2"})
+        tm.assert_series_equal(expected, result)
 
     def test_replace_with_empty_dictlike(self):
         # GH 15289

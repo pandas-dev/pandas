@@ -17,7 +17,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
 from pandas.core.base import DataError, ShallowMixin
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
@@ -323,7 +323,7 @@ class Resampler(_GroupBy, ShallowMixin):
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -773,7 +773,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         return self._upsample(method, limit=limit)
 
-    @Appender(_shared_docs["interpolate"] % _shared_docs_kwargs)
+    @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
         method="linear",

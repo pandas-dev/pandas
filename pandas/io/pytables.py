@@ -387,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
@@ -1916,9 +1919,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """

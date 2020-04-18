@@ -6,9 +6,11 @@ __all__ = [
     "Timedelta",
     "Timestamp",
     "iNaT",
+    "Interval",
 ]
 
 
+from pandas._libs.interval import Interval
 from pandas._libs.tslibs import (
     NaT,
     NaTType,

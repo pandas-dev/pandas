@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    Union,
 )
 import warnings
 
@@ -22,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import Axis, DtypeObj, Label
+from pandas._typing import ArrayLike, Axis, DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -78,7 +79,6 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
-    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -880,32 +880,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if key_is_scalar or isinstance(self.index, MultiIndex):
+        if is_integer(key) and self.index._should_fallback_to_positional():
+            return self._values[key]
+
+        elif key_is_scalar:
+            return self._get_value(key)
+
+        if (
+            isinstance(key, tuple)
+            and is_hashable(key)
+            and isinstance(self.index, MultiIndex)
+        ):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
-                result = self.index.get_value(self, key)
+                result = self._get_value(key)
 
                 return result
-            except InvalidIndexError:
-                if not isinstance(self.index, MultiIndex):
-                    raise
 
-            except (KeyError, ValueError):
-                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
-                    # kludge
-                    pass
-                else:
-                    raise
+            except KeyError:
+                # We still have the corner case where this tuple is a key
+                #  in the first level of our MultiIndex
+                return self._get_values_tuple(key)
 
-        if not key_is_scalar:
-            # avoid expensive checks if we know we have a scalar
-            if is_iterator(key):
-                key = list(key)
+        if is_iterator(key):
+            key = list(key)
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                key = np.asarray(key, dtype=bool)
-                return self._get_values(key)
+        if com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            key = np.asarray(key, dtype=bool)
+            return self._get_values(key)
 
         return self._get_with(key)
 
@@ -941,9 +944,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if self.index.is_integer() or self.index.is_floating():
-                return self.loc[key]
-            elif isinstance(self.index, IntervalIndex):
+            if not self.index._should_fallback_to_positional():
                 return self.loc[key]
             else:
                 return self.iloc[key]
@@ -1066,7 +1067,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if self.index.inferred_type == "integer":
+                if not self.index._should_fallback_to_positional():
                     self._set_labels(key, value)
                 else:
                     self._set_values(key, value)
@@ -2608,12 +2609,10 @@ Name: Max Speed, dtype: float64
         if not isinstance(other, Series):
             raise AssertionError("Other operand must be Series")
 
-        new_index = self.index
         this = self
 
         if not self.index.equals(other.index):
             this, other = self.align(other, level=level, join="outer", copy=False)
-            new_index = this.index
 
         this_vals, other_vals = ops.fill_binop(this.values, other.values, fill_value)
 
@@ -2621,8 +2620,45 @@ Name: Max Speed, dtype: float64
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        ret = ops._construct_result(self, result, new_index, name)
+        ret = this._construct_result(result, name)
         return ret
+
+    def _construct_result(
+        self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Label
+    ) -> Union["Series", Tuple["Series", "Series"]]:
+        """
+        Construct an appropriately-labelled Series from the result of an op.
+
+        Parameters
+        ----------
+        result : ndarray or ExtensionArray
+        name : Label
+
+        Returns
+        -------
+        Series
+            In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
+        """
+        if isinstance(result, tuple):
+            # produced by divmod or rdivmod
+
+            res1 = self._construct_result(result[0], name=name)
+            res2 = self._construct_result(result[1], name=name)
+
+            # GH#33427 assertions to keep mypy happy
+            assert isinstance(res1, Series)
+            assert isinstance(res2, Series)
+            return (res1, res2)
+
+        # We do not pass dtype to ensure that the Series constructor
+        #  does inference in the case where `result` has object-dtype.
+        out = self._constructor(result, index=self.index)
+        out = out.__finalize__(self)
+
+        # Set the result's name after __finalize__ is called because __finalize__
+        #  would set it back to self.name
+        out.name = name
+        return out
 
     def combine(self, other, func, fill_value=None) -> "Series":
         """
@@ -3912,7 +3948,7 @@ Name: Max Speed, dtype: float64
         """
         return False
 
-    @Appender(generic._shared_docs["align"] % _shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4173,7 +4209,7 @@ Name: Max Speed, dtype: float64
             downcast=downcast,
         )
 
-    @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
@@ -4192,7 +4228,7 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
-    @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
+    @doc(NDFrame.shift, **_shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value

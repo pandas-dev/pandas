@@ -29,7 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import lib
 from pandas._typing import FrameOrSeries
 from pandas.util._decorators import Appender, Substitution, doc
 
@@ -75,6 +75,13 @@ from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
+from pandas.core.util.numba_ import (
+    check_kwargs_and_nopython,
+    get_jit_arguments,
+    jit_user_function,
+    split_for_numba,
+    validate_udf,
+)
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -153,6 +160,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 @pin_whitelisted_properties(Series, base.series_apply_whitelist)
 class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
+
+    _numba_func_cache: Dict[Callable, Callable] = {}
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -388,7 +397,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index
         )
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
@@ -463,11 +472,13 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
-    def transform(self, func, *args, **kwargs):
+    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         elif func not in base.transform_kernel_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -482,16 +493,33 @@ class SeriesGroupBy(GroupBy[Series]):
         result = getattr(self, func)(*args, **kwargs)
         return self._transform_fast(result, func)
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         """
         Transform with a non-str `func`.
         """
+
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            numba_func = self._numba_func_cache.get(
+                func, jit_user_function(func, nopython, nogil, parallel)
+            )
+
         klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            res = func(group, *args, **kwargs)
+            if engine == "numba":
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if func not in self._numba_func_cache:
+                    self._numba_func_cache[func] = numba_func
+            else:
+                res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
@@ -819,6 +847,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
+    _numba_func_cache: Dict[Callable, Callable] = {}
+
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -833,10 +863,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
-    ...                    'B': [1, 2, 3, 4],
-    ...                    'C': np.random.randn(4)})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "A": [1, 1, 2, 2],
+    ...         "B": [1, 2, 3, 4],
+    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860],
+    ...     }
+    ... )
 
     >>> df
        A  B         C
@@ -876,7 +909,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         B             C
       min max       sum
     A
-    1   1   2  0.590716
+    1   1   2  0.590715
     2   3   4  0.704907
 
     To control the output names with different aggregations per column,
@@ -887,8 +920,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
        b_min     c_sum
     A
-    1      1 -1.956929
-    2      3 -0.322183
+    1      1  0.590715
+    2      3  0.704907
+
 
     - The keywords are the *output* column names
     - The values are tuples whose first element is the column to select
@@ -1193,20 +1227,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         key_names = self.grouper.names
 
-        # GH12824.
-        def first_not_none(values):
-            try:
-                return next(com.not_none(*values))
-            except StopIteration:
-                return None
+        # GH12824
+        first_not_none = next(com.not_none(*values), None)
 
-        v = first_not_none(values)
-
-        if v is None:
+        if first_not_none is None:
             # GH9684. If all values are None, then this will throw an error.
             # We'd prefer it return an empty dataframe.
             return DataFrame()
-        elif isinstance(v, DataFrame):
+        elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         elif self.grouper.groupings is not None:
             if len(self.grouper.groupings) > 1:
@@ -1223,6 +1251,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     # reorder the values
                     values = [values[i] for i in indexer]
+
+                    # update due to the potential reorder
+                    first_not_none = next(com.not_none(*values), None)
                 else:
 
                     key_index = Index(keys, name=key_names[0])
@@ -1232,20 +1263,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     key_index = None
 
             # make Nones an empty object
-            v = first_not_none(values)
-            if v is None:
+            if first_not_none is None:
                 return DataFrame()
-            elif isinstance(v, NDFrame):
+            elif isinstance(first_not_none, NDFrame):
 
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
-                kwargs = v._construct_axes_dict()
-                if v._constructor is Series:
+                kwargs = first_not_none._construct_axes_dict()
+                if first_not_none._constructor is Series:
                     backup = create_series_with_explicit_dtype(
                         **kwargs, dtype_if_empty=object
                     )
                 else:
-                    backup = v._constructor(**kwargs)
+                    backup = first_not_none._constructor(**kwargs)
 
                 values = [x if (x is not None) else backup for x in values]
 
@@ -1346,32 +1376,44 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # values are not series or array-like but scalars
             else:
-                # only coerce dates if we find at least 1 datetime
-                should_coerce = any(isinstance(x, Timestamp) for x in values)
                 # self._selection_name not passed through to Series as the
                 # result should not take the name of original selection
                 # of columns
-                return Series(values, index=key_index)._convert(
-                    datetime=True, coerce=should_coerce
-                )
+                return Series(values, index=key_index)
 
         else:
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         from pandas.core.reshape.concat import concat
 
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            numba_func = self._numba_func_cache.get(
+                func, jit_user_function(func, nopython, nogil, parallel)
+            )
+        else:
+            fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        path = None
         for name, group in gen:
             object.__setattr__(group, "name", name)
 
-            if path is None:
+            if engine == "numba":
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if func not in self._numba_func_cache:
+                    self._numba_func_cache[func] = numba_func
+                # Return the result as a DataFrame for concatenation later
+                res = DataFrame(res, index=group.index, columns=group.columns)
+            else:
                 # Try slow path and fast path.
                 try:
                     path, res = self._choose_path(fast_path, slow_path, group)
@@ -1380,8 +1422,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 except ValueError as err:
                     msg = "transform must return a scalar value for each group"
                     raise ValueError(msg) from err
-            else:
-                res = path(group)
 
             if isinstance(res, Series):
 
@@ -1415,13 +1455,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @Substitution(klass="DataFrame", selected="")
     @Appender(_transform_template)
-    def transform(self, func, *args, **kwargs):
+    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         elif func not in base.transform_kernel_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -1443,7 +1485,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ):
                 return self._transform_fast(result, func)
 
-        return self._transform_general(func, *args, **kwargs)
+        return self._transform_general(
+            func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+        )
 
     def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
         """
@@ -1703,7 +1747,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]

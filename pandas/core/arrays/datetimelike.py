@@ -574,6 +574,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
+        if lib.is_scalar(result):
+            return self._box_func(result)
         return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
@@ -636,8 +638,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         #   1. PeriodArray.astype handles period -> period
         #   2. DatetimeArray.astype handles conversion between tz.
         #   3. DatetimeArray.astype handles datetime -> period
-        from pandas import Categorical
-
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
@@ -665,7 +665,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
         elif is_categorical_dtype(dtype):
-            return Categorical(self, dtype=dtype)
+            arr_cls = dtype.construct_array_type()
+            return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
 
@@ -721,7 +722,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls, to_concat, axis: int = 0):
 
         # do not pass tz to set because tzlocal cannot be hashed
         dtypes = {str(x.dtype) for x in to_concat}
@@ -731,14 +732,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         obj = to_concat[0]
         dtype = obj.dtype
 
-        values = np.concatenate([x.asi8 for x in to_concat])
+        i8values = [x.asi8 for x in to_concat]
+        values = np.concatenate(i8values, axis=axis)
 
-        if is_period_dtype(to_concat[0].dtype):
+        new_freq = None
+        if is_period_dtype(dtype):
             new_freq = obj.freq
-        else:
+        elif axis == 0:
             # GH 3232: If the concat result is evenly spaced, we can retain the
             # original frequency
-            new_freq = None
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
@@ -784,7 +786,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=9,
             )
             fill_value = new_fill
 
@@ -1174,10 +1176,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        if new_freq is not None:
-            # fastpath that doesnt require inference
-            return type(self)(new_values, dtype=self.dtype, freq=new_freq)
-        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
+        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1207,7 +1206,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
 
-        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
+        return type(self)(new_values, dtype=self.dtype)
 
     def _add_nat(self):
         """

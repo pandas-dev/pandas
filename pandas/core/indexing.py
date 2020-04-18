@@ -827,7 +827,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # this is iterative
         obj = self.obj
         axis = 0
-        for i, key in enumerate(tup):
+        for key in tup:
 
             if com.is_null_slice(key):
                 axis += 1
@@ -1046,7 +1046,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _get_label(self, label, axis: int):
         # GH#5667 this will fail if the label is not present in the axis.
-        return self.obj._xs(label, axis=axis)
+        return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
@@ -1420,7 +1420,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(key) != self.ndim:
             return False
 
-        for i, k in enumerate(key):
+        for k in key:
             if not is_integer(k):
                 return False
 
@@ -2045,6 +2045,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
             key = _tuplify(self.ndim, key)
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
+
         key = list(self._convert_key(key, is_setter=True))
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
@@ -2064,15 +2065,32 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return key
 
-    def __getitem__(self, key):
-        if self.ndim != 1 or not is_scalar(key):
-            # FIXME: is_scalar check is a kludge
-            return super().__getitem__(key)
+    @property
+    def _axes_are_unique(self) -> bool:
+        # Only relevant for self.ndim == 2
+        assert self.ndim == 2
+        return self.obj.index.is_unique and self.obj.columns.is_unique
 
-        # Like Index.get_value, but we do not allow positional fallback
-        obj = self.obj
-        loc = obj.index.get_loc(key)
-        return obj.index._get_values_for_loc(obj, loc, key)
+    def __getitem__(self, key):
+
+        if self.ndim == 2 and not self._axes_are_unique:
+            # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (getting)!")
+            return self.obj.loc[key]
+
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if self.ndim == 2 and not self._axes_are_unique:
+            # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (setting)!")
+
+            self.obj.loc[key] = value
+            return
+
+        return super().__setitem__(key, value)
 
 
 @doc(IndexingMixin.iat)
@@ -2234,8 +2252,7 @@ def is_nested_tuple(tup, labels) -> bool:
     if not isinstance(tup, tuple):
         return False
 
-    for i, k in enumerate(tup):
-
+    for k in tup:
         if is_list_like(k) or isinstance(k, slice):
             return isinstance(labels, ABCMultiIndex)
 

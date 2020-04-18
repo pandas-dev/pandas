@@ -157,8 +157,8 @@ cdef _wrap_timedelta_result(result):
     """
     if PyDelta_Check(result):
         # convert Timedelta back to a Tick
-        from pandas.tseries.offsets import _delta_to_tick
-        return _delta_to_tick(result)
+        from pandas.tseries.offsets import delta_to_tick
+        return delta_to_tick(result)
 
     return result
 
