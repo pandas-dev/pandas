@@ -86,7 +86,9 @@ class Generic:
     def test_get_numeric_data(self):
 
         n = 4
-        kwargs = {self._typ._AXIS_NAMES[i]: list(range(n)) for i in range(self._ndim)}
+        kwargs = {
+            self._typ._get_axis_name(i): list(range(n)) for i in range(self._ndim)
+        }
 
         # get the numeric data
         o = self._construct(n, **kwargs)
