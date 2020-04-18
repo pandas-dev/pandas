@@ -106,6 +106,7 @@ class TestTimedeltaIndex:
         result = index_1 & index_2
         expected = timedelta_range("1 day 01:00:00", periods=3, freq="h")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
@@ -182,7 +183,7 @@ class TestTimedeltaIndex:
                 TimedeltaIndex(["2 hour", "5 hour", "5 hour", "1 hour"], name="other"),
                 TimedeltaIndex(["1 hour", "2 hour"], name=None),
             ),
-            # reveresed index
+            # reversed index
             (
                 TimedeltaIndex(["1 hour", "2 hour", "4 hour", "3 hour"], name="idx")[
                     ::-1
@@ -200,7 +201,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        # if reveresed order, frequency is still the same
+        # if reversed order, frequency is still the same
         if all(base == rng[::-1]) and sort is None:
             assert isinstance(result.freq, Hour)
         else:

@@ -60,16 +60,13 @@ _POSSIBLY_CAST_DTYPES = {
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
-_INT64_DTYPE = np.dtype(np.int64)
+INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
-
-_ensure_datetime64ns = conversion.ensure_datetime64ns
-_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def ensure_float(arr):
@@ -109,27 +106,6 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     elif not isinstance(value, str):
         value = str(value)
     return value
-
-
-def ensure_categorical(arr):
-    """
-    Ensure that an array-like object is a Categorical (if not already).
-
-    Parameters
-    ----------
-    arr : array-like
-        The array that we want to convert into a Categorical.
-
-    Returns
-    -------
-    cat_arr : The original array cast as a Categorical. If it already
-              is a Categorical, we return as is.
-    """
-    if not is_categorical_dtype(arr.dtype):
-        from pandas import Categorical
-
-        arr = Categorical(arr)
-    return arr
 
 
 def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
