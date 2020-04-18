@@ -8,7 +8,7 @@ import numpy as np
 from pandas._typing import FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 
-_numba_func_cache: Dict[Tuple[Callable, str], Callable] = dict()
+NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
 
 def check_kwargs_and_nopython(

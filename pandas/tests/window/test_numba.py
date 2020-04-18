@@ -5,7 +5,7 @@ import pandas.util._test_decorators as td
 
 from pandas import Series
 import pandas._testing as tm
-from pandas.core.util.numba_ import _numba_func_cache
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba", "0.46.0")
@@ -60,7 +60,7 @@ class TestApply:
         tm.assert_series_equal(result, expected)
 
         # func_1 should be in the cache now
-        assert (func_1, "rolling_apply") in _numba_func_cache
+        assert (func_1, "rolling_apply") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True

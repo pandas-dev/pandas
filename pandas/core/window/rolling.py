@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
-from pandas.core.util.numba_ import _numba_func_cache
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -505,7 +505,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                _numba_func_cache[(name, "rolling_apply")] = func
+                NUMBA_FUNC_CACHE[(name, "rolling_apply")] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -1279,9 +1279,9 @@ class _Rolling_and_Expanding(_Rolling):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             cache_key = (func, "rolling_apply")
-            if cache_key in _numba_func_cache:
+            if cache_key in NUMBA_FUNC_CACHE:
                 # Return an already compiled version of roll_apply if available
-                apply_func = _numba_func_cache[cache_key]
+                apply_func = NUMBA_FUNC_CACHE[cache_key]
             else:
                 apply_func = generate_numba_apply_func(
                     args, kwargs, func, engine_kwargs

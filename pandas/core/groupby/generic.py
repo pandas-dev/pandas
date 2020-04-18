@@ -76,7 +76,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.util.numba_ import (
-    _numba_func_cache,
+    NUMBA_FUNC_CACHE,
     check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
@@ -504,7 +504,7 @@ class SeriesGroupBy(GroupBy[Series]):
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
             cache_key = (func, "groupby_transform")
-            numba_func = _numba_func_cache.get(
+            numba_func = NUMBA_FUNC_CACHE.get(
                 cache_key, jit_user_function(func, nopython, nogil, parallel)
             )
 
@@ -516,8 +516,8 @@ class SeriesGroupBy(GroupBy[Series]):
             if engine == "numba":
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
-                if cache_key not in _numba_func_cache:
-                    _numba_func_cache[cache_key] = numba_func
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
             else:
                 res = func(group, *args, **kwargs)
 
@@ -1396,7 +1396,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
             cache_key = (func, "groupby_transform")
-            numba_func = _numba_func_cache.get(
+            numba_func = NUMBA_FUNC_CACHE.get(
                 cache_key, jit_user_function(func, nopython, nogil, parallel)
             )
         else:
@@ -1408,8 +1408,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if engine == "numba":
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
-                if cache_key not in _numba_func_cache:
-                    _numba_func_cache[cache_key] = numba_func
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
                 # Return the result as a DataFrame for concatenation later
                 res = DataFrame(res, index=group.index, columns=group.columns)
             else:
