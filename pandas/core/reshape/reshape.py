@@ -847,8 +847,8 @@ def from_dummies(
     def _validate_values(data):
         if (data.sum(axis=1) != 1).any():
             raise ValueError(
-                "Data cannot be decoded! Each row must contain only 0s and"
-                " 1s, and each row may have at most one 1."
+                "Data cannot be decoded! Each row must contain only 0s and "
+                "1s, and each row may have at most one 1."
             )
 
     for prefix_ in prefix:
