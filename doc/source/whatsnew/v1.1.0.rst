@@ -580,6 +580,7 @@ I/O
 - Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
 - :func:`pandas.read_hdf` has a more explicit error message when loading an
   unsupported HDF file (:issue:`9539`)
+- :func:`read_parquet` now supports an s3 directory (:issue:`26388`)
 
 Plotting
 ^^^^^^^^
