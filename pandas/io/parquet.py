@@ -111,16 +111,8 @@ class PyArrowImpl(BaseImpl):
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        filepath, _, _, should_close = get_filepath_or_buffer(path)
-        print("here")
-        print(path)
         parquet_ds = self.api.parquet.ParquetDataset(path, filesystem=get_fs_for_path(path), **kwargs)
-        kwargs["use_pandas_metadata"] = True
-        result = parquet_ds.read(columns=columns, **kwargs).to_pandas()
-
-        if should_close:
-            filepath.close()
-
+        result = parquet_ds.read(columns=columns, use_pandas_metadata=True).to_pandas()
         return result
 
 
