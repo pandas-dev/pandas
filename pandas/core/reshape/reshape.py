@@ -871,21 +871,6 @@ def from_dummies(
     return out
 
 
-def _check_len(item, name, data_to_encode):
-    """ Validate prefixes and separator to avoid silently dropping cols. """
-    len_msg = (
-        "Length of '{name}' ({len_item}) did not match the "
-        "length of the columns being encoded ({len_enc})."
-    )
-
-    if is_list_like(item):
-        if not len(item) == data_to_encode.shape[1]:
-            len_msg = len_msg.format(
-                name=name, len_item=len(item), len_enc=data_to_encode.shape[1]
-            )
-            raise ValueError(len_msg)
-
-
 def get_dummies(
     data,
     prefix=None,
@@ -1007,8 +992,20 @@ def get_dummies(
         else:
             data_to_encode = data[columns]
 
-        _check_len(prefix, "prefix", data_to_encode)
-        _check_len(prefix_sep, "prefix_sep", data_to_encode)
+        # validate prefixes and separator to avoid silently dropping cols
+        def check_len(item, name):
+
+            if is_list_like(item):
+                if not len(item) == data_to_encode.shape[1]:
+                    len_msg = (
+                        f"Length of '{name}' ({len(item)}) did not match the "
+                        "length of the columns being encoded "
+                        f"({data_to_encode.shape[1]})."
+                    )
+                    raise ValueError(len_msg)
+
+        check_len(prefix, "prefix")
+        check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
             prefix = itertools.cycle([prefix])
