@@ -1,5 +1,6 @@
 from copy import deepcopy
 import datetime
+import inspect
 import pydoc
 
 import numpy as np
@@ -569,3 +570,12 @@ class TestDataFrameMisc:
 
         assert df["a"].values[0] == -1
         tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
+
+    def test_constructor_expanddim_lookup(self):
+        # accessing _constructor_expanddim should not raise NotImplementedError
+        df = DataFrame()
+
+        inspect.getmembers(df)
+
+        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+            df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
