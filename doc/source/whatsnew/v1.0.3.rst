@@ -23,6 +23,9 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+**I/O**
+- :func:`read_parquet` now support an s3 directory (:issue:`26388`)
+
 Contributors
 ~~~~~~~~~~~~
 
