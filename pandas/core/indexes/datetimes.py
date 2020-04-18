@@ -225,7 +225,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=None,
+        freq=lib.no_default,
         tz=None,
         normalize=False,
         closed=None,

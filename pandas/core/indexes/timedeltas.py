@@ -1,6 +1,6 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import NaT, Timedelta, index as libindex
+from pandas._libs import NaT, Timedelta, index as libindex, lib
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
@@ -123,7 +123,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         cls,
         data=None,
         unit=None,
-        freq=None,
+        freq=lib.no_default,
         closed=None,
         dtype=TD64NS_DTYPE,
         copy=False,
@@ -143,12 +143,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(data, TimedeltaArray) and freq is None:
+        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
             if copy:
                 return data.copy()
             else:
@@ -347,6 +347,6 @@ def timedelta_range(
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
-    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    freq, _, _ = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
     return TimedeltaIndex._simple_new(tdarr, name=name)

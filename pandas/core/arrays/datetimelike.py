@@ -1678,7 +1678,7 @@ def validate_endpoints(closed):
     return left_closed, right_closed
 
 
-def validate_inferred_freq(freq, inferred_freq, freq_infer):
+def validate_inferred_freq(freq, inferred_freq, freq_infer, freq_inherit):
     """
     If the user passes a freq and another freq is inferred from passed data,
     require that they match.
@@ -1700,14 +1700,16 @@ def validate_inferred_freq(freq, inferred_freq, freq_infer):
     `freq` is either a DateOffset object or None.
     """
     if inferred_freq is not None:
-        if freq is not None and freq != inferred_freq:
+        if freq_inherit:
+            # i.e. the user did not pass a freq kwarg, which would
+            #  override the inheriting behavior
+            freq = inferred_freq
+        elif freq is not None and freq != inferred_freq:
             raise ValueError(
                 f"Inferred frequency {inferred_freq} from passed "
                 "values does not conform to passed frequency "
                 f"{freq.freqstr}"
             )
-        elif freq is None:
-            freq = inferred_freq
         freq_infer = False
 
     return freq, freq_infer
@@ -1722,19 +1724,30 @@ def maybe_infer_freq(freq):
 
     Parameters
     ----------
-    freq : {DateOffset, None, str}
+    freq : {DateOffset, None, lib.no_default, str}
 
     Returns
     -------
     freq : {DateOffset, None}
     freq_infer : bool
+    freq_inherit : bool
+        Whether we should inherit the freq of passed data.
     """
     freq_infer = False
-    if not isinstance(freq, DateOffset):
+    freq_inherit = False
+    if freq is None:
+        # user specifically passed freq, otherwise we'd have lib.no_default
+        pass
+    elif freq is lib.no_default:
+        # we will inherit a freq from arguments, but not infer
+        freq = None
+        freq_inherit = True
+    elif not isinstance(freq, DateOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
             freq = frequencies.to_offset(freq)
         else:
             freq_infer = True
+            freq_inherit = True
             freq = None
-    return freq, freq_infer
+    return freq, freq_infer, freq_inherit

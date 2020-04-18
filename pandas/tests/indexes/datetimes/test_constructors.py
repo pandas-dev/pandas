@@ -813,6 +813,16 @@ class TestTimeSeries:
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
 
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
+
+        result = DatetimeIndex(rng, freq=None)
+        assert result.freq is None
+
+        result = DatetimeIndex(rng._data, freq=None)
+        assert result.freq is None
+
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
