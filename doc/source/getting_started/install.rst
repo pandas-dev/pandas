@@ -262,7 +262,7 @@ BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref
 Jinja2                                       Conditional formatting with DataFrame.style
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
-PyTables                  3.4.2              HDF5-based reading / writing
+PyTables                  3.4.3              HDF5-based reading / writing
 SQLAlchemy                1.1.4              SQL support for databases other than sqlite
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
@@ -279,7 +279,7 @@ psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.4.2              HDF5 reading / writing
+pytables                  3.4.3              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.3.0              Amazon S3 access

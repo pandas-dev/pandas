@@ -21,9 +21,9 @@ from pandas._typing import Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
     _POSSIBLY_CAST_DTYPES,
     DT64NS_DTYPE,
+    INT64_DTYPE,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -954,7 +954,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
-        if dtype not in [_INT64_DTYPE, TD64NS_DTYPE]:
+        if dtype not in [INT64_DTYPE, TD64NS_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!

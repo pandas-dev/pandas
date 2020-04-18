@@ -353,7 +353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return axes, kwargs
 
     @classmethod
-    def _get_axis_number(cls, axis):
+    def _get_axis_number(cls, axis) -> int:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
             if axis in cls._AXIS_NAMES:
@@ -366,7 +366,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     @classmethod
-    def _get_axis_name(cls, axis):
+    def _get_axis_name(cls, axis) -> str:
         axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, str):
             if axis in cls._AXIS_NUMBERS:
@@ -378,12 +378,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 pass
         raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
-    def _get_axis(self, axis):
+    def _get_axis(self, axis) -> Index:
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
     @classmethod
-    def _get_block_manager_axis(cls, axis):
+    def _get_block_manager_axis(cls, axis) -> int:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         if cls._AXIS_REVERSED:
@@ -590,7 +590,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(
+        # ignore needed because of NDFrame constructor is different than
+        # DataFrame/Series constructors.
+        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
             self, method="swapaxes"
         )
 
@@ -3217,7 +3219,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        self._mgr.set(item, value)
+        loc = self._info_axis.get_loc(item)
+        self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3490,6 +3493,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
+            if not isinstance(labels, MultiIndex):
+                raise TypeError("Index must be a MultiIndex")
             loc, new_ax = labels.get_loc_level(key, level=level, drop_level=drop_level)
 
             # create the tuple of the indexer
@@ -3548,8 +3553,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs: Callable = xs
-
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
@@ -3558,17 +3561,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._mgr.get(item)
-            res = self._box_item_values(item, values)
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc)
+
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
@@ -3592,8 +3597,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
-        self._mgr.set(key, value)
-        self._clear_item_cache()
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+            return
+
+        NDFrame._iset_item(self, loc, value)
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
@@ -5545,6 +5556,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         0    10
         1     2
         dtype: int64
+
+        Create a series of dates:
+
+        >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
+        >>> ser_date
+        0   2020-01-01
+        1   2020-01-02
+        2   2020-01-03
+        dtype: datetime64[ns]
+
+        Datetimes are localized to UTC first before
+        converting to the specified timezone:
+
+        >>> ser_date.astype('datetime64[ns, US/Eastern]')
+        0   2019-12-31 19:00:00-05:00
+        1   2020-01-01 19:00:00-05:00
+        2   2020-01-02 19:00:00-05:00
+        dtype: datetime64[ns, US/Eastern]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -7603,11 +7632,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
 
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
+
+        indexer = index.indexer_at_time(time, asof=asof)
         return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
@@ -7686,16 +7715,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_between_time(
-                start_time,
-                end_time,
-                include_start=include_start,
-                include_end=include_end,
-            )
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
 
+        indexer = index.indexer_between_time(
+            start_time, end_time, include_start=include_start, include_end=include_end,
+        )
         return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
