@@ -731,8 +731,8 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 .. _whatsnew_0190.api.to_datetime_coerce:
 
-Method ``.to_datetime()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``.to_datetime()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, but no datetimes with ``errors='coerce'`` it would convert all to ``NaT``.
 
