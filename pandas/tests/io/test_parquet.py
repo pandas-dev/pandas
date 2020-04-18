@@ -20,6 +20,7 @@ from pandas.io.parquet import (
     read_parquet,
     to_parquet,
 )
+from pandas.io.s3 import get_fs as get_s3_fs
 
 try:
     import pyarrow  # noqa
@@ -130,7 +131,9 @@ def check_round_trip(
     write_kwargs=None,
     read_kwargs=None,
     expected=None,
+    check_dtype=True,
     check_names=True,
+    check_like=False,
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -169,7 +172,8 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(expected, actual, check_dtype=check_dtype,
+                                  check_names=check_names, check_like=check_like, check_categorical=False)
 
     if path is None:
         with tm.ensure_clean() as path:
@@ -536,6 +540,13 @@ class TestParquetPyArrow(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
+
+    def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa):
+        # GH #19134
+        check_round_trip(df_compat, pa, path="s3://pandas-test/parquet_dir",
+                         write_kwargs={"partition_cols": ["A"],
+                                       "compression": None,
+                                       "filesystem": get_s3_fs()}, check_like=True, check_dtype=False, repeat=1)
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
