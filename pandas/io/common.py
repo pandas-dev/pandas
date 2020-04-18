@@ -159,6 +159,7 @@ def urlopen(*args, **kwargs):
 
 
 def get_fs_for_path(filepath):
+    """Get appropriate filesystem given a filepath. Support s3fs, gcs and local disk fs"""
     if is_s3_url(filepath):
         from pandas.io import s3
         return s3.get_fs()
@@ -167,6 +168,7 @@ def get_fs_for_path(filepath):
         return gcs.get_fs()
     else:
         return None
+
 
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
