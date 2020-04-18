@@ -5,44 +5,6 @@ from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 
-def test_delitem():
-    # GH 5542
-    # should delete the item inplace
-    s = Series(range(5))
-    del s[0]
-
-    expected = Series(range(1, 5), index=range(1, 5))
-    tm.assert_series_equal(s, expected)
-
-    del s[1]
-    expected = Series(range(2, 5), index=range(2, 5))
-    tm.assert_series_equal(s, expected)
-
-    # empty
-    s = Series(dtype=object)
-
-    with pytest.raises(KeyError, match=r"^0$"):
-        del s[0]
-
-    # only 1 left, del, add, del
-    s = Series(1)
-    del s[0]
-    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
-    s[0] = 1
-    tm.assert_series_equal(s, Series(1))
-    del s[0]
-    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
-
-    # Index(dtype=object)
-    s = Series(1, index=["a"])
-    del s["a"]
-    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
-    s["a"] = 1
-    tm.assert_series_equal(s, Series(1, index=["a"]))
-    del s["a"]
-    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
-
-
 def test_slice_float64():
     values = np.arange(10.0, 50.0, 2)
     index = Index(values)
@@ -76,12 +38,6 @@ def test_getitem_negative_out_of_bounds():
         s[-11]
     with pytest.raises(IndexError, match=msg):
         s[-11] = "foo"
-
-
-def test_getitem_regression():
-    s = Series(range(5), index=list(range(5)))
-    result = s[list(range(5))]
-    tm.assert_series_equal(result, s)
 
 
 def test_getitem_setitem_slice_bug():

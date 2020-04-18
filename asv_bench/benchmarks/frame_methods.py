@@ -564,7 +564,7 @@ class GetDtypeCounts:
 
     def time_frame_get_dtype_counts(self):
         with warnings.catch_warnings(record=True):
-            self.df._data.get_dtype_counts()
+            self.df.dtypes.value_counts()
 
     def time_info(self):
         self.df.info()
@@ -617,6 +617,19 @@ class SelectDtypes:
 
     def time_select_dtypes(self, n):
         self.df.select_dtypes(include="int")
+
+
+class MemoryUsage:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(100000, 2), columns=list("AB"))
+        self.df2 = self.df.copy()
+        self.df2["A"] = self.df2["A"].astype("object")
+
+    def time_memory_usage(self):
+        self.df.memory_usage(deep=True)
+
+    def time_memory_usage_object_dtype(self):
+        self.df2.memory_usage(deep=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

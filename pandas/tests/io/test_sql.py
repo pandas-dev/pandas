@@ -1480,6 +1480,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             result["A"] = to_datetime(result["A"])
         tm.assert_frame_equal(result, expected)
 
+    def test_out_of_bounds_datetime(self):
+        # GH 26761
+        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data.to_sql("test_datetime_obb", self.conn, index=False)
+        result = sql.read_sql_table("test_datetime_obb", self.conn)
+        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        tm.assert_frame_equal(result, expected)
+
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
@@ -2575,19 +2583,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
@@ -2595,19 +2603,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
         self.method = request.function
 
@@ -2633,6 +2641,8 @@ class TestXMySQL(MySQLMixIn):
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
         tm.assert_frame_equal(result, frame, check_less_precise=True)
+        # GH#32571 result comes back rounded to 6 digits in some builds;
+        #  no obvious pattern
 
     def test_chunksize_read_type(self):
         frame = tm.makeTimeDataFrame()

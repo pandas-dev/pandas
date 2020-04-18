@@ -1,7 +1,7 @@
 .. _whatsnew_080:
 
-v0.8.0 (June 29, 2012)
-------------------------
+Version 0.8.0 (June 29, 2012)
+-----------------------------
 
 {{ header }}
 
@@ -42,7 +42,7 @@ Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
 they arise. There will be no more further development in 0.7.x beyond bug
 fixes.
 
-Time series changes and improvements
+Time Series changes and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::

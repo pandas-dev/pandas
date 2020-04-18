@@ -337,9 +337,6 @@ class DateOffset(BaseOffset):
                 # integer addition on PeriodIndex is deprecated,
                 #   so we directly use _time_shift instead
                 asper = i.to_period("W")
-                if not isinstance(asper._data, np.ndarray):
-                    # unwrap PeriodIndex --> PeriodArray
-                    asper = asper._data
                 shifted = asper._time_shift(weeks)
                 i = shifted.to_timestamp() + i.to_perioddelta("W")
 
@@ -629,9 +626,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
         asper = i.to_period("B")
-        if not isinstance(asper._data, np.ndarray):
-            # unwrap PeriodIndex --> PeriodArray
-            asper = asper._data
 
         if self.n > 0:
             shifted = (i.to_perioddelta("B") - time).asi8 != 0
@@ -1384,9 +1378,6 @@ class SemiMonthOffset(DateOffset):
         # integer-array addition on PeriodIndex is deprecated,
         #  so we use _addsub_int_array directly
         asper = i.to_period("M")
-        if not isinstance(asper._data, np.ndarray):
-            # unwrap PeriodIndex --> PeriodArray
-            asper = asper._data
 
         shifted = asper._addsub_int_array(roll // 2, operator.add)
         i = type(dti)(shifted.to_timestamp())
@@ -1582,9 +1573,6 @@ class Week(DateOffset):
             # integer addition on PeriodIndex is deprecated,
             #  so we use _time_shift directly
             asper = i.to_period("W")
-            if not isinstance(asper._data, np.ndarray):
-                # unwrap PeriodIndex --> PeriodArray
-                asper = asper._data
 
             shifted = asper._time_shift(self.n)
             return shifted.to_timestamp() + i.to_perioddelta("W")
@@ -1608,9 +1596,6 @@ class Week(DateOffset):
 
         base, mult = libfrequencies.get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
-        if not isinstance(base_period._data, np.ndarray):
-            # unwrap PeriodIndex --> PeriodArray
-            base_period = base_period._data
 
         if self.n > 0:
             # when adding, dates on end roll to next
@@ -2530,12 +2515,12 @@ def _tick_comp(op):
     def f(self, other):
         try:
             return op(self.delta, other.delta)
-        except AttributeError:
+        except AttributeError as err:
             # comparing with a non-Tick object
             raise TypeError(
                 f"Invalid comparison between {type(self).__name__} "
                 f"and {type(other).__name__}"
-            )
+            ) from err
 
     f.__name__ = f"__{op.__name__}__"
     return f
@@ -2563,17 +2548,17 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
-                return _delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self.delta + other.delta)
         elif isinstance(other, Period):
             return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
             return NotImplemented
-        except OverflowError:
+        except OverflowError as err:
             raise OverflowError(
                 f"the add operation between {self} and {other} will overflow"
-            )
+            ) from err
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
@@ -2650,7 +2635,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return False
 
 
-def _delta_to_tick(delta: timedelta) -> Tick:
+def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:

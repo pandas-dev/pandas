@@ -1,8 +1,16 @@
+import re
+
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas._testing as tm
+
+# We pass through the error message from numpy
+_slice_iloc_msg = re.escape(
+    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+    "and integer or boolean arrays are valid indices"
+)
 
 
 def gen_obj(klass, index):
@@ -32,20 +40,7 @@ class TestFloatIndexers:
 
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "index_func",
-        [
-            tm.makeStringIndex,
-            tm.makeUnicodeIndex,
-            tm.makeCategoricalIndex,
-            tm.makeDateIndex,
-            tm.makeTimedeltaIndex,
-            tm.makePeriodIndex,
-            tm.makeIntIndex,
-            tm.makeRangeIndex,
-        ],
-    )
-    def test_scalar_error(self, index_func):
+    def test_scalar_error(self, series_with_simple_index):
 
         # GH 4892
         # float_indexers should raise exceptions
@@ -54,19 +49,13 @@ class TestFloatIndexers:
         # but is specifically testing for the error
         # message
 
-        i = index_func(5)
+        s = series_with_simple_index
 
-        s = Series(np.arange(len(i)), index=i)
-
-        msg = "Cannot index by location index"
+        msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            f"cannot do positional indexing on {type(i).__name__} with these "
-            r"indexers \[3\.0\] of type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -91,54 +80,21 @@ class TestFloatIndexers:
         s = gen_obj(klass, i)
 
         # getting
-        for idxr, getitem in [(lambda x: x.iloc, False), (lambda x: x, True)]:
+        with pytest.raises(KeyError, match="^3.0$"):
+            s[3.0]
 
-            # gettitem on a DataFrame is a KeyError as it is indexing
-            # via labels on the columns
-            if getitem and isinstance(s, DataFrame):
-                error = KeyError
-                msg = r"^3(\.0)?$"
-            else:
-                error = TypeError
-                msg = (
-                    r"cannot do (label|positional) indexing "
-                    fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-                    r"type float|"
-                    "Cannot index by location index with a "
-                    "non-integer key"
-                )
-            with pytest.raises(error, match=msg):
-                idxr(s)[3.0]
+        msg = "Cannot index by location index with a non-integer key"
+        with pytest.raises(TypeError, match=msg):
+            s.iloc[3.0]
 
-        # label based can be a TypeError or KeyError
-        if s.index.inferred_type in {
-            "categorical",
-            "string",
-            "unicode",
-            "mixed",
-        }:
-            error = KeyError
-            msg = r"^3\.0$"
-        else:
-            error = TypeError
-            msg = (
-                r"cannot do (label|positional) indexing "
-                fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-                "type float"
-            )
-        with pytest.raises(error, match=msg):
+        with pytest.raises(KeyError, match="^3.0$"):
             s.loc[3.0]
 
         # contains
         assert 3.0 not in s
 
         # setting with a float fails with iloc
-        msg = (
-            r"cannot do (label|positional) indexing "
-            fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
         # setting with an indexer
@@ -182,12 +138,7 @@ class TestFloatIndexers:
         i = index_func(5)
         s = Series(np.arange(len(i)), index=i)
         s[3]
-        msg = (
-            r"cannot do (label|positional) indexing "
-            fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
     def test_scalar_with_mixed(self):
@@ -195,16 +146,12 @@ class TestFloatIndexers:
         s2 = Series([1, 2, 3], index=["a", "b", "c"])
         s3 = Series([1, 2, 3], index=["a", "b", 1.5])
 
-        # lookup in a pure stringstr
-        # with an invalid indexer
-        msg = (
-            "cannot do label indexing "
-            fr"on {Index.__name__} with these indexers \[1\.0\] of "
-            r"type float|"
-            "Cannot index by location index with a non-integer key"
-        )
-        with pytest.raises(TypeError, match=msg):
+        # lookup in a pure string index with an invalid indexer
+
+        with pytest.raises(KeyError, match="^1.0$"):
             s2[1.0]
+
+        msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
             s2.iloc[1.0]
 
@@ -217,12 +164,7 @@ class TestFloatIndexers:
 
         # mixed index so we have label
         # indexing
-        msg = (
-            "cannot do label indexing "
-            fr"on {Index.__name__} with these indexers \[1\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1.0$"):
             s3[1.0]
 
         result = s3[1]
@@ -327,12 +269,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            "cannot do positional indexing "
-            fr"on {Float64Index.__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s2.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -376,11 +313,7 @@ class TestFloatIndexers:
                 idxr(s)[l]
 
         # setitem
-        msg = (
-            "cannot do positional indexing "
-            fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-            "type float"
-        )
+        msg = "slice indices must be integers or None or have an __index__ method"
         with pytest.raises(TypeError, match=msg):
             s.iloc[l] = 0
 
@@ -390,7 +323,7 @@ class TestFloatIndexers:
             r"\[(3|4)(\.0)?\] "
             r"of type (float|int)"
         )
-        for idxr in [lambda x: x.loc, lambda x: x.iloc, lambda x: x]:
+        for idxr in [lambda x: x.loc, lambda x: x]:
             with pytest.raises(TypeError, match=msg):
                 idxr(s)[l] = 0
 

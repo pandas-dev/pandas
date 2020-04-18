@@ -49,6 +49,7 @@ class TestSeriesDatetimeValues:
             "ceil",
             "day_name",
             "month_name",
+            "isocalendar",
         ]
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = [
@@ -65,7 +66,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result):
+            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -74,6 +75,8 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
+            elif isinstance(a, pd.DataFrame):
+                tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
 
@@ -632,15 +635,6 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(s.dt.date, expected)
         tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
 
-    def test_datetime_understood(self):
-        # Ensures it doesn't fail to create the right series
-        # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
-        offset = pd.offsets.DateOffset(days=6)
-        result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
-        tm.assert_series_equal(result, expected)
-
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358
         tz = maybe_get_tz(tz_naive_fixture)
@@ -674,3 +668,19 @@ class TestSeriesDatetimeValues:
             dtype=object,
         )
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "input_series, expected_output",
+        [
+            [["2020-01-01"], [[2020, 1, 3]]],
+            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
+            [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+        ],
+    )
+    def test_isocalendar(self, input_series, expected_output):
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar()
+        expected_frame = pd.DataFrame(
+            expected_output, columns=["year", "week", "day"], dtype="UInt32"
+        )
+        tm.assert_frame_equal(result, expected_frame)

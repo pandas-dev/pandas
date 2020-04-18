@@ -1286,17 +1286,17 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
-        df1 = pd.DataFrame({"a": [1, 2, 3], "key": [0, 2, 2]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3, 4, 5]})
+        df1 = pd.DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
+        df2 = pd.DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
         expected = pd.DataFrame(
             [
-                [1.0, 0, 1],
-                [2.0, 2, 3],
-                [3.0, 2, 3],
-                [np.nan, 1, 2],
-                [np.nan, 3, 4],
-                [np.nan, 4, 5],
+                [0, 0, 0],
+                [1, 1, 1],
+                [2, 2, 2],
+                [np.nan, 3, 3],
+                [np.nan, 4, 4],
+                [np.nan, 5, 5],
             ],
             columns=["a", "key", "b"],
         )
@@ -1316,6 +1316,20 @@ class TestMerge:
             index=[0, 1, 2, np.nan],
         )
         result = left.merge(right, left_on="key", right_index=True, how="right")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("how", ["left", "right"])
+    def test_merge_preserves_row_order(self, how):
+        # GH 27453
+        left_df = pd.DataFrame({"animal": ["dog", "pig"], "max_speed": [40, 11]})
+        right_df = pd.DataFrame({"animal": ["quetzal", "pig"], "max_speed": [80, 11]})
+        result = left_df.merge(right_df, on=["animal", "max_speed"], how=how)
+        if how == "right":
+            expected = pd.DataFrame(
+                {"animal": ["quetzal", "pig"], "max_speed": [80, 11]}
+            )
+        else:
+            expected = pd.DataFrame({"animal": ["dog", "pig"], "max_speed": [40, 11]})
         tm.assert_frame_equal(result, expected)
 
     def test_merge_take_missing_values_from_index_of_other_dtype(self):
@@ -1350,7 +1364,7 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
-        data1._data.blocks[0].values.flags.writeable = False
+        data1._mgr.blocks[0].values.flags.writeable = False
         data1.merge(data2)  # no error
 
 
@@ -2077,8 +2091,7 @@ def test_merge_equal_cat_dtypes(cat_dtype, reverse):
         }
     ).set_index("foo")
 
-    # Categorical is unordered, so don't check ordering.
-    tm.assert_frame_equal(result, expected, check_categorical=False)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_equal_cat_dtypes2():
@@ -2100,8 +2113,7 @@ def test_merge_equal_cat_dtypes2():
         {"left": [1, 2], "right": [3, 2], "foo": Series(["a", "b"]).astype(cat_dtype)}
     ).set_index("foo")
 
-    # Categorical is unordered, so don't check ordering.
-    tm.assert_frame_equal(result, expected, check_categorical=False)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_on_cat_and_ext_array():
@@ -2163,3 +2175,25 @@ def test_merge_datetime_upcast_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n_categories", [5, 128])
+def test_categorical_non_unique_monotonic(n_categories):
+    # GH 28189
+    # With n_categories as 5, we test the int8 case is hit in libjoin,
+    # with n_categories as 128 we test the int16 case.
+    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
+    df2 = DataFrame(
+        [[6]],
+        columns=["value"],
+        index=CategoricalIndex([0], categories=np.arange(n_categories)),
+    )
+
+    result = merge(df1, df2, how="left", left_index=True, right_index=True)
+    expected = DataFrame(
+        [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],
+        columns=["value_x", "value_y"],
+        index=left_index,
+    )
+    tm.assert_frame_equal(expected, result)
