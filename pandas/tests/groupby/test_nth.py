@@ -140,6 +140,18 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert f.dtype == "int64"
 
 
+def test_first_last_nth_nan_dtype():
+    # GH 33591
+    df = pd.DataFrame({"data": ["A"]})
+    df["nans"] = df["data"].where(df["data"] != "A")
+
+    grouped = df.groupby("data")
+
+    assert grouped["nans"].first().dtype == object
+    assert grouped["nans"].last().dtype == object
+    assert grouped["nans"].nth(0).dtype == object
+
+
 def test_first_strings_timestamps():
     # GH 11244
     test = pd.DataFrame(
