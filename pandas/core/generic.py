@@ -10686,11 +10686,13 @@ Parameters
 ----------
 axis : {0 or 'index', 1 or 'columns', None}, default 0
     Indicate which axis or axes should be reduced.
+
     * 0 / 'index' : reduce the index, return a Series whose index is the
       original column labels.
     * 1 / 'columns' : reduce the columns, return a Series whose index is the
       original index.
     * None : reduce all axes, return a scalar.
+
 bool_only : bool, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
