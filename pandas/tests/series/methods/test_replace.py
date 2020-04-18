@@ -420,5 +420,6 @@ class TestSeriesReplace:
         ],
     )
     def test_replace_dtype(self, series, to_replace, expected):
+        # GH 33484
         result = str(series.replace(to_replace).dtype)
         assert expected == result

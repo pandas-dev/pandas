@@ -1005,7 +1005,7 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        if type(other) == str:
+        if isinstance(other, str):
             dtype = "string"
             if is_dtype_equal(self.dtype, dtype):
                 return self
