@@ -10658,6 +10658,7 @@ Returns
 
 _num_ddof_doc = """
 %(desc)s
+
 Parameters
 ----------
 axis : %(axis_descr)s
@@ -10673,12 +10674,14 @@ ddof : int, default 1
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
 Returns
 -------
 %(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
 %(desc)s
+
 Parameters
 ----------
 axis : {0 or 'index', 1 or 'columns', None}, default 0
@@ -10702,11 +10705,13 @@ level : int or level name, default None
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
+
 Returns
 -------
 %(name1)s or %(name2)s
     If level is specified, then, %(name2)s is returned; otherwise, %(name1)s
     is returned.
+
 %(see_also)s
 %(examples)s"""
 
@@ -10772,8 +10777,10 @@ DataFrame.any : Return True if one (or more) elements are True.
 
 _cnum_doc = """
 Return cumulative %(desc)s over a DataFrame or Series axis.
+
 Returns a DataFrame or Series of the same size containing the cumulative
 %(desc)s.
+
 Parameters
 ----------
 axis : {0 or 'index', 1 or 'columns'}, default 0
@@ -10784,10 +10791,12 @@ skipna : bool, default True
 *args, **kwargs
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
+
 Returns
 -------
 %(name1)s or %(name2)s
     Return cumulative %(desc)s of %(name1)s or %(name2)s.
+
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10798,6 +10807,7 @@ core.window.Expanding.%(accum_func_name)s : Similar functionality
 %(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
 %(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
 %(name2)s.cumprod : Return cumulative product over %(name2)s axis.
+
 %(examples)s"""
 
 _cummin_examples = """\
