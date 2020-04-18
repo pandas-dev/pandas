@@ -505,7 +505,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                NUMBA_FUNC_CACHE[(name, "rolling_apply")] = func
+                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -1298,6 +1298,7 @@ class _Rolling_and_Expanding(_Rolling):
             name=func,
             use_numba_cache=engine == "numba",
             raw=raw,
+            original_func=func,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
