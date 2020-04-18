@@ -1,7 +1,6 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
-import locale
 import os
 from warnings import catch_warnings
 
