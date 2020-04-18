@@ -142,8 +142,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = pd.DataFrame({"data": ["A"]})
-    df["nans"] = df["data"].where(df["data"] != "A")
+    df = pd.DataFrame({"data": ["A"], "nans": pd.Series([np.nan], dtype=object)})
 
     grouped = df.groupby("data")
 
