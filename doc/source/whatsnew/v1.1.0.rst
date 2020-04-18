@@ -637,7 +637,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
-- Fixed bug where :meth:`StringArray.isna` would not return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True``
+- Fixed bug where :meth:`StringArray.isna` would not return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)
 
 
 Other
