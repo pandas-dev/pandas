@@ -78,6 +78,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
