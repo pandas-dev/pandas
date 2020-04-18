@@ -10656,58 +10656,58 @@ Returns
 %(examples)s
 """
 
-_num_ddof_doc = """	
-%(desc)s	
-Parameters	
-----------	
-axis : %(axis_descr)s	
-skipna : bool, default True	
-    Exclude NA/null values. If an entire row/column is NA, the result	
-    will be NA.	
-level : int or level name, default None	
-    If the axis is a MultiIndex (hierarchical), count along a	
-    particular level, collapsing into a %(name1)s.	
-ddof : int, default 1	
-    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,	
-    where N represents the number of elements.	
-numeric_only : bool, default None	
-    Include only float, int, boolean columns. If None, will attempt to use	
-    everything, then use only numeric data. Not implemented for Series.	
-Returns	
--------	
+_num_ddof_doc = """
+%(desc)s
+Parameters
+----------
+axis : %(axis_descr)s
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+level : int or level name, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a %(name1)s.
+ddof : int, default 1
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
+numeric_only : bool, default None
+    Include only float, int, boolean columns. If None, will attempt to use
+    everything, then use only numeric data. Not implemented for Series.
+Returns
+-------
 %(name1)s or %(name2)s (if level specified)\n"""
 
-_bool_doc = """	
-%(desc)s	
-Parameters	
-----------	
-axis : {0 or 'index', 1 or 'columns', None}, default 0	
-    Indicate which axis or axes should be reduced.	
-    * 0 / 'index' : reduce the index, return a Series whose index is the	
-      original column labels.	
-    * 1 / 'columns' : reduce the columns, return a Series whose index is the	
-      original index.	
-    * None : reduce all axes, return a scalar.	
-bool_only : bool, default None	
-    Include only boolean columns. If None, will attempt to use everything,	
-    then use only boolean data. Not implemented for Series.	
-skipna : bool, default True	
-    Exclude NA/null values. If the entire row/column is NA and skipna is	
-    True, then the result will be %(empty_value)s, as for an empty row/column.	
-    If skipna is False, then NA are treated as True, because these are not	
-    equal to zero.	
-level : int or level name, default None	
-    If the axis is a MultiIndex (hierarchical), count along a	
-    particular level, collapsing into a %(name1)s.	
-**kwargs : any, default None	
-    Additional keywords have no effect but might be accepted for	
-    compatibility with NumPy.	
-Returns	
--------	
-%(name1)s or %(name2)s	
-    If level is specified, then, %(name2)s is returned; otherwise, %(name1)s	
-    is returned.	
-%(see_also)s	
+_bool_doc = """
+%(desc)s
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns', None}, default 0
+    Indicate which axis or axes should be reduced.
+    * 0 / 'index' : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / 'columns' : reduce the columns, return a Series whose index is the
+      original index.
+    * None : reduce all axes, return a scalar.
+bool_only : bool, default None
+    Include only boolean columns. If None, will attempt to use everything,
+    then use only boolean data. Not implemented for Series.
+skipna : bool, default True
+    Exclude NA/null values. If the entire row/column is NA and skipna is
+    True, then the result will be %(empty_value)s, as for an empty row/column.
+    If skipna is False, then NA are treated as True, because these are not
+    equal to zero.
+level : int or level name, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a %(name1)s.
+**kwargs : any, default None
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+Returns
+-------
+%(name1)s or %(name2)s
+    If level is specified, then, %(name2)s is returned; otherwise, %(name1)s
+    is returned.
+%(see_also)s
 %(examples)s"""
 
 _all_desc = """\
@@ -10770,34 +10770,34 @@ Series.all : Return True if all elements are True.
 DataFrame.any : Return True if one (or more) elements are True.
 """
 
-_cnum_doc = """	
-Return cumulative %(desc)s over a DataFrame or Series axis.	
-Returns a DataFrame or Series of the same size containing the cumulative	
-%(desc)s.	
-Parameters	
-----------	
-axis : {0 or 'index', 1 or 'columns'}, default 0	
-    The index or the name of the axis. 0 is equivalent to None or 'index'.	
-skipna : bool, default True	
-    Exclude NA/null values. If an entire row/column is NA, the result	
-    will be NA.	
-*args, **kwargs	
-    Additional keywords have no effect but might be accepted for	
-    compatibility with NumPy.	
-Returns	
--------	
-%(name1)s or %(name2)s	
-    Return cumulative %(desc)s of %(name1)s or %(name2)s.	
-See Also	
---------	
-core.window.Expanding.%(accum_func_name)s : Similar functionality	
-    but ignores ``NaN`` values.	
-%(name2)s.%(accum_func_name)s : Return the %(desc)s over	
-    %(name2)s axis.	
-%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.	
-%(name2)s.cummin : Return cumulative minimum over %(name2)s axis.	
-%(name2)s.cumsum : Return cumulative sum over %(name2)s axis.	
-%(name2)s.cumprod : Return cumulative product over %(name2)s axis.	
+_cnum_doc = """
+Return cumulative %(desc)s over a DataFrame or Series axis.
+Returns a DataFrame or Series of the same size containing the cumulative
+%(desc)s.
+Parameters
+----------
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+Returns
+-------
+%(name1)s or %(name2)s
+    Return cumulative %(desc)s of %(name1)s or %(name2)s.
+See Also
+--------
+core.window.Expanding.%(accum_func_name)s : Similar functionality
+    but ignores ``NaN`` values.
+%(name2)s.%(accum_func_name)s : Return the %(desc)s over
+    %(name2)s axis.
+%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.
+%(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
+%(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
+%(name2)s.cumprod : Return cumulative product over %(name2)s axis.
 %(examples)s"""
 
 _cummin_examples = """\
