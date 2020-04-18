@@ -98,7 +98,7 @@ class MixedFrameWithSeries:
         getattr(self.df, opname)(self.ser, axis=0)
 
     def time_frame_op_with_series_axis1(self, opname):
-        getattr(self.df, f"__{opname}__")(self.row)
+        getattr(self.df, opname)(self.row, axis=1)
 
 
 class Ops:
