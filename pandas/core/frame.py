@@ -8097,7 +8097,6 @@ Wild         185.0
         level_index = count_axis.levels[level]._shallow_copy(name=level_name)
         level_codes = ensure_int64(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
-        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
 
         if axis == 1:
             result = self._constructor(counts, index=agg_axis, columns=level_index)
