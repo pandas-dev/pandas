@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
@@ -122,12 +121,7 @@ def _ensure_data(values, dtype=None):
         return ensure_object(values), "object"
 
     # datetimelike
-    if (
-        needs_i8_conversion(values)
-        or is_period_dtype(dtype)
-        or is_datetime64_any_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-    ):
+    if needs_i8_conversion(values) or needs_i8_conversion(dtype):
         if is_period_dtype(values) or is_period_dtype(dtype):
             from pandas import PeriodIndex
 
@@ -616,7 +610,7 @@ def factorize(
     values = _ensure_arraylike(values)
     original = values
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype

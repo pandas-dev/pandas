@@ -625,6 +625,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         # GH#29843
         self._data._with_freq(freq)
 
+    def _with_freq(self, freq):
+        index = self.copy(deep=False)
+        index._set_freq(freq)
+        return index
+
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
         cache = self._cache.copy() if values is None else {}
@@ -724,10 +729,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[])
+            return type(self)(data=[], dtype=self.dtype, freq=self.freq)
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
+            left_chunk = left._values[lslice]
             return self._shallow_copy(left_chunk)
 
     def _can_fast_union(self, other) -> bool:
@@ -940,6 +945,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            elif self.freq is not None:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
                     freq = self.freq
             item = item.asm8
 
