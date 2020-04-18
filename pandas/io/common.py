@@ -158,6 +158,16 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def get_fs_for_path(filepath):
+    if is_s3_url(filepath):
+        from pandas.io import s3
+        return s3.get_fs()
+    elif is_gcs_url(filepath):
+        from pandas.io import gcs
+        return gcs.get_fs()
+    else:
+        return None
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
@@ -192,7 +202,7 @@ def get_filepath_or_buffer(
             compression = "gzip"
         reader = BytesIO(req.read())
         req.close()
-        return reader, encoding, compression, True
+        return reader, encoding, compression, True, None
 
     if is_s3_url(filepath_or_buffer):
         from pandas.io import s3

@@ -8,7 +8,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
+from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url, get_fs_for_path
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -111,14 +111,15 @@ class PyArrowImpl(BaseImpl):
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, should_close = get_filepath_or_buffer(path)
-
+        filepath, _, _, should_close = get_filepath_or_buffer(path)
+        print("here")
+        print(path)
+        parquet_ds = self.api.parquet.ParquetDataset(path, filesystem=get_fs_for_path(path), **kwargs)
         kwargs["use_pandas_metadata"] = True
-        result = self.api.parquet.read_table(
-            path, columns=columns, **kwargs
-        ).to_pandas()
+        result = parquet_ds.read(columns=columns, **kwargs).to_pandas()
+
         if should_close:
-            path.close()
+            filepath.close()
 
         return result
 

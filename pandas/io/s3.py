@@ -16,6 +16,10 @@ def _strip_schema(url):
     return result.netloc + result.path
 
 
+def get_fs():
+    return s3fs.S3FileSystem(anon=False)
+
+
 def get_file_and_filesystem(
     filepath_or_buffer: FilePathOrBuffer, mode: Optional[str] = None
 ) -> Tuple[IO, Any]:
@@ -24,7 +28,7 @@ def get_file_and_filesystem(
     if mode is None:
         mode = "rb"
 
-    fs = s3fs.S3FileSystem(anon=False)
+    fs = get_fs()
     try:
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
     except (FileNotFoundError, NoCredentialsError):
@@ -34,7 +38,7 @@ def get_file_and_filesystem(
         # aren't valid for that bucket.
         # A NoCredentialsError is raised if you don't have creds
         # for that bucket.
-        fs = s3fs.S3FileSystem(anon=True)
+        fs = get_fs()
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
     return file, fs
 
