@@ -675,7 +675,7 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
-        if bins is not None and not np.iterable(bins):
+        if bins is not None:# and not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             return self.apply(
@@ -684,6 +684,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
+                dropna=dropna
             )
 
         ids, _, _ = self.grouper.group_info

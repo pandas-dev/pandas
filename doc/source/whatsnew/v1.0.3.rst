@@ -22,6 +22,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+:issue: `25970` Fixed Series.value_counts so that normalize excludes NA values when dropna=False.
 
 Contributors
 ~~~~~~~~~~~~

@@ -190,6 +190,14 @@ def test_value_counts_bins(index_or_series):
 
     assert s.nunique() == 0
 
+    # handle normalizing bins with NA's properly
+    # see GH25970
+    s2 = Series([1,2,2,3,3,3, np.nan, np.nan, 4, 5])
+    intervals = IntervalIndex.from_breaks([0.995, 2.333, 3.667, 5.0])
+    expected_dropna = Series([0.375, 0.375, 0.25], intervals.take([1,0,2]))
+    expected_keepna_vals = np.array([0.3, 0.3, 0.2, 0.2])
+    tm.assert_series_equal(s2.value_counts(dropna=True, normalize=True, bins=3), expected_dropna)
+    tm.assert_numpy_array_equal(s2.value_counts(dropna=False, normalize=True, bins=3).values, expected_keepna_vals)
 
 def test_value_counts_datetime64(index_or_series):
     klass = index_or_series
