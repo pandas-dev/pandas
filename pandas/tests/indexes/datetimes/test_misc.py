@@ -25,7 +25,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.000000002",
                 "1970-01-01 00:00:00.000000003",
                 "1970-01-01 00:00:00.000000004",
-            ]
+            ],
+            freq="N",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -34,7 +35,7 @@ class TestTimeSeries:
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
         )
-        exp = DatetimeIndex([])
+        exp = DatetimeIndex([], freq="N")
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
@@ -42,7 +43,7 @@ class TestTimeSeries:
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
         )
-        exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"])
+        exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"], freq="N")
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
@@ -56,7 +57,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.000002",
                 "1970-01-01 00:00:00.000003",
                 "1970-01-01 00:00:00.000004",
-            ]
+            ],
+            freq="U",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -71,7 +73,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.002",
                 "1970-01-01 00:00:00.003",
                 "1970-01-01 00:00:00.004",
-            ]
+            ],
+            freq="L",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -86,7 +89,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:02",
                 "1970-01-01 00:00:03",
                 "1970-01-01 00:00:04",
-            ]
+            ],
+            freq="S",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -101,7 +105,8 @@ class TestTimeSeries:
                 "1970-01-01 00:02",
                 "1970-01-01 00:03",
                 "1970-01-01 00:04",
-            ]
+            ],
+            freq="T",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -116,14 +121,17 @@ class TestTimeSeries:
                 "1970-01-01 02:00",
                 "1970-01-01 03:00",
                 "1970-01-01 04:00",
-            ]
+            ],
+            freq="H",
         )
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
             start=Timestamp("1970-01-01"), end=Timestamp("1970-01-04"), freq="D"
         )
-        exp = DatetimeIndex(["1970-01-01", "1970-01-02", "1970-01-03", "1970-01-04"])
+        exp = DatetimeIndex(
+            ["1970-01-01", "1970-01-02", "1970-01-03", "1970-01-04"], freq="D"
+        )
         tm.assert_index_equal(idx, exp)
 
 
