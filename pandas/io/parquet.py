@@ -10,9 +10,9 @@ from pandas import DataFrame, get_option
 
 from pandas.io.common import (
     get_filepath_or_buffer,
+    get_fs_for_path,
     is_gcs_url,
     is_s3_url,
-    get_fs_for_path,
 )
 
 

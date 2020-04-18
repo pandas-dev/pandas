@@ -543,6 +543,7 @@ class TestParquetPyArrow(Base):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
 
+    @td.skip_if_no("s3fs")
     def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa):
         # GH #26388
         # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
