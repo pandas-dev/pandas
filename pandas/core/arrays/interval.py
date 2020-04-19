@@ -29,7 +29,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndexClass,
-    ABCInterval,
     ABCIntervalIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -153,7 +152,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(cls, data, closed=None, dtype=None, copy=False, verify_integrity=True):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data):
-            data = data.values
+            data = data._values
 
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
@@ -529,7 +528,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value, value
 
         # scalar interval
-        elif is_interval_dtype(value) or isinstance(value, ABCInterval):
+        elif is_interval_dtype(value) or isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
 
@@ -543,19 +542,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg) from err
 
+        if needs_float_conversion:
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+
         key = check_array_indexer(self, key)
+
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        if needs_float_conversion:
-            left = left.astype("float")
-        left.values[key] = value_left
+        left._values[key] = value_left
         self._left = left
 
         right = self.right.copy(deep=True)
-        if needs_float_conversion:
-            right = right.astype("float")
-        right.values[key] = value_right
+        right._values[key] = value_right
         self._right = right
 
     def __eq__(self, other):
@@ -642,7 +641,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        if not isinstance(value, ABCInterval):
+        if not isinstance(value, Interval):
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."

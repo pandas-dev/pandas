@@ -6,10 +6,11 @@ from collections import abc, defaultdict
 import csv
 import datetime
 from io import StringIO, TextIOWrapper
+import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Set
+from typing import Any, Dict, Iterable, List, Set
 import warnings
 
 import numpy as np
@@ -34,6 +35,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
+    is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
     is_file_like,
@@ -1421,6 +1423,54 @@ class ParserBase:
         # keep references to file handles opened by the parser itself
         self.handles = []
 
+    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
+        """
+        Check if parse_dates are in columns.
+
+        If user has provided names for parse_dates, check if those columns
+        are available.
+
+        Parameters
+        ----------
+        columns : list
+            List of names of the dataframe.
+
+        Raises
+        ------
+        ValueError
+            If column to parse_date is not in dataframe.
+
+        """
+        cols_needed: Iterable
+        if is_dict_like(self.parse_dates):
+            cols_needed = itertools.chain(*self.parse_dates.values())
+        elif is_list_like(self.parse_dates):
+            # a column in parse_dates could be represented
+            # ColReference = Union[int, str]
+            # DateGroups = List[ColReference]
+            # ParseDates = Union[DateGroups, List[DateGroups],
+            #     Dict[ColReference, DateGroups]]
+            cols_needed = itertools.chain.from_iterable(
+                col if is_list_like(col) else [col] for col in self.parse_dates
+            )
+        else:
+            cols_needed = []
+
+        # get only columns that are references using names (str), not by index
+        missing_cols = ", ".join(
+            sorted(
+                {
+                    col
+                    for col in cols_needed
+                    if isinstance(col, str) and col not in columns
+                }
+            )
+        )
+        if missing_cols:
+            raise ValueError(
+                f"Missing column provided to 'parse_dates': '{missing_cols}'"
+            )
+
     def close(self):
         for f in self.handles:
             f.close()
@@ -1940,6 +1990,7 @@ class CParserWrapper(ParserBase):
             if len(self.names) < len(usecols):
                 _validate_usecols_names(usecols, self.names)
 
+        self._validate_parse_dates_presence(self.names)
         self._set_noconvert_columns()
 
         self.orig_names = self.names
@@ -2314,6 +2365,7 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        self._validate_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
         else:

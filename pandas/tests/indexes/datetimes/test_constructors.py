@@ -415,7 +415,8 @@ class TestDatetimeIndex:
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
-        with pytest.raises(ValueError):
+        msg = "cannot be converted to datetime64"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -424,7 +425,6 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        msg = "cannot be converted to datetime64"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
@@ -435,7 +435,7 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -480,7 +480,8 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
@@ -516,7 +517,8 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        with pytest.raises(TypeError):
+        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 
         # generator expression
@@ -664,7 +666,8 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("dtype", [object, np.int32, np.int64])
     def test_constructor_invalid_dtype_raises(self, dtype):
         # GH 23986
-        with pytest.raises(ValueError):
+        msg = "Unexpected value for 'dtype'"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
@@ -681,7 +684,8 @@ class TestDatetimeIndex:
     def test_disallow_setting_tz(self):
         # GH 3746
         dti = DatetimeIndex(["2010"], tz="UTC")
-        with pytest.raises(AttributeError):
+        msg = "Cannot directly set timezone"
+        with pytest.raises(AttributeError, match=msg):
             dti.tz = pytz.timezone("US/Pacific")
 
     @pytest.mark.parametrize(
@@ -770,7 +774,8 @@ class TestDatetimeIndex:
     def test_construction_with_tz_and_tz_aware_dti(self):
         # GH 23579
         dti = date_range("2016-01-01", periods=3, tz="US/Central")
-        with pytest.raises(TypeError):
+        msg = "data is already tz-aware US/Central, unable to set specified tz"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex(dti, tz="Asia/Tokyo")
 
     def test_construction_with_nat_and_tzlocal(self):
@@ -790,7 +795,8 @@ class TestDatetimeIndex:
             pd.Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        with pytest.raises(ValueError):
+        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
+        with pytest.raises(ValueError, match=msg):
             pd.DatetimeIndex(["2000"], dtype="datetime64[us]")
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):

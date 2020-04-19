@@ -346,7 +346,9 @@ class TestDataFrameAnalytics:
             "sum", np.sum, float_frame_with_na, skipna_alternative=np.nansum
         )
         assert_stat_op_calc("mean", np.mean, float_frame_with_na, check_dates=True)
-        assert_stat_op_calc("product", np.prod, float_frame_with_na)
+        assert_stat_op_calc(
+            "product", np.prod, float_frame_with_na, skipna_alternative=np.nanprod
+        )
 
         assert_stat_op_calc("mad", mad, float_frame_with_na)
         assert_stat_op_calc("var", var, float_frame_with_na)
@@ -919,7 +921,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
@@ -934,7 +936,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 
@@ -1145,59 +1147,6 @@ class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Matrix-like
 
-    def test_dot(self):
-        a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
-        )
-        b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
-        )
-
-        result = a.dot(b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        # Check alignment
-        b1 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_frame_equal(result, expected)
-
-        # Check series argument
-        result = a.dot(b["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        result = a.dot(b1["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        # can pass correct-length arrays
-        row = a.iloc[0].values
-
-        result = a.dot(row)
-        expected = a.dot(a.iloc[0])
-        tm.assert_series_equal(result, expected)
-
-        with pytest.raises(ValueError, match="Dot product shape mismatch"):
-            a.dot(row[:-1])
-
-        a = np.random.rand(1, 5)
-        b = np.random.rand(5, 1)
-        A = DataFrame(a)
-
-        # TODO(wesm): unused
-        B = DataFrame(b)  # noqa
-
-        # it works
-        result = A.dot(b)
-
-        # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
-
-        with pytest.raises(ValueError, match="aligned"):
-            df.dot(df2)
-
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(
@@ -1272,3 +1221,28 @@ class TestDataFrameAnalytics:
             df_nan.clip(lower=s, axis=0)
             for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
                 getattr(df, op)(s_nan, axis=0)
+
+
+class TestDataFrameReductions:
+    def test_min_max_dt64_with_NaT(self):
+        # Both NaT and Timestamp are in DataFrame.
+        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT, pd.Timestamp("2012-05-01")]})
+
+        res = df.min()
+        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        # GH12941, only NaTs are in DataFrame.
+        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT]})
+
+        res = df.min()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)

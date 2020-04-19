@@ -3,7 +3,7 @@
 {{ header }}
 
 *************
-Release Notes
+Release notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
@@ -24,6 +24,7 @@ Version 1.0
 .. toctree::
    :maxdepth: 2
 
+   v1.0.3
    v1.0.2
    v1.0.1
    v1.0.0

@@ -3,7 +3,7 @@
 {{ header }}
 
 *****************************
-Group By: split-apply-combine
+Group by: split-apply-combine
 *****************************
 
 By "group by" we are referring to a process involving one or more of the following
@@ -1326,8 +1326,6 @@ See the :ref:`visualization documentation<visualization.box>` for more.
 
 Piping function calls
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.21.0
 
 Similar to the functionality provided by ``DataFrame`` and ``Series``, functions
 that take ``GroupBy`` objects can be chained together using a ``pipe`` method to

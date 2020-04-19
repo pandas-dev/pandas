@@ -27,31 +27,34 @@ class TestPeriodIndexAsType:
 
     def test_astype_conversion(self):
         # GH#13149, GH#13209
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D")
+        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D", name="idx")
 
         result = idx.astype(object)
         expected = Index(
             [Period("2016-05-16", freq="D")] + [Period(NaT, freq="D")] * 3,
             dtype="object",
+            name="idx",
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index([16937] + [-9223372036854775808] * 3, dtype=np.int64)
+        expected = Int64Index(
+            [16937] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
+        )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index(str(x) for x in idx)
+        expected = Index([str(x) for x in idx], name="idx")
         tm.assert_index_equal(result, expected)
 
-        idx = period_range("1990", "2009", freq="A")
+        idx = period_range("1990", "2009", freq="A", name="idx")
         result = idx.astype("i8")
-        tm.assert_index_equal(result, Index(idx.asi8))
+        tm.assert_index_equal(result, Index(idx.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, idx.asi8)
 
     def test_astype_uint(self):
-        arr = period_range("2000", periods=2)
-        expected = UInt64Index(np.array([10957, 10958], dtype="uint64"))
+        arr = period_range("2000", periods=2, name="idx")
+        expected = UInt64Index(np.array([10957, 10958], dtype="uint64"), name="idx")
         tm.assert_index_equal(arr.astype("uint64"), expected)
         tm.assert_index_equal(arr.astype("uint32"), expected)
 
@@ -116,10 +119,10 @@ class TestPeriodIndexAsType:
         assert result_list[2] is NaT
 
     def test_astype_category(self):
-        obj = period_range("2000", periods=2)
+        obj = period_range("2000", periods=2, name="idx")
         result = obj.astype("category")
         expected = CategoricalIndex(
-            [Period("2000-01-01", freq="D"), Period("2000-01-02", freq="D")]
+            [Period("2000-01-01", freq="D"), Period("2000-01-02", freq="D")], name="idx"
         )
         tm.assert_index_equal(result, expected)
 
@@ -128,9 +131,9 @@ class TestPeriodIndexAsType:
         tm.assert_categorical_equal(result, expected)
 
     def test_astype_array_fallback(self):
-        obj = period_range("2000", periods=2)
+        obj = period_range("2000", periods=2, name="idx")
         result = obj.astype(bool)
-        expected = Index(np.array([True, True]))
+        expected = Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)

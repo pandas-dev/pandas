@@ -11,7 +11,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -345,6 +345,9 @@ class JSONTableWriter(FrameWriter):
 
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
+@deprecate_nonkeyword_arguments(
+    version="2.0", allowed_args=["path_or_buf"], stacklevel=3
+)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -490,17 +493,12 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-
-        .. versionadded:: 0.21.0
-
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -973,9 +971,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False
@@ -984,7 +982,7 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
         return data, False

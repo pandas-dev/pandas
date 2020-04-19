@@ -1073,3 +1073,36 @@ def test_loc_slice_disallows_positional():
     with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
+
+
+def test_loc_datetimelike_mismatched_dtypes():
+    # GH#32650 dont mix and match datetime/timedelta/period dtypes
+
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique DatetimeIndex
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    dti = df.index
+    tdi = pd.TimedeltaIndex(dti.asi8)  # matching i8 values
+
+    msg = r"None of \[TimedeltaIndex.* are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
+        df.loc[tdi]
+
+    with pytest.raises(KeyError, match=msg):
+        df["a"].loc[tdi]
+
+
+def test_loc_with_period_index_indexer():
+    # GH#4125
+    idx = pd.period_range("2002-01", "2003-12", freq="M")
+    df = pd.DataFrame(np.random.randn(24, 10), index=idx)
+    tm.assert_frame_equal(df, df.loc[idx])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
+    tm.assert_frame_equal(df, df.loc[list(idx)])

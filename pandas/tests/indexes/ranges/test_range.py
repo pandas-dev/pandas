@@ -257,43 +257,6 @@ class TestRangeIndex(Numeric):
 
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
-    def test_get_indexer(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_pad(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="pad")
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_backfill(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="backfill")
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_limit(self):
-        # GH 28631
-        idx = RangeIndex(4)
-        target = RangeIndex(6)
-        result = idx.get_indexer(target, method="pad", limit=1)
-        expected = np.array([0, 1, 2, 3, 3, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("stop", [0, -1, -2])
-    def test_get_indexer_decreasing(self, stop):
-        # GH 28678
-        index = RangeIndex(7, stop, -3)
-        result = index.get_indexer(range(9))
-        expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_nbytes(self):
 
         # memory savings vs int index
@@ -304,14 +267,19 @@ class TestRangeIndex(Numeric):
         i2 = RangeIndex(0, 10)
         assert i.nbytes == i2.nbytes
 
-    def test_cant_or_shouldnt_cast(self):
-        # can't
-        with pytest.raises(TypeError):
-            RangeIndex("foo", "bar", "baz")
-
-        # shouldn't
-        with pytest.raises(TypeError):
-            RangeIndex("0", "1", "2")
+    @pytest.mark.parametrize(
+        "start,stop,step",
+        [
+            # can't
+            ("foo", "bar", "baz"),
+            # shouldn't
+            ("0", "1", "2"),
+        ],
+    )
+    def test_cant_or_shouldnt_cast(self, start, stop, step):
+        msg = f"Wrong type {type(start)} for value {start}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(start, stop, step)
 
     def test_view_index(self):
         index = self.create_index()
@@ -321,41 +289,6 @@ class TestRangeIndex(Numeric):
         index = self.create_index()
         result = index.astype("O")
         assert result.dtype == np.object_
-
-    def test_take_preserve_name(self):
-        index = RangeIndex(1, 5, name="foo")
-        taken = index.take([3, 0, 1])
-        assert index.name == taken.name
-
-    def test_take_fill_value(self):
-        # GH 12631
-        idx = pd.RangeIndex(1, 4, name="xxx")
-        result = idx.take(np.array([1, 0, -1]))
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        # fill_value
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
-
-        # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
-
-        with pytest.raises(IndexError):
-            idx.take(np.array([1, -5]))
-
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_roundtrip(self):
         index = self.create_index()

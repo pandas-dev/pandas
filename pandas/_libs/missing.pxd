@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from numpy cimport ndarray, uint8_t
 
 cpdef bint checknull(object val)

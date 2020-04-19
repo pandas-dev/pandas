@@ -210,7 +210,7 @@ parameter:
 
 .. _stats.moments:
 
-Window Functions
+Window functions
 ----------------
 
 .. currentmodule:: pandas.core.window
@@ -312,8 +312,8 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.median`, Arithmetic median of values
     :meth:`~Rolling.min`, Minimum
     :meth:`~Rolling.max`, Maximum
-    :meth:`~Rolling.std`, Bessel-corrected sample standard deviation
-    :meth:`~Rolling.var`, Unbiased variance
+    :meth:`~Rolling.std`, Sample standard deviation
+    :meth:`~Rolling.var`, Sample variance
     :meth:`~Rolling.skew`, Sample skewness (3rd moment)
     :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
@@ -321,9 +321,29 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.cov`, Unbiased covariance (binary)
     :meth:`~Rolling.corr`, Correlation (binary)
 
+.. _computation.window_variance.caveats:
+
+.. note::
+
+   Please note that :meth:`~Rolling.std` and :meth:`~Rolling.var` use the sample
+   variance formula by default, i.e. the sum of squared differences is divided by
+   ``window_size - 1`` and not by ``window_size`` during averaging. In statistics,
+   we use sample when the dataset is drawn from a larger population that we
+   don't have access to. Using it implies that the data in our window is a
+   random sample from the population, and we are interested not in the variance
+   inside the specific window but in the variance of some general window that
+   our windows represent. In this situation, using the sample variance formula
+   results in an unbiased estimator and so is preferred.
+
+   Usually, we are instead interested in the variance of each window as we slide
+   it over the data, and in this case we should specify ``ddof=0`` when calling
+   these methods to use population variance instead of sample variance. Using
+   sample variance under the circumstances would result in a biased estimator
+   of the variable we are trying to determine.
+
 .. _stats.rolling_apply:
 
-Rolling Apply
+Rolling apply
 ~~~~~~~~~~~~~
 
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
@@ -571,6 +591,20 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+.. versionadded:: 1.1
+
+For some problems knowledge of the future is available for analysis. For example, this occurs when
+each data point is a full time series read from an experiment, and the task is to extract underlying
+conditions. In these cases it can be useful to perform forward-looking rolling window computations.
+:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+forward-looking rolling window, and we can use it as follows:
+
+.. ipython:: ipython
+
+   from pandas.api.indexers import FixedForwardWindowIndexer
+   indexer = FixedForwardWindowIndexer(window_size=2)
+   df.rolling(indexer, min_periods=1).sum()
 
 .. _stats.rolling_window.endpoints:
 
@@ -834,14 +868,21 @@ Method summary
     :meth:`~Expanding.median`, Arithmetic median of values
     :meth:`~Expanding.min`, Minimum
     :meth:`~Expanding.max`, Maximum
-    :meth:`~Expanding.std`, Unbiased standard deviation
-    :meth:`~Expanding.var`, Unbiased variance
+    :meth:`~Expanding.std`, Sample standard deviation
+    :meth:`~Expanding.var`, Sample variance
     :meth:`~Expanding.skew`, Unbiased skewness (3rd moment)
     :meth:`~Expanding.kurt`, Unbiased kurtosis (4th moment)
     :meth:`~Expanding.quantile`, Sample quantile (value at %)
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Unbiased covariance (binary)
     :meth:`~Expanding.corr`, Correlation (binary)
+
+.. note::
+
+   Using sample variance formulas for :meth:`~Expanding.std` and
+   :meth:`~Expanding.var` comes with the same caveats as using them with rolling
+   windows. See :ref:`this section <computation.window_variance.caveats>` for more
+   information.
 
 .. currentmodule:: pandas
 

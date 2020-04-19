@@ -101,7 +101,7 @@ class HTMLFormatter(TableFormatter):
         self, s: Any, header: bool = False, indent: int = 0, tags: Optional[str] = None
     ) -> None:
         """
-        Method for writting a formatted <th> cell.
+        Method for writing a formatted <th> cell.
 
         If col_space is set on the formatter then that is used for
         the value of min-width.

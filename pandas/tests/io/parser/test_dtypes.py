@@ -192,7 +192,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
-    sep = ","
+    sep = "\t"
 
     expected = parser.read_csv(pth, sep=sep, encoding=encoding)
     expected = expected.apply(Categorical)

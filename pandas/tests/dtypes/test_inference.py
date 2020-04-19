@@ -16,12 +16,11 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import iNaT, lib, missing as libmissing
+from pandas._libs import lib, missing as libmissing
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     ensure_int32,
     is_bool,
     is_datetime64_any_dtype,
@@ -50,7 +49,6 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
-    isna,
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
@@ -1437,6 +1435,7 @@ class TestIsScalar:
         assert is_scalar(Period("2014-01-01"))
         assert is_scalar(Interval(left=0, right=1))
         assert is_scalar(DateOffset(days=1))
+        assert is_scalar(pd.offsets.Minute(3))
 
     def test_is_scalar_pandas_containers(self):
         assert not is_scalar(Series(dtype=object))
@@ -1445,6 +1444,11 @@ class TestIsScalar:
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
+        assert not is_scalar(Categorical([]))
+        assert not is_scalar(DatetimeIndex([])._data)
+        assert not is_scalar(TimedeltaIndex([])._data)
+        assert not is_scalar(DatetimeIndex([])._data.to_period("D"))
+        assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
         # Number() is not recognied by PyNumber_Check, so by extension
@@ -1474,14 +1478,12 @@ def test_nan_to_nat_conversions():
         dict({"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")})
     )
     df.iloc[3:6, :] = np.nan
-    result = df.loc[4, "B"].value
-    assert result == iNaT
+    result = df.loc[4, "B"]
+    assert result is pd.NaT
 
     s = df["B"].copy()
-    s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
-    assert isna(s[8])
-
-    assert s[8].value == np.datetime64("NaT").astype(np.int64)
+    s[8:9] = np.nan
+    assert s[8] is pd.NaT
 
 
 @td.skip_if_no_scipy
@@ -1499,13 +1501,3 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = ensure_int32(values)
     assert result.dtype == np.int32
-
-
-def test_ensure_categorical():
-    values = np.arange(10, dtype=np.int32)
-    result = ensure_categorical(values)
-    assert result.dtype == "category"
-
-    values = Categorical(values)
-    result = ensure_categorical(values)
-    tm.assert_categorical_equal(result, values)

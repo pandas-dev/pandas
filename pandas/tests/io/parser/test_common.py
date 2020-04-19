@@ -960,13 +960,23 @@ def test_nonexistent_path(all_parsers):
     parser = all_parsers
     path = f"{tm.rands(10)}.csv"
 
-    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
+    assert path == e.value.filename
 
-        filename = e.value.filename
 
-        assert path == filename
+@td.skip_if_windows  # os.chmod does not work in windows
+def test_no_permission(all_parsers):
+    # GH 23784
+    parser = all_parsers
+
+    msg = r"\[Errno 13\]"
+    with tm.ensure_clean() as path:
+        os.chmod(path, 0)  # make file unreadable
+        with pytest.raises(PermissionError, match=msg) as e:
+            parser.read_csv(path)
+        assert path == e.value.filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
@@ -1063,14 +1073,14 @@ def test_escapechar(all_parsers):
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
-"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals serie","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
+"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
     parser = all_parsers
     result = parser.read_csv(
         StringIO(data), escapechar="\\", quotechar='"', encoding="utf-8"
     )
 
-    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie'
+    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals series'
 
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
@@ -2093,3 +2103,26 @@ def test_file_descriptor_leak(all_parsers):
                 parser.read_csv(path)
 
         td.check_file_leaks(test)()
+
+
+@pytest.mark.parametrize("nrows", range(1, 6))
+def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
+    # GH 28071
+    ref = DataFrame(
+        [[np.nan, np.nan], [np.nan, np.nan], [1, 2], [np.nan, np.nan], [3, 4]],
+        columns=list("ab"),
+    )
+    csv = "\nheader\n\na,b\n\n\n1,2\n\n3,4"
+    parser = all_parsers
+    df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
+    tm.assert_frame_equal(df, ref[:nrows])
+
+
+def test_no_header_two_extra_columns(all_parsers):
+    # GH 26218
+    column_names = ["one", "two", "three"]
+    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
+    stream = StringIO("foo,bar,baz,bam,blah")
+    parser = all_parsers
+    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    tm.assert_frame_equal(df, ref)

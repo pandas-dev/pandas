@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index
+from pandas import CategoricalIndex, Index, IntervalIndex
 import pandas._testing as tm
 
 
@@ -65,7 +65,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_datetime(self):
@@ -104,7 +105,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_invalid_kwargs(self):
@@ -248,3 +250,67 @@ class TestGetIndexer:
         msg = "method='nearest' not implemented yet for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="nearest")
+
+
+class TestWhere:
+    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+    def test_where(self, klass):
+        i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+
+class TestContains:
+    def test_contains(self):
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=False)
+
+        assert "a" in ci
+        assert "z" not in ci
+        assert "e" not in ci
+        assert np.nan not in ci
+
+        # assert codes NOT in index
+        assert 0 not in ci
+        assert 1 not in ci
+
+    def test_contains_nan(self):
+        ci = CategoricalIndex(list("aabbca") + [np.nan], categories=list("cabdef"))
+        assert np.nan in ci
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (pd.Interval(0, 1), True),
+            (1.5, True),
+            (pd.Interval(0.5, 1.5), False),
+            ("a", False),
+            (pd.Timestamp(1), False),
+            (pd.Timedelta(1), False),
+        ],
+        ids=str,
+    )
+    def test_contains_interval(self, item, expected):
+        # GH 23705
+        ci = CategoricalIndex(IntervalIndex.from_breaks(range(3)))
+        result = item in ci
+        assert result is expected
+
+    def test_contains_list(self):
+        # GH#21729
+        idx = pd.CategoricalIndex([1, 2, 3])
+
+        assert "a" not in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in idx

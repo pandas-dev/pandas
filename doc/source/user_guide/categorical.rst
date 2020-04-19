@@ -211,8 +211,6 @@ To get back to the original ``Series`` or NumPy array, use
 CategoricalDtype
 ----------------
 
-.. versionchanged:: 0.21.0
-
 A categorical's type is fully described by
 
 1. ``categories``: a sequence of unique values and no missing values
@@ -799,7 +797,7 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
 .. _categorical.merge:
 .. _categorical.concat:
 
-Merging / Concatenation
+Merging / concatenation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, combining ``Series`` or ``DataFrames`` which contain the same

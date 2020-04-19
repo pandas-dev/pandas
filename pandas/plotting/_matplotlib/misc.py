@@ -260,6 +260,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     import matplotlib.pyplot as plt
 
+    # TODO: is the failure mentioned below still relevant?
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]

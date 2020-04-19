@@ -8,13 +8,14 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
+    ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
@@ -30,9 +31,9 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.base import _shared_docs
+from pandas.core.base import IndexOpsMixin
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.extension import (
     ExtensionIndex,
     inherit_names,
@@ -42,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import DateOffset, to_offset
+from pandas.tseries.frequencies import DateOffset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -100,6 +101,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @property
     def is_all_dates(self) -> bool:
         return True
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -172,7 +179,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
+            # NB: using asi8 instead of _data matters in numpy 1.18
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
             sorted_values = np.sort(self.asi8)
@@ -205,7 +212,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
-    @Appender(_shared_docs["searchsorted"])
+    @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, str):
             raise TypeError(
@@ -426,6 +433,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
+    @Appender(Index.get_indexer_non_unique.__doc__)
+    def get_indexer_non_unique(self, target):
+        target = ensure_index(target)
+        pself, ptarget = self._maybe_promote(target)
+        if pself is not self or ptarget is not target:
+            return pself.get_indexer_non_unique(ptarget)
+
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
+        tgt_values = target.asi8
+        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+        return ensure_platform_int(indexer), missing
+
     # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
@@ -601,19 +623,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         freq : DateOffset, None, or "infer"
         """
         # GH#29843
-        if freq is None:
-            # Always valid
-            pass
-        elif len(self) == 0 and isinstance(freq, DateOffset):
-            # Always valid.  In the TimedeltaIndex case, we assume this
-            #  is a Tick offset.
-            pass
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
-            freq = to_offset(self.inferred_freq)
+        self._data._with_freq(freq)
 
-        self._data._freq = freq
+    def _with_freq(self, freq):
+        index = self.copy(deep=False)
+        index._set_freq(freq)
+        return index
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
@@ -714,10 +729,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[])
+            return type(self)(data=[], dtype=self.dtype, freq=self.freq)
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
+            left_chunk = left._values[lslice]
             return self._shallow_copy(left_chunk)
 
     def _can_fast_union(self, other) -> bool:
@@ -768,8 +783,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[:loc]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -783,8 +798,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[loc:]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -930,6 +945,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            elif self.freq is not None:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
                     freq = self.freq
             item = item.asm8
 

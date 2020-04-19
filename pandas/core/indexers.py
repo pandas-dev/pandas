@@ -65,18 +65,26 @@ def is_list_like_indexer(key) -> bool:
     return is_list_like(key) and not (isinstance(key, tuple) and type(key) is not tuple)
 
 
-def is_scalar_indexer(indexer, arr_value) -> bool:
+def is_scalar_indexer(indexer, ndim: int) -> bool:
     """
     Return True if we are all scalar indexers.
+
+    Parameters
+    ----------
+    indexer : object
+    ndim : int
+        Number of dimensions in the object being indexed.
 
     Returns
     -------
     bool
     """
-    if arr_value.ndim == 1:
-        if not isinstance(indexer, tuple):
-            indexer = tuple([indexer])
-            return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
+    if isinstance(indexer, tuple):
+        if len(indexer) == ndim:
+            return all(
+                is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
+                for x in indexer
+            )
     return False
 
 
