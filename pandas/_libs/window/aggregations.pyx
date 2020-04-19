@@ -858,7 +858,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0 or (end - start).max() == 0:
+    if (end - start).max() == 0:
         output[:] = NaN
         return output
     win = (end - start).max()

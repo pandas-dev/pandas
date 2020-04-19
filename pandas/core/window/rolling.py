@@ -1429,22 +1429,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
-
-        # GH 32865. For correct median calculation we need window_size
-        # only to build a skiplist of appropriate number of levels
-        # so for custom BaseIndexer subclasses we pick max(end - start)
-        if isinstance(self.window, BaseIndexer):
-            values = getattr(self._selected_obj, "values", self._selected_obj)
-            start, end = self.window.get_window_bounds(
-                num_values=len(values),
-                min_periods=self.min_periods,
-                center=self.center,
-                closed=self.closed,
-            )
-            win = (end - start).max()
-        else:
-            win = self._get_window()
-
+        # GH 32865. For custom BaseIndexer implementations, _get_window returns
+        # 0 or min_periods, while it should return max window size
+        # We override it inside the median function implementation
+        win = self._get_window()
         window_func = partial(window_func, win=win)
         return self._apply(window_func, center=self.center, name="median", **kwargs)
 
