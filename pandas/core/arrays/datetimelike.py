@@ -39,8 +39,9 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.array_algos.transforms import shift
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -425,7 +426,9 @@ default 'raise'
         return self
 
 
-class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray):
+class DatetimeLikeArrayMixin(
+    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
+):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -436,6 +439,20 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     and that the inheriting class has methods:
         _generate_range
     """
+
+    # ------------------------------------------------------------------
+    # NDArrayBackedExtensionArray compat
+
+    @property
+    def _ndarray(self) -> np.ndarray:
+        # NB: A bunch of Interval tests fail if we use ._data
+        return self.asi8
+
+    def _from_backing_data(self, arr: np.ndarray):
+        # Note: we do not retain `freq`
+        return type(self)(arr, dtype=self.dtype)  # type: ignore
+
+    # ------------------------------------------------------------------
 
     @property
     def ndim(self) -> int:
@@ -710,16 +727,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
             )
         return fill_value
-
-    def take(self, indices, allow_fill=False, fill_value=None):
-        if allow_fill:
-            fill_value = self._validate_fill_value(fill_value)
-
-        new_values = take(
-            self.asi8, indices, allow_fill=allow_fill, fill_value=fill_value
-        )
-
-        return type(self)(new_values, dtype=self.dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
