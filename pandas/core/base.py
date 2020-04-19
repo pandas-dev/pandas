@@ -1184,7 +1184,7 @@ class IndexOpsMixin:
          bins : integer or iterable of numeric, optional
             Rather than count individual values, group them into half-open bins.
             Only works with numeric data.
-            If int, interpreted as number of bins and will use ``pd.cut``.
+            If int, interpreted as number of bins and will use ``pd.cut``
             If interable of numeric, will use provided numbers as bin endpoints.
 
         dropna : bool, default True
