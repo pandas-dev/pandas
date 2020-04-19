@@ -7,7 +7,7 @@ from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     ensure_int64,
     is_bool_dtype,
     is_categorical_dtype,
@@ -247,7 +247,7 @@ def cut(
 
     else:
         if is_datetime64tz_dtype(bins):
-            bins = np.asarray(bins, dtype=_NS_DTYPE)
+            bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)

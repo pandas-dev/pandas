@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
@@ -621,69 +620,6 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
-        ],
-    )
-    def test_index_contains(self, index, val):
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), "2"),
-            (Index([0, 1, "2"]), 2),
-            (Index([0, 1, 2, np.inf]), 4),
-            (Index([0, 1, 2, np.nan]), 4),
-            (Index([0, 1, 2, np.inf]), np.nan),
-            (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
-            # Related to GH 16957
-            (pd.Int64Index([0, 1, 2]), np.inf),
-            (pd.Int64Index([0, 1, 2]), np.nan),
-            (pd.UInt64Index([0, 1, 2]), np.inf),
-            (pd.UInt64Index([0, 1, 2]), np.nan),
-        ],
-    )
-    def test_index_not_contains(self, index, val):
-        assert val not in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
-        # GH 19860
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
-    def test_mixed_index_not_contains(self, index, val):
-        # GH 19860
-        assert val not in index
-
-    def test_contains_with_float_index(self):
-        # GH#22085
-        integer_index = pd.Int64Index([0, 1, 2, 3])
-        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
-        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
-
-        for index in (integer_index, uinteger_index):
-            assert 1.1 not in index
-            assert 1.0 in index
-            assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
-
     def test_index_type_coercion(self):
 
         # GH 11836
@@ -1049,30 +985,6 @@ class TestDataframeNoneCoercion:
             }
         )
         tm.assert_frame_equal(start_dataframe, exp)
-
-
-def test_validate_indices_ok():
-    indices = np.asarray([0, 1])
-    validate_indices(indices, 2)
-    validate_indices(indices[:0], 0)
-    validate_indices(np.array([-1, -1]), 0)
-
-
-def test_validate_indices_low():
-    indices = np.asarray([0, -2])
-    with pytest.raises(ValueError, match="'indices' contains"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_high():
-    indices = np.asarray([0, 1, 2])
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_empty():
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(np.array([0, 1]), 0)
 
 
 def test_extension_array_cross_section():

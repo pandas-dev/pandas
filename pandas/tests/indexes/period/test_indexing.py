@@ -31,6 +31,10 @@ class TestGetItem:
         assert result.equals(idx)
         assert result is not idx
 
+    def test_getitem_slice_keeps_name(self):
+        idx = period_range("20010101", periods=10, freq="D", name="bob")
+        assert idx.name == idx[1:].name
+
     def test_getitem(self):
         idx1 = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
 

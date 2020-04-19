@@ -30,7 +30,9 @@ class TestTimedeltaIndex(DatetimeLike):
         return tm.makeTimedeltaIndex(10)
 
     def create_index(self) -> TimedeltaIndex:
-        return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
+        assert index.freq == "D"
+        return index + pd.offsets.Hour(1)
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
@@ -42,21 +44,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_pickle_compat_construction(self):
         pass
-
-    def test_fillna_timedelta(self):
-        # GH 11343
-        idx = pd.TimedeltaIndex(["1 day", pd.NaT, "3 day"])
-
-        exp = pd.TimedeltaIndex(["1 day", "2 day", "3 day"])
-        tm.assert_index_equal(idx.fillna(pd.Timedelta("2 day")), exp)
-
-        exp = pd.TimedeltaIndex(["1 day", "3 hour", "3 day"])
-        idx.fillna(pd.Timedelta("3 hour"))
-
-        exp = pd.Index(
-            [pd.Timedelta("1 day"), "x", pd.Timedelta("3 day")], dtype=object
-        )
-        tm.assert_index_equal(idx.fillna("x"), exp)
 
     def test_isin(self):
 

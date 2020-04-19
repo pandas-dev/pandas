@@ -18,6 +18,11 @@ class TestGetItem:
         assert result.equals(idx)
         assert result is not idx
 
+    def test_getitem_slice_keeps_name(self):
+        # GH#4226
+        tdi = timedelta_range("1d", "5d", freq="H", name="timebucket")
+        assert tdi[1:].name == tdi.name
+
     def test_getitem(self):
         idx1 = timedelta_range("1 day", "31 day", freq="D", name="idx")
 

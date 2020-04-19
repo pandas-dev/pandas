@@ -1161,7 +1161,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
-        >>> __add__ = cls._create_method(operator.add)
+            __add__ = cls._create_method(operator.add)
 
         in the class definition of MyExtensionArray to create the operator
         for addition, that will be based on the operator implementation
@@ -1206,7 +1206,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             return _maybe_convert(res)
 
-        op_name = ops._get_op_name(op, True)
+        op_name = f"__{op.__name__}__"
         return set_function_name(_binop, op_name, cls)
 
     @classmethod

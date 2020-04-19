@@ -13,13 +13,6 @@ class TestDataFrameTimeSeriesMethods:
         df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
-    def test_frame_append_datetime64_column(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
-        df = DataFrame(index=np.arange(len(rng)))
-
-        df["A"] = rng
-        assert np.issubdtype(df["A"].dtype, np.dtype("M8[ns]"))
-
     def test_frame_append_datetime64_col_other_units(self):
         n = 100
 
@@ -53,29 +46,6 @@ class TestDataFrameTimeSeriesMethods:
             ex_vals = to_datetime(vals.astype("O")).values
 
             assert (tmp["dates"].values == ex_vals).all()
-
-    def test_operation_on_NaT(self):
-        # Both NaT and Timestamp are in DataFrame.
-        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT, pd.Timestamp("2012-05-01")]})
-
-        res = df.min()
-        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
-        tm.assert_series_equal(res, exp)
-
-        res = df.max()
-        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
-        tm.assert_series_equal(res, exp)
-
-        # GH12941, only NaTs are in DataFrame.
-        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT]})
-
-        res = df.min()
-        exp = pd.Series([pd.NaT], index=["foo"])
-        tm.assert_series_equal(res, exp)
-
-        res = df.max()
-        exp = pd.Series([pd.NaT], index=["foo"])
-        tm.assert_series_equal(res, exp)
 
     def test_datetime_assignment_with_NaT_and_diff_time_units(self):
         # GH 7492

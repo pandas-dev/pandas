@@ -175,7 +175,7 @@ class TestSeriesAppendWithDatetimeIndex:
         ts_result = ser1.append(ser2)
 
         exp_index = DatetimeIndex(
-            ["2011-01-01 01:00", "2011-01-01 02:00"], tz="US/Eastern"
+            ["2011-01-01 01:00", "2011-01-01 02:00"], tz="US/Eastern", freq="H"
         )
         exp = Series([1, 2], index=exp_index)
         tm.assert_series_equal(ts_result, exp)
@@ -187,7 +187,9 @@ class TestSeriesAppendWithDatetimeIndex:
         ser2 = Series([2], index=rng2)
         ts_result = ser1.append(ser2)
 
-        exp_index = DatetimeIndex(["2011-01-01 01:00", "2011-01-01 02:00"], tz="UTC")
+        exp_index = DatetimeIndex(
+            ["2011-01-01 01:00", "2011-01-01 02:00"], tz="UTC", freq="H"
+        )
         exp = Series([1, 2], index=exp_index)
         tm.assert_series_equal(ts_result, exp)
         utc = rng1.tz

@@ -23,8 +23,9 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
+from pandas.core.arrays.categorical import Categorical, contains, recode_for_categories
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
@@ -91,8 +92,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
-
-        .. versionadded:: 0.21.0
     copy : bool, default False
         Make a copy of input ndarray.
     name : object, optional
@@ -138,21 +137,25 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     Examples
     --------
-    >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
 
-    >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> c = pd.Categorical(["a", "b", "c", "a", "b", "c"])
     >>> pd.CategoricalIndex(c)
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     Ordered ``CategoricalIndex`` can have a min and max value.
 
-    >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
-    ...                          categories=['c', 'b', 'a'])
+    >>> ci = pd.CategoricalIndex(
+    ...     ["a", "b", "c", "a", "b", "c"], ordered=True, categories=["c", "b", "a"]
+    ... )
     >>> ci
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+                     categories=['c', 'b', 'a'], ordered=True, dtype='category')
     >>> ci.min()
     'c'
     """
@@ -196,8 +199,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 data = []
 
         assert isinstance(dtype, CategoricalDtype), dtype
-        if not isinstance(data, Categorical) or data.dtype != dtype:
+        data = extract_array(data, extract_numpy=True)
+
+        if not isinstance(data, Categorical):
             data = Categorical(data, dtype=dtype)
+        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
+            # we want to silently ignore dtype='category'
+            data = data._set_dtype(dtype)
 
         data = data.copy() if copy else data
 
@@ -540,7 +548,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 # we have the same codes
                 codes = target.codes
             else:
-                codes = _recode_for_categories(
+                codes = recode_for_categories(
                     target.codes, target.categories, self._values.categories
                 )
         else:
@@ -652,7 +660,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
-                         ordered=False, dtype='category')
+                          ordered=False, dtype='category')
         >>> idx.map(lambda x: x.upper())
         CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
                          ordered=False, dtype='category')
