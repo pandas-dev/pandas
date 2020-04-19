@@ -159,7 +159,7 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_s3_fails(self):
+    def test_read_s3_fails(self):
         with pytest.raises(IOError):
             read_csv("s3://nyqpug/asdf.csv")
 
@@ -167,6 +167,20 @@ class TestS3:
         # It's irrelevant here that this isn't actually a table.
         with pytest.raises(IOError):
             read_csv("s3://cant_get_it/file.csv")
+
+    def test_write_s3_csv_fails(self, tips_df):
+        # GH 32486
+        with pytest.raises(
+            FileNotFoundError, match="The specified bucket does not exist"
+        ):
+            tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
+
+    def test_write_s3_parquet_fails(self, tips_df):
+        # GH 27679
+        with pytest.raises(
+            FileNotFoundError, match="The specified bucket does not exist"
+        ):
+            tips_df.to_parquet("s3://an_s3_bucket_data_doesnt_exit/not_real.parquet")
 
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
         # see gh-16135
