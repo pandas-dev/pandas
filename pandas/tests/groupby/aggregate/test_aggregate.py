@@ -268,6 +268,7 @@ def test_agg_multiple_functions_same_name(df):
     )
     tm.assert_frame_equal(result, expected)
 
+    # check what happens if ohlc (which expands dimensions) is present
     result = df.resample("3D").agg(
         {
             "A": [
@@ -277,7 +278,21 @@ def test_agg_multiple_functions_same_name(df):
             ]
         }
     )
-    pass
+    expected_columns = pd.MultiIndex.from_tuples(
+        [
+            ("A", "ohlc", "open"),
+            ("A", "ohlc", "high"),
+            ("A", "ohlc", "low"),
+            ("A", "ohlc", "close"),
+            ("A", "std", "A"),
+            ("A", "std", "A"),
+        ]
+    )
+    expected_values = np.hstack([df.resample("3D").A.ohlc(), expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):
