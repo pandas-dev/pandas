@@ -2278,7 +2278,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output: Dict[base.OutputKey, np.ndarray, str:str] = {}
+        output: Dict[Union[base.OutputKey, str], Union[np.ndarray, str]] = {}
         base_func = getattr(libgroupby, how)
         obj = self._selected_obj
         if isinstance(obj, DataFrame):
