@@ -2,6 +2,7 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import functools
+from functools import partial
 
 import numpy as np
 import pytest
@@ -289,6 +290,27 @@ def test_agg_multiple_functions_same_name(df):
         ]
     )
     expected_values = np.hstack([df.resample("3D").A.ohlc(), expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_named_aggregation_with_resample():
+    # GH 30092
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.90)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
+    expected_values = expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.9]]
+    ).T
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
