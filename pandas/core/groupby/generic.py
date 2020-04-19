@@ -294,7 +294,6 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             ret = concat(ret.values(), axis=1, keys=[key.label for key in ret.keys()])
-
         return ret
 
     agg = aggregate
