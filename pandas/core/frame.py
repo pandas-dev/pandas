@@ -6655,8 +6655,7 @@ Wild         185.0
         If columns are a MultiIndex then use this level to melt.
     keep_index : boolean, optional, default False
             If True, the original index is reused.
-            In the resulting MulitIndex the names of the unpivoted columns
-            are added as an additional level to ensure uniqueness.
+            There is no uniqueness guarantee.
 
     Returns
     -------
