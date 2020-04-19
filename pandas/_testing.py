@@ -73,10 +73,10 @@ _N = 30
 _K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
-UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
+UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
+SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
@@ -84,8 +84,8 @@ FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
 COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
-DATETIME64_DTYPES = ["datetime64[ns]", "M8[ns]"]
-TIMEDELTA64_DTYPES = ["timedelta64[ns]", "m8[ns]"]
+DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
 BOOL_DTYPES = [bool, "bool"]
 BYTES_DTYPES = [bytes, "bytes"]
