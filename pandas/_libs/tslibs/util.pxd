@@ -219,7 +219,7 @@ cdef inline bint is_nan(object val):
 
 
 cdef inline const char* get_c_string_buf_and_size(str py_string,
-                                                  Py_ssize_t *length):
+                                                  Py_ssize_t *length) except NULL:
     """
     Extract internal char* buffer of unicode or bytes object `py_string` with
     getting length of this internal buffer saved in `length`.
@@ -238,11 +238,8 @@ cdef inline const char* get_c_string_buf_and_size(str py_string,
     -------
     buf : const char*
     """
-    try:
-        return PyUnicode_AsUTF8AndSize(py_string, length)
-    except UnicodeEncodeError:
-        return NULL
+    return PyUnicode_AsUTF8AndSize(py_string, length)
 
 
-cdef inline const char* get_c_string(str py_string):
+cdef inline const char* get_c_string(str py_string) except NULL:
     return get_c_string_buf_and_size(py_string, NULL)
