@@ -1258,6 +1258,7 @@ class IndexOpsMixin:
         1.0    1
         dtype: int64
         """
+
         result = value_counts(
             self,
             sort=sort,
