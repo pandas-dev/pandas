@@ -29,8 +29,8 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
+    keep_index=False,
 ) -> DataFrame:
-    # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, ABCMultiIndex):
@@ -115,7 +115,23 @@ def melt(
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
-    return frame._constructor(mdata, columns=mcolumns)
+    result = frame._constructor(mdata, columns=mcolumns)
+
+    if keep_index:
+        orig_index_values = list(np.tile(frame.index.values, K))
+
+        if len(frame.index.names) == len(set(frame.index.names)):
+            orig_index_names = frame.index.names
+        else:
+            orig_index_names = [
+                "original_index_{i}".format(i=i) for i in range(len(frame.index.names))
+            ]
+
+        result[orig_index_names] = frame._constructor(orig_index_values)
+
+        result = result.set_index(orig_index_names + list(var_name))
+
+    return result
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)

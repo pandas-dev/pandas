@@ -333,6 +333,14 @@ class TestMelt:
         expected = DataFrame({"variable": [0, "a"], "value": ["foo", "bar"]})
         tm.assert_frame_equal(result, expected)
 
+    def test_keep_index(self):
+        df = DataFrame({"foo": [0], "bar": [1]}, index=["first"])
+        result = melt(df, keep_index=True)
+        expected = DataFrame(
+            {"variable": ["foo", "bar"], "value": [0, 1]}, index=["first", "first"]
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
