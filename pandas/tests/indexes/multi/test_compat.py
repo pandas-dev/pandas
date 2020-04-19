@@ -53,7 +53,11 @@ def test_boolean_context_compat2():
     i2 = MultiIndex.from_tuples([("A", 1), ("A", 3)])
     common = i1.intersection(i2)
 
-    with pytest.raises(ValueError):
+    msg = (
+        r"The truth value of a MultiIndex is ambiguous\. "
+        r"Use a\.empty, a\.bool\(\), a\.item\(\), a\.any\(\) or a\.all\(\)\."
+    )
+    with pytest.raises(ValueError, match=msg):
         bool(common)
 
 
