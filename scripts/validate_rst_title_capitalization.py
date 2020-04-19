@@ -123,6 +123,8 @@ CAPITALIZATION_EXCEPTIONS = {
     "None",
     "Expanding",
     "False",
+    "Styler",
+    "os",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
