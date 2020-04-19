@@ -54,7 +54,8 @@ def test_ufuncs_binary(ufunc):
     tm.assert_extension_array_equal(result, expected)
 
     # not handled types
-    with pytest.raises(TypeError):
+    msg = r"operand type\(s\) all returned NotImplemented from __array_ufunc__"
+    with pytest.raises(TypeError, match=msg):
         ufunc(a, "test")
 
 
@@ -76,7 +77,8 @@ def test_ufuncs_unary(ufunc):
 @pytest.mark.parametrize("values", [[True, False], [True, None]])
 def test_ufunc_reduce_raises(values):
     a = pd.array(values, dtype="boolean")
-    with pytest.raises(NotImplementedError):
+    msg = "The 'reduce' method is not supported"
+    with pytest.raises(NotImplementedError, match=msg):
         np.add.reduce(a)
 
 

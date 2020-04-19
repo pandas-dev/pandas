@@ -117,7 +117,8 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
+        msg = "index 5 is out of bounds for axis 0 with size 5"
+        with pytest.raises((IndexError, ValueError), match=msg):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
