@@ -347,7 +347,7 @@ class SparseDtype(ExtensionDtype):
         dtype('O')
 
         >>> dtype._subtype_with_str
-        str
+        <class 'str'>
         """
         if isinstance(self.fill_value, str):
             return type(self.fill_value)

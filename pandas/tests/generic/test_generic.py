@@ -162,12 +162,12 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast()
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast()
+        result._mgr = o._mgr.downcast()
         self._compare(result, o)
 
     def test_constructor_compound_dtypes(self):

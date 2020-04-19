@@ -13,7 +13,6 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -1150,8 +1149,7 @@ class IndexOpsMixin:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)
-            values = getattr(values, "values", values)
+            values = self.astype(object)._values
             if na_action == "ignore":
 
                 def map_f(values, f):
@@ -1393,7 +1391,7 @@ class IndexOpsMixin:
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
     @doc(
@@ -1511,18 +1509,14 @@ class IndexOpsMixin:
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
-    def drop_duplicates(self, keep="first", inplace=False):
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
@@ -1532,10 +1526,4 @@ class IndexOpsMixin:
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
-        raise AbstractMethodError(self)
+            ).__finalize__(self, method="duplicated")

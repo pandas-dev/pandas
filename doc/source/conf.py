@@ -109,6 +109,7 @@ with open(os.path.join(source_path, "index.rst"), "w") as f:
         )
     )
 autosummary_generate = True if pattern is None else ["index"]
+autodoc_typehints = "none"
 
 # numpydoc
 numpydoc_attributes_as_param_list = False
@@ -415,6 +416,7 @@ if pattern is None:
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
         "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
