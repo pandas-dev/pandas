@@ -78,6 +78,18 @@ class TestSeriesGetitemSlices:
 
 
 class TestSeriesGetitemListLike:
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+    def test_getitem_no_matches(self, box):
+        # GH#33462 we expect the same behavior for list/ndarray/Index/Series
+        ser = Series(["A", "B"])
+
+        key = Series(["C"], dtype=object)
+        key = box(key)
+
+        msg = r"None of \[Index\(\['C'\], dtype='object'\)\] are in the \[index\]"
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
+
     def test_getitem_intlist_intindex_periodvalues(self):
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 

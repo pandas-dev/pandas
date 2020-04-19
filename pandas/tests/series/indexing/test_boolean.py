@@ -29,11 +29,6 @@ def test_getitem_boolean_empty():
     # GH5877
     # indexing with empty series
     s = Series(["A", "B"])
-    expected = Series(np.nan, index=["C"], dtype=object)
-    result = s[Series(["C"], dtype=object)]
-    tm.assert_series_equal(result, expected)
-
-    s = Series(["A", "B"])
     expected = Series(dtype=object, index=Index([], dtype="int64"))
     result = s[Series([], dtype=object)]
     tm.assert_series_equal(result, expected)
