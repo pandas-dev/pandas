@@ -1046,7 +1046,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _get_label(self, label, axis: int):
         # GH#5667 this will fail if the label is not present in the axis.
-        return self.obj._xs(label, axis=axis)
+        return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
