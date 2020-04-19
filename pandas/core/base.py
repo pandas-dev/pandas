@@ -1176,17 +1176,20 @@ class IndexOpsMixin:
         Parameters
         ----------
         normalize : bool, default False
-            If True then the object returned will contain the relative
-            frequencies of the unique values.
+            If True, outputs the relative frequencies of the unique values.
         sort : bool, default True
             Sort by frequencies.
         ascending : bool, default False
             Sort in ascending order.
-        bins : int, optional
-            Rather than count values, group them into half-open bins,
-            a convenience for ``pd.cut``, only works with numeric data.
+         bins : integer or iterable of numeric, optional
+            Rather than count individual values, group them into half-open bins.
+            Only works with numeric data.
+            If int, interpreted as number of bins and will use ``pd.cut``.
+            If interable of numeric, will use provided numbers as bin endpoints.
+
         dropna : bool, default True
             Don't include counts of NaN.
+            If False and NaNs are present, NaN will be a key in the output.
 
         Returns
         -------
@@ -1223,13 +1226,24 @@ class IndexOpsMixin:
 
         Bins can be useful for going from a continuous variable to a
         categorical variable; instead of counting unique
-        apparitions of values, divide the index in the specified
-        number of half-open bins.
+        instances of values, count the number of values that fall
+        into half-open intervals.
+
+        Bins can be an int.
 
         >>> s.value_counts(bins=3)
         (2.0, 3.0]      2
         (0.996, 2.0]    2
         (3.0, 4.0]      1
+        dtype: int64
+
+        Bins can also be an iterable of numbers.  These numbers are treated
+        as endpoints for the intervals.
+
+        >>> s.value_counts(bins=[0,2,4,9])
+        (2.0, 4.0]      3
+        (-0.001, 2.0]    2
+        (4.0, 9.0]       0
         dtype: int64
 
         **dropna**

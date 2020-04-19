@@ -663,12 +663,16 @@ def value_counts(
     ascending : bool, default False
         Sort in ascending order
     normalize: bool, default False
-        If True then compute a relative histogram
-    bins : integer, optional
-        Rather than count values, group them into half-open bins,
-        convenience for pd.cut, only works with numeric data
+        If True, then compute a relative histogram that outputs the
+        proportion of each value.
+    bins : integer or iterable of numeric, optional
+        Rather than count values, group them into half-open bins.
+        Only works with numeric data.
+        If int, interpreted as number of bins and will use pd.cut.
+        If interable of numeric, will use provided numbers as bin endpoints.
     dropna : bool, default True
-        Don't include counts of NaN
+        Don't include counts of NaN.
+        If False and NaNs are present, NaN will be a key in the output.
 
     Returns
     -------
