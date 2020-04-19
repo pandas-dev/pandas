@@ -21,7 +21,6 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     ensure_int32,
     is_bool,
     is_datetime64_any_dtype,
@@ -1502,13 +1501,3 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = ensure_int32(values)
     assert result.dtype == np.int32
-
-
-def test_ensure_categorical():
-    values = np.arange(10, dtype=np.int32)
-    result = ensure_categorical(values)
-    assert result.dtype == "category"
-
-    values = Categorical(values)
-    result = ensure_categorical(values)
-    tm.assert_categorical_equal(result, values)
