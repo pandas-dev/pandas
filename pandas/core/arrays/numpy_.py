@@ -17,8 +17,9 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops
-from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.algorithms import searchsorted, unique
 from pandas.core.array_algos import masked_reductions
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -120,7 +121,9 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
+class PandasArray(
+    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+):
     """
     A pandas ExtensionArray for NumPy data.
 
@@ -190,6 +193,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat) -> "PandasArray":
         return cls(np.concatenate(to_concat))
+
+    def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
+        return type(self)(arr)
 
     # ------------------------------------------------------------------------
     # Data
@@ -272,13 +278,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         self._ndarray[key] = value
 
-    def __len__(self) -> int:
-        return len(self._ndarray)
-
-    @property
-    def nbytes(self) -> int:
-        return self._ndarray.nbytes
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -311,17 +310,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             new_values = self.copy()
         return new_values
 
-    def take(self, indices, allow_fill=False, fill_value=None) -> "PandasArray":
+    def _validate_fill_value(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
-        result = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
-        )
-        return type(self)(result)
-
-    def copy(self) -> "PandasArray":
-        return type(self)(self._ndarray.copy())
+        return fill_value
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray

@@ -1,7 +1,8 @@
-from typing import Any, Sequence, TypeVar
+from typing import Any, Sequence, Tuple, TypeVar
 
 import numpy as np
 
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.algorithms import take
@@ -60,3 +61,55 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         ValueError
         """
         raise AbstractMethodError(self)
+
+    # ------------------------------------------------------------------------
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self._ndarray.shape
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        return np.prod(self.shape)
+
+    @property
+    def nbytes(self) -> int:
+        return self._ndarray.nbytes
+
+    def reshape(self: _T, *args, **kwargs) -> _T:
+        new_data = self._ndarray.reshape(*args, **kwargs)
+        return self._from_backing_data(new_data)
+
+    def ravel(self: _T, *args, **kwargs) -> _T:
+        new_data = self._ndarray.ravel(*args, **kwargs)
+        return self._from_backing_data(new_data)
+
+    @property
+    def T(self: _T) -> _T:
+        new_data = self._ndarray.T
+        return self._from_backing_data(new_data)
+
+    # ------------------------------------------------------------------------
+
+    def copy(self: _T) -> _T:
+        new_data = self._ndarray.copy()
+        return self._from_backing_data(new_data)
+
+    def repeat(self: _T, repeats, axis=None) -> _T:
+        """
+        Repeat elements of an array.
+
+        See Also
+        --------
+        numpy.ndarray.repeat
+        """
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        new_data = self._ndarray.repeat(repeats, axis=axis)
+        return self._from_backing_data(new_data)
