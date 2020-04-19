@@ -949,11 +949,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.iloc[key]
 
-        if isinstance(key, list):
-            # handle the dup indexing case GH#4246
-            return self.loc[key]
-
-        return self.reindex(key)
+        # handle the dup indexing case GH#4246
+        return self.loc[key]
 
     def _get_values_tuple(self, key):
         # mpl hackaround
