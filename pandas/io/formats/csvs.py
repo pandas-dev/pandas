@@ -219,10 +219,12 @@ class CSVFormatter:
                     )
                     f.write(buf)
                     close = True
-            if close or self.should_close:
+            if close:
                 f.close()
                 for _fh in handles:
                     _fh.close()
+            elif self.should_close:
+                f.close()
 
     def _save_header(self):
         writer = self.writer
