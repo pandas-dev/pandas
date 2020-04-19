@@ -14,6 +14,7 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.multi import MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -118,7 +119,12 @@ def melt(
     result = frame._constructor(mdata, columns=mcolumns)
 
     if keep_index:
-        result = result.set_index(np.tile(frame.index.values, K))
+        new_index = np.tile(frame.index.values, K)
+
+        if isinstance(frame.index, MultiIndex):  # Index of tuples otherwise
+            new_index = MultiIndex.from_tuples(new_index)
+
+        result = result.set_index(new_index)
 
     return result
 

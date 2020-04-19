@@ -341,6 +341,21 @@ class TestMelt:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_keep_multiindex(self):
+        index = pd.MultiIndex.from_tuples([("first", "second"), ("first", "third")])
+        df = DataFrame({"foo": [0, 1], "bar": [2, 3]}, index=index)
+        result = melt(df, keep_index=True)
+
+        expected_index = pd.MultiIndex.from_tuples(
+            [("first", "second"), ("first", "third")] * 2
+        )
+        expected = DataFrame(
+            {"variable": ["foo"] * 2 + ["bar"] * 2, "value": [0, 1, 2, 3]},
+            index=expected_index,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
