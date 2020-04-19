@@ -8,6 +8,10 @@ import pandas._testing as tm
 
 
 class TestSeriesSortIndex:
+    def test_sort_index_name(self, datetime_series):
+        result = datetime_series.sort_index(ascending=False)
+        assert result.name == datetime_series.name
+
     def test_sort_index(self, datetime_series):
         rindex = list(datetime_series.index)
         random.shuffle(rindex)

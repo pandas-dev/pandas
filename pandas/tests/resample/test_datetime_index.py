@@ -122,9 +122,7 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7],
-        index=pd.date_range("1/1/2000", periods=3, freq="3T"),
-        dtype="float64",
+        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64",
     )
     tm.assert_series_equal(result, expected)
 
@@ -1438,6 +1436,24 @@ def test_downsample_across_dst_weekly():
         dtype=np.float64,
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_downsample_dst_at_midnight():
+    # GH 25758
+    start = datetime(2018, 11, 3, 12)
+    end = datetime(2018, 11, 5, 12)
+    index = pd.date_range(start, end, freq="1H")
+    index = index.tz_localize("UTC").tz_convert("America/Havana")
+    data = list(range(len(index)))
+    dataframe = pd.DataFrame(data, index=index)
+    result = dataframe.groupby(pd.Grouper(freq="1D")).mean()
+    expected = DataFrame(
+        [7.5, 28.0, 44.5],
+        index=date_range("2018-11-03", periods=3).tz_localize(
+            "America/Havana", ambiguous=True
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_with_nat():

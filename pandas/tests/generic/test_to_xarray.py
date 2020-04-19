@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
@@ -9,21 +7,9 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
-try:
-    import xarray
-
-    _XARRAY_INSTALLED = True
-except ImportError:
-    _XARRAY_INSTALLED = False
-
 
 class TestDataFrameToXArray:
-    @pytest.mark.skipif(
-        not _XARRAY_INSTALLED
-        or _XARRAY_INSTALLED
-        and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
-        reason="xarray >= 0.10.0 required",
-    )
+    @td.skip_if_no("xarray", "0.10.0")
     def test_to_xarray_index_types(self, indices):
         if isinstance(indices, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
@@ -106,19 +92,14 @@ class TestDataFrameToXArray:
 
 
 class TestSeriesToXArray:
-    @pytest.mark.skipif(
-        not _XARRAY_INSTALLED
-        or _XARRAY_INSTALLED
-        and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
-        reason="xarray >= 0.10.0 required",
-    )
+    @td.skip_if_no("xarray", "0.10.0")
     def test_to_xarray_index_types(self, indices):
         if isinstance(indices, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
 
         from xarray import DataArray
 
-        s = Series(range(len(indices)), index=indices)
+        s = Series(range(len(indices)), index=indices, dtype="int64")
         s.index.name = "foo"
         result = s.to_xarray()
         repr(result)
@@ -142,7 +123,7 @@ class TestSeriesToXArray:
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, DataArray)
 
-        s = Series(range(6))
+        s = Series(range(6), dtype="int64")
         s.index.name = "foo"
         s.index = pd.MultiIndex.from_product(
             [["a", "b"], range(3)], names=["one", "two"]

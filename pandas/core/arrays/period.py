@@ -23,7 +23,7 @@ from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
+    TD64NS_DTYPE,
     ensure_object,
     is_datetime64_dtype,
     is_float_dtype,
@@ -39,7 +39,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
+from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -166,7 +166,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @classmethod
     def _simple_new(cls, values: np.ndarray, freq=None, **kwargs) -> "PeriodArray":
         # alias for PeriodArray.__init__
-        assert isinstance(values, np.ndarray) and values.dtype == "i8"
+        assertion_msg = "Should be numpy array of type i8"
+        assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -486,7 +487,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def asfreq(self, freq=None, how="E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
         """
         Convert the Period Array/Index to the specified frequency `freq`.
 
@@ -717,10 +718,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         elif isinstance(other, np.ndarray):
             # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == "m"
-            if other.dtype != _TD_DTYPE:
+            if other.dtype != TD64NS_DTYPE:
                 # i.e. non-nano unit
                 # TODO: disallow unit-less timedelta64
-                other = other.astype(_TD_DTYPE)
+                other = other.astype(TD64NS_DTYPE)
             nanos = other.view("i8")
         else:
             # TimedeltaArray/Index
@@ -758,7 +759,7 @@ def raise_on_incompatible(left, right):
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
     else:
-        other_freq = _delta_to_tick(Timedelta(right)).freqstr
+        other_freq = delta_to_tick(Timedelta(right)).freqstr
 
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=left.freqstr, other_freq=other_freq
@@ -817,6 +818,7 @@ def period_array(
     Integers that look like years are handled
 
     >>> period_array([2000, 2001, 2002], freq='D')
+    <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
@@ -829,11 +831,11 @@ def period_array(
     """
     if is_datetime64_dtype(data):
         return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
+    if is_period_dtype(data):
         return PeriodArray(data, freq)
 
     # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple)):
+    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
     data = np.asarray(data)

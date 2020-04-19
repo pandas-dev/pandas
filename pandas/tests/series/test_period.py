@@ -20,32 +20,11 @@ class TestSeriesPeriod:
         )
         assert series.dtype == "Period[D]"
 
-    def test_getitem(self):
-        assert self.series[1] == pd.Period("2000-01-02", freq="D")
-
-        result = self.series[[2, 4]]
-        exp = pd.Series(
-            [pd.Period("2000-01-03", freq="D"), pd.Period("2000-01-05", freq="D")],
-            index=[2, 4],
-            dtype="Period[D]",
-        )
-        tm.assert_series_equal(result, exp)
-        assert result.dtype == "Period[D]"
-
     def test_isna(self):
         # GH 13737
         s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
         tm.assert_series_equal(s.isna(), Series([False, True]))
         tm.assert_series_equal(s.notna(), Series([True, False]))
-
-    def test_fillna(self):
-        # GH 13737
-        s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
-
-        res = s.fillna(pd.Period("2012-01", freq="M"))
-        exp = Series([pd.Period("2011-01", freq="M"), pd.Period("2012-01", freq="M")])
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == "Period[M]"
 
     def test_dropna(self):
         # GH 13737
@@ -97,12 +76,6 @@ class TestSeriesPeriod:
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
-
-    def test_align_series(self, join_type):
-        rng = period_range("1/1/2000", "1/1/2010", freq="A")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        ts.align(ts[::2], join=join_type)
 
     @pytest.mark.parametrize(
         "input_vals",

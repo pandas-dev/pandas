@@ -132,7 +132,7 @@ class TestSeriesDtypes:
         expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
-    def test_astype_str_cast(self):
+    def test_astype_str_cast_dt64(self):
         # see gh-9757
         ts = Series([Timestamp("2010-01-04 00:00:00")])
         s = ts.astype(str)
@@ -146,11 +146,14 @@ class TestSeriesDtypes:
         expected = Series([str("2010-01-04 00:00:00-05:00")])
         tm.assert_series_equal(s, expected)
 
-        td = Series([Timedelta(1, unit="d")])
-        s = td.astype(str)
+    def test_astype_str_cast_td64(self):
+        # see gh-9757
 
-        expected = Series([str("1 days 00:00:00.000000000")])
-        tm.assert_series_equal(s, expected)
+        td = Series([Timedelta(1, unit="d")])
+        ser = td.astype(str)
+
+        expected = Series([str("1 days")])
+        tm.assert_series_equal(ser, expected)
 
     def test_astype_unicode(self):
         # see gh-7758: A bit of magic is required to set
@@ -311,9 +314,10 @@ class TestSeriesDtypes:
 
         # invalid conversion (these are NOT a dtype)
         msg = (
-            r"invalid type <class 'pandas\.core\.arrays\.categorical\."
-            "Categorical'> for astype"
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
         )
+
         for invalid in [
             lambda x: x.astype(Categorical),
             lambda x: x.astype("object").astype(Categorical),

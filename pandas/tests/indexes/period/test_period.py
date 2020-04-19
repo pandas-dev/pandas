@@ -67,35 +67,6 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(result, expected)
         assert result.freqstr == index.freqstr
 
-    def test_fillna_period(self):
-        # GH 11343
-        idx = PeriodIndex(["2011-01-01 09:00", NaT, "2011-01-01 11:00"], freq="H")
-
-        exp = PeriodIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"], freq="H"
-        )
-        tm.assert_index_equal(idx.fillna(Period("2011-01-01 10:00", freq="H")), exp)
-
-        exp = Index(
-            [
-                Period("2011-01-01 09:00", freq="H"),
-                "x",
-                Period("2011-01-01 11:00", freq="H"),
-            ],
-            dtype=object,
-        )
-        tm.assert_index_equal(idx.fillna("x"), exp)
-
-        exp = Index(
-            [
-                Period("2011-01-01 09:00", freq="H"),
-                Period("2011-01-01", freq="D"),
-                Period("2011-01-01 11:00", freq="H"),
-            ],
-            dtype=object,
-        )
-        tm.assert_index_equal(idx.fillna(Period("2011-01-01", freq="D")), exp)
-
     def test_no_millisecond_field(self):
         msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
@@ -104,12 +75,6 @@ class TestPeriodIndex(DatetimeLike):
         msg = "'DatetimeIndex' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
-
-    def test_hash_error(self):
-        index = period_range("20010101", periods=10)
-        msg = f"unhashable type: '{type(index).__name__}'"
-        with pytest.raises(TypeError, match=msg):
-            hash(index)
 
     def test_make_time_series(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")

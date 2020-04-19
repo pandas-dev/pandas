@@ -67,24 +67,25 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> from scipy import sparse
-        >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
+
+        >>> A = sparse.coo_matrix(
+        ...     ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
+        ... )
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
+        with 3 stored elements in COOrdinate format>
+
         >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  2.],
-                [ 3.,  0.,  0.,  0.],
-                [ 0.,  0.,  0.,  0.]])
+        matrix([[0., 0., 1., 2.],
+        [3., 0., 0., 0.],
+        [0., 0., 0., 0.]])
+
         >>> ss = pd.Series.sparse.from_coo(A)
         >>> ss
-        0  2    1
-           3    2
-        1  0    3
-        dtype: float64
-        BlockIndex
-        Block locations: array([0], dtype=int32)
-        Block lengths: array([3], dtype=int32)
+        0  2    1.0
+           3    2.0
+        1  0    3.0
+        dtype: Sparse[float64, nan]
         """
         from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
@@ -119,24 +120,49 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                                (1, 2, 'a', 1),
-                                                (1, 1, 'b', 0),
-                                                (1, 1, 'b', 1),
-                                                (2, 1, 'b', 0),
-                                                (2, 1, 'b', 1)],
-                                                names=['A', 'B', 'C', 'D'])
+        >>> s.index = pd.MultiIndex.from_tuples(
+        ...     [
+        ...         (1, 2, "a", 0),
+        ...         (1, 2, "a", 1),
+        ...         (1, 1, "b", 0),
+        ...         (1, 1, "b", 1),
+        ...         (2, 1, "b", 0),
+        ...         (2, 1, "b", 1)
+        ...     ],
+        ...     names=["A", "B", "C", "D"],
+        ... )
+        >>> s
+        A  B  C  D
+        1  2  a  0    3.0
+                 1    NaN
+           1  b  0    1.0
+                 1    3.0
+        2  1  b  0    NaN
+                 1    NaN
+        dtype: float64
+
         >>> ss = s.astype("Sparse")
-        >>> A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
-        ...                                     column_levels=['C', 'D'],
-        ...                                     sort_labels=True)
+        >>> ss
+        A  B  C  D
+        1  2  a  0    3.0
+                 1    NaN
+           1  b  0    1.0
+                 1    3.0
+        2  1  b  0    NaN
+                 1    NaN
+        dtype: Sparse[float64, nan]
+
+        >>> A, rows, columns = ss.sparse.to_coo(
+        ...     row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
+        ... )
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
+        with 3 stored elements in COOrdinate format>
         >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  3.],
-        [ 3.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.]])
+        matrix([[0., 0., 1., 3.],
+        [3., 0., 0., 0.],
+        [0., 0., 0., 0.]])
+
         >>> rows
         [(1, 1), (1, 2), (2, 1)]
         >>> columns

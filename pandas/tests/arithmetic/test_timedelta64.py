@@ -313,7 +313,9 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dti - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], name="bar")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], freq="D", name="bar"
+        )
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dt - tdi
@@ -401,7 +403,9 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], tz="US/Eastern", freq="D"
+        )
         tm.assert_index_equal(result, expected)
 
     def test_dti_tdi_numeric_ops(self):
@@ -487,6 +491,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
+        back = back._with_freq("infer")
         tm.assert_index_equal(index, back)
 
         if freq == "D":
@@ -650,9 +655,9 @@ class TestAddSubNaTMasking:
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
         # TODO: Make raised error message more informative and test
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             pd.to_timedelta(106580, "D") + Timestamp("2000")
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
         _NaT = int(pd.NaT) + 1

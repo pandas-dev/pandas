@@ -108,3 +108,11 @@ Scalar introspection
     api.types.is_re
     api.types.is_re_compilable
     api.types.is_scalar
+
+Bug report function
+-------------------
+.. autosummary::
+   :toctree: api/
+
+   show_versions
+

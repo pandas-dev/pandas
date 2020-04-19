@@ -529,7 +529,18 @@ class TestDataFrameMisc:
 
         code = "import pandas as pd; df = pd.DataFrame()"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # TODO: remove it when Ipython updates
+        # GH 33567, jedi version raises Deprecation warning in Ipython
+        import jedi
+
+        if jedi.__version__ < "0.17.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
 
@@ -540,3 +551,21 @@ class TestDataFrameMisc:
 
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
+
+    def test_cache_on_copy(self):
+        # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
+        df = DataFrame({"a": [1]})
+
+        df["x"] = [0]
+        df["a"]
+
+        df.copy()
+
+        df["a"].values[0] = -1
+
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
+
+        df["y"] = [0]
+
+        assert df["a"].values[0] == -1
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))

@@ -82,6 +82,7 @@ cdef dict timedelta_abbrevs = {
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
+    "µs": "us",
     "micro": "us",
     "micros": "us",
     "u": "us",
@@ -101,7 +102,7 @@ _no_input = object()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ints_to_pytimedelta(int64_t[:] arr, box=False):
+def ints_to_pytimedelta(const int64_t[:] arr, box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
     True)
@@ -256,10 +257,15 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cpdef inline object precision_from_unit(object unit):
+cpdef inline object precision_from_unit(str unit):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
+
+    Notes
+    -----
+    The caller is responsible for ensuring that the default value of "ns"
+    takes the place of None.
     """
     cdef:
         int64_t m
@@ -300,7 +306,7 @@ cpdef inline object precision_from_unit(object unit):
     return m, p
 
 
-cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
@@ -524,15 +530,24 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     return cast_from_unit(float(n), unit)
 
 
-cpdef inline object parse_timedelta_unit(object unit):
+cpdef inline str parse_timedelta_unit(object unit):
     """
     Parameters
     ----------
-    unit : an unit string
+    unit : str or None
+
+    Returns
+    -------
+    str
+        Canonical unit string.
+
+    Raises
+    ------
+    ValueError : on non-parseable input
     """
     if unit is None:
-        return 'ns'
-    elif unit == 'M':
+        return "ns"
+    elif unit == "M":
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
@@ -621,14 +636,14 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
-cdef inline int64_t parse_iso_format_string(object ts) except? -1:
+cdef inline int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
     groups for each component of an ISO 8601 duration
 
     Parameters
     ----------
-    ts:
+    ts: str
         ISO 8601 Duration formatted string
 
     Returns
@@ -763,36 +778,32 @@ cdef class _Timedelta(timedelta):
 
         if isinstance(other, _Timedelta):
             ots = other
-        elif PyDelta_Check(other) or isinstance(other, Tick):
+        elif (is_timedelta64_object(other) or PyDelta_Check(other)
+              or isinstance(other, Tick)):
             ots = Timedelta(other)
-        else:
-            ndim = getattr(other, "ndim", -1)
+            # TODO: watch out for overflows
 
-            if ndim != -1:
-                if ndim == 0:
-                    if is_timedelta64_object(other):
-                        other = Timedelta(other)
-                    else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-                        # only allow ==, != ops
-                        raise TypeError(f'Cannot compare type '
-                                        f'{type(self).__name__} with '
-                                        f'type {type(other).__name__}')
-                if util.is_array(other):
-                    return PyObject_RichCompare(np.array([self]), other, op)
-                return PyObject_RichCompare(other, self, reverse_ops[op])
-            else:
-                if other is NaT:
-                    return PyObject_RichCompare(other, self, reverse_ops[op])
-                elif op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError(f'Cannot compare type {type(self).__name__} with '
-                                f'type {type(other).__name__}')
+        elif other is NaT:
+            return op == Py_NE
+
+        elif util.is_array(other):
+            # TODO: watch out for zero-dim
+            if other.dtype.kind == "m":
+                return PyObject_RichCompare(self.asm8, other, op)
+            elif other.dtype.kind == "O":
+                # operate element-wise
+                return np.array(
+                    [PyObject_RichCompare(self, x, op) for x in other],
+                    dtype=bool,
+                )
+            if op == Py_EQ:
+                return np.zeros(other.shape, dtype=bool)
+            elif op == Py_NE:
+                return np.ones(other.shape, dtype=bool)
+            return NotImplemented  # let other raise TypeError
+
+        else:
+            return NotImplemented
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -1071,9 +1082,11 @@ cdef class _Timedelta(timedelta):
             subs = (self._h or self._m or self._s or
                     self._ms or self._us or self._ns)
 
-            # by default not showing nano
             if self._ms or self._us or self._ns:
                 seconds_fmt = "{seconds:02}.{milliseconds:03}{microseconds:03}"
+                if self._ns:
+                    # GH#9309
+                    seconds_fmt += "{nanoseconds:03}"
             else:
                 seconds_fmt = "{seconds:02}"
 

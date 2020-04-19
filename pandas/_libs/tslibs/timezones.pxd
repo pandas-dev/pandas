@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 cpdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
 
