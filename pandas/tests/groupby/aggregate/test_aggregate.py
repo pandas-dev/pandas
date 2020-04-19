@@ -268,6 +268,17 @@ def test_agg_multiple_functions_same_name(df):
     )
     tm.assert_frame_equal(result, expected)
 
+    result = df.resample("3D").agg(
+        {
+            "A": [
+                "ohlc",
+                functools.partial(np.std, ddof=0),
+                functools.partial(np.std, ddof=1),
+            ]
+        }
+    )
+    pass
+
 
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359

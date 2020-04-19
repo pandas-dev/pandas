@@ -618,9 +618,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         for hlevel, level in zip(zipped, levels):
             to_concat = []
-            for key, index in zip(hlevel, indexes):
+            for i, (key, index) in enumerate(zip(hlevel, indexes)):
                 try:
-                    i = level.get_loc(key)
+                    level.get_loc(key)
                 except KeyError as err:
                     raise ValueError(f"Key {key} not in level {level}") from err
 

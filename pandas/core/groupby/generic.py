@@ -293,7 +293,8 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(ret, dict):
             from pandas import concat
 
-            ret = concat(ret, axis=1)
+            ret = concat(ret.values(), axis=1, keys=[key.label for key in ret.keys()])
+
         return ret
 
     agg = aggregate
@@ -336,7 +337,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            return {key.label: value for key, value in results.items()}
+            return results
 
         if not results:
             return DataFrame()
