@@ -131,8 +131,8 @@ def test_basic_setitem_with_labels(datetime_series):
 
     inds_notfound = [0, 4, 5, 6]
     arr_inds_notfound = np.array([0, 4, 5, 6])
-    msg = r"\[5\] not contained in the index"
-    with pytest.raises(ValueError, match=msg):
+    msg = r"\[5\] not in index"
+    with pytest.raises(KeyError, match=msg):
         s[inds_notfound] = 0
     with pytest.raises(Exception, match=msg):
         s[arr_inds_notfound] = 0
