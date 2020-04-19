@@ -778,51 +778,49 @@ def group_quantile(ndarray[float64_t] out,
             if not mask[i]:
                 non_na_counts[lab] += 1
 
-    # Get an index of values sorted by labels and then values
-    sort_arr = np.arange(len(labels), dtype=np.int64)
-    mask = labels != -1
-    order = (np.asarray(values)[mask], labels[mask])
-    sort_arr[mask] = np.lexsort(order).astype(np.int64, copy=False)
-    with nogil:
-        for i in range(ngroups):
-            # Figure out how many group elements there are
-            grp_sz = counts[i]
-            non_na_sz = non_na_counts[i]
+    if labels.any():
+        # Get an index of values sorted by labels and then values
+        labels[labels==-1] = np.max(labels) + 1
+        order = (values, labels)
+        sort_arr= np.lexsort(order).astype(np.int64, copy=False)
+        with nogil:
+            for i in range(ngroups):
+                # Figure out how many group elements there are
+                grp_sz = counts[i]
+                non_na_sz = non_na_counts[i]
 
-            if non_na_sz == 0:
-                out[i] = NaN
-            else:
-                # Calculate where to retrieve the desired value
-                # Casting to int will intentionally truncate result
-                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
-
-                val = values[sort_arr[idx]]
-                # If requested quantile falls evenly on a particular index
-                # then write that index's value out. Otherwise interpolate
-                q_idx = q * (non_na_sz - 1)
-                frac = q_idx % 1
-
-                if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                    out[i] = val
+                if non_na_sz == 0:
+                    out[i] = NaN
                 else:
-                    next_val = values[sort_arr[idx + 1]]
-                    if interp == INTERPOLATION_LINEAR:
-                        out[i] = val + (next_val - val) * frac
-                    elif interp == INTERPOLATION_HIGHER:
-                        out[i] = next_val
-                    elif interp == INTERPOLATION_MIDPOINT:
-                        out[i] = (val + next_val) / 2.0
-                    elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
-                            out[i] = next_val
-                        else:
-                            out[i] = val
+                    # Calculate where to retrieve the desired value
+                    # Casting to int will intentionally truncate result
+                    idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
 
-            # Increment the index reference in sorted_arr for the next group
-            grp_start += grp_sz
-    print(out)
-    # out = np.roll(out, -(len(out) - np.sum(counts)))
-    print(out)
+                    val = values[sort_arr[idx]]
+                    # If requested quantile falls evenly on a particular index
+                    # then write that index's value out. Otherwise interpolate
+                    q_idx = q * (non_na_sz - 1)
+                    frac = q_idx % 1
+
+                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                        out[i] = val
+                    else:
+                        next_val = values[sort_arr[idx + 1]]
+                        if interp == INTERPOLATION_LINEAR:
+                            out[i] = val + (next_val - val) * frac
+                        elif interp == INTERPOLATION_HIGHER:
+                            out[i] = next_val
+                        elif interp == INTERPOLATION_MIDPOINT:
+                            out[i] = (val + next_val) / 2.0
+                        elif interp == INTERPOLATION_NEAREST:
+                            if frac > .5 or (frac == .5 and q > .5):  # Always OK?
+                                out[i] = next_val
+                            else:
+                                out[i] = val
+
+                # Increment the index reference in sorted_arr for the next group
+                grp_start += grp_sz
+
 
 # ----------------------------------------------------------------------
 # group_nth, group_last, group_rank
