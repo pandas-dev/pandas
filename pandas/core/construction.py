@@ -621,10 +621,19 @@ def create_series_with_explicit_dtype(
     -------
     Series
     """
+    from pandas import RangeIndex
+
     if is_empty_data(data) and dtype is None:
         dtype = dtype_if_empty
+
     return create_series_with_explicit_index_type(
-        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        data=data,
+        index=index,
+        dtype=dtype,
+        name=name,
+        copy=copy,
+        fastpath=fastpath,
+        index_if_empty=RangeIndex(0),  # non-breaking yet
     )
 
 
@@ -661,10 +670,11 @@ def create_series_with_explicit_index_type(
     """
     from pandas import Index, Series  # noqa: F811
 
+    # to avoid circular imports
     if index_if_empty is None:
         index_if_empty = Index([])
 
-    if is_list_like(data) and len(data) == 0:
+    if index is None and data == []:
         index = index_if_empty
     return Series(
         data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
