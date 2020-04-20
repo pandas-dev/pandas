@@ -4280,7 +4280,7 @@ memory usage: 62.9 MB""",
 Series.describe: Generate descriptive statistics of Series.
 Series.memory_usage: Memory usage of Series.""",
     )
-    @Appender(info.__doc__)
+    @doc(info)
     def info(
         self,
         verbose: Optional[bool] = None,
