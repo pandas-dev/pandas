@@ -2055,10 +2055,10 @@ class DataFrame(NDFrame):
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriter117 as statawriter
+            from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
         else:  # versions 118 and 119
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriterUTF8 as statawriter
+            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
 
         kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
@@ -2069,7 +2069,7 @@ class DataFrame(NDFrame):
             kwargs["version"] = version
 
         # mypy: Too many arguments for "StataWriter"
-        writer = statawriter(
+        writer = statawriter(  # type: ignore
             path,
             self,
             convert_dates=convert_dates,
@@ -3318,7 +3318,7 @@ class DataFrame(NDFrame):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))
+                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
             ]
             return extracted_dtypes
 
