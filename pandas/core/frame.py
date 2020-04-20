@@ -2425,7 +2425,12 @@ DataFrame.memory_usage: Memory usage of DataFrame columns.""",
     )
     @doc(info)
     def info(
-        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+        self,
+        verbose: Optional[bool] = None,
+        buf: Optional[IO[str]] = None,
+        max_cols: Optional[int] = None,
+        memory_usage: Optional[Union[bool, str]] = None,
+        null_counts: Optional[bool] = None,
     ) -> None:
         return info(self, verbose, buf, max_cols, memory_usage, null_counts)
 
