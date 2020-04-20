@@ -15,7 +15,7 @@ Enhancements
 
 .. _whatsnew_110.period_index_partial_string_slicing:
 
-Nonmonotonic PeriodIndex Partial String Slicing
+Nonmonotonic PeriodIndex partial string slicing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
@@ -159,7 +159,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-Development Changes
+Development changes
 ^^^^^^^^^^^^^^^^^^^
 
 - The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
@@ -255,7 +255,7 @@ And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`
 
 .. _whatsnew_110.api_breaking.indexing_raises_key_errors:
 
-Failed Label-Based Lookups Always Raise KeyError
+Failed label-based lookups always raise KeyError
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Label lookups ``series[key]``, ``series.loc[key]`` and ``frame.loc[key]``
@@ -559,8 +559,8 @@ MultiIndex
 
 -
 
-I/O
-^^^
+IO
+^^
 - Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
@@ -593,7 +593,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)

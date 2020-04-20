@@ -29,6 +29,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "BigQuery",
     "STATA",
     "Interval",
+    "IntervalArray",
     "PEP8",
     "Period",
     "Series",
@@ -121,6 +122,13 @@ CAPITALIZATION_EXCEPTIONS = {
     "East",
     "Asian",
     "None",
+    "UTC",
+    "str",
+    "msgpack",
+    "ExtensionArray",
+    "LZMA",
+    "Numba",
+    "Timestamp",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
