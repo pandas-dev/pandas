@@ -724,13 +724,13 @@ class TestEvalNumexprPandas:
         # GH 11149
         exp = """1 + 2 * \
         5 - 1 + 2 """
-        result = pd.eval(exp, engine=self.engine, parser=self.parser)
+        result = pd.eval(exp, engine=self.engine, parser=self.parser)a
         assert result == 12
 
     def test_floor_expression(self):
-        assert pd.eval("floor(floor(1.2+2.3))") == 3
-        assert pd.eval("floor(0.9 + floor(1.2+2.3))") == 3
-        assert pd.eval("floor(1.2+2.3)") == 3
+        assert pd.eval("floor(floor(1.2+2.3))") == 3.0
+        assert pd.eval("floor(0.9 + floor(1.2+2.3))") == 3.0
+        assert pd.eval("floor(1.2+2.3)") == 3.0
 
     def test_float_truncation(self):
         # GH 14241
