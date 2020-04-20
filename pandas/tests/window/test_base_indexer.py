@@ -173,8 +173,8 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
     expected = constructor(expected)
     tm.assert_equal(result, expected)
 
-    # Check that the rolling function gives the same result
-    # as applying an alternative function to the rolling window object
+    # Check that the rolling function output matches applying an alternative
+    # function to the rolling window object
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
 
