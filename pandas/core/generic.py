@@ -315,9 +315,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _AXIS_NUMBERS(self) -> Dict[str, int]:
         """.. deprecated:: 1.1.0"""
         warnings.warn(
-            "_AXIS_NUMBERS has been deprecated. Call ._get_axis_number instead",
-            FutureWarning,
-            stacklevel=3,
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
         )
         return {"index": 0}
 
@@ -325,9 +323,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _AXIS_NAMES(self) -> Dict[int, str]:
         """.. deprecated:: 1.1.0"""
         warnings.warn(
-            "_AXIS_NAMES has been deprecated. Call ._get_axis_name instead",
-            FutureWarning,
-            stacklevel=3,
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
         )
         return {0: "index"}
 
