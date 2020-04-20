@@ -901,3 +901,17 @@ def test_apply_function_with_indexing():
         name="col2",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_reindex_values():
+    # GH: 26209
+    values = [1, 2, 3, 4]
+    indices = [1, 1, 2, 2]
+    df = pd.DataFrame(
+        {"group": ["Group1", "Group2"] * 2, "value": values}, index=indices
+    )
+    srs_exp = pd.Series(values, index=indices, name="value")
+    srs_grouped = df.groupby("group").value.apply(
+        lambda x: x.reindex(np.arange(x.index.min(), x.index.max() + 1))
+    )
+    tm.assert_series_equal(srs_exp, srs_grouped)
