@@ -724,7 +724,7 @@ class TestEvalNumexprPandas:
         # GH 11149
         exp = """1 + 2 * \
         5 - 1 + 2 """
-        result = pd.eval(exp, engine=self.engine, parser=self.parser)a
+        result = pd.eval(exp, engine=self.engine, parser=self.parser)
         assert result == 12
 
     def test_floor_expression(self):
