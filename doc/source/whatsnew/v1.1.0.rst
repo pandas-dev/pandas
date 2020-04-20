@@ -183,7 +183,9 @@ Other API changes
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
-  Previously a ``AttributeError`` was raised (:issue:`31126`)
+  Previously an ``AttributeError`` was raised (:issue:`31126`)
+- :meth:`DataFrame.xs` now raises a  ``TypeError`` if a ``level`` keyword is supplied and the axis is not a :class:`MultiIndex`.
+  Previously an ``AttributeError`` was raised (:issue:`33610`)
 - :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`)
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
@@ -528,6 +530,7 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
 - Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
 - Bug in :meth:`Series.__setitem__` with an :class:`IntervalIndex` and a list-like key of integers (:issue:`33473`)
+- Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 
 Missing
 ^^^^^^^
