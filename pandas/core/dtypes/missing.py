@@ -234,7 +234,7 @@ def _isna_ndarraylike_old(obj):
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
-        result = values.isna() | values.isin([-np.inf, np.inf])
+        result = values.isna() | (values == -np.inf) | (values == np.inf)
     elif is_string_dtype(dtype):
         result = _isna_string_dtype(values, dtype, old=True)
     elif needs_i8_conversion(dtype):
