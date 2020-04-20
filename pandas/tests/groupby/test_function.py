@@ -16,7 +16,6 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
-    _is_numpy_dev,
     date_range,
     isna,
 )
@@ -698,11 +697,6 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummin(numpy_dtypes_for_minmax):
     dtype = numpy_dtypes_for_minmax[0]
     min_val = numpy_dtypes_for_minmax[1]
@@ -751,11 +745,6 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummin_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
 
@@ -766,11 +755,6 @@ def test_cummin_all_nan_column():
     tm.assert_frame_equal(expected, result)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummax(numpy_dtypes_for_minmax):
     dtype = numpy_dtypes_for_minmax[0]
     max_val = numpy_dtypes_for_minmax[2]
@@ -819,11 +803,6 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummax_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
 

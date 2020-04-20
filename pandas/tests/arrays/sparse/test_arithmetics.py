@@ -31,11 +31,6 @@ class TestSparseArrayArithmetics:
 
     def _check_numeric_ops(self, a, b, a_dense, b_dense, mix, op):
         with np.errstate(invalid="ignore", divide="ignore"):
-            if op in [operator.floordiv, ops.rfloordiv]:
-                # FIXME: GH#13843
-                if self._base == pd.Series and a.dtype.subtype == np.dtype("int64"):
-                    pytest.xfail("Not defined/working.  See GH#13843")
-
             if mix:
                 result = op(a, b_dense).to_dense()
             else:
