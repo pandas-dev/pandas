@@ -89,11 +89,6 @@ cpdef bint checknull_old(object val):
     return False
 
 
-cdef inline bint _check_none_nan_inf_neginf(object val):
-    return val is None or (isinstance(val, float) and
-                           (val != val or val == INF or val == NEGINF))
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[uint8_t] isnaobj(ndarray arr):
