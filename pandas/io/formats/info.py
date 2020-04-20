@@ -29,6 +29,8 @@ def info(
 
     Parameters
     ----------
+    data : %(klass)s
+        %(klass)s to print information about.
     verbose : bool, optional
         Whether to print the full summary. By default, the setting in
         ``pandas.options.display.max_info_columns`` is followed.
