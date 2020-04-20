@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY37
-from pandas.util._test_decorators import async_mark
+from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
@@ -571,8 +571,10 @@ class TestDataFrameMisc:
         assert df["a"].values[0] == -1
         tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
 
+    @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):
-        # accessing _constructor_expanddim should not raise NotImplementedError
+        # GH#33628 accessing _constructor_expanddim should not
+        #  raise NotImplementedError
         df = DataFrame()
 
         inspect.getmembers(df)
