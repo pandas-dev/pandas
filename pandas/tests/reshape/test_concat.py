@@ -2203,8 +2203,7 @@ bar2,12,13,14,15
             {
                 0: pd.Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
                 1: values,
-            },
-            index=pd.Index(list(range(len(values))), dtype="object"),
+            }
         )
         result = concat([first, second], axis=1)
         tm.assert_frame_equal(result, expected)

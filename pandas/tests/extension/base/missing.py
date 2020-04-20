@@ -19,7 +19,7 @@ class BaseMissingTests(BaseExtensionTests):
 
         # GH 21189
         result = pd.Series(data_missing).drop([0, 1]).isna()
-        expected = pd.Series([], dtype=bool, index=pd.RangeIndex(0))
+        expected = pd.Series([], dtype=bool)
         self.assert_series_equal(result, expected)
 
     def test_dropna_array(self, data_missing):

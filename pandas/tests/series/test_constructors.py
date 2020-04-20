@@ -127,20 +127,20 @@ class TestSeriesConstructors:
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty = Series()
             empty2 = Series(input_class())
-        tm.assert_series_equal(empty, empty2)
-        assert type(empty.index) is Index
+
+        # these are Index() and RangeIndex() which don't compare type equal
+        # but are just .equals
+        tm.assert_series_equal(empty, empty2, check_index_type=False)
 
         # With explicit dtype:
         empty = Series(dtype="float64")
         empty2 = Series(input_class(), dtype="float64")
-        tm.assert_series_equal(empty, empty2)
-        assert type(empty.index) is Index
+        tm.assert_series_equal(empty, empty2, check_index_type=False)
 
         # GH 18515 : with dtype=category:
         empty = Series(dtype="category")
         empty2 = Series(input_class(), dtype="category")
-        tm.assert_series_equal(empty, empty2)
-        assert type(empty.index) is Index
+        tm.assert_series_equal(empty, empty2, check_index_type=False)
 
         if input_class is not list:
             # With index:
@@ -148,19 +148,16 @@ class TestSeriesConstructors:
                 empty = Series(index=range(10))
                 empty2 = Series(input_class(), index=range(10))
             tm.assert_series_equal(empty, empty2)
-            assert type(empty.index) is pd.RangeIndex
 
             # With index and dtype float64:
             empty = Series(np.nan, index=range(10))
             empty2 = Series(input_class(), index=range(10), dtype="float64")
             tm.assert_series_equal(empty, empty2)
-            assert type(empty.index) is pd.RangeIndex
 
             # GH 19853 : with empty string, index and dtype str
             empty = Series("", dtype=str, index=range(3))
             empty2 = Series("", index=range(3))
             tm.assert_series_equal(empty, empty2)
-            assert type(empty.index) is pd.RangeIndex
 
     @pytest.mark.parametrize("input_arg", [np.nan, float("nan")])
     def test_constructor_nan(self, input_arg):

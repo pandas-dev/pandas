@@ -611,7 +611,10 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "func,expected",
         [
-            ("transform", pd.Series(name=2, dtype=np.float64)),
+            (
+                "transform",
+                pd.Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+            ),
             (
                 "agg",
                 pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
@@ -635,13 +638,10 @@ class TestGrouping:
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
         s = pd.Series([], name="name", dtype="float64")
-
-        expected = s.copy()
-        expected.index = pd.RangeIndex(0)
-
         gr = s.groupby([])
+
         result = gr.mean()
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, s)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1

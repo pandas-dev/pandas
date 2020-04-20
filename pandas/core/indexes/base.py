@@ -5604,7 +5604,7 @@ def _validate_join_method(method: str):
 def default_index(n):
     from pandas.core.indexes.range import RangeIndex
 
-    return RangeIndex(0, n)
+    return RangeIndex(0, n, name=None)
 
 
 def maybe_extract_name(name, obj, cls) -> Label:

@@ -213,15 +213,12 @@ class TestPandasContainer:
         )
         expected = empty_frame.copy()
 
-        # TODO: conditions below are probably bugs
-        if convert_axes:
-            expected.columns = expected.columns.astype(float)
-
-        if numpy and orient == "values":
-            expected = expected.reindex([0], axis=1).reset_index(drop=True)
-
+        # TODO: both conditions below are probably bugs
         if convert_axes:
             expected.index = expected.index.astype(float)
+            expected.columns = expected.columns.astype(float)
+        if numpy and orient == "values":
+            expected = expected.reindex([0], axis=1).reset_index(drop=True)
 
         tm.assert_frame_equal(result, expected)
 
@@ -635,7 +632,8 @@ class TestPandasContainer:
         expected = empty_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
-        expected.index = expected.index.astype(float)
+        else:
+            expected.index = expected.index.astype(float)
 
         tm.assert_series_equal(result, expected)
 

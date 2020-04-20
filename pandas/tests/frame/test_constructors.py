@@ -87,9 +87,9 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "emptylike,expected_index,expected_columns",
         [
-            ([[]], RangeIndex(1), Index([])),
-            ([[], []], RangeIndex(2), Index([])),
-            ([(_ for _ in [])], RangeIndex(1), Index([])),
+            ([[]], RangeIndex(1), RangeIndex(0)),
+            ([[], []], RangeIndex(2), RangeIndex(0)),
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
         ],
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
@@ -342,7 +342,7 @@ class TestDataFrameConstructors:
 
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
-        tm.assert_index_equal(frame.index, Index([]))
+        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
 
         # GH 14381
         # Dict with None value
