@@ -55,7 +55,10 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), sep=r"\s")
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_csv(StringIO(data), sep="\t", quotechar=chr(128))
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        with tm.assert_produces_warning(
+            parsers.ParserWarning, raise_on_extra_warnings=False
+        ):
+            # Additionally raises DeprecationWarning: gh-16737
             read_csv(StringIO(data), skipfooter=1)
 
         text = """                      A       B       C       D        E
