@@ -168,10 +168,16 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
     result = getattr(rolling, func)()
+
+    # Check that the function output matches the explicitly provided array
     expected = constructor(expected)
     tm.assert_equal(result, expected)
+
+    # Check that the rolling function gives the same result
+    # as applying an alternative function to the rolling window object
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
+
     # Check that the function works without min_periods supplied
     rolling3 = constructor(values).rolling(window=indexer)
     result3 = getattr(rolling3, func)()
