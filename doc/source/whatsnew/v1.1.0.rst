@@ -177,7 +177,6 @@ Other API changes
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``skew``, ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
-- :class:`Series` constructor will default to construct an :class:`Index`, rather than an :class:`RangeIndex` when constructed with empty data, matching the behaviour of ``data=None``.
 -
 
 Backwards incompatible API changes
@@ -407,6 +406,7 @@ Deprecations
   arguments (:issue:`27573`).
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
+- ``Series([])`` will raise a `DeprecationWarning` regarding its index. The default index type will change from :class:`RangeIndex` to :class:`Index` in a future version, matching the behaviour of ``Series()`` (:issue:`16737`)
 
 .. ---------------------------------------------------------------------------
 
