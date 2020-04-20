@@ -1336,21 +1336,27 @@ Values can be set to NaT using np.nan, similar to datetime
 Aliasing axis names
 -------------------
 
+.. versionchanged:: 1.1.0
+
+   This recipe changed in pandas 1.1 because of changes in pandas internals.
+
 To globally provide aliases for axis names, one can define these 2 functions:
 
 .. ipython:: python
 
    def set_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES[alias] = axis
+       if axis not in cls._AXIS_TO_AXIS_NUMBER:
+           raise ValueError(f"invalid axis [{axis}] for alias [{alias}]")
+       if alias in cls._AXIS_TO_AXIS_NUMBER:
+           raise ValueError(f"invalid alias [{alias}] for axis [{axis}]")
+       cls._AXIS_TO_AXIS_NUMBER[alias] = cls._AXIS_TO_AXIS_NUMBER[axis]
 
 .. ipython:: python
 
    def clear_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES.pop(alias, None)
+       if axis not in cls._AXIS_TO_AXIS_NUMBER:
+           raise ValueError(f"invalid axis [{axis}] for alias [{alias}]")
+       cls._AXIS_TO_AXIS_NUMBER.pop(alias, None)
 
 .. ipython:: python
 
