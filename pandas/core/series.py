@@ -313,9 +313,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if n == 0:
                     # gh-16737
                     warnings.warn(
-                        "The default index type for empty data will be 'Index'"
-                        " instead of 'RangeIndex' in a future version."
-                        " Specify an index explicitly to silence this warning.",
+                        "The default index type for empty data will be 'Index' "
+                        "instead of 'RangeIndex' in a future version. "
+                        "Specify an index explicitly to silence this warning.",
                         DeprecationWarning,
                         stacklevel=2,
                     )
