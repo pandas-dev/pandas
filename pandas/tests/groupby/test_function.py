@@ -16,7 +16,6 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
-    _is_numpy_dev,
     date_range,
     isna,
 )

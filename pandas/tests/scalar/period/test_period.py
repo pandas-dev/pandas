@@ -1,7 +1,5 @@
 from datetime import date, datetime, timedelta
-from distutils.version import StrictVersion
 
-import dateutil
 import numpy as np
 import pytest
 import pytz

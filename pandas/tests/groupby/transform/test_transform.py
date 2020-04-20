@@ -15,7 +15,6 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
-    _is_numpy_dev,
     concat,
     date_range,
 )
