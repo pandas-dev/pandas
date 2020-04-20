@@ -277,3 +277,13 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+def test_normalize_value_counts():
+    result = (
+        pd.Series(list("abcd"), dtype="string")
+        .value_counts(normalize=True)
+        .sort_index()
+    )
+    expected = pd.Series([0.25, 0.25, 0.25, 0.25], index=["a", "b", "c", "d"])
+    tm.assert_series_equal(expected, result)
