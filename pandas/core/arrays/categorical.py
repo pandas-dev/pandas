@@ -200,17 +200,6 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """
-The category codes of this categorical.
-
-Level codes are an array if integer which are the positions of the real
-values in the categories array.
-
-There is not setter, use the other categorical methods and the normal item
-setter to change values in the categorical.
-"""
-
-
 class Categorical(NDArrayBackedExtensionArray, PandasObject):
     """
     Represent a categorical variable in classic R / S-plus fashion.
@@ -653,26 +642,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return cls(codes, dtype=dtype, fastpath=True)
 
-    def _get_codes(self):
+    @property
+    def codes(self) -> np.ndarray:
         """
-        Get the codes.
+        The category codes of this categorical.
+
+        Codes are an array of integers which are the positions of the actual
+        values in the categories array.
+
+        There is no setter, use the other categorical methods and the normal item
+        setter to change values in the categorical.
 
         Returns
         -------
-        codes : integer array view
-            A non writable view of the `codes` array.
+        ndarray[int]
+            A non-writable view of the `codes` array.
         """
         v = self._codes.view()
         v.flags.writeable = False
         return v
-
-    def _set_codes(self, codes):
-        """
-        Not settable by the user directly
-        """
-        raise ValueError("cannot set Categorical codes directly")
-
-    codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     def _set_categories(self, categories, fastpath=False):
         """
