@@ -176,6 +176,7 @@ class TestS3:
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
     def test_write_s3_parquet_fails(self, tips_df):
+        pytest.importorskip("pyarrow")
         # GH 27679
         with pytest.raises(
             FileNotFoundError, match="The specified bucket does not exist"
