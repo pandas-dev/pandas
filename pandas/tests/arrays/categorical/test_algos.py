@@ -64,6 +64,8 @@ def test_isin_cats():
     [
         ("b", "c", ["a", "c"], "Categorical.categories are different"),
         ("c", "d", ["a", "b"], None),
+        # https://github.com/pandas-dev/pandas/issues/33288
+        ("a", "a", ["a", "b"], None),
         ("b", None, ["a", None], "Categorical.categories length are different"),
     ],
 )
@@ -140,23 +142,21 @@ class TestTake:
         with pytest.raises(IndexError, match=msg):
             cat.take([0], allow_fill=allow_fill)
 
-    def test_positional_take(self, ordered_fixture):
+    def test_positional_take(self, ordered):
         cat = pd.Categorical(
-            ["a", "a", "b", "b"], categories=["b", "a"], ordered=ordered_fixture
+            ["a", "a", "b", "b"], categories=["b", "a"], ordered=ordered
         )
         result = cat.take([0, 1, 2], allow_fill=False)
         expected = pd.Categorical(
-            ["a", "a", "b"], categories=cat.categories, ordered=ordered_fixture
+            ["a", "a", "b"], categories=cat.categories, ordered=ordered
         )
         tm.assert_categorical_equal(result, expected)
 
-    def test_positional_take_unobserved(self, ordered_fixture):
-        cat = pd.Categorical(
-            ["a", "b"], categories=["a", "b", "c"], ordered=ordered_fixture
-        )
+    def test_positional_take_unobserved(self, ordered):
+        cat = pd.Categorical(["a", "b"], categories=["a", "b", "c"], ordered=ordered)
         result = cat.take([1, 0], allow_fill=False)
         expected = pd.Categorical(
-            ["b", "a"], categories=cat.categories, ordered=ordered_fixture
+            ["b", "a"], categories=cat.categories, ordered=ordered
         )
         tm.assert_categorical_equal(result, expected)
 

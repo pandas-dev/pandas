@@ -94,13 +94,13 @@ def test_raises_on_non_datetimelike_index():
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series, resample_method):
+def test_resample_empty_series(freq, empty_series_dti, resample_method):
     # GH12771 & GH12868
 
     if resample_method == "ohlc":
         pytest.skip("need to test for ohlc from GH13083")
 
-    s = empty_series
+    s = empty_series_dti
     result = getattr(s.resample(freq), resample_method)()
 
     expected = s.copy()
@@ -114,22 +114,22 @@ def test_resample_empty_series(freq, empty_series, resample_method):
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
 @pytest.mark.parametrize("resample_method", ["count", "size"])
-def test_resample_count_empty_series(freq, empty_series, resample_method):
+def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
-    result = getattr(empty_series.resample(freq), resample_method)()
+    result = getattr(empty_series_dti.resample(freq), resample_method)()
 
-    index = _asfreq_compat(empty_series.index, freq)
+    index = _asfreq_compat(empty_series_dti.index, freq)
 
-    expected = pd.Series([], dtype="int64", index=index, name=empty_series.name)
+    expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
     tm.assert_series_equal(result, expected)
 
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_dataframe(empty_frame, freq, resample_method):
+def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
-    df = empty_frame
+    df = empty_frame_dti
     # count retains dimensions too
     result = getattr(df.resample(freq), resample_method)()
     if resample_method != "size":
@@ -149,15 +149,14 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_count_empty_dataframe(freq, empty_frame):
+def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).count()
+    result = empty_frame_dti.resample(freq).count()
 
-    index = _asfreq_compat(empty_frame.index, freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
 
     expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
 
@@ -166,15 +165,14 @@ def test_resample_count_empty_dataframe(freq, empty_frame):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_size_empty_dataframe(freq, empty_frame):
+def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).size()
+    result = empty_frame_dti.resample(freq).size()
 
-    index = _asfreq_compat(empty_frame.index, freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
 
     expected = pd.Series([], dtype="int64", index=index)
 
@@ -188,9 +186,9 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
-    empty_series = Series([], index, dtype)
+    empty_series_dti = Series([], index, dtype)
     try:
-        getattr(empty_series.resample("d"), resample_method)()
+        getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object)
@@ -227,9 +225,9 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
 
 
 @all_ts
-def test_apply_to_empty_series(empty_series):
+def test_apply_to_empty_series(empty_series_dti):
     # GH 14313
-    s = empty_series
+    s = empty_series_dti
     for freq in ["M", "D", "H"]:
         result = s.resample(freq).apply(lambda x: 1)
         expected = s.resample(freq).apply(np.sum)

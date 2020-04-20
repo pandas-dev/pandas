@@ -36,7 +36,7 @@ def write_csv_rows(
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:
-        Py_ssize_t i, j, k = len(data_index), N = 100, ncols = len(cols)
+        Py_ssize_t i, j = 0, k = len(data_index), N = 100, ncols = len(cols)
         list rows
 
     # pre-allocate rows
@@ -82,7 +82,7 @@ def convert_json_to_lines(arr: object) -> str:
     """
     cdef:
         Py_ssize_t i = 0, num_open_brackets_seen = 0, length
-        bint in_quotes = 0, is_escaping = 0
+        bint in_quotes = False, is_escaping = False
         ndarray[uint8_t, ndim=1] narr
         unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
@@ -112,7 +112,7 @@ def convert_json_to_lines(arr: object) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tostring().decode('utf-8')
+    return narr.tobytes().decode('utf-8')
 
 
 # stata, pytables

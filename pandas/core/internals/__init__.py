@@ -10,18 +10,11 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     IntBlock,
     ObjectBlock,
     TimeDeltaBlock,
-    _block_shape,
     _safe_reshape,
     make_block,
 )
-from pandas.core.internals.managers import (
-    BlockManager,
-    SingleBlockManager,
-    _transform_index,
-    concatenate_block_managers,
-    create_block_manager_from_arrays,
-    create_block_manager_from_blocks,
-)
+from pandas.core.internals.concat import concatenate_block_managers
+from pandas.core.internals.managers import BlockManager, SingleBlockManager
 
 __all__ = [
     "Block",
@@ -37,11 +30,7 @@ __all__ = [
     "TimeDeltaBlock",
     "_safe_reshape",
     "make_block",
-    "_block_shape",
     "BlockManager",
     "SingleBlockManager",
-    "_transform_index",
     "concatenate_block_managers",
-    "create_block_manager_from_arrays",
-    "create_block_manager_from_blocks",
 ]

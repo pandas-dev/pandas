@@ -29,11 +29,14 @@ def _make_flex_doc(op_name, typ):
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
+        if op_desc["reverse"]:
+            base_doc += _see_also_reverse_SERIES.format(
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+            )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
             op_name=op_name,
             equiv=equiv,
-            reverse=op_desc["reverse"],
             series_returns=op_desc["series_returns"],
         )
         if op_desc["series_examples"]:
@@ -53,7 +56,7 @@ def _make_flex_doc(op_name, typ):
     return doc
 
 
-_add_example_SERIES = """
+_common_examples_algebra_SERIES = """
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
@@ -69,7 +72,31 @@ a    1.0
 b    NaN
 d    1.0
 e    NaN
+dtype: float64"""
+
+_common_examples_comparison_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
 dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64"""
+
+_add_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.add(b, fill_value=0)
 a    2.0
 b    1.0
@@ -78,24 +105,11 @@ d    1.0
 e    NaN
 dtype: float64
 """
+)
 
-_sub_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_sub_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.subtract(b, fill_value=0)
 a    0.0
 b    1.0
@@ -104,24 +118,11 @@ d   -1.0
 e    NaN
 dtype: float64
 """
+)
 
-_mul_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_mul_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.multiply(b, fill_value=0)
 a    1.0
 b    0.0
@@ -130,24 +131,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_div_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_div_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.divide(b, fill_value=0)
 a    1.0
 b    inf
@@ -156,24 +144,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_floordiv_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_floordiv_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
 b    NaN
@@ -182,24 +157,11 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
 
-_mod_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+_mod_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.mod(b, fill_value=0)
 a    0.0
 b    NaN
@@ -208,23 +170,10 @@ d    0.0
 e    NaN
 dtype: float64
 """
-_pow_example_SERIES = """
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
+)
+_pow_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
 >>> a.pow(b, fill_value=0)
 a    1.0
 b    1.0
@@ -233,6 +182,89 @@ d    0.0
 e    NaN
 dtype: float64
 """
+)
+
+_ne_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.ne(b, fill_value=0)
+a    False
+b     True
+c     True
+d     True
+e     True
+dtype: bool
+"""
+)
+
+_eq_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.eq(b, fill_value=0)
+a     True
+b    False
+c    False
+d    False
+e    False
+dtype: bool
+"""
+)
+
+_lt_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.lt(b, fill_value=0)
+a    False
+b    False
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+)
+
+_le_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.le(b, fill_value=0)
+a    False
+b     True
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+)
+
+_gt_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.gt(b, fill_value=0)
+a     True
+b    False
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+)
+
+_ge_example_SERIES = (
+    _common_examples_comparison_SERIES
+    + """
+>>> a.ge(b, fill_value=0)
+a     True
+b     True
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+)
 
 _returns_series = """Series\n    The result of the operation."""
 
@@ -306,52 +338,62 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "==",
         "desc": "Equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _eq_example_SERIES,
         "series_returns": _returns_series,
     },
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ne_example_SERIES,
         "series_returns": _returns_series,
     },
     "lt": {
         "op": "<",
         "desc": "Less than",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _lt_example_SERIES,
         "series_returns": _returns_series,
     },
     "le": {
         "op": "<=",
         "desc": "Less than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _le_example_SERIES,
         "series_returns": _returns_series,
     },
     "gt": {
         "op": ">",
         "desc": "Greater than",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _gt_example_SERIES,
         "series_returns": _returns_series,
     },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ge_example_SERIES,
         "series_returns": _returns_series,
     },
 }
 
+_py_num_ref = """see
+    `Python documentation
+    <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_
+    for more details"""
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
     reverse_op = _op_descriptions[key]["reverse"]
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
+        _op_descriptions[key][
+            "see_also_desc"
+        ] = f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
+        _op_descriptions[reverse_op][
+            "see_also_desc"
+        ] = f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
@@ -374,10 +416,12 @@ level : int or name
 Returns
 -------
 {series_returns}
+"""
 
+_see_also_reverse_SERIES = """
 See Also
 --------
-Series.{reverse}
+Series.{reverse} : {see_also_desc}.
 """
 
 _arith_doc_FRAME = """

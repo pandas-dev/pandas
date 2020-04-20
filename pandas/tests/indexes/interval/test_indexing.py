@@ -240,10 +240,10 @@ class TestGetIndexer:
             ["foo", "foo", "bar", "baz"],
         ],
     )
-    def test_get_indexer_categorical(self, target, ordered_fixture):
+    def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
-        categorical_target = CategoricalIndex(target, ordered=ordered_fixture)
+        categorical_target = CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
         expected = index.get_indexer(target)

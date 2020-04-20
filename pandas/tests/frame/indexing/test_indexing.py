@@ -27,28 +27,8 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
-
-class TestGet:
-    def test_get(self, float_frame):
-        b = float_frame.get("B")
-        tm.assert_series_equal(b, float_frame["B"])
-
-        assert float_frame.get("foo") is None
-        tm.assert_series_equal(
-            float_frame.get("foo", float_frame["B"]), float_frame["B"]
-        )
-
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
-        ],
-    )
-    def test_get_none(self, df):
-        # see gh-5652
-        assert df.get(None) is None
+# We pass through a TypeError raised by numpy
+_slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
 class TestDataFrameIndexing:
@@ -212,6 +192,63 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "columns,box,expected",
+        [
+            (
+                ["A", "B", "C", "D"],
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [7, 7, 7, 7], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "D"],
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "B", "C"],
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[7, 8, 9], [7, 8, 9], [7, 8, 9]], columns=["A", "B", "C"]
+                ),
+            ),
+            (
+                ["B", "C", "D"],
+                [[7, 8, 9], [10, 11, 12], [13, 14, 15]],
+                pd.DataFrame(
+                    [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "A", "D"],
+                np.array([[7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=np.int64),
+                pd.DataFrame(
+                    [[8, 2, 7, 9], [11, 4, 10, 12], [14, 6, 13, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "C"],
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_setitem_list_missing_columns(self, columns, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df[columns] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
@@ -355,16 +392,6 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
-        # where dtype conversions
-        # GH 3733
-        df = DataFrame(data=np.random.randn(100, 50))
-        df = df.where(df > 0)  # create nans
-        bools = df > 0
-        mask = isna(df)
-        expected = bools.astype(float).mask(mask)
-        result = bools.mask(mask)
-        tm.assert_frame_equal(result, expected)
-
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
 
@@ -455,13 +482,6 @@ class TestDataFrameIndexing:
         series = float_frame["A"]
         float_frame["col6"] = series
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
-
-        msg = (
-            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the "
-            r"\[columns\]\""
-        )
-        with pytest.raises(KeyError, match=msg):
-            float_frame[np.random.randn(len(float_frame) + 1)] = 1
 
         # set ndarray
         arr = np.random.randn(len(float_frame))
@@ -801,15 +821,6 @@ class TestDataFrameIndexing:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_delitem_corner(self, float_frame):
-        f = float_frame.copy()
-        del f["D"]
-        assert len(f.columns) == 3
-        with pytest.raises(KeyError, match=r"^'D'$"):
-            del f["D"]
-        del f["B"]
-        assert len(f.columns) == 2
-
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
@@ -994,7 +1005,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError, match="Too many indexers"):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1073,7 +1085,7 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=_slice_msg):
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
@@ -1205,7 +1217,7 @@ class TestDataFrameIndexing:
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0]], index=f.index[0:2], columns=["A", "B"]
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
@@ -1216,7 +1228,7 @@ class TestDataFrameIndexing:
             index=list(f.index[0:2]) + ["foo", "bar"],
             columns=["A", "B"],
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
@@ -1226,7 +1238,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
@@ -1234,7 +1246,7 @@ class TestDataFrameIndexing:
         # ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece.values
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
@@ -1370,6 +1382,24 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match="same size"):
             float_frame.lookup(["a", "b", "c"], ["a"])
 
+    def test_lookup_requires_unique_axes(self):
+        # GH#33041 raise with a helpful error message
+        df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
+
+        rows = [0, 1]
+        cols = ["A", "A"]
+
+        # homogeneous-dtype case
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.T.lookup(cols, rows)
+
+        # heterogeneous dtype
+        df["B"] = 0
+        with pytest.raises(ValueError, match="requires unique index and columns"):
+            df.lookup(rows, cols)
+
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
             for col in float_frame.columns:
@@ -1401,6 +1431,81 @@ class TestDataFrameIndexing:
         msg = "could not convert string to float: 'sam'"
         with pytest.raises(ValueError, match=msg):
             res._set_value("foobar", "baz", "sam")
+
+    def test_reindex_with_multi_index(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
+        #
+        # confirms that we can reindex a multi-indexed DataFrame with a new
+        # MultiIndex object correctly when using no filling, backfilling, and
+        # padding
+        #
+        # The DataFrame, `df`, used in this test is:
+        #       c
+        #  a b
+        # -1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  0 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #
+        # and the other MultiIndex, `new_multi_index`, is:
+        # 0: 0 0.5
+        # 1:   2.0
+        # 2:   5.0
+        # 3:   5.8
+        df = pd.DataFrame(
+            {
+                "a": [-1] * 7 + [0] * 7 + [1] * 7,
+                "b": list(range(7)) * 3,
+                "c": ["A", "B", "C", "D", "E", "F", "G"] * 3,
+            }
+        ).set_index(["a", "b"])
+        new_index = [0.5, 2.0, 5.0, 5.8]
+        new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
+
+        # reindexing w/o a `method` value
+        reindexed = df.reindex(new_multi_index)
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": [np.nan, "C", "F", np.nan]}
+        ).set_index(["a", "b"])
+        tm.assert_frame_equal(expected, reindexed)
+
+        # reindexing with backfilling
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["B", "C", "F", "G"]}
+        ).set_index(["a", "b"])
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="bfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="backfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        # reindexing with padding
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["A", "C", "F", "F"]}
+        ).set_index(["a", "b"])
+        reindexed_with_padding = df.reindex(new_multi_index, method="pad")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
+
+        reindexed_with_padding = df.reindex(new_multi_index, method="ffill")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
@@ -1575,11 +1680,6 @@ class TestDataFrameIndexing:
         expected = pd.DataFrame({"x": expected_values}, index=target)
         actual = df.reindex(target, method=method)
         tm.assert_frame_equal(expected, actual)
-
-        actual = df.reindex_like(df, method=method, tolerance=0)
-        tm.assert_frame_equal(df, actual)
-        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-        tm.assert_frame_equal(df, actual)
 
         actual = df.reindex(target, method=method, tolerance=1)
         tm.assert_frame_equal(expected, actual)
@@ -1821,22 +1921,6 @@ class TestDataFrameIndexing:
         result = df.loc[:, "A"]
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_with_sparse_value(self):
-        # GH8131
-        df = pd.DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
-        sp_array = SparseArray([0, 0, 1])
-        df["new_column"] = sp_array
-        tm.assert_series_equal(
-            df["new_column"], pd.Series(sp_array, name="new_column"), check_names=False
-        )
-
-    def test_setitem_with_unaligned_sparse_value(self):
-        df = pd.DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
-        sp_series = pd.Series(SparseArray([0, 0, 1]), index=[2, 1, 0])
-        df["new_column"] = sp_series
-        exp = pd.Series(SparseArray([1, 0, 0]), name="new_column")
-        tm.assert_series_equal(df["new_column"], exp)
-
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
@@ -1869,7 +1953,7 @@ class TestDataFrameIndexing:
         df = DataFrame(index=date_range("20130101", periods=4))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
-        df.loc[:3, "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
+        df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")
@@ -2031,69 +2115,6 @@ class TestDataFrameIndexing:
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
 
-    def test_mask(self):
-        df = DataFrame(np.random.randn(5, 3))
-        cond = df > 0
-
-        rs = df.where(cond, np.nan)
-        tm.assert_frame_equal(rs, df.mask(df <= 0))
-        tm.assert_frame_equal(rs, df.mask(~cond))
-
-        other = DataFrame(np.random.randn(5, 3))
-        rs = df.where(cond, other)
-        tm.assert_frame_equal(rs, df.mask(df <= 0, other))
-        tm.assert_frame_equal(rs, df.mask(~cond, other))
-
-        # see gh-21891
-        df = DataFrame([1, 2])
-        res = df.mask([[True], [False]])
-
-        exp = DataFrame([np.nan, 2])
-        tm.assert_frame_equal(res, exp)
-
-    def test_mask_inplace(self):
-        # GH8801
-        df = DataFrame(np.random.randn(5, 3))
-        cond = df > 0
-
-        rdf = df.copy()
-
-        rdf.where(cond, inplace=True)
-        tm.assert_frame_equal(rdf, df.where(cond))
-        tm.assert_frame_equal(rdf, df.mask(~cond))
-
-        rdf = df.copy()
-        rdf.where(cond, -df, inplace=True)
-        tm.assert_frame_equal(rdf, df.where(cond, -df))
-        tm.assert_frame_equal(rdf, df.mask(~cond, -df))
-
-    def test_mask_edge_case_1xN_frame(self):
-        # GH4071
-        df = DataFrame([[1, 2]])
-        res = df.mask(DataFrame([[True, False]]))
-        expec = DataFrame([[np.nan, 2]])
-        tm.assert_frame_equal(res, expec)
-
-    def test_mask_callable(self):
-        # GH 12533
-        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        result = df.mask(lambda x: x > 4, lambda x: x + 1)
-        exp = DataFrame([[1, 2, 3], [4, 6, 7], [8, 9, 10]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, df.mask(df > 4, df + 1))
-
-        # return ndarray and scalar
-        result = df.mask(lambda x: (x % 2 == 0).values, lambda x: 99)
-        exp = DataFrame([[1, 99, 3], [99, 5, 99], [7, 99, 9]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, df.mask(df % 2 == 0, 99))
-
-        # chain
-        result = (df + 2).mask(lambda x: x > 8, lambda x: x + 10)
-        exp = DataFrame([[3, 4, 5], [6, 7, 8], [19, 20, 21]])
-        tm.assert_frame_equal(result, exp)
-        tm.assert_frame_equal(result, (df + 2).mask((df + 2) > 8, (df + 2) + 10))
-
     def test_type_error_multiindex(self):
         # See gh-12218
         df = DataFrame(
@@ -2208,17 +2229,18 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[1], pd.Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
-    mgr = df._data
+    mgr = df._mgr
+    mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
-    blk = mgr.blocks[mgr._blknos[1]]
+    blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timestamp)
 
-    blk = mgr.blocks[mgr._blknos[2]]
+    blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)

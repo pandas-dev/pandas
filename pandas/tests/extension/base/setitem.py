@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -60,7 +58,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
         setter = getattr(arr, setter)
-        operator.setitem(setter, 0, data[1])
+        setter[0] = data[1]
         assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
@@ -196,7 +194,7 @@ class BaseSetitemTests(BaseExtensionTests):
             # Series.__setitem__
             target = ser
 
-        operator.setitem(target, mask2, data[5:7])
+        target[mask2] = data[5:7]
 
         ser[mask2] = data[5:7]
         assert ser[0] == data[5]
@@ -213,7 +211,7 @@ class BaseSetitemTests(BaseExtensionTests):
         else:  # __setitem__
             target = ser
 
-        operator.setitem(target, mask, data[10])
+        target[mask] = data[10]
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 

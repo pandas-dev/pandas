@@ -2,7 +2,6 @@ from datetime import datetime, time, timedelta
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
@@ -24,6 +23,13 @@ class TestGetItem:
         result = idx[...]
         assert result.equals(idx)
         assert result is not idx
+
+    def test_getitem_slice_keeps_name(self):
+        # GH4226
+        st = pd.Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
+        et = pd.Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
+        dr = pd.date_range(st, et, freq="H", name="timebucket")
+        assert dr[1:].name == dr.name
 
     def test_getitem(self):
         idx1 = pd.date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
@@ -69,8 +75,9 @@ class TestGetItem:
     def test_dti_business_getitem(self):
         rng = pd.bdate_range(START, END)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="B")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
 
         assert smaller.freq == rng.freq
 
@@ -96,8 +103,9 @@ class TestGetItem:
     def test_dti_custom_getitem(self):
         rng = pd.bdate_range(START, END, freq="C")
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="C")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
         assert smaller.freq == rng.freq
 
         sliced = rng[::5]
@@ -119,8 +127,31 @@ class TestGetItem:
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
+    def test_getitem_int_list(self):
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        assert v1 == Timestamp("2/28/2005")
+        assert v2 == Timestamp("4/30/2005")
+        assert v3 == Timestamp("6/30/2005")
+
+        # getitem with non-slice drops freq
+        assert dti2.freq is None
+
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        dti = date_range("20130101", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = DatetimeIndex([dti[0], dti[1], dti[0]], freq=None, name="idx")
+
+        result = dti.where(cond, dti[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -304,7 +335,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_with_timezone(self):
@@ -340,7 +372,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
 
@@ -420,7 +453,8 @@ class TestGetLoc:
         tm.assert_numpy_array_equal(
             idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
         )
-        with pytest.raises(NotImplementedError):
+        msg = "cannot yet lookup inexact labels when key is a time object"
+        with pytest.raises(NotImplementedError, match=msg):
             idx.get_loc(time(12, 30), method="pad")
 
     def test_get_loc_tz_aware(self):
@@ -454,7 +488,8 @@ class TestGetLoc:
     def test_get_loc_timedelta_invalid_key(self, key):
         # GH#20464
         dti = pd.date_range("1970-01-01", periods=10)
-        with pytest.raises(TypeError):
+        msg = "Cannot index DatetimeIndex with [Tt]imedelta"
+        with pytest.raises(TypeError, match=msg):
             dti.get_loc(key)
 
     def test_get_loc_reasonable_key_error(self):
@@ -464,301 +499,14 @@ class TestGetLoc:
             index.get_loc("1/1/2000")
 
 
-class TestDatetimeIndex:
-    @pytest.mark.parametrize(
-        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
-    )
-    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
-    def test_insert_nat(self, tz, null):
-        # GH#16537, GH#18295 (test missing)
-        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
-        expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
-        res = idx.insert(0, null)
-        tm.assert_index_equal(res, expected)
+class TestContains:
+    def test_dti_contains_with_duplicates(self):
+        d = datetime(2011, 12, 5, 20, 30)
+        ix = DatetimeIndex([d, d])
+        assert d in ix
 
-    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
-    def test_insert_invalid_na(self, tz):
-        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
-        with pytest.raises(TypeError, match="incompatible label"):
-            idx.insert(0, np.timedelta64("NaT"))
 
-    def test_insert(self):
-        idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
-
-        result = idx.insert(2, datetime(2000, 1, 5))
-        exp = DatetimeIndex(
-            ["2000-01-04", "2000-01-01", "2000-01-05", "2000-01-02"], name="idx"
-        )
-        tm.assert_index_equal(result, exp)
-
-        # insertion of non-datetime should coerce to object index
-        result = idx.insert(1, "inserted")
-        expected = Index(
-            [
-                datetime(2000, 1, 4),
-                "inserted",
-                datetime(2000, 1, 1),
-                datetime(2000, 1, 2),
-            ],
-            name="idx",
-        )
-        assert not isinstance(result, DatetimeIndex)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
-        idx = date_range("1/1/2000", periods=3, freq="M", name="idx")
-
-        # preserve freq
-        expected_0 = DatetimeIndex(
-            ["1999-12-31", "2000-01-31", "2000-02-29", "2000-03-31"],
-            name="idx",
-            freq="M",
-        )
-        expected_3 = DatetimeIndex(
-            ["2000-01-31", "2000-02-29", "2000-03-31", "2000-04-30"],
-            name="idx",
-            freq="M",
-        )
-
-        # reset freq to None
-        expected_1_nofreq = DatetimeIndex(
-            ["2000-01-31", "2000-01-31", "2000-02-29", "2000-03-31"],
-            name="idx",
-            freq=None,
-        )
-        expected_3_nofreq = DatetimeIndex(
-            ["2000-01-31", "2000-02-29", "2000-03-31", "2000-01-02"],
-            name="idx",
-            freq=None,
-        )
-
-        cases = [
-            (0, datetime(1999, 12, 31), expected_0),
-            (-3, datetime(1999, 12, 31), expected_0),
-            (3, datetime(2000, 4, 30), expected_3),
-            (1, datetime(2000, 1, 31), expected_1_nofreq),
-            (3, datetime(2000, 1, 2), expected_3_nofreq),
-        ]
-
-        for n, d, expected in cases:
-            result = idx.insert(n, d)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-        # reset freq to None
-        result = idx.insert(3, datetime(2000, 1, 2))
-        expected = DatetimeIndex(
-            ["2000-01-31", "2000-02-29", "2000-03-31", "2000-01-02"],
-            name="idx",
-            freq=None,
-        )
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert result.freq is None
-
-        # see gh-7299
-        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
-            idx.insert(3, pd.Timestamp("2000-01-04"))
-        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
-            idx.insert(3, datetime(2000, 1, 4))
-        with pytest.raises(ValueError):
-            idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))
-        with pytest.raises(ValueError):
-            idx.insert(3, datetime(2000, 1, 4, tzinfo=pytz.timezone("US/Eastern")))
-
-        for tz in ["US/Pacific", "Asia/Singapore"]:
-            idx = date_range("1/1/2000 09:00", periods=6, freq="H", tz=tz, name="idx")
-            # preserve freq
-            expected = date_range(
-                "1/1/2000 09:00", periods=7, freq="H", tz=tz, name="idx"
-            )
-            for d in [
-                pd.Timestamp("2000-01-01 15:00", tz=tz),
-                pytz.timezone(tz).localize(datetime(2000, 1, 1, 15)),
-            ]:
-
-                result = idx.insert(6, d)
-                tm.assert_index_equal(result, expected)
-                assert result.name == expected.name
-                assert result.freq == expected.freq
-                assert result.tz == expected.tz
-
-            expected = DatetimeIndex(
-                [
-                    "2000-01-01 09:00",
-                    "2000-01-01 10:00",
-                    "2000-01-01 11:00",
-                    "2000-01-01 12:00",
-                    "2000-01-01 13:00",
-                    "2000-01-01 14:00",
-                    "2000-01-01 10:00",
-                ],
-                name="idx",
-                tz=tz,
-                freq=None,
-            )
-            # reset freq to None
-            for d in [
-                pd.Timestamp("2000-01-01 10:00", tz=tz),
-                pytz.timezone(tz).localize(datetime(2000, 1, 1, 10)),
-            ]:
-                result = idx.insert(6, d)
-                tm.assert_index_equal(result, expected)
-                assert result.name == expected.name
-                assert result.tz == expected.tz
-                assert result.freq is None
-
-    def test_delete(self):
-        idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
-
-        # preserve freq
-        expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
-        expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
-
-        # reset freq to None
-        expected_1 = DatetimeIndex(
-            ["2000-01-31", "2000-03-31", "2000-04-30", "2000-05-31"],
-            freq=None,
-            name="idx",
-        )
-
-        cases = {
-            0: expected_0,
-            -5: expected_0,
-            -1: expected_4,
-            4: expected_4,
-            1: expected_1,
-        }
-        for n, expected in cases.items():
-            result = idx.delete(n)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
-            idx.delete(5)
-
-        for tz in [None, "Asia/Tokyo", "US/Pacific"]:
-            idx = date_range(
-                start="2000-01-01 09:00", periods=10, freq="H", name="idx", tz=tz
-            )
-
-            expected = date_range(
-                start="2000-01-01 10:00", periods=9, freq="H", name="idx", tz=tz
-            )
-            result = idx.delete(0)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freqstr == "H"
-            assert result.tz == expected.tz
-
-            expected = date_range(
-                start="2000-01-01 09:00", periods=9, freq="H", name="idx", tz=tz
-            )
-            result = idx.delete(-1)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freqstr == "H"
-            assert result.tz == expected.tz
-
-    def test_delete_slice(self):
-        idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
-
-        # preserve freq
-        expected_0_2 = date_range(start="2000-01-04", periods=7, freq="D", name="idx")
-        expected_7_9 = date_range(start="2000-01-01", periods=7, freq="D", name="idx")
-
-        # reset freq to None
-        expected_3_5 = DatetimeIndex(
-            [
-                "2000-01-01",
-                "2000-01-02",
-                "2000-01-03",
-                "2000-01-07",
-                "2000-01-08",
-                "2000-01-09",
-                "2000-01-10",
-            ],
-            freq=None,
-            name="idx",
-        )
-
-        cases = {
-            (0, 1, 2): expected_0_2,
-            (7, 8, 9): expected_7_9,
-            (3, 4, 5): expected_3_5,
-        }
-        for n, expected in cases.items():
-            result = idx.delete(n)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-            result = idx.delete(slice(n[0], n[-1] + 1))
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-        for tz in [None, "Asia/Tokyo", "US/Pacific"]:
-            ts = pd.Series(
-                1,
-                index=pd.date_range(
-                    "2000-01-01 09:00", periods=10, freq="H", name="idx", tz=tz
-                ),
-            )
-            # preserve freq
-            result = ts.drop(ts.index[:5]).index
-            expected = pd.date_range(
-                "2000-01-01 14:00", periods=5, freq="H", name="idx", tz=tz
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-            assert result.tz == expected.tz
-
-            # reset freq to None
-            result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
-            expected = DatetimeIndex(
-                [
-                    "2000-01-01 09:00",
-                    "2000-01-01 11:00",
-                    "2000-01-01 13:00",
-                    "2000-01-01 15:00",
-                    "2000-01-01 17:00",
-                ],
-                freq=None,
-                name="idx",
-                tz=tz,
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-            assert result.tz == expected.tz
-
-    def test_get_value(self):
-        # specifically make sure we have test for np.datetime64 key
-        dti = pd.date_range("2016-01-01", periods=3)
-
-        arr = np.arange(6, 9)
-        ser = pd.Series(arr, index=dti)
-
-        key = dti[1]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            dti.get_value(arr, key)
-
-        result = dti.get_value(ser, key)
-        assert result == 7
-
-        result = dti.get_value(ser, key.to_pydatetime())
-        assert result == 7
-
-        result = dti.get_value(ser, key.to_datetime64())
-        assert result == 7
-
+class TestGetIndexer:
     def test_get_indexer(self):
         idx = pd.date_range("2000-01-01", periods=3)
         exp = np.array([0, 1, 2], dtype=np.intp)
@@ -796,5 +544,49 @@ class TestDatetimeIndex:
         ]
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
+
+
+class TestMaybeCastSliceBound:
+    def test_maybe_cast_slice_bounds_empty(self):
+        # GH#14354
+        empty_idx = date_range(freq="1H", periods=0, end="2015")
+
+        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
+        exp = Timestamp("2015-01-02 23:59:59.999999999")
+        assert right == exp
+
+        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
+        exp = Timestamp("2015-01-02 00:00:00")
+        assert left == exp
+
+    def test_maybe_cast_slice_duplicate_monotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/16515
+        idx = DatetimeIndex(["2017", "2017"])
+        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
+        expected = Timestamp("2017-01-01")
+        assert result == expected
+
+
+class TestDatetimeIndex:
+    def test_get_value(self):
+        # specifically make sure we have test for np.datetime64 key
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        arr = np.arange(6, 9)
+        ser = pd.Series(arr, index=dti)
+
+        key = dti[1]
+
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            dti.get_value(arr, key)
+
+        result = dti.get_value(ser, key)
+        assert result == 7
+
+        result = dti.get_value(ser, key.to_pydatetime())
+        assert result == 7
+
+        result = dti.get_value(ser, key.to_datetime64())
+        assert result == 7

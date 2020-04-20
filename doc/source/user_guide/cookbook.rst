@@ -179,7 +179,7 @@ One could hard code:
 Selection
 ---------
 
-DataFrames
+Dataframes
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -290,7 +290,7 @@ Notice the same results, with the exception of the index.
 
 .. _cookbook.multi_index:
 
-MultiIndexing
+Multiindexing
 -------------
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
@@ -794,8 +794,7 @@ The :ref:`Resample <timeseries.resampling>` docs.
 `Time grouping with some missing values
 <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
-`Valid frequency arguments to Grouper
-<https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases>`
 
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
@@ -914,7 +913,7 @@ The :ref:`Plotting <visualization>` docs.
    @savefig quartile_boxplot.png
    df.boxplot(column='price', by='quartiles')
 
-Data In/Out
+Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5

@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for .hist method """
 
 import numpy as np

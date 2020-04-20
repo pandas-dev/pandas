@@ -1,3 +1,5 @@
+import warnings
+
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
@@ -43,7 +45,7 @@ class TestToPeriod:
     @pytest.mark.parametrize("month", MONTHS)
     def test_to_period_quarterly(self, month):
         # make sure we can make the round trip
-        freq = "Q-{month}".format(month=month)
+        freq = f"Q-{month}"
         rng = period_range("1989Q3", "1991Q3", freq=freq)
         stamps = rng.to_timestamp()
         result = stamps.to_period(freq)
@@ -74,6 +76,28 @@ class TestToPeriod:
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")
+
+    def test_to_period_infer(self):
+        # https://github.com/pandas-dev/pandas/issues/33358
+        rng = date_range(
+            start="2019-12-22 06:40:00+00:00",
+            end="2019-12-22 08:45:00+00:00",
+            freq="5min",
+        )
+
+        with tm.assert_produces_warning(None):
+            # Using simple filter because we are not checking for the warning here
+            warnings.simplefilter("ignore", UserWarning)
+
+            pi1 = rng.to_period("5min")
+
+        with tm.assert_produces_warning(None):
+            # Using simple filter because we are not checking for the warning here
+            warnings.simplefilter("ignore", UserWarning)
+
+            pi2 = rng.to_period()
+
+        tm.assert_index_equal(pi1, pi2)
 
     def test_period_dt64_round_trip(self):
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
@@ -147,7 +171,8 @@ class TestToPeriod:
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"])
-        with pytest.raises(ValueError):
+        msg = "You must pass a freq argument as current index has none."
+        with pytest.raises(ValueError, match=msg):
             idx.to_period()
 
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"], freq="infer")

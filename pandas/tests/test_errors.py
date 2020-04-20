@@ -17,6 +17,7 @@ import pandas as pd  # noqa
         "EmptyDataError",
         "ParserWarning",
         "MergeError",
+        "OptionError",
     ],
 )
 def test_exception_importable(exc):

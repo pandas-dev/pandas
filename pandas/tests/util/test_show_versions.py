@@ -1,8 +1,26 @@
 import re
 
+import pytest
+
 import pandas as pd
 
 
+@pytest.mark.filterwarnings(
+    # openpyxl
+    "ignore:defusedxml.lxml is no longer supported:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    # html5lib
+    "ignore:Using or importing the ABCs from:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    # fastparquet
+    "ignore:pandas.core.index is deprecated:FutureWarning"
+)
+@pytest.mark.filterwarnings(
+    # pandas_datareader
+    "ignore:pandas.util.testing is deprecated:FutureWarning"
+)
 def test_show_versions(capsys):
     # gh-32041
     pd.show_versions()

@@ -37,7 +37,7 @@ except ImportError as e:  # pragma: no cover
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --inplace --force' to build the C extensions first."
-    )
+    ) from e
 
 from pandas._config import (
     get_option,
@@ -290,8 +290,8 @@ else:
 
             try:
                 return getattr(self.np, item)
-            except AttributeError:
-                raise AttributeError(f"module numpy has no attribute {item}")
+            except AttributeError as err:
+                raise AttributeError(f"module numpy has no attribute {item}") from err
 
     np = __numpy()
 
@@ -306,8 +306,10 @@ else:
 
             try:
                 return getattr(cls.datetime, item)
-            except AttributeError:
-                raise AttributeError(f"module datetime has no attribute {item}")
+            except AttributeError as err:
+                raise AttributeError(
+                    f"module datetime has no attribute {item}"
+                ) from err
 
         def __instancecheck__(cls, other):
             return isinstance(other, cls.datetime)

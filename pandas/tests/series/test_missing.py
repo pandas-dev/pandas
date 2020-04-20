@@ -122,22 +122,6 @@ class TestSeriesMissingData:
         )
         s[2] = np.nan
 
-        # reg fillna
-        result = s.fillna(Timestamp("20130104"))
-        expected = Series(
-            [
-                Timestamp("20130101"),
-                Timestamp("20130101"),
-                Timestamp("20130104"),
-                Timestamp("20130103 9:01:01"),
-            ]
-        )
-        tm.assert_series_equal(result, expected)
-
-        result = s.fillna(NaT)
-        expected = s
-        tm.assert_series_equal(result, expected)
-
         # ffill
         result = s.ffill()
         expected = Series(
@@ -177,242 +161,228 @@ class TestSeriesMissingData:
         result = s.fillna(method="backfill")
         tm.assert_series_equal(result, expected)
 
-    def test_datetime64_tz_fillna(self):
+    @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
+    def test_datetime64_tz_fillna(self, tz):
+        # DatetimeBlock
+        s = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                pd.NaT,
+                Timestamp("2011-01-03 10:00"),
+                pd.NaT,
+            ]
+        )
+        null_loc = pd.Series([False, True, False, True])
 
-        for tz in ["US/Eastern", "Asia/Tokyo"]:
-            # DatetimeBlock
-            s = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    pd.NaT,
-                    Timestamp("2011-01-03 10:00"),
-                    pd.NaT,
-                ]
-            )
-            null_loc = pd.Series([False, True, False, True])
+        result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                Timestamp("2011-01-02 10:00"),
+                Timestamp("2011-01-03 10:00"),
+                Timestamp("2011-01-02 10:00"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        # check s is not changed
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    Timestamp("2011-01-02 10:00"),
-                    Timestamp("2011-01-03 10:00"),
-                    Timestamp("2011-01-02 10:00"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            # check s is not changed
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz))
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00"),
+                Timestamp("2011-01-02 10:00", tz=tz),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz))
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    Timestamp("2011-01-02 10:00", tz=tz),
-                    Timestamp("2011-01-03 10:00"),
-                    Timestamp("2011-01-02 10:00", tz=tz),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna("AAA")
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                "AAA",
+                Timestamp("2011-01-03 10:00"),
+                "AAA",
+            ],
+            dtype=object,
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna("AAA")
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    "AAA",
-                    Timestamp("2011-01-03 10:00"),
-                    "AAA",
-                ],
-                dtype=object,
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(
+            {
+                1: pd.Timestamp("2011-01-02 10:00", tz=tz),
+                3: pd.Timestamp("2011-01-04 10:00"),
+            }
+        )
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00"),
+                Timestamp("2011-01-04 10:00"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(
-                {
-                    1: pd.Timestamp("2011-01-02 10:00", tz=tz),
-                    3: pd.Timestamp("2011-01-04 10:00"),
-                }
-            )
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    Timestamp("2011-01-02 10:00", tz=tz),
-                    Timestamp("2011-01-03 10:00"),
-                    Timestamp("2011-01-04 10:00"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(
+            {1: pd.Timestamp("2011-01-02 10:00"), 3: pd.Timestamp("2011-01-04 10:00")}
+        )
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00"),
+                Timestamp("2011-01-02 10:00"),
+                Timestamp("2011-01-03 10:00"),
+                Timestamp("2011-01-04 10:00"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(
-                {
-                    1: pd.Timestamp("2011-01-02 10:00"),
-                    3: pd.Timestamp("2011-01-04 10:00"),
-                }
-            )
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00"),
-                    Timestamp("2011-01-02 10:00"),
-                    Timestamp("2011-01-03 10:00"),
-                    Timestamp("2011-01-04 10:00"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        # DatetimeBlockTZ
+        idx = pd.DatetimeIndex(
+            ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz=tz
+        )
+        s = pd.Series(idx)
+        assert s.dtype == f"datetime64[ns, {tz}]"
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            # DatetimeBlockTZ
-            idx = pd.DatetimeIndex(
-                ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz=tz
-            )
-            s = pd.Series(idx)
-            assert s.dtype == f"datetime64[ns, {tz}]"
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00"),
+                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    Timestamp("2011-01-02 10:00"),
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    Timestamp("2011-01-02 10:00"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz))
+        idx = pd.DatetimeIndex(
+            [
+                "2011-01-01 10:00",
+                "2011-01-02 10:00",
+                "2011-01-03 10:00",
+                "2011-01-02 10:00",
+            ],
+            tz=tz,
+        )
+        expected = Series(idx)
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz))
-            idx = pd.DatetimeIndex(
-                [
-                    "2011-01-01 10:00",
-                    "2011-01-02 10:00",
-                    "2011-01-03 10:00",
-                    "2011-01-02 10:00",
-                ],
-                tz=tz,
-            )
-            expected = Series(idx)
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz).to_pydatetime())
+        idx = pd.DatetimeIndex(
+            [
+                "2011-01-01 10:00",
+                "2011-01-02 10:00",
+                "2011-01-03 10:00",
+                "2011-01-02 10:00",
+            ],
+            tz=tz,
+        )
+        expected = Series(idx)
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(pd.Timestamp("2011-01-02 10:00", tz=tz).to_pydatetime())
-            idx = pd.DatetimeIndex(
-                [
-                    "2011-01-01 10:00",
-                    "2011-01-02 10:00",
-                    "2011-01-03 10:00",
-                    "2011-01-02 10:00",
-                ],
-                tz=tz,
-            )
-            expected = Series(idx)
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna("AAA")
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                "AAA",
+                Timestamp("2011-01-03 10:00", tz=tz),
+                "AAA",
+            ],
+            dtype=object,
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna("AAA")
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    "AAA",
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    "AAA",
-                ],
-                dtype=object,
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(
+            {
+                1: pd.Timestamp("2011-01-02 10:00", tz=tz),
+                3: pd.Timestamp("2011-01-04 10:00"),
+            }
+        )
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-04 10:00"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(
-                {
-                    1: pd.Timestamp("2011-01-02 10:00", tz=tz),
-                    3: pd.Timestamp("2011-01-04 10:00"),
-                }
-            )
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    Timestamp("2011-01-02 10:00", tz=tz),
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    Timestamp("2011-01-04 10:00"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(
+            {
+                1: pd.Timestamp("2011-01-02 10:00", tz=tz),
+                3: pd.Timestamp("2011-01-04 10:00", tz=tz),
+            }
+        )
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-04 10:00", tz=tz),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(
-                {
-                    1: pd.Timestamp("2011-01-02 10:00", tz=tz),
-                    3: pd.Timestamp("2011-01-04 10:00", tz=tz),
-                }
-            )
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    Timestamp("2011-01-02 10:00", tz=tz),
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    Timestamp("2011-01-04 10:00", tz=tz),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        # filling with a naive/other zone, coerce to object
+        result = s.fillna(Timestamp("20130101"))
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2013-01-01"),
+                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2013-01-01"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            # filling with a naive/other zone, coerce to object
-            result = s.fillna(Timestamp("20130101"))
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    Timestamp("2013-01-01"),
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    Timestamp("2013-01-01"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
+        result = s.fillna(Timestamp("20130101", tz="US/Pacific"))
+        expected = Series(
+            [
+                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2013-01-01", tz="US/Pacific"),
+                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2013-01-01", tz="US/Pacific"),
+            ]
+        )
+        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(pd.isna(s), null_loc)
 
-            result = s.fillna(Timestamp("20130101", tz="US/Pacific"))
-            expected = Series(
-                [
-                    Timestamp("2011-01-01 10:00", tz=tz),
-                    Timestamp("2013-01-01", tz="US/Pacific"),
-                    Timestamp("2011-01-03 10:00", tz=tz),
-                    Timestamp("2013-01-01", tz="US/Pacific"),
-                ]
-            )
-            tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isna(s), null_loc)
-
+    def test_fillna_dt64tz_with_method(self):
         # with timezone
         # GH 15855
-        df = pd.Series([pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT])
+        ser = pd.Series([pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT])
         exp = pd.Series(
             [
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
             ]
         )
-        tm.assert_series_equal(df.fillna(method="pad"), exp)
+        tm.assert_series_equal(ser.fillna(method="pad"), exp)
 
-        df = pd.Series([pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")])
+        ser = pd.Series([pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")])
         exp = pd.Series(
             [
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
             ]
         )
-        tm.assert_series_equal(df.fillna(method="bfill"), exp)
-
-    def test_datetime64_non_nano_fillna(self):
-        # GH#27419
-        ser = Series([Timestamp("2010-01-01"), pd.NaT, Timestamp("2000-01-01")])
-        val = np.datetime64("1975-04-05", "ms")
-
-        result = ser.fillna(val)
-        expected = Series(
-            [Timestamp("2010-01-01"), Timestamp("1975-04-05"), Timestamp("2000-01-01")]
-        )
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(ser.fillna(method="bfill"), exp)
 
     def test_fillna_consistency(self):
         # GH 16402
@@ -447,13 +417,6 @@ class TestSeriesMissingData:
         s2 = s.copy()
         s2[1] = "foo"
         tm.assert_series_equal(s2, expected)
-
-    def test_where_sparse(self):
-        # GH#17198 make sure we dont get an AttributeError for sp_index
-        ser = pd.Series(pd.arrays.SparseArray([1, 2]))
-        result = ser.where(ser >= 2, 0)
-        expected = pd.Series(pd.arrays.SparseArray([0, 2]))
-        tm.assert_series_equal(result, expected)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
@@ -493,28 +456,6 @@ class TestSeriesMissingData:
         s.fillna(method="ffill", inplace=True)
         tm.assert_series_equal(s.fillna(method="ffill", inplace=False), s)
 
-    def test_fillna_raise(self):
-        s = Series(np.random.randint(-100, 100, 50))
-        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
-        with pytest.raises(TypeError, match=msg):
-            s.fillna([1, 2])
-
-        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
-        with pytest.raises(TypeError, match=msg):
-            s.fillna((1, 2))
-
-        # related GH 9217, make sure limit is an int and greater than 0
-        s = Series([1, 2, 3, None])
-        msg = (
-            r"Cannot specify both 'value' and 'method'\.|"
-            r"Limit must be greater than 0|"
-            "Limit must be an integer"
-        )
-        for limit in [-1, 0, 1.0, 2.0]:
-            for method in ["backfill", "bfill", "pad", "ffill", None]:
-                with pytest.raises(ValueError, match=msg):
-                    s.fillna(1, limit=limit, method=method)
-
     def test_categorical_nan_equality(self):
         cat = Series(Categorical(["a", "b", "c", np.nan]))
         exp = Series([True, True, True, False])
@@ -529,77 +470,6 @@ class TestSeriesMissingData:
         tm.assert_numpy_array_equal(
             s.values.codes, np.array([0, 1, -1, 0], dtype=np.int8)
         )
-
-    @pytest.mark.parametrize(
-        "fill_value, expected_output",
-        [
-            ("a", ["a", "a", "b", "a", "a"]),
-            ({1: "a", 3: "b", 4: "b"}, ["a", "a", "b", "b", "b"]),
-            ({1: "a"}, ["a", "a", "b", np.nan, np.nan]),
-            ({1: "a", 3: "b"}, ["a", "a", "b", "b", np.nan]),
-            (Series("a"), ["a", np.nan, "b", np.nan, np.nan]),
-            (Series("a", index=[1]), ["a", "a", "b", np.nan, np.nan]),
-            (Series({1: "a", 3: "b"}), ["a", "a", "b", "b", np.nan]),
-            (Series(["a", "b"], index=[3, 4]), ["a", np.nan, "b", "a", "b"]),
-        ],
-    )
-    def test_fillna_categorical(self, fill_value, expected_output):
-        # GH 17033
-        # Test fillna for a Categorical series
-        data = ["a", np.nan, "b", np.nan, np.nan]
-        s = Series(Categorical(data, categories=["a", "b"]))
-        exp = Series(Categorical(expected_output, categories=["a", "b"]))
-        tm.assert_series_equal(s.fillna(fill_value), exp)
-
-    @pytest.mark.parametrize(
-        "fill_value, expected_output",
-        [
-            (Series(["a", "b", "c", "d", "e"]), ["a", "b", "b", "d", "e"]),
-            (Series(["b", "d", "a", "d", "a"]), ["a", "d", "b", "d", "a"]),
-            (
-                Series(
-                    Categorical(
-                        ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
-                    )
-                ),
-                ["a", "d", "b", "d", "a"],
-            ),
-        ],
-    )
-    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):
-        # GH 26215
-        data = ["a", np.nan, "b", np.nan, np.nan]
-        s = Series(Categorical(data, categories=["a", "b", "c", "d", "e"]))
-        exp = Series(Categorical(expected_output, categories=["a", "b", "c", "d", "e"]))
-        tm.assert_series_equal(s.fillna(fill_value), exp)
-
-    def test_fillna_categorical_raise(self):
-        data = ["a", np.nan, "b", np.nan, np.nan]
-        s = Series(Categorical(data, categories=["a", "b"]))
-
-        with pytest.raises(ValueError, match="fill value must be in categories"):
-            s.fillna("d")
-
-        with pytest.raises(ValueError, match="fill value must be in categories"):
-            s.fillna(Series("d"))
-
-        with pytest.raises(ValueError, match="fill value must be in categories"):
-            s.fillna({1: "d", 3: "a"})
-
-        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
-        with pytest.raises(TypeError, match=msg):
-            s.fillna(["a", "b"])
-
-        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
-        with pytest.raises(TypeError, match=msg):
-            s.fillna(("a", "b"))
-
-        msg = (
-            '"value" parameter must be a scalar, dict '
-            'or Series, but you passed a "DataFrame"'
-        )
-        with pytest.raises(TypeError, match=msg):
-            s.fillna(DataFrame({1: ["a"], 3: ["b"]}))
 
     def test_fillna_nat(self):
         series = Series([0, 1, 2, iNaT], dtype="M8[ns]")
@@ -743,15 +613,6 @@ class TestSeriesMissingData:
         expected = Series([1.0, 1.0, 3.0, 3.0, np.nan], x.index)
         tm.assert_series_equal(filled, expected)
 
-    def test_fillna_inplace(self):
-        x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
-        y = x.copy()
-
-        y.fillna(value=0, inplace=True)
-
-        expected = x.fillna(value=0)
-        tm.assert_series_equal(y, expected)
-
     def test_fillna_invalid_method(self, datetime_series):
         try:
             datetime_series.fillna(method="ffil")
@@ -823,7 +684,7 @@ class TestSeriesMissingData:
         assert len(s) == 0
 
         # invalid axis
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             s.dropna(axis=1)
 
@@ -939,14 +800,6 @@ class TestSeriesMissingData:
         ts = datetime_series.copy()
         ts.dropna(inplace=True)
         assert ts.name == name
-
-    def test_fill_value_when_combine_const(self):
-        # GH12723
-        s = Series([0, 1, np.nan, 3, 4, 5])
-
-        exp = s.fillna(0).add(2)
-        res = s.add(2, fill_value=0)
-        tm.assert_series_equal(res, exp)
 
     def test_series_fillna_limit(self):
         index = np.arange(10)

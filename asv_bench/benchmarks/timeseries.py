@@ -57,6 +57,9 @@ class DatetimeIndex:
     def time_to_pydatetime(self, index_type):
         self.index.to_pydatetime()
 
+    def time_is_dates_only(self, index_type):
+        self.index._is_dates_only
+
 
 class TzLocalize:
 
@@ -89,20 +92,6 @@ class ResetIndex:
 
     def time_reest_datetimeindex(self, tz):
         self.df.reset_index()
-
-
-class Factorize:
-
-    params = [None, "Asia/Tokyo"]
-    param_names = "tz"
-
-    def setup(self, tz):
-        N = 100000
-        self.dti = date_range("2011-01-01", freq="H", periods=N, tz=tz)
-        self.dti = self.dti.repeat(5)
-
-    def time_factorize(self, tz):
-        self.dti.factorize()
 
 
 class InferFreq:
@@ -347,14 +336,32 @@ class ToDatetimeFormatQuarters:
 
 class ToDatetimeFormat:
     def setup(self):
-        self.s = Series(["19MAY11", "19MAY11:00:00:00"] * 100000)
+        N = 100000
+        self.s = Series(["19MAY11", "19MAY11:00:00:00"] * N)
         self.s2 = self.s.str.replace(":\\S+$", "")
+
+        self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
+        self.diff_offset = [
+            f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
+        ] * int(N / 10)
 
     def time_exact(self):
         to_datetime(self.s2, format="%d%b%y")
 
     def time_no_exact(self):
         to_datetime(self.s, format="%d%b%y", exact=False)
+
+    def time_same_offset(self):
+        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
+
+    def time_different_offset(self):
+        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
+
+    def time_same_offset_to_utc(self):
+        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
+
+    def time_different_offset_to_utc(self):
+        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
 
 
 class ToDatetimeCache:

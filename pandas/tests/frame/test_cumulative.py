@@ -23,9 +23,9 @@ class TestDataFrameCumulativeOps:
         result = dm.cumsum()  # noqa
 
     def test_cumsum(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
+        datetime_frame.iloc[5:10, 0] = np.nan
+        datetime_frame.iloc[10:15, 1] = np.nan
+        datetime_frame.iloc[15:, 2] = np.nan
 
         # axis = 0
         cumsum = datetime_frame.cumsum()
@@ -46,9 +46,9 @@ class TestDataFrameCumulativeOps:
         assert np.shape(cumsum_xs) == np.shape(datetime_frame)
 
     def test_cumprod(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
+        datetime_frame.iloc[5:10, 0] = np.nan
+        datetime_frame.iloc[10:15, 1] = np.nan
+        datetime_frame.iloc[15:, 2] = np.nan
 
         # axis = 0
         cumprod = datetime_frame.cumprod()
@@ -80,9 +80,9 @@ class TestDataFrameCumulativeOps:
         strict=False,
     )
     def test_cummin(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
+        datetime_frame.iloc[5:10, 0] = np.nan
+        datetime_frame.iloc[10:15, 1] = np.nan
+        datetime_frame.iloc[15:, 2] = np.nan
 
         # axis = 0
         cummin = datetime_frame.cummin()
@@ -108,9 +108,9 @@ class TestDataFrameCumulativeOps:
         strict=False,
     )
     def test_cummax(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
+        datetime_frame.iloc[5:10, 0] = np.nan
+        datetime_frame.iloc[10:15, 1] = np.nan
+        datetime_frame.iloc[15:, 2] = np.nan
 
         # axis = 0
         cummax = datetime_frame.cummax()

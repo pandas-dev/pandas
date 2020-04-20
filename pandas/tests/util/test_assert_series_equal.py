@@ -1,5 +1,6 @@
 import pytest
 
+import pandas as pd
 from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
@@ -168,6 +169,7 @@ def test_series_equal_values_mismatch(check_less_precise):
     msg = """Series are different
 
 Series values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[1, 2, 3\\]
 \\[right\\]: \\[1, 2, 4\\]"""
 
@@ -194,3 +196,58 @@ ordered=False\\)"""
             tm.assert_series_equal(s1, s2, check_categorical=check_categorical)
     else:
         _assert_series_equal_both(s1, s2, check_categorical=check_categorical)
+
+
+def test_assert_series_equal_extension_dtype_mismatch():
+    # https://github.com/pandas-dev/pandas/issues/32747
+    left = Series(pd.array([1, 2, 3], dtype="Int64"))
+    right = left.astype(int)
+
+    msg = """Attributes of Series are different
+
+Attribute "dtype" are different
+\\[left\\]:  Int64
+\\[right\\]: int[32|64]"""
+
+    tm.assert_series_equal(left, right, check_dtype=False)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_dtype=True)
+
+
+def test_assert_series_equal_interval_dtype_mismatch():
+    # https://github.com/pandas-dev/pandas/issues/32747
+    left = Series([pd.Interval(0, 1)], dtype="interval")
+    right = left.astype(object)
+
+    msg = """Attributes of Series are different
+
+Attribute "dtype" are different
+\\[left\\]:  interval\\[int64\\]
+\\[right\\]: object"""
+
+    tm.assert_series_equal(left, right, check_dtype=False)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_dtype=True)
+
+
+def test_series_equal_series_type():
+    class MySeries(Series):
+        pass
+
+    s1 = Series([1, 2])
+    s2 = Series([1, 2])
+    s3 = MySeries([1, 2])
+
+    tm.assert_series_equal(s1, s2, check_series_type=False)
+    tm.assert_series_equal(s1, s2, check_series_type=True)
+
+    tm.assert_series_equal(s1, s3, check_series_type=False)
+    tm.assert_series_equal(s3, s1, check_series_type=False)
+
+    with pytest.raises(AssertionError, match="Series classes are different"):
+        tm.assert_series_equal(s1, s3, check_series_type=True)
+
+    with pytest.raises(AssertionError, match="Series classes are different"):
+        tm.assert_series_equal(s3, s1, check_series_type=True)

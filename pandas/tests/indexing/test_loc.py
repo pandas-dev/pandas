@@ -16,7 +16,7 @@ class TestLoc(Base):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result("loc", 2, typs=["labels"], fails=TypeError)
+        self.check_result("loc", 2, typs=["labels"], fails=KeyError)
 
     def test_loc_getitem_label(self):
 
@@ -34,8 +34,8 @@ class TestLoc(Base):
         self.check_result(
             "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
         )
-        self.check_result("loc", 20, typs=["labels"], fails=TypeError)
-        self.check_result("loc", 20, typs=["ts"], axes=0, fails=TypeError)
+        self.check_result("loc", 20, typs=["labels"], fails=KeyError)
+        self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
@@ -631,6 +631,64 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
+    @pytest.mark.parametrize(
+        "index,box,expected",
+        [
+            (
+                ([0, 2], ["A", "B", "C", "D"]),
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [3, 4, np.nan, np.nan], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["C", "D"]),
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["A", "B", "C"]),
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]],
+                    columns=["A", "B", "C"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["B", "C", "D"]),
+                [[7, 8, 9], [10, 11, 12]],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["C", "A", "D"]),
+                np.array([[7, 8, 9], [10, 11, 12]], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [8, 4, 7, 9], [11, 6, 10, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(None, None, None), ["A", "C"]),
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_loc_setitem_missing_columns(self, index, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df.loc[index] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_coercion(self):
 
         # 12411
@@ -863,6 +921,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
+        df.index = df.index.astype(np.int64)
         msg = (
             r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
             r"are in the \[index\]"
@@ -967,3 +1026,83 @@ def test_loc_set_dataframe_multiindex():
     result = expected.copy()
     result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_mixed_int_float():
+    # GH#19456
+    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+
+    result = ser.loc[1]
+    assert result == 0
+
+
+def test_loc_with_positional_slice_deprecation():
+    # GH#31840
+    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        ser.loc[:3] = 2
+
+    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_slice_disallows_positional():
+    # GH#16121, GH#24612, GH#31810
+    dti = pd.date_range("2016-01-01", periods=3)
+    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+
+    ser = df[0]
+
+    msg = (
+        "cannot do slice indexing on DatetimeIndex with these "
+        r"indexers \[1\] of type int"
+    )
+
+    for obj in [df, ser]:
+        with pytest.raises(TypeError, match=msg):
+            obj.loc[1:3]
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#31840 deprecated incorrect behavior
+            obj.loc[1:3] = 1
+
+    with pytest.raises(TypeError, match=msg):
+        df.loc[1:3, 1]
+
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31840 deprecated incorrect behavior
+        df.loc[1:3, 1] = 2
+
+
+def test_loc_datetimelike_mismatched_dtypes():
+    # GH#32650 dont mix and match datetime/timedelta/period dtypes
+
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique DatetimeIndex
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    dti = df.index
+    tdi = pd.TimedeltaIndex(dti.asi8)  # matching i8 values
+
+    msg = r"None of \[TimedeltaIndex.* are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
+        df.loc[tdi]
+
+    with pytest.raises(KeyError, match=msg):
+        df["a"].loc[tdi]
+
+
+def test_loc_with_period_index_indexer():
+    # GH#4125
+    idx = pd.period_range("2002-01", "2003-12", freq="M")
+    df = pd.DataFrame(np.random.randn(24, 10), index=idx)
+    tm.assert_frame_equal(df, df.loc[idx])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df, df.loc[list(idx)])
+    tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
+    tm.assert_frame_equal(df, df.loc[list(idx)])

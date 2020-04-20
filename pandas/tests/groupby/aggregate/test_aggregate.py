@@ -6,6 +6,8 @@ import functools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
@@ -338,6 +340,30 @@ def test_groupby_agg_coercing_bools():
     result = gp["c"].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name="c")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda x: x.sum(),
+        lambda x: x.cumsum(),
+        lambda x: x.transform("sum"),
+        lambda x: x.transform("cumsum"),
+        lambda x: x.agg("sum"),
+        lambda x: x.agg("cumsum"),
+    ],
+)
+def test_bool_agg_dtype(op):
+    # GH 7001
+    # Bool sum aggregations result in int
+    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
+    s = df.set_index("a")["b"]
+
+    result = op(df.groupby("a"))["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = op(s.groupby("a")).dtype
+    assert is_integer_dtype(result)
 
 
 def test_order_aggregate_multiple_funcs():
@@ -688,6 +714,19 @@ def test_agg_relabel_multiindex_duplicates():
     )
     idx = pd.Index(["a", "b"], name=("x", "group"))
     expected = DataFrame({"a": [0, 2], "b": [0, 2]}, index=idx)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
+)
+def test_multiindex_custom_func(func):
+    # GH 31777
+    data = [[1, 4, 2], [5, 7, 1]]
+    df = pd.DataFrame(data, columns=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    result = df.groupby(np.array([0, 1])).agg(func)
+    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected = pd.DataFrame(expected_dict)
     tm.assert_frame_equal(result, expected)
 
 

@@ -9,6 +9,7 @@ import pytest
 import pytz
 from pytz import timezone
 
+from pandas._libs.tslibs import timezones
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -153,9 +154,10 @@ class TestDateRanges:
 
     def test_date_range_out_of_bounds(self):
         # GH#14187
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Cannot generate range"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range("2016-01-01", periods=100000, freq="D")
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1763-10-12", periods=100000, freq="D")
 
     def test_date_range_gen_error(self):
@@ -661,6 +663,60 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
 
+class TestDateRangeTZ:
+    """Tests for date_range with timezones"""
+
+    def test_hongkong_tz_convert(self):
+        # GH#1673 smoke test
+        dr = date_range("2012-01-01", "2012-01-10", freq="D", tz="Hongkong")
+
+        # it works!
+        dr.hour
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_span_dst_transition(self, tzstr):
+        # GH#1778
+
+        # Standard -> Daylight Savings Time
+        dr = date_range("03/06/2012 00:00", periods=200, freq="W-FRI", tz="US/Eastern")
+
+        assert (dr.hour == 0).all()
+
+        dr = date_range("2012-11-02", periods=10, tz=tzstr)
+        result = dr.hour
+        expected = pd.Index([0] * 10)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_timezone_str_argument(self, tzstr):
+        tz = timezones.maybe_get_tz(tzstr)
+        result = date_range("1/1/2000", periods=10, tz=tzstr)
+        expected = date_range("1/1/2000", periods=10, tz=tz)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_with_fixedoffset_noname(self):
+        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+
+        off = fixed_off_no_name
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
+
+        idx = pd.Index([start, end])
+        assert off == idx.tz
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_with_tz(self, tzstr):
+        stamp = Timestamp("3/11/2012 05:00", tz=tzstr)
+        assert stamp.hour == 5
+
+        rng = date_range("3/11/2012 04:00", periods=10, freq="H", tz=tzstr)
+
+        assert stamp == rng[1]
+
+
 class TestGenRangeGeneration:
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
@@ -736,9 +792,10 @@ class TestGenRangeGeneration:
     )
     def test_mismatching_tz_raises_err(self, start, end):
         # issue 18488
-        with pytest.raises(TypeError):
+        msg = "Start and end cannot both be tz-aware with different timezones"
+        with pytest.raises(TypeError, match=msg):
             pd.date_range(start, end)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             pd.date_range(start, end, freq=BDay())
 
 
@@ -771,16 +828,17 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        with pytest.raises(ValueError):
+        msg = "could not convert string to Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(start=badly_formed_date, periods=10)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(end=badly_formed_date, periods=10)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(badly_formed_date, badly_formed_date)
 
     def test_daterange_bug_456(self):
@@ -813,8 +871,9 @@ class TestBusinessDateRange:
 
     def test_bday_overflow_error(self):
         # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
+        msg = "Out of bounds nanosecond timestamp"
         start = pd.Timestamp.max.floor("D").to_pydatetime()
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.date_range(start, periods=2, freq="B")
 
 
