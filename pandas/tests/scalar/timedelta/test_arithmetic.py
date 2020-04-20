@@ -410,19 +410,7 @@ class TestTimedeltaMultiplicationDivision:
         assert result == Timedelta(days=2)
 
     @pytest.mark.parametrize(
-        "nan",
-        [
-            np.nan,
-            pytest.param(
-                np.float64("NaN"),
-                marks=pytest.mark.xfail(
-                    _is_numpy_dev,
-                    reason="https://github.com/pandas-dev/pandas/issues/31992",
-                    strict=False,
-                ),
-            ),
-            float("nan"),
-        ],
+        "nan", [np.nan, np.float64("NaN"), float("nan"),],
     )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
