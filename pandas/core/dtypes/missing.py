@@ -231,16 +231,13 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
-    if not isinstance(obj, np.ndarray):
-        values = obj.to_numpy()
-    else:
-        values = obj
-
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
-    if is_string_dtype(dtype):
+    if is_extension_array_dtype(dtype):
+        result = values.isna() | values.isin([-np.inf, np.inf])
+    elif is_string_dtype(dtype):
         result = _isna_string_dtype(values, dtype, old=True)
-
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
