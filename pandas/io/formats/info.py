@@ -1,6 +1,9 @@
 import sys
+from typing import IO, Optional, Union
 
 from pandas._config import get_option
+
+from pandas._typing import FrameOrSeries
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
@@ -11,18 +14,21 @@ def _put_str(s, space):
 
 
 def info(
-    data, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+    data: FrameOrSeries,
+    verbose: Optional[bool] = None,
+    buf: Optional[IO[str]] = None,
+    max_cols: Optional[int] = None,
+    memory_usage: Optional[Union[bool, str]] = None,
+    null_counts: Optional[bool] = None,
 ) -> None:
     """
-    Print a concise summary of a DataFrame.
+    Print a concise summary of a %(klass)s.
 
-    This method prints information about a DataFrame including
-    the index dtype and column dtypes, non-null values and memory usage.
+    This method prints information about a %(klass)s including
+    the index dtype%(type_sub)s, non-null values and memory usage.
 
     Parameters
     ----------
-    data : DataFrame
-        DataFrame to print information about.
     verbose : bool, optional
         Whether to print the full summary. By default, the setting in
         ``pandas.options.display.max_info_columns`` is followed.
@@ -30,16 +36,11 @@ def info(
         Where to send the output. By default, the output is printed to
         sys.stdout. Pass a writable buffer if you need to further process
         the output.
-    max_cols : int, optional
-        When to switch from the verbose to the truncated output. If the
-        DataFrame has more than `max_cols` columns, the truncated output
-        is used. By default, the setting in
-        ``pandas.options.display.max_info_columns`` is used.
+    %(max_cols_sub)s
     memory_usage : bool, str, optional
-        Specifies whether total memory usage of the DataFrame
+        Specifies whether total memory usage of the %(klass)s
         elements (including the index) should be displayed. By default,
         this follows the ``pandas.options.display.memory_usage`` setting.
-
         True always show memory usage. False never shows memory usage.
         A value of 'deep' is equivalent to "True with deep introspection".
         Memory usage is shown in human-readable units (base-2
@@ -50,7 +51,7 @@ def info(
         at the cost of computational resources.
     null_counts : bool, optional
         Whether to show the non-null counts. By default, this is shown
-        only if the frame is smaller than
+        only if the %(klass)s is smaller than
         ``pandas.options.display.max_info_rows`` and
         ``pandas.options.display.max_info_columns``. A value of True always
         shows the counts, and False never shows the counts.
@@ -58,97 +59,15 @@ def info(
     Returns
     -------
     None
-        This method prints a summary of a DataFrame and returns None.
+        This method prints a summary of a %(klass)s and returns None.
 
     See Also
     --------
-    DataFrame.describe: Generate descriptive statistics of DataFrame
-        columns.
-    DataFrame.memory_usage: Memory usage of DataFrame columns.
+    %(see_also_sub)s
 
     Examples
     --------
-    >>> int_values = [1, 2, 3, 4, 5]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-    >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
-    ...                   "float_col": float_values})
-    >>> df
-        int_col text_col  float_col
-    0        1    alpha       0.00
-    1        2     beta       0.25
-    2        3    gamma       0.50
-    3        4    delta       0.75
-    4        5  epsilon       1.00
-
-    Prints information of all columns:
-
-    >>> df.info(verbose=True)
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Data columns (total 3 columns):
-        #   Column     Non-Null Count  Dtype
-    ---  ------     --------------  -----
-        0   int_col    5 non-null      int64
-        1   text_col   5 non-null      object
-        2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Prints a summary of columns count and its dtypes but not per column
-    information:
-
-    >>> df.info(verbose=False)
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Columns: 3 entries, int_col to float_col
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Pipe output of DataFrame.info to buffer instead of sys.stdout, get
-    buffer content and writes to a text file:
-
-    >>> import io
-    >>> buffer = io.StringIO()
-    >>> df.info(buf=buffer)
-    >>> s = buffer.getvalue()
-    >>> with open("df_info.txt", "w",
-    ...           encoding="utf-8") as f:  # doctest: +SKIP
-    ...     f.write(s)
-    260
-
-    The `memory_usage` parameter allows deep introspection mode, specially
-    useful for big DataFrames and fine-tune memory optimization:
-
-    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    >>> df = pd.DataFrame({
-    ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    ... })
-    >>> df.info()
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-        #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-        0   column_1  1000000 non-null  object
-        1   column_2  1000000 non-null  object
-        2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 22.9+ MB
-
-    >>> df.info(memory_usage='deep')
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-        #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-        0   column_1  1000000 non-null  object
-        1   column_2  1000000 non-null  object
-        2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 188.8 MB
+    %(examples_sub)s
     """
     if buf is None:  # pragma: no cover
         buf = sys.stdout
