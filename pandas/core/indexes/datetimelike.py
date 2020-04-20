@@ -495,8 +495,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def where(self, cond, other=None):
         values = self.view("i8")
 
-        if is_scalar(other) and isna(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = NaT.value
+        elif not is_list_like(other):
+            # TODO: what about own-type scalars?
+            raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
             # Do type inference if necessary up front

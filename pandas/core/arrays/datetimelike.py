@@ -588,8 +588,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
-        if lib.is_scalar(value) and not isna(value):
-            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
             is_slice = isinstance(key, slice)
@@ -699,7 +697,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ------
         ValueError
         """
-        if isna(fill_value):
+        if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = iNaT
         elif isinstance(fill_value, self._recognized_scalars):
             self._check_compatible_with(fill_value)
@@ -707,7 +705,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
-                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
+                f"'fill_value' should be a {self._scalar_type}. "
+                f"Got '{str(fill_value)}'."
             )
         return fill_value
 
