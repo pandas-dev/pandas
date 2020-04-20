@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
-    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -51,6 +50,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
@@ -1242,23 +1242,41 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         codes = self.codes
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
-        if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, ensure_platform_int(periods), axis=0)
-            if isna(fill_value):
-                fill_value = -1
-            elif fill_value in self.categories:
-                fill_value = self.categories.get_loc(fill_value)
-            else:
-                raise ValueError(
-                    f"'fill_value={fill_value}' is not present "
-                    "in this Categorical's categories"
-                )
-            if periods > 0:
-                codes[:periods] = fill_value
-            else:
-                codes[periods:] = fill_value
 
-        return self.from_codes(codes, dtype=self.dtype)
+        fill_value = self._validate_fill_value(fill_value)
+
+        codes = shift(codes.copy(), periods, axis=0, fill_value=fill_value)
+
+        return self._constructor(codes, dtype=self.dtype, fastpath=True)
+
+    def _validate_fill_value(self, fill_value):
+        """
+        Convert a user-facing fill_value to a representation to use with our
+        underlying ndarray, raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : int
+
+        Raises
+        ------
+        ValueError
+        """
+
+        if isna(fill_value):
+            fill_value = -1
+        elif fill_value in self.categories:
+            fill_value = self.categories.get_loc(fill_value)
+        else:
+            raise ValueError(
+                f"'fill_value={fill_value}' is not present "
+                "in this Categorical's categories"
+            )
+        return fill_value
 
     def __array__(self, dtype=None) -> np.ndarray:
         """
@@ -1772,21 +1790,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     def _from_backing_data(self, arr: np.ndarray):
         return self._constructor(arr, dtype=self.dtype, fastpath=True)
-
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = -1
-        else:
-            # convert user-provided `fill_value` to codes
-            if fill_value in self.categories:
-                fill_value = self.categories.get_loc(fill_value)
-            else:
-                msg = (
-                    f"'fill_value' ('{fill_value}') is not in this "
-                    "Categorical's categories."
-                )
-                raise ValueError(msg)
-        return fill_value
 
     # ------------------------------------------------------------------
 

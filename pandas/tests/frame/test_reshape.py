@@ -321,7 +321,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value' \('d'\) is not in"
+        msg = r"'fill_value=d' is not present in"
         with pytest.raises(ValueError, match=msg):
             data.unstack(fill_value="d")
 

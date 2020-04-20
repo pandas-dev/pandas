@@ -776,6 +776,7 @@ class DatetimeLikeArrayMixin(
         if not self.size or periods == 0:
             return self.copy()
 
+        # TODO(2.0): once this deprecation is enforced, used _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif not isinstance(fill_value, self._recognized_scalars):
