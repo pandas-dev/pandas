@@ -728,7 +728,6 @@ class TestEvalNumexprPandas:
         assert result == 12
 
     def test_floor_expression(self):
-        assert pd.eval("floor(floor(1.2+2.3))") == 3.0
         assert pd.eval("floor(0.9 + floor(1.2+2.3))") == 3.0
         assert pd.eval("floor(1.2+2.3)") == 3.0
 
