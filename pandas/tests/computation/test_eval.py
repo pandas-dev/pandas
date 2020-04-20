@@ -727,6 +727,11 @@ class TestEvalNumexprPandas:
         result = pd.eval(exp, engine=self.engine, parser=self.parser)
         assert result == 12
 
+    def test_floor_expression(self):
+        assert pd.eval("floor(floor(1.2+2.3))") == 3
+        assert pd.eval("floor(0.9 + floor(1.2+2.3))") == 3
+        assert pd.eval("floor(1.2+2.3)") == 3
+
     def test_float_truncation(self):
         # GH 14241
         exp = "1000000000.006"
