@@ -451,7 +451,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
             self._check_compatible_with(value)
-        return value.value
+        return np.datetime64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)

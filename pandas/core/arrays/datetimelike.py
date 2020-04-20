@@ -75,9 +75,9 @@ def _datetimelike_array_cmp(cls, op):
             other = self._scalar_type(other)
             self._check_compatible_with(other)
 
-            other_i8 = self._unbox_scalar(other)
+            other_val = self._unbox_scalar(other)
 
-            result = op(self.view("i8"), other_i8)
+            result = op(self._data, other_val)
             if isna(other):
                 result.fill(nat_result)
 
@@ -177,7 +177,7 @@ class AttributesMixin:
 
         Returns
         -------
-        int
+        int, np.datetime64, or np.timedelta64
 
         Examples
         --------
@@ -611,7 +611,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
             self._check_compatible_with(value, setitem=True)
-            value = value.asi8
+            value = value._data
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=True)
             value = self._unbox_scalar(value)
@@ -693,22 +693,22 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         Returns
         -------
-        fill_value : np.int64
+        fill_value : np.int64, np.datetime64, or np.timedelta64
 
         Raises
         ------
         ValueError
         """
         if isna(fill_value):
-            fill_value = iNaT
+            fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
             self._check_compatible_with(fill_value)
             fill_value = self._scalar_type(fill_value)
-            fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
                 f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
             )
+        fill_value = self._unbox_scalar(fill_value)
         return fill_value
 
     def take(self, indices, allow_fill=False, fill_value=None):
@@ -716,7 +716,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             fill_value = self._validate_fill_value(fill_value)
 
         new_values = take(
-            self.asi8, indices, allow_fill=allow_fill, fill_value=fill_value
+            self._data, indices, allow_fill=allow_fill, fill_value=fill_value
         )
 
         return type(self)(new_values, dtype=self.dtype)
@@ -855,12 +855,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         if isinstance(value, type(self)):
             self._check_compatible_with(value)
-            value = value.asi8
+            value = value._data
         else:
             value = self._unbox_scalar(value)
 
-        # TODO: Use datetime64 semantics for sorting, xref GH#29844
-        return self.asi8.searchsorted(value, side=side, sorter=sorter)
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def repeat(self, repeats, *args, **kwargs):
         """

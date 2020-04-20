@@ -406,7 +406,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self._validate_partial_date_slice(reso)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
+        vals = self._data._data
         unbox = self._data._unbox_scalar
 
         if self.is_monotonic:
@@ -421,14 +421,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # TODO: does this depend on being monotonic _increasing_?
 
             # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
-            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            # Use vals.searchsorted to avoid re-validating Periods/Timestamps
+            left = vals.searchsorted(unbox(t1), side="left") if use_lhs else None
+            right = vals.searchsorted(unbox(t2), side="right") if use_rhs else None
             return slice(left, right)
 
         else:
-            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
-            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+            lhs_mask = (vals >= unbox(t1)) if use_lhs else True
+            rhs_mask = (vals <= unbox(t2)) if use_rhs else True
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]

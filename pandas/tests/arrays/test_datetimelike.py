@@ -140,11 +140,19 @@ class SharedTests:
     def test_unbox_scalar(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
+
+        if self.array_cls is PeriodArray:
+            ex_cls = int
+        elif self.array_cls is TimedeltaArray:
+            ex_cls = np.timedelta64
+        else:
+            ex_cls = np.datetime64
+
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, int)
+        assert isinstance(result, ex_cls)
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, int)
+        assert isinstance(result, ex_cls)
 
         msg = f"'value' should be a {self.dtype.__name__}."
         with pytest.raises(ValueError, match=msg):
@@ -208,7 +216,11 @@ class SharedTests:
         # Following numpy convention, NaT goes at the beginning
         #  (unlike NaN which goes at the end)
         result = arr.searchsorted(pd.NaT)
-        assert result == 0
+        if _np_version_under1p18 or self.array_cls is PeriodArray:
+            # TODO: PeriodArray shouldn't be special-cased here
+            assert result == 0
+        else:
+            assert result == 10
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
