@@ -80,8 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
-    DatetimeLikeArrayMixin,
+    ["mean", "freq", "freqstr", "asi8", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
