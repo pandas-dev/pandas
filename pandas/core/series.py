@@ -308,7 +308,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = ibase.default_index(len(data))
+
+                n = len(data)
+                if n == 0:
+                    # gh-16737
+                    warnings.warn(
+                        "The default index type for empty data will be 'Index'"
+                        " instead of 'RangeIndex' in a future version."
+                        " Specify an index explicitly to silence this warning.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                index = ibase.default_index(n)
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't

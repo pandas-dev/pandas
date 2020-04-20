@@ -5604,8 +5604,6 @@ def _validate_join_method(method: str):
 def default_index(n):
     from pandas.core.indexes.range import RangeIndex
 
-    if n == 0:
-        return Index([])
     return RangeIndex(0, n)
 
 
