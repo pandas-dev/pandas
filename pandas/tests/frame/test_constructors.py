@@ -2679,7 +2679,3 @@ class TestDataFrameConstructorWithDatetimeTZ:
         msg = "Set type is unordered"
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame({"a": {1, 2, 3}})
-
-    def test_construct_empty_dataframe_with_string_dtype(self):
-        # GH 33623
-        pd.DataFrame(columns=["a"], dtype="string")

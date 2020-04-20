@@ -79,3 +79,9 @@ def test_astype_no_copy():
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
+
+
+@pytest.mark.parametrize("columns, dtype", [(["a"], "string")])
+def test_construct_empty_dataframe_with_string_dtype(columns, dtype):
+    # GH 33623
+    pd.DataFrame(columns=columns, dtype=dtype)
