@@ -724,7 +724,9 @@ def value_counts(
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        result = result / float(sum(counts))
+        if not isinstance(counts, np.ndarray):
+            counts = counts.to_numpy()
+        result = result / float(counts.sum())
 
     return result
 
