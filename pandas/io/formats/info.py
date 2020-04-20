@@ -85,8 +85,8 @@ def info(
 
     if isinstance(data, ABCDataFrame):
         ids = data.columns
-        dtypes = data.dtypes
         col_count = len(ids)
+        dtypes = data.dtypes
 
         if col_count == 0:
             lines.append(f"Empty {type(data).__name__}")
@@ -212,7 +212,7 @@ def info(
 
     # groupby dtype.name to collect e.g. Categorical columns
     if isinstance(data, ABCDataFrame):
-        counts = data.dtypes.value_counts().groupby(lambda x: x.name).sum()
+        counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
     else:
         counts = {data.dtype.name: 1}
     dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
