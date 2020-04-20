@@ -208,11 +208,10 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    is_extension = is_extension_array_dtype(obj.dtype)
     values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
-    if is_extension:
+    if is_extension_array_dtype(dtype):
         result = values.isna()
     elif is_string_dtype(dtype):
         result = _isna_string_dtype(values, dtype, old=False)
