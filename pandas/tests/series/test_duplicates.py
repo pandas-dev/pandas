@@ -3,7 +3,10 @@ import pytest
 
 from pandas import Categorical, Series
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index_type,
+)
 
 
 def test_nunique():
@@ -15,7 +18,7 @@ def test_nunique():
     assert result == 11
 
     # GH 18051
-    s = Series(Categorical([]))
+    s = create_series_with_explicit_index_type(Categorical([]))
     assert s.nunique() == 0
     s = Series(Categorical([np.nan]))
     assert s.nunique() == 0
@@ -46,7 +49,7 @@ def test_unique():
     tm.assert_numpy_array_equal(result, expected)
 
     # GH 18051
-    s = Series(Categorical([]))
+    s = create_series_with_explicit_index_type(Categorical([]))
     tm.assert_categorical_equal(s.unique(), Categorical([]))
     s = Series(Categorical([np.nan]))
     tm.assert_categorical_equal(s.unique(), Categorical([np.nan]))

@@ -28,6 +28,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.construction import create_series_with_explicit_index_type
 
 
 class TestSeriesConstructors:
@@ -134,12 +135,21 @@ class TestSeriesConstructors:
 
         # With explicit dtype:
         empty = Series(dtype="float64")
-        empty2 = Series(input_class(), dtype="float64")
+
+        if input_class is list:
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                empty2 = Series(input_class(), dtype="float64")
+        else:
+            empty2 = Series(input_class(), dtype="float64")
         tm.assert_series_equal(empty, empty2, check_index_type=False)
 
         # GH 18515 : with dtype=category:
         empty = Series(dtype="category")
-        empty2 = Series(input_class(), dtype="category")
+        if input_class is list:
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                empty2 = Series(input_class(), dtype="category")
+        else:
+            empty2 = Series(input_class(), dtype="category")
         tm.assert_series_equal(empty, empty2, check_index_type=False)
 
         if input_class is not list:
@@ -1391,7 +1401,7 @@ class TestSeriesConstructors:
         msg = "dtype has no unit. Please pass in"
 
         with pytest.raises(ValueError, match=msg):
-            Series([], dtype=dtype)
+            create_series_with_explicit_index_type([], dtype=dtype)
 
     @pytest.mark.parametrize(
         "dtype,msg",
@@ -1404,7 +1414,7 @@ class TestSeriesConstructors:
         # see gh-15524, gh-15987
 
         with pytest.raises(TypeError, match=msg):
-            Series([], dtype=dtype)
+            create_series_with_explicit_index_type([], dtype=dtype)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):

@@ -3,6 +3,7 @@ import pytest
 
 from pandas import Categorical, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index_type
 
 
 @pytest.mark.parametrize(
@@ -46,8 +47,8 @@ def test_drop_duplicates_bool(keep, expected):
 
 @pytest.mark.parametrize("values", [[], list(range(5))])
 def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
-    tc = Series(values, dtype=np.dtype(any_numpy_dtype))
-    expected = Series([False] * len(tc), dtype="bool")
+    tc = create_series_with_explicit_index_type(values, dtype=np.dtype(any_numpy_dtype))
+    expected = create_series_with_explicit_index_type([False] * len(tc), dtype="bool")
 
     if tc.dtype == "bool":
         # 0 -> False and 1-> True

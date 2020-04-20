@@ -169,7 +169,7 @@ class TestSeriesInterpolateData:
         s = Series([np.nan, np.nan])
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
-        s = Series([], dtype=object).interpolate()
+        s = Series([], dtype=object, index=pd.RangeIndex(0)).interpolate()
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):

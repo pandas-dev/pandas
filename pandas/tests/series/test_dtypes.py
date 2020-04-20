@@ -21,6 +21,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index_type
 
 
 class TestSeriesDtypes:
@@ -404,9 +405,9 @@ class TestSeriesDtypes:
             "M",
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
-            init_empty = Series([], dtype=dtype)
+            init_empty = create_series_with_explicit_index_type([], dtype=dtype)
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                as_type_empty = Series([]).astype(dtype)
+                as_type_empty = create_series_with_explicit_index_type([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
     def test_arg_for_errors_in_astype(self):

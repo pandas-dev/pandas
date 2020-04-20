@@ -20,6 +20,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index_type
 
 
 class TestSeriesMissingData:
@@ -562,7 +563,7 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
         result = s1.fillna({})
         tm.assert_series_equal(result, s1)
-        result = s1.fillna(Series((), dtype=object))
+        result = s1.fillna(create_series_with_explicit_index_type((), dtype=object))
         tm.assert_series_equal(result, s1)
         result = s2.fillna(s1)
         tm.assert_series_equal(result, s2)
@@ -677,7 +678,7 @@ class TestSeriesMissingData:
         #     tm.assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
-        s = Series([], dtype=object)
+        s = create_series_with_explicit_index_type([], dtype=object)
 
         assert len(s.dropna()) == 0
         s.dropna(inplace=True)

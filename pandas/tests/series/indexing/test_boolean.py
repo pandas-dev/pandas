@@ -3,6 +3,7 @@ import pytest
 
 from pandas import Index, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index_type
 from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
@@ -20,7 +21,7 @@ def test_getitem_boolean(string_series):
 
 
 def test_getitem_boolean_empty():
-    s = Series([], dtype=np.int64)
+    s = create_series_with_explicit_index_type([], dtype=np.int64)
     s.index.name = "index_name"
     s = s[s.isna()]
     assert s.index.name == "index_name"
@@ -30,7 +31,7 @@ def test_getitem_boolean_empty():
     # indexing with empty series
     s = Series(["A", "B"])
     expected = Series(dtype=object, index=Index([], dtype="int64"))
-    result = s[Series([], dtype=object)]
+    result = s[create_series_with_explicit_index_type([], dtype=object)]
     tm.assert_series_equal(result, expected)
 
     # invalid because of the boolean indexer
@@ -40,7 +41,7 @@ def test_getitem_boolean_empty():
         r"the boolean Series and of the indexed object do not match"
     )
     with pytest.raises(IndexingError, match=msg):
-        s[Series([], dtype=bool)]
+        s[create_series_with_explicit_index_type([], dtype=bool)]
 
     with pytest.raises(IndexingError, match=msg):
         s[Series([True], dtype=bool)]

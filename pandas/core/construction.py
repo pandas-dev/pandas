@@ -621,10 +621,51 @@ def create_series_with_explicit_dtype(
     -------
     Series
     """
-    from pandas.core.series import Series
-
     if is_empty_data(data) and dtype is None:
         dtype = dtype_if_empty
+    return create_series_with_explicit_index_type(
+        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+    )
+
+
+def create_series_with_explicit_index_type(
+    data: Any = None,
+    index: Optional[Union[ArrayLike, "Index"]] = None,
+    dtype: Optional[Dtype] = None,
+    name: Optional[str] = None,
+    copy: bool = False,
+    fastpath: bool = False,
+    index_if_empty: Optional["Index"] = None,
+) -> "Series":
+    """
+    Helper to pass an explicit index type when instantiating an Series where
+    data is list-like and empty.
+
+    This silences a DeprecationWarning described in GitHub-16737.
+
+    Parameters
+    ----------
+    data : Mirrored from Series.__init__
+    index : Mirrored from Series.__init__
+    dtype : Mirrored from Series.__init__
+    name : Mirrored from Series.__init__
+    copy : Mirrored from Series.__init__
+    fastpath : Mirrored from Series.__init__
+    index_if_empty : instance of (Index, RangeIndex)
+        This index type will be passed explicitly when Series is initialised
+        with `data` being list-like and empty.
+
+    Returns
+    -------
+    Series
+    """
+    from pandas import Index, Series  # noqa: F811
+
+    if index_if_empty is None:
+        index_if_empty = Index([])
+
+    if is_list_like(data) and len(data) == 0:
+        index = index_if_empty
     return Series(
         data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
     )
