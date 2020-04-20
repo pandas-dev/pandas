@@ -190,8 +190,22 @@ def test_value_counts_bins(index_or_series):
 
     assert s.nunique() == 0
 
-    # handle normalizing bins with NA's properly
-    # see GH25970
+
+def test_value_counts_bins_nas():
+    # GH25970, handle normalizing bins with NA's properly
+    # First test that NA's are included appropriately
+    rand_data = np.append(
+        np.random.randint(1, 5, 50), [np.nan] * np.random.randint(1, 20)
+    )
+    s = Series(rand_data)
+    assert s.value_counts(dropna=False).index.hasnans
+    assert not s.value_counts(dropna=True).index.hasnans
+    assert s.value_counts(dropna=False, bins=3).index.hasnans
+    assert not s.value_counts(dropna=True, bins=3).index.hasnans
+    assert s.value_counts(dropna=False, bins=[0, 1, 3, 6]).index.hasnans
+    assert not s.value_counts(dropna=True, bins=[0, 1, 3, 6]).index.hasnans
+
+    # then verify specific example
     s2 = Series([1, 2, 2, 3, 3, 3, np.nan, np.nan, 4, 5])
     intervals = IntervalIndex.from_breaks([0.995, 2.333, 3.667, 5.0])
     expected_dropna = Series([0.375, 0.375, 0.25], intervals.take([1, 0, 2]))
