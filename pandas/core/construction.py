@@ -626,7 +626,7 @@ def create_series_with_explicit_dtype(
     if is_empty_data(data) and dtype is None:
         dtype = dtype_if_empty
 
-    return create_series_with_explicit_index_type(
+    return create_series_with_explicit_index(
         data=data,
         index=index,
         dtype=dtype,
@@ -637,7 +637,7 @@ def create_series_with_explicit_dtype(
     )
 
 
-def create_series_with_explicit_index_type(
+def create_series_with_explicit_index(
     data: Any = None,
     index: Optional[Union[ArrayLike, "Index"]] = None,
     dtype: Optional[Dtype] = None,
@@ -674,7 +674,7 @@ def create_series_with_explicit_index_type(
     if index_if_empty is None:
         index_if_empty = Index([])
 
-    if index is None and data == []:
+    if index is None and isinstance(data, list) and len(data) == 0:
         index = index_if_empty
     return Series(
         data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath

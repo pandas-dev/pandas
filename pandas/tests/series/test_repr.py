@@ -16,7 +16,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestSeriesRepr:
@@ -125,10 +125,10 @@ class TestSeriesRepr:
         assert "a\n" not in repr(ser)
 
         # with empty series (#4651)
-        s = create_series_with_explicit_index_type([], dtype=np.int64, name="foo")
+        s = create_series_with_explicit_index([], dtype=np.int64, name="foo")
         assert repr(s) == "Series([], Name: foo, dtype: int64)"
 
-        s = create_series_with_explicit_index_type([], dtype=np.int64, name=None)
+        s = create_series_with_explicit_index([], dtype=np.int64, name=None)
         assert repr(s) == "Series([], dtype: int64)"
 
     def test_tidy_repr(self):

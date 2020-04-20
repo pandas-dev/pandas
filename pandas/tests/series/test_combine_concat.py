@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestSeriesConcat:
@@ -96,9 +96,7 @@ class TestSeriesConcat:
         assert (
             pd.concat(
                 [
-                    create_series_with_explicit_index_type(
-                        np.array([]), dtype="category"
-                    ),
+                    create_series_with_explicit_index(np.array([]), dtype="category"),
                     Series(dtype="float64"),
                 ]
             ).dtype

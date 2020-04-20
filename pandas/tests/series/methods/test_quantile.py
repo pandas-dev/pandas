@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import is_integer
 import pandas as pd
 from pandas import Index, Series
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.indexes.datetimes import Timestamp
 
 
@@ -105,7 +105,7 @@ class TestSeriesQuantile:
         assert result == expected
 
         # all nan/empty
-        s1 = create_series_with_explicit_index_type([], dtype=object)
+        s1 = create_series_with_explicit_index([], dtype=object)
         cases = [s1, Series([np.nan, np.nan])]
 
         for s in cases:
@@ -165,10 +165,10 @@ class TestSeriesQuantile:
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
         assert pd.isna(
-            create_series_with_explicit_index_type([], dtype="M8[ns]").quantile(0.5)
+            create_series_with_explicit_index([], dtype="M8[ns]").quantile(0.5)
         )
         assert pd.isna(
-            create_series_with_explicit_index_type([], dtype="m8[ns]").quantile(0.5)
+            create_series_with_explicit_index([], dtype="m8[ns]").quantile(0.5)
         )
 
     def test_quantile_nat(self):
@@ -191,7 +191,7 @@ class TestSeriesQuantile:
     def test_quantile_empty(self):
 
         # floats
-        s = create_series_with_explicit_index_type([], dtype="float64")
+        s = create_series_with_explicit_index([], dtype="float64")
 
         res = s.quantile(0.5)
         assert np.isnan(res)
@@ -201,7 +201,7 @@ class TestSeriesQuantile:
         tm.assert_series_equal(res, exp)
 
         # int
-        s = create_series_with_explicit_index_type([], dtype="int64")
+        s = create_series_with_explicit_index([], dtype="int64")
 
         res = s.quantile(0.5)
         assert np.isnan(res)
@@ -211,7 +211,7 @@ class TestSeriesQuantile:
         tm.assert_series_equal(res, exp)
 
         # datetime
-        s = create_series_with_explicit_index_type([], dtype="datetime64[ns]")
+        s = create_series_with_explicit_index([], dtype="datetime64[ns]")
 
         res = s.quantile(0.5)
         assert res is pd.NaT

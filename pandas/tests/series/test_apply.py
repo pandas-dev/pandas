@@ -10,7 +10,7 @@ import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestSeriesApply:
@@ -520,7 +520,7 @@ class TestSeriesMap:
         if isinstance(indices, ABCMultiIndex):
             pytest.skip("Initializing a Series from a MultiIndex is not supported")
 
-        s = create_series_with_explicit_index_type(indices)
+        s = create_series_with_explicit_index(indices)
         result = s.map({})
 
         expected = pd.Series(np.nan, index=s.index)

@@ -28,7 +28,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestSeriesConstructors:
@@ -1401,7 +1401,7 @@ class TestSeriesConstructors:
         msg = "dtype has no unit. Please pass in"
 
         with pytest.raises(ValueError, match=msg):
-            create_series_with_explicit_index_type([], dtype=dtype)
+            create_series_with_explicit_index([], dtype=dtype)
 
     @pytest.mark.parametrize(
         "dtype,msg",
@@ -1414,7 +1414,7 @@ class TestSeriesConstructors:
         # see gh-15524, gh-15987
 
         with pytest.raises(TypeError, match=msg):
-            create_series_with_explicit_index_type([], dtype=dtype)
+            create_series_with_explicit_index([], dtype=dtype)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):

@@ -8,7 +8,7 @@ import pandas as pd
 from pandas import DataFrame, Index, Series, bdate_range
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestSeriesLogicalOps:
@@ -33,7 +33,7 @@ class TestSeriesLogicalOps:
 
         s_tft = Series([True, False, True], index=index)
         s_fff = Series([False, False, False], index=index)
-        s_empty = create_series_with_explicit_index_type([], dtype=object)
+        s_empty = create_series_with_explicit_index([], dtype=object)
 
         res = s_tft & s_empty
         expected = s_fff
@@ -408,7 +408,7 @@ class TestSeriesLogicalOps:
         # filling
 
         # vs empty
-        empty = create_series_with_explicit_index_type([], dtype=object)
+        empty = create_series_with_explicit_index([], dtype=object)
 
         result = a & empty.copy()
         expected = Series([False, False, False], list("bca"))

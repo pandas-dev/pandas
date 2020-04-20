@@ -10,7 +10,7 @@ from pandas.core.dtypes.common import is_scalar
 import pandas as pd
 from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_index_type
+from pandas.core.construction import create_series_with_explicit_index
 
 from pandas.tseries.offsets import BDay
 
@@ -618,7 +618,7 @@ def test_setitem_na():
 
 def test_timedelta_assignment():
     # GH 8209
-    s = create_series_with_explicit_index_type([], dtype=object)
+    s = create_series_with_explicit_index([], dtype=object)
     s.loc["B"] = timedelta(1)
     tm.assert_series_equal(s, Series(Timedelta("1 days"), index=["B"]))
 
