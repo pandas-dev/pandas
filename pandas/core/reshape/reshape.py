@@ -113,9 +113,10 @@ class _Unstacker:
         num_columns = self.removed_level.size
 
         # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+        num_cells = num_rows * num_columns
 
-        if num_rows > 0 and num_columns > 0 and num_cells <= 0:
+        if num_rows > 0 and num_columns > 0 \
+                and num_cells > np.iinfo(np.int32).max or num_cells < np.iinfo(np.int32).min:
             raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
 
         self._make_selectors()
