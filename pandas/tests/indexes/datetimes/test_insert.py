@@ -167,16 +167,16 @@ class TestInsert:
                 assert result.freq is None
 
     @pytest.mark.parametrize(
-        "value", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456)]
+        "item", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456)]
     )
-    def test_insert_mismatched_types(self, tz_aware_fixture, value):
+    def test_insert_mismatched_types_raises(self, tz_aware_fixture, item):
         # GH#33703 dont cast these to dt64
         tz = tz_aware_fixture
         dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=tz)
 
         msg = "incompatible label"
         with pytest.raises(TypeError, match=msg):
-            dti.insert(1, value)
+            dti.insert(1, item)
 
     def test_insert_object_casting(self, tz_aware_fixture):
         # GH#33703
