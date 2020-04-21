@@ -226,6 +226,11 @@ class TestPandasContainer:
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_timestamp(self, orient, convert_axes, numpy, datetime_frame):
         # TODO: improve coverage with date_format parameter
+
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(datetime_frame.index), freq=None)
+        datetime_frame.index = index
+
         data = datetime_frame.to_json(orient=orient)
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
@@ -416,6 +421,9 @@ class TestPandasContainer:
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
+        dti = pd.date_range("2000-01-03", "2000-01-07")
+        # freq doesnt roundtrip
+        dti = pd.DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -425,7 +433,7 @@ class TestPandasContainer:
                 [0.05951614, -2.69652057, 1.28163262, 0.34703478],
             ],
             columns=["A", "B", "C", "D"],
-            index=pd.date_range("2000-01-03", "2000-01-07"),
+            index=dti,
         )
         df["date"] = pd.Timestamp("19920106 18:21:32.12")
         df.iloc[3, df.columns.get_loc("date")] = pd.Timestamp("20130101")
@@ -444,6 +452,9 @@ class TestPandasContainer:
 
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(list(index), freq=None)
+
         df_mixed = DataFrame(
             OrderedDict(
                 float_1=[
@@ -639,6 +650,11 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_timeseries(self, orient, numpy, datetime_series):
+
+        # freq doesnt roundtrip
+        index = pd.DatetimeIndex(np.asarray(datetime_series.index), freq=None)
+        datetime_series.index = index
+
         data = datetime_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
 
@@ -730,6 +746,12 @@ class TestPandasContainer:
 
     def test_axis_dates(self, datetime_series, datetime_frame):
 
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(datetime_frame.index), freq=None)
+        datetime_frame.index = index
+        index = pd.DatetimeIndex(np.asarray(datetime_series.index), freq=None)
+        datetime_series.index = index
+
         # frame
         json = datetime_frame.to_json()
         result = read_json(json)
@@ -745,6 +767,11 @@ class TestPandasContainer:
 
         # frame
         df = datetime_frame
+
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
+        df.index = index
+
         df["date"] = Timestamp("20130101")
 
         json = df.to_json()
@@ -761,6 +788,10 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
         # series
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(datetime_series.index), freq=None)
+        datetime_series.index = index
+
         ts = Series(Timestamp("20130101"), index=datetime_series.index)
         json = ts.to_json()
         result = read_json(json, typ="series")
@@ -827,6 +858,10 @@ class TestPandasContainer:
     def test_date_format_frame(self, date, date_unit, datetime_frame):
         df = datetime_frame
 
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
+        df.index = index
+
         df["date"] = Timestamp(date)
         df.iloc[1, df.columns.get_loc("date")] = pd.NaT
         df.iloc[5, df.columns.get_loc("date")] = pd.NaT
@@ -857,6 +892,11 @@ class TestPandasContainer:
         ],
     )
     def test_date_format_series(self, date, date_unit, datetime_series):
+
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(datetime_series.index), freq=None)
+        datetime_series.index = index
+
         ts = Series(Timestamp(date), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
@@ -879,6 +919,11 @@ class TestPandasContainer:
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_date_unit(self, unit, datetime_frame):
         df = datetime_frame
+
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
+        df.index = index
+
         df["date"] = Timestamp("20130101 20:43:42")
         dl = df.columns.get_loc("date")
         df.iloc[1, dl] = Timestamp("19710101 20:43:42")

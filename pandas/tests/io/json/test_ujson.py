@@ -1012,6 +1012,7 @@ class TestPandasJSONTests:
         date_unit = "ns"
 
         rng = date_range("1/1/2000", periods=20)
+        rng._set_freq(None)  # freq doesnt round-trip
         encoded = ujson.encode(rng, date_unit=date_unit)
 
         decoded = DatetimeIndex(np.array(ujson.decode(encoded)))

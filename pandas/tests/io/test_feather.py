@@ -63,14 +63,21 @@ class TestFeather:
                 "bool": [True, False, True],
                 "bool_with_null": [True, np.nan, False],
                 "cat": pd.Categorical(list("abc")),
-                "dt": pd.date_range("20130101", periods=3),
-                "dttz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "dt": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3)), freq=None
+                ),
+                "dttz": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    freq=None,
+                ),
                 "dt_with_null": [
                     pd.Timestamp("20130101"),
                     pd.NaT,
                     pd.Timestamp("20130103"),
                 ],
-                "dtns": pd.date_range("20130101", periods=3, freq="ns"),
+                "dtns": pd.DatetimeIndex(
+                    pd.date_range("20130101", periods=3, freq="ns"), freq=None
+                ),
             }
         )
         if pyarrow_version >= LooseVersion("0.16.1.dev"):

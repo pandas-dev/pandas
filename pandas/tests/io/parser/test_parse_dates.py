@@ -683,6 +683,7 @@ def test_parse_dates_string(all_parsers):
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
     index = date_range("1/1/2009", periods=3)
     index.name = "date"
+    index._set_freq(None)  # freq doesnt round-trip
 
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
@@ -1436,6 +1437,7 @@ def test_parse_timezone(all_parsers):
         freq="1min",
         tz=pytz.FixedOffset(540),
     )
+    dti._set_freq(None)  # freq doesnt round-trip
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)
