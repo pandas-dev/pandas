@@ -790,6 +790,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     def test_infer_dtype_datetime64_with_na(self, na_value):
+        # starts with nan
         arr = np.array([na_value, np.datetime64("2011-01-02")])
         assert lib.infer_dtype(arr, skipna=True) == "datetime64"
 
@@ -836,6 +837,7 @@ class TestTypeInference:
         "time_stamp", [pd.Timestamp("2011-01-01"), datetime(2011, 1, 1)]
     )
     def test_infer_dtype_datetime_with_na(self, na_value, time_stamp):
+        # starts with nan
         arr = np.array([na_value, time_stamp])
         assert lib.infer_dtype(arr, skipna=True) == "datetime"
 
@@ -858,6 +860,7 @@ class TestTypeInference:
         "delta", [Timedelta("1 days"), np.timedelta64(1, "D"), timedelta(1)]
     )
     def test_infer_dtype_timedelta_with_na(self, na_value, delta):
+        # starts with nan
         arr = np.array([na_value, delta])
         assert lib.infer_dtype(arr, skipna=True) == "timedelta"
 
@@ -885,6 +888,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     def test_infer_dtype_period_with_na(self, na_value):
+        # starts with nan
         arr = np.array([na_value, pd.Period("2011-01", freq="D")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
