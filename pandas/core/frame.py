@@ -2335,8 +2335,7 @@ class DataFrame(NDFrame):
                 When to switch from the verbose to the truncated output. If the
                 DataFrame has more than `max_cols` columns, the truncated output
                 is used. By default, the setting in
-                ``pandas.options.display.max_info_columns`` is used.
-            """
+                ``pandas.options.display.max_info_columns`` is used."""
         ),
         examples_sub=(
             """
@@ -2420,15 +2419,13 @@ class DataFrame(NDFrame):
                 1   column_2  1000000 non-null  object
                 2   column_3  1000000 non-null  object
             dtypes: object(3)
-            memory usage: 188.8 MB
-            """
+            memory usage: 188.8 MB"""
         ),
         see_also_sub=(
             """
             DataFrame.describe: Generate descriptive statistics of DataFrame
                 columns.
-            DataFrame.memory_usage: Memory usage of DataFrame columns.
-            """
+            DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
     @doc(info)
