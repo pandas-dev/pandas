@@ -105,6 +105,7 @@ class TestCategoricalMissing:
             ([1, 2, 3], np.array([False, False, False])),
             ([1, 2, np.nan], np.array([False, False, True])),
             ([1, 2, np.inf], np.array([False, False, True])),
+            ([1, 2, pd.NA], np.array([False, False, True])),
         ],
     )
     def test_use_inf_as_na(self, values, expected):
@@ -119,5 +120,37 @@ class TestCategoricalMissing:
             tm.assert_series_equal(result, expected)
 
             result = DataFrame(cat).isna()
+            expected = DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([1, 2, 3], np.array([False, False, False])),
+            ([1, 2, np.nan], np.array([False, False, True])),
+            ([1, 2, np.inf], np.array([False, False, True])),
+            ([1, 2, pd.NA], np.array([False, False, True])),
+        ],
+    )
+    def test_use_inf_as_na_outside_context(self, values, expected):
+        # https://github.com/pandas-dev/pandas/issues/33594
+        # Using isna directly for Categorical will fail in general here
+        cat = Categorical(values)
+
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = pd.isna(cat)
+            tm.assert_numpy_array_equal(result, expected)
+
+        cat = pd.Series(Categorical(values))
+
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = pd.isna(cat)
+            expected = Series(expected)
+            tm.assert_series_equal(result, expected)
+
+        cat = pd.DataFrame(Categorical(values))
+
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = pd.isna(cat)
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
