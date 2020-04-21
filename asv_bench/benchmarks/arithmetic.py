@@ -78,7 +78,7 @@ class MixedFrameWithSeriesAxis:
             "gt",
             "add",
             "sub",
-            "div",
+            "truediv",
             "floordiv",
             "mul",
             "pow",
