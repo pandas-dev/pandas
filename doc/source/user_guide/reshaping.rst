@@ -282,7 +282,7 @@ are useful to massage a ``DataFrame`` into a format where one or more columns
 are *identifier variables*, while all other columns, considered *measured
 variables*, are "unpivoted" to the row axis, leaving just two non-identifier
 columns, "variable" and "value". The names of those columns can be customized
-by supplying the ``var_name`` and ``value_name`` parameters.  
+by supplying the ``var_name`` and ``value_name`` parameters.
 
 For instance,
 
