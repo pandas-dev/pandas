@@ -67,39 +67,7 @@ class OpWithFillValue:
         self.ser.add(self.ser, fill_value=4)
 
 
-class MixedFrameWithSeriesAxis0:
-    params = [
-        [
-            "eq",
-            "ne",
-            "lt",
-            "le",
-            "ge",
-            "gt",
-            "add",
-            "sub",
-            "div",
-            "floordiv",
-            "mul",
-            "pow",
-        ]
-    ]
-    param_names = ["opname"]
-
-    def setup(self, opname):
-        arr = np.arange(10 ** 6).reshape(100, -1)
-        df = DataFrame(arr)
-        df["C"] = 1.0
-        self.df = df
-        self.ser = df[0]
-
-    def time_frame_op_with_series_axis0(self, opname):
-        getattr(self.df, opname)(self.ser, axis=0)
-
-
-class MixedFrameWithSeriesAxis1:
-    # TODO: combine this with MixedFrameWithSeriesAxis0.
-    #  Initial attempts have failed the CI for reasons unknown, see GH#33600
+class MixedFrameWithSeriesAxis:
     params = [
         [
             "eq",
@@ -123,7 +91,11 @@ class MixedFrameWithSeriesAxis1:
         df = DataFrame(arr)
         df["C"] = 1.0
         self.df = df
+        self.ser = df[0]
         self.row = df.iloc[0]
+
+    def time_frame_op_with_series_axis0(self, opname):
+        getattr(self.df, opname)(self.ser, axis=0)
 
     def time_frame_op_with_series_axis1(self, opname):
         getattr(operator, opname)(self.df, self.ser)
