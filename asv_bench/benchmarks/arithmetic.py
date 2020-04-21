@@ -126,7 +126,7 @@ class MixedFrameWithSeriesAxis1:
         self.row = df.iloc[0]
 
     def time_frame_op_with_series_axis1(self, opname):
-        getattr(opname)(self.df, self.ser)
+        getattr(operator, opname)(self.df, self.ser)
 
 
 class Ops:
