@@ -1,4 +1,5 @@
 """Common utilities for Numba operations"""
+from distutils.version import LooseVersion
 import inspect
 import types
 from typing import Callable, Dict, Optional, Tuple
@@ -89,7 +90,12 @@ def jit_user_function(
     """
     numba = import_optional_dependency("numba")
 
-    if isinstance(func, numba.targets.registry.CPUDispatcher):
+    if LooseVersion(numba.__version__) >= LooseVersion("0.49.0"):
+        is_jitted = numba.extending.is_jitted(func)
+    else:
+        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
+
+    if is_jitted:
         # Don't jit a user passed jitted function
         numba_func = func
     else:
