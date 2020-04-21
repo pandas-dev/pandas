@@ -11,7 +11,7 @@ class FrameOps:
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        if op == "mad" and dtype == "Int64" and axis == 0:
+        if op == "mad" and dtype == "Int64":
             # GH-33036, GH#33600
             raise NotImplementedError
         values = np.random.randn(100000, 4)
