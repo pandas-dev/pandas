@@ -343,21 +343,11 @@ def _interpolate_scipy_wrapper(
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":
-        try:
-            alt_methods["pchip"] = interpolate.pchip_interpolate
-        except AttributeError as err:
-            raise ImportError(
-                "Your version of Scipy does not support PCHIP interpolation."
-            ) from err
+        alt_methods["pchip"] = interpolate.pchip_interpolate
     elif method == "akima":
         alt_methods["akima"] = _akima_interpolate
     elif method == "cubicspline":
-        try:
-            alt_methods["cubicspline"] = _cubicspline_interpolate
-        except AttributeError as err:
-            raise ImportError(
-                "Your version of Scipy does not support CubicSpline."
-            ) from err
+        alt_methods["cubicspline"] = _cubicspline_interpolate
 
     interp1d_methods = [
         "nearest",
