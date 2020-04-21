@@ -1258,7 +1258,10 @@ class BlockManager(PandasObject):
                 if sllen == 0:
                     return []
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
-            elif not allow_fill or self.ndim == 1:
+            elif not allow_fill:
+                return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
+
+            elif self.ndim == 1:
                 if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
 
@@ -1302,6 +1305,7 @@ class BlockManager(PandasObject):
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
+                    # TODO(EA2D): special case unnecessary with 2D EAs
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=False)
                         newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
