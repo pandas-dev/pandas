@@ -335,7 +335,7 @@ class TestMelt:
 
     def test_keep_index(self):
         df = DataFrame({"foo": [0], "bar": [1]}, index=["first"])
-        result = melt(df, keep_index=True)
+        result = melt(df, index=True)
         expected = DataFrame(
             {"variable": ["foo", "bar"], "value": [0, 1]}, index=["first", "first"]
         )
@@ -344,7 +344,7 @@ class TestMelt:
     def test_keep_multiindex(self):
         index = pd.MultiIndex.from_tuples([("first", "second"), ("first", "third")])
         df = DataFrame({"foo": [0, 1], "bar": [2, 3]}, index=index)
-        result = melt(df, keep_index=True)
+        result = melt(df, index=True)
 
         expected_index = pd.MultiIndex.from_tuples(
             [("first", "second"), ("first", "third")] * 2

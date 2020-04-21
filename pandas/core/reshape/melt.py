@@ -30,7 +30,7 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
-    keep_index=False,
+    index=False,
 ) -> DataFrame:
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -118,8 +118,8 @@ def melt(
 
     result = frame._constructor(mdata, columns=mcolumns)
 
-    if keep_index:
-        new_index = np.tile(frame.index.values, K)
+    if index:
+        new_index = np.tile(frame.index, K)
 
         if isinstance(frame.index, MultiIndex):  # Index of tuples otherwise
             new_index = MultiIndex.from_tuples(new_index)

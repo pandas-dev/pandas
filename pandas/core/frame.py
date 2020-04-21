@@ -6642,7 +6642,7 @@ Wild         185.0
     or more columns are identifier variables (`id_vars`), while all other
     columns, considered measured variables (`value_vars`), are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
-    'value'.
+    'value'. Optionally keeps original index values around.
     %(versionadded)s
     Parameters
     ----------
@@ -6658,7 +6658,7 @@ Wild         185.0
         Name to use for the 'value' column.
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
-    keep_index : boolean, optional, default False
+    index : boolean, optional, default False
             If True, the original index is reused.
             There is no uniqueness guarantee.
 
@@ -6710,6 +6710,17 @@ Wild         185.0
     0  a         B          1
     1  b         B          3
     2  c         B          5
+    
+    Original index values can be kept around:
+
+    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], index=True)
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    0  a        C      2
+    1  b        C      4
+    2  c        C      6
 
     If you have multi-index columns:
 
@@ -6732,6 +6743,8 @@ Wild         185.0
     0      a          B          E      1
     1      b          B          E      3
     2      c          B          E      5
+
+    
     """
 
     @Appender(
@@ -6749,7 +6762,7 @@ Wild         185.0
         var_name=None,
         value_name="value",
         col_level=None,
-        keep_index=False,
+        index=False,
     ) -> "DataFrame":
         from pandas.core.reshape.melt import melt
 
@@ -6760,7 +6773,7 @@ Wild         185.0
             var_name=var_name,
             value_name=value_name,
             col_level=col_level,
-            keep_index=keep_index,
+            index=index,
         )
 
     # ----------------------------------------------------------------------
