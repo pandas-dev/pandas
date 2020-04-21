@@ -6710,7 +6710,7 @@ Wild         185.0
     0  a         B          1
     1  b         B          3
     2  c         B          5
-    
+
     Original index values can be kept around:
 
     >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], index=True)
@@ -6742,9 +6742,7 @@ Wild         185.0
       (A, D) variable_0 variable_1  value
     0      a          B          E      1
     1      b          B          E      3
-    2      c          B          E      5
-
-    
+    2      c          B          E      5 
     """
 
     @Appender(
