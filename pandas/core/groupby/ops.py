@@ -55,6 +55,7 @@ from pandas.core.sorting import (
     get_indexer_dict,
 )
 from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
     check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
@@ -677,8 +678,9 @@ class BaseGrouper:
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
-            numba_func = self._numba_func_cache.get(
-                func, jit_user_function(func, nopython, nogil, parallel)
+            cache_key = (func, "groupby_agg")
+            numba_func = NUMBA_FUNC_CACHE.get(
+                cache_key, jit_user_function(func, nopython, nogil, parallel)
             )
 
         group_index, _, ngroups = self.group_info
@@ -692,8 +694,8 @@ class BaseGrouper:
             if engine == "numba":
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
-                if func not in self._numba_func_cache:
-                    self._numba_func_cache[func] = numba_func
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
             else:
                 res = func(group, *args, **kwargs)
 
