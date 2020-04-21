@@ -21,7 +21,7 @@ class TestSeriesValueCounts:
         exp_idx = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"]
         )
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx", dtype="Int64")
 
         ser = pd.Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
@@ -48,7 +48,7 @@ class TestSeriesValueCounts:
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"],
             tz="US/Eastern",
         )
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx", dtype="Int64")
 
         ser = pd.Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
@@ -70,7 +70,7 @@ class TestSeriesValueCounts:
         ]
 
         exp_idx = pd.PeriodIndex(["2011-01", "2011-03", "2011-02"], freq="M")
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx", dtype="Int64")
 
         ser = pd.Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
@@ -88,7 +88,7 @@ class TestSeriesValueCounts:
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
         exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx", dtype="Int64")
 
         ser = pd.Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
@@ -105,7 +105,7 @@ class TestSeriesValueCounts:
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=False)
 
         exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=False)
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx", dtype="Int64")
 
         ser = pd.Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
@@ -125,20 +125,20 @@ class TestSeriesValueCounts:
         res = ser.value_counts(sort=False)
 
         exp_index = CategoricalIndex(list("cabd"), categories=cats.categories)
-        exp = Series([3, 1, 2, 0], name="xxx", index=exp_index)
+        exp = Series([3, 1, 2, 0], name="xxx", index=exp_index, dtype="Int64")
         tm.assert_series_equal(res, exp)
 
         res = ser.value_counts(sort=True)
 
         exp_index = CategoricalIndex(list("cbad"), categories=cats.categories)
-        exp = Series([3, 2, 1, 0], name="xxx", index=exp_index)
+        exp = Series([3, 2, 1, 0], name="xxx", index=exp_index, dtype="Int64")
         tm.assert_series_equal(res, exp)
 
         # check object dtype handles the Series.name as the same
         # (tested in tests/base)
         ser = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
         res = ser.value_counts()
-        exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])
+        exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"], dtype="Int64")
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_categorical_with_nan(self):
@@ -146,7 +146,7 @@ class TestSeriesValueCounts:
 
         # sanity check
         ser = Series(["a", "b", "a"], dtype="category")
-        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]), dtype="Int64")
 
         res = ser.value_counts(dropna=True)
         tm.assert_series_equal(res, exp)
@@ -164,18 +164,22 @@ class TestSeriesValueCounts:
 
         for ser in series:
             # None is a NaN value, so we exclude its count here
-            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]), dtype="Int64")
             res = ser.value_counts(dropna=True)
             tm.assert_series_equal(res, exp)
 
             # we don't exclude the count of None and sort by counts
-            exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
+            exp = Series(
+                [3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]), dtype="Int64"
+            )
             res = ser.value_counts(dropna=False)
             tm.assert_series_equal(res, exp)
 
             # When we aren't sorting by counts, and np.nan isn't a
             # category, it should be last.
-            exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
+            exp = Series(
+                [2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]), dtype="Int64"
+            )
             res = ser.value_counts(dropna=False, sort=False)
             tm.assert_series_equal(res, exp)
 
@@ -185,17 +189,17 @@ class TestSeriesValueCounts:
             (
                 pd.Series([False, True, True, pd.NA]),
                 False,
-                pd.Series([2, 1, 1], index=[True, False, pd.NA]),
+                pd.Series([2, 1, 1], index=[True, False, pd.NA], dtype="Int64"),
             ),
             (
                 pd.Series([False, True, True, pd.NA]),
                 True,
-                pd.Series([2, 1], index=[True, False]),
+                pd.Series([2, 1], index=[True, False], dtype="Int64"),
             ),
             (
                 pd.Series(range(3), index=[True, False, np.nan]).index,
                 False,
-                pd.Series([1, 1, 1], index=[True, False, pd.NA]),
+                pd.Series([1, 1, 1], index=[True, False, pd.NA], dtype="Int64"),
             ),
         ],
     )

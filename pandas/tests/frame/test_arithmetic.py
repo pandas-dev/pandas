@@ -325,7 +325,8 @@ class TestFrameFlexComparisons:
         const = 2
 
         result = getattr(df, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, pd.Series([2], index=[np.dtype(bool)]))
+        expected = pd.Series([2], index=[np.dtype(bool)], dtype="Int64")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_df_flex_cmp_constant_return_types_empty(self, opname):
@@ -335,7 +336,8 @@ class TestFrameFlexComparisons:
 
         empty = df.iloc[:0]
         result = getattr(empty, opname)(const).dtypes.value_counts()
-        tm.assert_series_equal(result, pd.Series([2], index=[np.dtype(bool)]))
+        expected = pd.Series([2], index=[np.dtype(bool)], dtype="Int64")
+        tm.assert_series_equal(result, expected)
 
 
 # -------------------------------------------------------------------

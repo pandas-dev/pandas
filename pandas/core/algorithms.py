@@ -727,6 +727,8 @@ def value_counts(
         if not isinstance(counts, np.ndarray):
             counts = counts.to_numpy()
         result = result / float(counts.sum())
+    else:
+        result = result.astype("Int64")
 
     return result
 

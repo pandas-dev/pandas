@@ -731,7 +731,12 @@ class SeriesGroupBy(GroupBy[Series]):
             )
 
             if is_integer_dtype(out):
-                out = ensure_int64(out)
+                return Series(
+                    ensure_int64(out),
+                    index=mi,
+                    name=self._selection_name,
+                    dtype="Int64",
+                )
             return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
@@ -763,7 +768,10 @@ class SeriesGroupBy(GroupBy[Series]):
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
 
         if is_integer_dtype(out):
-            out = ensure_int64(out)
+            return Series(
+                ensure_int64(out), index=mi, name=self._selection_name, dtype="Int64"
+            )
+
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self) -> Series:

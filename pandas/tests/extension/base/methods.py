@@ -17,7 +17,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
+        all_data = np.unique(all_data[:5])
         if dropna:
             other = np.array(all_data[~all_data.isna()])
         else:
@@ -27,6 +27,15 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
+
+        result = (
+            pd.Series(all_data, dtype=all_data.dtype)
+            .value_counts(dropna=dropna, normalize=True)
+            .sort_index()
+        )
+
+        expected = pd.Series([1 / len(other)] * len(other), index=result.index)
+        tm.assert_series_equal(expected, result)
 
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})

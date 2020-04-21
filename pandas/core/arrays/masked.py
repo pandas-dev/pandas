@@ -259,7 +259,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         # if we want nans, count the mask
         if dropna:
-            counts = value_counts._values
+            counts = np.array(value_counts._values, dtype=int)
         else:
             counts = np.empty(len(value_counts) + 1, dtype="int64")
             counts[:-1] = value_counts

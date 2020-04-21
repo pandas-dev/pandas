@@ -443,7 +443,7 @@ class TestDataFrameMisc:
         t = df.T
 
         result = t.dtypes.value_counts()
-        expected = Series({np.dtype("object"): 10})
+        expected = Series({np.dtype("object"): 10}, dtype="Int64")
         tm.assert_series_equal(result, expected)
 
     def test_values(self, float_frame):

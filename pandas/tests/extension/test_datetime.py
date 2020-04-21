@@ -90,10 +90,6 @@ class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Incorrect expected")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
     def test_combine_add(self, data_repeated):
         # Timestamp.__add__(Timestamp) not defined
         pass

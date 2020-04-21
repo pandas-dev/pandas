@@ -133,7 +133,7 @@ class TestDatetimeIndexOps:
         idx = DatetimeIndex(np.repeat(idx.values, range(1, len(idx) + 1)), tz=tz)
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
-        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected = Series(range(10, 0, -1), index=exp_idx, dtype="Int64")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
@@ -154,13 +154,13 @@ class TestDatetimeIndexOps:
         )
 
         exp_idx = DatetimeIndex(["2013-01-01 09:00", "2013-01-01 08:00"], tz=tz)
-        expected = Series([3, 2], index=exp_idx)
+        expected = Series([3, 2], index=exp_idx, dtype="Int64")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
 
         exp_idx = DatetimeIndex(["2013-01-01 09:00", "2013-01-01 08:00", pd.NaT], tz=tz)
-        expected = Series([3, 2, 1], index=exp_idx)
+        expected = Series([3, 2, 1], index=exp_idx, dtype="Int64")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(dropna=False), expected)
