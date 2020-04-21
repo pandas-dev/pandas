@@ -13,7 +13,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -52,13 +52,14 @@ import pandas.core.common as com
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray
 
 
 def array(
-    data: Sequence[object],
+    data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
     copy: bool = True,
-) -> ABCExtensionArray:
+) -> "ExtensionArray":
     """
     Create an array.
 
@@ -275,7 +276,7 @@ def array(
     ):
         dtype = data.dtype
 
-    data = extract_array(data, extract_numpy=True)
+    _data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -283,20 +284,20 @@ def array(
 
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
-        return cls._from_sequence(data, dtype=dtype, copy=copy)
+        return cls._from_sequence(_data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data, skipna=True)
+        inferred_dtype = lib.infer_dtype(_data, skipna=True)
         if inferred_dtype == "period":
             try:
-                return period_array(data, copy=copy)
+                return period_array(_data, copy=copy)
             except IncompatibleFrequency:
                 # We may have a mixture of frequencies.
                 # We choose to return an ndarray, rather than raising.
                 pass
         elif inferred_dtype == "interval":
             try:
-                return IntervalArray(data, copy=copy)
+                return IntervalArray(_data, copy=copy)
             except ValueError:
                 # We may have a mixture of `closed` here.
                 # We choose to return an ndarray, rather than raising.
@@ -305,38 +306,38 @@ def array(
         elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
             try:
-                return DatetimeArray._from_sequence(data, copy=copy)
+                return DatetimeArray._from_sequence(_data, copy=copy)
             except ValueError:
                 # Mixture of timezones, fall back to PandasArray
                 pass
 
         elif inferred_dtype.startswith("timedelta"):
             # timedelta, timedelta64
-            return TimedeltaArray._from_sequence(data, copy=copy)
+            return TimedeltaArray._from_sequence(_data, copy=copy)
 
         elif inferred_dtype == "string":
-            return StringArray._from_sequence(data, copy=copy)
+            return StringArray._from_sequence(_data, copy=copy)
 
         elif inferred_dtype == "integer":
-            return IntegerArray._from_sequence(data, copy=copy)
+            return IntegerArray._from_sequence(_data, copy=copy)
 
         elif inferred_dtype == "boolean":
-            return BooleanArray._from_sequence(data, copy=copy)
+            return BooleanArray._from_sequence(_data, copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns]
     #   2. timedelta64[ns]
     # so that a DatetimeArray is returned.
     if is_datetime64_ns_dtype(dtype):
-        return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
+        return DatetimeArray._from_sequence(_data, dtype=dtype, copy=copy)
     elif is_timedelta64_ns_dtype(dtype):
-        return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+        return TimedeltaArray._from_sequence(_data, dtype=dtype, copy=copy)
 
-    result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
+    result = PandasArray._from_sequence(_data, dtype=dtype, copy=copy)
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: Any, extract_numpy: bool = False) -> Union[Any, ArrayLike]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
