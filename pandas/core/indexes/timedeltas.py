@@ -121,7 +121,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
-    _infer_as_myclass = True
 
     _data: TimedeltaArray
 

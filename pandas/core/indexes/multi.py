@@ -1046,16 +1046,17 @@ class MultiIndex(Index):
         result._cache.pop("levels", None)  # GH32669
         return result
 
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        # On equal MultiIndexes the difference is empty.
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        # On equal symmetric_difference MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
-        if len(values) == 0:
+        tups = Index.symmetric_difference(self, other, result_name, sort)
+        if len(tups) == 0:
             return MultiIndex(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                **kwargs,
+                names=tups.name,
             )
-        return self._shallow_copy(values, **kwargs)
+        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
