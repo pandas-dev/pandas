@@ -874,7 +874,9 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result

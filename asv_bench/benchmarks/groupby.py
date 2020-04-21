@@ -679,7 +679,7 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper[1].transform(function, engine="numba")
+        self.grouper[1].agg(function, engine="numba")
 
     def time_series_cython(self):
         def function(values):
@@ -691,7 +691,7 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper[1].transform(function, engine="cython")
+        self.grouper[1].agg(function, engine="cython")
 
     def time_dataframe_numba(self):
         def function(values, index):
@@ -703,7 +703,7 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper.transform(function, engine="numba")
+        self.grouper.agg(function, engine="numba")
 
     def time_dataframe_cython(self):
         def function(values):
@@ -715,7 +715,7 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper.transform(function, engine="cython")
+        self.grouper.agg(function, engine="cython")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
