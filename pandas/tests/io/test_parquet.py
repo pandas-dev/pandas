@@ -537,7 +537,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
 
     @td.skip_if_no("s3fs")
-    def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa):
+    @pytest.mark.parametrize("partition_col", [["A"], []])
+    def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
         from pandas.io.s3 import get_fs as get_s3_fs
 
         # GH #26388
@@ -545,9 +546,9 @@ class TestParquetPyArrow(Base):
         # As per pyarrow partitioned columns become 'categorical' dtypes
         # and are added to back of dataframe on read
 
-        partition_col = "A"
         expected_df = df_compat.copy()
-        expected_df[partition_col] = expected_df[partition_col].astype("category")
+        if partition_col:
+            expected_df[partition_col] = expected_df[partition_col].astype("category")
         check_round_trip(
             df_compat,
             pa,
