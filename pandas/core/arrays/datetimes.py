@@ -1308,8 +1308,6 @@ default 'raise'
         weekofyear and week have been deprecated.
         Please use DatetimeIndex.isocalendar().week instead.
         """
-        import pandas as pd
-
         warnings.warn(
             "weekofyear and week have been deprecated, please use "
             "DatetimeIndex.isocalendar().week instead, which returns "
@@ -1319,7 +1317,10 @@ default 'raise'
             FutureWarning,
             stacklevel=3,
         )
-        return pd.Int64Index(self.isocalendar().week)
+        week_series = self.isocalendar().week
+        if week_series.hasnans:
+            return week_series.to_numpy(dtype="float64", na_value=np.nan)
+        return week_series.to_numpy(dtype="int64")
 
     week = weekofyear
 
