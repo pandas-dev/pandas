@@ -60,29 +60,24 @@ def _datetimelike_array_cmp(cls, op):
     opname = f"__{op.__name__}__"
     nat_result = opname == "__ne__"
 
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
+    class InvalidComparison(Exception):
+        pass
 
+    def _validate_comparison_value(self, other):
         if isinstance(other, str):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
                 other = self._scalar_from_string(other)
             except ValueError:
                 # failed to parse as Timestamp/Timedelta/Period
-                return invalid_comparison(self, other, op)
+                raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)
             self._check_compatible_with(other)
 
-            other_i8 = self._unbox_scalar(other)
-
-            result = op(self.view("i8"), other_i8)
-            if isna(other):
-                result.fill(nat_result)
-
         elif not is_list_like(other):
-            return invalid_comparison(self, other, op)
+            raise InvalidComparison(other)
 
         elif len(other) != len(self):
             raise ValueError("Lengths must match")
@@ -93,9 +88,39 @@ def _datetimelike_array_cmp(cls, op):
                 other = np.array(other)
 
             if not isinstance(other, (np.ndarray, type(self))):
-                return invalid_comparison(self, other, op)
+                raise InvalidComparison(other)
 
-            if is_object_dtype(other):
+            elif is_object_dtype(other.dtype):
+                pass
+
+            elif not type(self)._is_recognized_dtype(other.dtype):
+                raise InvalidComparison(other)
+
+            else:
+                # For PeriodDType this casting is unnecessary
+                other = type(self)._from_sequence(other)
+                self._check_compatible_with(other)
+
+        return other
+
+    @unpack_zerodim_and_defer(opname)
+    def wrapper(self, other):
+
+        try:
+            other = _validate_comparison_value(self, other)
+        except InvalidComparison:
+            return invalid_comparison(self, other, op)
+
+        if isinstance(other, self._scalar_type) or other is NaT:
+            other_i8 = self._unbox_scalar(other)
+
+            result = op(self.view("i8"), other_i8)
+            o_mask = isna(other)
+
+        else:
+            # At this point we have either an ndarray[object] or our own type
+
+            if is_object_dtype(other.dtype):
                 # We have to use comp_method_OBJECT_ARRAY instead of numpy
                 #  comparison otherwise it would fail to raise when
                 #  comparing tz-aware and tz-naive
@@ -105,22 +130,13 @@ def _datetimelike_array_cmp(cls, op):
                     )
                 o_mask = isna(other)
 
-            elif not type(self)._is_recognized_dtype(other.dtype):
-                return invalid_comparison(self, other, op)
-
             else:
-                # For PeriodDType this casting is unnecessary
-                other = type(self)._from_sequence(other)
-                self._check_compatible_with(other)
-
+                # Then type(other) == type(self)
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
 
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self._hasnans:
-            result[self._isnan] = nat_result
+        if self._hasnans | np.any(o_mask):
+            result[self._isnan | o_mask] = nat_result
 
         return result
 
