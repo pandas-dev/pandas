@@ -56,7 +56,15 @@ def test_to_csv_gcs(monkeypatch):
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df1.to_csv("gs://test/test.csv", index=True)
-    df2 = read_csv(StringIO(s.getvalue()), parse_dates=["dt"], index_col=0)
+
+    def mock_get_filepath_or_buffer(*args, **kwargs):
+        return StringIO(df1.to_csv()), None, None, False
+
+    monkeypatch.setattr(
+        "pandas.io.gcs.get_filepath_or_buffer", mock_get_filepath_or_buffer
+    )
+
+    df2 = read_csv("gs://test/test.csv", parse_dates=["dt"], index_col=0)
 
     tm.assert_frame_equal(df1, df2)
 
@@ -84,28 +92,6 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     df1.to_parquet(
         "gs://test/test.csv", index=True, engine="fastparquet", compression=None
     )
-
-
-@td.skip_if_no("gcsfs")
-def test_gcs_get_filepath_or_buffer(monkeypatch):
-    df1 = DataFrame(
-        {
-            "int": [1, 3],
-            "float": [2.0, np.nan],
-            "str": ["t", "s"],
-            "dt": date_range("2018-06-18", periods=2),
-        }
-    )
-
-    def mock_get_filepath_or_buffer(*args, **kwargs):
-        return (StringIO(df1.to_csv(index=False)), None, None, False)
-
-    monkeypatch.setattr(
-        "pandas.io.gcs.get_filepath_or_buffer", mock_get_filepath_or_buffer
-    )
-    df2 = read_csv("gs://test/test.csv", parse_dates=["dt"])
-
-    tm.assert_frame_equal(df1, df2)
 
 
 @td.skip_if_installed("gcsfs")
