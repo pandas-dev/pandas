@@ -855,7 +855,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     @pytest.mark.parametrize(
-        "delta", [Timedelta("1 days"), np.timedelta64(1, "D"), timedelta(1),]
+        "delta", [Timedelta("1 days"), np.timedelta64(1, "D"), timedelta(1)]
     )
     def test_infer_dtype_timedelta_with_na(self, na_value, delta):
         arr = np.array([na_value, delta])
