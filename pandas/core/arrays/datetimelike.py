@@ -847,10 +847,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _validate_insert_value(self, value):
         if isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
+            self._check_compatible_with(value, setitem=True)
+            # TODO: if we dont have compat, should we raise or astype(object)?
+            #  PeriodIndex does astype(object)
         elif is_valid_nat_for_dtype(value, self.dtype):
             # GH#18295
             value = NaT
-        elif lib.is_scalar(value) and isna(value):
+        else:
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
