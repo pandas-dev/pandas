@@ -97,6 +97,38 @@ class MixedFrameWithSeriesAxis0:
         getattr(self.df, opname)(self.ser, axis=0)
 
 
+class MixedFrameWithSeriesAxis1:
+    # TODO: combine this with MixedFrameWithSeriesAxis0.
+    #  Initial attempts have failed the CI for reasons unknown, see GH#33600
+    params = [
+        [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "add",
+            "sub",
+            "div",
+            "floordiv",
+            "mul",
+            "pow",
+        ]
+    ]
+    param_names = ["opname"]
+
+    def setup(self, opname):
+        arr = np.arange(10 ** 6).reshape(1000, -1)
+        df = DataFrame(arr)
+        df["C"] = 1.0
+        self.df = df
+        self.row = df.iloc[0]
+
+    def time_frame_op_with_series_axis1(self, opname):
+        getattr(opname)(self.df, self.ser)
+
+
 class Ops:
 
     params = [[True, False], ["default", 1]]
