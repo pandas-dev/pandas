@@ -527,21 +527,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        is_int = lib.is_integer(key)
-        if lib.is_scalar(key) and not is_int:
-            raise IndexError(
-                "only integers, slices (`:`), ellipsis (`...`), "
-                "numpy.newaxis (`None`) and integer or boolean "
-                "arrays are valid indices"
-            )
-
-        getitem = self._data.__getitem__
-        if is_int:
-            val = getitem(key)
-            if lib.is_scalar(val):
-                # i.e. self.ndim == 1
-                return self._box_func(val)
-            return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
             # first convert to boolean, because check_array_indexer doesn't
@@ -558,6 +543,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         else:
             key = check_array_indexer(self, key)
 
+        freq = self._get_getitem_freq(key)
+        result = self._data[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+        return self._simple_new(result, dtype=self.dtype, freq=freq)
+
+    def _get_getitem_freq(self, key):
+        """
+        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
+        """
         is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
@@ -572,11 +567,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 # GH#21282 indexing with Ellipsis is similar to a full slice,
                 #  should preserve `freq` attribute
                 freq = self.freq
-
-        result = getitem(key)
-        if lib.is_scalar(result):
-            return self._box_func(result)
-        return self._simple_new(result, dtype=self.dtype, freq=freq)
+        return freq
 
     def __setitem__(
         self,
