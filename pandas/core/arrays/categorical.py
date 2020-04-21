@@ -51,7 +51,7 @@ from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
 from pandas.core.arrays.base import _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
@@ -1769,7 +1769,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
-    def take(self, indexer, allow_fill: bool = False, fill_value=None):
+    def take(self: _T, indexer, allow_fill: bool = False, fill_value=None) -> _T:
         """
         Take elements from the Categorical.
 
@@ -1851,7 +1851,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     def _ndarray(self) -> np.ndarray:
         return self._codes
 
-    def _from_backing_data(self, arr: np.ndarray):
+    def _from_backing_data(self, arr: np.ndarray) -> "Categorical":
         return self._constructor(arr, dtype=self.dtype, fastpath=True)
 
     # ------------------------------------------------------------------

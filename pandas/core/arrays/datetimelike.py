@@ -41,7 +41,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -448,7 +448,7 @@ class DatetimeLikeArrayMixin(
         # NB: A bunch of Interval tests fail if we use ._data
         return self.asi8
 
-    def _from_backing_data(self, arr: np.ndarray):
+    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
         return type(self)(arr, dtype=self.dtype)  # type: ignore
 
