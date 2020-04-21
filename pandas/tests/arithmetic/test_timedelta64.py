@@ -403,9 +403,7 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], tz="US/Eastern", freq="D"
-        )
+        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
         tm.assert_index_equal(result, expected)
 
     def test_dti_tdi_numeric_ops(self):
@@ -512,9 +510,9 @@ class TestTimedelta64ArithmeticUnsorted:
         rng = pd.date_range("2013", "2014")
         s = Series(rng)
         result1 = rng - pd.offsets.Hour(1)
-        result2 = DatetimeIndex(s - np.timedelta64(100000000))
+        result2 = DatetimeIndex(s - np.timedelta64(100000000), freq=rng.freq)
         result3 = rng - np.timedelta64(100000000)
-        result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+        result4 = DatetimeIndex(s - pd.offsets.Hour(1), freq=rng.freq)
         tm.assert_index_equal(result1, result4)
         tm.assert_index_equal(result2, result3)
 

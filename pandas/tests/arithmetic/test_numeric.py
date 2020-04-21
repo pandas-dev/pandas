@@ -165,7 +165,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         index = numeric_idx
 
-        expected = pd.timedelta_range("0 days", "4 days")
+        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
