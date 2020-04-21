@@ -282,7 +282,7 @@ are useful to massage a ``DataFrame`` into a format where one or more columns
 are *identifier variables*, while all other columns, considered *measured
 variables*, are "unpivoted" to the row axis, leaving just two non-identifier
 columns, "variable" and "value". The names of those columns can be customized
-by supplying the ``var_name`` and ``value_name`` parameters.
+by supplying the ``var_name`` and ``value_name`` parameters.  
 
 For instance,
 
@@ -295,6 +295,18 @@ For instance,
    cheese
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
+
+Optionally, original index values can be kept around using the ``index`` parameter.
+
+.. ipython:: python
+
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]})
+   cheese
+   cheese.melt(id_vars=['first', 'last'], index=True)
+   cheese.melt(id_vars=['first', 'last'], var_name='quantity', index=True)
 
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
@@ -311,6 +323,7 @@ user-friendly.
   dft["id"] = dft.index
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
+
 
 .. _reshaping.combine_with_groupby:
 
