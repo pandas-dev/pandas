@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -26,7 +25,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -80,8 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
-    DatetimeLikeArrayMixin,
+    ["mean", "freq", "freqstr", "asi8", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -495,26 +492,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def where(self, cond, other=None):
         values = self.view("i8")
 
-        if is_valid_nat_for_dtype(other, self.dtype):
-            other = NaT.value
-        elif not is_list_like(other):
-            # TODO: what about own-type scalars?
-            raise TypeError(f"Where requires matching dtype, not {type(other)}")
-
-        else:
-            # Do type inference if necessary up front
-            # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            other = Index(other)
-
-            if is_categorical_dtype(other):
-                # e.g. we have a Categorical holding self.dtype
-                if is_dtype_equal(other.categories.dtype, self.dtype):
-                    other = other._internal_get_values()
-
-            if not is_dtype_equal(self.dtype, other.dtype):
-                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
-
-            other = other.view("i8")
+        other = self._data._validate_where_value(other)
 
         result = np.where(cond, values, other).astype("i8")
         arr = type(self._data)._simple_new(result, dtype=self.dtype)
@@ -927,15 +905,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         -------
         new_index : Index
         """
-        if isinstance(item, self._data._recognized_scalars):
-            item = self._data._scalar_type(item)
-        elif is_valid_nat_for_dtype(item, self.dtype):
-            # GH 18295
-            item = self._na_value
-        elif is_scalar(item) and isna(item):
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
+        item = self._data._validate_insert_value(item)
 
         freq = None
         if isinstance(item, self._data._scalar_type) or item is NaT:
