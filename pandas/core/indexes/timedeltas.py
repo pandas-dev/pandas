@@ -29,16 +29,7 @@ from pandas.tseries.frequencies import to_offset
 
 
 @inherit_names(
-    [
-        "_box_values",
-        "__neg__",
-        "__pos__",
-        "__abs__",
-        "total_seconds",
-        "round",
-        "floor",
-        "ceil",
-    ]
+    ["__neg__", "__pos__", "__abs__", "total_seconds", "round", "floor", "ceil"]
     + TimedeltaArray._field_ops,
     TimedeltaArray,
     wrap=True,
@@ -57,11 +48,10 @@ from pandas.tseries.frequencies import to_offset
         "std",
         "median",
         "_format_native_types",
-        "freq",
     ],
     TimedeltaArray,
 )
-class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
+class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.

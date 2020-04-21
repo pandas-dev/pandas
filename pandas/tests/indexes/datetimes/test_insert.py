@@ -24,6 +24,20 @@ class TestInsert:
         with pytest.raises(TypeError, match="incompatible label"):
             idx.insert(0, np.timedelta64("NaT"))
 
+    def test_insert_empty_preserves_freq(self, tz_naive_fixture):
+        # GH#33573
+        tz = tz_naive_fixture
+        dti = DatetimeIndex([], tz=tz, freq="D")
+        item = Timestamp("2017-04-05").tz_localize(tz)
+
+        result = dti.insert(0, item)
+        assert result.freq == dti.freq
+
+        # But not when we insert an item that doesnt conform to freq
+        dti = DatetimeIndex([], tz=tz, freq="W-THU")
+        result = dti.insert(0, item)
+        assert result.freq is None
+
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
 

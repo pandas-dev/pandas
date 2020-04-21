@@ -199,7 +199,7 @@ names in the ``Name`` column. By using pandas string methods, the
 
 Next, we need to get the corresponding location, preferably the index
 label, in the table for which the name length is the largest. The
-:meth:`~Series.idxmax`` method does exactly that. It is not a string method and is
+:meth:`~Series.idxmax` method does exactly that. It is not a string method and is
 applied to integers, so no ``str`` is used.
 
 .. ipython:: python
