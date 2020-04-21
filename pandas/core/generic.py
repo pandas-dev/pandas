@@ -591,7 +591,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
-        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
+        return self._constructor(new_values, *new_axes).__finalize__(
             self, method="swapaxes"
         )
 
@@ -4039,7 +4039,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        return self.rename(**mapper)
 
     def add_suffix(self: FrameOrSeries, suffix: str) -> FrameOrSeries:
         """
@@ -4098,7 +4098,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        return self.rename(**mapper)
 
     def sort_values(
         self,
@@ -6671,9 +6671,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
