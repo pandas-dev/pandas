@@ -6742,7 +6742,7 @@ Wild         185.0
       (A, D) variable_0 variable_1  value
     0      a          B          E      1
     1      b          B          E      3
-    2      c          B          E      5 
+    2      c          B          E      5
     """
 
     @Appender(
