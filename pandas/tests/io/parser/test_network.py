@@ -54,8 +54,8 @@ def tips_df(datapath):
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:
+    @td.skip_if_no("s3fs")
     def test_parse_public_s3_bucket(self, tips_df):
-        pytest.importorskip("s3fs")
 
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
@@ -170,13 +170,14 @@ class TestS3:
 
     def test_write_s3_csv_fails(self, tips_df):
         # GH 32486
+        # Attempting to write to an invalid S3 path should raise
         with pytest.raises(
             FileNotFoundError, match="The specified bucket does not exist"
         ):
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
+    @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
-        pytest.importorskip("pyarrow")
         # GH 27679
         with pytest.raises(
             FileNotFoundError, match="The specified bucket does not exist"
