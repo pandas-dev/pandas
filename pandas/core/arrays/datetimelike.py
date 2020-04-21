@@ -112,31 +112,24 @@ def _datetimelike_array_cmp(cls, op):
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
-        o_mask = isna(other)
-        i8vals = self.asi8
+        dtype = getattr(other, "dtype", None)
+        if is_object_dtype(dtype):
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would fail to raise when
+            #  comparing tz-aware and tz-naive
+            with np.errstate(all="ignore"):
+                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+            return result
 
         if isinstance(other, self._scalar_type) or other is NaT:
             other_i8 = self._unbox_scalar(other)
-
-            result = op(i8vals, other_i8)
-
         else:
-            # At this point we have either an ndarray[object] or our own type
+            # Then type(other) == type(self)
+            other_i8 = other.asi8
 
-            if is_object_dtype(other.dtype):
-                # We have to use comp_method_OBJECT_ARRAY instead of numpy
-                #  comparison otherwise it would fail to raise when
-                #  comparing tz-aware and tz-naive
-                with np.errstate(all="ignore"):
-                    result = ops.comp_method_OBJECT_ARRAY(
-                        op, self.astype(object), other
-                    )
+        result = op(self.asi8, other_i8)
 
-            else:
-                # Then type(other) == type(self)
-                other_i8 = other.asi8
-                result = op(i8vals, other_i8)
-
+        o_mask = isna(other)
         if self._hasnans | np.any(o_mask):
             result[self._isnan | o_mask] = nat_result
 
