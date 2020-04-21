@@ -86,6 +86,7 @@ class TestTimedeltaIndexInsert:
         "value", [0, np.int64(0), np.float64(0), np.array(0), np.datetime64(456, "us")]
     )
     def test_insert_mismatched_types(self, value):
+        # GH#33703 dont cast these to td64
         tdi = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
         msg = "incompatible label"
