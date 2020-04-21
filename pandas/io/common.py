@@ -20,8 +20,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import (  # noqa
-    urlencode,
+from urllib.parse import (
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -32,13 +31,6 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
-from pandas.errors import (  # noqa
-    AbstractMethodError,
-    DtypeWarning,
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-)
 
 from pandas.core.dtypes.common import is_file_like
 

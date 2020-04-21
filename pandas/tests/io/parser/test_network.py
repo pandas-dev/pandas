@@ -179,7 +179,6 @@ class TestS3:
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
         # GH 27679
-        # Attempting to write to an invalid S3 path should raise
         with pytest.raises(
             FileNotFoundError, match="The specified bucket does not exist"
         ):

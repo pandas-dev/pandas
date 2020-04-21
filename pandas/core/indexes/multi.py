@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -653,7 +653,9 @@ class MultiIndex(Index):
             vals = self._get_level_values(i)
             if is_categorical_dtype(vals):
                 vals = vals._internal_get_values()
-            if isinstance(vals.dtype, ExtensionDtype) or hasattr(vals, "_box_values"):
+            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
+                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            ):
                 vals = vals.astype(object)
             vals = np.array(vals, copy=False)
             values.append(vals)

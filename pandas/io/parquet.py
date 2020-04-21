@@ -97,7 +97,8 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        file_obj, _, _, _ = get_filepath_or_buffer(path, mode="wb")
+        path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
+
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
@@ -112,9 +113,9 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, file_obj, compression=compression, **kwargs
-            )
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
+        if should_close:
+            path.close()
 
     def read(self, path, columns=None, **kwargs):
         parquet_ds = self.api.parquet.ParquetDataset(
