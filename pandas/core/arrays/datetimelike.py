@@ -98,6 +98,7 @@ def _datetimelike_array_cmp(cls, op):
 
             else:
                 # For PeriodDType this casting is unnecessary
+                # TODO: use Index to do inference?
                 other = type(self)._from_sequence(other)
                 self._check_compatible_with(other)
 
@@ -111,11 +112,13 @@ def _datetimelike_array_cmp(cls, op):
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
+        o_mask = isna(other)
+        i8vals = self.asi8
+
         if isinstance(other, self._scalar_type) or other is NaT:
             other_i8 = self._unbox_scalar(other)
 
-            result = op(self.view("i8"), other_i8)
-            o_mask = isna(other)
+            result = op(i8vals, other_i8)
 
         else:
             # At this point we have either an ndarray[object] or our own type
@@ -128,12 +131,11 @@ def _datetimelike_array_cmp(cls, op):
                     result = ops.comp_method_OBJECT_ARRAY(
                         op, self.astype(object), other
                     )
-                o_mask = isna(other)
 
             else:
                 # Then type(other) == type(self)
-                result = op(self.view("i8"), other.view("i8"))
-                o_mask = other._isnan
+                other_i8 = other.asi8
+                result = op(i8vals, other_i8)
 
         if self._hasnans | np.any(o_mask):
             result[self._isnan | o_mask] = nat_result
