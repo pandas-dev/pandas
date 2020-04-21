@@ -12,6 +12,25 @@ from pandas.compat._optional import import_optional_dependency
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
 
+def is_numba_util_related_error(err_message: str) -> bool:
+    """
+    Check if an error was raised from one of the numba utility functions
+
+    For cases where a try/except block has mistakenly caught the error
+    and we want to re-raise
+
+    Parameters
+    ----------
+    err_message : str,
+        exception error message
+
+    Returns
+    -------
+    bool
+    """
+    return "The first" in err_message or "numba does not" in err_message
+
+
 def check_kwargs_and_nopython(
     kwargs: Optional[Dict] = None, nopython: Optional[bool] = None
 ) -> None:
