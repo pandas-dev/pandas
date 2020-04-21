@@ -5,8 +5,14 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 
+import inspect
+
 
 class TestDataFrameSubclassing:
+    
+    def test_get_members():
+        inspect.getmembers(pd.DataFrame())
+    
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632
