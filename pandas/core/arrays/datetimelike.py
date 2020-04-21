@@ -858,25 +858,34 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return value
 
     def _validate_where_value(self, other):
-        if lib.is_scalar(other) and isna(other):
-            other = NaT.value
+        if is_valid_nat_for_dtype(other, self.dtype):
+            other = NaT
+        elif isinstance(other, self._recognized_scalars):
+            other = self._scalar_type(other)
+            self._check_compatible_with(other, setitem=True)
+        elif not is_list_like(other):
+            raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
             # Do type inference if necessary up front
             # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            from pandas import Index
+            other = array(other)
+            other = extract_array(other, extract_numpy=True)
 
-            other = Index(other)
-
-            if is_categorical_dtype(other):
+            if is_categorical_dtype(other.dtype):
                 # e.g. we have a Categorical holding self.dtype
                 if is_dtype_equal(other.categories.dtype, self.dtype):
                     other = other._internal_get_values()
 
-            if not is_dtype_equal(self.dtype, other.dtype):
+            if not type(self)._is_recognized_dtype(other.dtype):
                 raise TypeError(f"Where requires matching dtype, not {other.dtype}")
+            self._check_compatible_with(other, setitem=True)
 
+        if lib.is_scalar(other):
+            other = self._unbox_scalar(other)
+        else:
             other = other.view("i8")
+
         return other
 
     # ------------------------------------------------------------------

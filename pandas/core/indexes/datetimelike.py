@@ -492,7 +492,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def where(self, cond, other=None):
         values = self.view("i8")
 
-        other = self._data._validate_where_value(other)
+        try:
+            other = self._data._validate_where_value(other)
+        except (TypeError, ValueError) as err:
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            oth = getattr(other, "dtype", other)
+            raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
         result = np.where(cond, values, other).astype("i8")
         arr = type(self._data)._simple_new(result, dtype=self.dtype)
