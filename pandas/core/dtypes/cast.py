@@ -738,7 +738,7 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False) -> Tuple[DtypeObj, A
     array(['1', '1'], dtype='<U21')
 
     >>> infer_dtype_from_array([1, '1'])
-    (<class 'numpy.object_'>, [1, '1'])
+    (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
         return arr.dtype, arr
