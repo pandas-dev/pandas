@@ -1231,7 +1231,7 @@ class TestHDFStore:
 
             # column oriented
             df = tm.makeTimeDataFrame()
-            df.index._set_freq(None)  # freq doesnt round-trip
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
 
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
