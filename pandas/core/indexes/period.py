@@ -228,10 +228,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             Values that can be converted to a PeriodArray without inference
             or coercion.
         """
-        if not isinstance(values, PeriodArray):
-            raise TypeError(
-                f"_simple_new expects PeriodArray, got {type(values).__name__}"
-            )
+        assert isinstance(values, PeriodArray), type(values)
 
         result = object.__new__(cls)
         result._data = values
