@@ -4682,8 +4682,6 @@ Series.memory_usage: Memory usage of Series.""",
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_NUMBERS = {"index": 0}
-    _AXIS_NAMES = {0: "index"}
     _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
