@@ -1566,7 +1566,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return -(self - other)
 
-    def __iadd__(self, other):  # type: ignore
+    def __iadd__(self, other):
         result = self + other
         self[:] = result[:]
 
@@ -1575,7 +1575,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             self._freq = result._freq
         return self
 
-    def __isub__(self, other):  # type: ignore
+    def __isub__(self, other):
         result = self - other
         self[:] = result[:]
 
