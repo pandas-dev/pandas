@@ -8374,7 +8374,7 @@ Wild         185.0
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        indices = cast(np.ndarray, indices)
+        assert isinstance(indices, np.ndarray)  # for mypy
 
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -8447,7 +8447,7 @@ Wild         185.0
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        indices = cast(np.ndarray, indices)
+        assert isinstance(indices, np.ndarray)  # for mypy
 
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
