@@ -14,6 +14,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.groupby.grouper import Grouping
 
 # selection
@@ -637,11 +638,12 @@ class TestGrouping:
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = pd.Series([], name="name", dtype="float64")
+        s = create_series_with_explicit_index([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
-        tm.assert_series_equal(result, s)
+        expected = pd.Series([], name="name", dtype="float64", index=pd.RangeIndex(0))
+        tm.assert_series_equal(result, expected)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1

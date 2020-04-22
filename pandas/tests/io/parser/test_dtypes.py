@@ -13,7 +13,7 @@ from pandas.errors import ParserWarning
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
+from pandas import Categorical, DataFrame, Index, MultiIndex, Timestamp, concat
 import pandas._testing as tm
 from pandas.core.construction import create_series_with_explicit_index
 
@@ -435,7 +435,7 @@ def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     expected = concat(
         [
             create_series_with_explicit_index([], name="one", dtype="u1"),
-            Series([], name="one.1", dtype="f"),
+            create_series_with_explicit_index([], name="one.1", dtype="f"),
         ],
         axis=1,
     )
@@ -452,7 +452,7 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
     expected = concat(
         [
             create_series_with_explicit_index([], name="one", dtype="u1"),
-            Series([], name="one.1", dtype="f"),
+            create_series_with_explicit_index([], name="one.1", dtype="f"),
         ],
         axis=1,
     )
