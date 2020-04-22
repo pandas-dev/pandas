@@ -738,18 +738,20 @@ class TestConcatAppendCommon:
 
         s1 = create_series_with_explicit_index([], dtype="category")
         s2 = create_series_with_explicit_index([], dtype="category")
+        expected = pd.Series([], dtype="category", index=pd.RangeIndex(0))
 
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-        tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), expected)
+        tm.assert_series_equal(s1.append(s2, ignore_index=True), expected)
 
         s1 = create_series_with_explicit_index([], dtype="category")
         s2 = create_series_with_explicit_index([], dtype="object")
+        expected = pd.Series([], dtype="object", index=pd.RangeIndex(0))
 
         # different dtype => not-category
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-        tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
-        tm.assert_series_equal(s2.append(s1, ignore_index=True), s2)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), expected)
+        tm.assert_series_equal(s1.append(s2, ignore_index=True), expected)
+        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), expected)
+        tm.assert_series_equal(s2.append(s1, ignore_index=True), expected)
 
         s1 = create_series_with_explicit_index([], dtype="category")
         s2 = pd.Series([np.nan, np.nan])
@@ -2201,6 +2203,7 @@ bar2,12,13,14,15
         first = create_series_with_explicit_index([], dtype="M8[ns]").dt.tz_localize(tz)
         dtype = None if values else np.float64
         second = create_series_with_explicit_index(values, dtype=dtype)
+        result = concat([first, second], axis=1)
 
         expected = DataFrame(
             {
@@ -2208,9 +2211,9 @@ bar2,12,13,14,15
                     [pd.NaT] * len(values), dtype="M8[ns]"
                 ).dt.tz_localize(tz),
                 1: values,
-            }
+            },
         )
-        result = concat([first, second], axis=1)
+        expected.index = expected.index.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_default_index(self):

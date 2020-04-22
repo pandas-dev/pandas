@@ -2,7 +2,6 @@ import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_index
 
 from .base import BaseExtensionTests
 
@@ -20,7 +19,7 @@ class BaseMissingTests(BaseExtensionTests):
 
         # GH 21189
         result = pd.Series(data_missing).drop([0, 1]).isna()
-        expected = create_series_with_explicit_index([], dtype=bool)
+        expected = pd.Series([], dtype=bool, index=pd.RangeIndex(0))
         self.assert_series_equal(result, expected)
 
     def test_dropna_array(self, data_missing):

@@ -41,7 +41,7 @@ class MyAccessor:
 @pytest.mark.parametrize(
     "obj, registrar",
     [
-        (create_series_with_explicit_dtype, pd.api.extensions.register_series_accessor),
+        (pd.Series, pd.api.extensions.register_series_accessor),
         (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
         (pd.Index, pd.api.extensions.register_index_accessor),
     ],
@@ -50,7 +50,8 @@ def test_register(obj, registrar):
     with ensure_removed(obj, "mine"):
         before = set(dir(obj))
         registrar("mine")(MyAccessor)
-        o = obj([])
+        klass = create_series_with_explicit_dtype if obj is pd.Series else obj
+        o = klass([])
         assert o.mine.prop == "item"
         after = set(dir(obj))
         assert (before ^ after) == {"mine"}
