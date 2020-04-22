@@ -4262,9 +4262,9 @@ Name: Max Speed, dtype: float64
             <class 'pandas.core.series.Series'>
             RangeIndex: 1000000 entries, 0 to 999999
             Series name: None
-                #   Non-Null Count    Dtype
+             #   Non-Null Count    Dtype
             ---  --------------    -----
-                0   1000000 non-null  object
+             0   1000000 non-null  object
             dtypes: object(1)
             memory usage: 7.6+ MB
 
@@ -4272,9 +4272,9 @@ Name: Max Speed, dtype: float64
             <class 'pandas.core.series.Series'>
             RangeIndex: 1000000 entries, 0 to 999999
             Series name: None
-                #   Non-Null Count    Dtype
+             #   Non-Null Count    Dtype
             ---  --------------    -----
-                0   1000000 non-null  object
+             0   1000000 non-null  object
             dtypes: object(1)
             memory usage: 62.9 MB"""
         ),
