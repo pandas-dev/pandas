@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -26,7 +25,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -80,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "asi8", "_box_values", "_box_func"], DatetimeLikeArrayMixin,
+    ["mean", "asi8", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -449,9 +447,27 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    __add__ = make_wrapped_arith_op("__add__")
+    def __add__(self, other):
+        add = make_wrapped_arith_op("__add__")
+        result = add(self, other)
+        if result is NotImplemented:
+            return NotImplemented
+
+        new_freq = type(self._data)._get_addsub_freq(self, other)
+        result._freq = new_freq
+        return result
+
+    def __sub__(self, other):
+        sub = make_wrapped_arith_op("__sub__")
+        result = sub(self, other)
+        if result is NotImplemented:
+            return NotImplemented
+
+        new_freq = type(self._data)._get_addsub_freq(self, other)
+        result._freq = new_freq
+        return result
+
     __radd__ = make_wrapped_arith_op("__radd__")
-    __sub__ = make_wrapped_arith_op("__sub__")
     __rsub__ = make_wrapped_arith_op("__rsub__")
     __pow__ = make_wrapped_arith_op("__pow__")
     __rpow__ = make_wrapped_arith_op("__rpow__")
@@ -494,23 +510,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def where(self, cond, other=None):
         values = self.view("i8")
 
-        if is_scalar(other) and isna(other):
-            other = NaT.value
-
-        else:
-            # Do type inference if necessary up front
-            # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            other = Index(other)
-
-            if is_categorical_dtype(other):
-                # e.g. we have a Categorical holding self.dtype
-                if is_dtype_equal(other.categories.dtype, self.dtype):
-                    other = other._internal_get_values()
-
-            if not is_dtype_equal(self.dtype, other.dtype):
-                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
-
-            other = other.view("i8")
+        other = self._data._validate_where_value(other)
 
         result = np.where(cond, values, other).astype("i8")
         arr = type(self._data)._simple_new(result, dtype=self.dtype)
@@ -576,7 +576,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Index.shift : Shift values of Index.
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
-        result = self._data._time_shift(periods, freq=freq)
+        arr = self._data.view()
+        arr._freq = self.freq
+        result = arr._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
@@ -646,11 +648,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             freq = to_offset(self.inferred_freq)
             index._freq = freq
 
-        return index
-
-    def _with_freq(self, freq):
-        index = self.copy(deep=False)
-        index._set_freq(freq)
         return index
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
@@ -937,15 +934,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         -------
         new_index : Index
         """
-        if isinstance(item, self._data._recognized_scalars):
-            item = self._data._scalar_type(item)
-        elif is_valid_nat_for_dtype(item, self.dtype):
-            # GH 18295
-            item = self._na_value
-        elif is_scalar(item) and isna(item):
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
+        item = self._data._validate_insert_value(item)
 
         freq = None
         if isinstance(item, self._data._scalar_type) or item is NaT:
