@@ -325,7 +325,7 @@ When transforming a DataFrame using :func:`~pandas.melt`, original index values 
                           'last': ['Doe', 'Bo'],
                           'height': [5.5, 6.0],
                           'weight': [130, 150]},
-                          index=index)
+                         index=index)
    cheese
 
 .. ipython:: python
