@@ -299,7 +299,7 @@ class Grouping:
             self.name = grouper.name
 
         if isinstance(grouper, MultiIndex):
-            self.grouper = grouper.values
+            self.grouper = grouper._values
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level

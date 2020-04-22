@@ -112,22 +112,22 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self) and isinstance(other, ABCCategorical):
+        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
-        elif is_object_dtype(self) and isinstance(other, ExtensionArray):
+        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
             # e.g. PeriodArray
             with np.errstate(all="ignore"):
-                result = op(self.values, other)
+                result = op(self._values, other)
 
-        elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
         else:
             with np.errstate(all="ignore"):
-                result = op(self.values, np.asarray(other))
+                result = op(self._values, np.asarray(other))
 
         if is_bool_dtype(result):
             return result
@@ -510,7 +510,7 @@ class Index(IndexOpsMixin, PandasObject):
         name = self.name if name is no_default else name
         cache = self._cache.copy() if values is None else {}
         if values is None:
-            values = self.values
+            values = self._values
 
         result = self._simple_new(values, name=name)
         result._cache = cache
@@ -722,7 +722,7 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(
-                self.values,
+                self._values,
                 indices,
                 allow_fill=allow_fill,
                 fill_value=fill_value,
@@ -734,7 +734,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError(
                     f"Unable to fill values because {cls_name} cannot contain NA"
                 )
-            taken = self.values.take(indices)
+            taken = self._values.take(indices)
         return self._shallow_copy(taken)
 
     def _assert_take_fillable(
@@ -1988,7 +1988,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether or not the index values only consist of dates.
         """
-        return is_datetime_array(ensure_object(self.values))
+        return is_datetime_array(ensure_object(self._values))
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -2339,13 +2339,13 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique and not dropna:
             return self
 
-        values = self.values
-
         if not self.is_unique:
             values = self.unique()
             if not isinstance(self, ABCMultiIndex):
                 # extract an array to pass to _shallow_copy
                 values = values._data
+        else:
+            values = self._values
 
         if dropna:
             try:
