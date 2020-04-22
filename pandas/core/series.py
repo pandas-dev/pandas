@@ -949,11 +949,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.iloc[key]
 
-        if isinstance(key, list):
-            # handle the dup indexing case GH#4246
-            return self.loc[key]
-
-        return self.reindex(key)
+        # handle the dup indexing case GH#4246
+        return self.loc[key]
 
     def _get_values_tuple(self, key):
         # mpl hackaround
@@ -1031,7 +1028,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 try:
                     self._where(~key, value, inplace=True)
                 except InvalidIndexError:
-                    self._set_values(key.astype(np.bool_), value)
+                    self.iloc[key] = value
                 return
 
             else:
@@ -1049,8 +1046,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
+            # extract_array so that if we set e.g. ser[-5:] = ser[:5]
+            #  we get the first five values, and not 5 NaNs
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+            self.iloc[indexer] = extract_array(value, extract_numpy=True)
 
         else:
             assert not isinstance(key, tuple)
@@ -1068,25 +1067,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if not self.index._should_fallback_to_positional():
-                    self._set_labels(key, value)
+                    self.loc[key] = value
                 else:
-                    self._set_values(key, value)
+                    self.iloc[key] = value
             else:
-                self._set_labels(key, value)
-
-    def _set_labels(self, key, value):
-        key = com.asarray_tuplesafe(key)
-        indexer: np.ndarray = self.index.get_indexer(key)
-        mask = indexer == -1
-        if mask.any():
-            raise ValueError(f"{key[mask]} not contained in the index")
-        self._set_values(indexer, value)
-
-    def _set_values(self, key, value):
-        if isinstance(key, Series):
-            key = key._values
-        self._mgr = self._mgr.setitem(indexer=key, value=value)
-        self._maybe_update_cacher()
+                self.loc[key] = value
 
     def _set_value(self, label, value, takeable: bool = False):
         """
@@ -4614,8 +4599,6 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_NUMBERS = {"index": 0}
-    _AXIS_NAMES = {0: "index"}
     _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
