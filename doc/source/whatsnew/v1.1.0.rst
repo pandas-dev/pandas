@@ -387,7 +387,7 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`????`).
+Some minimum supported versions of dependencies were updated (:issue:`33718`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
