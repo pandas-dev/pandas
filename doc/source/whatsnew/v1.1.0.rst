@@ -659,6 +659,8 @@ Other
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
+- Propagate Python exceptions from :func:`_lib.c_is_list_like` (#33721)
+-
 
 .. ---------------------------------------------------------------------------
 
