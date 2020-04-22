@@ -147,7 +147,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: PeriodArray
     freq: DateOffset

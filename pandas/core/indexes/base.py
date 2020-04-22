@@ -269,10 +269,6 @@ class Index(IndexOpsMixin, PandasObject):
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
 
-    # prioritize current class for _shallow_copy_with_infer,
-    # used to infer integers as datetime-likes
-    _infer_as_myclass = False
-
     _engine_type = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
@@ -440,10 +436,6 @@ class Index(IndexOpsMixin, PandasObject):
       _simple_new), but fills caller's metadata otherwise specified. Passed
       kwargs will overwrite corresponding metadata.
 
-    - _shallow_copy_with_infer: It returns new Index inferring its type
-      from passed values. It fills caller's metadata otherwise specified as the
-      same as _shallow_copy.
-
     See each method's docstring.
     """
 
@@ -515,35 +507,6 @@ class Index(IndexOpsMixin, PandasObject):
         result = self._simple_new(values, name=name)
         result._cache = cache
         return result
-
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        """
-        Create a new Index inferring the class with passed value, don't copy
-        the data, use the same object attributes with passed in attributes
-        taking precedence.
-
-        *this is an internal non-public method*
-
-        Parameters
-        ----------
-        values : the values to create the new Index, optional
-        kwargs : updates the default attributes for this Index
-        """
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        attributes["copy"] = False
-        if not len(values) and "dtype" not in kwargs:
-            # TODO: what if hasattr(values, "dtype")?
-            attributes["dtype"] = self.dtype
-        if self._infer_as_myclass:
-            try:
-                return self._constructor(values, **attributes)
-            except (TypeError, ValueError):
-                pass
-
-        # Remove tz so Index will try non-DatetimeIndex inference
-        attributes.pop("tz", None)
-        return Index(values, **attributes)
 
     def is_(self, other) -> bool:
         """
@@ -2809,11 +2772,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        attribs = self._get_attributes_dict()
-        attribs["name"] = result_name
-        if "freq" in attribs:
-            attribs["freq"] = None
-        return self._shallow_copy_with_infer(the_diff, **attribs)
+        return Index(the_diff, dtype=self.dtype, name=result_name)
 
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
@@ -3387,7 +3346,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        new_index = self._shallow_copy_with_infer(new_labels)
+        new_index = Index(new_labels, name=self.name)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -3936,7 +3895,7 @@ class Index(IndexOpsMixin, PandasObject):
             # it's float) if there are NaN values in our output.
             dtype = None
 
-        return self._shallow_copy_with_infer(values, dtype=dtype)
+        return Index(values, dtype=dtype, name=self.name)
 
     # construction helpers
     @classmethod
@@ -4166,7 +4125,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
+        res_values = np.concatenate(to_concat)
+        return Index(res_values, name=name)
 
     def putmask(self, mask, value):
         """
@@ -5208,7 +5168,7 @@ class Index(IndexOpsMixin, PandasObject):
         arr = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return self._shallow_copy_with_infer(idx)
+        return Index(idx, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise"):
         """

@@ -690,7 +690,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        return self._shallow_copy_with_infer(self._values.map(mapper))
+        mapped = self._values.map(mapper)
+        return Index(mapped, name=self.name)
 
     def delete(self, loc):
         """

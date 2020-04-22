@@ -188,7 +188,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         return pd.Series(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
-        # do not use _shallow_copy_with_infer
+        # do not use _shallow_copy
         return pd.Index(values, name=arg.name)
     elif is_scalars:
         return values[0]
