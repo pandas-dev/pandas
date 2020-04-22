@@ -17,7 +17,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
-        all_data = np.unique(all_data[:5])
+        all_data = all_data[:10].unique()
         if dropna:
             other = np.array(all_data[~all_data.isna()])
         else:
