@@ -2768,3 +2768,37 @@ def test_concat_copy_index(test_series, axis):
         comb = concat([df, df], axis=axis, copy=True)
         assert comb.index is not df.index
         assert comb.columns is not df.columns
+
+
+def test_concat_multiindex_datetime_object_index():
+    # https://github.com/pandas-dev/pandas/issues/11058
+    s = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2014, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    s2 = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2015, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    expected = DataFrame(
+        [["a", "a"], ["b", np.nan], [np.nan, "b"]],
+        index=MultiIndex.from_arrays(
+            [
+                [1, 2, 2],
+                DatetimeIndex(
+                    ["2013-01-01", "2014-01-01", "2015-01-01"],
+                    dtype="datetime64[ns]",
+                    freq=None,
+                ),
+            ],
+            names=["first", "second"],
+        ),
+    )
+    result = concat([s, s2], axis=1)
+    tm.assert_frame_equal(result, expected)
