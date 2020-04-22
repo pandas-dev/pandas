@@ -214,7 +214,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _attributes = ["name", "tz", "freq"]
 
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
