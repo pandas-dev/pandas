@@ -843,7 +843,8 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp, int64_t win):
+                  ndarray[int64_t] end, int64_t minp, int64_t win=0):
+    # GH 32865. win argument kept for compatibility
     cdef:
         float64_t val, res, prev
         bint err = False
@@ -858,7 +859,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0 or (end - start).max() == 0:
+    if (end - start).max() == 0:
         output[:] = NaN
         return output
     win = (end - start).max()
