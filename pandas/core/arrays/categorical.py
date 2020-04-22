@@ -330,7 +330,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
-                sanitize_dtype = "object" if len(values) == 0 else None
+                sanitize_dtype = np.dtype("object") if len(values) == 0 else None
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
