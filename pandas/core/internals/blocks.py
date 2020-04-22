@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_sparse,
+    is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
@@ -1006,8 +1007,7 @@ class Block(PandasObject):
         and will receive the same block
         """
         if isinstance(other, str):
-            dtype = "string"
-            if is_dtype_equal(self.dtype, dtype):
+            if is_string_dtype(self.dtype):
                 return self
             else:
                 dtype = np.object_
