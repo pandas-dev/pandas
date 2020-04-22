@@ -1394,40 +1394,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
-    @staticmethod
-    def _get_addsub_freq(self, other):
-        """
-        Find the freq we expect the result of an addition operation to have.
-        """
-        if is_period_dtype(self.dtype):
-            # Only used for ops that stay PeriodDtype
-            return self.freq
-        elif self.freq is None:
-            return None
-        elif lib.is_scalar(other) and isna(other):
-            return None
-
-        elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_freq = None
-            if isinstance(self.freq, Tick):
-                new_freq = self.freq
-            return new_freq
-
-        elif isinstance(other, DateOffset):
-            # otherwise just DatetimeArray
-            return None  # TODO: Should we infer if it matches self.freq * n?
-        elif isinstance(other, (datetime, np.datetime64)):
-            return self.freq
-
-        elif is_timedelta64_dtype(other):
-            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
-        elif is_object_dtype(other):
-            return None  # TODO: is this quite right?  sometimes we unpack singletons
-        elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
-            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
-        else:
-            raise NotImplementedError
-
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
 

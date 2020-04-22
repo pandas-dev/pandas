@@ -1,7 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, List, Optional, Union
 
 import numpy as np
@@ -17,14 +17,18 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool_dtype,
+    is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
+    is_object_dtype,
     is_period_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -42,6 +46,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
+from pandas.tseries.offsets import Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -70,6 +75,26 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
         return results
 
     return wrapper
+
+
+def _make_wrapped_arith_op_with_freq(opname: str):
+    """
+    Dispatch the operation to the underlying ExtensionArray, and infer
+    the appropriate frequency for the result.
+    """
+    meth = make_wrapped_arith_op(opname)
+
+    def wrapped(self, other):
+        result = meth(self, other)
+        if result is NotImplemented:
+            return NotImplemented
+
+        new_freq = self._get_addsub_freq(other)
+        result._freq = new_freq
+        return result
+
+    wrapped.__name__ = opname
+    return wrapped
 
 
 @inherit_names(
@@ -446,27 +471,44 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return ensure_platform_int(indexer), missing
 
     # --------------------------------------------------------------------
+    # Arithmetic Methods
 
-    def __add__(self, other):
-        add = make_wrapped_arith_op("__add__")
-        result = add(self, other)
-        if result is NotImplemented:
-            return NotImplemented
+    def _get_addsub_freq(self, other) -> Optional[DateOffset]:
+        """
+        Find the freq we expect the result of an addition/subtraction operation
+        to have.
+        """
+        if is_period_dtype(self.dtype):
+            # Only used for ops that stay PeriodDtype
+            return self.freq
+        elif self.freq is None:
+            return None
+        elif lib.is_scalar(other) and isna(other):
+            return None
 
-        new_freq = type(self._data)._get_addsub_freq(self, other)
-        result._freq = new_freq
-        return result
+        elif isinstance(other, (Tick, timedelta, np.timedelta64)):
+            new_freq = None
+            if isinstance(self.freq, Tick):
+                new_freq = self.freq
+            return new_freq
 
-    def __sub__(self, other):
-        sub = make_wrapped_arith_op("__sub__")
-        result = sub(self, other)
-        if result is NotImplemented:
-            return NotImplemented
+        elif isinstance(other, DateOffset):
+            # otherwise just DatetimeArray
+            return None  # TODO: Should we infer if it matches self.freq * n?
+        elif isinstance(other, (datetime, np.datetime64)):
+            return self.freq
 
-        new_freq = type(self._data)._get_addsub_freq(self, other)
-        result._freq = new_freq
-        return result
+        elif is_timedelta64_dtype(other):
+            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
+        elif is_object_dtype(other):
+            return None  # TODO: is this quite right?  sometimes we unpack singletons
+        elif is_datetime64_any_dtype(other):
+            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
+        else:
+            raise NotImplementedError
 
+    __add__ = _make_wrapped_arith_op_with_freq("__add__")
+    __sub__ = _make_wrapped_arith_op_with_freq("__sub__")
     __radd__ = make_wrapped_arith_op("__radd__")
     __rsub__ = make_wrapped_arith_op("__rsub__")
     __pow__ = make_wrapped_arith_op("__pow__")
