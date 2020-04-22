@@ -321,7 +321,7 @@ class TestPeriodIndex:
     def test_constructor_simple_new(self):
         idx = period_range("2007-01", name="p", periods=2, freq="M")
 
-        with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
+        with pytest.raises(AssertionError, match="PeriodIndex"):
             idx._simple_new(idx, name="p")
 
         result = idx._simple_new(idx._data, name="p")
@@ -339,7 +339,7 @@ class TestPeriodIndex:
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
-        with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
+        with pytest.raises(AssertionError, match="PeriodIndex"):
             idx._simple_new(idx, name="p")
 
         result = idx._simple_new(idx._data, name="p")
