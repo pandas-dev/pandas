@@ -15,6 +15,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -432,7 +433,10 @@ def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     # see gh-9424
     parser = all_parsers
     expected = concat(
-        [Series([], name="one", dtype="u1"), Series([], name="one.1", dtype="f")],
+        [
+            create_series_with_explicit_index([], name="one", dtype="u1"),
+            Series([], name="one.1", dtype="f"),
+        ],
         axis=1,
     )
     expected.index = expected.index.astype(object)
@@ -446,7 +450,10 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
     # see gh-9424
     parser = all_parsers
     expected = concat(
-        [Series([], name="one", dtype="u1"), Series([], name="one.1", dtype="f")],
+        [
+            create_series_with_explicit_index([], name="one", dtype="u1"),
+            Series([], name="one.1", dtype="f"),
+        ],
         axis=1,
     )
     expected.index = expected.index.astype(object)
@@ -502,8 +509,8 @@ def test_dtype_with_converters(all_parsers):
             "timedelta64[ns]",
             DataFrame(
                 {
-                    "a": Series([], dtype="timedelta64[ns]"),
-                    "b": Series([], dtype="timedelta64[ns]"),
+                    "a": create_series_with_explicit_index([], dtype="timedelta64[ns]"),
+                    "b": create_series_with_explicit_index([], dtype="timedelta64[ns]"),
                 },
                 index=[],
             ),
@@ -511,21 +518,30 @@ def test_dtype_with_converters(all_parsers):
         (
             dict(a=np.int64, b=np.int32),
             DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                {
+                    "a": create_series_with_explicit_index([], dtype=np.int64),
+                    "b": create_series_with_explicit_index([], dtype=np.int32),
+                },
                 index=[],
             ),
         ),
         (
             {0: np.int64, 1: np.int32},
             DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                {
+                    "a": create_series_with_explicit_index([], dtype=np.int64),
+                    "b": create_series_with_explicit_index([], dtype=np.int32),
+                },
                 index=[],
             ),
         ),
         (
             {"a": np.int64, 1: np.int32},
             DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                {
+                    "a": create_series_with_explicit_index([], dtype=np.int64),
+                    "b": create_series_with_explicit_index([], dtype=np.int32),
+                },
                 index=[],
             ),
         ),

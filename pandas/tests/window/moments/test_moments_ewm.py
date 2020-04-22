@@ -5,6 +5,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series, concat
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.tests.window.common import (
     Base,
     ConsistencyBase,
@@ -205,7 +206,7 @@ class TestMoments(Base):
 
     @pytest.mark.parametrize("method", ["mean", "vol", "var"])
     def test_ew_empty_series(self, method):
-        vals = pd.Series([], dtype=np.float64)
+        vals = create_series_with_explicit_index([], dtype=np.float64)
 
         ewm = vals.ewm(3)
         result = getattr(ewm, method)()

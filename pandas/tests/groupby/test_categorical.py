@@ -16,6 +16,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 def cartesian_product_for_groupers(result, args, names):
@@ -792,7 +793,7 @@ def test_groupby_empty_with_category():
     result = df.groupby("A").first()["B"]
     expected = pd.Series(
         pd.Categorical([], categories=["test", "train"]),
-        index=pd.Series([], dtype="object", name="A"),
+        index=create_series_with_explicit_index([], dtype="object", name="A"),
         name="B",
     )
     tm.assert_series_equal(result, expected)

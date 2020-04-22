@@ -53,6 +53,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
@@ -60,7 +61,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
     ensure_index_from_sequences,
 )
-from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
@@ -3494,14 +3494,20 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
-        data = [Series([], dtype=dtype[name]) for name in index_names]
+        data = [
+            create_series_with_explicit_index([], dtype=dtype[name])
+            for name in index_names
+        ]
         index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
 
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 
-    col_dict = {col_name: Series([], dtype=dtype[col_name]) for col_name in columns}
+    col_dict = {
+        col_name: create_series_with_explicit_index([], dtype=dtype[col_name])
+        for col_name in columns
+    }
 
     return index, columns, col_dict
 

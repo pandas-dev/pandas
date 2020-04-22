@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -522,7 +523,7 @@ class TestFrameFlexArithmetic:
     def test_arith_flex_zero_len_raises(self):
         # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
-        ser_len0 = pd.Series([], dtype=object)
+        ser_len0 = create_series_with_explicit_index([], dtype=object)
         df_len0 = pd.DataFrame(columns=["A", "B"])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
 

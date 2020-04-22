@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.indexing import IndexingError
 
 
@@ -46,7 +47,7 @@ class TestMultiIndexLoc:
         result = x.loc[y1]
         tm.assert_series_equal(result, expected)
 
-        empty = Series(data=[], dtype=np.float64)
+        empty = create_series_with_explicit_index(data=[], dtype=np.float64)
         expected = Series(
             [],
             index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),

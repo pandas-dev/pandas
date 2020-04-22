@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.util.hashing import hash_tuples
 from pandas.util import hash_array, hash_pandas_object
 
@@ -178,7 +179,12 @@ def test_hash_pandas_object2(series, index):
 
 
 @pytest.mark.parametrize(
-    "obj", [Series([], dtype="float64"), Series([], dtype="object"), Index([])]
+    "obj",
+    [
+        create_series_with_explicit_index([], dtype="float64"),
+        create_series_with_explicit_index([], dtype="object"),
+        Index([]),
+    ],
 )
 def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with

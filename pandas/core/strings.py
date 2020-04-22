@@ -36,7 +36,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-from pandas.core.construction import extract_array
+from pandas.core.construction import create_series_with_explicit_index, extract_array
 
 if TYPE_CHECKING:
     from pandas.arrays import StringArray
@@ -2180,7 +2180,7 @@ class StringMethods(NoNewAttributesMixin):
         returns_string=True,
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, MultiIndex
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2190,7 +2190,9 @@ class StringMethods(NoNewAttributesMixin):
         if use_codes and self._is_categorical:
             # if self._orig is a CategoricalIndex, there is no .cat-accessor
             result = take_1d(
-                result, Series(self._orig, copy=False).cat.codes, fill_value=fill_value
+                result,
+                create_series_with_explicit_index(self._orig, copy=False).cat.codes,
+                fill_value=fill_value,
             )
 
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):

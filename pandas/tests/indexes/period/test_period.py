@@ -18,6 +18,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 from ..datetimelike import DatetimeLike
 
@@ -262,7 +263,7 @@ class TestPeriodIndex(DatetimeLike):
         ]
 
         periods = list(periodindex)
-        s = pd.Series(periodindex)
+        s = create_series_with_explicit_index(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)

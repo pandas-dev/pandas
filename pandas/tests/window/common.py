@@ -5,6 +5,7 @@ from numpy.random import randn
 
 from pandas import DataFrame, Series, bdate_range, notna
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 N, K = 100, 10
 
@@ -375,7 +376,7 @@ def check_binary_ew_min_periods(name, min_periods, A, B):
     assert not np.isnan(result.values[11:]).any()
 
     # check series of length 0
-    empty = Series([], dtype=np.float64)
+    empty = create_series_with_explicit_index([], dtype=np.float64)
     result = ew_func(empty, empty, 50, name=name, min_periods=min_periods)
     tm.assert_series_equal(result, empty)
 

@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_index
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -54,7 +55,9 @@ class Generic:
                 arr = np.repeat(arr, new_shape).reshape(shape)
         else:
             arr = np.random.randn(*shape)
-        return self._typ(arr, dtype=dtype, **kwargs)
+
+        typ = create_series_with_explicit_index if self._typ is Series else self._typ
+        return typ(arr, dtype=dtype, **kwargs)
 
     def _compare(self, result, expected):
         self._comparator(result, expected)
@@ -680,7 +683,9 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(), df["A"])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = Series([], name="five", dtype=np.float64)
+        empty_series = create_series_with_explicit_index(
+            [], name="five", dtype=np.float64
+        )
         empty_frame = DataFrame([empty_series])
         tm.assert_series_equal(empty_series, empty_series.squeeze())
         tm.assert_series_equal(empty_series, empty_frame.squeeze())

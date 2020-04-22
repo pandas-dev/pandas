@@ -6,6 +6,7 @@ import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.tests.window.common import ConsistencyBase
 
 
@@ -209,7 +210,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
 
     def test_expanding_apply_empty_series(self, engine_and_raw):
         engine, raw = engine_and_raw
-        ser = Series([], dtype=np.float64)
+        ser = create_series_with_explicit_index([], dtype=np.float64)
         tm.assert_series_equal(
             ser, ser.expanding().apply(lambda x: x.mean(), raw=raw, engine=engine)
         )

@@ -6,6 +6,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestDataFrameToXArray:
@@ -115,7 +116,7 @@ class TestSeriesToXArray:
     def test_to_xarray(self):
         from xarray import DataArray
 
-        s = Series([], dtype=object)
+        s = create_series_with_explicit_index([], dtype=object)
         s.index.name = "foo"
         result = s.to_xarray()
         assert len(result) == 0

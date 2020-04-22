@@ -51,6 +51,7 @@ from pandas import (
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -3313,7 +3314,7 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
-        values = Series(values)
+        values = create_series_with_explicit_index(values)
         self.parent.put(
             self._get_metadata_path(key),
             values,
@@ -4051,7 +4052,9 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(col_values[1], a.tz), name=column)
+                return create_series_with_explicit_index(
+                    _set_tz(col_values[1], a.tz), name=column
+                )
 
         raise KeyError(f"column [{column}] not found in the table")
 

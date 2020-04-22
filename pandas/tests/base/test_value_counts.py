@@ -21,6 +21,7 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -180,7 +181,7 @@ def test_value_counts_bins(index_or_series):
     assert s.nunique() == 3
 
     s = klass({}) if klass is dict else klass({}, dtype=object)
-    expected = Series([], dtype=np.int64)
+    expected = create_series_with_explicit_index([], dtype=np.int64)
     tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
     # returned dtype differs depending on original
     if isinstance(s, Index):

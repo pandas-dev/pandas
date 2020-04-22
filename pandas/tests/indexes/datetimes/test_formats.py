@@ -6,8 +6,9 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DatetimeIndex, Series
+from pandas import DatetimeIndex
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 def test_to_native_types():
@@ -168,7 +169,7 @@ class TestDatetimeIndexRendering:
                 [idx1, idx2, idx3, idx4, idx5, idx6, idx7],
                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7],
             ):
-                result = repr(Series(idx))
+                result = repr(create_series_with_explicit_index(idx))
                 assert result == expected
 
     def test_dti_summary(self):

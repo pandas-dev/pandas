@@ -9,6 +9,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.fixture
@@ -1251,7 +1252,9 @@ class TestDataFrameReplace:
         # GH 15289
         df = DataFrame(mix_abc)
         tm.assert_frame_equal(df, df.replace({}))
-        tm.assert_frame_equal(df, df.replace(Series([], dtype=object)))
+        tm.assert_frame_equal(
+            df, df.replace(create_series_with_explicit_index([], dtype=object))
+        )
 
         tm.assert_frame_equal(df, df.replace({"b": {}}))
         tm.assert_frame_equal(df, df.replace(Series({"b": {}})))

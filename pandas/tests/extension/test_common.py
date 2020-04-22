@@ -7,6 +7,7 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class DummyDtype(dtypes.ExtensionDtype):
@@ -40,7 +41,7 @@ class TestExtensionArrayDtype:
         [
             pd.Categorical([]),
             pd.Categorical([]).dtype,
-            pd.Series(pd.Categorical([])),
+            create_series_with_explicit_index(pd.Categorical([])),
             DummyDtype(),
             DummyArray(np.array([1, 2])),
         ],
@@ -48,7 +49,9 @@ class TestExtensionArrayDtype:
     def test_is_extension_array_dtype(self, values):
         assert is_extension_array_dtype(values)
 
-    @pytest.mark.parametrize("values", [np.array([]), pd.Series(np.array([]))])
+    @pytest.mark.parametrize(
+        "values", [np.array([]), create_series_with_explicit_index(np.array([]))]
+    )
     def test_is_not_extension_array_dtype(self, values):
         assert not is_extension_array_dtype(values)
 

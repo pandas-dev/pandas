@@ -2,6 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 def test_data_frame_value_counts_unsorted():
@@ -88,7 +89,7 @@ def test_data_frame_value_counts_empty():
     df_no_cols = pd.DataFrame()
 
     result = df_no_cols.value_counts()
-    expected = pd.Series([], dtype=np.int64)
+    expected = create_series_with_explicit_index([], dtype=np.int64)
 
     tm.assert_series_equal(result, expected)
 
@@ -97,6 +98,6 @@ def test_data_frame_value_counts_empty_normalize():
     df_no_cols = pd.DataFrame()
 
     result = df_no_cols.value_counts(normalize=True)
-    expected = pd.Series([], dtype=np.float64)
+    expected = create_series_with_explicit_index([], dtype=np.float64)
 
     tm.assert_series_equal(result, expected)

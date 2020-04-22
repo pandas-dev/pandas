@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestPartialSetting:
@@ -401,14 +402,14 @@ class TestPartialSetting:
 
         def f():
             df = DataFrame(index=Index([], dtype="object"))
-            df["foo"] = Series([], dtype="object")
+            df["foo"] = create_series_with_explicit_index([], dtype="object")
             return df
 
         tm.assert_frame_equal(f(), expected)
 
         def f():
             df = DataFrame()
-            df["foo"] = Series(df.index)
+            df["foo"] = create_series_with_explicit_index(df.index)
             return df
 
         tm.assert_frame_equal(f(), expected)
@@ -432,7 +433,9 @@ class TestPartialSetting:
 
         def f():
             df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = Series(np.arange(len(df)), dtype="float64")
+            df["foo"] = create_series_with_explicit_index(
+                np.arange(len(df)), dtype="float64"
+            )
             return df
 
         tm.assert_frame_equal(f(), expected)

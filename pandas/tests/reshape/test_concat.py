@@ -29,7 +29,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index,
+)
 from pandas.tests.extension.decimal import to_decimal
 
 
@@ -724,7 +727,7 @@ class TestConcatAppendCommon:
     def test_concat_categorical_empty(self):
         # GH 13524
 
-        s1 = pd.Series([], dtype="category")
+        s1 = create_series_with_explicit_index([], dtype="category")
         s2 = pd.Series([1, 2], dtype="category")
 
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
@@ -733,14 +736,14 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), s2)
 
-        s1 = pd.Series([], dtype="category")
-        s2 = pd.Series([], dtype="category")
+        s1 = create_series_with_explicit_index([], dtype="category")
+        s2 = create_series_with_explicit_index([], dtype="category")
 
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
 
-        s1 = pd.Series([], dtype="category")
-        s2 = pd.Series([], dtype="object")
+        s1 = create_series_with_explicit_index([], dtype="category")
+        s2 = create_series_with_explicit_index([], dtype="object")
 
         # different dtype => not-category
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
@@ -748,7 +751,7 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), s2)
 
-        s1 = pd.Series([], dtype="category")
+        s1 = create_series_with_explicit_index([], dtype="category")
         s2 = pd.Series([np.nan, np.nan])
 
         # empty Series is ignored
@@ -2195,13 +2198,15 @@ bar2,12,13,14,15
     def test_concat_empty_series_timelike(self, tz, values):
         # GH 18447
 
-        first = Series([], dtype="M8[ns]").dt.tz_localize(tz)
+        first = create_series_with_explicit_index([], dtype="M8[ns]").dt.tz_localize(tz)
         dtype = None if values else np.float64
-        second = Series(values, dtype=dtype)
+        second = create_series_with_explicit_index(values, dtype=dtype)
 
         expected = DataFrame(
             {
-                0: pd.Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
+                0: create_series_with_explicit_index(
+                    [pd.NaT] * len(values), dtype="M8[ns]"
+                ).dt.tz_localize(tz),
                 1: values,
             }
         )
@@ -2595,7 +2600,7 @@ def test_concat_empty_and_non_empty_frame_regression():
 def test_concat_empty_and_non_empty_series_regression():
     # GH 18187 regression test
     s1 = pd.Series([1])
-    s2 = pd.Series([], dtype=object)
+    s2 = create_series_with_explicit_index([], dtype=object)
 
     expected = s1
     result = pd.concat([s1, s2])

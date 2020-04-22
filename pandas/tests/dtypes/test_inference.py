@@ -52,6 +52,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index,
+)
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -77,9 +81,9 @@ ll_params = [
     ((x for x in [1, 2]), True, "generator"),
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
-    (Series([], dtype=object), True, "Series-empty"),
+    (create_series_with_explicit_dtype([], dtype=object), True, "Series-empty"),
     (Series(["a"]).str, True, "StringMethods"),
-    (Series([], dtype="O").str, True, "StringMethods-empty"),
+    (create_series_with_explicit_dtype([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -138,7 +142,7 @@ def test_is_sequence():
 
 
 def test_is_array_like():
-    assert inference.is_array_like(Series([], dtype=object))
+    assert inference.is_array_like(create_series_with_explicit_index([], dtype=object))
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
@@ -164,7 +168,7 @@ def test_is_array_like():
         {"a": 1},
         {1, "a"},
         Series([1]),
-        Series([], dtype=object),
+        create_series_with_explicit_index([], dtype=object),
         Series(["a"]).str,
         (x for x in range(5)),
     ],

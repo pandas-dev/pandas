@@ -41,6 +41,7 @@ from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 from pandas.core.arrays.datetimes import tz_to_dtype
+from pandas.core.construction import create_series_with_explicit_index
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -764,9 +765,10 @@ dtype='datetime64[ns]', freq=None)
             if errors == "raise":
                 raise
             # ... otherwise, continue without the cache.
-            from pandas import Series
 
-            cache_array = Series([], dtype=object)  # just an empty array
+            cache_array = create_series_with_explicit_index(
+                [], dtype=object
+            )  # just an empty array
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array)
         else:

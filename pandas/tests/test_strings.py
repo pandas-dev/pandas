@@ -10,6 +10,7 @@ from pandas._libs import lib
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 import pandas.core.strings as strings
 
 
@@ -207,6 +208,7 @@ class TestStringMethods:
     def test_api_per_dtype(self, index_or_series, dtype, any_skipna_inferred_dtype):
         # one instance of parametrized fixture
         box = index_or_series
+        box = create_series_with_explicit_index if box is Series else box
         inferred_dtype, values = any_skipna_inferred_dtype
 
         if dtype == "category" and len(values) and values[1] is pd.NA:
@@ -252,6 +254,7 @@ class TestStringMethods:
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
         box = index_or_series
+        box = create_series_with_explicit_index if box is Series else box
 
         # one instance of each parametrized fixture
         inferred_dtype, values = any_allowed_skipna_inferred_dtype
@@ -351,7 +354,7 @@ class TestStringMethods:
         assert s.dropna().values.item() == "l"
 
     def test_iter_empty(self):
-        ds = Series([], dtype=object)
+        ds = create_series_with_explicit_index([], dtype=object)
 
         i, s = 100, 1
 

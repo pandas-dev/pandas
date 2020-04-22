@@ -674,7 +674,9 @@ def create_series_with_explicit_index(
     if index_if_empty is None:
         index_if_empty = Index([])
 
-    if index is None and isinstance(data, list) and len(data) == 0:
+    # dict's are handled separately in Series.__init__
+    is_relevant_type = is_list_like(data) and not isinstance(data, dict)
+    if index is None and is_relevant_type and len(data) == 0:
         index = index_if_empty
     return Series(
         data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath

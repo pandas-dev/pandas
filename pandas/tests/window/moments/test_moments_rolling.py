@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Series, isna, notna
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base, ConsistencyBase
 
@@ -108,7 +109,7 @@ class TestMoments(Base):
         assert np.isnan(result).all()
 
         # empty
-        vals = pd.Series([], dtype=object)
+        vals = create_series_with_explicit_index([], dtype=object)
         result = vals.rolling(5, center=True, win_type="boxcar").mean()
         assert len(result) == 0
 

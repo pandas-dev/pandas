@@ -53,7 +53,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core.construction import array, extract_array
+from pandas.core.construction import (
+    array,
+    create_series_with_explicit_index,
+    extract_array,
+)
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
@@ -835,7 +839,7 @@ def mode(values, dropna: bool = True) -> "Series":
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
-    return Series(result)
+    return create_series_with_explicit_index(result)
 
 
 def rank(

@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import integer_array
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
@@ -105,7 +106,7 @@ def test_value_counts_na():
 
 def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
-    s = pd.Series([], dtype="Int64")
+    s = create_series_with_explicit_index([], dtype="Int64")
     result = s.value_counts()
     # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
     idx = pd.Index([], dtype="object")

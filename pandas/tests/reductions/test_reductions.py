@@ -23,6 +23,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import nanops
+from pandas.core.construction import create_series_with_explicit_index
 
 
 def get_objs():
@@ -78,6 +79,7 @@ class TestReductions:
     def test_nanminmax(self, opname, dtype, val, index_or_series):
         # GH#7261
         klass = index_or_series
+        klass = create_series_with_explicit_index if klass is Series else klass
 
         if dtype in ["Int64", "boolean"] and klass == pd.Index:
             pytest.skip("EAs can't yet be stored in an index")
@@ -137,6 +139,7 @@ class TestReductions:
     @pytest.mark.parametrize("dtype", ["M8[ns]", "datetime64[ns, UTC]"])
     def test_nanops_empty_object(self, opname, index_or_series, dtype):
         klass = index_or_series
+        klass = create_series_with_explicit_index if klass is Series else klass
         arg_op = "arg" + opname if klass is Index else "idx" + opname
 
         obj = klass([], dtype=dtype)
@@ -566,7 +569,7 @@ class TestSeriesReductions:
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([], dtype=dtype)
+            s = create_series_with_explicit_index([], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -690,7 +693,7 @@ class TestSeriesReductions:
         assert pd.isna(result)
 
         # timedelta64[ns]
-        tdser = Series([], dtype="m8[ns]")
+        tdser = create_series_with_explicit_index([], dtype="m8[ns]")
         if method == "var":
             msg = "|".join(
                 [
@@ -740,10 +743,16 @@ class TestSeriesReductions:
     def test_empty_timeseries_reductions_return_nat(self):
         # covers GH#11245
         for dtype in ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"):
-            assert Series([], dtype=dtype).min() is pd.NaT
-            assert Series([], dtype=dtype).max() is pd.NaT
-            assert Series([], dtype=dtype).min(skipna=False) is pd.NaT
-            assert Series([], dtype=dtype).max(skipna=False) is pd.NaT
+            assert create_series_with_explicit_index([], dtype=dtype).min() is pd.NaT
+            assert create_series_with_explicit_index([], dtype=dtype).max() is pd.NaT
+            assert (
+                create_series_with_explicit_index([], dtype=dtype).min(skipna=False)
+                is pd.NaT
+            )
+            assert (
+                create_series_with_explicit_index([], dtype=dtype).max(skipna=False)
+                is pd.NaT
+            )
 
     def test_numpy_argmin(self):
         # See GH#16830
@@ -962,7 +971,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([], dtype="float64"), ValueError),
+            (create_series_with_explicit_index([], dtype="float64"), ValueError),
             # For strings, or any Series with dtype 'O'
             (pd.Series(["foo", "bar", "baz"]), TypeError),
             (pd.Series([(1,), (2,)]), TypeError),
@@ -1128,10 +1137,13 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected",
-        [(True, Series([], dtype=np.float64)), (False, Series([], dtype=np.float64))],
+        [
+            (True, create_series_with_explicit_index([], dtype=np.float64)),
+            (False, create_series_with_explicit_index([], dtype=np.float64)),
+        ],
     )
     def test_mode_empty(self, dropna, expected):
-        s = Series([], dtype=np.float64)
+        s = create_series_with_explicit_index([], dtype=np.float64)
         result = s.mode(dropna)
         tm.assert_series_equal(result, expected)
 

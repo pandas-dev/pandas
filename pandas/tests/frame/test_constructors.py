@@ -30,7 +30,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray, SparseArray
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index,
+)
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -1542,7 +1545,7 @@ class TestDataFrameConstructors:
             DataFrame(s, columns=[1, 2])
 
         # #2234
-        a = Series([], name="x", dtype=object)
+        a = create_series_with_explicit_index([], name="x", dtype=object)
         df = DataFrame(a)
         assert df.columns[0] == "x"
 

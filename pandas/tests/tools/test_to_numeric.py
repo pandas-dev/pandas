@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.fixture(params=[None, "ignore", "raise", "coerce"])
@@ -54,10 +55,10 @@ def transform_assert_equal(request):
 )
 def test_empty(input_kwargs, result_kwargs):
     # see gh-16302
-    ser = Series([], dtype=object)
+    ser = create_series_with_explicit_index([], dtype=object)
     result = to_numeric(ser, **input_kwargs)
 
-    expected = Series([], **result_kwargs)
+    expected = create_series_with_explicit_index([], **result_kwargs)
     tm.assert_series_equal(result, expected)
 
 

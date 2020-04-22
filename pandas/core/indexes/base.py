@@ -71,6 +71,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -142,9 +143,7 @@ def _make_arithmetic_op(op, cls):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
             return NotImplemented
 
-        from pandas import Series
-
-        result = op(Series(self), other)
+        result = op(create_series_with_explicit_index(self), other)
         if isinstance(result, tuple):
             return (Index(result[0]), Index(result[1]))
         return Index(result)

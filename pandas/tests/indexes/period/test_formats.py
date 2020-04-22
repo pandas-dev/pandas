@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import PeriodIndex
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 def test_to_native_types():
@@ -160,7 +161,7 @@ dtype: period[Q-DEC]"""
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
             [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
         ):
-            result = repr(pd.Series(idx))
+            result = repr(create_series_with_explicit_index(idx))
             assert result == expected
 
     def test_summary(self):

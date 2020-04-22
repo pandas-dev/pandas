@@ -4,6 +4,10 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index,
+)
 
 
 @contextlib.contextmanager
@@ -37,7 +41,7 @@ class MyAccessor:
 @pytest.mark.parametrize(
     "obj, registrar",
     [
-        (pd.Series, pd.api.extensions.register_series_accessor),
+        (create_series_with_explicit_dtype, pd.api.extensions.register_series_accessor),
         (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
         (pd.Index, pd.api.extensions.register_index_accessor),
     ],
@@ -46,7 +50,7 @@ def test_register(obj, registrar):
     with ensure_removed(obj, "mine"):
         before = set(dir(obj))
         registrar("mine")(MyAccessor)
-        o = obj([]) if obj is not pd.Series else obj([], dtype=object)
+        o = obj([])
         assert o.mine.prop == "item"
         after = set(dir(obj))
         assert (before ^ after) == {"mine"}
@@ -90,4 +94,4 @@ def test_raises_attribute_error():
                 raise AttributeError("whoops")
 
         with pytest.raises(AttributeError, match="whoops"):
-            pd.Series([], dtype=object).bad
+            create_series_with_explicit_index([], dtype=object).bad

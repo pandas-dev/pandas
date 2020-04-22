@@ -5,6 +5,7 @@ import pandas.core.dtypes.concat as _concat
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, TimedeltaIndex
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.mark.parametrize(
@@ -83,7 +84,7 @@ def test_get_dtype_kinds_period(to_concat, expected):
 def test_concat_mismatched_categoricals_with_empty():
     # concat_compat behavior on series._values should match pd.concat on series
     ser1 = Series(["a", "b", "c"], dtype="category")
-    ser2 = Series([], dtype="category")
+    ser2 = create_series_with_explicit_index([], dtype="category")
 
     result = _concat.concat_compat([ser1._values, ser2._values])
     expected = pd.concat([ser1, ser2])._values

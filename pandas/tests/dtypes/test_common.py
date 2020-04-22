@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
+from pandas.core.construction import create_series_with_explicit_index
 
 
 # EA & Actual Dtypes
@@ -236,7 +237,9 @@ def test_is_timedelta64_dtype():
     assert not com.is_timedelta64_dtype("NO DATE")
 
     assert com.is_timedelta64_dtype(np.timedelta64)
-    assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.is_timedelta64_dtype(
+        create_series_with_explicit_index([], dtype="timedelta64[ns]")
+    )
     assert com.is_timedelta64_dtype(pd.to_timedelta(["0 days", "1 days"]))
 
 
@@ -499,7 +502,9 @@ def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(np.array(["a", "b"]))
 
     assert com.needs_i8_conversion(np.datetime64)
-    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.needs_i8_conversion(
+        create_series_with_explicit_index([], dtype="timedelta64[ns]")
+    )
     assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
 
@@ -567,7 +572,7 @@ def test_is_extension_type(check_scipy):
     assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
+    s = create_series_with_explicit_index([], dtype=dtype)
     assert com.is_extension_type(s)
 
     if check_scipy:
@@ -596,7 +601,7 @@ def test_is_extension_array_dtype(check_scipy):
     assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
+    s = create_series_with_explicit_index([], dtype=dtype)
     assert com.is_extension_array_dtype(s)
 
     if check_scipy:

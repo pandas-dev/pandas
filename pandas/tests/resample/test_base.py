@@ -6,6 +6,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
@@ -136,7 +137,7 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=object)
+        expected = create_series_with_explicit_index([], dtype=object)
 
     expected.index = _asfreq_compat(df.index, freq)
 

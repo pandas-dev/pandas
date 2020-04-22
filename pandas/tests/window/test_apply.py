@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])
@@ -53,7 +54,7 @@ def test_rolling_apply_with_pandas_objects(window):
 def test_rolling_apply(engine_and_raw):
     engine, raw = engine_and_raw
 
-    expected = Series([], dtype="float64")
+    expected = create_series_with_explicit_index([], dtype="float64")
     result = expected.rolling(10).apply(lambda x: x.mean(), engine=engine, raw=raw)
     tm.assert_series_equal(result, expected)
 

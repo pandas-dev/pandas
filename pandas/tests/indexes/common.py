@@ -25,6 +25,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
@@ -429,7 +430,10 @@ class Base:
             return
 
         # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [
+            klass(second.values)
+            for klass in [np.array, create_series_with_explicit_index, list]
+        ]
         for case in cases:
             result = first.intersection(case)
             assert tm.equalContents(result, second)
@@ -452,7 +456,10 @@ class Base:
             return
 
         # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [
+            klass(second.values)
+            for klass in [np.array, create_series_with_explicit_index, list]
+        ]
         for case in cases:
             if not isinstance(indices, CategoricalIndex):
                 result = first.union(case)
@@ -474,7 +481,10 @@ class Base:
         assert tm.equalContents(result, answer)
 
         # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [
+            klass(second.values)
+            for klass in [np.array, create_series_with_explicit_index, list]
+        ]
         for case in cases:
             if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
                 assert type(result) == type(answer)
@@ -564,7 +574,7 @@ class Base:
 
         if indices.nlevels == 1:
             # do not test MultiIndex
-            assert not indices.equals(Series(indices))
+            assert not indices.equals(create_series_with_explicit_index(indices))
 
     def test_equals_op(self):
         # GH9947, GH10637

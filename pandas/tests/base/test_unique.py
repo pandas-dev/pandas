@@ -7,6 +7,7 @@ from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_index
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -94,7 +95,9 @@ def test_nunique_null(null_obj, index_or_series_obj):
     else:
         values[0:2] = null_obj
 
-    klass = type(obj)
+    klass = (
+        create_series_with_explicit_index if isinstance(obj, pd.Series) else type(obj)
+    )
     repeated_values = np.repeat(values, range(1, len(values) + 1))
     obj = klass(repeated_values, dtype=obj.dtype)
 

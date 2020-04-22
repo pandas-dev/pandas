@@ -34,6 +34,7 @@ import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_index
 
 
 class TestFactorize:
@@ -2171,7 +2172,7 @@ def test_int64_add_overflow():
 
 class TestMode:
     def test_no_mode(self):
-        exp = Series([], dtype=np.float64)
+        exp = create_series_with_explicit_index([], dtype=np.float64)
         tm.assert_series_equal(algos.mode([]), exp)
 
     def test_mode_single(self):

@@ -16,7 +16,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    create_series_with_explicit_index,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series, Index
@@ -202,7 +205,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         if not should_reduce:
             try:
-                r = self.f(Series([], dtype=np.float64))
+                r = self.f(create_series_with_explicit_index([], dtype=np.float64))
             except Exception:
                 pass
             else:
@@ -210,7 +213,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         if should_reduce:
             if len(self.agg_axis):
-                r = self.f(Series([], dtype=np.float64))
+                r = self.f(create_series_with_explicit_index([], dtype=np.float64))
             else:
                 r = np.nan
 
