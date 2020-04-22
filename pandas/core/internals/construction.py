@@ -234,7 +234,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: dict, index, columns, dtype: Optional[DtypeObj] = None):
+def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -355,6 +355,9 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
 
 
 def extract_index(data) -> Index:
+    """
+    Try to infer an Index from the passed data.
+    """
     index = None
     if len(data) == 0:
         index = Index([])

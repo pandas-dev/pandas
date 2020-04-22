@@ -393,8 +393,8 @@ def sanitize_array(
     raise_cast_failure: bool = False,
 ) -> ArrayLike:
     """
-    Sanitize input data to an ndarray, copy if specified, coerce to the
-    dtype if specified.
+    Sanitize input data to an ndarray or ExtensionArray, copy if specified,
+    coerce to the dtype if specified.
     """
 
     if isinstance(data, ma.MaskedArray):

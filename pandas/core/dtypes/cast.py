@@ -707,6 +707,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     return dtype, val
 
 
+# TODO: try to make the Any in the return annotation more specific
 def infer_dtype_from_array(arr, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
     """
     Infer the dtype from an array.
