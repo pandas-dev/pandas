@@ -296,17 +296,6 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
-Optionally, original index values can be kept around using the ``index`` parameter.
-
-.. ipython:: python
-
-   cheese = pd.DataFrame({'first': ['John', 'Mary'],
-                          'last': ['Doe', 'Bo'],
-                          'height': [5.5, 6.0],
-                          'weight': [130, 150]})
-   cheese
-   cheese.melt(id_vars=['first', 'last'], index=True)
-   cheese.melt(id_vars=['first', 'last'], var_name='quantity', index=True)
 
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
@@ -324,6 +313,26 @@ user-friendly.
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
+
+Keeping the index around
+~~~~~~~~~~~~~~~~~~~~~~~~
+When transforming a DataFrame using :func:`~pandas.melt`, original index values can be kept around by setting the ``keep_index`` parameter to True. This will however duplicate the index values.
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('person', 'first'), ('person', 'second')])
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]},
+                          index=index)
+   cheese
+
+.. ipython:: python
+
+   cheese.melt(id_vars=['first', 'last'], keep_index=True)
+
+.. versionadded:: 1.1.0
 
 .. _reshaping.combine_with_groupby:
 

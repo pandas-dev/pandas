@@ -6658,7 +6658,7 @@ Wild         185.0
         Name to use for the 'value' column.
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
-    index : boolean, optional, default False
+    keep_index : bool, optional, default False
             If True, the original index is reused.
             There is no uniqueness guarantee.
 
@@ -6713,7 +6713,7 @@ Wild         185.0
 
     Original index values can be kept around:
 
-    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], index=True)
+    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], keep_index=True)
        A variable  value
     0  a        B      1
     1  b        B      3
@@ -6760,7 +6760,7 @@ Wild         185.0
         var_name=None,
         value_name="value",
         col_level=None,
-        index=False,
+        keep_index=False,
     ) -> "DataFrame":
         from pandas.core.reshape.melt import melt
 
@@ -6771,7 +6771,7 @@ Wild         185.0
             var_name=var_name,
             value_name=value_name,
             col_level=col_level,
-            index=index,
+            keep_index=keep_index,
         )
 
     # ----------------------------------------------------------------------
