@@ -307,8 +307,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         yearfirst=False,
         ambiguous="raise",
     ):
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
-        freq, freq_infer, freq_inherit = dtl.maybe_infer_freq(freq)
+        freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         subarr, tz, inferred_freq = sequence_to_dt64ns(
             data,
@@ -320,14 +322,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             ambiguous=ambiguous,
         )
 
-        freq, freq_infer = dtl.validate_inferred_freq(
-            freq, inferred_freq, freq_infer, freq_inherit
-        )
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         dtype = tz_to_dtype(tz)
         result = cls._simple_new(subarr, freq=freq, dtype=dtype)
 
-        if inferred_freq is None and freq is not lib.no_default and freq is not None:
+        if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
             cls._validate_frequency(result, freq, ambiguous=ambiguous)
 

@@ -345,6 +345,6 @@ def timedelta_range(
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
-    freq, _, _ = dtl.maybe_infer_freq(freq)
+    freq, _ = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
     return TimedeltaIndex._simple_new(tdarr, name=name)

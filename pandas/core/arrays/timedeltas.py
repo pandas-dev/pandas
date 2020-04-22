@@ -145,13 +145,18 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         values = extract_array(values)
 
         inferred_freq = getattr(values, "_freq", None)
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
         if isinstance(values, type(self)):
-            if freq is lib.no_default:
+            if explicit_none:
+                # dont inherit from values
+                pass
+            elif freq is None:
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
-                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False, False)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
             values = values._data
 
         if not isinstance(values, np.ndarray):
@@ -178,8 +183,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 "Use 'pd.array()' instead."
             )
             raise ValueError(msg)
-        if freq is lib.no_default:
-            freq = None
 
         if copy:
             values = values.copy()
@@ -213,16 +216,20 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     ):
         if dtype:
             _validate_td64_dtype(dtype)
-        freq, freq_infer, freq_inherit = dtl.maybe_infer_freq(freq)
+
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
+
+        freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        freq, freq_infer = dtl.validate_inferred_freq(
-            freq, inferred_freq, freq_infer, freq_inherit
-        )
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         result = cls._simple_new(data, freq=freq)
 
-        if inferred_freq is None and freq is not lib.no_default and freq is not None:
+        if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
             cls._validate_frequency(result, freq)
 
