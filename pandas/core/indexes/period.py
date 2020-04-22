@@ -6,9 +6,8 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import Period, frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
-from pandas._libs.tslibs.period import Period
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -148,7 +147,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: PeriodArray
     freq: DateOffset

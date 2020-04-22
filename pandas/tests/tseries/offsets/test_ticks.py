@@ -33,11 +33,11 @@ def test_apply_ticks():
 def test_delta_to_tick():
     delta = timedelta(3)
 
-    tick = offsets._delta_to_tick(delta)
+    tick = offsets.delta_to_tick(delta)
     assert tick == offsets.Day(3)
 
     td = Timedelta(nanoseconds=5)
-    tick = offsets._delta_to_tick(td)
+    tick = offsets.delta_to_tick(td)
     assert tick == Nano(5)
 
 

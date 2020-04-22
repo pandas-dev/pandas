@@ -79,7 +79,6 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
-    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -881,32 +880,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if key_is_scalar or isinstance(self.index, MultiIndex):
+        if is_integer(key) and self.index._should_fallback_to_positional():
+            return self._values[key]
+
+        elif key_is_scalar:
+            return self._get_value(key)
+
+        if (
+            isinstance(key, tuple)
+            and is_hashable(key)
+            and isinstance(self.index, MultiIndex)
+        ):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
-                result = self.index.get_value(self, key)
+                result = self._get_value(key)
 
                 return result
-            except InvalidIndexError:
-                if not isinstance(self.index, MultiIndex):
-                    raise
 
-            except (KeyError, ValueError):
-                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
-                    # kludge
-                    pass
-                else:
-                    raise
+            except KeyError:
+                # We still have the corner case where this tuple is a key
+                #  in the first level of our MultiIndex
+                return self._get_values_tuple(key)
 
-        if not key_is_scalar:
-            # avoid expensive checks if we know we have a scalar
-            if is_iterator(key):
-                key = list(key)
+        if is_iterator(key):
+            key = list(key)
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                key = np.asarray(key, dtype=bool)
-                return self._get_values(key)
+        if com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            key = np.asarray(key, dtype=bool)
+            return self._get_values(key)
 
         return self._get_with(key)
 
@@ -942,18 +944,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if self.index.is_integer() or self.index.is_floating():
-                return self.loc[key]
-            elif isinstance(self.index, IntervalIndex):
+            if not self.index._should_fallback_to_positional():
                 return self.loc[key]
             else:
                 return self.iloc[key]
 
-        if isinstance(key, list):
-            # handle the dup indexing case GH#4246
-            return self.loc[key]
-
-        return self.reindex(key)
+        # handle the dup indexing case GH#4246
+        return self.loc[key]
 
     def _get_values_tuple(self, key):
         # mpl hackaround
@@ -1031,7 +1028,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 try:
                     self._where(~key, value, inplace=True)
                 except InvalidIndexError:
-                    self._set_values(key.astype(np.bool_), value)
+                    self.iloc[key] = value
                 return
 
             else:
@@ -1049,8 +1046,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
+            # extract_array so that if we set e.g. ser[-5:] = ser[:5]
+            #  we get the first five values, and not 5 NaNs
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+            self.iloc[indexer] = extract_array(value, extract_numpy=True)
 
         else:
             assert not isinstance(key, tuple)
@@ -1067,26 +1066,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if self.index.inferred_type == "integer":
-                    self._set_labels(key, value)
+                if not self.index._should_fallback_to_positional():
+                    self.loc[key] = value
                 else:
-                    self._set_values(key, value)
+                    self.iloc[key] = value
             else:
-                self._set_labels(key, value)
-
-    def _set_labels(self, key, value):
-        key = com.asarray_tuplesafe(key)
-        indexer: np.ndarray = self.index.get_indexer(key)
-        mask = indexer == -1
-        if mask.any():
-            raise ValueError(f"{key[mask]} not contained in the index")
-        self._set_values(indexer, value)
-
-    def _set_values(self, key, value):
-        if isinstance(key, Series):
-            key = key._values
-        self._mgr = self._mgr.setitem(indexer=key, value=value)
-        self._maybe_update_cacher()
+                self.loc[key] = value
 
     def _set_value(self, label, value, takeable: bool = False):
         """
@@ -4614,8 +4599,6 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_NUMBERS = {"index": 0}
-    _AXIS_NAMES = {0: "index"}
     _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0

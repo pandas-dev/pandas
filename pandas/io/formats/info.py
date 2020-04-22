@@ -158,17 +158,18 @@ def info(
     lines.append(str(type(data)))
     lines.append(data.index._summary())
 
-    if len(data.columns) == 0:
+    cols = data.columns
+    col_count = len(cols)
+    dtypes = data.dtypes
+
+    if col_count == 0:
         lines.append(f"Empty {type(data).__name__}")
         fmt.buffer_put_lines(buf, lines)
         return
 
-    cols = data.columns
-    col_count = len(data.columns)
-
     # hack
     if max_cols is None:
-        max_cols = get_option("display.max_info_columns", len(data.columns) + 1)
+        max_cols = get_option("display.max_info_columns", col_count + 1)
 
     max_rows = get_option("display.max_info_rows", len(data) + 1)
 
@@ -179,7 +180,7 @@ def info(
     exceeds_info_cols = col_count > max_cols
 
     def _verbose_repr():
-        lines.append(f"Data columns (total {len(data.columns)} columns):")
+        lines.append(f"Data columns (total {col_count} columns):")
 
         id_head = " # "
         column_head = "Column"
@@ -196,9 +197,9 @@ def info(
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
         if show_counts:
             counts = data.count()
-            if len(cols) != len(counts):  # pragma: no cover
+            if col_count != len(counts):  # pragma: no cover
                 raise AssertionError(
-                    f"Columns must equal counts ({len(cols)} != {len(counts)})"
+                    f"Columns must equal counts ({col_count} != {len(counts)})"
                 )
             count_header = "Non-Null Count"
             len_count = len(count_header)
@@ -214,7 +215,7 @@ def info(
 
         dtype_header = "Dtype"
         len_dtype = len(dtype_header)
-        max_dtypes = max(len(pprint_thing(k)) for k in data.dtypes)
+        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
         space_dtype = max(len_dtype, max_dtypes)
         header += _put_str(count_header, space_count) + _put_str(
             dtype_header, space_dtype
@@ -228,14 +229,14 @@ def info(
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        for i, col in enumerate(data.columns):
-            dtype = data.dtypes.iloc[i]
+        for i, col in enumerate(cols):
+            dtype = dtypes[i]
             col = pprint_thing(col)
 
             line_no = _put_str(f" {i}", space_num)
             count = ""
             if show_counts:
-                count = counts.iloc[i]
+                count = counts[i]
 
             lines.append(
                 line_no
@@ -245,7 +246,7 @@ def info(
             )
 
     def _non_verbose_repr():
-        lines.append(data.columns._summary(name="Columns"))
+        lines.append(cols._summary(name="Columns"))
 
     def _sizeof_fmt(num, size_qualifier):
         # returns size in human readable format
@@ -266,7 +267,7 @@ def info(
             _verbose_repr()
 
     # groupby dtype.name to collect e.g. Categorical columns
-    counts = data.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
     dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
     lines.append(f"dtypes: {', '.join(dtypes)}")
 
