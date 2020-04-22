@@ -8218,6 +8218,7 @@ Wild         185.0
                     result = result.iloc[0].rename(None)
                 return result
 
+        data = self
         if numeric_only is None:
             data = self
             values = data.values
