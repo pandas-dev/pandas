@@ -21,9 +21,9 @@ from pandas._typing import Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
     _POSSIBLY_CAST_DTYPES,
     DT64NS_DTYPE,
+    INT64_DTYPE,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -350,6 +350,7 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
 def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
     """
     A safe version of putmask that potentially upcasts the result.
+
     The result is replaced with the first N elements of other,
     where N is the number of True values in mask.
     If the length of other is shorter than N, other will be repeated.
@@ -399,24 +400,6 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
                 other = np.array(other, dtype=result.dtype)
 
         def changeit():
-
-            # try to directly set by expanding our array to full
-            # length of the boolean
-            try:
-                om = other[mask]
-            except (IndexError, TypeError):
-                # IndexError occurs in test_upcast when we have a boolean
-                #  mask of the wrong shape
-                # TypeError occurs in test_upcast when `other` is a bool
-                pass
-            else:
-                om_at = om.astype(result.dtype)
-                if (om == om_at).all():
-                    new_result = result.values.copy()
-                    new_result[mask] = om_at
-                    result[:] = new_result
-                    return result, False
-
             # we are forced to change the dtype of the result as the input
             # isn't compatible
             r, _ = maybe_upcast(result, fill_value=other, copy=True)
@@ -434,15 +417,8 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
-            if is_scalar(other) or (isinstance(other, np.ndarray) and other.ndim < 1):
-                if isna(other):
-                    return changeit()
-
-            # we have an ndarray and the masking has nans in it
-            else:
-
-                if isna(other).any():
-                    return changeit()
+            if isna(other):
+                return changeit()
 
         try:
             np.place(result, mask, other)
@@ -954,7 +930,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
-        if dtype not in [_INT64_DTYPE, TD64NS_DTYPE]:
+        if dtype not in [INT64_DTYPE, TD64NS_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!

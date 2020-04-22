@@ -11,14 +11,15 @@ from .common import Base
 class DatetimeLike(Base):
     def test_argmax_axis_invalid(self):
         # GH#23081
+        msg = r"`axis` must be fewer than the number of dimensions \(1\)"
         rng = self.create_index()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.argmax(axis=1)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.argmin(axis=2)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.min(axis=-2)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.max(axis=-3)
 
     def test_can_hold_identifiers(self):

@@ -772,7 +772,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
-    isocalendar,"The ISO 8601 year, week and day of the date"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
     is_month_start,"Logical indicating if first day of month (defined by frequency)"
@@ -794,7 +793,7 @@ You may obtain the year, week and day components of the ISO year from the ISO 86
 .. ipython:: python
 
    idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
-   idx.to_series().dt.isocalendar
+   idx.to_series().dt.isocalendar()
 
 .. _timeseries.offsets:
 
