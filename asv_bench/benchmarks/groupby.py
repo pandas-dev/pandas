@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -473,6 +474,7 @@ class Float32:
 
 
 class Categories:
+    # benchmark grouping by categoricals
     def setup(self):
         N = 10 ** 5
         arr = np.random.random(N)
@@ -508,6 +510,33 @@ class Categories:
 
     def time_groupby_extra_cat_nosort(self):
         self.df_extra_cat.groupby("a", sort=False)["b"].count()
+
+
+class CategoricalFrame:
+    # benchmark grouping with operations on categorical values (GH #32976)
+    param_names = ["groupby_type", "value_type", "agg_method"]
+    params = [(int,), (int, str), ("last", "head", "count")]
+
+    def setup(self, groupby_type, value_type, agg_method):
+        SIZE = 100000
+        GROUPS = 1000
+        CARDINALITY = 10
+        CAT = CategoricalDtype([value_type(i) for i in range(CARDINALITY)])
+        df = DataFrame(
+            {
+                "group": [
+                    groupby_type(np.random.randint(0, GROUPS)) for i in range(SIZE)
+                ],
+                "cat": [np.random.choice(CAT.categories) for i in range(SIZE)],
+            }
+        )
+        self.df_cat_values = df.astype({"cat": CAT})
+
+    def time_groupby(self, groupby_type, value_type, agg_method):
+        getattr(self.df_cat_values.groupby("group"), agg_method)()
+
+    def time_groupby_ordered(self, groupby_type, value_type, agg_method):
+        getattr(self.df_cat_values.groupby("group", sort=True), agg_method)()
 
 
 class Datelike:

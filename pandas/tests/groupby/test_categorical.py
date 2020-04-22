@@ -1505,7 +1505,9 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     )
     df_grouped = df.groupby("A")["B"]
     result = getattr(df_grouped, func)()
-    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    expected = pd.Series(
+        ["b"], index=pd.Index([1997], name="A"), name="B", dtype="category"
+    ).cat.as_ordered()
     tm.assert_series_equal(result, expected)
 
 
@@ -1574,7 +1576,7 @@ def test_agg_cython_category_not_implemented_fallback():
     result = df.groupby("col_num").col_cat.first()
     expected = pd.Series(
         [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
+    ).astype("category")
     tm.assert_series_equal(result, expected)
 
     result = df.groupby("col_num").agg({"col_cat": "first"})

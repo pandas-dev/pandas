@@ -40,6 +40,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvement in :meth:`DataFrame.groupby` when aggregating categorical data (:issue:`32976`)
 -
 -
 
@@ -132,6 +133,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- :meth:`DataFrame.groupby` aggregations of categorical series will now return a :class:`Categorical` while preserving the codes and categories of the original series (:issue:`33739`)
 -
 -
 

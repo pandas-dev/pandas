@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays.categorical import Categorical
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -356,6 +357,29 @@ class BaseGrouper:
 
     _name_functions = {"ohlc": ["open", "high", "low", "close"]}
 
+    _cat_method_blacklist = (
+        "add",
+        "median",
+        "prod",
+        "sem",
+        "cumsum",
+        "sum",
+        "cummin",
+        "mean",
+        "max",
+        "skew",
+        "cumprod",
+        "cummax",
+        "rank",
+        "pct_change",
+        "min",
+        "var",
+        "mad",
+        "describe",
+        "std",
+        "quantile",
+    )
+
     def _is_builtin_func(self, arg):
         """
         if we define a builtin function for this argument, return it,
@@ -460,7 +484,7 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
+        if is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
@@ -481,6 +505,7 @@ class BaseGrouper:
 
         is_datetimelike = needs_i8_conversion(values.dtype)
         is_numeric = is_numeric_dtype(values.dtype)
+        is_categorical = is_categorical_dtype(values)
 
         if is_datetimelike:
             values = values.view("int64")
@@ -496,6 +521,17 @@ class BaseGrouper:
                 values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
             values = ensure_float64(values)
+        elif is_categorical:
+            if how in self._cat_method_blacklist:
+                raise NotImplementedError(
+                    f"{values.dtype} dtype not supported for `how` argument {how}"
+                )
+            values, categories, ordered = (
+                values.codes.astype(np.int64),
+                values.categories,
+                values.ordered,
+            )
+            is_numeric = True
         else:
             values = values.astype(object)
 
@@ -572,6 +608,11 @@ class BaseGrouper:
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
+        elif is_categorical:
+            # re-create categories
+            result = Categorical.from_codes(
+                result, categories=categories, ordered=ordered,
+            )
 
         if is_extension_array_dtype(orig_values.dtype):
             result = maybe_cast_result(result=result, obj=orig_values, how=how)
