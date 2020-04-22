@@ -47,6 +47,7 @@ def info(
         Specifies whether total memory usage of the %(klass)s
         elements (including the index) should be displayed. By default,
         this follows the ``pandas.options.display.memory_usage`` setting.
+
         True always show memory usage. False never shows memory usage.
         A value of 'deep' is equivalent to "True with deep introspection".
         Memory usage is shown in human-readable units (base-2
