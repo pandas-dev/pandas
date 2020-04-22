@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
@@ -38,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, registry
+from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -532,13 +531,23 @@ def _try_cast(
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
+    if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
+        # create an extension array from its dtype
+        # DatetimeTZ case needs to go through maybe_cast_to_datetime
+        array_type = dtype.construct_array_type()._from_sequence
+        subarr = array_type(arr, dtype=dtype, copy=copy)
+        return subarr
+
     try:
         # GH#15832: Check if we are requesting a numeric dype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
-            subarr = maybe_cast_to_integer_array(arr, dtype)
+            # this will raise if we have e.g. floats
+            maybe_cast_to_integer_array(arr, dtype)
+            subarr = arr
+        else:
+            subarr = maybe_cast_to_datetime(arr, dtype)
 
-        subarr = maybe_cast_to_datetime(arr, dtype)
         # Take care in creating object arrays (but iterators are not
         # supported):
         if is_object_dtype(dtype) and (
@@ -552,19 +561,7 @@ def _try_cast(
         # in case of out of bound datetime64 -> always raise
         raise
     except (ValueError, TypeError):
-        if is_categorical_dtype(dtype):
-            # We *do* allow casting to categorical, since we know
-            # that Categorical is the only array type for 'category'.
-            dtype = cast(CategoricalDtype, dtype)
-            subarr = dtype.construct_array_type()(
-                arr, dtype.categories, ordered=dtype.ordered
-            )
-        elif is_extension_array_dtype(dtype):
-            # create an extension array from its dtype
-            dtype = cast(ExtensionDtype, dtype)
-            array_type = dtype.construct_array_type()._from_sequence
-            subarr = array_type(arr, dtype=dtype, copy=copy)
-        elif dtype is not None and raise_cast_failure:
+        if dtype is not None and raise_cast_failure:
             raise
         else:
             subarr = np.array(arr, dtype=object, copy=copy)
