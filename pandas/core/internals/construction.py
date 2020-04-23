@@ -356,7 +356,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
 
 def extract_index(data) -> Index:
     """
-    Try to infer an Index from the passed data.
+    Try to infer an Index from the passed data, raise ValueError on failure.
     """
     index = None
     if len(data) == 0:
@@ -721,7 +721,7 @@ def _convert_object_array(
     """
     # provide soft conversion of object dtypes
     def convert(arr):
-        if dtype != object and dtype != np.object:
+        if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
             arr = maybe_cast_to_datetime(arr, dtype)
         return arr
