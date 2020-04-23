@@ -6671,9 +6671,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
