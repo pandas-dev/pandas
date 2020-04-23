@@ -11208,9 +11208,7 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
