@@ -493,8 +493,9 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
 
 def test_apply_reindex_values():
     # GH: 26209
-    # reindexing from a single column of a groupby object with duplicate indices caused a ValueError
-    # (cannot reindex from duplicate axis) in 0.24.2, the problem was solved in #30679
+    # reindexing from a single column of a groupby object with duplicate indices caused
+    # a ValueError (cannot reindex from duplicate axis) in 0.24.2, the problem was
+    # solved in #30679
     values = [1, 2, 3, 4]
     indices = [1, 1, 2, 2]
     df = pd.DataFrame(
