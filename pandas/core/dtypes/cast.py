@@ -684,7 +684,9 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         # instead of np.empty (but then you still don't want things
         # coming out as np.str_!
 
-        dtype = np.object_
+        from pandas.core.arrays.string_ import StringDtype
+
+        dtype = StringDtype()
 
     elif isinstance(val, (np.datetime64, datetime)):
         val = tslibs.Timestamp(val)
