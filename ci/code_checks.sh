@@ -237,6 +237,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
+
+    MSG = 'Check files that in pandas/doc/source that use standardized documentation' ; echo $MSG
+    for entry in $(find ../doc/source/ -type f)
+    do
+	if grep -q Pandas "$entry" || grep -q *pandas* "$entry"  ; then
+		echo "$entry"
+	fi
+    done
 fi
 
 ### CODE ###
@@ -377,14 +385,5 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
-
-### Checking for standardized documentation ###
-echo "Checking which files in pandas/doc/source have standardized documentation"
-for entry in $(find ../doc/source/ -type f)
-do
-	if grep -q Pandas "$entry" || grep -q *pandas* "$entry"  ; then
-		echo "$entry"
-	fi
-done
 
 exit $RET
