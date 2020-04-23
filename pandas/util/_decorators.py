@@ -329,7 +329,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*supplements: Union[str, Callable], **substitutes: str) -> Callable[[F], F]:
+def doc(*docstrings: Union[str, Callable], **params: str) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -342,39 +342,39 @@ def doc(*supplements: Union[str, Callable], **substitutes: str) -> Callable[[F],
 
     Parameters
     ----------
-    *supplements : str or callable
+    *docstrings : str or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under callable.
-    **substitutes : str
+    **params : str
         The string which would be used to format docstring template.
     """
 
-    def decorator(call: F) -> F:
+    def decorator(decorated: F) -> F:
         # collecting docstring and docstring templates
         docstring_components: List[Union[str, Callable]] = []
-        if call.__doc__:
-            docstring_components.append(dedent(call.__doc__))
+        if decorated.__doc__:
+            docstring_components.append(dedent(decorated.__doc__))
 
-        for supplement in supplements:
-            if hasattr(supplement, "_docstring_components"):
+        for docstring in docstrings:
+            if hasattr(docstring, "_docstring_components"):
                 docstring_components.extend(
-                    supplement._docstring_components  # type: ignore
+                    docstring._docstring_components  # type: ignore
                 )
-            elif isinstance(supplement, str) or supplement.__doc__:
-                docstring_components.append(supplement)
+            elif isinstance(docstring, str) or docstring.__doc__:
+                docstring_components.append(docstring)
 
         # formatting templates and concatenating docstring
-        call.__doc__ = "".join(
+        decorated.__doc__ = "".join(
             [
-                component.format(**substitutes)
+                component.format(**params)
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
                 for component in docstring_components
             ]
         )
 
-        call._docstring_components = docstring_components  # type: ignore
-        return call
+        decorated._docstring_components = docstring_components  # type: ignore
+        return decorated
 
     return decorator
 
