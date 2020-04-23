@@ -218,7 +218,7 @@ class TestDateRanges:
         rng = date_range(snap, periods=n, normalize=False, freq="2D")
 
         offset = timedelta(2)
-        values = DatetimeIndex([snap + i * offset for i in range(n)])
+        values = DatetimeIndex([snap + i * offset for i in range(n)], freq=offset)
 
         tm.assert_index_equal(rng, values)
 
@@ -413,7 +413,7 @@ class TestDateRanges:
             pre_dst,
             pst_dst,
         ]
-        expected = DatetimeIndex(expect_data)
+        expected = DatetimeIndex(expect_data, freq="H")
         result = date_range(start="2010-11-7", periods=3, freq="H", tz="US/Pacific")
         tm.assert_index_equal(result, expected)
 
@@ -427,7 +427,8 @@ class TestDateRanges:
                 Timestamp("2013-01-01 00:00:00+09:00"),
                 Timestamp("2013-01-01 01:00:00+09:00"),
                 Timestamp("2013-01-01 02:00:00+09:00"),
-            ]
+            ],
+            freq="H",
         )
         tm.assert_index_equal(result, expected)
 
@@ -442,7 +443,7 @@ class TestDateRanges:
         result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
-        expected = DatetimeIndex([start + i * offset for i in range(5)])
+        expected = DatetimeIndex([start + i * offset for i in range(5)], freq=offset)
         tm.assert_index_equal(result, expected)
 
     def test_range_tz_pytz(self):
@@ -861,6 +862,7 @@ class TestBusinessDateRange:
         bday_end = "2018-07-27"  # Friday
         expected = pd.date_range(bday_start, bday_end, freq="D")
         tm.assert_index_equal(result, expected)
+        # Note: we do _not_ expect the freqs to match here
 
     def test_bday_near_overflow(self):
         # GH#24252 avoid doing unnecessary addition that _would_ overflow
@@ -910,15 +912,19 @@ class TestCustomDateRange:
 
     def test_cdaterange(self):
         result = bdate_range("2013-05-01", periods=3, freq="C")
-        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-03"])
+        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-03"], freq="C")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
     def test_cdaterange_weekmask(self):
         result = bdate_range(
             "2013-05-01", periods=3, freq="C", weekmask="Sun Mon Tue Wed Thu"
         )
-        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-05"])
+        expected = DatetimeIndex(
+            ["2013-05-01", "2013-05-02", "2013-05-05"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (
@@ -930,8 +936,11 @@ class TestCustomDateRange:
 
     def test_cdaterange_holidays(self):
         result = bdate_range("2013-05-01", periods=3, freq="C", holidays=["2013-05-01"])
-        expected = DatetimeIndex(["2013-05-02", "2013-05-03", "2013-05-06"])
+        expected = DatetimeIndex(
+            ["2013-05-02", "2013-05-03", "2013-05-06"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (
@@ -949,8 +958,11 @@ class TestCustomDateRange:
             weekmask="Sun Mon Tue Wed Thu",
             holidays=["2013-05-01"],
         )
-        expected = DatetimeIndex(["2013-05-02", "2013-05-05", "2013-05-06"])
+        expected = DatetimeIndex(
+            ["2013-05-02", "2013-05-05", "2013-05-06"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (

@@ -88,6 +88,7 @@ class TestDatetimeIndex:
         result = idx.astype("datetime64[ns, US/Eastern]")
         expected = date_range("20170101 03:00:00", periods=4, tz="US/Eastern")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # GH 18951: tz-naive to tz-aware
         idx = date_range("20170101", periods=4)

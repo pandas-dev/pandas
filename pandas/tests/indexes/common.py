@@ -393,6 +393,9 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
+        if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            # where does not preserve freq
+            i._set_freq(None)
 
         cond = [True] * len(i)
         result = i.where(klass(cond))

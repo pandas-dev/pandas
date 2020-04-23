@@ -131,6 +131,7 @@ class TestDatetimeIndex:
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
+        i._set_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
@@ -703,7 +704,9 @@ class TestDatetimeIndex:
         end = Timestamp("2013-01-02 06:00:00", tz="America/Los_Angeles")
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
-            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"], tz="America/Los_Angeles"
+            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
+            tz="America/Los_Angeles",
+            freq="D",
         )
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is consistent for pytz
