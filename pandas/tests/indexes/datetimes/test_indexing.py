@@ -1,4 +1,4 @@
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 import numpy as np
 import pytest
@@ -560,7 +560,7 @@ class TestGetIndexer:
             [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
         )
         result = values.get_indexer(target)
-        expected = np.array([0, 1])
+        expected = np.array([0, 1], dtype=np.int_)
         tm.assert_numpy_array_equal(result, expected)
 
 
