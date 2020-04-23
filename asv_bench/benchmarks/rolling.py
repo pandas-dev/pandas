@@ -150,18 +150,16 @@ class Quantile:
         self.roll.quantile(percentile, interpolation=interpolation)
 
 
-class PeakMemFixed:
+class PeakMemFixedWindowMinMax:
     def setup(self):
-        N = 10
+        N = int(1e5)
         arr = 100 * np.random.random(N)
-        self.roll = pd.Series(arr).rolling(10)
+        self.roll = pd.Series(arr).rolling(1000)
 
     def peakmem_fixed(self):
-        # GH 25926
-        # This is to detect memory leaks in rolling operations.
-        # To save time this is only ran on one method.
-        # 6000 iterations is enough for most types of leaks to be detected
-        for x in range(6000):
+        # GH 33693
+        # increased size of array so we see a clearer picture
+        for x in range(1000):
             self.roll.max()
 
 
