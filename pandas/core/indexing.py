@@ -616,6 +616,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # invalid indexer type vs 'other' indexing errors
             if "cannot do" in str(e):
                 raise
+            elif "unhashable type" in str(e):
+                raise
             raise IndexingError(key) from e
 
     def _ensure_listlike_indexer(self, key, axis=None):
@@ -1046,7 +1048,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _get_label(self, label, axis: int):
         # GH#5667 this will fail if the label is not present in the axis.
-        return self.obj._xs(label, axis=axis)
+        return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise

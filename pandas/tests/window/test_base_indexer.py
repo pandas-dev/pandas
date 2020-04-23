@@ -82,7 +82,7 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize("func", ["count", "skew", "cov", "corr"])
+@pytest.mark.parametrize("func", ["skew", "cov", "corr"])
 def test_notimplemented_functions(func):
     # GH 32865
     class CustomIndexer(BaseIndexer):
@@ -99,6 +99,7 @@ def test_notimplemented_functions(func):
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
     [
+        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {},),
         ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
         (
             "max",
@@ -140,6 +141,12 @@ def test_notimplemented_functions(func):
             ],
             {"ddof": 1},
         ),
+        (
+            "median",
+            np.median,
+            [1.0, 2.0, 3.0, 4.0, 6.0, 7.0, 7.0, 8.0, 8.5, np.nan],
+            {},
+        ),
     ],
 )
 def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
@@ -161,7 +168,19 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
     result = getattr(rolling, func)()
+
+    # Check that the function output matches the explicitly provided array
     expected = constructor(expected)
     tm.assert_equal(result, expected)
+
+    # Check that the rolling function output matches applying an alternative
+    # function to the rolling window object
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
+
+    # Check that the function output matches applying an alternative function
+    # if min_periods isn't specified
+    rolling3 = constructor(values).rolling(window=indexer)
+    result3 = getattr(rolling3, func)()
+    expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
+    tm.assert_equal(result3, expected3)

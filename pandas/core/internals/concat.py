@@ -251,6 +251,7 @@ class JoinUnit:
                 ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
+                        # TODO(EA2D): special case unneeded with 2D EAs
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
