@@ -148,6 +148,7 @@ def test_first_last_nth_nan_dtype():
     expected = df.set_index("data").nans
     tm.assert_series_equal(grouped.nans.first(), expected)
     tm.assert_series_equal(grouped.nans.last(), expected)
+    tm.assert_series_equal(grouped.nans.nth(-1), expected)
     tm.assert_series_equal(grouped.nans.nth(0), expected)
 
 
