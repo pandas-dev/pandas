@@ -4827,6 +4827,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
+        DataFrame.stratified_sample: Return a random stratified sample from a data
+            frame using proportionate stratification.
 
         Notes
         -----
@@ -4971,7 +4973,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
-
     def stratified_sample(
         self: FrameOrSeries,
         strata=None,
@@ -4980,45 +4981,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         reset_index=False
     ) -> FrameOrSeries:
         """
-        Return a random stratified sample from a data frame using proportionate stratification:
-        n1 = (N1/N) * n
-        where:
-            - n1 is the sample size of stratum 1
-            - N1 is the population size of stratum 1
-            - N is the total population size
-            - n is the sampling size
+        Return a random stratified sample using proportionate stratification.
+
+        A stratified sample is used when it is desired to keep the same proportions
+        of the variables in the original population.
 
         Parameters
         ----------
         strata: list, optional
-            List containing columns that will be used in the stratified sampling. If not provided, all
-            columns will be used.
+            List containing columns that will be used in the stratified sampling.
+            If not provided, all columns will be used.
         n: int or float, optional
-            Sampling size to be returned. If int it must be between 1 and total population size. If float
-            it must be 0 < n < 1. If not informed, a sampling size will be calculated using Cochran adjusted 
-            sampling formula:
-                cochran_n = (Z**2 * p * q) /e**2
-            
-            where:
-                - Z is the z-value. In this case we use 1.96 representing 95%
-                - p is the estimated proportion of the population which has an
-                    attribute. In this case we use 0.5
-                - q is 1-p
-                - e is the margin of error. In this case we use 0.05
-
-            This formula is adjusted as follows:
-            adjusted_cochran = cochran_n / 1+((cochran_n -1)/N)
-
-            where:
-                - cochran_n = result of the previous formula
-                - N is the population size
+            Sampling size to be returned. If int it must be between 1 and total
+            population size. If float it must be 0 < n < 1. If not informed,
+            a sampling size will be calculated using Cochran adjusted sampling
+            formula (see section 'Notes' for more details).
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator.
         reset_index: bool, optional
-            If True, returned data frame will have its axis reset, otherwise it will keep its original axis
-            values for the chosen samples.
-        
+            If True, returned data frame will have its axis reset, otherwise it will
+            keep its original axis values for the chosen samples.
+
         Returns
         -------
         Series or DataFrame
@@ -5027,16 +5011,45 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        pandas.DataFrame.stratified_sample_counts: This method returns total counts that a stratified sample
-            would return given a set of strata.
+        DataFrame.stratified_sample_counts: Return total counts that a stratified
+            sample would return given a set of strata.
+        DataFrame.sample: Return a random sample of items from an axis of object.
+
+        Notes
+        -----
+        This method uses the proportionate stratification formula: n1 = (N1 / N) * n
+        where:
+            - n1 is the sample size of stratum 1
+            - N1 is the population size of stratum 1
+            - N is the total population size
+            - n is the sampling size
+
+        When the parameter 'n' is not specified, the function will return a calculated
+        sample based on the Cochran sample formula:
+        cochran_n = (Z ** 2 * p * q) / e ** 2
+        where:
+            - Z is the z-value. In this case we use 1.96 representing 95%
+            - p is the estimated proportion of the population which has an
+                attribute. In this case we use 0.5
+            - q is 1 - p
+            - e is the margin of error. In this case we use 0.05
+
+        This formula is adjusted if the calcuated size is greater or equal the
+        population size as follows:
+        adjusted_cochran = cochran_n / 1 + ((cochran_n - 1) / N)
+        where:
+            - cochran_n = result of the previous formula
+            - N is the population size
 
         Examples
         --------
-        >>> df = pd.DataFrame({'gender': ['male', 'male', 'female', 'female', 'female', 'female', 'female',
-        ...                                 'female', 'male', 'male'],
+        >>> df = pd.DataFrame({'gender': ['male', 'male', 'female', 'female', 'female',
+        ...                              'female', 'female', 'female', 'male', 'male'],
         ...                     'age': [25, 26, 25, 26, 30, 25, 25, 30, 30, 25],
-        ...                     'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN', 'CAN', 'US', 'CAN', 'IN'],
-        ...                     'income_K' : [100, 110, 99, 110, 110, 100, 100, 110, 100, 99]})
+        ...                     'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN',
+        ...                                 'CAN', 'US', 'CAN', 'IN'],
+        ...                     'income_K' : [100, 110, 99, 110, 110, 100, 100, 110,
+        ...                                   100, 99]})
 
         >>> df
            gender  age country  income_K
@@ -5071,9 +5084,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    male   30     CAN       100
         4    male   26     CAN       110
 
-        A stratified random samplig by gender and country returning 70% of the data and setting a seed 
-        for reproducibility:
-        
+        A stratified random samplig by gender and country returning 70% of the data
+        and setting a seed for reproducibility:
+
         >>> df.stratified_sample(strata=['gender','country'],n=.7, random_state=0)
             gender  age country  income_K
         6  female   25     CAN       100
@@ -5085,52 +5098,73 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         9    male   25      IN        99
         0    male   25      US       100
         """
-
         tmp_df = self.iloc[:]
         population = len(tmp_df)
 
         # parameter validation
         if strata is None:
             strata = list(tmp_df.columns)
-        elif not type(strata) is list: 
-            raise ValueError('The strata must be a list with the variable names to be used for each stratum.')
-        
-        
+        elif not type(strata) is list:
+            raise ValueError(
+                "The strata must be a list with the variable names "
+                "to be used for each stratum."
+            )
+        else:
+            for i in strata:
+                if i not in tmp_df.columns:
+                    raise ValueError(
+                        f"The stratum '{i}' is not a valid column "
+                        "name in the object."
+                    )
+                else:
+                    strata = [c for c in set(strata) if c in tmp_df.columns]
+
         size = self._stratified_sample_size(population, n)
         tmp_ = tmp_df[strata]
         tmp_.insert(0, 'size', 1)
         tmp_grpd = tmp_.groupby(strata).count().reset_index()
-        tmp_grpd['samp_size'] = round(size/population * tmp_grpd['size']).astype(int)
+        tmp_grpd['samp_size'] = round(size / population * tmp_grpd['size']).astype(int)
         del(tmp_)
 
         # controlling variable to create the dataframe or append to it
-        first = True 
+        first = True
         for i in range(len(tmp_grpd)):
             # query generator for each iteration
-            qry=''
+            qry = ''
             for s in range(len(strata)):
                 stratum = strata[s]
 
                 if stratum not in tmp_df.columns:
-                    raise ValueError('Strata must be a list with data frame column names.')
+                    raise ValueError(
+                        "Strata must be a list with "
+                        "data frame column names."
+                    )
 
                 value = tmp_grpd.iloc[i][stratum]
                 n = tmp_grpd.iloc[i]['samp_size']
 
                 if type(value) == str:
                     value = "'" + str(value) + "'"
-                
-                if s != len(strata)-1:
-                    qry = qry + stratum + ' == ' + str(value) +' & '
+
+                if s != len(strata) - 1:
+                    qry = qry + stratum + ' == ' + str(value) + ' & '
                 else:
                     qry = qry + stratum + ' == ' + str(value)
-            
+
             # final dataframe
             if first:
-                stratified_df = tmp_df.query(qry).sample(n=n, random_state=random_state).reset_index(drop=False)
-                first = False   
+                stratified_df = tmp_df.query(qry).sample(
+                    n=n,
+                    random_state=random_state
+                ).reset_index(drop=False)
+
+                first = False
             else:
-                tmp_ = tmp_df.query(qry).sample(n=n, random_state=random_state).reset_index(drop=False)
+                tmp_ = tmp_df.query(qry).sample(
+                    n=n,
+                    random_state=random_state
+                ).reset_index(drop=False)
+
                 stratified_df = stratified_df.append(tmp_, ignore_index=True)
 
         if reset_index:
@@ -5141,48 +5175,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return stratified_df
 
-        
-
     def stratified_sample_counts(
         self: FrameOrSeries,
         strata=None,
         n=None
     ) -> FrameOrSeries:
         """
-        Return a table containing the population counts and the counts generated by a random stratified 
-        sample from a data frame using proportionate stratification:
-        n1 = (N1/N) * n
-        where:
-            - n1 is the sample size of stratum 1
-            - N1 is the population size of stratum 1
-            - N is the total population size
-            - n is the sampling size
+        Return the population and stratified sample counts for comparison.
+
+        A stratified sample is used when it is desired to keep the same proportions
+        of the variables in the original population.
 
         Parameters
         ----------
         strata: list, optional
-            List containing columns that will be used in the stratified sampling. If not provided, all
-            columns will be used.
+            List containing columns that will be used in the stratified sampling.
+            If not provided, all columns will be used.
         n: int or float, optional
-            Sampling size to be returned. If int it must be between 1 and total population size. If float
-            it must be 0 < n < 1. If not informed, a sampling size will be calculated using Cochran adjusted 
-            sampling formula:
-                cochran_n = (Z**2 * p * q) /e**2
-            
-            where:
-                - Z is the z-value. In this case we use 1.96 representing 95%
-                - p is the estimated proportion of the population which has an
-                    attribute. In this case we use 0.5
-                - q is 1-p
-                - e is the margin of error. In this case we use 0.05
+            Sampling size to be returned. If int it must be between 1 and total
+            population size. If float it must be 0 < n < 1. If not informed,
+            a sampling size will be calculated using Cochran adjusted sampling
+            formula (see section 'Notes' for more details).
 
-            This formula is adjusted as follows:
-            adjusted_cochran = cochran_n / 1+((cochran_n -1)/N)
-
-            where:
-                - cochran_n = result of the previous formula
-                - N is the population size
-                
         Returns
         -------
         Series or DataFrame
@@ -5190,15 +5204,45 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        pandas.DataFrame.stratified_sample: This method performs the stratified sample given sample size and strata.
+        DataFrame.stratified_sample: Return a random stratified sample using
+            proportionate stratification.
+        DataFrame.sample: Return a random sample of items from an axis of object.
+
+        Notes
+        -----
+        This method uses the proportionate stratification formula: n1 = (N1 / N) * n
+        where:
+            - n1 is the sample size of stratum 1
+            - N1 is the population size of stratum 1
+            - N is the total population size
+            - n is the sampling size
+
+        When the parameter 'n' is not specified, the function will return a calculated
+        sample based on the Cochran sample formula:
+        cochran_n = (Z ** 2 * p * q) / e ** 2
+        where:
+            - Z is the z-value. In this case we use 1.96 representing 95%
+            - p is the estimated proportion of the population which has an
+                attribute. In this case we use 0.5
+            - q is 1 - p
+            - e is the margin of error. In this case we use 0.05
+
+        This formula is adjusted if the calcuated size is greater or equal the
+        population size as follows:
+        adjusted_cochran = cochran_n / 1 + ((cochran_n - 1) / N)
+        where:
+            - cochran_n = result of the previous formula
+            - N is the population size
 
         Examples
         --------
-        >>> df = pd.DataFrame({'gender': ['male', 'male', 'female', 'female', 'female', 'female', 'female',
-        ...                                 'female', 'male', 'male'],
+        >>> df = pd.DataFrame({'gender': ['male', 'male', 'female', 'female', 'female',
+        ...                              'female', 'female', 'female', 'male', 'male'],
         ...                     'age': [25, 26, 25, 26, 30, 25, 25, 30, 30, 25],
-        ...                     'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN', 'CAN', 'US', 'CAN', 'IN'],
-        ...                     'income_K' : [100, 110, 99, 110, 110, 100, 100, 110, 100, 99]})
+        ...                     'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN',
+        ...                                 'CAN', 'US', 'CAN', 'IN'],
+        ...                     'income_K' : [100, 110, 99, 110, 110, 100, 100, 110,
+        ...                                   100, 99]})
 
         >>> df
            gender  age country  income_K
@@ -5221,7 +5265,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         0  female     6          3
         1    male     4          2
 
-        A stratified random samplig counts by gender and country returning 70% of the data:
+        A stratified random samplig counts by gender and country returning 70%
+        of the data:
 
         >>> df.stratified_sample_counts(strata=['gender', 'country'], n=.7)
 
@@ -5235,23 +5280,33 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         6    male      US     1          1
 
         """
-
         tmp_df = self.iloc[:]
         population = len(tmp_df)
 
         # parameter validation
         if strata is None:
             strata = list(tmp_df.columns)
-        elif not type(strata) is list: 
-            raise ValueError('The strata must be a list with the variable names to be used for each stratum.')
-        
+        elif not type(strata) is list:
+            raise ValueError(
+                "The strata must be a list with the variable names "
+                "to be used for each stratum."
+            )
+        else:
+            for i in strata:
+                if i not in tmp_df.columns:
+                    raise ValueError(
+                        f"The stratum '{i}' is not a valid column "
+                        "name in the object."
+                    )
+                else:
+                    strata = [c for c in set(strata) if c in tmp_df.columns]
+
         size = self._stratified_sample_size(population, n)
         tmp = tmp_df[strata]
         tmp.insert(0, 'size', 1)
         tmp_grpd = tmp.groupby(strata).count().reset_index()
-        tmp_grpd['samp_size'] = round(size/population * tmp_grpd['size']).astype(int)
+        tmp_grpd['sample_size'] = round(size / population * tmp_grpd['size']).astype(int)
         return tmp_grpd
-
 
     def _stratified_sample_size(
         self: FrameOrSeries,
@@ -5259,14 +5314,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         size
     ) -> FrameOrSeries:
         """Calculates the stratified sample size."""
-        
+
         if size is None:
-            cochran_n = round(((1.96)**2 * 0.5 * 0.5)/ 0.05**2)
-            n = round(cochran_n/(1+((cochran_n -1) /population)))
+            cochran_n = round(((1.96) ** 2 * 0.5 * 0.5) / 0.05 ** 2)
+            if population <= cochran_n:
+                # adjustment for smaller populations
+                n = round(cochran_n / (1 + ((cochran_n - 1) / population)))
+            else:
+                n = cochran_n
         elif size >= 0 and size < 1:
             n = round(population * size)
         elif size < 0:
-            raise ValueError('Parameter "n" must be an integer or a proportion between 0 and 0.99.')
+            raise ValueError(
+                "Parameter 'n' must be an integer or a "
+                "proportion between 0 and 0.99."
+            )
         elif size >= 1 and size <= population:
             n = size
         elif size > population:
@@ -5274,7 +5336,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return n
 
-    
     _shared_docs[
         "pipe"
     ] = r"""
