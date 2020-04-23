@@ -145,10 +145,10 @@ def test_first_last_nth_nan_dtype():
     df = pd.DataFrame({"data": ["A"], "nans": pd.Series([np.nan], dtype=object)})
 
     grouped = df.groupby("data")
-
-    assert grouped["nans"].first().dtype == object
-    assert grouped["nans"].last().dtype == object
-    assert grouped["nans"].nth(0).dtype == object
+    expected = df.set_index("data").nans
+    tm.assert_series_equal(grouped.nans.first(), expected)
+    tm.assert_series_equal(grouped.nans.last(), expected)
+    tm.assert_series_equal(grouped.nans.nth(0), expected)
 
 
 def test_first_strings_timestamps():
