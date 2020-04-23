@@ -195,5 +195,18 @@ def test_rolling_forward_skewness(constructor):
     rolling = constructor(values).rolling(window=indexer, min_periods=3)
     result = rolling.skew()
 
-    expected = constructor([0.0, 2.232396, 2.229508, 2.228340, 2.229091, 2.231989, 0.0, 0.0, np.nan, np.nan])
+    expected = constructor(
+        [
+            0.0,
+            2.232396,
+            2.229508,
+            2.228340,
+            2.229091,
+            2.231989,
+            0.0,
+            0.0,
+            np.nan,
+            np.nan,
+        ]
+    )
     tm.assert_equal(result, expected)
