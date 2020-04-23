@@ -840,7 +840,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         if is_list_like(value):
             value = array(value)
-            if is_string_dtype(value.dtype):
+            if is_dtype_equal(value.dtype, "string"):
                 # We got a StringArray
                 try:
                     # TODO: Could use from_sequence_of_strings if implemented
