@@ -3649,7 +3649,9 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._mgr.iget(idx), index=self.index, name=item)
+            item: Series(
+                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
+            )
             for idx, item in enumerate(self.columns)
         }
 
@@ -8325,7 +8327,6 @@ Wild         185.0
                     result = result.iloc[0].rename(None)
                 return result
 
-        data = self
         if numeric_only is None:
             data = self
             values = data.values
@@ -8548,7 +8549,7 @@ Wild         185.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
-    def _get_agg_axis(self, axis_num):
+    def _get_agg_axis(self, axis_num: int) -> Index:
         """
         Let's be explicit about this.
         """

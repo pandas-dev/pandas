@@ -259,12 +259,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # astype copies
                     data = data.astype(dtype)
                 else:
-                    # need to copy to avoid aliasing issues
+                    # GH#24096 we need to ensure the index remains immutable
                     data = data._values.copy()
-                    if isinstance(data, ABCDatetimeIndex) and data.tz is not None:
-                        # GH#24096 need copy to be deep for datetime64tz case
-                        # TODO: See if we can avoid these copies
-                        data = data._values.copy(deep=True)
                 copy = False
 
             elif isinstance(data, np.ndarray):
@@ -275,12 +271,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Cannot construct a Series from an ndarray with "
                         "compound dtype.  Use DataFrame instead."
                     )
-                pass
             elif isinstance(data, ABCSeries):
                 if index is None:
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
+                    copy = False
                 data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
