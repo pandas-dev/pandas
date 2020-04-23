@@ -472,7 +472,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     if der == 0:
         return P(x)
-    elif interpolate._isscalar(der):
+    elif is_scalar(der):
         return P(x, der=der)
     else:
         return [P(x, nu) for nu in der]
