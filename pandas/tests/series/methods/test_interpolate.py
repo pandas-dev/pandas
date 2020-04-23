@@ -112,8 +112,8 @@ class TestSeriesInterpolateData:
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
-        interp_s = ser.reindex(new_index).interpolate(method="cubicspline")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
