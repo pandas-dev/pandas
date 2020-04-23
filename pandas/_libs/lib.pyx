@@ -67,7 +67,11 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+    checknull_with_nat,
+)
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -77,7 +81,6 @@ from pandas._libs.missing cimport (
     isnaobj,
     is_null_datetime64,
     is_null_timedelta64,
-    is_null_period,
     C_NA,
 )
 
@@ -1846,7 +1849,7 @@ cdef class PeriodValidator(TemporalValidator):
         return util.is_period_object(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
-        return is_null_period(value)
+        return checknull_with_nat(value)
 
 
 cpdef bint is_period_array(ndarray values):
