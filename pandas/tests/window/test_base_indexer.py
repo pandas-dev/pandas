@@ -184,3 +184,16 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
     result3 = getattr(rolling3, func)()
     expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result3, expected3)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_forward_skewness(constructor):
+    values = np.arange(10)
+    values[5] = 100.0
+
+    indexer = FixedForwardWindowIndexer(window_size=5)
+    rolling = constructor(values).rolling(window=indexer, min_periods=3)
+    result = rolling.skew()
+
+    expected = constructor([0.0, 2.232396, 2.229508, 2.228340, 2.229091, 2.231989, 0.0, 0.0, np.nan, np.nan])
+    tm.assert_equal(result, expected)
