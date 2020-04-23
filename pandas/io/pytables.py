@@ -387,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
@@ -1916,9 +1919,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
@@ -3711,7 +3712,7 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        axis_name = obj._AXIS_NAMES[idx]
+        axis_name = obj._get_axis_name(idx)
         new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
@@ -3918,7 +3919,7 @@ class Table(Fixed):
 
                 def process_filter(field, filt):
 
-                    for axis_name in obj._AXIS_NAMES.values():
+                    for axis_name in obj._AXIS_ORDERS:
                         axis_number = obj._get_axis_number(axis_name)
                         axis_values = obj._get_axis(axis_name)
                         assert axis_number is not None

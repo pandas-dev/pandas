@@ -26,9 +26,11 @@ class TestSlicing:
         SLC = pd.IndexSlice
 
         def assert_slices_equivalent(l_slc, i_slc):
-            tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
-            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            expected = ts.iloc[i_slc]
+
+            tm.assert_series_equal(ts[l_slc], expected)
+            tm.assert_series_equal(ts.loc[l_slc], expected)
+            tm.assert_series_equal(ts.loc[l_slc], expected)
 
         assert_slices_equivalent(SLC[Timestamp("2014-10-01") :: -1], SLC[9::-1])
         assert_slices_equivalent(SLC["2014-10-01"::-1], SLC[9::-1])
@@ -47,7 +49,7 @@ class TestSlicing:
             SLC[Timestamp("2015-02-01") : "2014-10-01" : -1], SLC[13:8:-1]
         )
 
-        assert_slices_equivalent(SLC["2014-10-01":"2015-02-01":-1], SLC[:0])
+        assert_slices_equivalent(SLC["2014-10-01":"2015-02-01":-1], SLC[0:0:-1])
 
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20), date_range("2014-01-01", periods=20, freq="MS"))
@@ -79,7 +81,9 @@ class TestSlicing:
         df = pd.DataFrame(
             {"A": [1, 2, 3]}, index=pd.date_range("20170101", periods=3)[::-1]
         )
-        expected = pd.DataFrame({"A": 1}, index=pd.date_range("20170103", periods=1))
+        expected = pd.DataFrame(
+            {"A": 1}, index=pd.date_range("20170103", periods=1)[::-1]
+        )
         tm.assert_frame_equal(df.loc["2017-01-03"], expected)
 
     def test_slice_year(self):
