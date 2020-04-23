@@ -1373,6 +1373,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     elif PyDateTime_Check(val):
         if is_datetime_array(values):
             return "datetime"
+        if is_date_array(values):
+            return "date"
 
     elif PyDate_Check(val):
         if is_date_array(values, skipna=skipna):

@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, date, time, timedelta
 
 import numpy as np
 import pytest
@@ -546,6 +546,22 @@ class TestGetIndexer:
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            [date(2020, 1, 1), pd.Timestamp("2020-01-02")],
+            [pd.Timestamp("2020-01-01"), date(2020, 1, 2)],
+        ],
+    )
+    def test_get_indexer_mixed_dtypes(self, target):
+        # https://github.com/pandas-dev/pandas/issues/33741
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array([0, 1])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestMaybeCastSliceBound:
