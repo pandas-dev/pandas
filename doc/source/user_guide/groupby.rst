@@ -1079,7 +1079,7 @@ will be passed into ``values``, and the group index will be passed into ``index`
 
    In [6]: groupby = df.groupby(0)
    # Run the first time, compilation time will affect performance
-   In [7]: %timeit -r 1 -n 1 groupby.aggregate(f_numba, engine='numba')
+   In [7]: %timeit -r 1 -n 1 groupby.aggregate(f_numba, engine='numba')  # noqa: E225
    2.14 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
    # Function is cached and performance will improve
    In [8]: %timeit groupby.aggregate(f_numba, engine='numba')
