@@ -145,7 +145,7 @@ def test_value_counts_bins(index_or_series):
     if isinstance(s1, Index):
         tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
     else:
-        exp = np.array([1, 2, 3], dtype="Int64")
+        exp = np.array([1, 2, 3])
         tm.assert_numpy_array_equal(s1.unique(), exp)
 
     assert s1.nunique() == 3
@@ -170,7 +170,7 @@ def test_value_counts_bins(index_or_series):
     # handle NA's properly
     s_values = ["a", "b", "b", "b", np.nan, np.nan, "d", "d", "a", "a", "b"]
     s = klass(s_values)
-    expected = Series([4, 3, 2], index=["b", "a", "d"], dtype="Int64")
+    expected = Series(data=[4, 3, 2], index=["b", "a", "d"], dtype="Int64")
     tm.assert_series_equal(s.value_counts(), expected)
 
     if isinstance(s, Index):

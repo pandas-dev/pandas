@@ -105,7 +105,7 @@ def test_value_counts_na():
 
 def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
-    s = pd.Series([])
+    s = pd.Series([], dtype="float64")
     result = s.value_counts()
     # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
     idx = pd.Float64Index([], dtype="float64")
