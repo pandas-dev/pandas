@@ -516,6 +516,7 @@ def nansum(
     return _wrap_results(the_sum, dtype)
 
 
+@disallow(PeriodDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -547,7 +548,12 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or needs_i8_conversion(dtype):
+    # not using needs_i8_conversion because that includes period
+    if (
+        is_integer_dtype(dtype)
+        or is_datetime64_any_dtype(dtype)
+        or is_timedelta64_dtype(dtype)
+    ):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
