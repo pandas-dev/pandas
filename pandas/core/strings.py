@@ -2134,8 +2134,7 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = getattr(data, "values", data)  # Series / Index  # without this we segfault in tests.io.excel.test_readers
-        #values = extract_array(data, extract_numpy=True)  # breaks tests.extension.test_numpy tests bc infer_dtype breaks on PandasArray/PandasDtype
+        values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
         # explicitly allow StringDtype
