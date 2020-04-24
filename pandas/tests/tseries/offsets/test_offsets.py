@@ -4315,6 +4315,13 @@ def test_valid_month_attributes(kwd, month_classes):
         cls(**{kwd: 3})
 
 
+def test_month_offset_name(month_classes):
+    # GH#???? off.name with n != 1 should not raise AttributeError
+    obj = month_classes(1)
+    obj2 = month_classes(2)
+    assert obj2.name == obj.name
+
+
 @pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
     # Check that all the arguments specified in liboffsets.relativedelta_kwds

@@ -1125,14 +1125,6 @@ class MonthOffset(SingleConstructorOffset):
 
     __init__ = BaseOffset.__init__
 
-    @property
-    def name(self) -> str:
-        if self.is_anchored:
-            return self.rule_code
-        else:
-            month = ccalendar.MONTH_ALIASES[self.n]
-            return f"{self.code_rule}-{month}"
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
