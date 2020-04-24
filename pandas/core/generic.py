@@ -2359,7 +2359,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         dropna: Optional[bool_t] = None,
-        data_columns: Optional[Union[bool, List[str]]] = None,
+        data_columns: Optional[Union[bool_t, List[str]]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
