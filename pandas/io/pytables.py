@@ -230,7 +230,7 @@ def to_hdf(
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
     nan_rep=None,
     dropna: Optional[bool] = None,
-    data_columns: Optional[List[str]] = None,
+    data_columns: Optional[Union[bool, List[str]]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ):
