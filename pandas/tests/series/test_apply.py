@@ -812,3 +812,11 @@ class TestSeriesMap:
         b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
+
+    def test__apply_to_numpy_func(self):
+        s = pd.Series([np.array([0.1, 0.2], dtype=float)])
+        expected = pd.Series(
+            [np.array([0.09983341664682815, 0.19866933079506122], dtype=float)]
+        )
+        result = s.apply(np.sin)
+        tm.assert_series_equal(result, expected)

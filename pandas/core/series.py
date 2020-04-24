@@ -3838,18 +3838,14 @@ Name: Max Speed, dtype: float64
             return self._try_aggregate_string_function(func, *args, **kwds)
 
         # handle ufuncs and lambdas
-        if kwds or args and not isinstance(func, np.ufunc):
-
+        if kwds or args and not isinstance(func, np.ufunc):          
             def f(x):
                 return func(x, *args, **kwds)
 
         else:
             f = func
-
+        
         with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
-                return f(self)
-
             # row-wise access
             if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
                 # GH#23179 some EAs do not have `map`
