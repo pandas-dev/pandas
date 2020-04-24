@@ -4986,7 +4986,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         A stratified sample is used when it is desired to keep the same proportions
         of the variables in the original population.
 
-        .. versionadded:: 1.1.1
+        .. versionadded:: 1.0.4
 
         Parameters
         ----------
@@ -5188,7 +5188,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         A stratified sample is used when it is desired to keep the same proportions
         of the variables in the original population.
 
-        .. versionadded:: 1.1.1
+        .. versionadded:: 1.0.4
 
         Parameters
         ----------

@@ -1,9 +1,9 @@
-.. _whatsnew_111:
+.. _whatsnew_104:
 
-What's new in 1.1.1 (??)
+What's new in 1.0.4 (??)
 ------------------------
 
-These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog
+These are the changes in pandas 1.0.4. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
@@ -12,7 +12,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_111.stratified_sample:
+.. _whatsnew_104.stratified_sample:
 
 Stratified Sampling in Pandas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -62,7 +62,7 @@ We've also added :meth:`~DataFrame.stratified_sample_counts` to return the count
   2   30     3            2
 
 
-.. _whatsnew_111.contributors:
+.. _whatsnew_104.contributors:
 
 Contributors
 ~~~~~~~~~~~~
