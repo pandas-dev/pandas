@@ -252,6 +252,7 @@ STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
 PROD_DEFAULTS = SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS["axis"] = None
 SUM_DEFAULTS["keepdims"] = False
 SUM_DEFAULTS["initial"] = None
 

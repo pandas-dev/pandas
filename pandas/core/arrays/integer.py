@@ -574,19 +574,8 @@ class IntegerArray(BaseMaskedArray):
 
         return result
 
-    def sum(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        skipna=True,
-        min_count=0,
-    ):
-        nv.validate_sum(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
-        )
+    def sum(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_sum((), kwargs)
         result = masked_reductions.sum(
             values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
         )
