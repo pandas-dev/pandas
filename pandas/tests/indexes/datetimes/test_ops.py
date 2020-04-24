@@ -134,11 +134,14 @@ class TestDatetimeIndexOps:
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected.index._set_freq(None)
 
         for obj in [idx, Series(idx)]:
+
             tm.assert_series_equal(obj.value_counts(), expected)
 
         expected = pd.date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(idx.unique(), expected)
 
         idx = DatetimeIndex(
@@ -274,7 +277,8 @@ class TestDatetimeIndexOps:
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(result, expected)
         assert result.freq is None
 
     @pytest.mark.parametrize(

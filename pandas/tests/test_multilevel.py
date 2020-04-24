@@ -1505,6 +1505,7 @@ Thur,Lunch,Yes,51.51,17"""
             tz="US/Eastern",
         )
         idx3 = pd.date_range("2011-01-01 09:00", periods=6, tz="Asia/Tokyo")
+        idx3._set_freq(None)
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)
