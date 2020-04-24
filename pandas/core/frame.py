@@ -104,6 +104,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -1917,7 +1918,12 @@ class DataFrame(NDFrame):
 
     @classmethod
     def _from_arrays(
-        cls, arrays, columns, index, dtype=None, verify_integrity=True
+        cls,
+        arrays,
+        columns,
+        index,
+        dtype: Optional[Dtype] = None,
+        verify_integrity: bool = True,
     ) -> "DataFrame":
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -1943,6 +1949,9 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         mgr = arrays_to_mgr(
             arrays,
             columns,
