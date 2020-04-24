@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
+from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -352,14 +352,6 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
             result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
-
-    elif isinstance(dtype, PeriodDtype):
-        if is_float(result) and result.is_integer():
-            result = int(result)
-        if is_integer(result):
-            result = Period._from_ordinal(result, freq=dtype.freq)
-        else:
-            raise NotImplementedError(type(result), result)
 
     return result
 
