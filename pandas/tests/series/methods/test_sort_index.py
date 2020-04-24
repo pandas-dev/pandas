@@ -55,16 +55,18 @@ class TestSeriesSortIndex:
         result = random_order.sort_index(ascending=False, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(
-            random_order, datetime_series.reindex(datetime_series.index[::-1])
-        )
+        expected = datetime_series.reindex(datetime_series.index[::-1])
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
         # ascending
         random_order = datetime_series.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(random_order, datetime_series)
+        expected = datetime_series.copy()
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))

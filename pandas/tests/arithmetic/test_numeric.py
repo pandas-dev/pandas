@@ -165,7 +165,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         index = numeric_idx
 
-        expected = pd.timedelta_range("0 days", "4 days")
+        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -974,7 +974,7 @@ class TestAdditionSubtraction:
                 tm.assert_almost_equal(np.asarray(result), expected)
 
                 assert result.name == series.name
-                tm.assert_index_equal(result.index, series.index)
+                tm.assert_index_equal(result.index, series.index._with_freq(None))
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)

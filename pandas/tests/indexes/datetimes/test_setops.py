@@ -285,16 +285,17 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
 
         # no overlap GH#33604
+        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 
         # swapped left and right
         result = rng[-3:].intersection(rng[:3])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 
