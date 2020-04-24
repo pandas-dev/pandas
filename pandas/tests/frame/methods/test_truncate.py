@@ -87,3 +87,15 @@ class TestDataFrameTruncate:
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
             df.truncate(before=2, after=20, axis=1)
+
+    @pytest.mark.parametrize(
+        "before, after, indices",
+        [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
+    )
+    def test_truncate_decreasing_index(self, before, after, indices):
+        # https://github.com/pandas-dev/pandas/issues/33756
+        idx = pd.Index([3, 2, 1, 0])
+        values = pd.DataFrame(index=idx)
+        result = values.truncate(before=before, after=after)
+        expected = values.loc[indices]
+        tm.assert_frame_equal(result, expected)
