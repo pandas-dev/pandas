@@ -2326,7 +2326,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
 
-        Overflow for input dtype
+        Overflow in input dtype
 
         >>> s = pd.Series([1, 0], dtype=np.uint8)
         >>> s.diff()

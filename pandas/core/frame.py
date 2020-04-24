@@ -6741,7 +6741,7 @@ Wild         185.0
         4 -1.0 -3.0 -11.0
         5  NaN  NaN   NaN
 
-        Overflow for input dtype
+        Overflow in input dtype
 
         >>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
         >>> df.diff()
