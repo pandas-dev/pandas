@@ -42,6 +42,23 @@ class TestPandasContainer:
 
         yield
 
+    @pytest.fixture
+    def datetime_series(self):
+        # Same as usual datetime_series, but with index freq set to None,
+        #  since that doesnt round-trip, see GH#33711
+        ser = tm.makeTimeSeries()
+        ser.name = "ts"
+        ser.index = ser.index._with_freq(None)
+        return ser
+
+    @pytest.fixture
+    def datetime_frame(self):
+        # Same as usual datetime_frame, but with index freq set to None,
+        #  since that doesnt round-trip, see GH#33711
+        df = DataFrame(tm.getTimeSeriesData())
+        df.index = df.index._with_freq(None)
+        return df
+
     def test_frame_double_encoded_labels(self, orient):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
@@ -416,6 +433,9 @@ class TestPandasContainer:
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
+        dti = pd.date_range("2000-01-03", "2000-01-07")
+        # freq doesnt roundtrip
+        dti = pd.DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -425,7 +445,7 @@ class TestPandasContainer:
                 [0.05951614, -2.69652057, 1.28163262, 0.34703478],
             ],
             columns=["A", "B", "C", "D"],
-            index=pd.date_range("2000-01-03", "2000-01-07"),
+            index=dti,
         )
         df["date"] = pd.Timestamp("19920106 18:21:32.12")
         df.iloc[3, df.columns.get_loc("date")] = pd.Timestamp("20130101")
@@ -444,6 +464,9 @@ class TestPandasContainer:
 
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(list(index), freq=None)
+
         df_mixed = DataFrame(
             OrderedDict(
                 float_1=[
