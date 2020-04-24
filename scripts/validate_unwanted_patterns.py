@@ -392,12 +392,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--included-file-extensions",
         default="py,pyx,pxd,pxi",
-        help="Coma seperated file extensions to check.",
+        help="Comma separated file extensions to check.",
     )
     parser.add_argument(
         "--excluded-file-paths",
         default="asv_bench/env",
-        help="Coma seperated file extensions to check.",
+        help="Comma separated file extensions to check.",
     )
 
     args = parser.parse_args()
