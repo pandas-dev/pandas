@@ -5021,27 +5021,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         This method uses the proportionate stratification formula: n1 = (N1 / N) * n
         where:
-            - n1 is the sample size of stratum 1
-            - N1 is the population size of stratum 1
-            - N is the total population size
-            - n is the sampling size
+        * n1 is the sample size of stratum 1
+        * N1 is the population size of stratum 1
+        * N is the total population size
+        * n is the sampling size
 
         When the parameter 'n' is not specified, the function will return a calculated
         sample based on the Cochran sample formula:
         cochran_n = (Z ** 2 * p * q) / e ** 2
         where:
-            - Z is the z-value. In this case we use 1.96 representing 95%
-            - p is the estimated proportion of the population which has an
-                attribute. In this case we use 0.5
-            - q is 1 - p
-            - e is the margin of error. In this case we use 0.05
+        * Z is the z-value. In this case we use 1.96 representing 95%
+        * p is the estimated proportion of the population which has an
+          attribute. In this case we use 0.5
+        * q is 1 - p
+        * e is the margin of error. In this case we use 0.05
 
         This formula is adjusted if the calcuated size is greater or equal the
         population size as follows:
         adjusted_cochran = cochran_n / 1 + ((cochran_n - 1) / N)
         where:
-            - cochran_n = result of the previous formula
-            - N is the population size
+        * cochran_n = result of the previous formula
+        * N is the population size
 
         Examples
         --------
@@ -5216,27 +5216,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         This method uses the proportionate stratification formula: n1 = (N1 / N) * n
         where:
-            - n1 is the sample size of stratum 1
-            - N1 is the population size of stratum 1
-            - N is the total population size
-            - n is the sampling size
+        * n1 is the sample size of stratum 1
+        * N1 is the population size of stratum 1
+        * N is the total population size
+        * n is the sampling size
 
         When the parameter 'n' is not specified, the function will return a calculated
         sample based on the Cochran sample formula:
         cochran_n = (Z ** 2 * p * q) / e ** 2
         where:
-            - Z is the z-value. In this case we use 1.96 representing 95%
-            - p is the estimated proportion of the population which has an
-                attribute. In this case we use 0.5
-            - q is 1 - p
-            - e is the margin of error. In this case we use 0.05
+        * Z is the z-value. In this case we use 1.96 representing 95%
+        * p is the estimated proportion of the population which has an
+          attribute. In this case we use 0.5
+        * q is 1 - p
+        * e is the margin of error. In this case we use 0.05
 
         This formula is adjusted if the calcuated size is greater or equal the
         population size as follows:
         adjusted_cochran = cochran_n / 1 + ((cochran_n - 1) / N)
         where:
-            - cochran_n = result of the previous formula
-            - N is the population size
+        * cochran_n = result of the previous formula
+        * N is the population size
 
         Examples
         --------
