@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -89,7 +90,9 @@ def _ensure_data(values, dtype=None):
     values : ndarray
     pandas_dtype : str or dtype
     """
-    values = extract_array(values, extract_numpy=True)
+    if not isinstance(values, ABCMultiIndex):
+        # extract_array would raise
+        values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
     if is_object_dtype(dtype):
