@@ -243,8 +243,14 @@ def test_min_max(method, skipna):
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
-def test_min_max_numpy(method):
-    arr = pd.Series(["a", "b", "c", None], dtype="string")
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.Series(["a", "b", "c", None], dtype="string"),
+        pd.array(["a", "b", "c", None], dtype="string"),
+    ],
+)
+def test_min_max_numpy(method, arr):
     result = getattr(np, method)(arr)
     expected = "a" if method == "min" else "c"
     assert result == expected
