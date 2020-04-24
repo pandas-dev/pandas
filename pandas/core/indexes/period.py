@@ -147,7 +147,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: PeriodArray
     freq: DateOffset
@@ -629,6 +628,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 other, how=how, level=level, return_indexers=return_indexers, sort=sort
             )
 
+        # _assert_can_do_setop ensures we have matching dtype
         result = Int64Index.join(
             self,
             other,
@@ -637,11 +637,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return_indexers=return_indexers,
             sort=sort,
         )
-
-        if return_indexers:
-            result, lidx, ridx = result
-            return self._apply_meta(result), lidx, ridx
-        return self._apply_meta(result)
+        return result
 
     # ------------------------------------------------------------------------
     # Set Operation Methods
@@ -719,13 +715,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
-
-    def _apply_meta(self, rawarr) -> "PeriodIndex":
-        if not isinstance(rawarr, PeriodIndex):
-            if not isinstance(rawarr, PeriodArray):
-                rawarr = PeriodArray(rawarr, freq=self.freq)
-            rawarr = PeriodIndex._simple_new(rawarr, name=self.name)
-        return rawarr
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)

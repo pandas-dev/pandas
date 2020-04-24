@@ -283,7 +283,8 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
     idx = date_range("20131101", tz="America/Chicago", periods=7)
     newidx = date_range("20131103", periods=10, freq="H")
     s = Series(range(7), index=idx)
-    with pytest.raises(TypeError):
+    msg = "Cannot compare tz-naive and tz-aware timestamps"
+    with pytest.raises(TypeError, match=msg):
         s.reindex(newidx, method="ffill")
 
 
