@@ -539,14 +539,15 @@ class _OpenpyxlReader(_BaseExcelReader):
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        if (
-            isinstance(header, int)
-            and isinstance(skiprows, int)
-            and isinstance(nrows, int)
-        ):
-            max_row = header + skiprows + nrows + 1
-        else:
-            max_row = None
+        max_row = (
+            header + skiprows + nrows + 1
+            if (
+                isinstance(header, int)
+                and isinstance(skiprows, int)
+                and isinstance(nrows, int)
+            )
+            else None
+        )
 
         for i, row in enumerate(sheet.iter_rows(max_row=max_row)):
             should_continue, _ = self.should_read_row(i, header, skiprows, nrows)
