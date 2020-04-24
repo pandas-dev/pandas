@@ -5,6 +5,7 @@ similar to how we have a Groupby object.
 from datetime import timedelta
 from functools import partial
 import inspect
+import itertools
 from textwrap import dedent
 from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
@@ -363,7 +364,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None):
+    def _wrap_result(self, result, block=None, obj=None, columns=None):
         """
         Wrap a single result.
         """
@@ -377,11 +378,30 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 from pandas import Series
 
                 return Series(result, index, name=obj.name)
+            elif result.ndim == 2 and columns is not None:
+                from pandas import DataFrame
+
+                df = DataFrame(result, index, columns=columns)
+                if isinstance(obj, DataFrame):
+                    pass
+                else:
+                    df.columns.name = obj.name
+                return df
+            elif (
+                result.ndim == 3 and columns is not None
+            ):  # index x quantiles x columns for example
+                from pandas import DataFrame, MultiIndex
+
+                result = result.reshape(100, 2 * 3, order="F")
+                cols = MultiIndex.from_tuples(itertools.product(block.columns, columns))
+                return DataFrame(result, index=index, columns=cols)
 
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
+    def _wrap_results(
+        self, results, blocks, obj, exclude=None, columns=None
+    ) -> FrameOrSeries:
         """
         Wrap the results.
 
@@ -397,10 +417,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         final = []
         for result, block in zip(results, blocks):
 
-            result = self._wrap_result(result, block=block, obj=obj)
+            result = self._wrap_result(result, block=block, obj=obj, columns=columns)
             if result.ndim == 1:
                 return result
+            elif result.ndim == 2 and columns is not None:
+                # I have no idea what this ndim switch case above is but
+                # this case *currently* corresponds to quantile
+                return result
             final.append(result)
+
+        print(type(self._selected_obj))
 
         # if we have an 'on' column
         # we want to put it back into the results
@@ -595,8 +621,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 result = self._center_window(result, window)
 
             results.append(result)
-
-        return self._wrap_results(results, block_list, obj, exclude)
+        columns = None
+        # func is a functools.partial. Let's abuse this for now.
+        # this getattr madness is because of awful mypy
+        func_name = getattr(func, "func", func).__name__
+        if func_name == "roll_quantile":
+            keywords = getattr(func, "keywords", None)
+            if keywords is not None:
+                if not is_scalar(keywords["quantiles"]):
+                    columns = keywords["quantiles"]
+        return self._wrap_results(results, block_list, obj, exclude, columns=columns)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = self._aggregate(func, *args, **kwargs)
@@ -1683,15 +1717,17 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
-        if quantile == 1.0:
+        if is_scalar(quantile) and quantile == 1.0:
             window_func = self._get_cython_func_type("roll_max")
-        elif quantile == 0.0:
+        elif is_scalar(quantile) and quantile == 0.0:
             window_func = self._get_cython_func_type("roll_min")
         else:
+            if is_scalar(quantile):
+                quantile = np.atleast_1d(quantile)
             window_func = partial(
                 self._get_roll_func("roll_quantile"),
                 win=self._get_window(),
-                quantile=quantile,
+                quantiles=quantile,
                 interpolation=interpolation,
             )
 
@@ -1748,9 +1784,12 @@ class _Rolling_and_Expanding(_Rolling):
             # to avoid potential overflow, cast the data to float64
             X = X.astype("float64")
             Y = Y.astype("float64")
-            mean = lambda x: x.rolling(
-                window, self.min_periods, center=self.center
-            ).mean(**kwargs)
+
+            def mean(x):
+                return x.rolling(window, self.min_periods, center=self.center).mean(
+                    **kwargs
+                )
+
             count = (
                 (X + Y)
                 .rolling(window=window, min_periods=0, center=self.center)

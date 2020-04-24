@@ -1218,22 +1218,22 @@ interpolation_types = {
 
 def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp, int64_t win,
-                  float64_t quantile, str interpolation):
+                  ndarray[float64_t, cast=True] quantiles, str interpolation):
     """
     O(N log(window)) implementation using skip list
     """
     cdef:
         float64_t val, prev, midpoint, idx_with_fraction
         skiplist_t *skiplist
-        int64_t nobs = 0, i, j, s, e, N = len(values)
+        int64_t nobs = 0, i, j, s, e, N = len(values), Nq = len(quantiles)
         Py_ssize_t idx
-        ndarray[float64_t] output
-        float64_t vlow, vhigh
+        ndarray[float64_t, ndim=2] output
+        float64_t vlow, vhigh, quantile, tmp
         InterpolationType interpolation_type
         int ret = 0
 
-    if quantile <= 0.0 or quantile >= 1.0:
-        raise ValueError(f"quantile value {quantile} not in [0, 1]")
+    if np.min(quantiles) <= 0.0 or np.max(quantiles) >= 1.0:
+        raise ValueError(f"quantile value {quantiles} not in [0, 1]")
 
     try:
         interpolation_type = interpolation_types[interpolation]
@@ -1242,7 +1242,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
-    output = np.empty(N, dtype=float)
+    output = np.empty((N, Nq), dtype=float)
 
     if win == 0 or (end - start).max() == 0:
         output[:] = NaN
@@ -1285,45 +1285,53 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
             if nobs >= minp:
                 if nobs == 1:
                     # Single value in skip list
-                    output[i] = skiplist_get(skiplist, 0, &ret)
+                    tmp = skiplist_get(skiplist, 0, &ret)
+                    for j in range(0, Nq):
+                        output[i, j] = tmp
                 else:
-                    idx_with_fraction = quantile * (nobs - 1)
-                    idx = <int>idx_with_fraction
+                    for j in range(0, Nq):
+                        quantile = quantiles[j]
+                        idx_with_fraction = quantile * (nobs - 1)
+                        idx = <int>idx_with_fraction
 
-                    if idx_with_fraction == idx:
-                        # no need to interpolate
-                        output[i] = skiplist_get(skiplist, idx, &ret)
-                        continue
+                        if idx_with_fraction == idx:
+                            # no need to interpolate
+                            output[i, j] = skiplist_get(skiplist, idx, &ret)
+                            continue
 
-                    if interpolation_type == LINEAR:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = ((vlow + (vhigh - vlow) *
-                                      (idx_with_fraction - idx)))
-                    elif interpolation_type == LOWER:
-                        output[i] = skiplist_get(skiplist, idx, &ret)
-                    elif interpolation_type == HIGHER:
-                        output[i] = skiplist_get(skiplist, idx + 1, &ret)
-                    elif interpolation_type == NEAREST:
-                        # the same behaviour as round()
-                        if idx_with_fraction - idx == 0.5:
-                            if idx % 2 == 0:
-                                output[i] = skiplist_get(skiplist, idx, &ret)
+                        if interpolation_type == LINEAR:
+                            vlow = skiplist_get(skiplist, idx, &ret)
+                            vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                            output[i, j] = ((vlow + (vhigh - vlow) *
+                                            (idx_with_fraction - idx)))
+                        elif interpolation_type == LOWER:
+                            output[i, j] = skiplist_get(skiplist, idx, &ret)
+                        elif interpolation_type == HIGHER:
+                            output[i, j] = skiplist_get(skiplist, idx + 1, &ret)
+                        elif interpolation_type == NEAREST:
+                            # the same behaviour as round()
+                            if idx_with_fraction - idx == 0.5:
+                                if idx % 2 == 0:
+                                    output[i, j] = skiplist_get(skiplist, idx, &ret)
+                                else:
+                                    output[i, j] = skiplist_get(
+                                        skiplist, idx + 1, &ret)
+                            elif idx_with_fraction - idx < 0.5:
+                                output[i, j] = skiplist_get(skiplist, idx, &ret)
                             else:
-                                output[i] = skiplist_get(
-                                    skiplist, idx + 1, &ret)
-                        elif idx_with_fraction - idx < 0.5:
-                            output[i] = skiplist_get(skiplist, idx, &ret)
-                        else:
-                            output[i] = skiplist_get(skiplist, idx + 1, &ret)
-                    elif interpolation_type == MIDPOINT:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = <float64_t>(vlow + vhigh) / 2
+                                output[i, j] = skiplist_get(skiplist, idx + 1, &ret)
+                        elif interpolation_type == MIDPOINT:
+                            vlow = skiplist_get(skiplist, idx, &ret)
+                            vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                            output[i, j] = <float64_t>(vlow + vhigh) / 2
             else:
-                output[i] = NaN
+                for j in range(0, Nq):
+                    output[i, j] = NaN
 
     skiplist_destroy(skiplist)
+
+    if Nq == 1:
+        return output[:, 0]
 
     return output
 
