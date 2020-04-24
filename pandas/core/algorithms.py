@@ -718,7 +718,7 @@ def value_counts(
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name)
+            result = Series(counts, index=keys, name=name, dtype="Int64")
 
     if sort:
         result = result.sort_values(ascending=ascending)

@@ -145,7 +145,7 @@ def test_value_counts_bins(index_or_series):
     if isinstance(s1, Index):
         tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
     else:
-        exp = np.array([1, 2, 3])
+        exp = np.array([1, 2, 3], dtype="int64")
         tm.assert_numpy_array_equal(s1.unique(), exp)
 
     assert s1.nunique() == 3
