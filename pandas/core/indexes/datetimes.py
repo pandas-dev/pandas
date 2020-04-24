@@ -7,6 +7,7 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
@@ -540,7 +541,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _maybe_promote(self, other):
         if other.inferred_type == "date":
-            other = DatetimeIndex(other)
+            try:
+                other = DatetimeIndex(other)
+            except OutOfBoundsDatetime:
+                pass
         return self, other
 
     def get_loc(self, key, method=None, tolerance=None):

@@ -563,6 +563,22 @@ class TestGetIndexer:
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "target, positions",
+        [
+            ([date(9999, 1, 1), pd.Timestamp("2020-01-01")], [-1, 0]),
+            ([pd.Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
+            ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
+        ],
+    )
+    def test_get_indexer_out_of_bounds_date(self, target, positions):
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array(positions, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
