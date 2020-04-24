@@ -266,6 +266,8 @@ class Base:
         result = index_type(indices.values, copy=True, **init_kwargs)
         if is_datetime64tz_dtype(indices.dtype):
             result = result.tz_localize("UTC").tz_convert(indices.tz)
+        if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
+            indices._set_freq(None)
 
         tm.assert_index_equal(indices, result)
 
