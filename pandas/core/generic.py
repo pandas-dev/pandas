@@ -5309,7 +5309,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         tmp = tmp_df[strata]
         tmp.insert(0, 'size', 1)
         tmp_grpd = tmp.groupby(strata).count().reset_index()
-        tmp_grpd['sample_size'] = round(size / population * tmp_grpd['size']).astype(int)
+        tmp_grpd['sample_size'] = round(
+            size / population * tmp_grpd['size']
+        ).astype(int)
         return tmp_grpd
 
     def _stratified_sample_size(
