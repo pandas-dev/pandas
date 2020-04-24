@@ -15,7 +15,6 @@ from pandas._config import get_option
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.core.construction import extract_array
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -103,8 +102,6 @@ def _evaluate_numexpr(op, op_str, a, b):
             # we were originally called by a reversed op method
             a, b = b, a
 
-        #a_value = getattr(a, "values", a)
-        #b_value = getattr(b, "values", b)
         a_value = a
         b_value = b
 
