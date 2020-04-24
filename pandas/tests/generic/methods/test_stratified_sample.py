@@ -7,7 +7,7 @@ def test_stratified_sample():
         'gender': ['male', 'male', 'female', 'female', 'female',
                    'female', 'female', 'female', 'male', 'male'],
         'age': [25, 26, 25, 26, 30, 25, 25, 30, 30, 25],
-        'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN','CAN', 'US', 'CAN', 'IN'], 
+        'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN', 'CAN', 'US', 'CAN', 'IN'],
         'income_K' : [100, 110, 99, 110, 110, 100, 100, 110, 100, 99]
     })
 
@@ -27,7 +27,7 @@ def test_stratified_sample_counts():
         'gender': ['male', 'male', 'female', 'female', 'female',
                    'female', 'female', 'female', 'male', 'male'],
         'age': [25, 26, 25, 26, 30, 25, 25, 30, 30, 25],
-        'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN','CAN', 'US', 'CAN', 'IN'], 
+        'country': ['US', 'CAN', 'MEX', 'CAN', 'IN', 'CAN', 'CAN', 'US', 'CAN', 'IN'],
         'income_K' : [100, 110, 99, 110, 110, 100, 100, 110, 100, 99]
     })
 
