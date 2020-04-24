@@ -95,7 +95,7 @@ class TestDataFrameTruncate:
     def test_truncate_decreasing_index(self, before, after, indices):
         # https://github.com/pandas-dev/pandas/issues/33756
         idx = pd.Index([3, 2, 1, 0])
-        values = pd.DataFrame(index=idx)
+        values = pd.DataFrame(range(len(idx)), index=idx)
         result = values.truncate(before=before, after=after)
         expected = values.loc[indices]
         tm.assert_frame_equal(result, expected)
