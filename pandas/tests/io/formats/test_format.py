@@ -2810,6 +2810,34 @@ class TestSeriesFormatting:
         assert res == exp
 
 
+class TestGenericArrayFormatter:
+    def test_1d_array(self):
+        # GenericArrayFormatter is used on types for which there isn't a dedicated
+        # formatter. np.bool is one of those types.
+        obj = fmt.GenericArrayFormatter(np.array([True, False]))
+        res = obj.get_result()
+        assert len(res) == 2
+        # Results should be right-justified.
+        assert res[0] == "  True"
+        assert res[1] == " False"
+
+    def test_2d_array(self):
+        obj = fmt.GenericArrayFormatter(np.array([[True, False], [False, True]]))
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [True, False]"
+        assert res[1] == " [False, True]"
+
+    def test_3d_array(self):
+        obj = fmt.GenericArrayFormatter(
+            np.array([[[True, True], [False, False]], [[False, True], [True, False]]])
+        )
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [[True, True], [False, False]]"
+        assert res[1] == " [[False, True], [True, False]]"
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 
