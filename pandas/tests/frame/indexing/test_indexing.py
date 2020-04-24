@@ -1432,6 +1432,81 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match=msg):
             res._set_value("foobar", "baz", "sam")
 
+    def test_reindex_with_multi_index(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
+        #
+        # confirms that we can reindex a multi-indexed DataFrame with a new
+        # MultiIndex object correctly when using no filling, backfilling, and
+        # padding
+        #
+        # The DataFrame, `df`, used in this test is:
+        #       c
+        #  a b
+        # -1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  0 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #
+        # and the other MultiIndex, `new_multi_index`, is:
+        # 0: 0 0.5
+        # 1:   2.0
+        # 2:   5.0
+        # 3:   5.8
+        df = pd.DataFrame(
+            {
+                "a": [-1] * 7 + [0] * 7 + [1] * 7,
+                "b": list(range(7)) * 3,
+                "c": ["A", "B", "C", "D", "E", "F", "G"] * 3,
+            }
+        ).set_index(["a", "b"])
+        new_index = [0.5, 2.0, 5.0, 5.8]
+        new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
+
+        # reindexing w/o a `method` value
+        reindexed = df.reindex(new_multi_index)
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": [np.nan, "C", "F", np.nan]}
+        ).set_index(["a", "b"])
+        tm.assert_frame_equal(expected, reindexed)
+
+        # reindexing with backfilling
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["B", "C", "F", "G"]}
+        ).set_index(["a", "b"])
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="bfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="backfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        # reindexing with padding
+        expected = pd.DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["A", "C", "F", "F"]}
+        ).set_index(["a", "b"])
+        reindexed_with_padding = df.reindex(new_multi_index, method="pad")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
+
+        reindexed_with_padding = df.reindex(new_multi_index, method="ffill")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
+
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
 
@@ -1846,22 +1921,6 @@ class TestDataFrameIndexing:
         result = df.loc[:, "A"]
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_with_sparse_value(self):
-        # GH8131
-        df = pd.DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
-        sp_array = SparseArray([0, 0, 1])
-        df["new_column"] = sp_array
-        tm.assert_series_equal(
-            df["new_column"], pd.Series(sp_array, name="new_column"), check_names=False
-        )
-
-    def test_setitem_with_unaligned_sparse_value(self):
-        df = pd.DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
-        sp_series = pd.Series(SparseArray([0, 0, 1]), index=[2, 1, 0])
-        df["new_column"] = sp_series
-        exp = pd.Series(SparseArray([1, 0, 0]), name="new_column")
-        tm.assert_series_equal(df["new_column"], exp)
-
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
@@ -2170,7 +2229,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[1], pd.Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
-    mgr = df._data
+    mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)

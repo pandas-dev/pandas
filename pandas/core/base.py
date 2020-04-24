@@ -1143,8 +1143,7 @@ class IndexOpsMixin:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)
-            values = getattr(values, "values", values)
+            values = self.astype(object)._values
             if na_action == "ignore":
 
                 def map_f(values, f):
@@ -1521,4 +1520,4 @@ class IndexOpsMixin:
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
+            ).__finalize__(self, method="duplicated")

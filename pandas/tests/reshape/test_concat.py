@@ -1113,28 +1113,28 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             assert b.values.base is None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
-                assert b.values.base is df._data.blocks[0].values.base
+                assert b.values.base is df._mgr.blocks[0].values.base
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is None
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 
@@ -2768,3 +2768,37 @@ def test_concat_copy_index(test_series, axis):
         comb = concat([df, df], axis=axis, copy=True)
         assert comb.index is not df.index
         assert comb.columns is not df.columns
+
+
+def test_concat_multiindex_datetime_object_index():
+    # https://github.com/pandas-dev/pandas/issues/11058
+    s = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2014, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    s2 = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2015, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    expected = DataFrame(
+        [["a", "a"], ["b", np.nan], [np.nan, "b"]],
+        index=MultiIndex.from_arrays(
+            [
+                [1, 2, 2],
+                DatetimeIndex(
+                    ["2013-01-01", "2014-01-01", "2015-01-01"],
+                    dtype="datetime64[ns]",
+                    freq=None,
+                ),
+            ],
+            names=["first", "second"],
+        ),
+    )
+    result = concat([s, s2], axis=1)
+    tm.assert_frame_equal(result, expected)

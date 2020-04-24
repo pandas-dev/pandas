@@ -1332,6 +1332,20 @@ class TestDataFramePlots(TestPlotBase):
             np.array([1, 1, 1, 1], dtype=np.float64),
         )
 
+    def test_scatter_colorbar_different_cmap(self):
+        # GH 33389
+        import matplotlib.pyplot as plt
+
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
+        df["x2"] = df["x"] + 1
+
+        fig, ax = plt.subplots()
+        df.plot("x", "y", c="c", kind="scatter", cmap="cividis", ax=ax)
+        df.plot("x2", "y", c="c", kind="scatter", cmap="magma", ax=ax)
+
+        assert ax.collections[0].cmap.name == "cividis"
+        assert ax.collections[1].cmap.name == "magma"
+
     @pytest.mark.slow
     def test_plot_bar(self):
         df = DataFrame(
@@ -1681,6 +1695,25 @@ class TestDataFramePlots(TestPlotBase):
         # if horizontal, yticklabels are rotated
         axes = df.plot.hist(rot=50, fontsize=8, orientation="horizontal")
         self._check_ticks_props(axes, xrot=0, yrot=50, ylabelsize=8)
+
+    @pytest.mark.parametrize(
+        "weights", [0.1 * np.ones(shape=(100,)), 0.1 * np.ones(shape=(100, 2))]
+    )
+    def test_hist_weights(self, weights):
+        # GH 33173
+        np.random.seed(0)
+        df = pd.DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100,))))
+
+        ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
+        ax2 = _check_plot_works(df.plot, kind="hist")
+
+        patch_height_with_weights = [patch.get_height() for patch in ax1.patches]
+
+        # original heights with no weights, and we manually multiply with example
+        # weights, so after multiplication, they should be almost same
+        expected_patch_height = [0.1 * patch.get_height() for patch in ax2.patches]
+
+        tm.assert_almost_equal(patch_height_with_weights, expected_patch_height)
 
     def _check_box_coord(
         self,
@@ -2041,12 +2074,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            _check_plot_works(df.plot, color=custom_colors)
-
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
@@ -2097,14 +2124,6 @@ class TestDataFramePlots(TestPlotBase):
         for ax, c in zip(axes, list(custom_colors)):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
-
-        with pytest.raises(ValueError):
-            # Color contains shorthand hex value results in ValueError
-            custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
-            # Forced show plot
-            # _check_plot_works adds an ax so catch warning. see GH #13188
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(df.plot, color=custom_colors, subplots=True)
 
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         for cmap in ["jet", cm.jet]:
