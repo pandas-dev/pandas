@@ -13,7 +13,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Dtype, DtypeObj
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_timedelta64_ns_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
@@ -52,13 +51,12 @@ import pandas.core.common as com
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 
 def array(
-    data: Sequence[object],
-    dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
-    copy: bool = True,
-) -> ABCExtensionArray:
+    data: Sequence[object], dtype: Optional[Dtype] = None, copy: bool = True,
+) -> "ExtensionArray":
     """
     Create an array.
 
@@ -388,14 +386,16 @@ def extract_array(obj, extract_numpy: bool = False):
 
 
 def sanitize_array(
-    data, index, dtype=None, copy: bool = False, raise_cast_failure: bool = False
-):
+    data,
+    index: Optional["Index"],
+    dtype: Optional[DtypeObj] = None,
+    copy: bool = False,
+    raise_cast_failure: bool = False,
+) -> ArrayLike:
     """
-    Sanitize input data to an ndarray, copy if specified, coerce to the
-    dtype if specified.
+    Sanitize input data to an ndarray or ExtensionArray, copy if specified,
+    coerce to the dtype if specified.
     """
-    if dtype is not None:
-        dtype = pandas_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
@@ -508,10 +508,7 @@ def sanitize_array(
 
 
 def _try_cast(
-    arr,
-    dtype: Optional[Union[np.dtype, "ExtensionDtype"]],
-    copy: bool,
-    raise_cast_failure: bool,
+    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
 ):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
