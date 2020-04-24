@@ -327,7 +327,7 @@ def main(
 
     if os.path.isfile(source_path):
         file_path = source_path
-        with open(file_path, mode="r") as file_obj:
+        with open(file_path) as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
@@ -352,7 +352,7 @@ def main(
                 continue
 
             file_path = os.path.join(subdir, file_name)
-            with open(file_path, mode="r") as file_obj:
+            with open(file_path) as file_obj:
                 for line_number, msg in function(file_obj):
                     is_failed = True
                     print(
