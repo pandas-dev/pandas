@@ -336,10 +336,10 @@ def main(
                     )
                 )
 
-    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
+    FILE_EXTENSIONS_TO_CHECK = frozenset(
         file_extensions_to_check.split(",")
     )
-    PATHS_TO_IGNORE: FrozenSet[str] = frozenset(excluded_file_paths.split(","))
+    PATHS_TO_IGNORE = frozenset(excluded_file_paths.split(","))
 
     for subdir, _, files in os.walk(source_path):
         if any(path in subdir for path in PATHS_TO_IGNORE):
