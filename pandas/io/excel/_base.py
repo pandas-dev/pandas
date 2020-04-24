@@ -470,6 +470,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             gsd_header = 0 if header is None else header
             gsd_skiprows = 0 if skiprows is None else skiprows
             gsd_nrows = nrows if isinstance(nrows, int) else None
+
             if isinstance(gsd_header, list) or isinstance(gsd_skiprows, list):
                 gsd_nrows = None
 
