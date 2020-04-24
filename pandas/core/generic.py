@@ -9196,7 +9196,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError(f"Truncate: {after} must be after {before}")
 
         slicer = [slice(None, None)] * self._AXIS_LEN
-        slicer[axis] = slice(before, after)
+
+        # GH33756
+        # Inverse before/after if ax is in decreasing order.
+        if ax.is_monotonic_increasing:
+            slicer[axis] = slice(before, after)
+        else:
+            slicer[axis] = slice(after, before)
+
         result = self.loc[tuple(slicer)]
 
         if isinstance(ax, MultiIndex):

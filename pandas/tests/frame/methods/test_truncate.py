@@ -87,3 +87,45 @@ class TestDataFrameTruncate:
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
             df.truncate(before=2, after=20, axis=1)
+
+    def test_truncate_descendingorderindex(self):
+        # GH#33756
+
+        df = pd.DataFrame({"A": ["a", "b", "c", "d", "e"]}, index=[9, 6, 5, 4, 1])
+
+        start = 4
+        end = 6
+
+        start_missing = 3
+        end_missing = 7
+
+        # neither specified
+        truncated = df.truncate()
+        tm.assert_frame_equal(truncated, df)
+
+        # start specified
+        expected = df[:4]
+
+        truncated = df.truncate(before=start)
+        tm.assert_frame_equal(truncated, expected)
+
+        truncated = df.truncate(before=start_missing)
+        tm.assert_frame_equal(truncated, expected)
+
+        # end specified
+        expected = df[1:]
+
+        truncated = df.truncate(after=end)
+        tm.assert_frame_equal(truncated, expected)
+
+        truncated = df.truncate(after=end_missing)
+        tm.assert_frame_equal(truncated, expected)
+
+        # both specified
+        expected = df[1:4]
+
+        truncated = df.truncate(before=start, after=end)
+        tm.assert_frame_equal(truncated, expected)
+
+        truncated = df.truncate(before=start_missing, after=end_missing)
+        tm.assert_frame_equal(truncated, expected)
