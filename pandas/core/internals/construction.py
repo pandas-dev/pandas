@@ -3,13 +3,13 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, Dtype, Scalar
+from pandas._typing import Axis, DtypeObj, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -50,12 +50,20 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
 )
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
+
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
 
 def arrays_to_mgr(
-    arrays, arr_names, index, columns, dtype=None, verify_integrity: bool = True
+    arrays,
+    arr_names,
+    index,
+    columns,
+    dtype: Optional[DtypeObj] = None,
+    verify_integrity: bool = True,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -85,7 +93,9 @@ def arrays_to_mgr(
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
+def masked_rec_array_to_mgr(
+    data, index, columns, dtype: Optional[DtypeObj], copy: bool
+):
     """
     Extract from a masked rec array and create the manager.
     """
@@ -130,7 +140,7 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
 # DataFrame Constructor Interface
 
 
-def init_ndarray(values, index, columns, dtype=None, copy=False):
+def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -189,7 +199,10 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
                     f"failed to cast to '{dtype}' (Exception was: {orig})"
                 ) from orig
 
-    index, columns = _get_axes(*values.shape, index=index, columns=columns)
+    # _prep_ndarray ensures that values.ndim == 2 at this point
+    index, columns = _get_axes(
+        values.shape[0], values.shape[1], index=index, columns=columns
+    )
     values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
@@ -221,13 +234,15 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data, index, columns, dtype=None):
+def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
     """
+    arrays: Union[Sequence[Any], "Series"]
+
     if columns is not None:
-        from pandas.core.series import Series
+        from pandas.core.series import Series  # noqa:F811
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
@@ -244,7 +259,7 @@ def init_dict(data, index, columns, dtype=None):
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or np.issubdtype(dtype, np.flexible):
                 # GH#1783
-                nan_dtype = object
+                nan_dtype = np.dtype(object)
             else:
                 nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
@@ -253,7 +268,7 @@ def init_dict(data, index, columns, dtype=None):
     else:
         keys = list(data.keys())
         columns = data_names = Index(keys)
-        arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
+        arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
         arrays = [
@@ -308,7 +323,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype=None):
+def _homogenize(data, index, dtype: Optional[DtypeObj]):
     oindex = None
     homogenized = []
 
@@ -339,7 +354,10 @@ def _homogenize(data, index, dtype=None):
     return homogenized
 
 
-def extract_index(data):
+def extract_index(data) -> Index:
+    """
+    Try to infer an Index from the passed data, raise ValueError on failure.
+    """
     index = None
     if len(data) == 0:
         index = Index([])
@@ -381,6 +399,7 @@ def extract_index(data):
                 )
 
             if have_series:
+                assert index is not None  # for mypy
                 if lengths[0] != len(index):
                     msg = (
                         f"array length {lengths[0]} does not match index "
@@ -442,7 +461,8 @@ def _get_axes(N, K, index, columns) -> Tuple[Index, Index]:
 
 
 def dataclasses_to_dicts(data):
-    """    Converts a list of dataclass instances to a list of dictionaries
+    """
+    Converts a list of dataclass instances to a list of dictionaries.
 
     Parameters
     ----------
@@ -472,7 +492,9 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns, coerce_float=False, dtype=None):
+def to_arrays(
+    data, columns, coerce_float: bool = False, dtype: Optional[DtypeObj] = None
+):
     """
     Return list of arrays, columns.
     """
@@ -527,7 +549,7 @@ def _list_to_arrays(
     data: List[Scalar],
     columns: Union[Index, List],
     coerce_float: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
@@ -547,7 +569,7 @@ def _list_of_series_to_arrays(
     data: List,
     columns: Union[Index, List],
     coerce_float: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
@@ -585,7 +607,7 @@ def _list_of_dict_to_arrays(
     data: List,
     columns: Union[Index, List],
     coerce_float: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     """
     Convert list of dicts to numpy arrays
@@ -624,7 +646,7 @@ def _list_of_dict_to_arrays(
 
 
 def _validate_or_indexify_columns(
-    content: List, columns: Union[Index, List, None]
+    content: List, columns: Optional[Union[Index, List]]
 ) -> Union[Index, List[Axis]]:
     """
     If columns is None, make numbers as column names; Otherwise, validate that
@@ -682,7 +704,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[Scalar], coerce_float: bool = False, dtype: Optional[Dtype] = None
+    content: List[Scalar], coerce_float: bool = False, dtype: Optional[DtypeObj] = None
 ) -> List[Scalar]:
     """
     Internal function ot convert object array.
@@ -699,7 +721,7 @@ def _convert_object_array(
     """
     # provide soft conversion of object dtypes
     def convert(arr):
-        if dtype != object and dtype != np.object:
+        if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
             arr = maybe_cast_to_datetime(arr, dtype)
         return arr
