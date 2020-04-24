@@ -539,17 +539,14 @@ class _OpenpyxlReader(_BaseExcelReader):
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        for i, row in enumerate(sheet.rows):
-
-            should_continue, should_break = self.should_read_row(
+        max_row = None if nrows is None else header + skiprows + nrows + 1
+        for i, row in enumerate(sheet.iter_rows(max_row=max_row)):     
+            should_continue, _ = self.should_read_row(
                 i, header, skiprows, nrows
             )
             if should_continue:
                 data.append([])
-                continue
-            if should_break:
-                break
-
+                continue            
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
         return data
