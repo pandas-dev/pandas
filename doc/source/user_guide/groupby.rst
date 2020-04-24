@@ -1036,6 +1036,12 @@ and ``parallel`` are supported, and their default values are set to ``False``, `
 The function signature must start with ``values, index`` **exactly** as the data belonging to each group
 will be passed into ``values``, and the group index will be passed into ``index``.
 
+.. warning::
+
+   When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
+   data and group index will be passed as numpy arrays to the JITed user defined function, and no
+   alternative execution attempts will be tried.
+
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
