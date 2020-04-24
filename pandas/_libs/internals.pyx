@@ -141,10 +141,10 @@ cdef class BlockPlacement:
 
         return BlockPlacement(val)
 
-    def delete(self, loc) -> "BlockPlacement":
+    def delete(self, loc) -> BlockPlacement:
         return BlockPlacement(np.delete(self.as_array, loc, axis=0))
 
-    def append(self, others) -> "BlockPlacement":
+    def append(self, others) -> BlockPlacement:
         if not len(others):
             return self
 
@@ -185,7 +185,7 @@ cdef class BlockPlacement:
             val = newarr
             return BlockPlacement(val)
 
-    def add(self, other) -> "BlockPlacement":
+    def add(self, other) -> BlockPlacement:
         # We can get here with int or ndarray
         return self.iadd(other)
 

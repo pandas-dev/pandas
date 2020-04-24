@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
+from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -72,6 +72,37 @@ lzma = _import_lzma()
 _N = 30
 _K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
+
+UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+
+FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: List[Dtype] = [str, "str", "U"]
+
+DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
+
+BOOL_DTYPES = [bool, "bool"]
+BYTES_DTYPES = [bytes, "bytes"]
+OBJECT_DTYPES = [object, "object"]
+
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_NUMPY_DTYPES = (
+    ALL_REAL_DTYPES
+    + COMPLEX_DTYPES
+    + STRING_DTYPES
+    + DATETIME64_DTYPES
+    + TIMEDELTA64_DTYPES
+    + BOOL_DTYPES
+    + OBJECT_DTYPES
+    + BYTES_DTYPES
+)
+
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
@@ -248,16 +279,10 @@ def write_to_compressed(compression, path, data, dest="test"):
     ValueError : An invalid compression value was passed in.
     """
     if compression == "zip":
-        import zipfile
-
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        import gzip
-
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        import bz2
-
         compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = _get_lzma_file(lzma)

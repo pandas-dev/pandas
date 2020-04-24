@@ -571,10 +571,6 @@ class IntegerArray(BaseMaskedArray):
         if np.isnan(result):
             return libmissing.NA
 
-        # if we have a boolean op, don't coerce
-        if name in ["any", "all"]:
-            pass
-
         return result
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
