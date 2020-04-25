@@ -2843,6 +2843,25 @@ Name: Max Speed, dtype: float64
         1    2
         2    6
         dtype: int64
+
+        ``other`` can also be a non-Series object type 
+        that is coercible into a Series 
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update([4, np.nan, 6])
+        >>> s
+        0    4
+        1    2
+        2    6
+        dtype: int64
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update({1: 9})
+        >>> s
+        0    1
+        1    9
+        2    3
+        dtype: int64
         """
 
         if not isinstance(other, Series):
