@@ -448,7 +448,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
         parameter to select correct axis.
     x : scalar or array_like
         Of length M.
-    der : int or list, optional
+    der : int, optional
         How many derivatives to extract; None for all potentially
         nonzero derivatives (that is a number equal to the number
         of points), or a list of derivatives to extract. This number
@@ -470,12 +470,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
 
-    if der == 0:
-        return P(x)
-    elif is_scalar(der):
-        return P(x, nu=der)
-    else:
-        return [P(x, nu) for nu in der]
+    return P(x, nu=der)
 
 
 def interpolate_2d(
