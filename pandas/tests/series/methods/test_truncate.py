@@ -84,9 +84,14 @@ class TestTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    def test_truncate_decreasing_index(self, before, after, indices):
+    @pytest.mark.parametrize("klass", [pd.Int64Index, pd.DatetimeIndex])
+    def test_truncate_decreasing_index(self, before, after, indices, klass):
         # https://github.com/pandas-dev/pandas/issues/33756
-        idx = pd.Index([3, 2, 1, 0])
+        idx = klass([3, 2, 1, 0])
+        if klass is pd.DatetimeIndex:
+            before = pd.Timestamp(before) if before is not None else None
+            after = pd.Timestamp(after) if after is not None else None
+            indices = [pd.Timestamp(i) for i in indices]
         values = pd.Series(range(len(idx)), index=idx)
         result = values.truncate(before=before, after=after)
         expected = values.loc[indices]
