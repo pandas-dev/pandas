@@ -302,7 +302,13 @@ class TestDatetimeArray(SharedTests):
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)
+        expected._set_freq(None)
         tm.assert_index_equal(result, expected)
+
+        dta = dti._data
+        result = dta.round(freq="2T")
+        expected = expected._data
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
         arr = DatetimeArray(datetime_index)
