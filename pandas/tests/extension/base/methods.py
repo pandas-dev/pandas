@@ -35,7 +35,7 @@ class BaseMethodsTests(BaseExtensionTests):
         )
 
         expected = pd.Series([1 / len(other)] * len(other), index=result.index)
-        self.assert_series_equal(expected, result)
+        self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})

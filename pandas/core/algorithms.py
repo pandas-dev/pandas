@@ -712,14 +712,12 @@ def value_counts(
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name, dtype="Int64")
+            result = Series(counts, index=keys, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        if not isinstance(counts, np.ndarray):
-            counts = counts.to_numpy()
         result = result / float(counts.sum())
     else:
         result = result.astype("Int64")
