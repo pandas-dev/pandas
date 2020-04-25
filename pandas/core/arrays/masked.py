@@ -273,4 +273,4 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         mask = np.zeros(len(counts), dtype="bool")
         counts = IntegerArray(counts, mask)
 
-        return Series(counts, index=index)
+        return Series(counts, index=index, dtype="Int64")
