@@ -57,23 +57,19 @@ class TestUpdate:
 
         tm.assert_series_equal(ser, expected)
 
-    def test_update_from_non_series(self):
-        s = Series({"a": 1, "b": 2, "c": 3, "d": 4})
-
-        d = {"b": 5, "c": np.nan}
-
+    @pytest.mark.parametrize(
+        "s, d, expected",
+        [
+            # update by key
+            (
+                Series({"a": 1, "b": 2, "c": 3, "d": 4}),
+                {"b": 5, "c": np.nan},
+                Series({"a": 1, "b": 5, "c": 3, "d": 4}),
+            ),
+            # update by position
+            (Series([1, 2, 3, 4]), [np.nan, 5, 1], Series([1, 5, 1, 4])),
+        ],
+    )
+    def test_update_from_non_series(self, s, d, expected):
         s.update(d)
-
-        expected = Series({"a": 1, "b": 5, "c": 3, "d": 4})
-
-        tm.assert_series_equal(s, expected)
-
-        s = Series([1, 2, 3, 4])
-
-        d = [np.nan, 5, 1]
-
-        s.update(d)
-
-        expected = Series([1, 5, 1, 4])
-
         tm.assert_series_equal(s, expected)
