@@ -32,7 +32,9 @@ class TestTimedeltaIndex(DatetimeLike):
     def create_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
         assert index.freq == "D"
-        return index + pd.offsets.Hour(1)
+        ret = index + pd.offsets.Hour(1)
+        assert ret.freq == "D"
+        return ret
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
