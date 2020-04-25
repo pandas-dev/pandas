@@ -17,7 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops
-from pandas.core.algorithms import searchsorted, unique
+from pandas.core.algorithms import searchsorted
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
@@ -321,9 +321,6 @@ class PandasArray(
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
-
-    def unique(self) -> "PandasArray":
-        return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------
     # Reductions

@@ -5,7 +5,7 @@ import numpy as np
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
-from pandas.core.algorithms import take
+from pandas.core.algorithms import take, unique
 from pandas.core.arrays.base import ExtensionArray
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
@@ -112,4 +112,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         nv.validate_repeat(tuple(), dict(axis=axis))
         new_data = self._ndarray.repeat(repeats, axis=axis)
+        return self._from_backing_data(new_data)
+
+    def unique(self: _T) -> _T:
+        new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)

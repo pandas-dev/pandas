@@ -650,10 +650,6 @@ class DatetimeLikeArrayMixin(
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
-        result = unique1d(self.asi8)
-        return type(self)(result, dtype=self.dtype)
-
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
 
@@ -683,7 +679,6 @@ class DatetimeLikeArrayMixin(
 
         return cls._simple_new(values, dtype=dtype, freq=new_freq)
 
-    # TODO: Find a way to preserve freq and use this in NDarrayBackedEA
     def copy(self):
         values = self.asi8.copy()
         return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
