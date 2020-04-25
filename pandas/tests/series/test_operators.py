@@ -266,23 +266,24 @@ class TestSeriesLogicalOps:
         result = s & list(s)
         tm.assert_series_equal(result, expected)
 
+    def test_scalar_na_logical_ops_corners_aligns(self):
+        s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
+        s[::2] = np.nan
         d = DataFrame({"A": s})
-        # TODO: Fix this exception - needs to be fixed! (see GH5035)
-        # (previously this was a TypeError because series returned
-        # NotImplemented
 
-        # this is an alignment issue; these are equivalent
-        # https://github.com/pandas-dev/pandas/issues/5284
+        expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
 
-        with pytest.raises(TypeError):
-            d.__and__(s, axis="columns")
-        with pytest.raises(TypeError):
-            d.__and__(s, axis=1)
+        result = d.__and__(s, axis="columns")
+        tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(TypeError):
-            s & d
-        with pytest.raises(TypeError):
-            d & s
+        result = d.__and__(s, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        result = s & d
+        tm.assert_frame_equal(result, expected)
+
+        result = d & s
+        tm.assert_frame_equal(result, expected)
 
         expected = (s & s).to_frame("A")
         result = d.__and__(s, axis="index")

@@ -518,11 +518,22 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self._data / other
 
         elif is_object_dtype(other.dtype):
-            # Note: we do not do type inference on the result, so either
-            #  an object array or numeric-dtyped (if numpy does inference)
-            #  will be returned.  GH#23829
-            result = [self[n] / other[n] for n in range(len(self))]
-            result = np.array(result)
+            # We operate on raveled arrays to avoid problems in inference
+            #  on NaT
+            srav = self.ravel()
+            orav = other.ravel()
+            result = [srav[n] / orav[n] for n in range(len(srav))]
+            result = np.array(result).reshape(self.shape)
+
+            # We need to do dtype inference in order to keep DataFrame ops
+            #  behavior consistent with Series behavior
+            inferred = lib.infer_dtype(result)
+            if inferred == "timedelta":
+                flat = result.ravel()
+                result = type(self)._from_sequence(flat).reshape(result.shape)
+            elif inferred == "floating":
+                result = result.astype(float)
+
             return result
 
         else:

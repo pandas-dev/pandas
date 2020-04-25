@@ -522,6 +522,16 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
         new_data = dispatch_to_series(left, right, func)
 
     else:
+        rvalues = right._values
+        if isinstance(rvalues, np.ndarray):
+            # We can operate block-wise
+            rvalues = rvalues.reshape(1, -1)
+            rvalues = np.broadcast_to(rvalues, left.shape)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
+            return type(left)(bm)
+
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
     return left._construct_result(new_data)
