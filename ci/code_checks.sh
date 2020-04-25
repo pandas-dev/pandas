@@ -150,7 +150,13 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas._testing instead of `import pandas._testing as tm`
     invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas import _testing as tm" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # No direct imports from conftest
+    invgrep -R --include="*.py*" -E "conftest import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    invgrep -R --include="*.py*" -E "import conftest" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG

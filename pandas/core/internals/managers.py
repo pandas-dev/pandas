@@ -373,23 +373,20 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
-        align_copy = False
-        if f == "where":
-            align_copy = True
-
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
             if aligned_args:
-                b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
-                        axis = obj._info_axis_number
-                        kwargs[k] = obj.reindex(
-                            b_items, axis=axis, copy=align_copy
-                        )._values
+                        # The caller is responsible for ensuring that
+                        #  obj.axes[-1].equals(self.items)
+                        if obj.ndim == 1:
+                            kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
+                        else:
+                            kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
@@ -983,24 +980,6 @@ class BlockManager(PandasObject):
         )
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item: Label, value):
-        """
-        Set new item in-place.
-
-        Notes
-        -----
-        Does not consolidate.
-        Adds new Block if not contained in the current items Index.
-        """
-        try:
-            loc = self.items.get_loc(item)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self.insert(len(self.items), item, value)
-            return
-
-        self.iset(loc, value)
-
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
@@ -1143,6 +1122,7 @@ class BlockManager(PandasObject):
         new_axis = self.items.insert(loc, item)
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+            # TODO(EA2D): special case not needed with 2D EAs
             value = _safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
