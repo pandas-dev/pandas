@@ -100,10 +100,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -1917,7 +1917,12 @@ class DataFrame(NDFrame):
 
     @classmethod
     def _from_arrays(
-        cls, arrays, columns, index, dtype=None, verify_integrity=True
+        cls,
+        arrays,
+        columns,
+        index,
+        dtype: Optional[Dtype] = None,
+        verify_integrity: bool = True,
     ) -> "DataFrame":
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -1943,6 +1948,9 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -3649,7 +3657,9 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._mgr.iget(idx), index=self.index, name=item)
+            item: Series(
+                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
+            )
             for idx, item in enumerate(self.columns)
         }
 
@@ -8223,7 +8233,7 @@ Wild         185.0
 
         dtype_is_dt = np.array(
             [
-                is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
+                is_datetime64_any_dtype(values.dtype)
                 for values in self._iter_column_arrays()
             ],
             dtype=bool,
@@ -8231,7 +8241,7 @@ Wild         185.0
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
                 "DataFrame.mean and DataFrame.median with numeric_only=None "
-                "will include datetime64, datetime64tz, and PeriodDtype columns in a "
+                "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=3,

@@ -99,6 +99,7 @@ Other enhancements
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`)
+- :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -461,6 +462,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.to_period` not infering the frequency when called with no arguments (:issue:`33358`)
 - Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
 - Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
+- Bug in :class:`DatetimeIndex` addition and subtraction with some types of :class:`DateOffset` objects incorrectly retaining an invalid ``freq`` attribute (:issue:`33779`)
 
 Timedelta
 ^^^^^^^^^
