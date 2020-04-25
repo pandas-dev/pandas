@@ -197,9 +197,15 @@ class TestWhere:
             # non-matching scalar
             dti.where(notna(i2), pd.Timedelta(days=4))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            # non-matching NA value
-            dti.where(notna(i2), np.timedelta64("NaT", "ns"))
+    def test_where_mismatched_nat(self, tz_aware_fixture):
+        tz = tz_aware_fixture
+        dti = pd.date_range("2013-01-01", periods=3, tz=tz)
+        cond = np.array([True, False, True])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            dti.where(cond, np.timedelta64("NaT", "ns"))
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
