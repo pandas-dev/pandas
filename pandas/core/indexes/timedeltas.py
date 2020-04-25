@@ -197,11 +197,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _maybe_promote(self, other):
-        if other.inferred_type == "timedelta":
-            other = TimedeltaIndex(other)
-        return self, other
-
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
         Can we compare values of the given dtype to our own?
