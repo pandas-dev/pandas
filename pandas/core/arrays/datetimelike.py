@@ -466,24 +466,6 @@ class DatetimeLikeArrayMixin(
     # ------------------------------------------------------------------
 
     @property
-    def ndim(self) -> int:
-        return self._data.ndim
-
-    @property
-    def shape(self):
-        return self._data.shape
-
-    def reshape(self, *args, **kwargs):
-        # Note: we drop any freq
-        data = self._data.reshape(*args, **kwargs)
-        return type(self)(data, dtype=self.dtype)
-
-    def ravel(self, *args, **kwargs):
-        # Note: we drop any freq
-        data = self._data.ravel(*args, **kwargs)
-        return type(self)(data, dtype=self.dtype)
-
-    @property
     def _box_func(self):
         """
         box function to get object from internal representation
@@ -532,23 +514,11 @@ class DatetimeLikeArrayMixin(
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    @property
-    def nbytes(self):
-        return self._data.nbytes
-
     def __array__(self, dtype=None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         return self._data
-
-    @property
-    def size(self) -> int:
-        """The number of elements in this array."""
-        return np.prod(self.shape)
-
-    def __len__(self) -> int:
-        return len(self._data)
 
     def __getitem__(self, key):
         """
@@ -679,10 +649,6 @@ class DatetimeLikeArrayMixin(
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
-
-    def unique(self):
-        result = unique1d(self.asi8)
-        return type(self)(result, dtype=self.dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
@@ -935,18 +901,6 @@ class DatetimeLikeArrayMixin(
 
         # TODO: Use datetime64 semantics for sorting, xref GH#29844
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
-
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of an array.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
-        return type(self)(values.view("i8"), dtype=self.dtype)
 
     def value_counts(self, dropna=False):
         """
