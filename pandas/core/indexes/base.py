@@ -1944,7 +1944,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self, skipna=False)
+        return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
     def is_all_dates(self) -> bool:
