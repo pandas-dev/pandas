@@ -233,7 +233,8 @@ class TestSeriesDatetimeValues:
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
-        exp_values._set_freq(None)  # freq not preserved by tz_localize above
+        # freq not preserved by tz_localize above
+        exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(s, expected)
 

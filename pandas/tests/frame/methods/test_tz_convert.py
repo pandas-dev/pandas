@@ -45,10 +45,10 @@ class TestTZConvert:
             df2 = DataFrame(np.ones(5), MultiIndex.from_arrays([l0, l1]))
 
             # freq is not preserved in MultiIndex construction
-            l1_expected._set_freq(None)
-            l0_expected._set_freq(None)
-            l1._set_freq(None)
-            l0._set_freq(None)
+            l1_expected = l1_expected._with_freq(None)
+            l0_expected = l0_expected._with_freq(None)
+            l1 = l1._with_freq(None)
+            l0 = l0._with_freq(None)
 
             df3 = getattr(df2, fn)("US/Pacific", level=0)
             assert not df3.index.levels[0].equals(l0)

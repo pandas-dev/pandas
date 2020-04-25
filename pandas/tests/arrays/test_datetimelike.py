@@ -302,7 +302,7 @@ class TestDatetimeArray(SharedTests):
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)
-        expected._set_freq(None)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
 
         dta = dti._data

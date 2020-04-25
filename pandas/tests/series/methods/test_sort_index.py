@@ -13,7 +13,7 @@ class TestSeriesSortIndex:
         assert result.name == datetime_series.name
 
     def test_sort_index(self, datetime_series):
-        datetime_series.index._set_freq(None)
+        datetime_series.index = datetime_series.index._with_freq(None)
 
         rindex = list(datetime_series.index)
         random.shuffle(rindex)
@@ -47,7 +47,7 @@ class TestSeriesSortIndex:
             random_order.sort_index(level=0, axis=1)
 
     def test_sort_index_inplace(self, datetime_series):
-        datetime_series.index._set_freq(None)
+        datetime_series.index = datetime_series.index._with_freq(None)
 
         # For GH#11402
         rindex = list(datetime_series.index)
