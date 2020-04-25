@@ -307,7 +307,7 @@ class TestDatetimeArray(SharedTests):
 
         dta = dti._data
         result = dta.round(freq="2T")
-        expected = expected._data
+        expected = expected._data._with_freq(None)
         tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
