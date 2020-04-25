@@ -163,9 +163,14 @@ class TestWhere:
             # non-matching scalar
             tdi.where(notna(i2), pd.Timestamp.now())
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            # non-matching NA value
-            tdi.where(notna(i2), np.datetime64("NaT", "ns"))
+    def test_where_mismatched_nat(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = np.array([True, False, False])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            tdi.where(cond, np.datetime64("NaT", "ns"))
 
 
 class TestTake:
