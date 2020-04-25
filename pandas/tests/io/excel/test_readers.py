@@ -1084,3 +1084,17 @@ class TestExcelFileRead:
         # should not produce a segmentation violation
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
+
+    def test_header_skiprows_nrows(self, engine, read_ext):
+        data = pd.read_excel("test1" + read_ext, engine=engine)
+        expected = (
+            DataFrame(data.iloc[3:6])
+            .reset_index(drop=True)
+            .rename(columns=data.iloc[2].rename(None))
+        )
+        actual = pd.read_excel(
+            "test1" + read_ext, engine=engine, header=1, skiprows=2, nrows=3
+        )
+        tm.assert_frame_equal(expected, actual)
+        actual = pd.read_excel("test1" + read_ext, engine=engine, skiprows=3, nrows=3)
+        tm.assert_frame_equal(expected, actual)

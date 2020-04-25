@@ -415,9 +415,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         skipped and second bool element determining if reading should be stopped.
         """
         if nrows is not None:
-            if index <= header - 1 + skiprows:
+            if index < header + skiprows - 1:
                 return True, False
-            if index <= header - 1 + skiprows + nrows + 1:
+            if index <= header + skiprows + nrows:
                 return False, False
             return False, True
         return False, False
