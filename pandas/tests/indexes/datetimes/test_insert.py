@@ -165,3 +165,26 @@ class TestInsert:
                 assert result.name == expected.name
                 assert result.tz == expected.tz
                 assert result.freq is None
+
+    @pytest.mark.parametrize(
+        "item", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456)]
+    )
+    def test_insert_mismatched_types_raises(self, tz_aware_fixture, item):
+        # GH#33703 dont cast these to dt64
+        tz = tz_aware_fixture
+        dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=tz)
+
+        msg = "incompatible label"
+        with pytest.raises(TypeError, match=msg):
+            dti.insert(1, item)
+
+    def test_insert_object_casting(self, tz_aware_fixture):
+        # GH#33703
+        tz = tz_aware_fixture
+        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=tz)
+
+        # ATM we treat this as a string, but we could plausibly wrap it in Timestamp
+        value = "2019-11-05"
+        result = dti.insert(0, value)
+        expected = Index(["2019-11-05"] + list(dti), dtype=object, name=9)
+        tm.assert_index_equal(result, expected)

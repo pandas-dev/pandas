@@ -966,37 +966,30 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         -------
         new_index : Index
         """
+        if isinstance(item, str):
+            # TODO: Why are strings special?
+            # TODO: Should we attempt _scalar_from_string?
+            return self.astype(object).insert(loc, item)
+
         item = self._data._validate_insert_value(item)
 
         freq = None
-        if isinstance(item, self._data._scalar_type) or item is NaT:
-            self._data._check_compatible_with(item, setitem=True)
-
-            # check freq can be preserved on edge cases
-            if self.size and self.freq is not None:
+        # check freq can be preserved on edge cases
+        if self.freq is not None:
+            if self.size:
                 if item is NaT:
                     pass
                 elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            elif self.freq is not None:
+            else:
                 # Adding a single item to an empty index may preserve freq
                 if self.freq.is_on_offset(item):
                     freq = self.freq
-            item = item.asm8
 
-        try:
-            new_i8s = np.concatenate(
-                (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
-            )
-            arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
-            return type(self)._simple_new(arr, name=self.name)
-        except (AttributeError, TypeError) as err:
+        item = self._data._unbox_scalar(item)
 
-            # fall back to object index
-            if isinstance(item, str):
-                return self.astype(object).insert(loc, item)
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            ) from err
+        new_i8s = np.concatenate([self[:loc].asi8, [item], self[loc:].asi8])
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(arr, name=self.name)
