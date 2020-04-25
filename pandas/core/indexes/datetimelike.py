@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, cast
 
 import numpy as np
 
@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -26,7 +25,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -80,8 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
-    DatetimeLikeArrayMixin,
+    ["mean", "freq", "freqstr", "asi8", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -495,23 +492,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def where(self, cond, other=None):
         values = self.view("i8")
 
-        if is_scalar(other) and isna(other):
-            other = NaT.value
-
-        else:
-            # Do type inference if necessary up front
-            # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            other = Index(other)
-
-            if is_categorical_dtype(other):
-                # e.g. we have a Categorical holding self.dtype
-                if is_dtype_equal(other.categories.dtype, self.dtype):
-                    other = other._internal_get_values()
-
-            if not is_dtype_equal(self.dtype, other.dtype):
-                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
-
-            other = other.view("i8")
+        other = self._data._validate_where_value(other)
 
         result = np.where(cond, values, other).astype("i8")
         arr = type(self._data)._simple_new(result, dtype=self.dtype)
@@ -602,6 +583,22 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
         return type(self)._simple_new(arr, name=self.name)
 
+    # --------------------------------------------------------------------
+    # Join/Set Methods
+
+    def _wrap_joined_index(self, joined: np.ndarray, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
+        name = get_op_result_name(self, other)
+
+        if is_period_dtype(self.dtype):
+            freq = self.freq
+        else:
+            self = cast(DatetimeTimedeltaMixin, self)
+            freq = self.freq if self._can_fast_union(other) else None
+        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        return type(self)._simple_new(new_data, name=name)
+
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     """
@@ -624,6 +621,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         # GH#29843
         self._data._with_freq(freq)
+
+    def _with_freq(self, freq):
+        index = self.copy(deep=False)
+        index._set_freq(freq)
+        return index
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
@@ -724,10 +726,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[])
+            return type(self)(data=[], dtype=self.dtype, freq=self.freq)
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
+            left_chunk = left._values[lslice]
             return self._shallow_copy(left_chunk)
 
     def _can_fast_union(self, other) -> bool:
@@ -778,8 +780,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[:loc]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -793,8 +795,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
+            right_chunk = right._values[loc:]
+            dates = concat_compat([left._values, right_chunk])
             result = self._shallow_copy(dates)
             result._set_freq("infer")
             # TODO: can we infer that it has self.freq?
@@ -892,15 +894,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return True
         return False
 
-    def _wrap_joined_index(self, joined: np.ndarray, other):
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        name = get_op_result_name(self, other)
-
-        freq = self.freq if self._can_fast_union(other) else None
-        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
-
-        return type(self)._simple_new(new_data, name=name)
-
     # --------------------------------------------------------------------
     # List-Like Methods
 
@@ -919,15 +912,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         -------
         new_index : Index
         """
-        if isinstance(item, self._data._recognized_scalars):
-            item = self._data._scalar_type(item)
-        elif is_valid_nat_for_dtype(item, self.dtype):
-            # GH 18295
-            item = self._na_value
-        elif is_scalar(item) and isna(item):
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
+        item = self._data._validate_insert_value(item)
 
         freq = None
         if isinstance(item, self._data._scalar_type) or item is NaT:
@@ -940,6 +925,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            elif self.freq is not None:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
                     freq = self.freq
             item = item.asm8
 

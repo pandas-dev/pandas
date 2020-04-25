@@ -20,14 +20,6 @@ from pandas.core.dtypes.missing import isna
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
-from pandas.conftest import (
-    ALL_EA_INT_DTYPES,
-    ALL_INT_DTYPES,
-    SIGNED_EA_INT_DTYPES,
-    SIGNED_INT_DTYPES,
-    UNSIGNED_EA_INT_DTYPES,
-    UNSIGNED_INT_DTYPES,
-)
 
 
 # EA & Actual Dtypes
@@ -295,10 +287,10 @@ integer_dtypes: List = []
     "dtype",
     integer_dtypes
     + [pd.Series([1, 2])]
-    + ALL_INT_DTYPES
-    + to_numpy_dtypes(ALL_INT_DTYPES)
-    + ALL_EA_INT_DTYPES
-    + to_ea_dtypes(ALL_EA_INT_DTYPES),
+    + tm.ALL_INT_DTYPES
+    + to_numpy_dtypes(tm.ALL_INT_DTYPES)
+    + tm.ALL_EA_INT_DTYPES
+    + to_ea_dtypes(tm.ALL_EA_INT_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -327,10 +319,10 @@ signed_integer_dtypes: List = []
     "dtype",
     signed_integer_dtypes
     + [pd.Series([1, 2])]
-    + SIGNED_INT_DTYPES
-    + to_numpy_dtypes(SIGNED_INT_DTYPES)
-    + SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
+    + tm.SIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -347,10 +339,10 @@ def test_is_signed_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
-    + UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
+    + tm.UNSIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -363,10 +355,10 @@ unsigned_integer_dtypes: List = []
     "dtype",
     unsigned_integer_dtypes
     + [pd.Series([1, 2], dtype=np.uint32)]
-    + UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
-    + UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
+    + tm.UNSIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -383,10 +375,10 @@ def test_is_unsigned_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + SIGNED_INT_DTYPES
-    + to_numpy_dtypes(SIGNED_INT_DTYPES)
-    + SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
+    + tm.SIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)

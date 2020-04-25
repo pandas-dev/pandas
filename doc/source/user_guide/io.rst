@@ -285,14 +285,18 @@ chunksize : int, default ``None``
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``}, default ``'infer'``
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
   bz2, zip, or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
   '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
-  Set to ``None`` for no decompression.
+  Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``}, and other keys set to
+  compression settings. As an example, the following could be passed for
+  faster compression: ``compression={'method': 'gzip', 'compresslevel': 1}``.
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
+  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -3347,6 +3351,12 @@ The compression type can be an explicit parameter or be inferred from the file e
 If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
 ``'.xz'``, respectively.
 
+The compression parameter can also be a ``dict`` in order to pass options to the
+compression protocol. It must have a ``'method'`` key set to the name
+of the compression protocol, which must be one of
+{``'zip'``, ``'gzip'``, ``'bz2'``}. All other key-value pairs are passed to
+the underlying compression library.
+
 .. ipython:: python
 
    df = pd.DataFrame({
@@ -3382,6 +3392,15 @@ The default is to 'infer':
    df["A"].to_pickle("s1.pkl.bz2")
    rt = pd.read_pickle("s1.pkl.bz2")
    rt
+
+Passing options to the compression protocol in order to speed up compression:
+
+.. ipython:: python
+
+   df.to_pickle(
+       "data.pkl.gz",
+       compression={"method": "gzip", 'compresslevel': 1}
+   )
 
 .. ipython:: python
    :suppress:
@@ -4583,17 +4602,15 @@ frames efficient, and to make sharing data across data analysis languages easy.
 Feather is designed to faithfully serialize and de-serialize DataFrames, supporting all of the pandas
 dtypes, including extension dtypes such as categorical and datetime with tz.
 
-Several caveats.
+Several caveats:
 
-* This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
-  to the earlier versions.
 * The format will NOT write an ``Index``, or ``MultiIndex`` for the
   ``DataFrame`` and will raise an error if a non-default one is provided. You
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 * Duplicate column names and non-string columns names are not supported
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* Actual Python objects in object dtype columns are not supported. These will
+  raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
