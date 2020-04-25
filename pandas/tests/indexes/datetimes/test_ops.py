@@ -134,7 +134,7 @@ class TestDatetimeIndexOps:
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
-        expected.index._set_freq(None)
+        expected.index = expected.index._with_freq(None)
 
         for obj in [idx, Series(idx)]:
 
