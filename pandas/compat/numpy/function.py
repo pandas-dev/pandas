@@ -251,10 +251,15 @@ STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
-PROD_DEFAULTS = SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
 SUM_DEFAULTS["axis"] = None
 SUM_DEFAULTS["keepdims"] = False
 SUM_DEFAULTS["initial"] = None
+
+PROD_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+PROD_DEFAULTS["axis"] = None
+PROD_DEFAULTS["keepdims"] = False
+PROD_DEFAULTS["initial"] = None
 
 MEDIAN_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
 MEDIAN_DEFAULTS["overwrite_input"] = False
