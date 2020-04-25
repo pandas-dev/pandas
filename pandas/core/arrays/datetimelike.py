@@ -758,7 +758,7 @@ class DatetimeLikeArrayMixin(
         ------
         ValueError
         """
-        if isna(fill_value):
+        if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = iNaT
         elif isinstance(fill_value, self._recognized_scalars):
             self._check_compatible_with(fill_value)
@@ -766,7 +766,8 @@ class DatetimeLikeArrayMixin(
             fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
-                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
+                f"'fill_value' should be a {self._scalar_type}. "
+                f"Got '{str(fill_value)}'."
             )
         return fill_value
 
@@ -867,8 +868,11 @@ class DatetimeLikeArrayMixin(
         return value
 
     def _validate_where_value(self, other):
-        if lib.is_scalar(other) and isna(other):
+        if is_valid_nat_for_dtype(other, self.dtype):
             other = NaT.value
+        elif not is_list_like(other):
+            # TODO: what about own-type scalars?
+            raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
             # Do type inference if necessary up front
