@@ -2844,8 +2844,8 @@ Name: Max Speed, dtype: float64
         2    6
         dtype: int64
 
-        ``other`` can also be a non-Series object type 
-        that is coercible into a Series 
+        ``other`` can also be a non-Series object type
+        that is coercible into a Series
 
         >>> s = pd.Series([1, 2, 3])
         >>> s.update([4, np.nan, 6])
