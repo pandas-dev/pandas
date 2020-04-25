@@ -111,7 +111,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
-    _infer_as_myclass = True
 
     _data: TimedeltaArray
 
@@ -197,11 +196,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 return Index(result, name=self.name)
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
-
-    def _maybe_promote(self, other):
-        if other.inferred_type == "timedelta":
-            other = TimedeltaIndex(other)
-        return self, other
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """

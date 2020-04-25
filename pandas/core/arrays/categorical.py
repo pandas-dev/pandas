@@ -49,9 +49,10 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
+from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
+from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays.base import _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -199,7 +200,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(ExtensionArray, PandasObject):
+class Categorical(NDArrayBackedExtensionArray, PandasObject):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -330,7 +331,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
-                sanitize_dtype = "object" if len(values) == 0 else None
+                sanitize_dtype = np.dtype("O") if len(values) == 0 else None
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
@@ -1238,7 +1239,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _validate_fill_value(self, fill_value):
         """
-        Convert a user-facing fill_value to  a representation to use with our
+        Convert a user-facing fill_value to a representation to use with our
         underlying ndarray, raising ValueError if this is not possible.
 
         Parameters
@@ -1768,7 +1769,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
-    def take(self, indexer, allow_fill: bool = False, fill_value=None):
+    def take(self: _T, indexer, allow_fill: bool = False, fill_value=None) -> _T:
         """
         Take elements from the Categorical.
 
@@ -1837,16 +1838,23 @@ class Categorical(ExtensionArray, PandasObject):
         Categories (2, object): [a, b]
 
         Specifying a fill value that's not in ``self.categories``
-        will raise a ``TypeError``.
+        will raise a ``ValueError``.
         """
-        indexer = np.asarray(indexer, dtype=np.intp)
+        return NDArrayBackedExtensionArray.take(
+            self, indexer, allow_fill=allow_fill, fill_value=fill_value
+        )
 
-        if allow_fill:
-            # convert user-provided `fill_value` to codes
-            fill_value = self._validate_fill_value(fill_value)
+    # ------------------------------------------------------------------
+    # NDArrayBackedExtensionArray compat
 
-        codes = take(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)
-        return self._constructor(codes, dtype=self.dtype, fastpath=True)
+    @property
+    def _ndarray(self) -> np.ndarray:
+        return self._codes
+
+    def _from_backing_data(self, arr: np.ndarray) -> "Categorical":
+        return self._constructor(arr, dtype=self.dtype, fastpath=True)
+
+    # ------------------------------------------------------------------
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
         # GH#27745 deprecate alias that other EAs dont have

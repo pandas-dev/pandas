@@ -174,7 +174,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
 
-        i2 = dti.copy()
         i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -193,6 +192,10 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             dti.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            dti.where(notna(i2), pd.Timedelta(days=4))
 
     def test_where_mismatched_nat(self, tz_aware_fixture):
         tz = tz_aware_fixture

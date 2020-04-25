@@ -368,7 +368,8 @@ class TestDatetimeIndex:
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, exp_arr)
-            tm.assert_index_equal(res, base)
+            expected = base._with_freq(None)
+            tm.assert_index_equal(res, expected)
 
     def test_factorize_dst(self):
         # GH 13750
@@ -462,6 +463,5 @@ class TestDatetimeIndex:
         # GH 14042
         indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
         result = np.split(indices, indices_or_sections=[])[0]
-        expected = indices.copy()
-        expected._set_freq(None)
+        expected = indices._with_freq(None)
         tm.assert_index_equal(result, expected)
