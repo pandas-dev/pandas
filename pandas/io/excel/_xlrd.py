@@ -51,7 +51,7 @@ class _XlrdReader(_BaseExcelReader):
     def get_sheet_data(
         self,
         sheet,
-        convert_float,
+        convert_float: bool,
         header: Optional[Union[int, Sequence[int]]],
         skiprows: Optional[Union[int, Sequence[int]]],
         nrows: Optional[int],
