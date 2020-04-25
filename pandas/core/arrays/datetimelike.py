@@ -1796,6 +1796,7 @@ def maybe_infer_freq(freq):
     -------
     freq : {DateOffset, None}
     freq_infer : bool
+        Whether we should inherit the freq of passed data.
     """
     freq_infer = False
     if not isinstance(freq, DateOffset):
