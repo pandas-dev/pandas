@@ -131,7 +131,7 @@ class TestDatetimeIndex:
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
-        i._set_freq(None)
+        i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
