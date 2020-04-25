@@ -541,9 +541,14 @@ class TestWhere:
             # non-matching scalar
             pi.where(notna(i2), Timedelta(days=4))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            # non-matching NA value
-            pi.where(notna(i2), np.timedelta64("NaT", "ns"))
+    def test_where_mismatched_nat(self):
+        pi = period_range("20130101", periods=5, freq="D")
+        cond = np.array([True, False, True, True, False])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            pi.where(cond, np.timedelta64("NaT", "ns"))
 
 
 class TestTake:
