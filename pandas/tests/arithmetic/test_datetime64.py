@@ -2052,6 +2052,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected._set_freq(None)
 
         # add with TimdeltaIndex
         result = dti + tdi
@@ -2073,6 +2074,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected._set_freq(None)
 
         # iadd with TimdeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
@@ -2098,6 +2100,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # sub with TimedeltaIndex
         result = dti - tdi
@@ -2121,6 +2124,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # isub with TimedeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)

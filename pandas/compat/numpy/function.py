@@ -157,7 +157,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS = dict(out=None)  # type Dict[str, Any]
+CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )

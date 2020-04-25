@@ -144,7 +144,8 @@ class TestTimedeltaIndexOps:
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(expected, result)
         assert result.freq is None
 
     @pytest.mark.parametrize(
