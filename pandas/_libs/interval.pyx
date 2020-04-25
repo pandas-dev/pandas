@@ -1,6 +1,9 @@
 import numbers
 from operator import le, lt
 
+from cpython.datetime cimport PyDelta_Check, PyDateTime_IMPORT
+PyDateTime_IMPORT
+
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -10,7 +13,6 @@ from cpython.object cimport (
     Py_NE,
     PyObject_RichCompare,
 )
-
 
 import cython
 from cython import Py_ssize_t
@@ -34,7 +36,11 @@ cnp.import_array()
 cimport pandas._libs.util as util
 
 from pandas._libs.hashtable cimport Int64Vector
-from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
+from pandas._libs.tslibs.util cimport (
+    is_integer_object,
+    is_float_object,
+    is_timedelta64_object,
+)
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -294,6 +300,7 @@ cdef class Interval(IntervalMixin):
     True
     """
     _typ = "interval"
+    __array_priority__ = 1000
 
     cdef readonly object left
     """
@@ -398,14 +405,29 @@ cdef class Interval(IntervalMixin):
         return f'{start_symbol}{left}, {right}{end_symbol}'
 
     def __add__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+        elif (
+            isinstance(y, Interval)
+            and (
+                isinstance(self, numbers.Number)
+                or PyDelta_Check(self)
+                or is_timedelta64_object(self)
+            )
+        ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
