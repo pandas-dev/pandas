@@ -134,7 +134,7 @@ class TestDatetimeIndexOps:
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
-        expected.index._set_freq(None)
+        expected.index = expected.index._with_freq(None)
 
         for obj in [idx, Series(idx)]:
 
@@ -405,6 +405,20 @@ class TestDatetimeIndexOps:
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
+
+    def test_freq_view_safe(self):
+        # Setting the freq for one DatetimeIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        dti = pd.date_range("2016-01-01", periods=5)
+        dta = dti._data
+
+        dti2 = DatetimeIndex(dta)._with_freq(None)
+        assert dti2.freq is None
+
+        # Original was not altered
+        assert dti.freq == "D"
+        assert dta.freq == "D"
 
 
 class TestBusinessDatetimeIndex:
