@@ -3,10 +3,12 @@ import datetime
 from io import BytesIO
 import os
 from textwrap import fill
+from typing import List, Optional, Sequence, Tuple
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas._typing import Union
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender
 
@@ -386,7 +388,13 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
         pass
 
-    def should_read_row(self, index, header, skiprows, nrows):
+    def should_read_row(
+        self,
+        index,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> Tuple[bool, bool]:
         """
         Determines whether row should be read.
 
