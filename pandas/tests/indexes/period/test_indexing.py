@@ -526,7 +526,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         pi = period_range("20130101", periods=5, freq="D")
 
-        i2 = pi.copy()
         i2 = PeriodIndex([NaT, NaT] + pi[2:].tolist(), freq="D")
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -537,6 +536,14 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             pi.where(notna(i2), i2.to_timestamp("S"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            pi.where(notna(i2), Timedelta(days=4))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching NA value
+            pi.where(notna(i2), np.timedelta64("NaT", "ns"))
 
 
 class TestTake:

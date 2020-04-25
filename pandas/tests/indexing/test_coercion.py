@@ -700,7 +700,7 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
+        msg = "Where requires matching dtype, not .*Timestamp"
         with pytest.raises(TypeError, match=msg):
             obj.where(cond, fill_val)
 
