@@ -211,7 +211,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
 
     Notes
     -----
-    See `_as_json_table_type` for conversion types.
+    See [`Table Schema`](https://pandas.pydata.org/docs/user_guide/io.html#table-schema) for conversion types.
     Timedeltas as converted to ISO8601 duration format with
     9 decimal places after the seconds field for nanosecond precision.
 
