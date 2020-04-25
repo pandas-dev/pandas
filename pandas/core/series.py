@@ -2764,7 +2764,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        other : Series, or object coercible into Series
+        other : Series
             The value(s) to be combined with the `Series`.
 
         Returns
@@ -2805,7 +2805,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        other : Series
+        other : Series, or object coercible into Series
 
         Examples
         --------
