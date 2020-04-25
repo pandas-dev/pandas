@@ -463,6 +463,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.tz_localize` incorrectly retaining ``freq`` in some cases where the original freq is no longer valid (:issue:`30511`)
 - Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
 - Bug in :meth:`DatetimeIndex.get_indexer` where incorrect output would be returned for mixed datetime-like targets (:issue:`33741`)
+- Bug in :class:`DatetimeIndex` addition and subtraction with some types of :class:`DateOffset` objects incorrectly retaining an invalid ``freq`` attribute (:issue:`33779`)
 
 Timedelta
 ^^^^^^^^^
