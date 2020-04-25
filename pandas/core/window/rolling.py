@@ -472,13 +472,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, BaseIndexer):
+                    if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
                     else:
                         min_periods = calculate_min_periods(
-                            self.min_periods or 1,
+                            window_indexer.window_size,
                             self.min_periods,
                             len(x),
                             require_min_periods,

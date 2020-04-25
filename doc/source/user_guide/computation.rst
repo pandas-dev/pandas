@@ -318,8 +318,8 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
     :meth:`~Rolling.apply`, Generic apply
-    :meth:`~Rolling.cov`, Unbiased covariance (binary)
-    :meth:`~Rolling.corr`, Correlation (binary)
+    :meth:`~Rolling.cov`, Sample covariance (binary)
+    :meth:`~Rolling.corr`, Sample correlation (binary)
 
 .. _computation.window_variance.caveats:
 
@@ -340,6 +340,8 @@ We provide a number of common statistical functions:
    these methods to use population variance instead of sample variance. Using
    sample variance under the circumstances would result in a biased estimator
    of the variable we are trying to determine.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. _stats.rolling_apply:
 
@@ -870,12 +872,12 @@ Method summary
     :meth:`~Expanding.max`, Maximum
     :meth:`~Expanding.std`, Sample standard deviation
     :meth:`~Expanding.var`, Sample variance
-    :meth:`~Expanding.skew`, Unbiased skewness (3rd moment)
-    :meth:`~Expanding.kurt`, Unbiased kurtosis (4th moment)
+    :meth:`~Expanding.skew`, Sample skewness (3rd moment)
+    :meth:`~Expanding.kurt`, Sample kurtosis (4th moment)
     :meth:`~Expanding.quantile`, Sample quantile (value at %)
     :meth:`~Expanding.apply`, Generic apply
-    :meth:`~Expanding.cov`, Unbiased covariance (binary)
-    :meth:`~Expanding.corr`, Correlation (binary)
+    :meth:`~Expanding.cov`, Sample covariance (binary)
+    :meth:`~Expanding.corr`, Sample correlation (binary)
 
 .. note::
 
@@ -883,6 +885,8 @@ Method summary
    :meth:`~Expanding.var` comes with the same caveats as using them with rolling
    windows. See :ref:`this section <computation.window_variance.caveats>` for more
    information.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. currentmodule:: pandas
 
