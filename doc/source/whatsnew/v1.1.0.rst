@@ -500,6 +500,7 @@ Strings
 ^^^^^^^
 
 - Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
+- Fixed issue where taking ``min`` or ``max`` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 - Bug in :meth:`Series.str.cat` returning ``NaN`` output when other had :class:`Index` type (:issue:`33425`)
 
 
@@ -661,6 +662,7 @@ Other
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
+- :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
 
 .. ---------------------------------------------------------------------------
 
