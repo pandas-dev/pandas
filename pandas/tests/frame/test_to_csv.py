@@ -1174,6 +1174,7 @@ class TestDataFrameToCSV:
         # GH11619
         idx = pd.date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
         idx = idx._with_freq(None)  # freq does not round-trip
+        idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             df.to_csv(path, index=True)
