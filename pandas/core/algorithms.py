@@ -415,7 +415,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps.isin(values)  # type: ignore
+        return comps.isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -678,6 +678,7 @@ def value_counts(
     -------
     Series
     """
+
     from pandas.core.series import Series
 
     name = getattr(values, "name", None)
