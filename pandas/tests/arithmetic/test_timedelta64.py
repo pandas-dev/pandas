@@ -313,7 +313,9 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dti - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], name="bar")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], freq="D", name="bar"
+        )
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dt - tdi
@@ -487,6 +489,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
+        back = back._with_freq("infer")
         tm.assert_index_equal(index, back)
 
         if freq == "D":
@@ -510,7 +513,13 @@ class TestTimedelta64ArithmeticUnsorted:
         result2 = DatetimeIndex(s - np.timedelta64(100000000))
         result3 = rng - np.timedelta64(100000000)
         result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+
+        assert result1.freq == rng.freq
+        result1 = result1._with_freq(None)
         tm.assert_index_equal(result1, result4)
+
+        assert result3.freq == rng.freq
+        result3 = result3._with_freq(None)
         tm.assert_index_equal(result2, result3)
 
     def test_tda_add_sub_index(self):

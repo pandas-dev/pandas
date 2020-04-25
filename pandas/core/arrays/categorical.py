@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
-    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -51,6 +50,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
@@ -199,17 +199,6 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """
-The category codes of this categorical.
-
-Level codes are an array if integer which are the positions of the real
-values in the categories array.
-
-There is not setter, use the other categorical methods and the normal item
-setter to change values in the categorical.
-"""
-
-
 class Categorical(ExtensionArray, PandasObject):
     """
     Represent a categorical variable in classic R / S-plus fashion.
@@ -341,7 +330,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
-                sanitize_dtype = "object" if len(values) == 0 else None
+                sanitize_dtype = np.dtype("O") if len(values) == 0 else None
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
@@ -370,7 +359,7 @@ class Categorical(ExtensionArray, PandasObject):
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
 
-        elif is_categorical_dtype(values):
+        elif is_categorical_dtype(values.dtype):
             old_codes = (
                 values._values.codes if isinstance(values, ABCSeries) else values.codes
             )
@@ -652,26 +641,25 @@ class Categorical(ExtensionArray, PandasObject):
 
         return cls(codes, dtype=dtype, fastpath=True)
 
-    def _get_codes(self):
+    @property
+    def codes(self) -> np.ndarray:
         """
-        Get the codes.
+        The category codes of this categorical.
+
+        Codes are an array of integers which are the positions of the actual
+        values in the categories array.
+
+        There is no setter, use the other categorical methods and the normal item
+        setter to change values in the categorical.
 
         Returns
         -------
-        codes : integer array view
-            A non writable view of the `codes` array.
+        ndarray[int]
+            A non-writable view of the `codes` array.
         """
         v = self._codes.view()
         v.flags.writeable = False
         return v
-
-    def _set_codes(self, codes):
-        """
-        Not settable by the user directly
-        """
-        raise ValueError("cannot set Categorical codes directly")
-
-    codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     def _set_categories(self, categories, fastpath=False):
         """
@@ -1241,23 +1229,41 @@ class Categorical(ExtensionArray, PandasObject):
         codes = self.codes
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
-        if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, ensure_platform_int(periods), axis=0)
-            if isna(fill_value):
-                fill_value = -1
-            elif fill_value in self.categories:
-                fill_value = self.categories.get_loc(fill_value)
-            else:
-                raise ValueError(
-                    f"'fill_value={fill_value}' is not present "
-                    "in this Categorical's categories"
-                )
-            if periods > 0:
-                codes[:periods] = fill_value
-            else:
-                codes[periods:] = fill_value
 
-        return self.from_codes(codes, dtype=self.dtype)
+        fill_value = self._validate_fill_value(fill_value)
+
+        codes = shift(codes.copy(), periods, axis=0, fill_value=fill_value)
+
+        return self._constructor(codes, dtype=self.dtype, fastpath=True)
+
+    def _validate_fill_value(self, fill_value):
+        """
+        Convert a user-facing fill_value to  a representation to use with our
+        underlying ndarray, raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : int
+
+        Raises
+        ------
+        ValueError
+        """
+
+        if isna(fill_value):
+            fill_value = -1
+        elif fill_value in self.categories:
+            fill_value = self.categories.get_loc(fill_value)
+        else:
+            raise ValueError(
+                f"'fill_value={fill_value}' is not present "
+                "in this Categorical's categories"
+            )
+        return fill_value
 
     def __array__(self, dtype=None) -> np.ndarray:
         """
@@ -1835,24 +1841,12 @@ class Categorical(ExtensionArray, PandasObject):
         """
         indexer = np.asarray(indexer, dtype=np.intp)
 
-        dtype = self.dtype
-
-        if isna(fill_value):
-            fill_value = -1
-        elif allow_fill:
+        if allow_fill:
             # convert user-provided `fill_value` to codes
-            if fill_value in self.categories:
-                fill_value = self.categories.get_loc(fill_value)
-            else:
-                msg = (
-                    f"'fill_value' ('{fill_value}') is not in this "
-                    "Categorical's categories."
-                )
-                raise TypeError(msg)
+            fill_value = self._validate_fill_value(fill_value)
 
         codes = take(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)
-        result = type(self).from_codes(codes, dtype=dtype)
-        return result
+        return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
         # GH#27745 deprecate alias that other EAs dont have

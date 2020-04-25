@@ -31,7 +31,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
@@ -362,7 +361,7 @@ class TestUnique:
 
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
-        if any_numpy_dtype in (BYTES_DTYPES + STRING_DTYPES):
+        if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
             pytest.skip("skip string dtype")
         elif is_integer_dtype(any_numpy_dtype):
             data = [1, 2, 2]

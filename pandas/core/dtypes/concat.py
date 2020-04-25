@@ -95,7 +95,15 @@ def concat_compat(to_concat, axis: int = 0):
     _contains_datetime = any(typ.startswith("datetime") for typ in typs)
     _contains_period = any(typ.startswith("period") for typ in typs)
 
-    if "category" in typs:
+    all_empty = not len(non_empties)
+    single_dtype = len({x.dtype for x in to_concat}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+
+    if any_ea and single_dtype and axis == 0:
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
+
+    elif "category" in typs:
         # this must be prior to concat_datetime,
         # to support Categorical + datetime-like
         return concat_categorical(to_concat, axis=axis)
@@ -107,18 +115,11 @@ def concat_compat(to_concat, axis: int = 0):
     elif "sparse" in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    all_empty = not len(non_empties)
-    single_dtype = len({x.dtype for x in to_concat}) == 1
-    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
-
-    if any_ea and axis == 1:
+    elif any_ea and axis == 1:
         to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+        return np.concatenate(to_concat, axis=axis)
 
-    elif any_ea and single_dtype and axis == 0:
-        cls = type(to_concat[0])
-        return cls._concat_same_type(to_concat)
-
-    if all_empty:
+    elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
@@ -282,7 +283,7 @@ def union_categoricals(
     [b, c, a, b]
     Categories (3, object): [b, c, a]
     """
-    from pandas import Index, Categorical
+    from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
 
     if len(to_union) == 0:
@@ -290,7 +291,7 @@ def union_categoricals(
 
     def _maybe_unwrap(x):
         if isinstance(x, (ABCCategoricalIndex, ABCSeries)):
-            return x.values
+            return x._values
         elif isinstance(x, Categorical):
             return x
         else:
@@ -333,7 +334,7 @@ def union_categoricals(
     elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])
-        categories = Index(cats.unique())
+        categories = cats.unique()
         if sort_categories:
             categories = categories.sort_values()
 
