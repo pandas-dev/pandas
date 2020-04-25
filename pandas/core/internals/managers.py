@@ -1318,6 +1318,8 @@ class BlockManager(PandasObject):
                         blocks.append(newblk)
 
                 else:
+                    # GH#32779 to avoid the performance penalty of copying,
+                    #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
                     if only_slice:
