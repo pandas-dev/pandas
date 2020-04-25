@@ -119,7 +119,7 @@ class TestPartialSetting:
         )
 
         expected = pd.concat(
-            [df_orig, DataFrame({"A": 7}, index=[dates[-1] + dates.freq])], sort=True
+            [df_orig, DataFrame({"A": 7}, index=dates[-1:] + dates.freq)], sort=True
         )
         df = df_orig.copy()
         df.loc[dates[-1] + dates.freq, "A"] = 7

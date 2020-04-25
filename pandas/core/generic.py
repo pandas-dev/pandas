@@ -104,6 +104,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -702,10 +703,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = self[item]
         del self[item]
-        try:
+        if self.ndim == 2:
             result._reset_cacher()
-        except AttributeError:
-            pass
 
         return result
 
@@ -2361,7 +2360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         dropna: Optional[bool_t] = None,
-        data_columns: Optional[List[str]] = None,
+        data_columns: Optional[Union[bool_t, List[str]]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
@@ -3256,14 +3255,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if ref is None:
                 del self._cacher
             else:
-                # Note: we need to call ref._maybe_cache_changed even in the
-                #  case where it will raise.  (Uh, not clear why)
-                try:
+                if len(self) == len(ref):
+                    # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
-                except AssertionError:
-                    # ref._mgr.setitem can raise
-                    #  AssertionError because of shape mismatch
-                    pass
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
@@ -6678,9 +6672,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
@@ -8075,7 +8069,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.is_anchored() and hasattr(offset, "_inc"):
+        if isinstance(offset, Tick):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
@@ -11215,9 +11209,7 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 

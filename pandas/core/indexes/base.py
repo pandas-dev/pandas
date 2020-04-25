@@ -13,7 +13,7 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -112,22 +112,22 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self) and isinstance(other, ABCCategorical):
+        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
-        elif is_object_dtype(self) and isinstance(other, ExtensionArray):
+        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
             # e.g. PeriodArray
             with np.errstate(all="ignore"):
-                result = op(self.values, other)
+                result = op(self._values, other)
 
-        elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
         else:
             with np.errstate(all="ignore"):
-                result = op(self.values, np.asarray(other))
+                result = op(self._values, np.asarray(other))
 
         if is_bool_dtype(result):
             return result
@@ -268,10 +268,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
-
-    # prioritize current class for _shallow_copy_with_infer,
-    # used to infer integers as datetime-likes
-    _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
@@ -440,10 +436,6 @@ class Index(IndexOpsMixin, PandasObject):
       _simple_new), but fills caller's metadata otherwise specified. Passed
       kwargs will overwrite corresponding metadata.
 
-    - _shallow_copy_with_infer: It returns new Index inferring its type
-      from passed values. It fills caller's metadata otherwise specified as the
-      same as _shallow_copy.
-
     See each method's docstring.
     """
 
@@ -510,40 +502,11 @@ class Index(IndexOpsMixin, PandasObject):
         name = self.name if name is no_default else name
         cache = self._cache.copy() if values is None else {}
         if values is None:
-            values = self.values
+            values = self._values
 
         result = self._simple_new(values, name=name)
         result._cache = cache
         return result
-
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        """
-        Create a new Index inferring the class with passed value, don't copy
-        the data, use the same object attributes with passed in attributes
-        taking precedence.
-
-        *this is an internal non-public method*
-
-        Parameters
-        ----------
-        values : the values to create the new Index, optional
-        kwargs : updates the default attributes for this Index
-        """
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        attributes["copy"] = False
-        if not len(values) and "dtype" not in kwargs:
-            # TODO: what if hasattr(values, "dtype")?
-            attributes["dtype"] = self.dtype
-        if self._infer_as_myclass:
-            try:
-                return self._constructor(values, **attributes)
-            except (TypeError, ValueError):
-                pass
-
-        # Remove tz so Index will try non-DatetimeIndex inference
-        attributes.pop("tz", None)
-        return Index(values, **attributes)
 
     def is_(self, other) -> bool:
         """
@@ -722,7 +685,7 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(
-                self.values,
+                self._values,
                 indices,
                 allow_fill=allow_fill,
                 fill_value=fill_value,
@@ -734,7 +697,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError(
                     f"Unable to fill values because {cls_name} cannot contain NA"
                 )
-            taken = self.values.take(indices)
+            taken = self._values.take(indices)
         return self._shallow_copy(taken)
 
     def _assert_take_fillable(
@@ -1988,7 +1951,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether or not the index values only consist of dates.
         """
-        return is_datetime_array(ensure_object(self.values))
+        return is_datetime_array(ensure_object(self._values))
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -2339,13 +2302,13 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique and not dropna:
             return self
 
-        values = self.values
-
         if not self.is_unique:
             values = self.unique()
             if not isinstance(self, ABCMultiIndex):
                 # extract an array to pass to _shallow_copy
                 values = values._data
+        else:
+            values = self._values
 
         if dropna:
             try:
@@ -2809,11 +2772,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        attribs = self._get_attributes_dict()
-        attribs["name"] = result_name
-        if "freq" in attribs:
-            attribs["freq"] = None
-        return self._shallow_copy_with_infer(the_diff, **attribs)
+        return Index(the_diff, dtype=self.dtype, name=result_name)
 
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
@@ -3387,7 +3346,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        new_index = self._shallow_copy_with_infer(new_labels)
+        new_index = Index(new_labels, name=self.name)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -3936,7 +3895,7 @@ class Index(IndexOpsMixin, PandasObject):
             # it's float) if there are NaN values in our output.
             dtype = None
 
-        return self._shallow_copy_with_infer(values, dtype=dtype)
+        return Index(values, dtype=dtype, name=self.name)
 
     # construction helpers
     @classmethod
@@ -4166,7 +4125,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
+        res_values = np.concatenate(to_concat)
+        return Index(res_values, name=name)
 
     def putmask(self, mask, value):
         """
@@ -4666,6 +4626,10 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
         if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
         else:
@@ -4691,15 +4655,32 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def _maybe_promote(self, other):
-        # A hack, but it works
+    def _maybe_promote(self, other: "Index"):
+        """
+        When dealing with an object-dtype Index and a non-object Index, see
+        if we can upcast the object-dtype one to improve performance.
+        """
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+            return type(other)(self), other
+        elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
+            # TODO: we dont have tests that get here
             return type(other)(self), other
         elif self.inferred_type == "boolean":
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
+
+        if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
+            # Reverse op so we dont need to re-implement on the subclasses
+            other, self = other._maybe_promote(self)
+
         return self, other
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        return True
 
     def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """
@@ -5208,7 +5189,7 @@ class Index(IndexOpsMixin, PandasObject):
         arr = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return self._shallow_copy_with_infer(idx)
+        return Index(idx, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise"):
         """
