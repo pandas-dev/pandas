@@ -441,6 +441,10 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
+    def get_indexer_non_unique(self, targets):
+        # we may get datetime64[ns] or timedelta64[ns], cast these to int64
+        return super().get_indexer_non_unique(targets.view("i8"))
+
     def get_indexer(self, values):
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():

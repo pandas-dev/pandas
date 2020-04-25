@@ -538,11 +538,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
-    def _maybe_promote(self, other):
-        if other.inferred_type == "date":
-            other = DatetimeIndex(other)
-        return self, other
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
