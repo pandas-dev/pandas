@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -571,6 +572,13 @@ class IntegerArray(BaseMaskedArray):
         if np.isnan(result):
             return libmissing.NA
 
+        return result
+
+    def sum(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_sum((), kwargs)
+        result = masked_reductions.sum(
+            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
+        )
         return result
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
