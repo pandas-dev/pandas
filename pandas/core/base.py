@@ -1206,7 +1206,7 @@ class IndexOpsMixin:
         4.0    1
         2.0    1
         1.0    1
-        dtype: int64
+        dtype: Int64
 
         With `normalize` set to `True`, returns the relative frequency by
         dividing all values by the sum of values.
@@ -1230,7 +1230,7 @@ class IndexOpsMixin:
         (2.0, 3.0]      2
         (0.996, 2.0]    2
         (3.0, 4.0]      1
-        dtype: int64
+        dtype: Int64
 
         **dropna**
 
@@ -1242,7 +1242,7 @@ class IndexOpsMixin:
         4.0    1
         2.0    1
         1.0    1
-        dtype: int64
+        dtype: Int64
         """
         result = value_counts(
             self,
