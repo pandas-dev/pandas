@@ -358,36 +358,14 @@ class PandasArray(
         )
         return result
 
-    def sum(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        skipna=True,
-        min_count=0,
-    ):
-        nv.validate_sum(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
-        )
+    def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+        nv.validate_sum((), kwargs)
         return nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
 
-    def prod(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        skipna=True,
-        min_count=0,
-    ):
-        nv.validate_prod(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
-        )
+    def prod(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+        nv.validate_prod((), kwargs)
         return nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
