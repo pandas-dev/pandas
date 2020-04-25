@@ -104,6 +104,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -8068,7 +8069,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.is_anchored() and hasattr(offset, "_inc"):
+        if isinstance(offset, Tick):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
