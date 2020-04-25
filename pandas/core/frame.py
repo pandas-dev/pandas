@@ -100,10 +100,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -422,7 +422,12 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        raise NotImplementedError("Not supported for DataFrames!")
+        # GH#31549 raising NotImplementedError on a property causes trouble
+        #  for `inspect`
+        def constructor(*args, **kwargs):
+            raise NotImplementedError("Not supported for DataFrames!")
+
+        return constructor
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1912,7 +1917,12 @@ class DataFrame(NDFrame):
 
     @classmethod
     def _from_arrays(
-        cls, arrays, columns, index, dtype=None, verify_integrity=True
+        cls,
+        arrays,
+        columns,
+        index,
+        dtype: Optional[Dtype] = None,
+        verify_integrity: bool = True,
     ) -> "DataFrame":
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -1938,6 +1948,9 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -2326,9 +2339,116 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
+    @Substitution(
+        klass="DataFrame",
+        type_sub=" and columns",
+        max_cols_sub=(
+            """max_cols : int, optional
+                When to switch from the verbose to the truncated output. If the
+                DataFrame has more than `max_cols` columns, the truncated output
+                is used. By default, the setting in
+                ``pandas.options.display.max_info_columns`` is used.
+            """
+        ),
+        examples_sub=(
+            """
+            >>> int_values = [1, 2, 3, 4, 5]
+            >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+            >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+            >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+            ...                   "float_col": float_values})
+            >>> df
+                int_col text_col  float_col
+            0        1    alpha       0.00
+            1        2     beta       0.25
+            2        3    gamma       0.50
+            3        4    delta       0.75
+            4        5  epsilon       1.00
+
+            Prints information of all columns:
+
+            >>> df.info(verbose=True)
+            <class 'pandas.core.frame.DataFrame'>
+            RangeIndex: 5 entries, 0 to 4
+            Data columns (total 3 columns):
+                #   Column     Non-Null Count  Dtype
+            ---  ------     --------------  -----
+                0   int_col    5 non-null      int64
+                1   text_col   5 non-null      object
+                2   float_col  5 non-null      float64
+            dtypes: float64(1), int64(1), object(1)
+            memory usage: 248.0+ bytes
+
+            Prints a summary of columns count and its dtypes but not per column
+            information:
+
+            >>> df.info(verbose=False)
+            <class 'pandas.core.frame.DataFrame'>
+            RangeIndex: 5 entries, 0 to 4
+            Columns: 3 entries, int_col to float_col
+            dtypes: float64(1), int64(1), object(1)
+            memory usage: 248.0+ bytes
+
+            Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+            buffer content and writes to a text file:
+
+            >>> import io
+            >>> buffer = io.StringIO()
+            >>> df.info(buf=buffer)
+            >>> s = buffer.getvalue()
+            >>> with open("df_info.txt", "w",
+            ...           encoding="utf-8") as f:  # doctest: +SKIP
+            ...     f.write(s)
+            260
+
+            The `memory_usage` parameter allows deep introspection mode, specially
+            useful for big DataFrames and fine-tune memory optimization:
+
+            >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+            >>> df = pd.DataFrame({
+            ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+            ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+            ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+            ... })
+            >>> df.info()
+            <class 'pandas.core.frame.DataFrame'>
+            RangeIndex: 1000000 entries, 0 to 999999
+            Data columns (total 3 columns):
+                #   Column    Non-Null Count    Dtype
+            ---  ------    --------------    -----
+                0   column_1  1000000 non-null  object
+                1   column_2  1000000 non-null  object
+                2   column_3  1000000 non-null  object
+            dtypes: object(3)
+            memory usage: 22.9+ MB
+
+            >>> df.info(memory_usage='deep')
+            <class 'pandas.core.frame.DataFrame'>
+            RangeIndex: 1000000 entries, 0 to 999999
+            Data columns (total 3 columns):
+                #   Column    Non-Null Count    Dtype
+            ---  ------    --------------    -----
+                0   column_1  1000000 non-null  object
+                1   column_2  1000000 non-null  object
+                2   column_3  1000000 non-null  object
+            dtypes: object(3)
+            memory usage: 188.8 MB"""
+        ),
+        see_also_sub=(
+            """
+            DataFrame.describe: Generate descriptive statistics of DataFrame
+                columns.
+            DataFrame.memory_usage: Memory usage of DataFrame columns."""
+        ),
+    )
     @doc(info)
     def info(
-        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+        self,
+        verbose: Optional[bool] = None,
+        buf: Optional[IO[str]] = None,
+        max_cols: Optional[int] = None,
+        memory_usage: Optional[Union[bool, str]] = None,
+        null_counts: Optional[bool] = None,
     ) -> None:
         return info(self, verbose, buf, max_cols, memory_usage, null_counts)
 
@@ -2586,7 +2706,7 @@ class DataFrame(NDFrame):
             label = self.columns[i]
 
             values = self._mgr.iget(i)
-            result = self._box_col_values(values, label)
+            result = self._box_col_values(values, i)
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
@@ -2691,7 +2811,7 @@ class DataFrame(NDFrame):
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
         loc = self.columns.get_loc(key)
-        if isinstance(loc, (slice, Series, np.ndarray, Index)):
+        if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
@@ -2724,7 +2844,8 @@ class DataFrame(NDFrame):
             result._set_is_copy(self)
             return result
         else:
-            return self._get_item_cache(key)
+            # loc is neither a slice nor ndarray, so must be an int
+            return self._ixs(loc, axis=1)
 
     def _get_value(self, index, col, takeable: bool = False):
         """
@@ -2915,19 +3036,15 @@ class DataFrame(NDFrame):
                 value.index.copy(), axis=1, fill_value=np.nan
             )
 
-    def _box_item_values(self, key, values):
-        items = self.columns[self.columns.get_loc(key)]
-        if values.ndim == 2:
-            return self._constructor(values.T, columns=items, index=self.index)
-        else:
-            return self._box_col_values(values, items)
-
-    def _box_col_values(self, values, items):
+    def _box_col_values(self, values, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
+        # Lookup in columns so that if e.g. a str datetime was passed
+        #  we attach the Timestamp object as the name.
+        name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=items, fastpath=True)
+        return klass(values, index=self.index, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -3540,7 +3657,9 @@ class DataFrame(NDFrame):
     @property
     def _series(self):
         return {
-            item: Series(self._mgr.iget(idx), index=self.index, name=item)
+            item: Series(
+                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
+            )
             for idx, item in enumerate(self.columns)
         }
 
@@ -8114,7 +8233,7 @@ Wild         185.0
 
         dtype_is_dt = np.array(
             [
-                is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
+                is_datetime64_any_dtype(values.dtype)
                 for values in self._iter_column_arrays()
             ],
             dtype=bool,
@@ -8122,7 +8241,7 @@ Wild         185.0
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
                 "DataFrame.mean and DataFrame.median with numeric_only=None "
-                "will include datetime64, datetime64tz, and PeriodDtype columns in a "
+                "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=3,
@@ -8216,7 +8335,6 @@ Wild         185.0
                     result = result.iloc[0].rename(None)
                 return result
 
-        data = self
         if numeric_only is None:
             data = self
             values = data.values
@@ -8439,7 +8557,7 @@ Wild         185.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
-    def _get_agg_axis(self, axis_num):
+    def _get_agg_axis(self, axis_num: int) -> Index:
         """
         Let's be explicit about this.
         """
@@ -8790,8 +8908,11 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Add index and columns
     _AXIS_ORDERS = ["index", "columns"]
-    _AXIS_NUMBERS = {"index": 0, "columns": 1}
-    _AXIS_NAMES = {0: "index", 1: "columns"}
+    _AXIS_TO_AXIS_NUMBER: Dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
     _AXIS_REVERSED = True
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
@@ -8803,6 +8924,18 @@ Wild         185.0
     columns: "Index" = properties.AxisProperty(
         axis=0, doc="The column labels of the DataFrame."
     )
+
+    @property
+    def _AXIS_NUMBERS(self) -> Dict[str, int]:
+        """.. deprecated:: 1.1.0"""
+        super()._AXIS_NUMBERS
+        return {"index": 0, "columns": 1}
+
+    @property
+    def _AXIS_NAMES(self) -> Dict[int, str]:
+        """.. deprecated:: 1.1.0"""
+        super()._AXIS_NAMES
+        return {0: "index", 1: "columns"}
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame

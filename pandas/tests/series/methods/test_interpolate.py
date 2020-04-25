@@ -26,6 +26,7 @@ import pandas._testing as tm
         "from_derivatives",
         "pchip",
         "akima",
+        "cubicspline",
     ]
 )
 def nontemporal_method(request):
@@ -55,6 +56,7 @@ def nontemporal_method(request):
         "from_derivatives",
         "pchip",
         "akima",
+        "cubicspline",
     ]
 )
 def interp_methods_ind(request):
@@ -96,6 +98,22 @@ class TestSeriesInterpolateData:
         msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method="time")
+
+    @td.skip_if_no_scipy
+    def test_interpolate_cubicspline(self):
+
+        ser = Series([10, 11, 12, 13])
+
+        expected = Series(
+            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
+            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
+        )
+        # interpolate at new_index
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
+            float
+        )
+        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):

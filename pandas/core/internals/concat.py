@@ -1,10 +1,11 @@
 # TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
+from typing import List
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, tslibs
+from pandas._libs import NaT, internals as libinternals
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -61,8 +62,18 @@ def concatenate_block_managers(
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif _is_uniform_join_units(join_units):
-            b = join_units[0].block.concat_same_type([ju.block for ju in join_units])
-            b.mgr_locs = placement
+            blk = join_units[0].block
+            vals = [ju.block.values for ju in join_units]
+
+            if not blk.is_extension or blk.is_datetimetz or blk.is_categorical:
+                # datetimetz and categorical can have the same type but multiple
+                #  dtypes, concatting does not necessarily preserve dtype
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
+                values = concat_compat(vals)
+
+            b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
             b = make_block(
                 _concatenate_join_units(join_units, concat_axis, copy=copy),
@@ -240,6 +251,7 @@ class JoinUnit:
                 ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
+                        # TODO(EA2D): special case unneeded with 2D EAs
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
@@ -395,7 +407,7 @@ def _get_empty_dtype_and_na(join_units):
         # GH-25014. We use NaT instead of iNaT, since this eventually
         # ends up in DatetimeArray.take, which does not allow iNaT.
         dtype = upcast_classes["datetimetz"]
-        return dtype[0], tslibs.NaT
+        return dtype[0], NaT
     elif "datetime" in upcast_classes:
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
@@ -419,13 +431,15 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def _is_uniform_join_units(join_units) -> bool:
+def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
     _concatenate_join_units (which uses `concat_compat`).
 
     """
+    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
+    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)
