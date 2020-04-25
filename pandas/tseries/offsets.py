@@ -1125,14 +1125,6 @@ class MonthOffset(SingleConstructorOffset):
 
     __init__ = BaseOffset.__init__
 
-    @property
-    def name(self) -> str:
-        if self.is_anchored:
-            return self.rule_code
-        else:
-            month = ccalendar.MONTH_ALIASES[self.n]
-            return f"{self.code_rule}-{month}"
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -1147,9 +1139,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
+        return type(i)._simple_new(shifted, dtype=i.dtype)
 
 
 class MonthEnd(MonthOffset):
@@ -1868,11 +1858,7 @@ class QuarterOffset(DateOffset):
         shifted = liboffsets.shift_quarters(
             dtindex.asi8, self.n, self.startingMonth, self._day_opt
         )
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1954,11 +1940,7 @@ class YearOffset(DateOffset):
         shifted = liboffsets.shift_quarters(
             dtindex.asi8, self.n, self.month, self._day_opt, modby=12
         )
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -2548,7 +2530,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
-                return _delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self.delta + other.delta)
         elif isinstance(other, Period):
             return other + self
         try:
@@ -2635,7 +2617,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return False
 
 
-def _delta_to_tick(delta: timedelta) -> Tick:
+def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:

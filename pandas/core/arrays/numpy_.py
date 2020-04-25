@@ -5,6 +5,7 @@ import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -17,6 +18,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -349,13 +351,19 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         nv.validate_all((), dict(out=out, keepdims=keepdims))
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
 
-    def min(self, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_min((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+    def min(self, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_min((), kwargs)
+        result = masked_reductions.min(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return result
 
-    def max(self, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_max((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+    def max(self, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_max((), kwargs)
+        result = masked_reductions.max(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return result
 
     def sum(
         self,
