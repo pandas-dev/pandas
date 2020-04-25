@@ -39,8 +39,9 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.array_algos.transforms import shift
+from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -436,7 +437,9 @@ default 'raise'
         return self
 
 
-class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray):
+class DatetimeLikeArrayMixin(
+    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
+):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -447,6 +450,20 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     and that the inheriting class has methods:
         _generate_range
     """
+
+    # ------------------------------------------------------------------
+    # NDArrayBackedExtensionArray compat
+
+    @property
+    def _ndarray(self) -> np.ndarray:
+        # NB: A bunch of Interval tests fail if we use ._data
+        return self.asi8
+
+    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+        # Note: we do not retain `freq`
+        return type(self)(arr, dtype=self.dtype)  # type: ignore
+
+    # ------------------------------------------------------------------
 
     @property
     def ndim(self) -> int:
@@ -667,16 +684,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result = unique1d(self.asi8)
         return type(self)(result, dtype=self.dtype)
 
-    def take(self, indices, allow_fill=False, fill_value=None):
-        if allow_fill:
-            fill_value = self._validate_fill_value(fill_value)
-
-        new_values = take(
-            self.asi8, indices, allow_fill=allow_fill, fill_value=fill_value
-        )
-
-        return type(self)(new_values, dtype=self.dtype)
-
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
 
@@ -751,7 +758,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ------
         ValueError
         """
-        if isna(fill_value):
+        if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = iNaT
         elif isinstance(fill_value, self._recognized_scalars):
             self._check_compatible_with(fill_value)
@@ -759,7 +766,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
-                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
+                f"'fill_value' should be a {self._scalar_type}. "
+                f"Got '{str(fill_value)}'."
             )
         return fill_value
 
@@ -860,25 +868,34 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return value
 
     def _validate_where_value(self, other):
-        if lib.is_scalar(other) and isna(other):
-            other = NaT.value
+        if is_valid_nat_for_dtype(other, self.dtype):
+            other = NaT
+        elif isinstance(other, self._recognized_scalars):
+            other = self._scalar_type(other)
+            self._check_compatible_with(other, setitem=True)
+        elif not is_list_like(other):
+            raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
             # Do type inference if necessary up front
             # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            from pandas import Index
+            other = array(other)
+            other = extract_array(other, extract_numpy=True)
 
-            other = Index(other)
-
-            if is_categorical_dtype(other):
+            if is_categorical_dtype(other.dtype):
                 # e.g. we have a Categorical holding self.dtype
                 if is_dtype_equal(other.categories.dtype, self.dtype):
                     other = other._internal_get_values()
 
-            if not is_dtype_equal(self.dtype, other.dtype):
+            if not type(self)._is_recognized_dtype(other.dtype):
                 raise TypeError(f"Where requires matching dtype, not {other.dtype}")
+            self._check_compatible_with(other, setitem=True)
 
+        if lib.is_scalar(other):
+            other = self._unbox_scalar(other)
+        else:
             other = other.view("i8")
+
         return other
 
     # ------------------------------------------------------------------
