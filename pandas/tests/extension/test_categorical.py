@@ -42,6 +42,11 @@ def dtype():
 
 
 @pytest.fixture
+def columns():
+    return Categorical(make_data())
+
+
+@pytest.fixture
 def data():
     """Length-100 array for this type.
 

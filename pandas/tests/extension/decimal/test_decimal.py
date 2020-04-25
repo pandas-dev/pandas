@@ -18,6 +18,11 @@ def dtype():
 
 
 @pytest.fixture
+def columns():
+    return DecimalArray(make_data())
+
+
+@pytest.fixture
 def data():
     return DecimalArray(make_data())
 

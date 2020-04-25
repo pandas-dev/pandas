@@ -38,6 +38,11 @@ def allow_in_pandas(monkeypatch):
 
 
 @pytest.fixture
+def columns():
+    return PandasArray(np.arange(1, 3))
+
+
+@pytest.fixture
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         return pd.Series([(i,) for i in range(100)]).array

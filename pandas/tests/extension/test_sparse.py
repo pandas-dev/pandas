@@ -29,6 +29,11 @@ def dtype():
     return SparseDtype()
 
 
+@pytest.fixture
+def columns():
+    return SparseArray(np.ones(10) * 2)
+
+
 @pytest.fixture(params=[0, np.nan])
 def data(request):
     """Length-100 PeriodArray for semantics test."""

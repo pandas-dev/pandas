@@ -14,6 +14,11 @@ def dtype(request):
 
 
 @pytest.fixture
+def columns(dtype):
+    return DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+
+
+@pytest.fixture
 def data(dtype):
     data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
     return data

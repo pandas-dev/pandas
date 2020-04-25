@@ -36,6 +36,11 @@ def dtype():
 
 
 @pytest.fixture
+def columns():
+    return IntervalArray(make_data())
+
+
+@pytest.fixture
 def data():
     """Length-100 PeriodArray for semantics test."""
     return IntervalArray(make_data())

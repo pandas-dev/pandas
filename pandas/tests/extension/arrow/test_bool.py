@@ -16,6 +16,13 @@ def dtype():
 
 
 @pytest.fixture
+def columns():
+    values = np.random.randint(0, 2, size=100, dtype=bool)
+    values[1] = ~values[0]
+    return ArrowBoolArray.from_scalars(values)
+
+
+@pytest.fixture
 def data():
     values = np.random.randint(0, 2, size=100, dtype=bool)
     values[1] = ~values[0]
@@ -54,6 +61,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="bad is-na for empty data")
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
+
+    @pytest.mark.xfail(reason="bad is-na for empty data")
+    def test_construct_empty_dataframe(self, columns, dtype):
+        super().test_construct_empty_dataframe(columns, dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):
