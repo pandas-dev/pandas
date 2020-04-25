@@ -3,10 +3,8 @@ import pytest
 
 from pandas._libs import index as libindex
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
-from pandas import Categorical, IntervalIndex
+from pandas import Categorical
 import pandas._testing as tm
 from pandas.core.indexes.api import CategoricalIndex, Index
 
@@ -195,63 +193,6 @@ class TestCategoricalIndex(Base):
         with tm.external_error_raised((IndexError, ValueError)):
             # Either depending on NumPy version
             ci.delete(10)
-
-    def test_astype(self):
-
-        ci = self.create_index()
-        result = ci.astype(object)
-        tm.assert_index_equal(result, Index(np.array(ci)))
-
-        # this IS equal, but not the same class
-        assert result.equals(ci)
-        assert isinstance(result, Index)
-        assert not isinstance(result, CategoricalIndex)
-
-        # interval
-        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0], right=[2, 4], closed="right")
-
-        ci = CategoricalIndex(
-            Categorical.from_codes([0, 1, -1], categories=ii, ordered=True)
-        )
-
-        result = ci.astype("interval")
-        expected = ii.take([0, 1, -1])
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex(result.values)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("name", [None, "foo"])
-    @pytest.mark.parametrize("dtype_ordered", [True, False])
-    @pytest.mark.parametrize("index_ordered", [True, False])
-    def test_astype_category(self, name, dtype_ordered, index_ordered):
-        # GH 18630
-        index = self.create_index(ordered=index_ordered)
-        if name:
-            index = index.rename(name)
-
-        # standard categories
-        dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(
-            index.tolist(),
-            name=name,
-            categories=index.categories,
-            ordered=dtype_ordered,
-        )
-        tm.assert_index_equal(result, expected)
-
-        # non-standard categories
-        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected)
-
-        if dtype_ordered is False:
-            # dtype='category' can't specify ordered, so only test once
-            result = index.astype("category")
-            expected = index
-            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "data, non_lexsorted_data",
