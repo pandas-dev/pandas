@@ -37,6 +37,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
@@ -252,7 +253,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = getattr(self._selected_obj, "values", self._selected_obj)
+            values = extract_array(self._selected_obj, extract_numpy=True)
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64

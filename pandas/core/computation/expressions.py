@@ -102,8 +102,8 @@ def _evaluate_numexpr(op, op_str, a, b):
             # we were originally called by a reversed op method
             a, b = b, a
 
-        a_value = getattr(a, "values", a)
-        b_value = getattr(b, "values", b)
+        a_value = a
+        b_value = b
 
         result = ne.evaluate(
             f"a_value {op_str} b_value",

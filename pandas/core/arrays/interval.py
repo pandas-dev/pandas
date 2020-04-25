@@ -648,7 +648,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise TypeError(msg)
 
-        value = getattr(value, "_values", value)
         self._check_closed_matches(value, name="value")
 
         left = self.left.fillna(value=value.left)
