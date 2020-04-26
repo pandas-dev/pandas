@@ -151,7 +151,7 @@ class Quantile:
 
 
 class PeakMemFixedWindowMinMax:
-    
+
     params = [
         pd.core.window.rolling.Rolling.min,
         pd.core.window.rolling.Rolling.max,
