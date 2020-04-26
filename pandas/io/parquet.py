@@ -104,6 +104,8 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        # write_to_dataset does not support a file-like object when
+        # a dircetory path is used, so just pass the path string.
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
                 table,
