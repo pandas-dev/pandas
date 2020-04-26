@@ -168,5 +168,6 @@ class TestFeather:
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
             "pandas/tests/io/data/feather/feather-0_3_1.feather"
         )
+        expected = pd.read_feather(feather_file)
         res = pd.read_feather(url)
-        tm.assert_frame_equal(feather_file, res)
+        tm.assert_frame_equal(expected, res)
