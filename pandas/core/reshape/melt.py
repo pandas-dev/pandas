@@ -121,8 +121,10 @@ def melt(
     if keep_index:
         new_index = np.tile(frame.index, K)
 
-        if isinstance(frame.index, MultiIndex):  # Index of tuples otherwise
-            new_index = MultiIndex.from_tuples(new_index)
+        if isinstance(frame.index, MultiIndex):
+            new_index = MultiIndex.from_tuples(new_index, names=frame.index.names)
+        else:
+            new_index = Index(new_index, dtype=frame.index.dtype, name=frame.index.name)
 
         result = result.set_index(new_index)
 

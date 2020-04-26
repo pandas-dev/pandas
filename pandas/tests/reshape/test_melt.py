@@ -344,12 +344,14 @@ class TestMelt:
 
     def test_keep_multiindex(self):
         # GH 17440
-        index = pd.MultiIndex.from_tuples([("first", "second"), ("first", "third")])
+        index = pd.MultiIndex.from_tuples(
+            [("first", "second"), ("first", "third")], names=["baz", "foobar"]
+        )
         df = DataFrame({"foo": [0, 1], "bar": [2, 3]}, index=index)
         result = melt(df, keep_index=True)
 
         expected_index = pd.MultiIndex.from_tuples(
-            [("first", "second"), ("first", "third")] * 2
+            [("first", "second"), ("first", "third")] * 2, names=["baz", "foobar"]
         )
         expected = DataFrame(
             {"variable": ["foo"] * 2 + ["bar"] * 2, "value": [0, 1, 2, 3]},
@@ -357,6 +359,15 @@ class TestMelt:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_keep_index_name_and_type(self):
+        # GH 17440
+        index = pd.Index(["foo", "bar"], dtype="category", name="baz")
+        df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
+        result = melt(df, keep_index=True)
+
+        expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
+        tm.assert_index_equal(result.index, expected_index)
 
 
 class TestLreshape:
