@@ -27,12 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCSeries,
-    ABCTimedeltaIndex,
-)
+from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
@@ -40,6 +35,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 from pandas.core.construction import extract_array
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
@@ -456,12 +452,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
             ) from err
 
+    @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other):
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._data * other
@@ -492,12 +484,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     __rmul__ = __mul__
 
+    @unpack_zerodim_and_defer("__truediv__")
     def __truediv__(self, other):
         # timedelta / X is well-defined for timedelta-like or numeric X
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
@@ -553,13 +542,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             result = self._data / other
             return type(self)(result)
 
+    @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):
         # X / timedelta is defined only for timedelta-like X
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
             if other is NaT:
@@ -599,11 +584,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 f"Cannot divide {other.dtype} data by {type(self).__name__}"
             )
 
+    @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -665,11 +648,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             dtype = getattr(other, "dtype", type(other).__name__)
             raise TypeError(f"Cannot divide {dtype} by {type(self).__name__}")
 
+    @unpack_zerodim_and_defer("__rfloordiv__")
     def __rfloordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -714,32 +695,23 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             dtype = getattr(other, "dtype", type(other).__name__)
             raise TypeError(f"Cannot divide {dtype} by {type(self).__name__}")
 
+    @unpack_zerodim_and_defer("__mod__")
     def __mod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
         return self - (self // other) * other
 
+    @unpack_zerodim_and_defer("__rmod__")
     def __rmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
         return other - (other // self) * self
 
+    @unpack_zerodim_and_defer("__divmod__")
     def __divmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
 
@@ -747,12 +719,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         res2 = self - res1 * other
         return res1, res2
 
+    @unpack_zerodim_and_defer("__rdivmod__")
     def __rdivmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
 
