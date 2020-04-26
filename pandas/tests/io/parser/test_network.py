@@ -228,6 +228,7 @@ class TestS3:
         result = read_csv("s3://pandas-test/tips#1.csv")
         tm.assert_frame_equal(tips_df, result)
 
+    @td.skip_if_no("pyarrow")
     def test_read_feather_s3_file_path(self, feather_file):
         # GH 29055
         expected = read_feather(feather_file)
