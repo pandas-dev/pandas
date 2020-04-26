@@ -58,7 +58,7 @@ class TestUpdate:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
-        "s, d, expected",
+        "series, other, expected",
         [
             # update by key
             (
@@ -70,6 +70,7 @@ class TestUpdate:
             (Series([1, 2, 3, 4]), [np.nan, 5, 1], Series([1, 5, 1, 4])),
         ],
     )
-    def test_update_from_non_series(self, s, d, expected):
-        s.update(d)
-        tm.assert_series_equal(s, expected)
+    def test_update_from_non_series(self, series, other, expected):
+        # GH 33215
+        series.update(other)
+        tm.assert_series_equal(series, expected)
