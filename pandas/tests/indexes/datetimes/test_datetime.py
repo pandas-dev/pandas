@@ -38,6 +38,13 @@ class TestDatetimeIndex:
         idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
 
+    def test_pickle_after_set_freq(self):
+        dti = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
+        dti = dti._with_freq(None)
+
+        res = tm.round_trip_pickle(dti)
+        tm.assert_index_equal(res, dti)
+
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range("20130101", periods=3, tz="US/Eastern")
