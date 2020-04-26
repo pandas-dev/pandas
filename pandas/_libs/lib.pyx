@@ -1379,9 +1379,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return "mixed-integer"
 
     elif PyDateTime_Check(val):
-        if is_datetime_array(values):
+        if is_datetime_array(values, skipn=skipna):
             return "datetime"
-        if is_date_array(values):
+        if is_date_array(values, skipna=skipna):
             return "date"
 
     elif PyDate_Check(val):
