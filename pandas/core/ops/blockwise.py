@@ -11,33 +11,6 @@ if TYPE_CHECKING:
 def operate_blockwise(left, right, array_op):
     assert right._indexed_same(left)
 
-    def get_same_shape_values(
-        lblk: "Block", rblk: "Block", left_ea: bool, right_ea: bool
-    ) -> Tuple[ArrayLike, ArrayLike]:
-        """
-        Slice lblk.values to align with rblk.  Squeeze if we have EAs.
-        """
-        lvals = lblk.values
-        rvals = rblk.values
-
-        # TODO(EA2D): with 2D EAs pnly this first clause would be needed
-        if not (left_ea or right_ea):
-            lvals = lvals[rblk.mgr_locs.indexer, :]
-            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-        elif left_ea and right_ea:
-            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
-        elif right_ea:
-            # lvals are 2D, rvals are 1D
-            lvals = lvals[rblk.mgr_locs.indexer, :]
-            assert lvals.shape[0] == 1, lvals.shape
-            lvals = lvals[0, :]
-        else:
-            # lvals are 1D, rvals are 2D
-            assert rvals.shape[0] == 1, rvals.shape
-            rvals = rvals[0, :]
-
-        return lvals, rvals
-
     res_blks: List["Block"] = []
     rmgr = right._mgr
     for n, blk in enumerate(left._mgr.blocks):
@@ -57,7 +30,7 @@ def operate_blockwise(left, right, array_op):
         for k, rblk in enumerate(rblks):
             right_ea = not isinstance(rblk.values, np.ndarray)
 
-            lvals, rvals = get_same_shape_values(blk, rblk, left_ea, right_ea)
+            lvals, rvals = _get_same_shape_values(blk, rblk, left_ea, right_ea)
 
             res_values = array_op(lvals, rvals)
             if left_ea and not right_ea and hasattr(res_values, "reshape"):
@@ -89,3 +62,31 @@ def operate_blockwise(left, right, array_op):
 
     new_mgr = type(rmgr)(res_blks, axes=rmgr.axes, do_integrity_check=False)
     return new_mgr
+
+
+def _get_same_shape_values(
+    lblk: "Block", rblk: "Block", left_ea: bool, right_ea: bool
+) -> Tuple[ArrayLike, ArrayLike]:
+    """
+    Slice lblk.values to align with rblk.  Squeeze if we have EAs.
+    """
+    lvals = lblk.values
+    rvals = rblk.values
+
+    # TODO(EA2D): with 2D EAs pnly this first clause would be needed
+    if not (left_ea or right_ea):
+        lvals = lvals[rblk.mgr_locs.indexer, :]
+        assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+    elif left_ea and right_ea:
+        assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+    elif right_ea:
+        # lvals are 2D, rvals are 1D
+        lvals = lvals[rblk.mgr_locs.indexer, :]
+        assert lvals.shape[0] == 1, lvals.shape
+        lvals = lvals[0, :]
+    else:
+        # lvals are 1D, rvals are 2D
+        assert rvals.shape[0] == 1, rvals.shape
+        rvals = rvals[0, :]
+
+    return lvals, rvals
