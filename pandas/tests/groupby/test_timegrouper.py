@@ -8,7 +8,16 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
@@ -243,17 +252,20 @@ class TestGroupBy:
 
             # single groupers
             expected = DataFrame(
-                {"Quantity": [31], "Date": [datetime(2013, 10, 31, 0, 0)]}
-            ).set_index("Date")
+                [[31]],
+                columns=["Quantity"],
+                index=DatetimeIndex(
+                    [datetime(2013, 10, 31, 0, 0)], freq=offsets.MonthEnd(), name="Date"
+                ),
+            )
             result = df.groupby(pd.Grouper(freq="1M")).sum()
             tm.assert_frame_equal(result, expected)
 
             result = df.groupby([pd.Grouper(freq="1M")]).sum()
             tm.assert_frame_equal(result, expected)
 
-            expected = DataFrame(
-                {"Quantity": [31], "Date": [datetime(2013, 11, 30, 0, 0)]}
-            ).set_index("Date")
+            expected.index = expected.index.shift(1)
+            assert expected.index.freq == offsets.MonthEnd()
             result = df.groupby(pd.Grouper(freq="1M", key="Date")).sum()
             tm.assert_frame_equal(result, expected)
 
@@ -448,7 +460,7 @@ class TestGroupBy:
         for date in dates:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
-            expected_index = pd.DatetimeIndex([date], name="date")
+            expected_index = pd.DatetimeIndex([date], name="date", freq="D")
             expected = pd.DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 

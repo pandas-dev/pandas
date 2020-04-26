@@ -337,6 +337,7 @@ def validate_baseindexer_support(func_name: Optional[str]) -> None:
         "median",
         "std",
         "var",
+        "skew",
         "kurt",
         "quantile",
     }
