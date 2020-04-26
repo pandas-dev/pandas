@@ -472,7 +472,7 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
     pd.crosstab(df['A'], df['B'])
 
 Any input passed containing ``Categorical`` data will have **all** of its
-categories included in the cross-tabulation while setting ``dropna=False``, 
+categories included in the cross-tabulation while setting ``dropna=False``,
 even if the actual data does not contain any instances of a particular category.
 
 .. ipython:: python
