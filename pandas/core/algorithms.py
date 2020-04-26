@@ -719,8 +719,6 @@ def value_counts(
 
     if normalize:
         result = result / float(counts.sum())
-    else:
-        result = result.astype("Int64")
 
     return result
 

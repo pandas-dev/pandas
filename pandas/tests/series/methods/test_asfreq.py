@@ -67,9 +67,7 @@ class TestAsFreq:
 
         daily_ts = ts.asfreq("D", fill_value=-1)
         result = daily_ts.value_counts().sort_index()
-        expected = Series(
-            [60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0], dtype="Int64"
-        ).sort_index()
+        expected = Series([60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_asfreq_datetimeindex_empty_series(self):

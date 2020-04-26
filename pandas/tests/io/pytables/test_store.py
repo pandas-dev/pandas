@@ -1992,8 +1992,7 @@ class TestHDFStore:
                     "int64": 1,
                     "object": 1,
                     "datetime64[ns]": 2,
-                },
-                dtype="Int64",
+                }
             )
             result = result.sort_index()
             expected = expected.sort_index()

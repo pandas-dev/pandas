@@ -757,12 +757,10 @@ class SeriesGroupBy(GroupBy[Series]):
             mi = MultiIndex(
                 levels=levels, codes=codes, names=names, verify_integrity=False
             )
-            dtype = "float64"
 
             if is_integer_dtype(out):
                 out = ensure_int64(out)
-                dtype = "Int64"
-            return Series(out, index=mi, name=self._selection_name, dtype=dtype)
+            return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
@@ -791,12 +789,10 @@ class SeriesGroupBy(GroupBy[Series]):
         codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
-        dtype = "float64"
 
         if is_integer_dtype(out):
             out = ensure_int64(out)
-            dtype = "Int64"
-        return Series(out, index=mi, name=self._selection_name, dtype=dtype)
+        return Series(out, index=mi, name=self._selection_name)
 
     def count(self) -> Series:
         """

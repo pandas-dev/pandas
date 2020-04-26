@@ -662,6 +662,7 @@ class TestUnique:
 
 class TestIsin:
     def test_invalid(self):
+
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
             r"you passed a \[int\]"
@@ -674,6 +675,7 @@ class TestIsin:
             algos.isin([1], 1)
 
     def test_basic(self):
+
         result = algos.isin([1, 2], [1])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -711,6 +713,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_i8(self):
+
         arr = pd.date_range("20130101", periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
@@ -738,6 +741,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
+
         s = pd.date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
         expected = np.zeros(len(s), dtype=bool)
@@ -881,22 +885,18 @@ class TestValueCounts:
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
         index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index, dtype="Int64")
+        expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series(
-            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)]), dtype="Int64"
-        )
+        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2],
-            index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)]),
-            dtype="Int64",
+            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
         )
         tm.assert_series_equal(result, expected)
 
@@ -924,7 +924,7 @@ class TestValueCounts:
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
-        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, dtype="Int64")
+        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1})
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
@@ -946,7 +946,7 @@ class TestValueCounts:
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
             dtype=object,
         )
-        exp = Series([3, 2, 1], index=exp_index, dtype="Int64")
+        exp = Series([3, 2, 1], index=exp_index)
         tm.assert_series_equal(res, exp)
 
         # GH 12424
@@ -957,9 +957,7 @@ class TestValueCounts:
     def test_categorical(self):
         s = Series(Categorical(list("aaabbc")))
         result = s.value_counts()
-        expected = Series(
-            [3, 2, 1], index=CategoricalIndex(["a", "b", "c"]), dtype="Int64"
-        )
+        expected = Series([3, 2, 1], index=CategoricalIndex(["a", "b", "c"]))
 
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -976,13 +974,10 @@ class TestValueCounts:
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
-            dtype="Int64",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
         result = s.value_counts(dropna=False)
-        expected = Series(
-            [4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]), dtype="Int64"
-        )
+        expected = Series([4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]))
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # out of order
@@ -996,7 +991,6 @@ class TestValueCounts:
             index=CategoricalIndex(
                 ["a", "b", "c"], categories=["b", "a", "c"], ordered=True
             ),
-            dtype="Int64",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1006,7 +1000,6 @@ class TestValueCounts:
             index=CategoricalIndex(
                 ["a", "b", "c", np.nan], categories=["b", "a", "c"], ordered=True
             ),
-            dtype="Int64",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1019,7 +1012,6 @@ class TestValueCounts:
             index=Categorical(
                 ["b", "a", "c", "d"], categories=list("abcd"), ordered=True
             ),
-            dtype="Int64",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1028,39 +1020,39 @@ class TestValueCounts:
 
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False], dtype="Int64"),
+            Series([2, 1], index=[True, False]),
         )
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=False),
-            Series([2, 1], index=[True, False], dtype="Int64"),
+            Series([2, 1], index=[True, False]),
         )
 
         tm.assert_series_equal(
             Series([True, True, False, None]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False], dtype="Int64"),
+            Series([2, 1], index=[True, False]),
         )
         tm.assert_series_equal(
             Series([True, True, False, None]).value_counts(dropna=False),
-            Series([2, 1, 1], index=[True, False, np.nan], dtype="Int64"),
+            Series([2, 1, 1], index=[True, False, np.nan]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3], dtype="Int64"),
+            Series([2, 1], index=[5.0, 10.3]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=False),
-            Series([2, 1], index=[5.0, 10.3], dtype="Int64"),
+            Series([2, 1], index=[5.0, 10.3]),
         )
 
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0, None]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3], dtype="Int64"),
+            Series([2, 1], index=[5.0, 10.3]),
         )
 
         # 32-bit linux has a different ordering
         if not compat.is_platform_32bit():
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
-            expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan], dtype="Int64")
+            expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
@@ -1081,13 +1073,13 @@ class TestValueCounts:
 
     def test_value_counts_uint64(self):
         arr = np.array([2 ** 63], dtype=np.uint64)
-        expected = Series([1], index=[2 ** 63], dtype="Int64")
+        expected = Series([1], index=[2 ** 63])
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63], dtype="Int64")
+        expected = Series([1, 1], index=[-1, 2 ** 63])
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
@@ -1407,6 +1399,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
     rtol = 1e-5
 
     def test_group_var_large_inputs(self):
+
         prng = RandomState(1234)
 
         out = np.array([[np.nan]], dtype=self.dtype)
@@ -1638,6 +1631,7 @@ def test_quantile():
 
 
 def test_unique_label_indices():
+
     a = np.random.randint(1, 1 << 10, 1 << 15).astype("i8")
 
     left = ht.unique_label_indices(a)
@@ -1703,6 +1697,7 @@ class TestRank:
 
 
 def test_pad_backfill_object_segfault():
+
     old = np.array([], dtype="O")
     new = np.array([datetime(2010, 12, 31)], dtype="O")
 

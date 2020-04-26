@@ -297,9 +297,9 @@ def test_arrow_roundtrip():
 def test_value_counts_na():
     arr = pd.array(["a", "b", "a", pd.NA], dtype="string")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA])
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    expected = pd.Series([2, 1], index=["a", "b"])
     tm.assert_series_equal(result, expected)
