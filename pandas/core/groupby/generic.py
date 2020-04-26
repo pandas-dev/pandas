@@ -76,8 +76,10 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
     check_kwargs_and_nopython,
     get_jit_arguments,
+    is_numba_util_related_error,
     jit_user_function,
     split_for_numba,
     validate_udf,
@@ -161,8 +163,6 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_whitelist = base.series_apply_whitelist
 
-    _numba_func_cache: Dict[Callable, Callable] = {}
-
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
@@ -245,7 +245,9 @@ class SeriesGroupBy(GroupBy[Series]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None
         columns = None
@@ -273,11 +275,18 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError):
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
+            except (ValueError, KeyError) as err:
+                # Do not catch Numba errors here, we want to raise and not fall back.
+                if is_numba_util_related_error(str(err)):
+                    raise err
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -504,8 +513,9 @@ class SeriesGroupBy(GroupBy[Series]):
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
-            numba_func = self._numba_func_cache.get(
-                func, jit_user_function(func, nopython, nogil, parallel)
+            cache_key = (func, "groupby_transform")
+            numba_func = NUMBA_FUNC_CACHE.get(
+                cache_key, jit_user_function(func, nopython, nogil, parallel)
             )
 
         klass = type(self._selected_obj)
@@ -516,8 +526,8 @@ class SeriesGroupBy(GroupBy[Series]):
             if engine == "numba":
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
-                if func not in self._numba_func_cache:
-                    self._numba_func_cache[func] = numba_func
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
             else:
                 res = func(group, *args, **kwargs)
 
@@ -847,8 +857,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
-    _numba_func_cache: Dict[Callable, Callable] = {}
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -943,7 +951,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -963,6 +973,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = maybe_mangle_lambdas(func)
+
+        if engine == "numba":
+            return self._python_agg_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
@@ -1397,8 +1412,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
             validate_udf(func)
-            numba_func = self._numba_func_cache.get(
-                func, jit_user_function(func, nopython, nogil, parallel)
+            cache_key = (func, "groupby_transform")
+            numba_func = NUMBA_FUNC_CACHE.get(
+                cache_key, jit_user_function(func, nopython, nogil, parallel)
             )
         else:
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
@@ -1409,8 +1425,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if engine == "numba":
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
-                if func not in self._numba_func_cache:
-                    self._numba_func_cache[func] = numba_func
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
                 # Return the result as a DataFrame for concatenation later
                 res = DataFrame(res, index=group.index, columns=group.columns)
             else:
