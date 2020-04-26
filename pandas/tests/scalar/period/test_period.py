@@ -1,7 +1,5 @@
 from datetime import date, datetime, timedelta
-from distutils.version import StrictVersion
 
-import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -1437,11 +1435,6 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(
-    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
-    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
-    strict=False,
-)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1

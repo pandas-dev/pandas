@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Any
-import weakref
 
 import numpy as np
 
@@ -71,7 +70,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "freq", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year", "freq", "freqstr", "_format_native_types"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -147,7 +146,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: PeriodArray
     freq: DateOffset
@@ -322,12 +320,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
     # Indexing
-
-    @cache_readonly
-    def _engine(self):
-        # To avoid a reference cycle, pass a weakref of self._values to _engine_type.
-        period = weakref.ref(self._values)
-        return self._engine_type(period, len(self))
 
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
@@ -629,6 +621,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 other, how=how, level=level, return_indexers=return_indexers, sort=sort
             )
 
+        # _assert_can_do_setop ensures we have matching dtype
         result = Int64Index.join(
             self,
             other,
@@ -637,11 +630,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return_indexers=return_indexers,
             sort=sort,
         )
-
-        if return_indexers:
-            result, lidx, ridx = result
-            return self._apply_meta(result), lidx, ridx
-        return self._apply_meta(result)
+        return result
 
     # ------------------------------------------------------------------------
     # Set Operation Methods
@@ -719,13 +708,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
-
-    def _apply_meta(self, rawarr) -> "PeriodIndex":
-        if not isinstance(rawarr, PeriodIndex):
-            if not isinstance(rawarr, PeriodArray):
-                rawarr = PeriodArray(rawarr, freq=self.freq)
-            rawarr = PeriodIndex._simple_new(rawarr, name=self.name)
-        return rawarr
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)

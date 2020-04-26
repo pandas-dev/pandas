@@ -82,7 +82,7 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize("func", ["skew", "cov", "corr"])
+@pytest.mark.parametrize("func", ["cov", "corr"])
 def test_notimplemented_functions(func):
     # GH 32865
     class CustomIndexer(BaseIndexer):
@@ -141,6 +141,12 @@ def test_notimplemented_functions(func):
             ],
             {"ddof": 1},
         ),
+        (
+            "median",
+            np.median,
+            [1.0, 2.0, 3.0, 4.0, 6.0, 7.0, 7.0, 8.0, 8.5, np.nan],
+            {},
+        ),
     ],
 )
 def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
@@ -162,7 +168,45 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
     result = getattr(rolling, func)()
+
+    # Check that the function output matches the explicitly provided array
     expected = constructor(expected)
     tm.assert_equal(result, expected)
+
+    # Check that the rolling function output matches applying an alternative
+    # function to the rolling window object
     expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
+
+    # Check that the function output matches applying an alternative function
+    # if min_periods isn't specified
+    rolling3 = constructor(values).rolling(window=indexer)
+    result3 = getattr(rolling3, func)()
+    expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
+    tm.assert_equal(result3, expected3)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_forward_skewness(constructor):
+    values = np.arange(10)
+    values[5] = 100.0
+
+    indexer = FixedForwardWindowIndexer(window_size=5)
+    rolling = constructor(values).rolling(window=indexer, min_periods=3)
+    result = rolling.skew()
+
+    expected = constructor(
+        [
+            0.0,
+            2.232396,
+            2.229508,
+            2.228340,
+            2.229091,
+            2.231989,
+            0.0,
+            0.0,
+            np.nan,
+            np.nan,
+        ]
+    )
+    tm.assert_equal(result, expected)
