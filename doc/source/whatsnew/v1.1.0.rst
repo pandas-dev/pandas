@@ -561,6 +561,63 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
    df[['a', 'c']] = 1
    df
 
+.. _whatsnew_110.api_breaking.groupby_nunique:
+
+Using groupby with ``nunique`` and ``as_index=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nunique`` would include the grouping column(s) in the columns of the result. Now, the grouping columns only appear in the index. This is now consistent with other aggregation functions. (:issue:`32579`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=True).nunique()
+   Out[4]:
+      a  b
+   a
+   x  1  1
+   y  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=True).nunique()
+
+.. _whatsnew_110.api_breaking.groupby_as_index_false:
+
+Using groupby with ``as_index=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxmax``, ``idxmin``, ``mad``, ``nunique``, or ``skew`` would modify the grouping column. Now, the grouping column remains unchanged. (:issue:`21090`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=False).nunique()
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=False).nunique()
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
@@ -611,7 +668,7 @@ Performance improvements
   and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
-
+- Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 
 .. ---------------------------------------------------------------------------
 
@@ -816,9 +873,10 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
+- Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
-
+- Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
 
 Reshaping
 ^^^^^^^^^
@@ -883,6 +941,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- More informative error message with ``np.min`` or ``np.max`` on unordered :class:`Categorical` (:issue:`33115`)
 - Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------

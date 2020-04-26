@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     period as libperiod,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
@@ -45,7 +46,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
+from pandas.tseries.offsets import DateOffset
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -666,8 +667,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)
-        base = libfrequencies.get_base_alias(other.rule_code)
-        if base != self.freq.rule_code:
+
+        if other.base != self.freq.base:
             raise raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
