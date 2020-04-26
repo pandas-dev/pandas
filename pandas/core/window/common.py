@@ -340,6 +340,8 @@ def validate_baseindexer_support(func_name: Optional[str]) -> None:
         "skew",
         "kurt",
         "quantile",
+        "cov",
+        "corr",
     }
     if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
         raise NotImplementedError(
