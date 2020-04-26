@@ -34,11 +34,6 @@ def dtype():
 
 
 @pytest.fixture
-def columns(dtype):
-    return pd.array([True, False], dtype=dtype)
-
-
-@pytest.fixture
 def data(dtype):
     return pd.array(make_data(), dtype=dtype)
 

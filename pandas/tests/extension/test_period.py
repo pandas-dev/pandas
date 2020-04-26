@@ -16,11 +16,6 @@ def dtype():
 
 
 @pytest.fixture
-def columns(dtype):
-    return PeriodArray(np.arange(2020, 2021), freq=dtype.freq)
-
-
-@pytest.fixture
 def data(dtype):
     return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
 

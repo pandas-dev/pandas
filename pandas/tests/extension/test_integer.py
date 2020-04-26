@@ -55,11 +55,6 @@ def dtype(request):
 
 
 @pytest.fixture
-def columns():
-    return integer_array(make_data())
-
-
-@pytest.fixture
 def data(dtype):
     return integer_array(make_data(), dtype=dtype)
 
@@ -192,8 +187,8 @@ class TestInterface(base.BaseInterfaceTests):
 
 class TestConstructors(base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_construct_empty_dataframe(self, columns, dtyoe):
-        super().test_construct_empty_dataframe(columns, dtype)
+    def test_construct_empty_dataframe(self, dtype):
+        super().test_construct_empty_dataframe(dtype)
 
 
 class TestReshaping(base.BaseReshapingTests):

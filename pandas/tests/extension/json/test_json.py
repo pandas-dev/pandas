@@ -16,16 +16,6 @@ def dtype():
 
 
 @pytest.fixture
-def columns():
-    data = make_data()
-
-    while len(data[0]) == len(data[1]):
-        data = make_data()
-
-    return JSONArray(data)
-
-
-@pytest.fixture
 def data():
     """Length-100 PeriodArray for semantics test."""
     data = make_data()

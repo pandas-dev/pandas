@@ -14,13 +14,6 @@ def dtype():
 
 
 @pytest.fixture
-def columns():
-    strings = np.random.choice(list(string.ascii_letters), size=1)
-
-    return StringArray._from_sequence(strings)
-
-
-@pytest.fixture
 def data():
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
