@@ -13,6 +13,7 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
 
@@ -203,7 +204,6 @@ class TestS3:
         import s3fs
 
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))
-        buf = BytesIO()
         str_buf = StringIO()
 
         df.to_csv(str_buf)
@@ -227,3 +227,10 @@ class TestS3:
         # GH 25945
         result = read_csv("s3://pandas-test/tips#1.csv")
         tm.assert_frame_equal(tips_df, result)
+
+    @td.skip_if_no("pyarrow")
+    def test_read_feather_s3_file_path(self, feather_file):
+        # GH 29055
+        expected = read_feather(feather_file)
+        res = read_feather("s3://pandas-test/simple_dataset.feather")
+        tm.assert_frame_equal(expected, res)
