@@ -1790,10 +1790,10 @@ class _Rolling_and_Expanding(_Rolling):
 
         def _get_corr(a, b):
             a = a.rolling(
-                window=window, min_periods=self.min_periods, center=self.center
+                window=self.window, min_periods=self.min_periods, center=self.center
             )
             b = b.rolling(
-                window=window, min_periods=self.min_periods, center=self.center
+                window=self.window, min_periods=self.min_periods, center=self.center
             )
 
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
