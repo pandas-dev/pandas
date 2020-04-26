@@ -252,16 +252,6 @@ class ConsistencyBase(Base):
                 var_debiasing_factors_x = var_debiasing_factors(x)
                 tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
 
-    def _check_pairwise_moment(self, dispatch, name, **kwargs):
-        def get_result(obj, obj2=None):
-            return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
-
-        result = get_result(self.frame)
-        result = result.loc[(slice(None), 1), 5]
-        result.index = result.index.droplevel(1)
-        expected = get_result(self.frame[1], self.frame[5])
-        tm.assert_series_equal(result, expected, check_names=False)
-
     def _test_moments_consistency_var_data(
         self, min_periods, count, mean, var_unbiased, var_biased
     ):
@@ -368,6 +358,16 @@ class ConsistencyBase(Base):
                             mean_y = mean(y)
                             mean_x_times_y = mean(x * y)
                             tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
+
+    def _check_pairwise_moment(self, dispatch, name, **kwargs):
+        def get_result(obj, obj2=None):
+            return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
+
+        result = get_result(self.frame)
+        result = result.loc[(slice(None), 1), 5]
+        result.index = result.index.droplevel(1)
+        expected = get_result(self.frame[1], self.frame[5])
+        tm.assert_series_equal(result, expected, check_names=False)
 
 
 def ew_func(A, B, com, name, **kwargs):
