@@ -398,10 +398,90 @@ class TestEwmMomentsConsistency(ConsistencyBase):
                 )
             ),
         )
-        # test consistency between different ewm* moments
-        self._test_moments_consistency(
-            min_periods=min_periods,
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("adjust", [True, False])
+    @pytest.mark.parametrize("ignore_na", [True, False])
+    def test_ewm_consistency_var(self, min_periods, adjust, ignore_na):
+        com = 3.0
+        self._test_moments_consistency_var_data(
+            min_periods,
             count=lambda x: x.expanding().count(),
+            mean=lambda x: x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).mean(),
+            var_unbiased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=False)
+            ),
+            var_biased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=True)
+            ),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("adjust", [True, False])
+    @pytest.mark.parametrize("ignore_na", [True, False])
+    def test_ewm_consistency_std(self, min_periods, adjust, ignore_na):
+        com = 3.0
+        self._test_moments_consistency_std_data(
+            var_unbiased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=False)
+            ),
+            std_unbiased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).std(bias=False)
+            ),
+            var_biased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=True)
+            ),
+            std_biased=lambda x: x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).std(bias=True),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("adjust", [True, False])
+    @pytest.mark.parametrize("ignore_na", [True, False])
+    def test_ewm_consistency_cov(self, min_periods, adjust, ignore_na):
+        com = 3.0
+        self._test_moments_consistency_cov_data(
+            var_unbiased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=False)
+            ),
+            cov_unbiased=lambda x, y: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).cov(y, bias=False)
+            ),
+            var_biased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=True)
+            ),
+            cov_biased=lambda x, y: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).cov(y, bias=True)
+            ),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("adjust", [True, False])
+    @pytest.mark.parametrize("ignore_na", [True, False])
+    def test_ewm_consistency_series_data(self, min_periods, adjust, ignore_na):
+        com = 3.0
+        self._test_moments_consistency_series_data(
             mean=lambda x: x.ewm(
                 com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
             ).mean(),
