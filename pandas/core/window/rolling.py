@@ -1653,11 +1653,11 @@ class _Rolling_and_Expanding(_Rolling):
             X = X.astype("float64")
             Y = Y.astype("float64")
             mean = lambda x: x.rolling(
-                window, self.min_periods, center=self.center
+                self.window, self.min_periods, center=self.center
             ).mean(**kwargs)
             count = (
                 (X + Y)
-                .rolling(window=window, min_periods=0, center=self.center)
+                .rolling(window=self.window, min_periods=0, center=self.center)
                 .count(**kwargs)
             )
             bias_adj = count / (count - ddof)
