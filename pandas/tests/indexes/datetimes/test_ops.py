@@ -134,11 +134,14 @@ class TestDatetimeIndexOps:
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected.index = expected.index._with_freq(None)
 
         for obj in [idx, Series(idx)]:
+
             tm.assert_series_equal(obj.value_counts(), expected)
 
         expected = pd.date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(idx.unique(), expected)
 
         idx = DatetimeIndex(
@@ -274,7 +277,8 @@ class TestDatetimeIndexOps:
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(result, expected)
         assert result.freq is None
 
     @pytest.mark.parametrize(
@@ -401,6 +405,20 @@ class TestDatetimeIndexOps:
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
+
+    def test_freq_view_safe(self):
+        # Setting the freq for one DatetimeIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        dti = pd.date_range("2016-01-01", periods=5)
+        dta = dti._data
+
+        dti2 = DatetimeIndex(dta)._with_freq(None)
+        assert dti2.freq is None
+
+        # Original was not altered
+        assert dti.freq == "D"
+        assert dta.freq == "D"
 
 
 class TestBusinessDatetimeIndex:

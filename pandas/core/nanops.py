@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
+from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -353,14 +353,6 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
         else:
             result = result.astype("m8[ns]").view(dtype)
 
-    elif isinstance(dtype, PeriodDtype):
-        if is_float(result) and result.is_integer():
-            result = int(result)
-        if is_integer(result):
-            result = Period._from_ordinal(result, freq=dtype.freq)
-        else:
-            raise NotImplementedError(type(result), result)
-
     return result
 
 
@@ -516,6 +508,7 @@ def nansum(
     return _wrap_results(the_sum, dtype)
 
 
+@disallow(PeriodDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -547,7 +540,12 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or needs_i8_conversion(dtype):
+    # not using needs_i8_conversion because that includes period
+    if (
+        is_integer_dtype(dtype)
+        or is_datetime64_any_dtype(dtype)
+        or is_timedelta64_dtype(dtype)
+    ):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype

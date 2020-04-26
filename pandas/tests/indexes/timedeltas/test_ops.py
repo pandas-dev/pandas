@@ -144,7 +144,8 @@ class TestTimedeltaIndexOps:
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(expected, result)
         assert result.freq is None
 
     @pytest.mark.parametrize(
@@ -289,3 +290,17 @@ class TestTimedeltaIndexOps:
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
+
+    def test_freq_view_safe(self):
+        # Setting the freq for one TimedeltaIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        tdi = TimedeltaIndex(["0 days", "2 days", "4 days"], freq="2D")
+        tda = tdi._data
+
+        tdi2 = TimedeltaIndex(tda)._with_freq(None)
+        assert tdi2.freq is None
+
+        # Original was not altered
+        assert tdi.freq == "2D"
+        assert tda.freq == "2D"
