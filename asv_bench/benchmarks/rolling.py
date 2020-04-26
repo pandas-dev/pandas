@@ -151,16 +151,22 @@ class Quantile:
 
 
 class PeakMemFixedWindowMinMax:
-    def setup(self):
+    
+    params = [
+        pd.core.window.rolling.Rolling.min,
+        pd.core.window.rolling.Rolling.max,
+    ]
+
+    def setup(self, f):
         N = int(1e5)
         arr = 100 * np.random.random(N)
         self.roll = pd.Series(arr).rolling(1000)
 
-    def peakmem_fixed(self):
+    def peakmem_fixed(self, f):
         # GH 33693
         # increased size of array so we see a clearer picture
         for x in range(1000):
-            self.roll.max()
+            f(self.roll)
 
 
 class ForwardWindowMethods:
