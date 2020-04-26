@@ -278,7 +278,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables``
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
