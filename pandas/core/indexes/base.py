@@ -4663,10 +4663,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
-                maybe_casted = type(other)(self)
+                return type(other)(self), other
             except OutOfBoundsDatetime:
-                maybe_casted = self
-            return maybe_casted, other
+                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
