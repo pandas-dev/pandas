@@ -207,7 +207,24 @@ def _use_inf_as_na(key):
         globals()["_isna"] = _isna_new
 
 
-def _isna_ndarraylike(obj, old=False):
+def _isna_ndarraylike(obj, old: str = False):
+    """
+    Return an array indicating which values of the input
+    array are NaN / NA.
+
+    Parameters
+    ----------
+    obj: array-like
+        The input array whose elements are to be checked.
+    old: bool
+        Whether or not to treat infinite values as NA.
+
+    Returns
+    -------
+    array-like
+        Array of boolean values denoting the NA status of
+        each element.
+    """
     values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
