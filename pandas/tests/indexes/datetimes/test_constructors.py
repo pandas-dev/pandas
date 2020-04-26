@@ -131,7 +131,7 @@ class TestDatetimeIndex:
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
-        i._set_freq(None)
+        i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
@@ -815,6 +815,16 @@ class TestTimeSeries:
 
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
+
+        result = DatetimeIndex(rng, freq=None)
+        assert result.freq is None
+
+        result = DatetimeIndex(rng._data, freq=None)
+        assert result.freq is None
 
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
