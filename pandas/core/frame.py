@@ -7979,15 +7979,15 @@ Wild         185.0
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
-                baseCov = np.empty((mat.shape[1], mat.shape[1]))
-                baseCov.fill(np.nan)
+                base_cov = np.empty((mat.shape[1], mat.shape[1]))
+                base_cov.fill(np.nan)
             else:
-                baseCov = np.cov(mat.T)
-            baseCov = baseCov.reshape((len(cols), len(cols)))
+                base_cov = np.cov(mat.T)
+            base_cov = base_cov.reshape((len(cols), len(cols)))
         else:
-            baseCov = libalgos.nancorr(ensure_float64(mat), cov=True, minp=min_periods)
+            base_cov = libalgos.nancorr(ensure_float64(mat), cov=True, minp=min_periods)
 
-        return self._constructor(baseCov, index=idx, columns=cols)
+        return self._constructor(base_cov, index=idx, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False, method="pearson") -> Series:
         """
