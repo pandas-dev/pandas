@@ -1429,6 +1429,8 @@ def assert_equal(left, right, **kwargs):
 
     if isinstance(left, pd.Index):
         assert_index_equal(left, right, **kwargs)
+        if isinstance(left, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, pd.Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
