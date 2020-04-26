@@ -1379,9 +1379,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return "mixed-integer"
 
     elif PyDateTime_Check(val):
-        if is_datetime_array(values):
+        if is_datetime_array(values, skipna=skipna):
             return "datetime"
-        if is_date_array(values):
+        if is_date_array(values, skipna=skipna):
             return "date"
 
     elif PyDate_Check(val):
@@ -1753,10 +1753,10 @@ cdef class DatetimeValidator(TemporalValidator):
         return is_null_datetime64(value)
 
 
-cpdef bint is_datetime_array(ndarray values):
+cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     cdef:
         DatetimeValidator validator = DatetimeValidator(len(values),
-                                                        skipna=True)
+                                                        skipna=skipna)
     return validator.validate(values)
 
 
