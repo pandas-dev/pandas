@@ -166,3 +166,15 @@ class TestFeather:
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs=dict(version=1))
+
+    @td.skip_if_no("pyarrow")
+    @tm.network
+    def test_http_path(self, feather_file):
+        # GH 29055
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/feather/feather-0_3_1.feather"
+        )
+        expected = pd.read_feather(feather_file)
+        res = pd.read_feather(url)
+        tm.assert_frame_equal(expected, res)
