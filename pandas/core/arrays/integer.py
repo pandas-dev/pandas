@@ -28,7 +28,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
-import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -343,15 +342,10 @@ class IntegerArray(BaseMaskedArray):
         return _dtypes[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and is_integer_dtype(values.dtype)):
+        if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
             raise TypeError(
                 "values should be integer numpy array. Use "
-                "the 'integer_array' function instead"
-            )
-        if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'integer_array' function instead"
+                "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
 
@@ -562,7 +556,7 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "min", "max"}:
+        if name in {"sum", "prod", "min", "max"}:
             op = getattr(masked_reductions, name)
             return op(data, mask, skipna=skipna, **kwargs)
 
@@ -576,16 +570,6 @@ class IntegerArray(BaseMaskedArray):
 
         if np.isnan(result):
             return libmissing.NA
-
-        # if we have a boolean op, don't coerce
-        if name in ["any", "all"]:
-            pass
-
-        # if we have a preservable numeric op,
-        # provide coercion back to an integer type if possible
-        elif name == "prod":
-            # GH#31409 more performant than casting-then-checking
-            result = com.cast_scalar_indexer(result)
 
         return result
 

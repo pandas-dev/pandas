@@ -108,6 +108,16 @@ class TestSeriesReplace:
         expected = pd.Series([pd.Timestamp.min, ts], dtype=object)
         tm.assert_series_equal(expected, result)
 
+    def test_replace_timedelta_td64(self):
+        tdi = pd.timedelta_range(0, periods=5)
+        ser = pd.Series(tdi)
+
+        # Using a single dict argument means we go through replace_list
+        result = ser.replace({ser[1]: ser[3]})
+
+        expected = pd.Series([ser[0], ser[3], ser[2], ser[3], ser[4]])
+        tm.assert_series_equal(result, expected)
+
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([1, 2, 3])
@@ -240,6 +250,13 @@ class TestSeriesReplace:
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
+
+    def test_replace_with_dictlike_and_string_dtype(self):
+        # GH 32621
+        s = pd.Series(["one", "two", np.nan], dtype="string")
+        expected = pd.Series(["1", "2", np.nan])
+        result = s.replace({"one": "1", "two": "2"})
+        tm.assert_series_equal(expected, result)
 
     def test_replace_with_empty_dictlike(self):
         # GH 15289

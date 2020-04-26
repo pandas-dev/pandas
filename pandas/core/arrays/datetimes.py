@@ -18,6 +18,7 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
+import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -1097,7 +1098,14 @@ default 'raise'
                     "You must pass a freq argument as current index has none."
                 )
 
-            freq = get_period_alias(freq)
+            res = get_period_alias(freq)
+
+            #  https://github.com/pandas-dev/pandas/issues/33358
+            if res is None:
+                base, stride = libfrequencies._base_and_stride(freq)
+                res = f"{stride}{base}"
+
+            freq = res
 
         return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
 
@@ -1233,6 +1241,53 @@ default 'raise'
             timestamps = self.asi8
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
+
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+        >>> idx.isocalendar()
+           year  week  day
+        0  2019    52    7
+        1  2020     1    1
+        2  2020     1    2
+        3  2020     1    3
+        >>> idx.isocalendar().week
+        0    52
+        1     1
+        2     1
+        3     1
+        Name: week, dtype: UInt32
+        """
+        from pandas import DataFrame
+
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
+        else:
+            values = self.asi8
+        sarray = fields.build_isocalendar_sarray(values)
+        iso_calendar_df = DataFrame(
+            sarray, columns=["year", "week", "day"], dtype="UInt32"
+        )
+        if self._hasnans:
+            iso_calendar_df.iloc[self._isnan] = None
+        return iso_calendar_df
 
     year = _field_accessor(
         "year",

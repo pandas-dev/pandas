@@ -202,14 +202,14 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+>>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
 ...    .pipe(f)
 ...    .pipe(g, arg1=a)
-...    .pipe(h, arg2=b, arg3=c))
+...    .pipe(h, arg2=b, arg3=c))  # doctest: +SKIP
 
 which is much more readable.
 
@@ -2017,7 +2017,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Essentially this is equivalent to
 
-        >>> self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
+        .. code-block:: python
+
+            self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
 
         Parameters
         ----------

@@ -747,7 +747,7 @@ extensions.append(ujson_ext)
 def setup_package():
     setuptools_kwargs = {
         "install_requires": [
-            "python-dateutil >= 2.6.1",
+            "python-dateutil >= 2.7.3",
             "pytz >= 2017.2",
             f"numpy >= {min_numpy_ver}",
         ],
@@ -760,7 +760,7 @@ def setup_package():
         maintainer=AUTHOR,
         version=versioneer.get_version(),
         packages=find_packages(include=["pandas", "pandas.*"]),
-        package_data={"": ["templates/*", "_libs/*.dll"]},
+        package_data={"": ["templates/*", "_libs/**/*.dll"]},
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
         maintainer_email=EMAIL,
         description=DESCRIPTION,

@@ -2288,7 +2288,7 @@ class MultiIndex(Index):
 
             # GH7774: preserve dtype/tz if target is empty and not an Index.
             # target may be an iterator
-            target = ibase._ensure_has_len(target)
+            target = ibase.ensure_has_len(target)
             if len(target) == 0 and not isinstance(target, Index):
                 idx = self.levels[level]
                 attrs = idx._get_attributes_dict()
@@ -2333,23 +2333,21 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_value(self, series, key):
-        # Label-based
+    def _check_indexing_error(self, key):
         if not is_hashable(key) or is_iterator(key):
             # We allow tuples if they are hashable, whereas other Index
             #  subclasses require scalar.
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-        try:
-            loc = self.get_loc(key)
-        except KeyError:
-            if is_integer(key):
-                loc = key
-            else:
-                raise
-
-        return self._get_values_for_loc(series, loc, key)
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        If an integer key is not found, should we fall back to positional indexing?
+        """
+        if not self.nlevels:
+            return False
+        # GH#33355
+        return self.levels[0]._should_fallback_to_positional()
 
     def _get_values_for_loc(self, series: "Series", loc, key):
         """

@@ -1,24 +1,11 @@
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import (
-    Any,
-    Callable,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, List, Mapping, Optional, Tuple, Type, Union, cast
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
-
-FuncType = Callable[..., Any]
-F = TypeVar("F", bound=FuncType)
+from pandas._typing import F
 
 
 def deprecate(
@@ -29,7 +16,7 @@ def deprecate(
     klass: Optional[Type[Warning]] = None,
     stacklevel: int = 2,
     msg: Optional[str] = None,
-) -> Callable[..., Any]:
+) -> Callable[[F], F]:
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -100,7 +87,7 @@ def deprecate_kwarg(
     new_arg_name: Optional[str],
     mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
     stacklevel: int = 2,
-) -> Callable[..., Any]:
+) -> Callable[[F], F]:
     """
     Decorator to deprecate a keyword argument of a function.
 
