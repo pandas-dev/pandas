@@ -245,4 +245,5 @@ def test_rolling_forward_cov_corr(func, expected):
     result = getattr(rolling, func)().loc[(slice(None), 1), 0]
     result = result.reset_index(drop=True)
     expected = Series(expected)
+    expected.name = result.name
     tm.assert_equal(result, expected)
