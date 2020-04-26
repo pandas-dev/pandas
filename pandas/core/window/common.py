@@ -78,6 +78,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -327,7 +328,19 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
 
 def validate_baseindexer_support(func_name: Optional[str]) -> None:
     # GH 32865: These functions work correctly with a BaseIndexer subclass
-    BASEINDEXER_WHITELIST = {"min", "max", "mean", "sum", "median", "kurt", "quantile"}
+    BASEINDEXER_WHITELIST = {
+        "count",
+        "min",
+        "max",
+        "mean",
+        "sum",
+        "median",
+        "std",
+        "var",
+        "skew",
+        "kurt",
+        "quantile",
+    }
     if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
         raise NotImplementedError(
             f"{func_name} is not supported with using a BaseIndexer "

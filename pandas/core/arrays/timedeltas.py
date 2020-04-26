@@ -141,13 +141,18 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype=TD64NS_DTYPE, freq=None, copy=False):
+    def __init__(self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy=False):
         values = extract_array(values)
 
         inferred_freq = getattr(values, "_freq", None)
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
         if isinstance(values, type(self)):
-            if freq is None:
+            if explicit_none:
+                # dont inherit from values
+                pass
+            elif freq is None:
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
@@ -206,13 +211,21 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, data, dtype=TD64NS_DTYPE, copy=False, freq=None, unit=None):
+    def _from_sequence(
+        cls, data, dtype=TD64NS_DTYPE, copy=False, freq=lib.no_default, unit=None
+    ):
         if dtype:
             _validate_td64_dtype(dtype)
+
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
+
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         result = cls._simple_new(data, freq=freq)
 
@@ -389,7 +402,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         from pandas.io.formats.format import _get_format_timedelta64
 
         formatter = _get_format_timedelta64(self._data, na_rep)
-        return np.array([formatter(x) for x in self._data])
+        return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -518,11 +531,22 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self._data / other
 
         elif is_object_dtype(other.dtype):
-            # Note: we do not do type inference on the result, so either
-            #  an object array or numeric-dtyped (if numpy does inference)
-            #  will be returned.  GH#23829
-            result = [self[n] / other[n] for n in range(len(self))]
-            result = np.array(result)
+            # We operate on raveled arrays to avoid problems in inference
+            #  on NaT
+            srav = self.ravel()
+            orav = other.ravel()
+            result = [srav[n] / orav[n] for n in range(len(srav))]
+            result = np.array(result).reshape(self.shape)
+
+            # We need to do dtype inference in order to keep DataFrame ops
+            #  behavior consistent with Series behavior
+            inferred = lib.infer_dtype(result)
+            if inferred == "timedelta":
+                flat = result.ravel()
+                result = type(self)._from_sequence(flat).reshape(result.shape)
+            elif inferred == "floating":
+                result = result.astype(float)
+
             return result
 
         else:

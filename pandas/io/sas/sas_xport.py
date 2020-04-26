@@ -9,7 +9,6 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 from collections import abc
 from datetime import datetime
-from io import BytesIO
 import struct
 import warnings
 
@@ -263,13 +262,9 @@ class XportReader(abc.Iterator):
         if isinstance(filepath_or_buffer, (str, bytes)):
             self.filepath_or_buffer = open(filepath_or_buffer, "rb")
         else:
-            # Copy to BytesIO, and ensure no encoding
-            contents = filepath_or_buffer.read()
-            try:
-                contents = contents.encode(self._encoding)
-            except UnicodeEncodeError:
-                pass
-            self.filepath_or_buffer = BytesIO(contents)
+            # Since xport files include non-text byte sequences, xport files
+            # should already be opened in binary mode in Python 3.
+            self.filepath_or_buffer = filepath_or_buffer
 
         self._read_header()
 

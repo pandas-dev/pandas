@@ -734,7 +734,7 @@ class TestDatetimeIndexComparisons:
         result = dti == other
         expected = np.array([True] * 5 + [False] * 5)
         tm.assert_numpy_array_equal(result, expected)
-        msg = "Cannot compare type"
+        msg = ">=' not supported between instances of 'Timestamp' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             dti >= other
 
@@ -865,7 +865,7 @@ class TestDatetime64Arithmetic:
         tdi = pd.TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
 
-        expected = pd.date_range("2015-12-31", periods=3, tz=tz)
+        expected = pd.date_range("2015-12-31", "2016-01-02", periods=3, tz=tz)
 
         dtarr = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -875,7 +875,7 @@ class TestDatetime64Arithmetic:
         result = tdarr + dtarr
         tm.assert_equal(result, expected)
 
-        expected = pd.date_range("2016-01-02", periods=3, tz=tz)
+        expected = pd.date_range("2016-01-02", "2016-01-04", periods=3, tz=tz)
         expected = tm.box_expected(expected, box_with_array)
 
         result = dtarr - tdarr
@@ -1385,13 +1385,13 @@ class TestDatetime64DateOffsetArithmetic:
         s = tm.box_expected(s, box_with_array)
         result = s + pd.DateOffset(years=1)
         result2 = pd.DateOffset(years=1) + s
-        exp = date_range("2001-01-01", "2001-01-31", name="a")
+        exp = date_range("2001-01-01", "2001-01-31", name="a")._with_freq(None)
         exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
         result = s - pd.DateOffset(years=1)
-        exp = date_range("1999-01-01", "1999-01-31", name="a")
+        exp = date_range("1999-01-01", "1999-01-31", name="a")._with_freq(None)
         exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
 
@@ -1473,7 +1473,10 @@ class TestDatetime64DateOffsetArithmetic:
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and tz is not None:
+            warn = None
+
         with tm.assert_produces_warning(warn):
             res = dtarr + other
         expected = DatetimeIndex(
@@ -1553,7 +1556,7 @@ class TestDatetime64DateOffsetArithmetic:
         mth = getattr(date, op)
         result = mth(offset)
 
-        expected = pd.DatetimeIndex(exp, tz=tz, freq=exp_freq)
+        expected = pd.DatetimeIndex(exp, tz=tz)
         expected = tm.box_expected(expected, box_with_array, False)
         tm.assert_equal(result, expected)
 
@@ -2052,6 +2055,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected = expected._with_freq(None)
 
         # add with TimdeltaIndex
         result = dti + tdi
@@ -2073,6 +2077,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected = expected._with_freq(None)
 
         # iadd with TimdeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
@@ -2098,6 +2103,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # sub with TimedeltaIndex
         result = dti - tdi
@@ -2121,6 +2127,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # isub with TimedeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
@@ -2344,29 +2351,29 @@ class TestDatetimeIndexArithmetic:
             assert result.freq == "2D"
 
         exp = date_range("2010-12-31", periods=3, freq="2D", name="x")
+
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
             tm.assert_index_equal(result, exp)
             assert result.freq == "2D"
 
+        # When adding/subtracting an ndarray (which has no .freq), the result
+        #  does not infer freq
+        idx = idx._with_freq(None)
         delta = np.array(
             [np.timedelta64(1, "D"), np.timedelta64(2, "D"), np.timedelta64(3, "D")]
         )
-        exp = DatetimeIndex(
-            ["2011-01-02", "2011-01-05", "2011-01-08"], freq="3D", name="x"
-        )
-        for result in [idx + delta, np.add(idx, delta)]:
-            assert isinstance(result, DatetimeIndex)
-            tm.assert_index_equal(result, exp)
-            assert result.freq == "3D"
+        exp = DatetimeIndex(["2011-01-02", "2011-01-05", "2011-01-08"], name="x")
 
-        exp = DatetimeIndex(
-            ["2010-12-31", "2011-01-01", "2011-01-02"], freq="D", name="x"
-        )
+        for result in [idx + delta, np.add(idx, delta)]:
+            tm.assert_index_equal(result, exp)
+            assert result.freq == exp.freq
+
+        exp = DatetimeIndex(["2010-12-31", "2011-01-01", "2011-01-02"], name="x")
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
             tm.assert_index_equal(result, exp)
-            assert result.freq == "D"
+            assert result.freq == exp.freq
 
     @pytest.mark.parametrize(
         "names", [("foo", None, None), ("baz", "bar", None), ("bar", "bar", "bar")]
@@ -2434,7 +2441,10 @@ class TestDatetimeIndexArithmetic:
         expected = pd.DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and tz is not None:
+            warn = None
+
         with tm.assert_produces_warning(warn):
             result = dtarr + other
         tm.assert_equal(result, expected)

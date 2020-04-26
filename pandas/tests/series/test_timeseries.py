@@ -7,18 +7,6 @@ import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_mpl_compat_hack(self, datetime_series):
-
-        # This is currently failing because the test was relying on
-        # the DeprecationWarning coming through Index.__getitem__.
-        # We want to implement a warning specifically for Series.__getitem__
-        # at which point this will become a Deprecation/FutureWarning
-        with tm.assert_produces_warning(None):
-            # GH#30588 multi-dimensional indexing deprecated
-            result = datetime_series[:, np.newaxis]
-        expected = datetime_series.values[:, np.newaxis]
-        tm.assert_almost_equal(result, expected)
-
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
