@@ -58,6 +58,16 @@ class TestDataFrameCov:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "other_column", [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0])]
+    )
+    def test_cov_nullable_integer(self, other_column):
+        data = pd.DataFrame({"a": pd.array([1, 2, None]), "b": other_column})
+        result = data.cov()
+        arr = np.array([[0.5, 0.5], [0.5, 1.0]])
+        expected = pd.DataFrame(arr, columns=["a", "b"], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
@@ -152,6 +162,20 @@ class TestDataFrameCorr:
 
         df3.cov()
         df3.corr()
+
+    @pytest.mark.parametrize(
+        "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
+    )
+    @pytest.mark.parametrize(
+        "other_column",
+        [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0]), np.array([1.0, 2.0, np.nan])],
+    )
+    @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+    def test_corr_nullable_integer(self, nullable_column, other_column, method):
+        data = pd.DataFrame({"a": nullable_column, "b": other_column})
+        result = data.corr(method=method)
+        expected = pd.DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameCorrWith:

@@ -520,7 +520,7 @@ Numeric
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
 - Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
--
+- Bug in :meth:`DataFrame.corr` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 
 Conversion
 ^^^^^^^^^^
