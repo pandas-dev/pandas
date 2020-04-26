@@ -91,7 +91,8 @@ class TestDataFrameSelectReindex:
 
         # pass non-Index
         newFrame = float_frame.reindex(list(datetime_series.index))
-        tm.assert_index_equal(newFrame.index, datetime_series.index)
+        expected = datetime_series.index._with_freq(None)
+        tm.assert_index_equal(newFrame.index, expected)
 
         # copy with no axes
         result = float_frame.reindex()

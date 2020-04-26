@@ -331,6 +331,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_from_index_series_datetimetz(self):
         idx = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
+        idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
@@ -339,6 +340,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_from_index_series_timedelta(self):
         idx = timedelta_range("1 days", freq="D", periods=3)
+        idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
