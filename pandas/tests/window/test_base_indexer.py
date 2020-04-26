@@ -234,9 +234,9 @@ def test_rolling_forward_skewness(constructor):
     ],
 )
 def test_rolling_forward_cov_corr(func, expected):
-    values1 = np.arange(10).reshape(-1,1)
+    values1 = np.arange(10).reshape(-1, 1)
     values2 = values1 * 2
-    values1[5,0] = 100
+    values1[5, 0] = 100
     values = np.concatenate([values1, values2], axis=1)
 
     indexer = FixedForwardWindowIndexer(window_size=3)
