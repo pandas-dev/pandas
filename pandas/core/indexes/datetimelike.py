@@ -88,7 +88,7 @@ def _make_wrapped_arith_op_with_freq(opname: str):
         if result is NotImplemented:
             return NotImplemented
 
-        new_freq = self._get_addsub_freq(other)
+        new_freq = self._get_addsub_freq(other, result)
         result._freq = new_freq
         return result
 
@@ -451,14 +451,16 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _get_addsub_freq(self, other) -> Optional[DateOffset]:
+    def _get_addsub_freq(self, other, result) -> Optional[DateOffset]:
         """
         Find the freq we expect the result of an addition/subtraction operation
         to have.
         """
         if is_period_dtype(self.dtype):
-            # Only used for ops that stay PeriodDtype
-            return self.freq
+            if is_period_dtype(result.dtype):
+                # Only used for ops that stay PeriodDtype
+                return self.freq
+            return None
         elif self.freq is None:
             return None
         elif lib.is_scalar(other) and isna(other):
