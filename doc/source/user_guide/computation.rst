@@ -382,8 +382,8 @@ and their default values are set to ``False``, ``True`` and ``False`` respective
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
-   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
    a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
