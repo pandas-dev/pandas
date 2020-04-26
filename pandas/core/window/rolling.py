@@ -1641,11 +1641,14 @@ class _Rolling_and_Expanding(_Rolling):
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
-        # GH 16058: offset window
-        if self.is_freq_type:
-            window = self.win_freq
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
         else:
-            window = self._get_window(other)
+            # GH 16058: offset window
+            if self.is_freq_type:
+                window = self.win_freq
+            else:
+                window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1653,11 +1656,11 @@ class _Rolling_and_Expanding(_Rolling):
             X = X.astype("float64")
             Y = Y.astype("float64")
             mean = lambda x: x.rolling(
-                self.window, self.min_periods, center=self.center
+                window, self.min_periods, center=self.center
             ).mean(**kwargs)
             count = (
                 (X + Y)
-                .rolling(window=self.window, min_periods=0, center=self.center)
+                .rolling(window=window, min_periods=0, center=self.center)
                 .count(**kwargs)
             )
             bias_adj = count / (count - ddof)
@@ -1786,14 +1789,18 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other) if not self.is_freq_type else self.win_freq
+
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
+        else:
+            window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
-                window=self.window, min_periods=self.min_periods, center=self.center
+                window=window, min_periods=self.min_periods, center=self.center
             )
             b = b.rolling(
-                window=self.window, min_periods=self.min_periods, center=self.center
+                window=window, min_periods=self.min_periods, center=self.center
             )
 
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
