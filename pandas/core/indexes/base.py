@@ -13,7 +13,7 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -1944,7 +1944,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self, skipna=False)
+        return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
     def is_all_dates(self) -> bool:
@@ -4626,6 +4626,10 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
         if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
         else:
@@ -4651,15 +4655,36 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def _maybe_promote(self, other):
-        # A hack, but it works
+    def _maybe_promote(self, other: "Index"):
+        """
+        When dealing with an object-dtype Index and a non-object Index, see
+        if we can upcast the object-dtype one to improve performance.
+        """
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+            try:
+                maybe_casted = type(other)(self)
+            except OutOfBoundsDatetime:
+                maybe_casted = self
+            return maybe_casted, other
+        elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
+            # TODO: we dont have tests that get here
             return type(other)(self), other
         elif self.inferred_type == "boolean":
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
+
+        if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
+            # Reverse op so we dont need to re-implement on the subclasses
+            other, self = other._maybe_promote(self)
+
         return self, other
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        return True
 
     def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """
