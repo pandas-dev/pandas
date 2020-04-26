@@ -44,7 +44,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import DateOffset, to_offset
+from pandas.tseries.frequencies import DateOffset
 from pandas.tseries.offsets import Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -678,20 +678,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         return self.freq.freqstr
 
     def _with_freq(self, freq):
-        index = self.copy(deep=False)
-        if freq is None:
-            # Even if we _can_ have a freq, we might want to set it to None
-            index._freq = None
-        elif len(self) == 0 and isinstance(freq, DateOffset):
-            # Always valid.  In the TimedeltaArray case, we assume this
-            #  is a Tick offset.
-            index._freq = freq
-        else:
-            assert freq == "infer", freq
-            freq = to_offset(self.inferred_freq)
-            index._freq = freq
-
-        return index
+        arr = self._data._with_freq(freq)
+        return type(self)._simple_new(arr, name=self.name)
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
