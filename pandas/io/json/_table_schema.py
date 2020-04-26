@@ -221,7 +221,6 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     constraint to list the allowed values. The `ordered` attribute is included
     in an `ordered` field.
 
-
     Examples
     --------
     >>> df = pd.DataFrame(
