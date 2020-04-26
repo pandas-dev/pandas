@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Type, Union, cast
+from typing import Any, Sequence, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -438,6 +438,9 @@ default 'raise'
         return arr
 
 
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
+
+
 class DatetimeLikeArrayMixin(
     ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
 ):
@@ -680,7 +683,7 @@ class DatetimeLikeArrayMixin(
 
         return cls._simple_new(values, dtype=dtype, freq=new_freq)
 
-    def copy(self):
+    def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
         values = self.asi8.copy()
         return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
