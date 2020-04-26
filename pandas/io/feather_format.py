@@ -102,6 +102,7 @@ def read_feather(path, columns=None, use_threads: bool = True):
 
     df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
 
+    # s3fs only validates the credentials when the file is closed.
     if should_close:
         path.close()
 
