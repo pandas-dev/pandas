@@ -54,6 +54,14 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    check_kwargs_and_nopython,
+    get_jit_arguments,
+    jit_user_function,
+    split_for_numba,
+    validate_udf,
+)
 
 
 class BaseGrouper:
@@ -610,10 +618,22 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func: F):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        if engine == "numba":
+            return self._aggregate_series_pure_python(
+                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -658,7 +678,24 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func: F):
+    def _aggregate_series_pure_python(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
+
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            cache_key = (func, "groupby_agg")
+            numba_func = NUMBA_FUNC_CACHE.get(
+                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            )
 
         group_index, _, ngroups = self.group_info
 
@@ -668,7 +705,14 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group)
+            if engine == "numba":
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
+            else:
+                res = func(group, *args, **kwargs)
+
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
@@ -844,7 +888,15 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: F):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result

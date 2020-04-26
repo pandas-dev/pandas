@@ -313,7 +313,9 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dti - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], name="bar")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], freq="D", name="bar"
+        )
         tm.assert_index_equal(result, expected, check_names=False)
 
         result = dt - tdi
@@ -487,6 +489,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
+        back = back._with_freq("infer")
         tm.assert_index_equal(index, back)
 
         if freq == "D":
@@ -510,7 +513,13 @@ class TestTimedelta64ArithmeticUnsorted:
         result2 = DatetimeIndex(s - np.timedelta64(100000000))
         result3 = rng - np.timedelta64(100000000)
         result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+
+        assert result1.freq == rng.freq
+        result1 = result1._with_freq(None)
         tm.assert_index_equal(result1, result4)
+
+        assert result3.freq == rng.freq
+        result3 = result3._with_freq(None)
         tm.assert_index_equal(result2, result3)
 
     def test_tda_add_sub_index(self):
@@ -535,7 +544,7 @@ class TestTimedelta64ArithmeticUnsorted:
     def test_tda_add_dt64_object_array(self, box_df_fail, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
         dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
-        dti._set_freq(None)
+        dti = dti._with_freq(None)
         tdi = dti - dti
 
         obj = tm.box_expected(tdi, box_df_fail)
@@ -1318,14 +1327,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -1344,14 +1350,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -1380,10 +1383,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi - other
         tm.assert_equal(res, expected)
 
@@ -1399,10 +1399,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi - other
         tm.assert_equal(res, expected)
 
@@ -1473,28 +1470,31 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
         )
 
-        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = tdarr + other
 
         expected = pd.Index(
             [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, box_with_array)
+        if box_with_array is pd.DataFrame:
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tdarr - other
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr
 
         expected = pd.Index(
             [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
         )
         expected = tm.box_expected(expected, box_with_array)
+        if box_with_array is pd.DataFrame:
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -2034,6 +2034,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 

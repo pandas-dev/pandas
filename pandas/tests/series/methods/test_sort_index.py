@@ -13,6 +13,8 @@ class TestSeriesSortIndex:
         assert result.name == datetime_series.name
 
     def test_sort_index(self, datetime_series):
+        datetime_series.index = datetime_series.index._with_freq(None)
+
         rindex = list(datetime_series.index)
         random.shuffle(rindex)
 
@@ -45,6 +47,7 @@ class TestSeriesSortIndex:
             random_order.sort_index(level=0, axis=1)
 
     def test_sort_index_inplace(self, datetime_series):
+        datetime_series.index = datetime_series.index._with_freq(None)
 
         # For GH#11402
         rindex = list(datetime_series.index)
@@ -55,16 +58,18 @@ class TestSeriesSortIndex:
         result = random_order.sort_index(ascending=False, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(
-            random_order, datetime_series.reindex(datetime_series.index[::-1])
-        )
+        expected = datetime_series.reindex(datetime_series.index[::-1])
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
         # ascending
         random_order = datetime_series.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(random_order, datetime_series)
+        expected = datetime_series.copy()
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
@@ -170,3 +175,26 @@ class TestSeriesSortIndex:
 
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
+
+    def test_sort_index_ascending_list(self):
+        # GH#16934
+
+        # Set up a Series with a three level MultiIndex
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+            [4, 3, 2, 1, 4, 3, 2, 1],
+        ]
+        tuples = zip(*arrays)
+        mi = MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+        ser = Series(range(8), index=mi)
+
+        # Sort with boolean ascending
+        result = ser.sort_index(level=["third", "first"], ascending=False)
+        expected = ser.iloc[[4, 0, 5, 1, 6, 2, 7, 3]]
+        tm.assert_series_equal(result, expected)
+
+        # Sort with list of boolean ascending
+        result = ser.sort_index(level=["third", "first"], ascending=[False, True])
+        expected = ser.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
+        tm.assert_series_equal(result, expected)

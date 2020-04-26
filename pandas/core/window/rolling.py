@@ -37,7 +37,9 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -93,7 +95,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-        self._numba_func_cache: Dict[Optional[str], Callable] = dict()
 
     @property
     def _constructor(self):
@@ -252,7 +253,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = getattr(self._selected_obj, "values", self._selected_obj)
+            values = extract_array(self._selected_obj, extract_numpy=True)
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -471,13 +472,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, BaseIndexer):
+                    if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
                     else:
                         min_periods = calculate_min_periods(
-                            self.min_periods or 1,
+                            window_indexer.window_size,
                             self.min_periods,
                             len(x),
                             require_min_periods,
@@ -505,7 +506,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                self._numba_func_cache[name] = func
+                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -1171,8 +1172,9 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("count")
+        # GH 32865. Using count with custom BaseIndexer subclass
+        # implementations shouldn't end up here
+        assert not isinstance(self.window, BaseIndexer)
 
         blocks, obj = self._create_blocks()
         results = []
@@ -1278,9 +1280,10 @@ class _Rolling_and_Expanding(_Rolling):
         elif engine == "numba":
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            if func in self._numba_func_cache:
+            cache_key = (func, "rolling_apply")
+            if cache_key in NUMBA_FUNC_CACHE:
                 # Return an already compiled version of roll_apply if available
-                apply_func = self._numba_func_cache[func]
+                apply_func = NUMBA_FUNC_CACHE[cache_key]
             else:
                 apply_func = generate_numba_apply_func(
                     args, kwargs, func, engine_kwargs
@@ -1297,6 +1300,7 @@ class _Rolling_and_Expanding(_Rolling):
             name=func,
             use_numba_cache=engine == "numba",
             raw=raw,
+            original_func=func,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1428,7 +1432,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
-        window_func = partial(window_func, win=self._get_window())
+        # GH 32865. Move max window size calculation to
+        # the median function implementation
         return self._apply(window_func, center=self.center, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):
@@ -1939,7 +1944,9 @@ class Rolling(_Rolling_and_Expanding):
     def count(self):
 
         # different impl for freq counting
-        if self.is_freq_type:
+        # GH 32865. Use a custom count function implementation
+        # when using a BaseIndexer subclass as a window
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
             return self._apply(window_func, center=self.center, name="count")
 

@@ -1,4 +1,5 @@
 """Common utilities for Numba operations"""
+from distutils.version import LooseVersion
 import inspect
 import types
 from typing import Callable, Dict, Optional, Tuple
@@ -7,6 +8,27 @@ import numpy as np
 
 from pandas._typing import FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
+
+NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
+
+
+def is_numba_util_related_error(err_message: str) -> bool:
+    """
+    Check if an error was raised from one of the numba utility functions
+
+    For cases where a try/except block has mistakenly caught the error
+    and we want to re-raise
+
+    Parameters
+    ----------
+    err_message : str,
+        exception error message
+
+    Returns
+    -------
+    bool
+    """
+    return "The first" in err_message or "numba does not" in err_message
 
 
 def check_kwargs_and_nopython(
@@ -73,7 +95,6 @@ def jit_user_function(
     ----------
     func : function
         user defined function
-
     nopython : bool
         nopython parameter for numba.JIT
     nogil : bool
@@ -88,7 +109,12 @@ def jit_user_function(
     """
     numba = import_optional_dependency("numba")
 
-    if isinstance(func, numba.targets.registry.CPUDispatcher):
+    if LooseVersion(numba.__version__) >= LooseVersion("0.49.0"):
+        is_jitted = numba.extending.is_jitted(func)
+    else:
+        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
+
+    if is_jitted:
         # Don't jit a user passed jitted function
         numba_func = func
     else:

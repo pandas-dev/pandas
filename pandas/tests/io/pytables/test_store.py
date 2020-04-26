@@ -1231,6 +1231,8 @@ class TestHDFStore:
 
             # column oriented
             df = tm.makeTimeDataFrame()
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
+
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
             store.append("df1", df.iloc[:, 2:])
@@ -4776,3 +4778,14 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
+
+    def test_unsuppored_hdf_file_error(self, datapath):
+        # GH 9539
+        data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
+        message = (
+            r"Dataset\(s\) incompatible with Pandas data types, "
+            "not table, or no datasets found in HDF5 file."
+        )
+
+        with pytest.raises(ValueError, match=message):
+            pd.read_hdf(data_path)

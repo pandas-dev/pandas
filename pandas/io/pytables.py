@@ -230,7 +230,7 @@ def to_hdf(
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
     nan_rep=None,
     dropna: Optional[bool] = None,
-    data_columns: Optional[List[str]] = None,
+    data_columns: Optional[Union[bool, List[str]]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ):
@@ -387,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
@@ -3709,7 +3712,7 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        axis_name = obj._AXIS_NAMES[idx]
+        axis_name = obj._get_axis_name(idx)
         new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
@@ -3916,7 +3919,7 @@ class Table(Fixed):
 
                 def process_filter(field, filt):
 
-                    for axis_name in obj._AXIS_NAMES.values():
+                    for axis_name in obj._AXIS_ORDERS:
                         axis_number = obj._get_axis_number(axis_name)
                         axis_values = obj._get_axis(axis_name)
                         assert axis_number is not None
