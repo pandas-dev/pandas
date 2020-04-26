@@ -98,7 +98,7 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
-- :meth:`~pandas.core.groupby.GroupBy.transform` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`)
+- :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 -
 
@@ -559,6 +559,7 @@ Indexing
 - Bug in :class:`Index` constructor where an unhelpful error message was raised for ``numpy`` scalars (:issue:`33017`)
 - Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`32831`)
+- Bug in :class:`Interval` where a :class:`Timedelta` could not be added or subtracted from a :class:`Timestamp` interval (:issue:`32023`)
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
 - Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
@@ -620,6 +621,7 @@ I/O
   unsupported HDF file (:issue:`9539`)
 - Bug in :meth:`~DataFrame.to_parquet` was not raising ``PermissionError`` when writing to a private s3 bucket with invalid creds. (:issue:`27679`)
 - Bug in :meth:`~DataFrame.to_csv` was silently failing when writing to an invalid s3 bucket. (:issue:`32486`)
+- Bug in :meth:`~DataFrame.read_feather` was raising an `ArrowIOError` when reading an s3 or http file path (:issue:`29055`)
 
 Plotting
 ^^^^^^^^

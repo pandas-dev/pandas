@@ -227,3 +227,14 @@ class TestTimedeltaIndex:
         msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
         with pytest.raises(ValueError, match=msg):
             pd.TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        tdi = timedelta_range(1, periods=5)
+        assert tdi.freq is not None
+
+        result = TimedeltaIndex(tdi, freq=None)
+        assert result.freq is None
+
+        result = TimedeltaIndex(tdi._data, freq=None)
+        assert result.freq is None
