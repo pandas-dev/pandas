@@ -259,12 +259,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # astype copies
                     data = data.astype(dtype)
                 else:
-                    # need to copy to avoid aliasing issues
+                    # GH#24096 we need to ensure the index remains immutable
                     data = data._values.copy()
-                    if isinstance(data, ABCDatetimeIndex) and data.tz is not None:
-                        # GH#24096 need copy to be deep for datetime64tz case
-                        # TODO: See if we can avoid these copies
-                        data = data._values.copy(deep=True)
                 copy = False
 
             elif isinstance(data, np.ndarray):
@@ -275,12 +271,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Cannot construct a Series from an ndarray with "
                         "compound dtype.  Use DataFrame instead."
                     )
-                pass
             elif isinstance(data, ABCSeries):
                 if index is None:
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
+                    copy = False
                 data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
@@ -2790,7 +2786,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        other : Series
+        other : Series, or object coercible into Series
 
         Examples
         --------
@@ -2828,7 +2824,30 @@ Name: Max Speed, dtype: float64
         1    2
         2    6
         dtype: int64
+
+        ``other`` can also be a non-Series object type
+        that is coercible into a Series
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update([4, np.nan, 6])
+        >>> s
+        0    4
+        1    2
+        2    6
+        dtype: int64
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update({1: 9})
+        >>> s
+        0    1
+        1    9
+        2    3
+        dtype: int64
         """
+
+        if not isinstance(other, Series):
+            other = Series(other)
+
         other = other.reindex_like(self)
         mask = notna(other)
 

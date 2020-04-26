@@ -32,7 +32,9 @@ class TestTimedeltaIndex(DatetimeLike):
     def create_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
         assert index.freq == "D"
-        return index + pd.offsets.Hour(1)
+        ret = index + pd.offsets.Hour(1)
+        assert ret.freq == "D"
+        return ret
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
@@ -44,6 +46,13 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_pickle_compat_construction(self):
         pass
+
+    def test_pickle_after_set_freq(self):
+        tdi = timedelta_range("1 day", periods=4, freq="s")
+        tdi = tdi._with_freq(None)
+
+        res = tm.round_trip_pickle(tdi)
+        tm.assert_index_equal(res, tdi)
 
     def test_isin(self):
 

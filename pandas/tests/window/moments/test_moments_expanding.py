@@ -367,20 +367,6 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                     / (x.expanding().count() - 1.0).replace(0.0, np.nan)
                 ),
             )
-            self._test_moments_consistency(
-                min_periods=min_periods,
-                count=lambda x: x.expanding(min_periods=min_periods).count(),
-                mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-                corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
-                var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-                std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
-                cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
-                var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-                std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
-                cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(
-                    y, ddof=0
-                ),
-            )
 
             # test consistency between expanding_xyz() and either (a)
             # expanding_apply of Series.xyz(), or (b) expanding_apply of
@@ -418,3 +404,44 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                     # GH 9422
                     if name in ["sum", "prod"]:
                         tm.assert_equal(expanding_f_result, expanding_apply_f_result)
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    def test_moments_consistency_var(self, min_periods):
+        self._test_moments_consistency_var_data(
+            min_periods=min_periods,
+            count=lambda x: x.expanding(min_periods=min_periods).count(),
+            mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+            var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+            var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    def test_expanding_consistency_std(self, min_periods):
+        self._test_moments_consistency_std_data(
+            var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+            std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
+            var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+            std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    def test_expanding_consistency_cov(self, min_periods):
+        self._test_moments_consistency_cov_data(
+            var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+            cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
+            var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+            cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(y, ddof=0),
+        )
+
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    def test_expanding_consistency_series(self, min_periods):
+        self._test_moments_consistency_series_data(
+            mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+            corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
+            var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+            std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
+            cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
+            var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+            std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
+            cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(y, ddof=0),
+        )

@@ -1,3 +1,4 @@
+from datetime import timedelta
 import itertools
 from typing import Dict, List
 
@@ -447,7 +448,7 @@ class TestInsertIndexCoercion(CoercionBase):
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
-        msg = "cannot insert DatetimeIndex with incompatible label"
+        msg = "cannot insert DatetimeArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -464,12 +465,12 @@ class TestInsertIndexCoercion(CoercionBase):
         )
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
+        msg = "cannot insert TimedeltaArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp("2012-01-01"))
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
+        msg = "cannot insert TimedeltaArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -686,8 +687,15 @@ class TestWhereCoercion(CoercionBase):
         )
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    def test_where_index_datetime(self):
-        fill_val = pd.Timestamp("2012-01-01")
+    @pytest.mark.parametrize(
+        "fill_val",
+        [
+            pd.Timestamp("2012-01-01"),
+            pd.Timestamp("2012-01-01").to_datetime64(),
+            pd.Timestamp("2012-01-01").to_pydatetime(),
+        ],
+    )
+    def test_where_index_datetime(self, fill_val):
         exp_dtype = "datetime64[ns]"
         obj = pd.Index(
             [
@@ -700,9 +708,9 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
-            obj.where(cond, fill_val)
+        result = obj.where(cond, fill_val)
+        expected = pd.DatetimeIndex([obj[0], fill_val, obj[2], fill_val])
+        tm.assert_index_equal(result, expected)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index(
@@ -717,7 +725,7 @@ class TestWhereCoercion(CoercionBase):
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.xfail(reason="GH 22839: do not ignore timezone, must be object")
-    def test_where_index_datetimetz(self):
+    def test_where_index_datetime64tz(self):
         fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
         exp_dtype = np.object
         obj = pd.Index(
@@ -754,23 +762,53 @@ class TestWhereCoercion(CoercionBase):
     def test_where_index_bool(self):
         pass
 
-    def test_where_series_datetime64tz(self):
-        pass
-
     def test_where_series_timedelta64(self):
         pass
 
     def test_where_series_period(self):
         pass
 
-    def test_where_index_datetime64tz(self):
-        pass
+    @pytest.mark.parametrize(
+        "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
+    )
+    def test_where_index_timedelta64(self, value):
+        tdi = pd.timedelta_range("1 Day", periods=4)
+        cond = np.array([True, False, False, True])
 
-    def test_where_index_timedelta64(self):
-        pass
+        expected = pd.TimedeltaIndex(["1 Day", value, value, "4 Days"])
+        result = tdi.where(cond, value)
+        tm.assert_index_equal(result, expected)
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            tdi.where(cond, np.datetime64("NaT", "ns"))
 
     def test_where_index_period(self):
-        pass
+        dti = pd.date_range("2016-01-01", periods=3, freq="QS")
+        pi = dti.to_period("Q")
+
+        cond = np.array([False, True, False])
+
+        # Passinga  valid scalar
+        value = pi[-1] + pi.freq * 10
+        expected = pd.PeriodIndex([value, pi[1], value])
+        result = pi.where(cond, value)
+        tm.assert_index_equal(result, expected)
+
+        # Case passing ndarray[object] of Periods
+        other = np.asarray(pi + pi.freq * 10, dtype=object)
+        result = pi.where(cond, other)
+        expected = pd.PeriodIndex([other[0], pi[1], other[2]])
+        tm.assert_index_equal(result, expected)
+
+        # Passing a mismatched scalar
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            pi.where(cond, pd.Timedelta(days=4))
+
+        with pytest.raises(TypeError, match=msg):
+            pi.where(cond, pd.Period("2020-04-21", "D"))
 
 
 class TestFillnaSeriesCoercion(CoercionBase):

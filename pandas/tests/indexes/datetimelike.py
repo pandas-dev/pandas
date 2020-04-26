@@ -81,8 +81,8 @@ class DatetimeLike(Base):
         expected = index + index.freq
 
         # don't compare the freqs
-        if isinstance(expected, pd.DatetimeIndex):
-            expected._data.freq = None
+        if isinstance(expected, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            expected = expected._with_freq(None)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
