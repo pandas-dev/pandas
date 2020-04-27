@@ -14,7 +14,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeries
+from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -53,6 +53,14 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
+)
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    check_kwargs_and_nopython,
+    get_jit_arguments,
+    jit_user_function,
+    split_for_numba,
+    validate_udf,
 )
 
 
@@ -102,7 +110,7 @@ class BaseGrouper:
         return self._groupings
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
@@ -148,7 +156,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: FrameOrSeries, axis: int = 0):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -229,7 +237,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [ping.name for ping in self.groupings]
 
     def size(self) -> Series:
@@ -307,7 +315,7 @@ class BaseGrouper:
         )
         return result
 
-    def get_group_levels(self):
+    def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
@@ -356,7 +364,9 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
-    def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
+    def _get_cython_function(
+        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
+    ):
 
         dtype_str = values.dtype.name
         ftype = self._cython_functions[kind][how]
@@ -425,7 +435,7 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
@@ -608,10 +618,22 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        if engine == "numba":
+            return self._aggregate_series_pure_python(
+                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -637,7 +659,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj: Series, func):
+    def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -656,7 +678,24 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func):
+    def _aggregate_series_pure_python(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
+
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            cache_key = (func, "groupby_agg")
+            numba_func = NUMBA_FUNC_CACHE.get(
+                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            )
 
         group_index, _, ngroups = self.group_info
 
@@ -666,7 +705,14 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group)
+            if engine == "numba":
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
+            else:
+                res = func(group, *args, **kwargs)
+
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
@@ -828,11 +874,11 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self):
+    def levels(self) -> List[Index]:
         return [self.binlabels]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [self.binlabels.name]
 
     @property
@@ -842,7 +888,15 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
@@ -916,7 +970,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, sdata: FrameOrSeries, names):
+    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)

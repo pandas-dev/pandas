@@ -119,7 +119,7 @@ class TestPartialSetting:
         )
 
         expected = pd.concat(
-            [df_orig, DataFrame({"A": 7}, index=[dates[-1] + dates.freq])], sort=True
+            [df_orig, DataFrame({"A": 7}, index=dates[-1:] + dates.freq)], sort=True
         )
         df = df_orig.copy()
         df.loc[dates[-1] + dates.freq, "A"] = 7
@@ -335,7 +335,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         # don't allow not string inserts
-        msg = "cannot insert DatetimeIndex with incompatible label"
+        msg = "cannot insert DatetimeArray with incompatible label"
 
         with pytest.raises(TypeError, match=msg):
             df.loc[100.0, :] = df.iloc[0]

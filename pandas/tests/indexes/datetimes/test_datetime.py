@@ -38,6 +38,13 @@ class TestDatetimeIndex:
         idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
 
+    def test_pickle_after_set_freq(self):
+        dti = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
+        dti = dti._with_freq(None)
+
+        res = tm.round_trip_pickle(dti)
+        tm.assert_index_equal(res, dti)
+
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range("20130101", periods=3, tz="US/Eastern")
@@ -368,7 +375,8 @@ class TestDatetimeIndex:
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, exp_arr)
-            tm.assert_index_equal(res, base)
+            expected = base._with_freq(None)
+            tm.assert_index_equal(res, expected)
 
     def test_factorize_dst(self):
         # GH 13750
@@ -462,6 +470,5 @@ class TestDatetimeIndex:
         # GH 14042
         indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
         result = np.split(indices, indices_or_sections=[])[0]
-        expected = indices.copy()
-        expected._set_freq(None)
+        expected = indices._with_freq(None)
         tm.assert_index_equal(result, expected)
