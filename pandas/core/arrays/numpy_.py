@@ -5,6 +5,7 @@ import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -16,7 +17,9 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops
-from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.algorithms import searchsorted
+from pandas.core.array_algos import masked_reductions
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -118,7 +121,9 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
+class PandasArray(
+    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+):
     """
     A pandas ExtensionArray for NumPy data.
 
@@ -188,6 +193,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat) -> "PandasArray":
         return cls(np.concatenate(to_concat))
+
+    def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
+        return type(self)(arr)
 
     # ------------------------------------------------------------------------
     # Data
@@ -270,13 +278,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         self._ndarray[key] = value
 
-    def __len__(self) -> int:
-        return len(self._ndarray)
-
-    @property
-    def nbytes(self) -> int:
-        return self._ndarray.nbytes
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -309,26 +310,17 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             new_values = self.copy()
         return new_values
 
-    def take(self, indices, allow_fill=False, fill_value=None) -> "PandasArray":
+    def _validate_fill_value(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
-        result = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
-        )
-        return type(self)(result)
-
-    def copy(self) -> "PandasArray":
-        return type(self)(self._ndarray.copy())
+        return fill_value
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
-
-    def unique(self) -> "PandasArray":
-        return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -349,44 +341,28 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         nv.validate_all((), dict(out=out, keepdims=keepdims))
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
 
-    def min(self, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_min((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
-
-    def max(self, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_max((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
-
-    def sum(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        skipna=True,
-        min_count=0,
-    ):
-        nv.validate_sum(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+    def min(self, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_min((), kwargs)
+        result = masked_reductions.min(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
+        return result
+
+    def max(self, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_max((), kwargs)
+        result = masked_reductions.max(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return result
+
+    def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+        nv.validate_sum((), kwargs)
         return nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
 
-    def prod(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        skipna=True,
-        min_count=0,
-    ):
-        nv.validate_prod(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
-        )
+    def prod(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+        nv.validate_prod((), kwargs)
         return nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
