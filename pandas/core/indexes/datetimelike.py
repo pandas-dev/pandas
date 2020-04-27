@@ -77,26 +77,6 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     return wrapper
 
 
-def _make_wrapped_arith_op_with_freq(opname: str):
-    """
-    Dispatch the operation to the underlying ExtensionArray, and infer
-    the appropriate frequency for the result.
-    """
-    meth = make_wrapped_arith_op(opname)
-
-    def wrapped(self, other):
-        result = meth(self, other)
-        if result is NotImplemented:
-            return NotImplemented
-
-        new_freq = self._get_addsub_freq(other, result)
-        result._freq = new_freq
-        return result
-
-    wrapped.__name__ = opname
-    return wrapped
-
-
 @inherit_names(
     ["inferred_freq", "_isnan", "_resolution", "resolution"],
     DatetimeLikeArrayMixin,
@@ -473,8 +453,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         else:
             raise NotImplementedError
 
-    __add__ = _make_wrapped_arith_op_with_freq("__add__")
-    __sub__ = _make_wrapped_arith_op_with_freq("__sub__")
+    __add__ = make_wrapped_arith_op("__add__")
+    __sub__ = make_wrapped_arith_op("__sub__")
     __radd__ = make_wrapped_arith_op("__radd__")
     __rsub__ = make_wrapped_arith_op("__rsub__")
     __pow__ = make_wrapped_arith_op("__pow__")
