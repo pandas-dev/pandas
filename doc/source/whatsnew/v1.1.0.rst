@@ -486,7 +486,7 @@ Deprecations
   arguments (:issue:`27573`).
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
-- The :class:`Timestamp` attribute ``freq`` is deprecated and will be removed in a future version; passing ``freq`` to the constructor will raise ``TypeError`` (:issue:`?????`)
+- The :class:`Timestamp` attribute ``freq`` is deprecated and will be removed in a future version; passing ``freq`` to the constructor will raise ``TypeError`` (:issue:`15146`)
 
 .. ---------------------------------------------------------------------------
 
