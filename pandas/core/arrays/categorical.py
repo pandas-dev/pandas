@@ -1495,7 +1495,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
-    def sort_values(self, inplace=False, ascending=True, na_position="last"):
+    def sort_values(
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
+    ):
         """
         Sort the Categorical by category value returning a new
         Categorical by default.
