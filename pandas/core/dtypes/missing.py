@@ -269,10 +269,18 @@ def _isna_ndarraylike(obj):
 
 
 def _isna_ndarraylike_old(obj):
+    is_extension = is_extension_array_dtype(obj)
+
     values = getattr(obj, "values", obj)
     dtype = values.dtype
 
-    if is_string_dtype(dtype):
+    if is_extension:
+        if isinstance(obj, (ABCIndexClass, ABCSeries)):
+            values = obj._values
+        else:
+            values = obj
+        result = values.isna() | (values == -np.inf) | (values == np.inf)
+    elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
 

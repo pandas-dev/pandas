@@ -15,6 +15,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Bug where :meth:`Series.isna` and :meth:`DataFrame.isna` would raise for categorical dtype when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - 
 
