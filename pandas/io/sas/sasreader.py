@@ -1,7 +1,25 @@
 """
 Read SAS sas7bdat or xport files.
 """
+
+from abc import ABCMeta, abstractmethod
+
 from pandas.io.common import stringify_path
+
+
+# TODO: replace with Protocol in Python 3.8
+class ReaderBase(metaclass=ABCMeta):
+    """
+    Protocol for XportReader and SAS7BDATReader classes.
+    """
+
+    @abstractmethod
+    def read(self, nrows=None):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass
 
 
 def read_sas(
@@ -62,6 +80,7 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
+    reader: ReaderBase
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
 
