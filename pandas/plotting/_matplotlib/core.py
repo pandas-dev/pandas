@@ -193,7 +193,6 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-        import matplotlib.colors
 
         if (
             "color" in self.kwds
@@ -226,13 +225,24 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                for char in s:
-                    if char in matplotlib.colors.BASE_COLORS:
-                        raise ValueError(
-                            "Cannot pass 'style' string with a color symbol and "
-                            "'color' keyword argument. Please use one or the other or "
-                            "pass 'style' without a color symbol"
-                        )
+                if self._color_in_style(s):
+                    raise ValueError(
+                        "Cannot pass 'style' string with a color symbol and "
+                        "'color' keyword argument. Please use one or the other"
+                        "or pass 'style' without a color symbol"
+                    )
+
+    @staticmethod
+    def _color_in_style(style):
+        """
+        Is there a color letter in the style string?
+        
+        Returns
+        -------
+        bool
+        """
+        from matplotlib.colors import BASE_COLORS
+        return not set(BASE_COLORS).isdisjoint(style)
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -723,7 +733,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = style is None or re.match("[a-z]+", style) is None
+        nocolor_style = (style is None or not self._color_in_style(style))
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]

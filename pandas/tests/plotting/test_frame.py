@@ -204,6 +204,24 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
+    def test_color_and_style_letter(self):
+        # GH21003 2018-05-10
+        df = DataFrame(np.random.random((7, 4)))		
+        # combining color string and marker letter should be allowed
+        df.plot(color='green', style='d') # d for diamond		
+
+    def test_colors_and_style_letter(self):
+        # GH21003 2018-04-23
+        df = DataFrame(np.random.random((7, 4)))	
+        # combining a color list and a marker letter should be allowed
+        color = ['yellow', 'red', 'green', 'blue']
+        ax = df.plot(color=color, style='d')
+        output_colors = [line.get_color() for line in ax.lines]
+        assert output_colors == color # each "line" is one of the four colors
+        # In the Github bug the color list was passed to MPL like this:
+        # ax.lines[i].get_color() == ['yellow', 'red', 'green', 'blue']
+        
+
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
         ax = df.plot()
