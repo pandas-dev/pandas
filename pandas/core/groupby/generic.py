@@ -282,7 +282,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 return self._python_agg_general(
                     func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
                 )
-            except (ValueError, KeyError) as err:
+            except (ValueError, KeyError):
                 # Do not catch Numba errors here, we want to raise and not fall back.
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
