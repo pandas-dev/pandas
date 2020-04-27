@@ -79,6 +79,7 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     check_kwargs_and_nopython,
     get_jit_arguments,
+    is_numba_util_related_error,
     jit_user_function,
     split_for_numba,
     validate_udf,
@@ -244,7 +245,9 @@ class SeriesGroupBy(GroupBy[Series]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None
         columns = None
@@ -272,11 +275,18 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError):
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
+            except (ValueError, KeyError) as err:
+                # Do not catch Numba errors here, we want to raise and not fall back.
+                if is_numba_util_related_error(str(err)):
+                    raise err
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -941,7 +951,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -961,6 +973,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = maybe_mangle_lambdas(func)
+
+        if engine == "numba":
+            return self._python_agg_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
