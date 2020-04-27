@@ -35,9 +35,12 @@ Function application
    :toctree: api/
 
    GroupBy.apply
-   GroupBy.agg
-   GroupBy.aggregate
-   GroupBy.transform
+   SeriesGroupBy.agg
+   DataFrameGroupBy.agg
+   SeriesGroupBy.aggregate
+   DataFrameGroupBy.aggregate
+   SeriesGroupBy.transform
+   DataFrameGroupBy.transform
    GroupBy.pipe
 
 Computations / descriptive stats
