@@ -463,7 +463,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 return self
             return self._set_dtype(dtype)
         if is_extension_array_dtype(dtype):
-            return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
+            return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
         return np.array(self, dtype=dtype, copy=copy)
@@ -1495,7 +1495,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
-    def sort_values(self, inplace=False, ascending=True, na_position="last"):
+    def sort_values(
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
+    ):
         """
         Sort the Categorical by category value returning a new
         Categorical by default.

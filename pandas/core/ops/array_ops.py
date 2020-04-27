@@ -192,7 +192,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
     lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_for_op(right, lvalues.shape)
+    rvalues = maybe_upcast_datetimelike_array(right)
+    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
