@@ -256,7 +256,9 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA])
+@pytest.fixture(
+    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
+)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -1185,5 +1187,14 @@ def cython_table_items(request):
 def tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
     """
     return request.param

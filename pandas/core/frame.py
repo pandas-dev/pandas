@@ -47,9 +47,11 @@ from pandas._typing import (
     Axis,
     Dtype,
     FilePathOrBuffer,
+    IndexKeyFunc,
     Label,
     Level,
     Renamer,
+    ValueKeyFunc,
 )
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -100,7 +102,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -140,6 +141,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
+from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -5055,10 +5057,10 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Sorting
-
+    # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(
+    def sort_values(  # type: ignore[override] # NOQA # issue 27237
         self,
         by,
         axis=0,
@@ -5067,6 +5069,7 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         ignore_index=False,
+        key: ValueKeyFunc = None,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -5081,7 +5084,14 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import lexsort_indexer
 
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
-            indexer = lexsort_indexer(keys, orders=ascending, na_position=na_position)
+
+            # need to rewrap columns in Series to apply key function
+            if key is not None:
+                keys = [Series(k, name=name) for (k, name) in zip(keys, by)]
+
+            indexer = lexsort_indexer(
+                keys, orders=ascending, na_position=na_position, key=key
+            )
             indexer = ensure_platform_int(indexer)
         else:
             from pandas.core.sorting import nargsort
@@ -5089,11 +5099,15 @@ class DataFrame(NDFrame):
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
 
+            # need to rewrap column in Series to apply key function
+            if key is not None:
+                k = Series(k, name=by)
+
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
             indexer = nargsort(
-                k, kind=kind, ascending=ascending, na_position=na_position
+                k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
 
         new_data = self._mgr.take(
@@ -5119,6 +5133,7 @@ class DataFrame(NDFrame):
         na_position: str = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
+        key: IndexKeyFunc = None,
     ):
         """
         Sort object by labels (along an axis).
@@ -5154,6 +5169,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.0.0
 
+        key : callable, optional
+            If not None, apply the key function to the index values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect an
+            ``Index`` and return an ``Index`` of the same shape. For MultiIndex
+            inputs, the key is applied *per level*.
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         DataFrame
@@ -5187,6 +5212,17 @@ class DataFrame(NDFrame):
         100  1
         29   2
         1    4
+
+        A key function can be specified which is applied to the index before
+        sorting. For a ``MultiIndex`` this is applied to each level separately.
+
+        >>> df = pd.DataFrame({"a": [1, 2, 3, 4]}, index=['A', 'b', 'C', 'd'])
+        >>> df.sort_index(key=lambda x: x.str.lower())
+           a
+        A  1
+        b  2
+        C  3
+        d  4
         """
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
@@ -5195,12 +5231,12 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
+        labels = ensure_key_mapped(labels, key, levels=level)
 
         # make sure that the axis is lexsorted to start
         # if not we need to reconstruct to get the correct indexer
         labels = labels._sort_levels_monotonic()
         if level is not None:
-
             new_axis, indexer = labels.sortlevel(
                 level, ascending=ascending, sort_remaining=sort_remaining
             )
@@ -8234,7 +8270,7 @@ Wild         185.0
 
         dtype_is_dt = np.array(
             [
-                is_datetime64_any_dtype(values.dtype) or is_period_dtype(values.dtype)
+                is_datetime64_any_dtype(values.dtype)
                 for values in self._iter_column_arrays()
             ],
             dtype=bool,
@@ -8242,7 +8278,7 @@ Wild         185.0
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
                 "DataFrame.mean and DataFrame.median with numeric_only=None "
-                "will include datetime64, datetime64tz, and PeriodDtype columns in a "
+                "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=3,

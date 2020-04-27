@@ -897,7 +897,7 @@ class TestDatetime64Arithmetic:
     )
     def test_dt64arr_sub_dtscalar(self, box_with_array, ts):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
-        idx = pd.date_range("2013-01-01", periods=3)
+        idx = pd.date_range("2013-01-01", periods=3)._with_freq(None)
         idx = tm.box_expected(idx, box_with_array)
 
         expected = pd.TimedeltaIndex(["0 Days", "1 Day", "2 Days"])
@@ -912,7 +912,7 @@ class TestDatetime64Arithmetic:
         dt64 = np.datetime64("2013-01-01")
         assert dt64.dtype == "datetime64[D]"
 
-        dti = pd.date_range("20130101", periods=3)
+        dti = pd.date_range("20130101", periods=3)._with_freq(None)
         dtarr = tm.box_expected(dti, box_with_array)
 
         expected = pd.TimedeltaIndex(["0 Days", "1 Day", "2 Days"])
@@ -926,6 +926,7 @@ class TestDatetime64Arithmetic:
 
     def test_dt64arr_sub_timestamp(self, box_with_array):
         ser = pd.date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern")
+        ser = ser._with_freq(None)
         ts = ser[0]
 
         ser = tm.box_expected(ser, box_with_array)
@@ -1466,7 +1467,9 @@ class TestDatetime64DateOffsetArithmetic:
         if box_other:
             other = tm.box_expected(other, box_with_array)
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and not (tz is None and not box_other):
+            warn = None
         with tm.assert_produces_warning(warn):
             res = op(dtarr, other)
 
@@ -2030,6 +2033,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected = expected._with_freq(None)
 
         # add with TimdeltaIndex
         result = dti + tdi
@@ -2051,6 +2055,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz)
+        expected = expected._with_freq(None)
 
         # iadd with TimdeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
@@ -2076,6 +2081,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # sub with TimedeltaIndex
         result = dti - tdi
@@ -2099,6 +2105,7 @@ class TestDatetimeIndexArithmetic:
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
         expected = pd.date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        expected = expected._with_freq(None)
 
         # isub with TimedeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
@@ -2406,7 +2413,10 @@ class TestDatetimeIndexArithmetic:
         expected = pd.DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and tz is not None:
+            warn = None
+
         with tm.assert_produces_warning(warn):
             result = dtarr + other
         tm.assert_equal(result, expected)

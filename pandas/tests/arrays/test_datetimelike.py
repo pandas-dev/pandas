@@ -302,7 +302,13 @@ class TestDatetimeArray(SharedTests):
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
+
+        dta = dti._data
+        result = dta.round(freq="2T")
+        expected = expected._data._with_freq(None)
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
         arr = DatetimeArray(datetime_index)
@@ -508,6 +514,12 @@ class TestDatetimeArray(SharedTests):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
+        value = np.timedelta64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones
         dti = datetime_index
@@ -669,6 +681,12 @@ class TestTimedeltaArray(SharedTests):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
+        value = np.datetime64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
 
 class TestPeriodArray(SharedTests):
     index_cls = pd.PeriodIndex
@@ -696,6 +714,22 @@ class TestPeriodArray(SharedTests):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == "O"
         assert list(asobj) == list(pi)
+
+    def test_take_fill_valid(self, period_index):
+        pi = period_index
+        arr = PeriodArray(pi)
+
+        value = pd.NaT.value
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+        with pytest.raises(ValueError, match=msg):
+            # require NaT, not iNaT, as it could be confused with an integer
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+        value = np.timedelta64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     @pytest.mark.parametrize("how", ["S", "E"])
     def test_to_timestamp(self, how, period_index):
