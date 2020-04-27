@@ -1,4 +1,3 @@
-import re
 from typing import Optional
 import warnings
 
@@ -236,7 +235,7 @@ class MPLPlot:
     def _color_in_style(style):
         """
         Is there a color letter in the style string?
-        
+
         Returns
         -------
         bool
