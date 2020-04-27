@@ -53,6 +53,7 @@ class TestSeriesCumulativeOps:
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.dropna())
 
+        result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(
@@ -70,6 +71,7 @@ class TestSeriesCumulativeOps:
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.dropna())
 
+        result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])

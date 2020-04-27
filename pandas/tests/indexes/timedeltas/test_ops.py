@@ -18,10 +18,14 @@ class TestTimedeltaIndexOps:
         idx = TimedeltaIndex(np.repeat(idx.values, range(1, len(idx) + 1)))
 
         exp_idx = timedelta_range("1 days 18:00:00", freq="-1H", periods=10)
+        exp_idx = exp_idx._with_freq(None)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
 
-        for obj in [idx, Series(idx)]:
-            tm.assert_series_equal(obj.value_counts(), expected)
+        obj = idx
+        tm.assert_series_equal(obj.value_counts(), expected)
+
+        obj = Series(idx)
+        tm.assert_series_equal(obj.value_counts(), expected)
 
         expected = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         tm.assert_index_equal(idx.unique(), expected)
