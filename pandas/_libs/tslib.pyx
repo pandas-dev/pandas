@@ -1,3 +1,5 @@
+import warnings
+
 import cython
 
 from cpython.datetime cimport (
@@ -162,6 +164,13 @@ def ints_to_pydatetime(
         func_create = create_date_from_ts
     elif box == "timestamp":
         func_create = create_timestamp_from_ts
+
+        if freq is not None:
+            warnings.warn(
+                "Passing `freq` to Timestamp is deprecated and will raise "
+                "TypeError in a future version.",
+                FutureWarning,
+            )
 
         if isinstance(freq, str):
             freq = to_offset(freq)

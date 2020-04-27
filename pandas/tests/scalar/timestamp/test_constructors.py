@@ -10,6 +10,7 @@ import pytz
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import Period, Timedelta, Timestamp, compat
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
@@ -187,7 +188,8 @@ class TestTimestampConstructors:
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
-            Timestamp("2012-01-01", "US/Pacific")
+            with tm.assert_produces_warning(FutureWarning):
+                Timestamp("2012-01-01", "US/Pacific")
 
     def test_constructor_strptime(self):
         # GH25016
@@ -271,7 +273,8 @@ class TestTimestampConstructors:
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 
-        ts = Timestamp.fromordinal(base.toordinal(), freq="D")
+        with tm.assert_produces_warning(FutureWarning):
+            ts = Timestamp.fromordinal(base.toordinal(), freq="D")
         assert base == ts
         assert ts.freq == "D"
         assert base.toordinal() == ts.toordinal()
@@ -495,7 +498,8 @@ class TestTimestampConstructors:
 
     def test_construct_timestamp_preserve_original_frequency(self):
         # GH 22311
-        result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
+        with tm.assert_produces_warning(FutureWarning):
+            result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
         expected = offsets.Day()
         assert result == expected
 
@@ -503,7 +507,12 @@ class TestTimestampConstructors:
         # GH 22311
         msg = "Invalid frequency:"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2012-01-01", freq=[])
+            with tm.assert_produces_warning(FutureWarning):
+                Timestamp("2012-01-01", freq=[])
+
+    def test_freq_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning):
+            Timestamp("2012-01-01", freq="D")
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):

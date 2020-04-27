@@ -484,6 +484,13 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
+        if freq is not None:
+            warnings.warn(
+                "Passing `freq` to Timestamp is deprecated and will raise "
+                "TypeError in a future version.",
+                FutureWarning,
+            )
+
         if freq is None:
             # GH 22311: Try to extract the frequency of a given Timestamp input
             freq = getattr(ts_input, 'freq', None)
