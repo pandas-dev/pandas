@@ -7834,10 +7834,7 @@ Wild         185.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy()
-        if is_object_dtype(mat.dtype):
-            # We end up with an object array if pd.NA is present
-            mat[isna(mat)] = np.nan
+        mat = numeric_df.astype(float).to_numpy()
 
         if method == "pearson":
             correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods)
@@ -7972,10 +7969,7 @@ Wild         185.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy()
-        if is_object_dtype(mat.dtype):
-            # We end up with an object array if pd.NA is present
-            mat[isna(mat)] = np.nan
+        mat = numeric_df.astype(float).to_numpy()
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
