@@ -134,13 +134,13 @@ def _isna_new(obj):
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
-        return _isna_ndarraylike(obj)
+        return _isna_ndarraylike(obj, old=False)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
     elif isinstance(obj, list):
-        return _isna_ndarraylike(np.asarray(obj, dtype=object))
+        return _isna_ndarraylike(np.asarray(obj, dtype=object), old=False)
     elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike(np.asarray(obj))
+        return _isna_ndarraylike(np.asarray(obj), old=False)
     else:
         return False
 
@@ -165,13 +165,13 @@ def _isna_old(obj):
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
-        return _isna_ndarraylike_old(obj)
+        return _isna_ndarraylike(obj, old=True)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
     elif isinstance(obj, list):
-        return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
+        return _isna_ndarraylike(np.asarray(obj, dtype=object), old=True)
     elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike_old(np.asarray(obj))
+        return _isna_ndarraylike(np.asarray(obj), old=True)
     else:
         return False
 
@@ -207,40 +207,40 @@ def _use_inf_as_na(key):
         globals()["_isna"] = _isna_new
 
 
-def _isna_ndarraylike(obj):
+def _isna_ndarraylike(obj, old: bool = False):
+    """
+    Return an array indicating which values of the input array are NaN / NA.
+
+    Parameters
+    ----------
+    obj: array-like
+        The input array whose elements are to be checked.
+    old: bool
+        Whether or not to treat infinite values as NA.
+
+    Returns
+    -------
+    array-like
+        Array of boolean values denoting the NA status of each element.
+    """
     values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
-        result = values.isna()
+        if old:
+            result = values.isna() | (values == -np.inf) | (values == np.inf)
+        else:
+            result = values.isna()
     elif is_string_dtype(dtype):
-        result = _isna_string_dtype(values, dtype, old=False)
-
+        result = _isna_string_dtype(values, dtype, old=old)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
     else:
-        result = np.isnan(values)
-
-    # box
-    if isinstance(obj, ABCSeries):
-        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
-
-    return result
-
-
-def _isna_ndarraylike_old(obj):
-    values = getattr(obj, "_values", obj)
-    dtype = values.dtype
-
-    if is_string_dtype(dtype):
-        result = _isna_string_dtype(values, dtype, old=True)
-
-    elif needs_i8_conversion(dtype):
-        # this is the NaT pattern
-        result = values.view("i8") == iNaT
-    else:
-        result = ~np.isfinite(values)
+        if old:
+            result = ~np.isfinite(values)
+        else:
+            result = np.isnan(values)
 
     # box
     if isinstance(obj, ABCSeries):
