@@ -228,8 +228,8 @@ class MPLPlot:
                 if self._color_in_style(s):
                     raise ValueError(
                         "Cannot pass 'style' string with a color symbol and "
-                        "'color' keyword argument. Please use one or the other"
-                        "or pass 'style' without a color symbol"
+                        "'color' keyword argument. Please use one or the "
+                        "other or pass 'style' without a color symbol"
                     )
 
     @staticmethod

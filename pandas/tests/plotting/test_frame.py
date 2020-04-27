@@ -204,20 +204,20 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
-    def test_color_and_style_letter(self):
+    def test_color_and_marker(self):
         # GH21003 2018-05-10
-        df = DataFrame(np.random.random((7, 4)))		
+        df = DataFrame(np.random.random((7, 4)))
         # combining a color string and a marker letter should be allowed
-        df.plot(color='green', style='d') # d for diamond		
+        df.plot(color="green", style="d")  # d for diamond
 
-    def test_colors_and_style_letter(self):
+    def test_color_list_and_marker(self):
         # GH21003 2018-04-23
-        df = DataFrame(np.random.random((7, 4)))	
+        df = DataFrame(np.random.random((7, 4)))
         # combining a color list and a marker letter should be allowed
-        color = ['yellow', 'red', 'green', 'blue']
-        ax = df.plot(color=color, style='d')
+        color = ["yellow", "red", "green", "blue"]
+        ax = df.plot(color=color, style="d")
         output_colors = [line.get_color() for line in ax.lines]
-        assert output_colors == color # each "line" is one of the four colors
+        assert output_colors == color  # each "line" is one of the four colors
         # In the Github bug the color list was passed to MPL like this:
         # ax.lines[i].get_color() == ['yellow', 'red', 'green', 'blue']
 
