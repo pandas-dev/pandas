@@ -214,6 +214,10 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
     df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
     df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
 
+    df_dropna
+
+.. ipython:: python
+
     # Default `dropna` is set to True, which will exclude NaNs in keys
     df_dropna.groupby(by=["b"], dropna=True).sum()
 
