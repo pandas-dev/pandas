@@ -76,9 +76,9 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
             expected = expected[::-1]
@@ -86,9 +86,11 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
         ser = pd.Series(data_missing_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         if ascending:
             expected = ser.iloc[[2, 0, 1]]
         else:

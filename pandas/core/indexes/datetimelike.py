@@ -42,6 +42,7 @@ from pandas.core.indexes.extension import (
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset
@@ -183,36 +184,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
-    def sort_values(self, return_indexer=False, ascending=True):
+    def sort_values(self, return_indexer=False, ascending=True, key=None):
         """
         Return sorted copy of Index.
         """
+        idx = ensure_key_mapped(self, key)
+
+        _as = idx.argsort()
+        if not ascending:
+            _as = _as[::-1]
+        sorted_index = self.take(_as)
+
         if return_indexer:
-            _as = self.argsort()
-            if not ascending:
-                _as = _as[::-1]
-            sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            # NB: using asi8 instead of _data matters in numpy 1.18
-            #  because the treatment of NaT has been changed to put NaT last
-            #  instead of first.
-            sorted_values = np.sort(self.asi8)
-
-            freq = self.freq
-            if freq is not None and not is_period_dtype(self):
-                if freq.n > 0 and not ascending:
-                    freq = freq * -1
-                elif freq.n < 0 and ascending:
-                    freq = freq * -1
-
-            if not ascending:
-                sorted_values = sorted_values[::-1]
-
-            arr = type(self._data)._simple_new(
-                sorted_values, dtype=self.dtype, freq=freq
-            )
-            return type(self)._simple_new(arr, name=self.name)
+            return sorted_index
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
