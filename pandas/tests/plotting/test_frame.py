@@ -207,7 +207,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_color_and_style_letter(self):
         # GH21003 2018-05-10
         df = DataFrame(np.random.random((7, 4)))		
-        # combining color string and marker letter should be allowed
+        # combining a color string and a marker letter should be allowed
         df.plot(color='green', style='d') # d for diamond		
 
     def test_colors_and_style_letter(self):
@@ -220,7 +220,6 @@ class TestDataFramePlots(TestPlotBase):
         assert output_colors == color # each "line" is one of the four colors
         # In the Github bug the color list was passed to MPL like this:
         # ax.lines[i].get_color() == ['yellow', 'red', 'green', 'blue']
-        
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
