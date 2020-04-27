@@ -83,7 +83,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "asi8", "_box_func"], DatetimeLikeArrayMixin,
+    ["mean", "asi8", "freq", "freqstr", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -623,25 +623,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
-    _freq = lib.no_default
-
-    @property
-    def freq(self):
-        """
-        In limited circumstances, our freq may differ from that of our _data.
-        """
-        if self._freq is not lib.no_default:
-            return self._freq
-        return self._data.freq
-
-    @property
-    def freqstr(self):
-        """
-        Return the frequency object as a string if its set, otherwise None.
-        """
-        if self.freq is None:
-            return None
-        return self.freq.freqstr
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
