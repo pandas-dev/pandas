@@ -1191,18 +1191,10 @@ class TestTimedeltaArraylikeAddSubOps:
         result = tdarr - tdi
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
     def test_td64arr_add_sub_tdi(self, box, names):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
-        if box is pd.DataFrame and names[1] == "Venkman":
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
@@ -1303,12 +1295,9 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
     def test_td64arr_add_offset_index(self, names, box):
         # GH#18849, GH#19744
-        if box is pd.DataFrame and names[1] == "bar":
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
@@ -2045,14 +2034,6 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
     def test_td64arr_mul_int_series(self, box_df_fail, names):
         # GH#19042 test for correct name attachment
         box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
@@ -2082,14 +2063,6 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
     def test_float_series_rdiv_td64arr(self, box_with_array, names):
         # GH#19042 test for correct name attachment
         # TODO: the direct operation TimedeltaIndex / Series still
