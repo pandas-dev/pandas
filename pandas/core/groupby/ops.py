@@ -14,7 +14,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeries
+from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -110,7 +110,7 @@ class BaseGrouper:
         return self._groupings
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
@@ -156,7 +156,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: FrameOrSeries, axis: int = 0):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -237,7 +237,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [ping.name for ping in self.groupings]
 
     def size(self) -> Series:
@@ -315,7 +315,7 @@ class BaseGrouper:
         )
         return result
 
-    def get_group_levels(self):
+    def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
@@ -364,7 +364,9 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
-    def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
+    def _get_cython_function(
+        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
+    ):
 
         dtype_str = values.dtype.name
         ftype = self._cython_functions[kind][how]
@@ -433,7 +435,7 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
@@ -617,7 +619,13 @@ class BaseGrouper:
         return result
 
     def agg_series(
-        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
@@ -651,7 +659,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj: Series, func):
+    def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -671,7 +679,13 @@ class BaseGrouper:
         return result, counts
 
     def _aggregate_series_pure_python(
-        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
     ):
 
         if engine == "numba":
@@ -860,11 +874,11 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self):
+    def levels(self) -> List[Index]:
         return [self.binlabels]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [self.binlabels.name]
 
     @property
@@ -875,7 +889,13 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(
-        self, obj: Series, func, *args, engine="cython", engine_kwargs=None, **kwargs
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
@@ -950,7 +970,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, sdata: FrameOrSeries, names):
+    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
