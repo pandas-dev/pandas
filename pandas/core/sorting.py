@@ -383,7 +383,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     apply the key to.
     """
     from pandas.core.indexes.api import Index
-    
+
     if not key:
         return values.copy()
 
@@ -397,11 +397,13 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         )
 
     try:
-        if isinstance(values, Index):  # allow a new Index class
+        if isinstance(
+            values, Index
+        ):  # convert to a new Index subclass, not necessarily the same
             result = Index(result)
         else:
             type_of_values = type(values)
-            result = type_of_values(result)  # try to recover otherwise
+            result = type_of_values(result)  # try to revert to original type otherwise
     except TypeError:
         raise TypeError(
             "User-provided `key` function returned an invalid type {} \
@@ -411,7 +413,6 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         )
 
     return result
-
 
 
 class _KeyMapper:

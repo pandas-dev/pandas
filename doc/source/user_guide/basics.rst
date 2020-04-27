@@ -1803,7 +1803,7 @@ the key is applied per-level to the levels specified by `level`.
    s1.sort_index(level="a")
    s1.sort_index(level="a", key=lambda idx: idx.str.lower())
 
-For information on key sorting by value, see :ref:`value sorting 
+For information on key sorting by value, see :ref:`value sorting
 <basics.sort_value_key>`.
 
 .. _basics.sort_values:
