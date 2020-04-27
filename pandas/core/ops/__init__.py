@@ -510,16 +510,28 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     if axis == 0:
         values = right._values
         if isinstance(values, np.ndarray):
+            # TODO(EA2D): no need to special-case with 2D EAs
             # We can operate block-wise
             values = values.reshape(-1, 1)
+            values = np.broadcast_to(values, left.shape)
 
             array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._mgr.apply(array_op, right=values.T)
+            bm = left._mgr.apply(array_op, right=values.T, align_keys=["right"])
             return type(left)(bm)
 
         new_data = dispatch_to_series(left, right, func)
 
     else:
+        rvalues = right._values
+        if isinstance(rvalues, np.ndarray):
+            # We can operate block-wise
+            rvalues = rvalues.reshape(1, -1)
+            rvalues = np.broadcast_to(rvalues, left.shape)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
+            return type(left)(bm)
+
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
     return left._construct_result(new_data)
