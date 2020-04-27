@@ -642,7 +642,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
-- Fixed bug in :meth:`GenericArrayFormatter._format_strings` that caused :meth:`Series.__repr__()` to crash for some extension types (:issue:`33770`).
+- Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 
 
 Other
