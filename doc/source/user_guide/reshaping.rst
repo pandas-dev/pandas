@@ -471,15 +471,23 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
 
     pd.crosstab(df['A'], df['B'])
 
-Any input passed containing ``Categorical`` data will have **all** of its
-categories included in the cross-tabulation, even if the actual data does
-not contain any instances of a particular category.
+``crosstab`` can also be implemented
+to ``Categorical`` data.
 
 .. ipython:: python
 
     foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     pd.crosstab(foo, bar)
+
+If you want to include **all** of data categories even if the actual data does
+not contain any instances of a particular category, you should set ``dropna=False``.
+
+For example:
+
+.. ipython:: python
+
+    pd.crosstab(foo, bar, dropna=False)
 
 Normalization
 ~~~~~~~~~~~~~
