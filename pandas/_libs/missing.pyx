@@ -40,6 +40,7 @@ cpdef bint checknull(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
 
     Parameters
     ----------
@@ -276,12 +277,6 @@ cdef inline bint is_null_timedelta64(v):
     elif util.is_timedelta64_object(v):
         return get_timedelta64_value(v) == NPY_NAT
     return False
-
-
-cdef inline bint is_null_period(v):
-    # determine if we have a null for a Period (or integer versions),
-    # excluding np.datetime64('nat') and np.timedelta64('nat')
-    return checknull_with_nat(v)
 
 
 # -----------------------------------------------------------------------------

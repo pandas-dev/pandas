@@ -49,6 +49,7 @@ class TestSeriesDatetimeValues:
             "ceil",
             "day_name",
             "month_name",
+            "isocalendar",
         ]
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = [
@@ -232,6 +233,8 @@ class TestSeriesDatetimeValues:
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
+        # freq not preserved by tz_localize above
+        exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(s, expected)
 
@@ -678,7 +681,7 @@ class TestSeriesDatetimeValues:
         ],
     )
     def test_isocalendar(self, input_series, expected_output):
-        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar()
         expected_frame = pd.DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )

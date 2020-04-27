@@ -43,10 +43,12 @@ class TestPartialSetting:
         # iloc/iat raise
         s = s_orig.copy()
 
-        with pytest.raises(IndexError):
+        msg = "iloc cannot enlarge its target object"
+        with pytest.raises(IndexError, match=msg):
             s.iloc[3] = 5.0
 
-        with pytest.raises(IndexError):
+        msg = "index 3 is out of bounds for axis 0 with size 3"
+        with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
         # ## frame ##
@@ -58,10 +60,12 @@ class TestPartialSetting:
         # iloc/iat raise
         df = df_orig.copy()
 
-        with pytest.raises(IndexError):
+        msg = "iloc cannot enlarge its target object"
+        with pytest.raises(IndexError, match=msg):
             df.iloc[4, 2] = 5.0
 
-        with pytest.raises(IndexError):
+        msg = "index 2 is out of bounds for axis 0 with size 2"
+        with pytest.raises(IndexError, match=msg):
             df.iat[4, 2] = 5.0
 
         # row setting where it exists
@@ -115,7 +119,7 @@ class TestPartialSetting:
         )
 
         expected = pd.concat(
-            [df_orig, DataFrame({"A": 7}, index=[dates[-1] + dates.freq])], sort=True
+            [df_orig, DataFrame({"A": 7}, index=dates[-1:] + dates.freq)], sort=True
         )
         df = df_orig.copy()
         df.loc[dates[-1] + dates.freq, "A"] = 7
@@ -162,7 +166,8 @@ class TestPartialSetting:
         # list-like must conform
         df = DataFrame(columns=["A", "B"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot set a row with mismatched columns"
+        with pytest.raises(ValueError, match=msg):
             df.loc[0] = [1, 2, 3]
 
         # TODO: #15657, these are left as object and not coerced
@@ -330,10 +335,12 @@ class TestPartialSetting:
         df = orig.copy()
 
         # don't allow not string inserts
-        with pytest.raises(TypeError):
+        msg = "cannot insert DatetimeArray with incompatible label"
+
+        with pytest.raises(TypeError, match=msg):
             df.loc[100.0, :] = df.iloc[0]
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.loc[100, :] = df.iloc[0]
 
         # allow object conversion here
@@ -375,13 +382,16 @@ class TestPartialSetting:
         # frame
         df = DataFrame()
 
-        with pytest.raises(ValueError):
+        msg = "cannot set a frame with no defined columns"
+
+        with pytest.raises(ValueError, match=msg):
             df.loc[1] = 1
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.loc[1] = Series([1], index=["foo"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot set a frame with no defined index and a scalar"
+        with pytest.raises(ValueError, match=msg):
             df.loc[:, 1] = 1
 
         # these work as they don't really change

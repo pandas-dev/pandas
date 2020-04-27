@@ -4,7 +4,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import stringify_path
+from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 
 def to_feather(df: DataFrame, path, **kwargs):
@@ -98,6 +98,12 @@ def read_feather(path, columns=None, use_threads: bool = True):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = stringify_path(path)
+    path, _, _, should_close = get_filepath_or_buffer(path)
 
-    return feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
+    df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
+
+    # s3fs only validates the credentials when the file is closed.
+    if should_close:
+        path.close()
+
+    return df
