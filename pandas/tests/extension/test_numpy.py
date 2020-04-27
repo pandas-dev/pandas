@@ -199,6 +199,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
+    @pytest.mark.xfail(reason="not working")
+    def test_value_counts_with_normalize(self, data):
+        return super().test_value_counts_with_normalize(data)
+
     @pytest.mark.skip(reason="Incorrect expected")
     # We have a bool dtype, so the result is an ExtensionArray
     # but expected is not
