@@ -254,7 +254,36 @@ filled with the transformed values
 Parameters
 ----------
 f : function
-    Function to apply to each group
+    Function to apply to each group.
+
+    Can also accept a Numba JIT function with
+    ``engine='numba'`` specified.
+
+    If the ``'numba'`` engine is chosen, the function must be
+    a user defined function with ``values`` and ``index`` as the
+    first and second arguments respectively in the function signature.
+    Each group's index will be passed to the user defined function
+    and optionally available for use.
+
+    .. versionchanged:: 1.1.0
+*args
+    Positional arguments to pass to func
+engine : str, default 'cython'
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    Keyword arguments to be passed into func.
 
 Returns
 -------
@@ -881,9 +910,12 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         func = self._is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
+        if engine != "numba":
+            f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -894,11 +926,21 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            try:
-                # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
-            except TypeError:
-                continue
+            if engine == "numba":
+                result, counts = self.grouper.agg_series(
+                    obj,
+                    func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+            else:
+                try:
+                    # if this function is invalid for this dtype, we will ignore it.
+                    result, counts = self.grouper.agg_series(obj, f)
+                except TypeError:
+                    continue
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)

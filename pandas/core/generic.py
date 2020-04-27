@@ -67,7 +67,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_float,
-    is_integer,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -105,6 +104,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -302,18 +302,31 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Axis
-    _AXIS_ALIASES = {"rows": 0}
-    _AXIS_IALIASES = {0: "rows"}
     _stat_axis_number = 0
     _stat_axis_name = "index"
     _ix = None
     _AXIS_ORDERS: List[str]
-    _AXIS_NUMBERS: Dict[str, int]
-    _AXIS_NAMES: Dict[int, str]
+    _AXIS_TO_AXIS_NUMBER: Dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
     _AXIS_REVERSED: bool
     _info_axis_number: int
     _info_axis_name: str
     _AXIS_LEN: int
+
+    @property
+    def _AXIS_NUMBERS(self) -> Dict[str, int]:
+        """.. deprecated:: 1.1.0"""
+        warnings.warn(
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
+        )
+        return {"index": 0}
+
+    @property
+    def _AXIS_NAMES(self) -> Dict[int, str]:
+        """.. deprecated:: 1.1.0"""
+        warnings.warn(
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
+        )
+        return {0: "index"}
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -353,37 +366,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return axes, kwargs
 
     @classmethod
-    def _get_axis_number(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
-        if is_integer(axis):
-            if axis in cls._AXIS_NAMES:
-                return axis
-        else:
-            try:
-                return cls._AXIS_NUMBERS[axis]
-            except KeyError:
-                pass
-        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+    def _get_axis_number(cls, axis: Axis) -> int:
+        try:
+            return cls._AXIS_TO_AXIS_NUMBER[axis]
+        except KeyError:
+            raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     @classmethod
-    def _get_axis_name(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, str):
-            if axis in cls._AXIS_NUMBERS:
-                return axis
-        else:
-            try:
-                return cls._AXIS_NAMES[axis]
-            except KeyError:
-                pass
-        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+    def _get_axis_name(cls, axis: Axis) -> str:
+        axis_number = cls._get_axis_number(axis)
+        return cls._AXIS_ORDERS[axis_number]
 
-    def _get_axis(self, axis):
-        name = self._get_axis_name(axis)
-        return getattr(self, name)
+    def _get_axis(self, axis: Axis) -> Index:
+        axis_number = self._get_axis_number(axis)
+        assert axis_number in {0, 1}
+        return self.index if axis_number == 0 else self.columns
 
     @classmethod
-    def _get_block_manager_axis(cls, axis):
+    def _get_block_manager_axis(cls, axis: Axis) -> int:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         if cls._AXIS_REVERSED:
@@ -448,11 +448,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         }
 
     @property
-    def _info_axis(self):
+    def _info_axis(self) -> Index:
         return getattr(self, self._info_axis_name)
 
     @property
-    def _stat_axis(self):
+    def _stat_axis(self) -> Index:
         return getattr(self, self._stat_axis_name)
 
     @property
@@ -590,7 +590,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(
+        # ignore needed because of NDFrame constructor is different than
+        # DataFrame/Series constructors.
+        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
             self, method="swapaxes"
         )
 
@@ -701,10 +703,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = self[item]
         del self[item]
-        try:
+        if self.ndim == 2:
             result._reset_cacher()
-        except AttributeError:
-            pass
 
         return result
 
@@ -811,7 +811,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df_0a.squeeze()
         1
         """
-        axis = self._AXIS_NAMES if axis is None else (self._get_axis_number(axis),)
+        axis = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         return self.iloc[
             tuple(
                 0 if i in axis and len(a) == 1 else slice(None)
@@ -1154,7 +1154,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result = self if inplace else self.copy(deep=copy)
 
             for axis in range(self._AXIS_LEN):
-                v = axes.get(self._AXIS_NAMES[axis])
+                v = axes.get(self._get_axis_name(axis))
                 if v is lib.no_default:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not is_dict_like(v))
@@ -2360,7 +2360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         dropna: Optional[bool_t] = None,
-        data_columns: Optional[List[str]] = None,
+        data_columns: Optional[Union[bool_t, List[str]]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
@@ -3217,7 +3217,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        self._mgr.set(item, value)
+        loc = self._info_axis.get_loc(item)
+        self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3254,14 +3255,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if ref is None:
                 del self._cacher
             else:
-                # Note: we need to call ref._maybe_cache_changed even in the
-                #  case where it will raise.  (Uh, not clear why)
-                try:
+                if len(self) == len(ref):
+                    # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
-                except AssertionError:
-                    # ref._mgr.setitem can raise
-                    #  AssertionError because of shape mismatch
-                    pass
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
@@ -3490,6 +3486,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
+            if not isinstance(labels, MultiIndex):
+                raise TypeError("Index must be a MultiIndex")
             loc, new_ax = labels.get_loc_level(key, level=level, drop_level=drop_level)
 
             # create the tuple of the indexer
@@ -3548,8 +3546,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs: Callable = xs
-
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
@@ -3558,17 +3554,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._mgr.get(item)
-            res = self._box_item_values(item, values)
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc)
+
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
@@ -3592,8 +3590,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
-        self._mgr.set(key, value)
-        self._clear_item_cache()
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+            return
+
+        NDFrame._iset_item(self, loc, value)
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
@@ -6668,9 +6672,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
@@ -7621,11 +7625,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
 
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
+
+        indexer = index.indexer_at_time(time, asof=asof)
         return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
@@ -7704,16 +7708,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_between_time(
-                start_time,
-                end_time,
-                include_start=include_start,
-                include_end=include_end,
-            )
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
 
+        indexer = index.indexer_between_time(
+            start_time, end_time, include_start=include_start, include_end=include_end,
+        )
         return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
@@ -8069,7 +8069,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.is_anchored() and hasattr(offset, "_inc"):
+        if isinstance(offset, Tick):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
@@ -8658,6 +8658,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
+        if align and isinstance(other, NDFrame):
+            other = other.reindex(self._info_axis, axis=self._info_axis_number)
+        if isinstance(cond, NDFrame):
+            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
+
         block_axis = self._get_block_manager_axis(axis)
 
         if inplace:
@@ -9190,6 +9195,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if before is not None and after is not None:
             if before > after:
                 raise ValueError(f"Truncate: {after} must be after {before}")
+
+        if ax.is_monotonic_decreasing:
+            before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
@@ -11204,9 +11212,7 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 

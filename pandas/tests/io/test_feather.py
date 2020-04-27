@@ -63,14 +63,21 @@ class TestFeather:
                 "bool": [True, False, True],
                 "bool_with_null": [True, np.nan, False],
                 "cat": pd.Categorical(list("abc")),
-                "dt": pd.date_range("20130101", periods=3),
-                "dttz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "dt": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3)), freq=None
+                ),
+                "dttz": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    freq=None,
+                ),
                 "dt_with_null": [
                     pd.Timestamp("20130101"),
                     pd.NaT,
                     pd.Timestamp("20130103"),
                 ],
-                "dtns": pd.date_range("20130101", periods=3, freq="ns"),
+                "dtns": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None,
+                ),
             }
         )
         if pyarrow_version >= LooseVersion("0.16.1.dev"):
@@ -159,3 +166,15 @@ class TestFeather:
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs=dict(version=1))
+
+    @td.skip_if_no("pyarrow")
+    @tm.network
+    def test_http_path(self, feather_file):
+        # GH 29055
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/feather/feather-0_3_1.feather"
+        )
+        expected = pd.read_feather(feather_file)
+        res = pd.read_feather(url)
+        tm.assert_frame_equal(expected, res)

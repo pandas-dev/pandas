@@ -75,8 +75,9 @@ class TestGetItem:
     def test_dti_business_getitem(self):
         rng = pd.bdate_range(START, END)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="B")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
 
         assert smaller.freq == rng.freq
 
@@ -102,8 +103,9 @@ class TestGetItem:
     def test_dti_custom_getitem(self):
         rng = pd.bdate_range(START, END, freq="C")
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="C")
         tm.assert_index_equal(smaller, exp)
+        assert smaller.freq == exp.freq
         assert smaller.freq == rng.freq
 
         sliced = rng[::5]
@@ -172,7 +174,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
 
-        i2 = dti.copy()
         i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -191,6 +192,20 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             dti.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            dti.where(notna(i2), pd.Timedelta(days=4))
+
+    def test_where_mismatched_nat(self, tz_aware_fixture):
+        tz = tz_aware_fixture
+        dti = pd.date_range("2013-01-01", periods=3, tz=tz)
+        cond = np.array([True, False, True])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            dti.where(cond, np.timedelta64("NaT", "ns"))
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
