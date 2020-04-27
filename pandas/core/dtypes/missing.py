@@ -209,8 +209,7 @@ def _use_inf_as_na(key):
 
 def _isna_ndarraylike(obj, old: bool = False):
     """
-    Return an array indicating which values of the input
-    array are NaN / NA.
+    Return an array indicating which values of the input array are NaN / NA.
 
     Parameters
     ----------
@@ -222,8 +221,7 @@ def _isna_ndarraylike(obj, old: bool = False):
     Returns
     -------
     array-like
-        Array of boolean values denoting the NA status of
-        each element.
+        Array of boolean values denoting the NA status of each element.
     """
     values = getattr(obj, "_values", obj)
     dtype = values.dtype
