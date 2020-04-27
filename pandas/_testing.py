@@ -1171,6 +1171,10 @@ def assert_series_equal(
         check_categorical=check_categorical,
         obj=f"{obj}.index",
     )
+    if isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+        lidx = left.index
+        ridx = right.index
+        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
