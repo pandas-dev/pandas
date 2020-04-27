@@ -82,19 +82,6 @@ def test_win_type_not_implemented():
         df.rolling(indexer, win_type="boxcar")
 
 
-@pytest.mark.parametrize("func", ["cov", "corr"])
-def test_notimplemented_functions(func):
-    # GH 32865
-    class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
-            return np.array([0, 1]), np.array([1, 2])
-
-    df = DataFrame({"values": range(2)})
-    indexer = CustomIndexer()
-    with pytest.raises(NotImplementedError, match=f"{func} is not supported"):
-        getattr(df.rolling(indexer), func)()
-
-
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
@@ -209,4 +196,41 @@ def test_rolling_forward_skewness(constructor):
             np.nan,
         ]
     )
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func,expected",
+    [
+        ("cov", [2.0, 2.0, 2.0, 97.0, 2.0, -93.0, 2.0, 2.0, np.nan, np.nan],),
+        (
+            "corr",
+            [
+                1.0,
+                1.0,
+                1.0,
+                0.8704775290207161,
+                0.018229084250926637,
+                -0.861357304646493,
+                1.0,
+                1.0,
+                np.nan,
+                np.nan,
+            ],
+        ),
+    ],
+)
+def test_rolling_forward_cov_corr(func, expected):
+    values1 = np.arange(10).reshape(-1, 1)
+    values2 = values1 * 2
+    values1[5, 0] = 100
+    values = np.concatenate([values1, values2], axis=1)
+
+    indexer = FixedForwardWindowIndexer(window_size=3)
+    rolling = DataFrame(values).rolling(window=indexer, min_periods=3)
+    # We are interested in checking only pairwise covariance / correlation
+    result = getattr(rolling, func)().loc[(slice(None), 1), 0]
+    result = result.reset_index(drop=True)
+    expected = Series(expected)
+    expected.name = result.name
     tm.assert_equal(result, expected)
