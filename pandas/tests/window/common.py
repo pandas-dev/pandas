@@ -252,43 +252,15 @@ class ConsistencyBase(Base):
                 var_debiasing_factors_x = var_debiasing_factors(x)
                 tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
 
-    def _test_moments_consistency(
-        self,
-        min_periods,
-        count,
-        mean,
-        corr,
-        var_unbiased=None,
-        std_unbiased=None,
-        cov_unbiased=None,
-        var_biased=None,
-        std_biased=None,
-        cov_biased=None,
+    def _test_moments_consistency_var_data(
+        self, min_periods, count, mean, var_unbiased, var_biased
     ):
-
         for (x, is_constant, no_nans) in self.data:
             count_x = count(x)
             mean_x = mean(x)
-
-            for (std, var, cov) in [
-                (std_biased, var_biased, cov_biased),
-                (std_unbiased, var_unbiased, cov_unbiased),
-            ]:
-
-                # check that var(x), std(x), and cov(x) are all >= 0
+            for var in [var_biased, var_unbiased]:
                 var_x = var(x)
-                std_x = std(x)
                 assert not (var_x < 0).any().any()
-                assert not (std_x < 0).any().any()
-                if cov:
-                    cov_x_x = cov(x, x)
-                    assert not (cov_x_x < 0).any().any()
-
-                    # check that var(x) == cov(x, x)
-                    tm.assert_equal(var_x, cov_x_x)
-
-                # check that var(x) == std(x)^2
-                tm.assert_equal(var_x, std_x * std_x)
 
                 if var is var_biased:
                     # check that biased var(x) == mean(x^2) - mean(x)^2
@@ -304,45 +276,88 @@ class ConsistencyBase(Base):
                         expected[count_x < 2] = np.nan
                     tm.assert_equal(var_x, expected)
 
-                if isinstance(x, Series):
-                    for (y, is_constant, no_nans) in self.data:
-                        if not x.isna().equals(y.isna()):
-                            # can only easily test two Series with similar
-                            # structure
-                            continue
+    def _test_moments_consistency_std_data(
+        self, std_unbiased, var_unbiased, std_biased, var_biased
+    ):
+        for (x, is_constant, no_nans) in self.data:
+            for (std, var) in [(std_biased, var_biased), (std_unbiased, var_unbiased)]:
+                var_x = var(x)
+                std_x = std(x)
+                assert not (var_x < 0).any().any()
+                assert not (std_x < 0).any().any()
 
-                        # check that cor(x, y) is symmetric
-                        corr_x_y = corr(x, y)
-                        corr_y_x = corr(y, x)
-                        tm.assert_equal(corr_x_y, corr_y_x)
+                # check that var(x) == std(x)^2
+                tm.assert_equal(var_x, std_x * std_x)
 
-                        if cov:
-                            # check that cov(x, y) is symmetric
-                            cov_x_y = cov(x, y)
-                            cov_y_x = cov(y, x)
-                            tm.assert_equal(cov_x_y, cov_y_x)
+    def _test_moments_consistency_cov_data(
+        self, cov_unbiased, var_unbiased, cov_biased, var_biased
+    ):
+        for (x, is_constant, no_nans) in self.data:
+            for (cov, var) in [(cov_biased, var_biased), (cov_unbiased, var_unbiased)]:
+                var_x = var(x)
+                assert not (var_x < 0).any().any()
+                if cov:
+                    cov_x_x = cov(x, x)
+                    assert not (cov_x_x < 0).any().any()
 
-                            # check that cov(x, y) == (var(x+y) - var(x) -
-                            # var(y)) / 2
-                            var_x_plus_y = var(x + y)
-                            var_y = var(y)
-                            tm.assert_equal(
-                                cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y)
-                            )
+                    # check that var(x) == cov(x, x)
+                    tm.assert_equal(var_x, cov_x_x)
 
-                            # check that corr(x, y) == cov(x, y) / (std(x) *
-                            # std(y))
-                            std_y = std(y)
-                            tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
+    def _test_moments_consistency_series_data(
+        self,
+        corr,
+        mean,
+        std_biased,
+        std_unbiased,
+        cov_unbiased,
+        var_unbiased,
+        var_biased,
+        cov_biased,
+    ):
+        for (x, is_constant, no_nans) in self.data:
+            if isinstance(x, Series):
+                y = x
+                mean_x = mean(x)
+                if not x.isna().equals(y.isna()):
+                    # can only easily test two Series with similar
+                    # structure
+                    pass
 
-                            if cov is cov_biased:
-                                # check that biased cov(x, y) == mean(x*y) -
-                                # mean(x)*mean(y)
-                                mean_y = mean(y)
-                                mean_x_times_y = mean(x * y)
-                                tm.assert_equal(
-                                    cov_x_y, mean_x_times_y - (mean_x * mean_y)
-                                )
+                # check that cor(x, y) is symmetric
+                corr_x_y = corr(x, y)
+                corr_y_x = corr(y, x)
+                tm.assert_equal(corr_x_y, corr_y_x)
+
+                for (std, var, cov) in [
+                    (std_biased, var_biased, cov_biased),
+                    (std_unbiased, var_unbiased, cov_unbiased),
+                ]:
+                    var_x = var(x)
+                    std_x = std(x)
+
+                    if cov:
+                        # check that cov(x, y) is symmetric
+                        cov_x_y = cov(x, y)
+                        cov_y_x = cov(y, x)
+                        tm.assert_equal(cov_x_y, cov_y_x)
+
+                        # check that cov(x, y) == (var(x+y) - var(x) -
+                        # var(y)) / 2
+                        var_x_plus_y = var(x + y)
+                        var_y = var(y)
+                        tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
+
+                        # check that corr(x, y) == cov(x, y) / (std(x) *
+                        # std(y))
+                        std_y = std(y)
+                        tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
+
+                        if cov is cov_biased:
+                            # check that biased cov(x, y) == mean(x*y) -
+                            # mean(x)*mean(y)
+                            mean_y = mean(y)
+                            mean_x_times_y = mean(x * y)
+                            tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
 
     def _check_pairwise_moment(self, dispatch, name, **kwargs):
         def get_result(obj, obj2=None):
