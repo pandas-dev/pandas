@@ -1013,6 +1013,17 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                 ),
             )
 
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_apply_consistency(self, window, min_periods, center):
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*(empty slice|0 for slice).*",
+                category=RuntimeWarning,
+            )
             # test consistency between rolling_xyz() and either (a)
             # rolling_apply of Series.xyz(), or (b) rolling_apply of
             # np.nanxyz()

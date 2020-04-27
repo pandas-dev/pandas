@@ -368,6 +368,14 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 ),
             )
 
+    @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+    def test_expanding_apply_consistency(self, min_periods):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*(empty slice|0 for slice).*",
+                category=RuntimeWarning,
+            )
             # test consistency between expanding_xyz() and either (a)
             # expanding_apply of Series.xyz(), or (b) expanding_apply of
             # np.nanxyz()
