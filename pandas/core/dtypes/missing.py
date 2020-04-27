@@ -207,7 +207,7 @@ def _use_inf_as_na(key):
         globals()["_isna"] = _isna_new
 
 
-def _isna_ndarraylike(obj, old: str = False):
+def _isna_ndarraylike(obj, old: bool = False):
     """
     Return an array indicating which values of the input
     array are NaN / NA.
