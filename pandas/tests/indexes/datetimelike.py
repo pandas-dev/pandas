@@ -96,3 +96,10 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(index))
         result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
+
+    def test_getitem_preserves_freq(self):
+        index = self.create_index()
+        assert index.freq is not None
+
+        result = index[:]
+        assert result.freq == index.freq
