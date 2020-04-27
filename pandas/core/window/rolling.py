@@ -1636,6 +1636,10 @@ class _Rolling_and_Expanding(_Rolling):
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
+        # GH 32865. We leverage rolling.mean() to calculate covariance,
+        # so we need to construct those rolling objects with the same
+        # data that was used when constructing self: window width,
+        # frequency data or a BaseIndexer subclass
         if isinstance(self.window, BaseIndexer):
             window = self.window
         else:
@@ -1782,6 +1786,10 @@ class _Rolling_and_Expanding(_Rolling):
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
+        # GH 32865. We leverage rolling.mean() to calculate covariance,
+        # so we need to construct those rolling objects with the same
+        # data that was used when constructing self: window width,
+        # frequency data or a BaseIndexer subclass
         if isinstance(self.window, BaseIndexer):
             window = self.window
         else:
