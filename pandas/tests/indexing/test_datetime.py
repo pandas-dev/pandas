@@ -146,7 +146,7 @@ class TestDatetimeIndex:
         for sel in (index, list(index)):
             # getitem
             result = ser[sel]
-            expected = ser
+            expected = ser.copy()
             if sel is not index:
                 expected.index = expected.index._with_freq(None)
             tm.assert_series_equal(result, expected)
@@ -159,7 +159,10 @@ class TestDatetimeIndex:
 
             # .loc getitem
             result = ser.loc[sel]
-            tm.assert_series_equal(result, ser)
+            expected = ser.copy()
+            if sel is not index:
+                expected.index = expected.index._with_freq(None)
+            tm.assert_series_equal(result, expected)
 
             # .loc setitem
             result = ser.copy()

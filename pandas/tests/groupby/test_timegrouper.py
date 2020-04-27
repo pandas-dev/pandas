@@ -747,6 +747,7 @@ class TestGroupBy:
         grouper = pd.Grouper(key="time", freq="h")
         result = test.groupby(grouper)["data"].nunique()
         expected = test[test.time.notnull()].groupby(grouper)["data"].nunique()
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     def test_scalar_call_versus_list_call(self):

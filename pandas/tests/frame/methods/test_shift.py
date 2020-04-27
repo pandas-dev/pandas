@@ -177,8 +177,12 @@ class TestDataFrameShift:
             columns=datetime_frame.columns,
         )
         shifted = inferred_ts.tshift(1)
+
+        expected = datetime_frame.tshift(1)
+        expected.index = expected.index._with_freq(None)
+        tm.assert_frame_equal(shifted, expected)
+
         unshifted = shifted.tshift(-1)
-        tm.assert_frame_equal(shifted, datetime_frame.tshift(1))
         tm.assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = datetime_frame.iloc[[0, 5, 7], :]

@@ -102,7 +102,7 @@ def test_resample_categorical_data_with_timedeltaindex():
     result = df.resample("10s").agg(lambda x: (x.value_counts().index[0]))
     expected = DataFrame(
         {"Group_obj": ["A", "A"], "Group": ["A", "A"]},
-        index=pd.to_timedelta([0, 10], unit="s"),
+        index=pd.TimedeltaIndex([0, 10], unit="s", freq="10s"),
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
     expected["Group"] = expected["Group_obj"]

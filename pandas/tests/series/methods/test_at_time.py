@@ -43,12 +43,17 @@ class TestAtTime:
         expected = ts[(rng.hour == 9) & (rng.minute == 30)]
         exp_df = df[(rng.hour == 9) & (rng.minute == 30)]
 
+        result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
         tm.assert_frame_equal(result_df, exp_df)
 
         chunk = df.loc["1/4/2000":]
         result = chunk.loc[time(9, 30)]
         expected = result_df[-1:]
+
+        # Without resetting the freqs, these are 5 min and 1440 min, respectively
+        result.index = result.index._with_freq(None)
+        expected.index = expected.index._with_freq(None)
         tm.assert_frame_equal(result, expected)
 
         # midnight, everything

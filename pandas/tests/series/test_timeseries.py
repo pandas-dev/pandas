@@ -39,6 +39,7 @@ class TestTimeSeries:
         result = ts + ts2
         result2 = ts2 + ts
         expected = ts + ts[5:]
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 

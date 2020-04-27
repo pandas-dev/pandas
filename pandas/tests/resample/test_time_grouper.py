@@ -170,7 +170,7 @@ def test_resample_entirly_nat_window(method, method_args, unit):
     s = pd.Series([0] * 2 + [np.nan] * 2, index=pd.date_range("2017", periods=4))
     result = methodcaller(method, **method_args)(s.resample("2d"))
     expected = pd.Series(
-        [0.0, unit], index=pd.to_datetime(["2017-01-01", "2017-01-03"])
+        [0.0, unit], index=pd.DatetimeIndex(["2017-01-01", "2017-01-03"], freq="2D")
     )
     tm.assert_series_equal(result, expected)
 
@@ -207,7 +207,8 @@ def test_aggregate_with_nat(func, fill_value):
     pad = DataFrame([[fill_value] * 4], index=[3], columns=["A", "B", "C", "D"])
     expected = normal_result.append(pad)
     expected = expected.sort_index()
-    expected.index = date_range(start="2013-01-01", freq="D", periods=5, name="key")
+    dti = date_range(start="2013-01-01", freq="D", periods=5, name="key")
+    expected.index = dti._with_freq(None)  # TODO: is this desired?
     tm.assert_frame_equal(expected, dt_result)
     assert dt_result.index.name == "key"
 
@@ -237,7 +238,9 @@ def test_aggregate_with_nat_size():
     pad = Series([0], index=[3])
     expected = normal_result.append(pad)
     expected = expected.sort_index()
-    expected.index = date_range(start="2013-01-01", freq="D", periods=5, name="key")
+    expected.index = date_range(
+        start="2013-01-01", freq="D", periods=5, name="key"
+    )._with_freq(None)
     tm.assert_series_equal(expected, dt_result)
     assert dt_result.index.name == "key"
 
@@ -269,8 +272,9 @@ def test_repr():
 def test_upsample_sum(method, method_args, expected_values):
     s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
     resampled = s.resample("30T")
-    index = pd.to_datetime(
-        ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"]
+    index = pd.DatetimeIndex(
+        ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
+        freq="30T",
     )
     result = methodcaller(method, **method_args)(resampled)
     expected = pd.Series(expected_values, index=index)

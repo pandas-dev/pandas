@@ -83,4 +83,8 @@ class TestAtTime:
             expected = ts.loc[:, indices]
 
         result = ts.at_time("9:30", axis=axis)
+
+        # Without clearing freq, result has freq 1440T and expected 5T
+        result.index = result.index._with_freq(None)
+        expected.index = expected.index._with_freq(None)
         tm.assert_frame_equal(result, expected)
