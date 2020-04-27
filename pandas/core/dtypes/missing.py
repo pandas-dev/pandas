@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from functools import partial
+
 import numpy as np
 
 from pandas._config import get_option
@@ -124,59 +126,42 @@ def isna(obj):
 isnull = isna
 
 
-def _isna_new(obj):
-
-    if is_scalar(obj):
-        return libmissing.checknull(obj)
-    # hack (for now) because MI registers as ndarray
-    elif isinstance(obj, ABCMultiIndex):
-        raise NotImplementedError("isna is not defined for MultiIndex")
-    elif isinstance(obj, type):
-        return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
-        return _isna_ndarraylike(obj, old=False)
-    elif isinstance(obj, ABCDataFrame):
-        return obj.isna()
-    elif isinstance(obj, list):
-        return _isna_ndarraylike(np.asarray(obj, dtype=object), old=False)
-    elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike(np.asarray(obj), old=False)
-    else:
-        return False
-
-
-def _isna_old(obj):
+def _isna(obj, old: bool = False):
     """
-    Detect missing values, treating None, NaN, INF, -INF as null.
+    Detect missing values, treating None, NaN or NA as null. If old is True
+    infinite values will also be treated as null.
 
     Parameters
     ----------
     arr: ndarray or object value
+        Input array or scalar value.
+    old: bool
+        Whether to treat infinity as null.
 
     Returns
     -------
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        return libmissing.checknull_old(obj)
+        if old:
+            return libmissing.checknull_old(obj)
+        else:
+            return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
-        return _isna_ndarraylike(obj, old=True)
+        return _isna_ndarraylike(obj, old=old)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
     elif isinstance(obj, list):
-        return _isna_ndarraylike(np.asarray(obj, dtype=object), old=True)
+        return _isna_ndarraylike(np.asarray(obj, dtype=object), old=old)
     elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike(np.asarray(obj), old=True)
+        return _isna_ndarraylike(np.asarray(obj), old=old)
     else:
         return False
-
-
-_isna = _isna_new
 
 
 def _use_inf_as_na(key):
@@ -200,11 +185,8 @@ def _use_inf_as_na(key):
     * https://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    flag = get_option(key)
-    if flag:
-        globals()["_isna"] = _isna_old
-    else:
-        globals()["_isna"] = _isna_new
+    old = get_option(key)
+    globals()["_isna"] = partial(_isna, old=old)
 
 
 def _isna_ndarraylike(obj, old: bool = False):
