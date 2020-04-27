@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Type, Union, cast
+from typing import Any, Sequence, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -410,7 +410,7 @@ default 'raise'
 
     def _with_freq(self, freq):
         """
-        Helper to set our freq in-place, returning self to allow method chaining.
+        Helper to get a view on the same data, with a new freq.
 
         Parameters
         ----------
@@ -418,7 +418,7 @@ default 'raise'
 
         Returns
         -------
-        self
+        Same type as self
         """
         # GH#29843
         if freq is None:
@@ -433,8 +433,12 @@ default 'raise'
             assert freq == "infer"
             freq = frequencies.to_offset(self.inferred_freq)
 
-        self._freq = freq
-        return self
+        arr = self.view()
+        arr._freq = freq
+        return arr
+
+
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 class DatetimeLikeArrayMixin(
@@ -679,7 +683,7 @@ class DatetimeLikeArrayMixin(
 
         return cls._simple_new(values, dtype=dtype, freq=new_freq)
 
-    def copy(self):
+    def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
         values = self.asi8.copy()
         return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 

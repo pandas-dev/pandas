@@ -897,7 +897,7 @@ class TestDatetime64Arithmetic:
     )
     def test_dt64arr_sub_dtscalar(self, box_with_array, ts):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
-        idx = pd.date_range("2013-01-01", periods=3)
+        idx = pd.date_range("2013-01-01", periods=3)._with_freq(None)
         idx = tm.box_expected(idx, box_with_array)
 
         expected = pd.TimedeltaIndex(["0 Days", "1 Day", "2 Days"])
@@ -912,7 +912,7 @@ class TestDatetime64Arithmetic:
         dt64 = np.datetime64("2013-01-01")
         assert dt64.dtype == "datetime64[D]"
 
-        dti = pd.date_range("20130101", periods=3)
+        dti = pd.date_range("20130101", periods=3)._with_freq(None)
         dtarr = tm.box_expected(dti, box_with_array)
 
         expected = pd.TimedeltaIndex(["0 Days", "1 Day", "2 Days"])
@@ -926,6 +926,7 @@ class TestDatetime64Arithmetic:
 
     def test_dt64arr_sub_timestamp(self, box_with_array):
         ser = pd.date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern")
+        ser = ser._with_freq(None)
         ts = ser[0]
 
         ser = tm.box_expected(ser, box_with_array)
