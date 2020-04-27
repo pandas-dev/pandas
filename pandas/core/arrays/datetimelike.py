@@ -5,9 +5,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
+from pandas._libs import NaT, NaTType, Period, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
-from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas._typing import DatetimeLikeScalar
@@ -749,7 +748,7 @@ class DatetimeLikeArrayMixin(
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
-                new_fill = Period._from_ordinal(fill_value, freq=self.freq)
+                new_fill = Period._from_ordinal(fill_value, freq=self.dtype.freq)
             else:
                 new_fill = self._scalar_type(fill_value)
 
@@ -1082,7 +1081,7 @@ class DatetimeLikeArrayMixin(
         return frequencies.Resolution.get_reso_from_freq(self.freqstr)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def resolution(self):
+    def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
@@ -1271,40 +1270,10 @@ class DatetimeLikeArrayMixin(
         return result.view("timedelta64[ns]")
 
     def _sub_period_array(self, other):
-        """
-        Subtract a Period Array/Index from self.  This is only valid if self
-        is itself a Period Array/Index, raises otherwise.  Both objects must
-        have the same frequency.
-
-        Parameters
-        ----------
-        other : PeriodIndex or PeriodArray
-
-        Returns
-        -------
-        result : np.ndarray[object]
-            Array of DateOffset objects; nulls represented by NaT.
-        """
-        if not is_period_dtype(self):
-            raise TypeError(
-                f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
-            )
-
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
-
-        new_values = checked_add_with_arr(
-            self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
+        # Overridden by PeriodArray
+        raise TypeError(
+            f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
         )
-
-        new_values = np.array([self.freq.base * x for x in new_values])
-        if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
-            new_values[mask] = NaT
-        return new_values
 
     def _addsub_object_array(self, other: np.ndarray, op):
         """
