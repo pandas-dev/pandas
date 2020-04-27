@@ -49,7 +49,6 @@ class ExtensionArray:
     nbytes
     ndim
     shape
-    size
 
     Methods
     -------
