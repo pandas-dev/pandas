@@ -198,7 +198,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if return_indexer:
             return sorted_index, _as
         else:
-            sorted_index
+            return sorted_index
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
