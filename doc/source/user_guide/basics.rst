@@ -1796,8 +1796,15 @@ the key is applied per-level to the levels specified by `level`.
        "b": [1, 2, 3],
        "c": [2, 3, 4]
    }).set_index(list("ab"))
+   s1
+
+.. ipython:: python
+
    s1.sort_index(level="a")
    s1.sort_index(level="a", key=lambda idx: idx.str.lower())
+
+For information on key sorting by value, see :ref:`value sorting 
+<basics.sort_value_key>`.
 
 .. _basics.sort_values:
 
@@ -1841,6 +1848,9 @@ to apply to the values being sorted.
 .. ipython:: python
 
    s1 = pd.Series(['B', 'a', 'C'])
+
+.. ipython:: python
+
    s1.sort_values()
    s1.sort_values(key=lambda x: x.str.lower())
 
@@ -1852,6 +1862,9 @@ a Series, e.g.
 .. ipython:: python
 
    df = pd.DataFrame({"a": ['B', 'a', 'C'], "b": [1, 2, 3]})
+
+.. ipython:: python
+
    df.sort_values(by='a')
    df.sort_values(by='a', key=lambda col: col.str.lower())
 

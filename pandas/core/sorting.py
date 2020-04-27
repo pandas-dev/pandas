@@ -382,26 +382,36 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
+    from pandas.core.indexes.api import Index
+    
     if not key:
         return values.copy()
 
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
 
-    type_of_values = type(values)
     result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
-            "User-provided `key` function much not change the shape of the array."
+            "User-provided `key` function must not change the shape of the array."
         )
 
-    if not isinstance(result, type_of_values):  # recover from type error
-        try:
-            result = type_of_values(result)
-        except TypeError:
-            raise TypeError("User-provided `key` function returned an invalid type.")
+    try:
+        if isinstance(values, Index):  # allow a new Index class
+            result = Index(result)
+        else:
+            type_of_values = type(values)
+            result = type_of_values(result)  # try to recover otherwise
+    except TypeError:
+        raise TypeError(
+            "User-provided `key` function returned an invalid type {} \
+            which could not be converted to {}.".format(
+                type(result), type(values)
+            )
+        )
 
     return result
+
 
 
 class _KeyMapper:

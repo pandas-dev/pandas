@@ -630,7 +630,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         expected = df.iloc[[1, 3, 4, 0, 2, 5]]
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_key_nan(self):
+    def test_sort_values_key_string(self):
         df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
 
         result = df.sort_values(1)
@@ -656,3 +656,25 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         df = pd.DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_values("A", key=lambda x: x[:1])
+
+    def test_sort_values_key_axes(self):
+        df = DataFrame({0: ["Hello", "goodbye"], 1: [0, 1]})
+
+        result = df.sort_values(0, key=lambda col: col.str.lower())
+        expected = df[::-1]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.sort_values(1, key=lambda col: -col)
+        expected = df[::-1]
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_key_dict_axis(self):
+        df = DataFrame({0: ["Hello", 0], 1: ["goodbye", 1]})
+
+        result = df.sort_values(0, key=lambda col: col.str.lower(), axis=1)
+        expected = df.loc[:, ::-1]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.sort_values(1, key=lambda col: -col, axis=1)
+        expected = df.loc[:, ::-1]
+        tm.assert_frame_equal(result, expected)

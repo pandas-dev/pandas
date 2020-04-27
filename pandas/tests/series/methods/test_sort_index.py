@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pytest
 
-from pandas import IntervalIndex, MultiIndex, Series
+from pandas import DatetimeIndex, IntervalIndex, MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -223,7 +223,66 @@ class TestSeriesSortIndexKey:
         result = series.sort_index(key=lambda x: 2 * x)
         tm.assert_series_equal(result, series)
 
+    def test_sort_index_kind_key(self, sort_by_key):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(kind="mergesort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="quicksort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="heapsort", key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_kind_neg_key(self):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[4, 3, 3, 2, 1], dtype=object)
+
+        index_sorted_series = series.sort_index(kind="mergesort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="quicksort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind="heapsort", key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_na_position_key(self, sort_by_key):
+        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="first", key=sort_by_key)
+        tm.assert_series_equal(expected_series_first, index_sorted_series)
+
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="last", key=sort_by_key)
+        tm.assert_series_equal(expected_series_last, index_sorted_series)
+
     def test_changes_length_raises(self):
         s = Series([1, 2, 3])
         with pytest.raises(ValueError, match="change the shape"):
             s.sort_index(key=lambda x: x[:1])
+
+    def test_sort_values_key_type(self):
+        s = Series([1, 2, 3], DatetimeIndex(["2008-10-24", "2008-11-23", "2007-12-22"]))
+
+        result = s.sort_index(key=lambda x: x.month)
+        expected = s.iloc[[0, 1, 2]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.day)
+        expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.year)
+        expected = s.iloc[[2, 0, 1]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.month_name())
+        expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
