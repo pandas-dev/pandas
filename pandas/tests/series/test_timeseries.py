@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -115,7 +117,12 @@ class TestTimeSeries:
 
         with tm.assert_produces_warning(None):
             # Future behavior (for tzaware case) with no warning
-            result = np.asarray(ser, dtype=object)
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                # FIXME: this makes the assert_produces_warning(None) toothless
+
+                result = np.asarray(ser, dtype=object)
 
         expected = np.array(
             [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
