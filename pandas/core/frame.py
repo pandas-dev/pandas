@@ -6812,8 +6812,8 @@ Wild         185.0
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
     keep_index : bool, optional, default False
-            If True, the original index is reused.
-            There is no uniqueness guarantee.
+        If True, the original index is retained. Index labels will be repeated
+        as necessary.
 
     Returns
     -------
