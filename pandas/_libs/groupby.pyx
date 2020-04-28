@@ -781,7 +781,7 @@ def group_quantile(ndarray[float64_t] out,
     if labels.any():
         # Put '-1' (NaN) labels as the last group so it does not interfere
         # with the calculations.
-        labels[labels==-1] = np.max(labels) + 1
+        labels[labels == -1] = np.max(labels) + 1
     # Get an index of values sorted by labels and then values
     order = (values, labels)
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)

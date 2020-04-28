@@ -1500,7 +1500,7 @@ def test_quantile_missing_group_values_correct_results(
     # GH 28662, GH 33200
     df = pd.DataFrame({"key": key, "val": val})
 
-    result = df.groupby("key").quantile()
+    result = df.groupby("key").quantile(0.5)
     expected = pd.DataFrame(
         expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
     )
