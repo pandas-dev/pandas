@@ -228,7 +228,7 @@ def _isna_ndarraylike(obj, old: bool = False):
 
     if is_extension_array_dtype(dtype):
         if old:
-            result = values.isna() | (values == -np.inf) | (values == np.inf)
+            result = libmissing.isnaobj_old(values.to_numpy())
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
