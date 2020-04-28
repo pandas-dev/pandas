@@ -39,6 +39,10 @@ import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
 
+silence_freq_deprecation = pytest.mark.filterwarnings(
+    "ignore:Passing `freq` to Timestamp is deprecated"
+)
+
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -76,6 +80,13 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        # By adding this marker here, we do not need to silence it throughout
+        #  the tests
+        item.add_marker(silence_freq_deprecation)
 
 
 # Hypothesis

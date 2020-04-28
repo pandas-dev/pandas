@@ -1460,11 +1460,15 @@ class TestDatetime64DateOffsetArithmetic:
         # GH#10699 array of offsets
 
         tz = tz_naive_fixture
-        dti = pd.date_range("2017-01-01", periods=2, tz=tz)
-        dtarr = tm.box_expected(dti, box_with_array)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            dti = pd.date_range("2017-01-01", periods=2, tz=tz)
+            dtarr = tm.box_expected(dti, box_with_array)
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
-        expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array)
 
         if box_other:
@@ -2401,13 +2405,11 @@ class TestDatetimeIndexArithmetic:
                 warnings.simplefilter("ignore", FutureWarning)
                 res = op(dti, other)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # Passing freq to Timestamp constructor
-            expected = DatetimeIndex(
-                [op(dti[n], other[n]) for n in range(len(dti))],
-                name=names[2],
-                freq="infer",
-            )
+        expected = DatetimeIndex(
+            [op(dti[n], other[n]) for n in range(len(dti))],
+            name=names[2],
+            freq="infer",
+        )
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
 

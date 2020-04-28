@@ -5,10 +5,6 @@ import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing `freq` to Timestamp is deprecated"
-)
-
 
 class TestTimestampRendering:
 
