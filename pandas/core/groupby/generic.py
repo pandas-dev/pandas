@@ -184,9 +184,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
     See Also
     --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
+    Series.groupby.apply
+    Series.groupby.transform
+    Series.aggregate
     """
     )
 
@@ -864,9 +864,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     See Also
     --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
+    DataFrame.groupby.apply
+    DataFrame.groupby.transform
+    DataFrame.aggregate
     """
     )
 

@@ -5080,7 +5080,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
         - dict of axis labels -> functions, function names or list of such.
 
-
     %(numba_args)s
     %(axis)s
     *args
