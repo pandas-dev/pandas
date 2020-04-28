@@ -606,7 +606,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if self.freq is not None and sort is False:
             # we are unique, so can short-circuit, also can preserve freq
             codes = np.arange(len(self), dtype=np.intp)
-            return codes, self[:]
+            return codes, self.copy()
             # TODO: In the sort=True case we could check for montonic_decreasing
             #  and operate on self[::-1]
         return super().factorize(sort=sort, na_sentinel=na_sentinel)

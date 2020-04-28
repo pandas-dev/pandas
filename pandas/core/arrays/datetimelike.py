@@ -441,8 +441,7 @@ default 'raise'
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
             codes = np.arange(len(self), dtype=np.intp)
-            # TOOD: copy?
-            return codes, self[:]
+            return codes, self.copy()
         return ExtensionArray.factorize(self, na_sentinel=na_sentinel)
 
 
