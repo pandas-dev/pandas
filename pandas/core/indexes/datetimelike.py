@@ -682,6 +682,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         result._cache = cache
         return result
 
+    def factorize(self, sort=False, na_sentinel=-1):
+        if self.freq is not None and sort is False:
+            # we are unique, so can short-circuit, also can preserve freq
+            codes = np.arange(len(self))
+            return codes, self[:]
+            # TODO: In the sort=True case we could check for montonic_decreasing
+            #  and operate on self[::-1]
+        return super().factorize(sort=sort, na_sentinel=na_sentinel)
+
     # --------------------------------------------------------------------
     # Set Operation Methods
 

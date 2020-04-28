@@ -1402,7 +1402,17 @@ class IndexOpsMixin:
         ),
     )
     def factorize(self, sort=False, na_sentinel=-1):
-        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
+        codes, uniques = algorithms.factorize(
+            self._values, sort=sort, na_sentinel=na_sentinel
+        )
+        if isinstance(self, ABCIndexClass):
+            # use constructor instead of Index to get MultiIndex right
+            uniques = self._constructor(uniques)
+        else:
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
 
     _shared_docs[
         "searchsorted"

@@ -76,10 +76,12 @@ class TestTimedeltaIndex(DatetimeLike):
         arr, idx = idx1.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
+        assert idx.freq == exp_idx.freq
 
         arr, idx = idx1.factorize(sort=True)
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
+        assert idx.freq == exp_idx.freq
 
         # freq must be preserved
         idx3 = timedelta_range("1 day", periods=4, freq="s")
@@ -87,6 +89,7 @@ class TestTimedeltaIndex(DatetimeLike):
         arr, idx = idx3.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
+        assert idx.freq == idx3.freq
 
     def test_sort_values(self):
 

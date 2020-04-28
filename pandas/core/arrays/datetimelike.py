@@ -437,6 +437,14 @@ default 'raise'
         arr._freq = freq
         return arr
 
+    def factorize(self, na_sentinel=-1):
+        if self.freq is not None:
+            # We must be unique, so can short-circuit (and retain freq)
+            codes = np.arange(len(self))
+            # TOOD: copy?
+            return codes, self[:]
+        return super().factorize(na_sentinel=na_sentinel)
+
 
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
