@@ -46,15 +46,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -617,18 +613,11 @@ def factorize(
 
     values = _ensure_arraylike(values)
     original = values
+    if not isinstance(values, ABCMultiIndex):
+        values = extract_array(values, extract_numpy=True)
 
-    if isinstance(
-        values,
-        (ABCDatetimeIndex, ABCTimedeltaIndex, ABCDatetimeArray, ABCTimedeltaArray),
-    ):
-        # Defer to the method in order to retain freq
-        if sort is False and size_hint is None:
-            # EA/Index methods dont support the same kwargs as this func
-            return values.factorize(na_sentinel=na_sentinel)
-
-    if is_extension_array_dtype(values.dtype):
-        values = extract_array(values)
+    if isinstance(values, ABCExtensionArray):
+        # Includes DatetimeArray, TimedeltaArray
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
