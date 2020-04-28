@@ -316,7 +316,8 @@ user-friendly.
 
 Keeping the index around
 ~~~~~~~~~~~~~~~~~~~~~~~~
-When transforming a DataFrame using :func:`~pandas.melt`, original index values can be kept around by setting the ``keep_index`` parameter to True. This will however duplicate the index values.
+
+When transforming a DataFrame using :func:`~pandas.melt`, original the index values can be kept around by setting the ``keep_index`` parameter to True. This will however duplicate the index values.
 
 .. ipython:: python
 
