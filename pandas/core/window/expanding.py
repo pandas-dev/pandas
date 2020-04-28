@@ -88,8 +88,8 @@ class Expanding(_Rolling_and_Expanding):
         """
     See Also
     --------
-    .DataFrame.aggregate : Similar DataFrame method.
-    .Series.aggregate : Similar Series method.
+    pandas.DataFrame.aggregate : Similar DataFrame method.
+    pandas.Series.aggregate : Similar Series method.
     """
     )
 
