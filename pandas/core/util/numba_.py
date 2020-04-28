@@ -19,7 +19,7 @@ numba_groupby_func_notes = """
         first and second arguments respectively in the function signature.
         Each group's index will be passed to the user defined function
         and optionally available for use.
-        
+
         .. versionchanged:: 1.1.0"""
 numba_groupby_args = """
 
@@ -42,7 +42,7 @@ numba_groupby_args = """
     .. versionadded:: 1.1.0"""
 numba_groupby_notes = """
    When using ``engine='numba'``, there will be no "fall back" behavior internally.
-   The group data and group index will be passed as numpy arrays to the JITed 
+   The group data and group index will be passed as numpy arrays to the JITed
    user defined function, and no alternative execution attempts will be tried."""
 
 

@@ -311,7 +311,7 @@ The current implementation imposes three requirements on f:
   produce unexpected results.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
-The group data and group index will be passed as numpy arrays to the JITed 
+The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 
 Examples
