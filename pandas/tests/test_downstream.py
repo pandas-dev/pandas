@@ -148,10 +148,12 @@ def test_missing_required_dependency():
     # -s : disable user site-packages
     # -E : disable PYTHON* env vars, especially PYTHONPATH
     # https://github.com/MacPython/pandas-wheels/pull/50
-    call = [sys.executable, "-sSE", "-c", "import pandas"]
+
+    pyexe = sys.executable.replace("\\", "/")
+    call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (
-        rf"Command '\['{sys.executable}', '-sSE', '-c', 'import pandas'\]' "
+        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
         "returned non-zero exit status 1."
     )
 
