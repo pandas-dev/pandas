@@ -4,6 +4,7 @@ from io import StringIO
 import math
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -1924,12 +1925,20 @@ class TestIndex(Base):
         right_index = tm.makeDateIndex(10)
 
         with tm.assert_produces_warning(RuntimeWarning):
-            result = left_index.join(right_index, how="outer")
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+
+                result = left_index.join(right_index, how="outer")
 
         # right_index in this case because DatetimeIndex has join precedence
         # over Int64Index
         with tm.assert_produces_warning(RuntimeWarning):
-            expected = right_index.astype(object).union(left_index.astype(object))
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+
+                expected = right_index.astype(object).union(left_index.astype(object))
 
         tm.assert_index_equal(result, expected)
 

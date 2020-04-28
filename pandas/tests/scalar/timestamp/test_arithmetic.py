@@ -11,6 +11,10 @@ import pandas._testing as tm
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing `freq` to Timestamp is deprecated"
+)
+
 
 class TestTimestampArithmetic:
     def test_overflow_offset(self):

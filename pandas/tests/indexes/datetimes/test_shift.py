@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import pytest
 import pytz
@@ -149,5 +150,9 @@ class TestDatetimeIndexShift:
 
         rng = date_range(START, END, freq=pd.offsets.BMonthEnd())
         with tm.assert_produces_warning(pd.errors.PerformanceWarning):
-            shifted = rng.shift(1, freq=pd.offsets.CDay())
-            assert shifted[0] == rng[0] + pd.offsets.CDay()
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+
+                shifted = rng.shift(1, freq=pd.offsets.CDay())
+                assert shifted[0] == rng[0] + pd.offsets.CDay()

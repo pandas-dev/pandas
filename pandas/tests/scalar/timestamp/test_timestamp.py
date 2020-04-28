@@ -20,6 +20,10 @@ import pandas._testing as tm
 
 from pandas.tseries import offsets
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing `freq` to Timestamp is deprecated"
+)
+
 
 class TestTimestampProperties:
     def test_properties_business(self):

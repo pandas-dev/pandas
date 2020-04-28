@@ -967,7 +967,10 @@ class TestDatetime64Arithmetic:
 
         warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
-            result = obj - obj.astype(object)
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
     def test_dt64arr_naive_sub_dt64ndarray(self, box_with_array):
@@ -1471,7 +1474,9 @@ class TestDatetime64DateOffsetArithmetic:
         if box_with_array is pd.DataFrame and not (tz is None and not box_other):
             warn = None
         with tm.assert_produces_warning(warn):
-            res = op(dtarr, other)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                res = op(dtarr, other)
 
         tm.assert_equal(res, expected)
 
@@ -2391,11 +2396,18 @@ class TestDatetimeIndexArithmetic:
         xbox = get_upcast_box(box, other)
 
         with tm.assert_produces_warning(PerformanceWarning):
-            res = op(dti, other)
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                res = op(dti, other)
 
-        expected = DatetimeIndex(
-            [op(dti[n], other[n]) for n in range(len(dti))], name=names[2], freq="infer"
-        )
+        with tm.assert_produces_warning(FutureWarning):
+            # Passing freq to Timestamp constructor
+            expected = DatetimeIndex(
+                [op(dti[n], other[n]) for n in range(len(dti))],
+                name=names[2],
+                freq="infer",
+            )
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
 
@@ -2418,14 +2430,20 @@ class TestDatetimeIndexArithmetic:
             warn = None
 
         with tm.assert_produces_warning(warn):
-            result = dtarr + other
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = pd.DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
         with tm.assert_produces_warning(warn):
-            result = dtarr - other
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                result = dtarr - other
         tm.assert_equal(result, expected)
 
 

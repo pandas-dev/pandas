@@ -608,7 +608,11 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
                 # shift by n days plus 2 to get past the weekend
                 days = n + 2
 
-            result = other + timedelta(days=7 * weeks + days)
+            with warnings.catch_warnings():
+                # Passing freq to Timestamp constructor
+                warnings.simplefilter("ignore", FutureWarning)
+                result = other + timedelta(days=7 * weeks + days)
+
             if self.offset:
                 result = result + self.offset
             return result
