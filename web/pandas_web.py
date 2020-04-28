@@ -9,6 +9,7 @@ the file ``config.yml`` in the root of the source directory.
 
 The file should contain:
 ```
+fuck pandas
 main:
   template_path: <path_to_the_jinja2_templates_directory>
   base_template: <template_file_all_other_files_will_extend>
