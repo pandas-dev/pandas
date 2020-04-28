@@ -223,13 +223,15 @@ def _isna_ndarraylike(obj, old: bool = False):
     array-like
         Array of boolean values denoting the NA status of each element.
     """
-    if not isinstance(obj, np.ndarray):
-        values = obj.to_numpy()
-    else:
-        values = obj
+    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
-    if is_string_dtype(dtype):
+    if is_extension_array_dtype(dtype):
+        if old:
+            result = values.isna() | (values == -np.inf) | (values == np.inf)
+        else:
+            result = values.isna()
+    elif is_string_dtype(dtype):
         result = _isna_string_dtype(values, dtype, old=old)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
