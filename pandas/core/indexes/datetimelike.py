@@ -770,7 +770,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         else:
             return left
 
-    def _union(self: _T, other: _T, sort) -> _T:
+    def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
             return super()._union(other, sort=sort)
 
