@@ -443,7 +443,7 @@ default 'raise'
             codes = np.arange(len(self))
             # TOOD: copy?
             return codes, self[:]
-        return super().factorize(na_sentinel=na_sentinel)
+        return ExtensionArray.factorize(self, na_sentinel=na_sentinel)
 
 
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
