@@ -39,9 +39,7 @@ class TestSeriesCumulativeOps:
         _check_accum_op("cumprod", datetime_series)
 
     @pytest.mark.xfail(
-        _is_numpy_dev,
-        reason="https://github.com/pandas-dev/pandas/issues/31992",
-        strict=False,
+        _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992",
     )
     def test_cummin(self, datetime_series):
         tm.assert_numpy_array_equal(
@@ -57,9 +55,7 @@ class TestSeriesCumulativeOps:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(
-        _is_numpy_dev,
-        reason="https://github.com/pandas-dev/pandas/issues/31992",
-        strict=False,
+        _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992",
     )
     def test_cummax(self, datetime_series):
         tm.assert_numpy_array_equal(

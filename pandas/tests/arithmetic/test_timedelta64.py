@@ -1195,9 +1195,11 @@ class TestTimedeltaArraylikeAddSubOps:
         result = tdarr - tdi
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_sub_tdi(self, box, names):
+    def test_td64arr_add_sub_tdi(self, box_with_array, names):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
+        box = box_with_array
+
         if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
@@ -1205,6 +1207,7 @@ class TestTimedeltaArraylikeAddSubOps:
             )
 
         tdi = TimedeltaIndex(["0 days", "1 day"], name=names[0])
+        tdi = np.array(tdi) if box is tm.to_array else tdi
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series(
             [Timedelta(hours=3), Timedelta(days=1, hours=4)], name=names[2]
@@ -1299,8 +1302,10 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
 
-    def test_td64arr_add_offset_index(self, names, box):
+    def test_td64arr_add_offset_index(self, names, box_with_array):
         # GH#18849, GH#19744
+        box = box_with_array
+
         if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
@@ -1309,6 +1314,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
+        other = np.array(other) if box is tm.to_array else other
 
         expected = TimedeltaIndex(
             [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=names[2]
@@ -1347,16 +1353,13 @@ class TestTimedeltaArraylikeAddSubOps:
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
     def test_td64arr_sub_offset_index(self, names, box_with_array):
         # GH#18824, GH#19744
         box = box_with_array
         xbox = box if box is not tm.to_array else pd.Index
         exname = names[2] if box is not tm.to_array else names[1]
 
-        if box is pd.DataFrame and names[1] == "bar":
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
@@ -1392,9 +1395,6 @@ class TestTimedeltaArraylikeAddSubOps:
             res = tdi - other
         tm.assert_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
     def test_td64arr_with_offset_series(self, names, box_df_fail):
         # GH#18849
         box = box_df_fail
