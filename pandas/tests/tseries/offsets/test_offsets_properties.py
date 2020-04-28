@@ -14,6 +14,8 @@ from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
 
+from pandas.compat import is_platform_mac
+
 import pandas as pd
 from pandas import Timestamp
 
@@ -86,7 +88,7 @@ gen_yqm_offset = st.one_of(
 
 
 # Based on CI runs: Always passes on OSX, fails on Linux, sometimes on Windows
-@pytest.mark.xfail(strict=False, reason="inconsistent between OSs, Pythons")
+@pytest.mark.xfail(not is_platform_mac(), reason="inconsistent between OSs, Pythons")
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
