@@ -128,12 +128,12 @@ isnull = isna
 
 def _isna(obj, inf_as_na: bool = False):
     """
-    Detect missing values, treating None, NaN or NA as null. If old is True
-    infinite values will also be treated as null.
+    Detect missing values, treating None, NaN or NA as null. Infinite
+    values will also be treated as null if inf_as_na is True.
 
     Parameters
     ----------
-    arr: ndarray or object value
+    obj: ndarray or object value
         Input array or scalar value.
     inf_as_na: bool
         Whether to treat infinity as null.
