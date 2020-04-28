@@ -152,16 +152,14 @@ class Quantile:
 
 class PeakMemFixedWindowMinMax:
 
-    params = ['min', 'max']
+    params = ["min", "max"]
 
-    def setup(self, f):
+    def setup(self, operation):
         N = int(1e6)
         arr = np.random.random(N)
         self.roll = pd.Series(arr).rolling(2)
 
     def peakmem_fixed(self, operation):
-        # GH 33693
-        # increased size of array so we see a clearer picture
         for x in range(5):
             getattr(self.roll, operation)()
 
