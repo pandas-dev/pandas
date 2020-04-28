@@ -80,6 +80,9 @@ from pandas.core.util.numba_ import (
     check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
+    numba_groupby_args,
+    numba_groupby_func_notes,
+    numba_groupby_notes,
     split_for_numba,
     validate_udf,
 )
@@ -242,6 +245,9 @@ class SeriesGroupBy(GroupBy[Series]):
         versionadded="",
         klass="Series",
         axis="",
+        numba_func_notes=numba_groupby_func_notes,
+        numba_args=numba_groupby_args,
+        numba_notes=numba_groupby_notes,
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(
@@ -476,7 +482,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
-    @Substitution(klass="Series", selected="A.")
+    @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
@@ -946,6 +952,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         versionadded="",
         klass="DataFrame",
         axis="",
+        numba_func_notes=numba_groupby_func_notes,
+        numba_args=numba_groupby_args,
+        numba_notes=numba_groupby_notes,
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(
@@ -1466,7 +1475,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
         return self._set_result_index_ordered(concatenated)
 
-    @Substitution(klass="DataFrame", selected="")
+    @Substitution(klass="DataFrame")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
 

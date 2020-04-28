@@ -188,6 +188,9 @@ class EWM(_Rolling):
         versionadded="",
         klass="Series/Dataframe",
         axis="",
+        numba_func_notes="",
+        numba_args="",
+        numba_notes="",
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):

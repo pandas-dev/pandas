@@ -273,6 +273,9 @@ class Resampler(_GroupBy, ShallowMixin):
         versionadded="",
         klass="DataFrame",
         axis="",
+        numba_func_notes="",
+        numba_args="",
+        numba_notes="",
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):

@@ -5071,12 +5071,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Function to use for aggregating the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
 
+        %(numba_func_notes)s
+
         Accepted combinations are:
 
         - function
         - string function name
         - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
         - dict of axis labels -> functions, function names or list of such.
+
+
+    %(numba_args)s
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -5100,6 +5105,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     `agg` is an alias for `aggregate`. Use the alias.
 
     A passed user-defined-function will be passed a Series for evaluation.
+    %(numba_notes)s
     %(examples)s"""
     )
 

@@ -7105,6 +7105,9 @@ Wild         185.0
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
+        numba_func_notes="",
+        numba_args="",
+        numba_notes="",
         **_shared_doc_kwargs,
     )
     @Appender(_shared_docs["aggregate"])

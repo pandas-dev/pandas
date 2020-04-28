@@ -3809,6 +3809,9 @@ Name: Max Speed, dtype: float64
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
+        numba_func_notes="",
+        numba_args="",
+        numba_notes="",
         **_shared_doc_kwargs,
     )
     @Appender(generic._shared_docs["aggregate"])
