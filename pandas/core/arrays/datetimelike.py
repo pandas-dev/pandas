@@ -440,7 +440,7 @@ default 'raise'
     def factorize(self, na_sentinel=-1):
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
-            codes = np.arange(len(self))
+            codes = np.arange(len(self), dtype=np.intp)
             # TOOD: copy?
             return codes, self[:]
         return ExtensionArray.factorize(self, na_sentinel=na_sentinel)
