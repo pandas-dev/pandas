@@ -1,7 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, List, Optional, Union, cast
 
 import numpy as np
@@ -16,18 +16,14 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
-    is_object_dtype,
     is_period_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -46,7 +42,6 @@ from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset
-from pandas.tseries.offsets import Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -77,33 +72,13 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     return wrapper
 
 
-def _make_wrapped_arith_op_with_freq(opname: str):
-    """
-    Dispatch the operation to the underlying ExtensionArray, and infer
-    the appropriate frequency for the result.
-    """
-    meth = make_wrapped_arith_op(opname)
-
-    def wrapped(self, other):
-        result = meth(self, other)
-        if result is NotImplemented:
-            return NotImplemented
-
-        new_freq = self._get_addsub_freq(other, result)
-        result._freq = new_freq
-        return result
-
-    wrapped.__name__ = opname
-    return wrapped
-
-
 @inherit_names(
     ["inferred_freq", "_isnan", "_resolution", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
 @inherit_names(
-    ["mean", "asi8", "_box_func"], DatetimeLikeArrayMixin,
+    ["mean", "asi8", "freq", "freqstr", "_box_func"], DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -437,44 +412,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _get_addsub_freq(self, other, result) -> Optional[DateOffset]:
-        """
-        Find the freq we expect the result of an addition/subtraction operation
-        to have.
-        """
-        if is_period_dtype(self.dtype):
-            if is_period_dtype(result.dtype):
-                # Only used for ops that stay PeriodDtype
-                return self.freq
-            return None
-        elif self.freq is None:
-            return None
-        elif lib.is_scalar(other) and isna(other):
-            return None
-
-        elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_freq = None
-            if isinstance(self.freq, Tick):
-                new_freq = self.freq
-            return new_freq
-
-        elif isinstance(other, DateOffset):
-            # otherwise just DatetimeArray
-            return None  # TODO: Should we infer if it matches self.freq * n?
-        elif isinstance(other, (datetime, np.datetime64)):
-            return self.freq
-
-        elif is_timedelta64_dtype(other):
-            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
-        elif is_object_dtype(other):
-            return None  # TODO: is this quite right?  sometimes we unpack singletons
-        elif is_datetime64_any_dtype(other):
-            return None  # TODO: shouldnt we be able to do self.freq + other.freq?
-        else:
-            raise NotImplementedError
-
-    __add__ = _make_wrapped_arith_op_with_freq("__add__")
-    __sub__ = _make_wrapped_arith_op_with_freq("__sub__")
+    __add__ = make_wrapped_arith_op("__add__")
+    __sub__ = make_wrapped_arith_op("__sub__")
     __radd__ = make_wrapped_arith_op("__radd__")
     __rsub__ = make_wrapped_arith_op("__rsub__")
     __pow__ = make_wrapped_arith_op("__pow__")
@@ -643,25 +582,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
-    _freq = lib.no_default
-
-    @property
-    def freq(self):
-        """
-        In limited circumstances, our freq may differ from that of our _data.
-        """
-        if self._freq is not lib.no_default:
-            return self._freq
-        return self._data.freq
-
-    @property
-    def freqstr(self):
-        """
-        Return the frequency object as a string if its set, otherwise None.
-        """
-        if self.freq is None:
-            return None
-        return self.freq.freqstr
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
