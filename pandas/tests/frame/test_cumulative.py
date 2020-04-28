@@ -9,7 +9,7 @@ tests.series.test_cumulative
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, _is_numpy_dev
+from pandas import DataFrame, Series, _np_version_under1p18
 import pandas._testing as tm
 
 
@@ -75,7 +75,8 @@ class TestDataFrameCumulativeOps:
         df.cumprod(1)
 
     @pytest.mark.xfail(
-        _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992",
+        not _np_version_under1p18,
+        reason="https://github.com/pandas-dev/pandas/issues/31992",
     )
     def test_cummin(self, datetime_frame):
         datetime_frame.iloc[5:10, 0] = np.nan
@@ -101,7 +102,8 @@ class TestDataFrameCumulativeOps:
         assert np.shape(cummin_xs) == np.shape(datetime_frame)
 
     @pytest.mark.xfail(
-        _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992",
+        not _np_version_under1p18,
+        reason="https://github.com/pandas-dev/pandas/issues/31992",
     )
     def test_cummax(self, datetime_frame):
         datetime_frame.iloc[5:10, 0] = np.nan
