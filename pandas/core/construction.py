@@ -516,7 +516,7 @@ def _try_cast(
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray, scalar, list, tuple, iterator (catchall)
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
@@ -533,6 +533,10 @@ def _try_cast(
     if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime
+
+        if lib.is_scalar(arr):
+            arr = [arr]
+
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr

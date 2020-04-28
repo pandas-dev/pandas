@@ -1436,3 +1436,10 @@ class TestSeriesConstructors:
 
         series = Series(dates)
         assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
+
+    @pytest.mark.parametrize("data", [None, pd.NA, 42])
+    def test_constructor_broadcast_scalar_EA_dtype(self, data):
+        # https://github.com/pandas-dev/pandas/issues/26469
+        result = pd.Series(data=data, index=[1, 2, 3], dtype="Int64")
+        expected = pd.Series([data] * 3, index=[1, 2, 3], dtype="Int64")
+        tm.assert_series_equal(result, expected)
