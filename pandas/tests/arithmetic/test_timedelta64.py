@@ -543,14 +543,15 @@ class TestTimedelta64ArithmeticUnsorted:
 
     def test_tda_add_dt64_object_array(self, box_df_fail, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
+        box = box_df_fail
         dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
         dti = dti._with_freq(None)
         tdi = dti - dti
 
-        obj = tm.box_expected(tdi, box_df_fail)
-        other = tm.box_expected(dti, box_df_fail)
+        obj = tm.box_expected(tdi, box)
+        other = tm.box_expected(dti, box)
 
-        warn = PerformanceWarning if box_df_fail is not pd.DataFrame else None
+        warn = PerformanceWarning if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
@@ -2030,9 +2031,13 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
-    def test_td64arr_mul_int_series(self, box_df_fail, names):
+    def test_td64arr_mul_int_series(self, box_with_array, names, request):
         # GH#19042 test for correct name attachment
-        box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
+        box = box_with_array
+        if box_with_array is pd.DataFrame and names[2] is None:
+            reason = "broadcasts along wrong axis, but doesn't raise"
+            request.node.add_marker(pytest.mark.xfail(reason=reason))
+
         exname = names[2] if box is not tm.to_array else names[1]
 
         tdi = TimedeltaIndex(
@@ -2056,7 +2061,10 @@ class TestTimedeltaArraylikeMulDivOps:
 
         # The direct operation tdi * ser still needs to be fixed.
         result = ser.__rmul__(tdi)
-        tm.assert_equal(result, expected)
+        if box is pd.DataFrame:
+            assert result is NotImplemented
+        else:
+            tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
     def test_float_series_rdiv_td64arr(self, box_with_array, names):
