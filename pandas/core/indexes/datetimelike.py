@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import Any, List, Optional, Union, cast
+from typing import Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -44,6 +44,8 @@ from pandas.core.tools.timedeltas import to_timedelta
 from pandas.tseries.frequencies import DateOffset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
+
+_T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
 
 
 def _join_i8_wrapper(joinf, with_indexers: bool = True):
@@ -655,13 +657,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     result = result._with_freq("infer")
             return result
 
-        elif (
-            other.freq is None
-            or self.freq is None
-            or other.freq != self.freq
-            or not other.freq.is_anchored()
-            or (not self.is_monotonic or not other.is_monotonic)
-        ):
+        elif not self._can_fast_intersect(other):
             result = Index.intersection(self, other, sort=sort)
             result = result._with_freq("infer")
             return result
@@ -684,7 +680,28 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             left_chunk = left._values[lslice]
             return self._shallow_copy(left_chunk)
 
-    def _can_fast_union(self, other) -> bool:
+    def _can_fast_intersect(self: _T, other: _T) -> bool:
+        if self.freq is None:
+            return False
+
+        if other.freq != self.freq:
+            return False
+
+        if not self.is_monotonic_increasing:
+            # Because freq is not None, we must then be monotonic decreasing
+            return False
+
+        if not self.freq.is_anchored():
+            # If freq is not anchored, then despite having matching freqs,
+            #  we might not "line up"
+            return False
+
+        return True
+
+    def _can_fast_union(self: _T, other: _T) -> bool:
+        # Assumes that type(self) == type(other), as per the annotation
+        # The ability to fast_union also implies that `freq` should be
+        #  retained on union.
         if not isinstance(other, type(self)):
             return False
 
@@ -693,7 +710,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if freq is None or freq != other.freq:
             return False
 
-        if not self.is_monotonic or not other.is_monotonic:
+        if not self.is_monotonic_increasing:
+            # Because freq is not None, we must then be monotonic decreasing
+            # TODO: do union on the reversed indexes?
             return False
 
         if len(self) == 0 or len(other) == 0:
@@ -709,12 +728,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         left_end = left[-1]
 
         # Only need to "adjoin", not overlap
-        try:
-            return (right_start == left_end + freq) or right_start in left
-        except ValueError:
-            # if we are comparing a freq that does not propagate timezones
-            # this will raise
-            return False
+        return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self, other, sort=None):
         if len(other) == 0:
@@ -734,7 +748,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
-            # TODO: can we infer that it has self.freq?
+            # With sort being False, we can't infer that result.freq == self.freq
             result = self._shallow_copy(dates)._with_freq("infer")
             return result
         else:
@@ -748,13 +762,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
-            # TODO: can we infer that it has self.freq?
-            result = self._shallow_copy(dates)._with_freq("infer")
+            dates = type(self._data)(dates, freq=self.freq)
+            result = type(self)._simple_new(dates, name=self.name)
             return result
         else:
             return left
 
-    def _union(self, other, sort):
+    def _union(self: _T, other: _T, sort) -> _T:
         if not len(other) or self.equals(other) or not len(self):
             return super()._union(other, sort=sort)
 
@@ -766,6 +780,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             result = this._fast_union(other, sort=sort)
             if result.freq is None:
+                # In the case where sort is None, _can_fast_union
+                #  implies that result.freq should match self.freq
                 result = result._with_freq("infer")
             return result
         else:
@@ -814,7 +830,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return this, other
 
         if isinstance(other, type(self)):
-            if self.tz is not None:
+            if self.tz is not None:  # TODO: use an existing validation func
                 if other.tz is None:
                     raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
@@ -840,7 +856,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             "integer-na",
             "mixed-integer-float",
             "mixed",
-        ):
+        ):  # TOOD: can we use a positive check instead of a negative check?
             return True
         return False
 
