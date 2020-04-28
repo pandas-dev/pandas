@@ -383,6 +383,10 @@ def _bins_to_cuts(
 ):
     if not ordered and not labels:
         raise ValueError("'labels' must be provided if 'ordered = False'")
+    if ordered and len(set(labels)) != len(labels):
+        raise ValueError(
+            "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+        )
 
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
@@ -431,13 +435,11 @@ def _bins_to_cuts(
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-
         if not is_categorical_dtype(labels):
-            if len(set(labels)) == len(labels):
-                labels = Categorical(labels, categories=labels, ordered=ordered)
-            else:
-                labels = Categorical(labels, ordered=ordered)
-
+            labels = Categorical(
+                labels, categories=labels if ordered else None, ordered=ordered
+            )
+        # TODO: handle mismach between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
 
