@@ -762,6 +762,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
+            # The can_fast_union check ensures that the result.freq
+            #  should match self.freq
             dates = type(self._data)(dates, freq=self.freq)
             result = type(self)._simple_new(dates, name=self.name)
             return result
@@ -830,7 +832,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return this, other
 
         if isinstance(other, type(self)):
-            if self.tz is not None:  # TODO: use an existing validation func
+            if self.tz is not None:
                 if other.tz is None:
                     raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
@@ -856,7 +858,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             "integer-na",
             "mixed-integer-float",
             "mixed",
-        ):  # TOOD: can we use a positive check instead of a negative check?
+        ):
             return True
         return False
 
