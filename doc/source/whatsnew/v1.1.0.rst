@@ -36,6 +36,53 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_110.key_sorting:
+
+Sorting with keys
+^^^^^^^^^^^^^^^^^
+
+We've added a ``key`` argument to the DataFrame and Series sorting methods, including
+:meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
+and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
+column-by-column to each column used for sorting, before sorting is performed (:issue:`27237`).
+See :ref:`sort_values with keys <basics.sort_value_key>` and :ref:`sort_index with keys
+<basics.sort_index_key>` for more information.
+
+.. ipython:: python
+
+   s = pd.Series(['C', 'a', 'B'])
+   s
+
+.. ipython:: python
+
+   s.sort_values()
+
+
+Note how this is sorted with capital letters first. If we apply the :meth:`Series.str.lower`
+method, we get
+
+.. ipython:: python
+
+   s.sort_values(key=lambda x: x.str.lower())
+
+
+When applied to a `DataFrame`, they key is applied per-column to all columns or a subset if
+`by` is specified, e.g.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': ['C', 'C', 'a', 'a', 'B', 'B'],
+                      'b': [1, 2, 3, 4, 5, 6]})
+   df
+
+.. ipython:: python
+
+   df.sort_values(by=['a'], key=lambda col: col.str.lower())
+
+
+For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
+:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
+
 .. _whatsnew_110.timestamp_fold_support:
 
 Fold argument support in Timestamp constructor
@@ -177,8 +224,7 @@ Other API changes
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``cov``, ``corr`` will now raise a ``NotImplementedError`` (:issue:`32865`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 -
 
@@ -480,6 +526,7 @@ Categorical
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 - Bug where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
 - Bug where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)
+- Bug where :meth:`Series.isna` and :meth:`DataFrame.isna` would raise for categorical dtype when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -522,7 +569,7 @@ Numeric
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
 - Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
--
+- Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 
 Conversion
 ^^^^^^^^^^
@@ -683,7 +730,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
-- Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
+- Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
 -
 
 

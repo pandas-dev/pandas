@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -17,10 +18,10 @@ def test_correct_function_signature():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(ValueError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match=f"The first 2"):
         data.groupby("key").agg(incorrect_function, engine="numba")
 
-    with pytest.raises(ValueError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match=f"The first 2"):
         data.groupby("key")["data"].agg(incorrect_function, engine="numba")
 
 
@@ -33,10 +34,10 @@ def test_check_nopython_kwargs():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(ValueError, match="numba does not support"):
+    with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key").agg(incorrect_function, engine="numba", a=1)
 
-    with pytest.raises(ValueError, match="numba does not support"):
+    with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key")["data"].agg(incorrect_function, engine="numba", a=1)
 
 

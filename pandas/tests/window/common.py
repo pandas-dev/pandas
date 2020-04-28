@@ -367,6 +367,7 @@ class ConsistencyBase(Base):
         result = result.loc[(slice(None), 1), 5]
         result.index = result.index.droplevel(1)
         expected = get_result(self.frame[1], self.frame[5])
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected, check_names=False)
 
 
