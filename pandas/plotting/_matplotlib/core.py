@@ -241,6 +241,7 @@ class MPLPlot:
         bool
         """
         from matplotlib.colors import BASE_COLORS
+
         return not set(BASE_COLORS).isdisjoint(style)
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
@@ -732,7 +733,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = (style is None or not self._color_in_style(style))
+        nocolor_style = style is None or not self._color_in_style(style)
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]
