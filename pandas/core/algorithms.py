@@ -184,8 +184,16 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
+    if isinstance(values, ABCExtensionArray) and values.dtype == dtype:
+        # Catch DatetimeArray/TimedeltaArray
+        return values
+
     if is_extension_array_dtype(dtype):
-        values = dtype.construct_array_type()._from_sequence(values)
+        cls = dtype.construct_array_type()
+        if isinstance(values, cls) and values.dtype == dtype:
+            return values
+
+        values = cls._from_sequence(values)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 

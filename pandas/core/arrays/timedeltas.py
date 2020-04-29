@@ -57,7 +57,7 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+class TimedeltaArray(dtl.TimelikeOps, dtl.DatetimeLikeArrayMixin):
     """
     Pandas ExtensionArray for timedelta data.
 
