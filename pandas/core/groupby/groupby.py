@@ -2119,7 +2119,12 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
-            return Series(cumcounts, index)
+
+            # GH28330 preserve subclassed Series/DataFrames through calls
+            if isinstance(self._selected_obj, Series):
+                return self.obj._constructor(cumcounts, index)
+            elif isinstance(self._selected_obj, DataFrame):
+                return self.obj._constructor_sliced(cumcounts, index)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
