@@ -229,10 +229,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="not working with nan")
-    def test_value_counts_with_normalize(self):
-        super().test_value_counts_with_normalize(data)
-
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]

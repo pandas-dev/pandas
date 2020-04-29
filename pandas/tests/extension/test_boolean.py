@@ -230,10 +230,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        return super().test_value_counts_with_normalize(data)
-
 
 class TestCasting(base.BaseCastingTests):
     pass

@@ -224,10 +224,6 @@ class TestMethods(base.BaseMethodsTests):
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="not working with nan")
-    def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
-
 
 class TestCasting(base.BaseCastingTests):
     pass

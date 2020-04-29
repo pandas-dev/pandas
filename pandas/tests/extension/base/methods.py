@@ -30,12 +30,13 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_value_counts_with_normalize(self, data):
         data = data[:10].unique()
+        values = np.array(data[~data.isna()])
 
         result = (
             pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
         )
 
-        expected = pd.Series([1 / len(data)] * len(data), index=result.index)
+        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
