@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
@@ -50,6 +49,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -90,6 +90,10 @@ def _ensure_data(values, dtype=None):
     values : ndarray
     pandas_dtype : str or dtype
     """
+    if not isinstance(values, ABCMultiIndex):
+        # extract_array would raise
+        values = extract_array(values, extract_numpy=True)
+
     # we check some simple dtypes first
     if is_object_dtype(dtype):
         return ensure_object(np.asarray(values)), "object"
@@ -122,12 +126,7 @@ def _ensure_data(values, dtype=None):
         return ensure_object(values), "object"
 
     # datetimelike
-    if (
-        needs_i8_conversion(values)
-        or is_period_dtype(dtype)
-        or is_datetime64_any_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-    ):
+    if needs_i8_conversion(values) or needs_i8_conversion(dtype):
         if is_period_dtype(values) or is_period_dtype(dtype):
             from pandas import PeriodIndex
 
@@ -157,7 +156,6 @@ def _ensure_data(values, dtype=None):
     elif is_categorical_dtype(values) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
-        values = getattr(values, "values", values)
         values = values.codes
         dtype = "category"
 
@@ -616,7 +614,7 @@ def factorize(
     values = _ensure_arraylike(values)
     original = values
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
