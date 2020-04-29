@@ -10,15 +10,15 @@ from pandas.tests.window.common import (
     ConsistencyBase,
     check_binary_ew,
     check_binary_ew_min_periods,
-    ew_func,
     create_consistency_data,
-    test_moments_consistency_var_data,
-    test_moments_consistency_var_debiasing_factors,
+    ew_func,
+    test_moments_consistency_cov_data,
     test_moments_consistency_is_constant,
     test_moments_consistency_mock_mean,
-    test_moments_consistency_cov_data,
     test_moments_consistency_series_data,
     test_moments_consistency_std_data,
+    test_moments_consistency_var_data,
+    test_moments_consistency_var_debiasing_factors,
 )
 
 

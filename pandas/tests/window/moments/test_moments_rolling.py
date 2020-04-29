@@ -16,13 +16,13 @@ from pandas.tests.window.common import (
     Base,
     ConsistencyBase,
     create_consistency_data,
-    test_moments_consistency_var_data,
-    test_moments_consistency_var_debiasing_factors,
+    test_moments_consistency_cov_data,
     test_moments_consistency_is_constant,
     test_moments_consistency_mock_mean,
-    test_moments_consistency_cov_data,
     test_moments_consistency_series_data,
     test_moments_consistency_std_data,
+    test_moments_consistency_var_data,
+    test_moments_consistency_var_debiasing_factors,
 )
 
 import pandas.tseries.offsets as offsets
