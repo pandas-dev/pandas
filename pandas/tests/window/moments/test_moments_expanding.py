@@ -8,14 +8,14 @@ from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
 from pandas.tests.window.common import (
     ConsistencyBase,
-    create_consistency_data,
-    test_moments_consistency_cov_data,
-    test_moments_consistency_is_constant,
-    test_moments_consistency_mock_mean,
-    test_moments_consistency_series_data,
-    test_moments_consistency_std_data,
-    test_moments_consistency_var_data,
-    test_moments_consistency_var_debiasing_factors,
+    consistency_data,
+    moments_consistency_cov_data,
+    moments_consistency_is_constant,
+    moments_consistency_mock_mean,
+    moments_consistency_series_data,
+    moments_consistency_std_data,
+    moments_consistency_var_data,
+    moments_consistency_var_debiasing_factors,
 )
 
 
@@ -343,7 +343,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         tm.assert_frame_equal(df2_result, df2_expected)
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+    @pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
     def test_expanding_consistency(self, x, is_constant, no_nans, min_periods):
 
@@ -357,14 +357,14 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             )
 
             # test consistency between different expanding_* moments
-            test_moments_consistency_mock_mean(
+            moments_consistency_mock_mean(
                 x=x,
                 mean=lambda x: x.expanding(min_periods=min_periods).mean(),
                 mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
                 / x.expanding().count(),
             )
 
-            test_moments_consistency_is_constant(
+            moments_consistency_is_constant(
                 x=x,
                 is_constant=is_constant,
                 min_periods=min_periods,
@@ -373,7 +373,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
             )
 
-            test_moments_consistency_var_debiasing_factors(
+            moments_consistency_var_debiasing_factors(
                 x=x,
                 var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
                 var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
@@ -383,7 +383,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 ),
             )
 
-    @pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+    @pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
     def test_expanding_apply_consistency(self, x, is_constant, no_nans, min_periods):
         with warnings.catch_warnings():
@@ -429,10 +429,10 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                     tm.assert_equal(expanding_f_result, expanding_apply_f_result)
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_moments_consistency_var(x, is_constant, no_nans, min_periods):
-    test_moments_consistency_var_data(
+    moments_consistency_var_data(
         x=x,
         is_constant=is_constant,
         min_periods=min_periods,
@@ -443,10 +443,10 @@ def test_moments_consistency_var(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_expanding_consistency_std(x, is_constant, no_nans, min_periods):
-    test_moments_consistency_std_data(
+    moments_consistency_std_data(
         x=x,
         var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
         std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
@@ -455,10 +455,10 @@ def test_expanding_consistency_std(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_expanding_consistency_cov(x, is_constant, no_nans, min_periods):
-    test_moments_consistency_cov_data(
+    moments_consistency_cov_data(
         x=x,
         var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
         cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
@@ -467,10 +467,10 @@ def test_expanding_consistency_cov(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", list(create_consistency_data()))
+@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_expanding_consistency_series(x, is_constant, no_nans, min_periods):
-    test_moments_consistency_series_data(
+    moments_consistency_series_data(
         x=x,
         mean=lambda x: x.expanding(min_periods=min_periods).mean(),
         corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),

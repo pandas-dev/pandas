@@ -25,7 +25,7 @@ class Base:
 
 
 # create the data only once as we are not setting it
-def create_consistency_data():
+def _create_consistency_data():
     def create_series():
         return [
             Series(dtype=object),
@@ -167,8 +167,10 @@ def create_consistency_data():
     # data is a tuple(object, is_constant, no_nans)
     data = create_series() + create_dataframes()
 
-    for x in data:
-        yield x, is_constant(x), no_nans(x)
+    return [(x, is_constant(x), no_nans(x)) for x in data]
+
+
+consistency_data = _create_consistency_data()
 
 
 class ConsistencyBase(Base):
@@ -252,7 +254,7 @@ def check_binary_ew_min_periods(name, min_periods, A, B):
     tm.assert_series_equal(result, Series([np.NaN]))
 
 
-def test_moments_consistency_mock_mean(x, mean, mock_mean):
+def moments_consistency_mock_mean(x, mean, mock_mean):
     mean_x = mean(x)
     # check that correlation of a series with itself is either 1 or NaN
 
@@ -262,9 +264,7 @@ def test_moments_consistency_mock_mean(x, mean, mock_mean):
         tm.assert_equal(mean_x, expected.astype("float64"))
 
 
-def test_moments_consistency_is_constant(
-    x, is_constant, min_periods, count, mean, corr
-):
+def moments_consistency_is_constant(x, is_constant, min_periods, count, mean, corr):
     count_x = count(x)
     mean_x = mean(x)
     # check that correlation of a series with itself is either 1 or NaN
@@ -283,8 +283,8 @@ def test_moments_consistency_is_constant(
         tm.assert_equal(corr_x_x, expected)
 
 
-def test_moments_consistency_var_debiasing_factors(
-    x, var_biased=None, var_unbiased=None, var_debiasing_factors=None
+def moments_consistency_var_debiasing_factors(
+    x, var_biased, var_unbiased, var_debiasing_factors
 ):
     if var_unbiased and var_biased and var_debiasing_factors:
         # check variance debiasing factors
@@ -294,7 +294,7 @@ def test_moments_consistency_var_debiasing_factors(
         tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
 
 
-def test_moments_consistency_var_data(
+def moments_consistency_var_data(
     x, is_constant, min_periods, count, mean, var_unbiased, var_biased
 ):
     count_x = count(x)
@@ -318,9 +318,7 @@ def test_moments_consistency_var_data(
             tm.assert_equal(var_x, expected)
 
 
-def test_moments_consistency_std_data(
-    x, std_unbiased, var_unbiased, std_biased, var_biased
-):
+def moments_consistency_std_data(x, std_unbiased, var_unbiased, std_biased, var_biased):
     for (std, var) in [(std_biased, var_biased), (std_unbiased, var_unbiased)]:
         var_x = var(x)
         std_x = std(x)
@@ -331,9 +329,7 @@ def test_moments_consistency_std_data(
         tm.assert_equal(var_x, std_x * std_x)
 
 
-def test_moments_consistency_cov_data(
-    x, cov_unbiased, var_unbiased, cov_biased, var_biased
-):
+def moments_consistency_cov_data(x, cov_unbiased, var_unbiased, cov_biased, var_biased):
     for (cov, var) in [(cov_biased, var_biased), (cov_unbiased, var_unbiased)]:
         var_x = var(x)
         assert not (var_x < 0).any().any()
@@ -345,7 +341,7 @@ def test_moments_consistency_cov_data(
             tm.assert_equal(var_x, cov_x_x)
 
 
-def test_moments_consistency_series_data(
+def moments_consistency_series_data(
     x,
     corr,
     mean,
