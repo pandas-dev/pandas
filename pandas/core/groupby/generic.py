@@ -63,10 +63,11 @@ from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
+from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
+    _agg_template,
     _apply_docs,
     _transform_template,
     get_groupby,
@@ -177,16 +178,6 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             return self._selection
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
-    """
-    )
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -237,13 +228,9 @@ class SeriesGroupBy(GroupBy[Series]):
         return super().apply(func, *args, **kwargs)
 
     @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="Series",
-        axis="",
+        examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_shared_docs["aggregate"])
+    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -476,7 +463,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
-    @Substitution(klass="Series", selected="A.")
+    @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
@@ -854,16 +841,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
-    """
-    )
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -941,13 +918,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     )
 
     @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="DataFrame",
-        axis="",
+        examples=_agg_examples_doc, klass="DataFrame",
     )
-    @Appender(_shared_docs["aggregate"])
+    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -1466,7 +1439,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
         return self._set_result_index_ordered(concatenated)
 
-    @Substitution(klass="DataFrame", selected="")
+    @Substitution(klass="DataFrame")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
 
