@@ -541,7 +541,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             result = concat(results).sort_index()
         else:
-            result = self.obj.constructor(dtype=np.float64)
+            result = self.obj._constructor(dtype=np.float64)
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
