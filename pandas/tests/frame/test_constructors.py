@@ -1063,6 +1063,32 @@ class TestDataFrameConstructors:
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_like_data_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cdef")]
+        result = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+        mi = MultiIndex.from_arrays(arrays)
+        expected = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=mi)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_wrong_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abc"), list("cde")]
+
+        msg = "3 columns passed, passed data had 4"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+    def test_constructor_unequal_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cde")]
+
+        msg = "Length of columns passed for MultiIndex columns is different"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like

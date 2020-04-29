@@ -1,6 +1,6 @@
 from datetime import timedelta
 import operator
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Type, Union
 
 import numpy as np
 
@@ -20,6 +20,7 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr,
 )
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -39,7 +40,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
+from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -172,8 +173,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls,
-        scalars: Sequence[Optional[Period]],
+        cls: Type["PeriodArray"],
+        scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         dtype: Optional[PeriodDtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
@@ -186,7 +187,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            assert isinstance(scalars, PeriodArray)  # for mypy
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
@@ -487,7 +487,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def asfreq(self, freq=None, how="E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
         """
         Convert the Period Array/Index to the specified frequency `freq`.
 
@@ -759,7 +759,7 @@ def raise_on_incompatible(left, right):
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
     else:
-        other_freq = _delta_to_tick(Timedelta(right)).freqstr
+        other_freq = delta_to_tick(Timedelta(right)).freqstr
 
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=left.freqstr, other_freq=other_freq
@@ -772,7 +772,7 @@ def raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Optional[Period]],
+    data: Union[Sequence[Optional[Period]], AnyArrayLike],
     freq: Optional[Union[str, Tick]] = None,
     copy: bool = False,
 ) -> PeriodArray:
@@ -831,11 +831,11 @@ def period_array(
     """
     if is_datetime64_dtype(data):
         return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
+    if is_period_dtype(data):
         return PeriodArray(data, freq)
 
     # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple)):
+    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
     data = np.asarray(data)

@@ -31,6 +31,10 @@ class TestGetItem:
         assert result.equals(idx)
         assert result is not idx
 
+    def test_getitem_slice_keeps_name(self):
+        idx = period_range("20010101", periods=10, freq="D", name="bob")
+        assert idx.name == idx[1:].name
+
     def test_getitem(self):
         idx1 = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
 
@@ -522,7 +526,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         pi = period_range("20130101", periods=5, freq="D")
 
-        i2 = pi.copy()
         i2 = PeriodIndex([NaT, NaT] + pi[2:].tolist(), freq="D")
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -533,6 +536,19 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             pi.where(notna(i2), i2.to_timestamp("S"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            pi.where(notna(i2), Timedelta(days=4))
+
+    def test_where_mismatched_nat(self):
+        pi = period_range("20130101", periods=5, freq="D")
+        cond = np.array([True, False, True, True, False])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            pi.where(cond, np.timedelta64("NaT", "ns"))
 
 
 class TestTake:
