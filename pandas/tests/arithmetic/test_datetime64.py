@@ -527,9 +527,9 @@ class TestDatetimeIndexComparisons:
         "op",
         [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
     )
-    def test_comparison_tzawareness_compat(self, op, box_df_fail):
+    def test_comparison_tzawareness_compat(self, op, box_with_array):
         # GH#18162
-        box = box_df_fail
+        box = box_with_array
 
         dr = pd.date_range("2016-01-01", periods=6)
         dz = dr.tz_localize("US/Pacific")
@@ -541,34 +541,35 @@ class TestDatetimeIndexComparisons:
         with pytest.raises(TypeError, match=msg):
             op(dr, dz)
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
+        if box is pd.DataFrame:
+            tolist = lambda x: x.astype(object).values.tolist()[0]
+        else:
+            tolist = list
+
         with pytest.raises(TypeError, match=msg):
-            op(dr, list(dz))
+            op(dr, tolist(dz))
         with pytest.raises(TypeError, match=msg):
-            op(dr, np.array(list(dz), dtype=object))
+            op(dr, np.array(tolist(dz), dtype=object))
         with pytest.raises(TypeError, match=msg):
             op(dz, dr)
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
         with pytest.raises(TypeError, match=msg):
-            op(dz, list(dr))
+            op(dz, tolist(dr))
         with pytest.raises(TypeError, match=msg):
-            op(dz, np.array(list(dr), dtype=object))
+            op(dz, np.array(tolist(dr), dtype=object))
 
         # The aware==aware and naive==naive comparisons should *not* raise
         assert np.all(dr == dr)
-        assert np.all(dr == list(dr))
-        assert np.all(list(dr) == dr)
-        assert np.all(np.array(list(dr), dtype=object) == dr)
-        assert np.all(dr == np.array(list(dr), dtype=object))
+        assert np.all(dr == tolist(dr))
+        assert np.all(tolist(dr) == dr)
+        assert np.all(np.array(tolist(dr), dtype=object) == dr)
+        assert np.all(dr == np.array(tolist(dr), dtype=object))
 
         assert np.all(dz == dz)
-        assert np.all(dz == list(dz))
-        assert np.all(list(dz) == dz)
-        assert np.all(np.array(list(dz), dtype=object) == dz)
-        assert np.all(dz == np.array(list(dz), dtype=object))
+        assert np.all(dz == tolist(dz))
+        assert np.all(tolist(dz) == dz)
+        assert np.all(np.array(tolist(dz), dtype=object) == dz)
+        assert np.all(dz == np.array(tolist(dz), dtype=object))
 
     @pytest.mark.parametrize(
         "op",

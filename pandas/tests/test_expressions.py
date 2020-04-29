@@ -363,8 +363,6 @@ class TestExpressions:
     @pytest.mark.parametrize("axis", (0, 1))
     def test_frame_series_axis(self, axis, arith):
         # GH#26736 Dataframe.floordiv(Series, axis=1) fails
-        if axis == 1 and arith == "floordiv":
-            pytest.xfail("'floordiv' does not succeed with axis=1 #27636")
 
         df = self.frame
         if axis == 1:
