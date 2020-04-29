@@ -344,7 +344,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        return DataFrame(results, columns=columns)
+        return self.obj._constructor_expanddim(results, columns=columns)
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
@@ -373,10 +373,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result: Union[Series, DataFrame]
         if len(output) > 1:
-            result = DataFrame(indexed_output, index=index)
+            result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
         else:
-            result = Series(indexed_output[0], index=index, name=columns[0])
+            result = self.obj._constructor(indexed_output[0], index=index, name=columns[0])
 
         return result
 
@@ -435,7 +435,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self._selection_name, index=keys, dtype=np.float64)
+            return self.obj._constructor([], name=self._selection_name, index=keys, dtype=np.float64)
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -447,7 +447,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result = self._reindex_output(DataFrame(values, index=index))
+            result = self._reindex_output(self.obj._constructor_expanddim(values, index=index))
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
             result = result.stack(dropna=self.observed)
@@ -461,7 +461,7 @@ class SeriesGroupBy(GroupBy[Series]):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
-            result = Series(data=values, index=_get_index(), name=self._selection_name)
+            result = self.obj._constructor(data=values, index=_get_index(), name=self._selection_name)
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
@@ -541,7 +541,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             result = concat(results).sort_index()
         else:
-            result = Series(dtype=np.float64)
+            result = self.obj.constructor(dtype=np.float64)
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
@@ -564,7 +564,7 @@ class SeriesGroupBy(GroupBy[Series]):
         out = algorithms.take_1d(result._values, ids)
         if cast:
             out = maybe_cast_result(out, self.obj, how=func_nm)
-        return Series(out, index=self.obj.index, name=self.obj.name)
+        return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
@@ -665,7 +665,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
             res[ids[idx]] = out
 
-        result = Series(res, index=ri, name=self._selection_name)
+        result = self.obj._constructor(res, index=ri, name=self._selection_name)
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
@@ -767,7 +767,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             if is_integer_dtype(out):
                 out = ensure_int64(out)
-            return Series(out, index=mi, name=self._selection_name)
+            return self.obj._constructor(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
@@ -799,7 +799,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_integer_dtype(out):
             out = ensure_int64(out)
-        return Series(out, index=mi, name=self._selection_name)
+        return self.obj._constructor(out, index=mi, name=self._selection_name)
 
     def count(self) -> Series:
         """
@@ -818,7 +818,7 @@ class SeriesGroupBy(GroupBy[Series]):
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
-        result = Series(
+        result = self.obj._constructor(
             out,
             index=self.grouper.result_index,
             name=self._selection_name,
