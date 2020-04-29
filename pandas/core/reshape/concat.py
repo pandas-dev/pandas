@@ -469,7 +469,7 @@ class _Concatenator:
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = DataFrame
+                cons = self.objs[0]._constructor_expanddim
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
