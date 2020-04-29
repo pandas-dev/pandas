@@ -170,20 +170,6 @@ class TestDatetimeIndexOps:
 
         tm.assert_index_equal(idx.unique(), exp_idx)
 
-    def test_nonunique_contains(self):
-        # GH 9512
-        for idx in map(
-            DatetimeIndex,
-            (
-                [0, 1, 0],
-                [0, 0, -1],
-                [0, -1, -1],
-                ["2015", "2015", "2016"],
-                ["2015", "2015", "2014"],
-            ),
-        ):
-            assert idx[0] in idx
-
     @pytest.mark.parametrize(
         "idx",
         [
@@ -432,10 +418,6 @@ class TestBusinessDatetimeIndex:
         assert comp[11]
         assert not comp[9]
 
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
-
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
@@ -477,10 +459,6 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
