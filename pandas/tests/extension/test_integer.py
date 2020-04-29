@@ -186,9 +186,7 @@ class TestInterface(base.BaseInterfaceTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_construct_empty_dataframe(self, dtype):
-        super().test_construct_empty_dataframe(dtype)
+    pass
 
 
 class TestReshaping(base.BaseReshapingTests):

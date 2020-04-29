@@ -184,6 +184,8 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
+    values = [] if values is np.nan else values
+
     # if values is integer numpy array, preserve it's dtype
     if dtype is None and hasattr(values, "dtype"):
         if is_integer_dtype(values.dtype):
