@@ -1851,7 +1851,7 @@ class ParserBase:
             )
 
             if not is_object_dtype(values) and not known_cats:
-                # XXX this is for consistency with
+                # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
                 values = astype_nansafe(values, str)

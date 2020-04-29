@@ -228,7 +228,7 @@ class TestConcatAppendCommon:
                     # same dtype is tested in test_concatlike_same_dtypes
                     continue
                 elif typ1 == "category" or typ2 == "category":
-                    # ToDo: suspicious
+                    # TODO: suspicious
                     continue
 
                 # specify expected dtype

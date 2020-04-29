@@ -218,6 +218,7 @@ class JoinUnit:
         elif is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
+            # TODO(EA2D): no need for special case with 2D EAs
             values_flat = values
         else:
             values_flat = values.ravel(order="K")

@@ -906,9 +906,8 @@ class TestPeriodIndexArithmetic:
         pi = pd.PeriodIndex(["2016-01"], freq="2M")
         expected = pd.PeriodIndex(["2016-04"], freq="2M")
 
-        # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        pi = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = pi + to_offset("3M")
         tm.assert_equal(result, expected)

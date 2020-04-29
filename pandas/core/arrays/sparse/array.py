@@ -335,7 +335,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):

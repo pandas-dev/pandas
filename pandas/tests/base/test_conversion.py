@@ -48,8 +48,6 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
         # gh-13258
@@ -104,8 +102,6 @@ class TestToIterable:
     @pytest.mark.parametrize(
         "dtype, rdtype", dtypes + [("object", int), ("category", int)]
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types

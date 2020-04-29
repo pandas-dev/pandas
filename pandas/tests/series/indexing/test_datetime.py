@@ -556,8 +556,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-        # TODO: unused?
-        s = str(t)  # noqa
 
         expected = ts[t]
         result = ts2[t]
