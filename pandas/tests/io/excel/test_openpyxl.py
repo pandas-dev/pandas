@@ -109,7 +109,6 @@ def test_write_append_mode(ext, mode, expected):
 
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
-    # TODO: Fix this once newer version of openpyxl fixes the bug
     df1 = DataFrame({"A": np.linspace(1, 10, 10)})
     df2 = DataFrame({"B": np.linspace(1, 20, 10)})
     df = pd.concat([df1, df2], axis=1)
