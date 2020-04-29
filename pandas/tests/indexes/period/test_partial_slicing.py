@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Period, Series, period_range
+from pandas import DataFrame, IndexSlice, Period, Series, date_range, period_range
 import pandas._testing as tm
 
 
 class TestPeriodIndex:
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20), period_range("2014-01", periods=20, freq="M"))
-        SLC = pd.IndexSlice
+        SLC = IndexSlice
 
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
@@ -31,15 +30,6 @@ class TestPeriodIndex:
 
         assert_slices_equivalent(SLC["2014-10":"2015-02":-1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self):
-        ts = Series(np.arange(20), period_range("2014-01", periods=20, freq="M"))
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]
-
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
         s = Series(np.random.rand(len(pi)), index=pi)
@@ -52,7 +42,7 @@ class TestPeriodIndex:
 
     def test_range_slice_day(self):
         # GH#6716
-        didx = pd.date_range(start="2013/01/01", freq="D", periods=400)
+        didx = date_range(start="2013/01/01", freq="D", periods=400)
         pidx = period_range(start="2013/01/01", freq="D", periods=400)
 
         msg = "slice indices must be integers or None or have an __index__ method"
@@ -83,7 +73,7 @@ class TestPeriodIndex:
 
     def test_range_slice_seconds(self):
         # GH#6716
-        didx = pd.date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         msg = "slice indices must be integers or None or have an __index__ method"
 
@@ -113,7 +103,7 @@ class TestPeriodIndex:
 
     def test_range_slice_outofbounds(self):
         # GH#5407
-        didx = pd.date_range(start="2013/10/01", freq="D", periods=10)
+        didx = date_range(start="2013/10/01", freq="D", periods=10)
         pidx = period_range(start="2013/10/01", freq="D", periods=10)
 
         for idx in [didx, pidx]:
@@ -131,10 +121,10 @@ class TestPeriodIndex:
 
     def test_partial_slice_doesnt_require_monotonicity(self):
         # See also: DatetimeIndex test ofm the same name
-        dti = pd.date_range("2014-01-01", periods=30, freq="30D")
+        dti = date_range("2014-01-01", periods=30, freq="30D")
         pi = dti.to_period("D")
 
-        ser_montonic = pd.Series(np.arange(30), index=pi)
+        ser_montonic = Series(np.arange(30), index=pi)
 
         shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
         ser = ser_montonic[shuffler]

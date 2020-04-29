@@ -8,7 +8,17 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
+from pandas import (
+    Categorical,
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
@@ -877,3 +887,22 @@ def test_getitem_unrecognized_scalar():
 
     result = ser[key]
     assert result == 2
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2014-01-01", periods=20, freq="MS"),
+        period_range("2014-01", periods=20, freq="M"),
+        timedelta_range("0", periods=20, freq="H"),
+    ],
+)
+def test_slice_with_zero_step_raises(index):
+    ts = Series(np.arange(20), index)
+
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts[::0]
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts.loc[::0]
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts.iloc[::0]
