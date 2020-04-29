@@ -413,10 +413,18 @@ def test_to_numpy_kwargs_raises():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        {"a": [1, 2, 3], "b": [1, 2, None]},
+        {"a": np.array([1, 2, 3]), "b": np.array([1, 2, np.nan])},
+        {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])},
+    ],
+)
+@pytest.mark.parametrize(
     "dtype, na_value", [(float, np.nan), (object, None), (object, pd.NA)]
 )
-def test_to_numpy_dataframe_na_value(dtype, na_value):
-    data = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, None]})
-    result = data.to_numpy(dtype=dtype, na_value=na_value)
+def test_to_numpy_dataframe_na_value(data, dtype, na_value):
+    df = pd.DataFrame(data)
+    result = df.to_numpy(dtype=dtype, na_value=na_value)
     expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
