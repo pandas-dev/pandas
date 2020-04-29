@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import _is_numpy_dev
 import pandas._testing as tm
 
 
@@ -38,11 +37,6 @@ class TestSeriesCumulativeOps:
     def test_cumprod(self, datetime_series):
         _check_accum_op("cumprod", datetime_series)
 
-    @pytest.mark.xfail(
-        _is_numpy_dev,
-        reason="https://github.com/pandas-dev/pandas/issues/31992",
-        strict=False,
-    )
     def test_cummin(self, datetime_series):
         tm.assert_numpy_array_equal(
             datetime_series.cummin().values,
@@ -56,11 +50,6 @@ class TestSeriesCumulativeOps:
         result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        _is_numpy_dev,
-        reason="https://github.com/pandas-dev/pandas/issues/31992",
-        strict=False,
-    )
     def test_cummax(self, datetime_series):
         tm.assert_numpy_array_equal(
             datetime_series.cummax().values,

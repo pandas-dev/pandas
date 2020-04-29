@@ -445,7 +445,7 @@ def test_setitem_with_tz(tz):
 
 
 def test_setitem_with_tz_dst():
-    # GH XXX
+    # GH XXX TODO: fill in GH ref
     tz = "US/Eastern"
     orig = pd.Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"

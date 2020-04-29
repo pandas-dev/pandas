@@ -48,8 +48,6 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
         # gh-13258
@@ -104,8 +102,6 @@ class TestToIterable:
     @pytest.mark.parametrize(
         "dtype, rdtype", dtypes + [("object", int), ("category", int)]
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
@@ -391,10 +387,11 @@ def test_to_numpy_dtype(as_series):
         ),
     ],
 )
-@pytest.mark.parametrize("container", [pd.Series, pd.Index])  # type: ignore
-def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expected):
-    s = container(values)
-    result = s.to_numpy(dtype=dtype, na_value=na_value)
+def test_to_numpy_na_value_numpy_dtype(
+    index_or_series, values, dtype, na_value, expected
+):
+    obj = index_or_series(values)
+    result = obj.to_numpy(dtype=dtype, na_value=na_value)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
