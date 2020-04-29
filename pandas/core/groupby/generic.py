@@ -216,7 +216,7 @@ class SeriesGroupBy(GroupBy[Series]):
        minimum  maximum
     1        1        2
     2        3        4
-    """
+"""
     )
 
     @Appender(
@@ -905,7 +905,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     1      1  0.590715
     2      3  0.704907
 
-
     - The keywords are the *output* column names
     - The values are tuples whose first element is the column to select
       and the second element is the aggregation to apply to that column.
@@ -913,8 +912,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more.
-    """
+    See :ref:`groupby.aggregate.named` for more."""
     )
 
     @Substitution(
