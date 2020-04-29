@@ -476,8 +476,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(values.dtype):
             # Cast to naive; we'll cast back at the end of the function
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
+            # TODO: possible need to reshape?
+            # TODO(EA2D):kludge can be avoided when 2D EA is allowed.
             values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
@@ -717,7 +717,7 @@ class BaseGrouper:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing import res.index info?
+                        # FIXME: are we potentially losing important res.index info?
                         res = res.item()
                     else:
                         raise ValueError("Function does not reduce")
