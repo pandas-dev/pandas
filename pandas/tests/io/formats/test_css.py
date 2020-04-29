@@ -60,8 +60,6 @@ def test_css_parse_invalid(invalid_css, remainder):
     with tm.assert_produces_warning(CSSWarning):
         assert_same_resolution(invalid_css, remainder)
 
-    # TODO: we should be checking that in other cases no warnings are raised
-
 
 @pytest.mark.parametrize(
     "shorthand,expansions",
