@@ -2265,6 +2265,20 @@ you can use the ``tz_convert`` method.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
+.. warning::
+
+    If you are using dates beyond 18 Jan 2038, note that pandas does not apply daylight saving time adjustments to timezone aware dates. This is partly because the underlying libraries do not currently address the Year 2038 Problem, and partly because there is some discussion on how reliable any DST settings that far into the future will be.
+
+    For example, for two dates that are in British Summer Time and so would normally be GMT+1, both the following evaluate as true:
+
+    .. ipython:: python
+       d_2037 = '2037-03-31T010101'
+	   d_2038 = '2038-03-31T010101'
+	   DST = 'Europe/London'
+       assert pd.Timestamp(d_2037, tz=) != pd.Timestamp(d_2037, tz='GMT')
+       assert pd.Timestamp(d_2037, tz=) != pd.Timestamp(d_2037, tz='GMT')
+       assert pd.Timestamp(d_2038, tz='Europe/London') == pd.Timestamp(d_2038, tz='GMT')
+
 Under the hood, all timestamps are stored in UTC. Values from a time zone aware
 :class:`DatetimeIndex` or :class:`Timestamp` will have their fields (day, hour, minute, etc.)
 localized to the time zone. However, timestamps with the same UTC value are
