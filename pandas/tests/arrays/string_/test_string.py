@@ -312,7 +312,7 @@ def test_value_counts_na():
         (pd.array(["a", "b", None]), np.array([False, False, True])),
     ],
 )
-def test_use_na_as_inf(values, expected):
+def test_use_inf_as_na(values, expected):
     # https://github.com/pandas-dev/pandas/issues/33655
     with pd.option_context("mode.use_inf_as_na", True):
         result = values.isna()
