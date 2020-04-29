@@ -383,7 +383,8 @@ def _bins_to_cuts(
 ):
     if not ordered and not labels:
         raise ValueError("'labels' must be provided if 'ordered = False'")
-    if ordered and len(set(labels)) != len(labels):
+
+    if labels and ordered and len(set(labels)) != len(labels):
         raise ValueError(
             "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
         )
