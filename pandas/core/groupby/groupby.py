@@ -2051,7 +2051,13 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         with _group_selection_context(self):
             index = self._selected_obj.index
-            result = Series(self.grouper.group_info[0], index)
+
+            # GH28330 preserve subclassed Series/DataFrames through calls
+            if isinstance(self._selected_obj, Series):
+                result = self.obj._constructor(self.grouper.group_info[0], index)
+            elif isinstance(self._selected_obj, DataFrame):
+                result = self.obj._constructor_sliced(self.grouper.group_info[0], index)
+
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
