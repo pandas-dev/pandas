@@ -16,84 +16,79 @@ class TestPeriodIndex:
         exp = s[12:24]
         tm.assert_series_equal(res, exp)
 
-    def test_range_slice_day(self):
+    @pytest.mark.parametrize("make_range", [date_range, period_range])
+    def test_range_slice_day(self, make_range):
         # GH#6716
-        didx = date_range(start="2013/01/01", freq="D", periods=400)
-        pidx = period_range(start="2013/01/01", freq="D", periods=400)
+        idx = make_range(start="2013/01/01", freq="D", periods=400)
 
         msg = "slice indices must be integers or None or have an __index__ method"
-        for idx in [didx, pidx]:
-            # slices against index should raise IndexError
-            values = [
-                "2014",
-                "2013/02",
-                "2013/01/02",
-                "2013/02/01 9H",
-                "2013/02/01 09:00",
-            ]
-            for v in values:
-                with pytest.raises(TypeError, match=msg):
-                    idx[v:]
+        # slices against index should raise IndexError
+        values = [
+            "2014",
+            "2013/02",
+            "2013/01/02",
+            "2013/02/01 9H",
+            "2013/02/01 09:00",
+        ]
+        for v in values:
+            with pytest.raises(TypeError, match=msg):
+                idx[v:]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.rand(len(idx)), index=idx)
 
-            tm.assert_series_equal(s["2013/01/02":], s[1:])
-            tm.assert_series_equal(s["2013/01/02":"2013/01/05"], s[1:5])
-            tm.assert_series_equal(s["2013/02":], s[31:])
-            tm.assert_series_equal(s["2014":], s[365:])
+        tm.assert_series_equal(s["2013/01/02":], s[1:])
+        tm.assert_series_equal(s["2013/01/02":"2013/01/05"], s[1:5])
+        tm.assert_series_equal(s["2013/02":], s[31:])
+        tm.assert_series_equal(s["2014":], s[365:])
 
-            invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for v in invalid:
-                with pytest.raises(TypeError, match=msg):
-                    idx[v:]
+        invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
+        for v in invalid:
+            with pytest.raises(TypeError, match=msg):
+                idx[v:]
 
-    def test_range_slice_seconds(self):
+    @pytest.mark.parametrize("make_range", [date_range, period_range])
+    def test_range_slice_seconds(self, make_range):
         # GH#6716
-        didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
-        pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        idx = make_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
         msg = "slice indices must be integers or None or have an __index__ method"
 
-        for idx in [didx, pidx]:
-            # slices against index should raise IndexError
-            values = [
-                "2014",
-                "2013/02",
-                "2013/01/02",
-                "2013/02/01 9H",
-                "2013/02/01 09:00",
-            ]
-            for v in values:
-                with pytest.raises(TypeError, match=msg):
-                    idx[v:]
+        # slices against index should raise IndexError
+        values = [
+            "2014",
+            "2013/02",
+            "2013/01/02",
+            "2013/02/01 9H",
+            "2013/02/01 09:00",
+        ]
+        for v in values:
+            with pytest.raises(TypeError, match=msg):
+                idx[v:]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.rand(len(idx)), index=idx)
 
-            tm.assert_series_equal(s["2013/01/01 09:05":"2013/01/01 09:10"], s[300:660])
-            tm.assert_series_equal(
-                s["2013/01/01 10:00":"2013/01/01 10:05"], s[3600:3960]
-            )
-            tm.assert_series_equal(s["2013/01/01 10H":], s[3600:])
-            tm.assert_series_equal(s[:"2013/01/01 09:30"], s[:1860])
-            for d in ["2013/01/01", "2013/01", "2013"]:
-                tm.assert_series_equal(s[d:], s)
+        tm.assert_series_equal(s["2013/01/01 09:05":"2013/01/01 09:10"], s[300:660])
+        tm.assert_series_equal(s["2013/01/01 10:00":"2013/01/01 10:05"], s[3600:3960])
+        tm.assert_series_equal(s["2013/01/01 10H":], s[3600:])
+        tm.assert_series_equal(s[:"2013/01/01 09:30"], s[:1860])
+        for d in ["2013/01/01", "2013/01", "2013"]:
+            tm.assert_series_equal(s[d:], s)
 
-    def test_range_slice_outofbounds(self):
+    @pytest.mark.parametrize("make_range", [date_range, period_range])
+    def test_range_slice_outofbounds(self, make_range):
         # GH#5407
-        didx = date_range(start="2013/10/01", freq="D", periods=10)
-        pidx = period_range(start="2013/10/01", freq="D", periods=10)
+        idx = make_range(start="2013/10/01", freq="D", periods=10)
 
-        for idx in [didx, pidx]:
-            df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
-            empty = DataFrame(index=type(idx)([], freq="D"), columns=["units"])
-            empty["units"] = empty["units"].astype("int64")
+        df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
+        empty = DataFrame(index=type(idx)([], freq="D"), columns=["units"])
+        empty["units"] = empty["units"].astype("int64")
 
-            tm.assert_frame_equal(df["2013/09/01":"2013/09/30"], empty)
-            tm.assert_frame_equal(df["2013/09/30":"2013/10/02"], df.iloc[:2])
-            tm.assert_frame_equal(df["2013/10/01":"2013/10/02"], df.iloc[:2])
-            tm.assert_frame_equal(df["2013/10/02":"2013/09/30"], empty)
-            tm.assert_frame_equal(df["2013/10/15":"2013/10/17"], empty)
-            tm.assert_frame_equal(df["2013-06":"2013-09"], empty)
-            tm.assert_frame_equal(df["2013-11":"2013-12"], empty)
+        tm.assert_frame_equal(df["2013/09/01":"2013/09/30"], empty)
+        tm.assert_frame_equal(df["2013/09/30":"2013/10/02"], df.iloc[:2])
+        tm.assert_frame_equal(df["2013/10/01":"2013/10/02"], df.iloc[:2])
+        tm.assert_frame_equal(df["2013/10/02":"2013/09/30"], empty)
+        tm.assert_frame_equal(df["2013/10/15":"2013/10/17"], empty)
+        tm.assert_frame_equal(df["2013-06":"2013-09"], empty)
+        tm.assert_frame_equal(df["2013-11":"2013-12"], empty)
 
     def test_partial_slice_doesnt_require_monotonicity(self):
         # See also: DatetimeIndex test ofm the same name
