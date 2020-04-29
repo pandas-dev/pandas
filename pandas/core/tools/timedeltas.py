@@ -28,8 +28,8 @@ def to_timedelta(arg, unit="ns", errors="raise"):
         The data to be converted to timedelta.
     unit : str, default 'ns'
         Denotes the unit of the arg. Possible values:
-        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
-        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
         'sec', 'second', 'ms', 'milliseconds', 'millisecond',
         'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
         'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
