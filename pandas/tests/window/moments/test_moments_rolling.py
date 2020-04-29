@@ -15,7 +15,6 @@ from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import (
     Base,
     ConsistencyBase,
-    consistency_data,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -947,14 +946,13 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    @pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
     @pytest.mark.parametrize(
         "window,min_periods,center", list(_rolling_consistency_cases())
     )
     def test_rolling_apply_consistency(
-        self, x, is_constant, no_nans, window, min_periods, center
+        self, consistency_data, window, min_periods, center
     ):
-
+        x, is_constant, no_nans = consistency_data
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
@@ -1432,11 +1430,11 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             tm.assert_frame_equal(df2_result, df2_expected)
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_var(x, is_constant, no_nans, window, min_periods, center):
+def test_rolling_consistency_var(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_var_data(
         x=x,
         is_constant=is_constant,
@@ -1456,11 +1454,11 @@ def test_rolling_consistency_var(x, is_constant, no_nans, window, min_periods, c
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_std(x, is_constant, no_nans, window, min_periods, center):
+def test_rolling_consistency_std(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_std_data(
         x=x,
         var_unbiased=lambda x: (
@@ -1478,11 +1476,11 @@ def test_rolling_consistency_std(x, is_constant, no_nans, window, min_periods, c
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_cov(x, is_constant, no_nans, window, min_periods, center):
+def test_rolling_consistency_cov(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_cov_data(
         x=x,
         var_unbiased=lambda x: (
@@ -1502,13 +1500,11 @@ def test_rolling_consistency_cov(x, is_constant, no_nans, window, min_periods, c
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_series(
-    x, is_constant, no_nans, window, min_periods, center
-):
+def test_rolling_consistency_series(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_series_data(
         x=x,
         mean=lambda x: (
@@ -1541,12 +1537,11 @@ def test_rolling_consistency_series(
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency(x, is_constant, no_nans, window, min_periods, center):
-
+def test_rolling_consistency(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
     # suppress warnings about empty slices, as we are deliberately testing
     # with empty/0-length Series/DataFrames
     with warnings.catch_warnings():

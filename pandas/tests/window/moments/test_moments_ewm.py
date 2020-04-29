@@ -10,7 +10,6 @@ from pandas.tests.window.common import (
     ConsistencyBase,
     check_binary_ew,
     check_binary_ew_min_periods,
-    consistency_data,
     ew_func,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
@@ -303,11 +302,10 @@ class TestEwmMomentsConsistency(ConsistencyBase):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency(x, is_constant, no_nans, min_periods, adjust, ignore_na):
+def test_ewm_consistency(consistency_data, min_periods, adjust, ignore_na):
     def _weights(s, com, adjust, ignore_na):
         if isinstance(s, DataFrame):
             if not len(s.columns):
@@ -365,6 +363,7 @@ def test_ewm_consistency(x, is_constant, no_nans, min_periods, adjust, ignore_na
         ] = np.nan
         return result
 
+    x, is_constant, no_nans = consistency_data
     com = 3.0
     moments_consistency_mock_mean(
         x=x,
@@ -407,11 +406,11 @@ def test_ewm_consistency(x, is_constant, no_nans, min_periods, adjust, ignore_na
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_var(x, is_constant, no_nans, min_periods, adjust, ignore_na):
+def test_ewm_consistency_var(consistency_data, min_periods, adjust, ignore_na):
+    x, is_constant, no_nans = consistency_data
     com = 3.0
     moments_consistency_var_data(
         x=x,
@@ -434,11 +433,11 @@ def test_ewm_consistency_var(x, is_constant, no_nans, min_periods, adjust, ignor
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_std(x, is_constant, no_nans, min_periods, adjust, ignore_na):
+def test_ewm_consistency_std(consistency_data, min_periods, adjust, ignore_na):
+    x, is_constant, no_nans = consistency_data
     com = 3.0
     moments_consistency_std_data(
         x=x,
@@ -463,11 +462,11 @@ def test_ewm_consistency_std(x, is_constant, no_nans, min_periods, adjust, ignor
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_cov(x, is_constant, no_nans, min_periods, adjust, ignore_na):
+def test_ewm_consistency_cov(consistency_data, min_periods, adjust, ignore_na):
+    x, is_constant, no_nans = consistency_data
     com = 3.0
     moments_consistency_cov_data(
         x=x,
@@ -494,13 +493,11 @@ def test_ewm_consistency_cov(x, is_constant, no_nans, min_periods, adjust, ignor
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_series_data(
-    x, is_constant, no_nans, min_periods, adjust, ignore_na
-):
+def test_ewm_consistency_series_data(consistency_data, min_periods, adjust, ignore_na):
+    x, is_constant, no_nans = consistency_data
     com = 3.0
     moments_consistency_series_data(
         x=x,

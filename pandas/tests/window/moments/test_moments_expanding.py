@@ -8,7 +8,6 @@ from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
 from pandas.tests.window.common import (
     ConsistencyBase,
-    consistency_data,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -343,10 +342,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         tm.assert_frame_equal(df2_result, df2_expected)
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-    def test_expanding_consistency(self, x, is_constant, no_nans, min_periods):
-
+    def test_expanding_consistency(self, consistency_data, min_periods):
+        x, is_constant, no_nans = consistency_data
         # suppress warnings about empty slices, as we are deliberately testing
         # with empty/0-length Series/DataFrames
         with warnings.catch_warnings():
@@ -383,9 +381,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 ),
             )
 
-    @pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-    def test_expanding_apply_consistency(self, x, is_constant, no_nans, min_periods):
+    def test_expanding_apply_consistency(self, consistency_data, min_periods):
+        x, is_constant, no_nans = consistency_data
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
@@ -429,9 +427,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                     tm.assert_equal(expanding_f_result, expanding_apply_f_result)
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_moments_consistency_var(x, is_constant, no_nans, min_periods):
+def test_moments_consistency_var(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_var_data(
         x=x,
         is_constant=is_constant,
@@ -443,9 +441,9 @@ def test_moments_consistency_var(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_std(x, is_constant, no_nans, min_periods):
+def test_expanding_consistency_std(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_std_data(
         x=x,
         var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
@@ -455,9 +453,9 @@ def test_expanding_consistency_std(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_cov(x, is_constant, no_nans, min_periods):
+def test_expanding_consistency_cov(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_cov_data(
         x=x,
         var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
@@ -467,9 +465,9 @@ def test_expanding_consistency_cov(x, is_constant, no_nans, min_periods):
     )
 
 
-@pytest.mark.parametrize("x, is_constant, no_nans", consistency_data)
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_series(x, is_constant, no_nans, min_periods):
+def test_expanding_consistency_series(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
     moments_consistency_series_data(
         x=x,
         mean=lambda x: x.expanding(min_periods=min_periods).mean(),
