@@ -1129,6 +1129,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # e.g. block.values was an IntegerArray
                     # (1, N) case can occur if block.values was Categorical
                     #  and result is ndarray[object]
+                    # TODO(EA2D): special casing not needed with 2D EAs
                     assert result.ndim == 1 or result.shape[0] == 1
                     try:
                         # Cast back if feasible
