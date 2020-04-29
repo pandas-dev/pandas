@@ -1351,8 +1351,12 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         result = self.grouper.size()
 
+        # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
+            result = self.obj._constructor(result)
             result.name = self.obj.name
+        elif isinstance(self.obj, DataFrame):
+            result = self.obj._constructor_sliced(result)
         return self._reindex_output(result, fill_value=0)
 
     @classmethod
