@@ -150,6 +150,21 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # construct from our dtype & string dtype
         pass
 
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_no_data_with_index(self, data, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_no_data_with_index(data, na_value)
+
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_scalar_na_with_index(self, data, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_scalar_na_with_index(data, na_value)
+
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_scalar_with_index(self, data):
+        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
+        super.test_series_constructor_scalar_with_index(data)
+
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.skip(reason="Different definitions of NA")

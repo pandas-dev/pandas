@@ -33,6 +33,21 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert result2.dtype == data.dtype
         assert isinstance(result2._mgr.blocks[0], ExtensionBlock)
 
+    def test_series_constructor_no_data_with_index(self, data, na_value):
+        result = pd.Series(index=[1, 2, 3], dtype=data.dtype)
+        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=data.dtype)
+        self.assert_series_equal(result, expected)
+
+    def test_series_constructor_scalar_na_with_index(self, data, na_value):
+        result = pd.Series(data=na_value, index=[1, 2, 3], dtype=data.dtype)
+        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=data.dtype)
+        self.assert_series_equal(result, expected)
+
+    def test_series_constructor_scalar_with_index(self, data):
+        result = pd.Series(data[0], index=[1, 2, 3], dtype=data.dtype)
+        expected = pd.Series([data[0]] * 3, index=[1, 2, 3], dtype=data.dtype)
+        self.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("from_series", [True, False])
     def test_dataframe_constructor_from_dict(self, data, from_series):
         if from_series:

@@ -112,7 +112,15 @@ class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
-    pass
+    @pytest.mark.xfail(reason="GH-26469", strict=False)
+    def test_series_constructor_no_data_with_index(self, data, na_value):
+        # ValueError: Cannot convert non-finite values (NA or inf) to integer
+        super().test_series_constructor_no_data_with_index(data, na_value)
+
+    @pytest.mark.xfail(reason="GH-26469", strict=False)
+    def test_series_constructor_scalar_na_with_index(self, data, na_value):
+        # ValueError: Cannot convert non-finite values (NA or inf) to integer
+        super().test_series_constructor_scalar_na_with_index(data, na_value)
 
 
 class TestReshaping(BaseSparseTests, base.BaseReshapingTests):

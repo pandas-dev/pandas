@@ -55,6 +55,16 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
 
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_no_data_with_index(self, data, na_value):
+        # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
+        super().test_series_constructor_no_data_with_index(data, na_value)
+
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_scalar_na_with_index(self, data, na_value):
+        # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
+        super().test_series_constructor_scalar_na_with_index(data, na_value)
+
 
 class TestReduce(base.BaseNoReduceTests):
     def test_reduce_series_boolean(self):
