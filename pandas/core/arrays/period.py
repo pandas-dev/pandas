@@ -32,7 +32,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndexClass,
+    ABCPeriodIndex,
+    ABCSeries,
+    ABCTimedeltaArray,
+)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -677,7 +682,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
-            raise raise_on_incompatible(self, other)
+            raise TypeError(
+                f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
+            )
 
         if not np.all(isna(other)):
             delta = self._check_timedeltalike_freq_compat(other)
@@ -754,7 +761,7 @@ def raise_on_incompatible(left, right):
         Exception to be raised by the caller.
     """
     # GH#24283 error message format depends on whether right is scalar
-    if isinstance(right, np.ndarray) or right is None:
+    if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
