@@ -1284,7 +1284,9 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self, dtype=None, copy: bool = False) -> np.ndarray:
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
 
@@ -1305,6 +1307,11 @@ class DataFrame(NDFrame):
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the type of the array.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1337,6 +1344,10 @@ class DataFrame(NDFrame):
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
         result = np.array(self.values, dtype=dtype, copy=copy)
+
+        if na_value is not lib.no_default:
+            result[isna(result)] = na_value
+
         return result
 
     def to_dict(self, orient="dict", into=dict):

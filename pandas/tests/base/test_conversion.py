@@ -410,3 +410,13 @@ def test_to_numpy_kwargs_raises():
     s = pd.Series([1, 2, 3], dtype="Int64")
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
+
+
+@pytest.mark.parametrize(
+    "dtype, na_value", [(float, np.nan), (object, None), (object, pd.NA)]
+)
+def test_to_numpy_dataframe_na_value(dtype, na_value):
+    data = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, None]})
+    result = data.to_numpy(dtype=dtype, na_value=na_value)
+    expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)
