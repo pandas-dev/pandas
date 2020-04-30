@@ -276,12 +276,14 @@ class TestDatetimeTZDtype(Base):
         assert not DatetimeTZDtype.is_dtype(None)
         assert DatetimeTZDtype.is_dtype(dtype)
         assert DatetimeTZDtype.is_dtype("datetime64[ns, US/Eastern]")
+        assert DatetimeTZDtype.is_dtype("M8[ns, US/Eastern]")
         assert not DatetimeTZDtype.is_dtype("foo")
         assert DatetimeTZDtype.is_dtype(DatetimeTZDtype("ns", "US/Pacific"))
         assert not DatetimeTZDtype.is_dtype(np.float64)
 
     def test_equality(self, dtype):
         assert is_dtype_equal(dtype, "datetime64[ns, US/Eastern]")
+        assert is_dtype_equal(dtype, "M8[ns, US/Eastern]")
         assert is_dtype_equal(dtype, DatetimeTZDtype("ns", "US/Eastern"))
         assert not is_dtype_equal(dtype, "foo")
         assert not is_dtype_equal(dtype, DatetimeTZDtype("ns", "CET"))
