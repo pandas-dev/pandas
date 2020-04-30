@@ -142,6 +142,7 @@ def _ensure_data(values, dtype=None):
             if values.ndim > 1 and is_datetime64_ns_dtype(values):
                 # Avoid calling the DatetimeIndex constructor as it is 1D only
                 # Note: this is reached by DataFrame.rank calls GH#27027
+                # TODO(EA2D): special case not needed with 2D EAs
                 asi8 = values.view("i8")
                 dtype = values.dtype
                 return asi8, dtype
