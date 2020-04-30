@@ -1500,6 +1500,7 @@ def test_rolling_consistency_cov(consistency_data, window, min_periods, center):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )

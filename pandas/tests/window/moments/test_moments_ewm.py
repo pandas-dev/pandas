@@ -493,6 +493,7 @@ def test_ewm_consistency_cov(consistency_data, min_periods, adjust, ignore_na):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
