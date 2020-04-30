@@ -150,12 +150,12 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # construct from our dtype & string dtype
         pass
 
-    @pytest.mark.xfail(reason="GH-26469")
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
         super().test_series_constructor_no_data_with_index(dtype, na_value)
 
-    @pytest.mark.xfail(reason="GH-26469")
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
