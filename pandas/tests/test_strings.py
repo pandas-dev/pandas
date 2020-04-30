@@ -671,14 +671,10 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    index_or_series2 = [Series, Index]  # type: ignore
-    # List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
-    # See GH#29725
-
-    @pytest.mark.parametrize("other", index_or_series2)
-    def test_str_cat_all_na(self, index_or_series, other):
+    def test_str_cat_all_na(self, index_or_series, index_or_series2):
         # GH 24044
         box = index_or_series
+        other = index_or_series2
 
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])
