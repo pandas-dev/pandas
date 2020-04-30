@@ -160,7 +160,7 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # RecursionError: maximum recursion depth exceeded in comparison
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
 
-    @pytest.mark.xfail(reason="GH-26469")
+    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
     def test_series_constructor_scalar_with_index(self, data, dtype):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
         super().test_series_constructor_scalar_with_index(data, dtype)
