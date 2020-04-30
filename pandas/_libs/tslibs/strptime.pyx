@@ -544,7 +544,7 @@ class TimeRE(dict):
             'w': r"(?P<w>[0-6])",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
-            # XXX: Does 'Y' need to worry about having less or more than
+            # TODO: Does 'Y' need to worry about having less or more than
             #     4 digits?
             'Y': r"(?P<Y>\d\d\d\d)",
             'z': r"(?P<z>[+-]\d\d:?[0-5]\d(:?[0-5]\d(\.\d{1,6})?)?|Z)",

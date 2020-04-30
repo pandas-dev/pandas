@@ -75,6 +75,7 @@ def test_reindex_with_datetimes():
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
+    expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
 
     result = ts[list(ts.index[5:10])]
@@ -91,6 +92,7 @@ def test_reindex_corner(datetime_series):
 
     # pass non-Index
     reindexed = datetime_series.reindex(list(datetime_series.index))
+    datetime_series.index = datetime_series.index._with_freq(None)
     tm.assert_series_equal(datetime_series, reindexed)
 
     # bad fill method

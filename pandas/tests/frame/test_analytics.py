@@ -885,15 +885,19 @@ class TestDataFrameAnalytics:
                 "A": np.arange(3),
                 "B": pd.date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
             }
         )
 
+        # datetime(tz) and timedelta work
         result = df.mean(numeric_only=False)
-        expected = pd.Series(
-            {"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"], "D": df.loc[1, "D"]}
-        )
+        expected = pd.Series({"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
+
+        # mean of period is not allowed
+        df["D"] = pd.period_range("2016", periods=3, freq="A")
+
+        with pytest.raises(TypeError, match="reduction operation 'mean' not allowed"):
+            df.mean(numeric_only=False)
 
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up

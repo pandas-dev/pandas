@@ -37,6 +37,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
@@ -47,7 +48,6 @@ from pandas.core.window.common import (
     calculate_center_offset,
     calculate_min_periods,
     get_weighted_roll_func,
-    validate_baseindexer_support,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -252,7 +252,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = getattr(self._selected_obj, "values", self._selected_obj)
+            values = extract_array(self._selected_obj, extract_numpy=True)
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -392,12 +392,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self, window: int, func_name: Optional[str]) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support(func_name)
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -443,7 +442,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        window_indexer = self._get_window_indexer(window, name)
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -471,13 +470,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, BaseIndexer):
+                    if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
                     else:
                         min_periods = calculate_min_periods(
-                            self.min_periods or 1,
+                            window_indexer.window_size,
                             self.min_periods,
                             len(x),
                             require_min_periods,
@@ -1631,20 +1630,23 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("cov")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
-        # GH 16058: offset window
-        if self.is_freq_type:
-            window = self.win_freq
+        # GH 32865. We leverage rolling.mean, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
         else:
-            window = self._get_window(other)
+            # GH 16058: offset window
+            if self.is_freq_type:
+                window = self.win_freq
+            else:
+                window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1777,15 +1779,19 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("corr")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other) if not self.is_freq_type else self.win_freq
+
+        # GH 32865. We leverage rolling.cov and rolling.std here, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
+        else:
+            window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
