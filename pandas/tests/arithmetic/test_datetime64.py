@@ -2471,3 +2471,18 @@ def test_dt64arr_addsub_object_dtype_2d():
     assert result2.shape == (4, 1)
     assert result2.freq is None
     assert (result2.asi8 == 0).all()
+
+
+def test_sum_empty_df_series():
+    # Calling the following defined sum function returned an error for dataframes but
+    # returned NaT for series. # Check that the API is consistent in this sense when
+    # operating on empty Series/DataFrames. See GH:33704 for more information
+    df = pd.DataFrame(dict(x=pd.to_datetime([])))
+    series = pd.Series(pd.to_datetime([]))
+    assert (df.min().x is NaT) == (series.min() is NaT)
+    assert (df.max().x is NaT) == (series.max() is NaT)
+
+    df = pd.DataFrame(dict(x=[np.nan]))
+    series = pd.Series([np.nan])
+    assert np.isnan(df.min().x) == np.isnan(series.min())
+    assert np.isnan(df.max().x) == np.isnan(series.max())

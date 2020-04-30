@@ -384,8 +384,7 @@ def _na_for_min_count(
     else:
         assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
-        result = np.empty(result_shape, dtype=values.dtype)
-        result.fill(fill_value)
+        result = np.full(result_shape, fill_value)
         return result
 
 
