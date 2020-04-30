@@ -1070,7 +1070,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         deleted_items: List[np.ndarray] = []
         # Some object-dtype blocks might be split into List[Block[T], Block[U]]
         split_items: List[np.ndarray] = []
-        split_frames: List[type(self.obj)] = []
+        split_frames: List[DataFrame] = []
 
         no_result = object()
         for block in data.blocks:
@@ -1109,7 +1109,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     deleted_items.append(locs)
                     continue
                 else:
-                    result = cast(type(self.obj), result)
+                    # Cast to DataFrame-like type
+                    result = self.obj._constructor(result)
                     # unwrap DataFrame to get array
                     if len(result._mgr.blocks) != 1:
                         # We've split an object block! Everything we've assumed
