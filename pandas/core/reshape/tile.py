@@ -436,7 +436,9 @@ def _bins_to_cuts(
                 )
         if not is_categorical_dtype(labels):
             labels = Categorical(
-                labels, categories=labels if ordered else None, ordered=ordered
+                labels,
+                categories=labels if len(set(labels)) == len(labels) else None,
+                ordered=ordered,
             )
         # TODO: handle mismach between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
