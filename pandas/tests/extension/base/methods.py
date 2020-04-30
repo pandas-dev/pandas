@@ -29,6 +29,7 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_value_counts_with_normalize(self, data):
+        # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
 
