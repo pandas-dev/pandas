@@ -151,24 +151,24 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         pass
 
     @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_no_data_with_index(self, data, na_value):
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
-        super().test_series_constructor_no_data_with_index(data, na_value)
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
 
     @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_scalar_na_with_index(self, data, na_value):
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
-        super().test_series_constructor_scalar_na_with_index(data, na_value)
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
 
     @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_scalar_with_index(self, data):
+    def test_series_constructor_scalar_with_index(self, data, dtype):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
-        super().test_series_constructor_scalar_with_index(data)
+        super().test_series_constructor_scalar_with_index(data, dtype)
 
     @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_scalar_with_one_element_index(self, data):
+    def test_series_constructor_scalar_with_one_element_index(self, data, dtype):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
-        super().test_series_constructor_scalar_with_one_element_index(data)
+        super().test_series_constructor_scalar_with_one_element_index(data, dtype)
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):

@@ -33,28 +33,24 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert result2.dtype == data.dtype
         assert isinstance(result2._mgr.blocks[0], ExtensionBlock)
 
-    def test_series_constructor_no_data_with_index(self, data, na_value):
-        dtype = data.dtype
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
         result = pd.Series(index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         self.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_na_with_index(self, data, na_value):
-        dtype = data.dtype
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         result = pd.Series(na_value, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         self.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_with_index(self, data):
+    def test_series_constructor_scalar_with_index(self, data, dtype):
         scalar = data[0]
-        dtype = data.dtype
         result = pd.Series(scalar, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=dtype)
         self.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_with_one_element_index(self, data):
+    def test_series_constructor_scalar_with_one_element_index(self, data, dtype):
         scalar = data[0]
-        dtype = data.dtype
         result = pd.Series(scalar, index=["foo"], dtype=dtype)
         expected = pd.Series([scalar], index=["foo"], dtype=dtype)
         self.assert_series_equal(result, expected)
