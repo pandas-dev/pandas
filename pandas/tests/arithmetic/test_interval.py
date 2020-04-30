@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
@@ -132,11 +130,7 @@ class TestComparison:
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
 
-        if (
-            nulls_fixture is pd.NA
-            and array.dtype != pd.IntervalDtype("int")
-            and not is_platform_windows()
-        ):
+        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int"):
             mark = pytest.mark.xfail(
                 reason="broken for non-integer IntervalArray; see GH 31882"
             )
