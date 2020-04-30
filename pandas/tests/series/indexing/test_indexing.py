@@ -8,7 +8,18 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
+from pandas import (
+    Categorical,
+    DataFrame,
+    IndexSlice,
+    MultiIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
@@ -119,15 +130,6 @@ def test_getitem_fancy(string_series, object_series):
     assert object_series[2] == slice2[1]
 
 
-def test_getitem_generator(string_series):
-    gen = (x > 0 for x in string_series)
-    result = string_series[gen]
-    result2 = string_series[iter(string_series > 0)]
-    expected = string_series[string_series > 0]
-    tm.assert_series_equal(result, expected)
-    tm.assert_series_equal(result2, expected)
-
-
 def test_type_promotion():
     # GH12599
     s = pd.Series(dtype=object)
@@ -168,9 +170,9 @@ def test_getitem_out_of_bounds(datetime_series):
         datetime_series[len(datetime_series)]
 
     # GH #917
-    msg = r"index -\d+ is out of bounds for axis 0 with size \d+"
+    # With a RangeIndex, an int key gives a KeyError
     s = Series([], dtype=object)
-    with pytest.raises(IndexError, match=msg):
+    with pytest.raises(KeyError, match="-1"):
         s[-1]
 
 
@@ -293,6 +295,8 @@ def test_setitem(datetime_series, string_series):
     expected = string_series.append(app)
     tm.assert_series_equal(s, expected)
 
+
+def test_setitem_empty_series():
     # Test for issue #10193
     key = pd.Timestamp("2012-01-01")
     series = pd.Series(dtype=object)
@@ -300,10 +304,12 @@ def test_setitem(datetime_series, string_series):
     expected = pd.Series(47, [key])
     tm.assert_series_equal(series, expected)
 
+    # GH#33573 our index should retain its freq
     series = pd.Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
     series[key] = 47
     expected = pd.Series(47, pd.DatetimeIndex([key], freq="D"))
     tm.assert_series_equal(series, expected)
+    assert series.index.freq == expected.index.freq
 
 
 def test_setitem_dtypes():
@@ -450,7 +456,7 @@ def test_setitem_with_tz(tz):
 
 
 def test_setitem_with_tz_dst():
-    # GH XXX
+    # GH XXX TODO: fill in GH ref
     tz = "US/Eastern"
     orig = pd.Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
@@ -872,16 +878,6 @@ def test_uint_drop(any_int_dtype):
     tm.assert_series_equal(series, expected)
 
 
-def test_getitem_2d_no_warning():
-    # https://github.com/pandas-dev/pandas/issues/30867
-    # Don't want to support this long-term, but
-    # for now ensure that the warning from Index
-    # doesn't comes through via Series.__getitem__.
-    series = pd.Series([1, 2, 3], index=[1, 2, 3])
-    with tm.assert_produces_warning(None):
-        series[:, None]
-
-
 def test_getitem_unrecognized_scalar():
     # GH#32684 a scalar key that is not recognized by lib.is_scalar
 
@@ -892,3 +888,54 @@ def test_getitem_unrecognized_scalar():
 
     result = ser[key]
     assert result == 2
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2014-01-01", periods=20, freq="MS"),
+        period_range("2014-01", periods=20, freq="M"),
+        timedelta_range("0", periods=20, freq="H"),
+    ],
+)
+def test_slice_with_zero_step_raises(index):
+    ts = Series(np.arange(20), index)
+
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts[::0]
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts.loc[::0]
+    with pytest.raises(ValueError, match="slice step cannot be zero"):
+        ts.iloc[::0]
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2014-01-01", periods=20, freq="MS"),
+        period_range("2014-01", periods=20, freq="M"),
+        timedelta_range("0", periods=20, freq="H"),
+    ],
+)
+def test_slice_with_negative_step(index):
+    def assert_slices_equivalent(l_slc, i_slc):
+        expected = ts.iloc[i_slc]
+
+        tm.assert_series_equal(ts[l_slc], expected)
+        tm.assert_series_equal(ts.loc[l_slc], expected)
+        tm.assert_series_equal(ts.loc[l_slc], expected)
+
+    keystr1 = str(index[9])
+    keystr2 = str(index[13])
+    box = type(index[0])
+
+    ts = Series(np.arange(20), index)
+    SLC = IndexSlice
+
+    for key in [keystr1, box(keystr1)]:
+        assert_slices_equivalent(SLC[key::-1], SLC[9::-1])
+        assert_slices_equivalent(SLC[:key:-1], SLC[:8:-1])
+
+        for key2 in [keystr2, box(keystr2)]:
+            assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
+            assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])

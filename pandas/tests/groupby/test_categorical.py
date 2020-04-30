@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import PY37, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -13,6 +13,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
@@ -210,7 +211,10 @@ def test_level_get_group(observed):
 
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
 #  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
+@pytest.mark.xfail(
+    PY37 and _np_version_under1p17 and not is_platform_windows(),
+    reason="Flaky, GH-27902",
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -609,7 +613,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    with pytest.raises(ValueError):
+    msg = r"Length of grouper \(8\) and axis \(10\) must be same length"
+    with pytest.raises(ValueError, match=msg):
         series.groupby(bins).mean()
 
 
@@ -1379,4 +1384,61 @@ def test_groupby_agg_non_numeric():
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby([1, 2, 1]).nunique()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_only_category_no_sort():
+    # GH33410
+    cats = np.array([1, 2])
+    cats.flags.writeable = False
+    df = DataFrame(
+        {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
+    )
+    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    result = df.groupby("b", sort=False).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sorted_missing_category_values():
+    # GH 28597
+    df = pd.DataFrame(
+        {
+            "foo": [
+                "small",
+                "large",
+                "large",
+                "large",
+                "medium",
+                "large",
+                "large",
+                "medium",
+            ],
+            "bar": ["C", "A", "A", "C", "A", "C", "A", "C"],
+        }
+    )
+    df["foo"] = (
+        df["foo"]
+        .astype("category")
+        .cat.set_categories(["tiny", "small", "medium", "large"], ordered=True)
+    )
+
+    expected = pd.DataFrame(
+        {
+            "tiny": {"A": 0, "C": 0},
+            "small": {"A": 0, "C": 1},
+            "medium": {"A": 1, "C": 1},
+            "large": {"A": 3, "C": 2},
+        }
+    )
+    expected = expected.rename_axis("bar", axis="index")
+    expected.columns = pd.CategoricalIndex(
+        ["tiny", "small", "medium", "large"],
+        categories=["tiny", "small", "medium", "large"],
+        ordered=True,
+        name="foo",
+        dtype="category",
+    )
+
+    result = df.groupby(["bar", "foo"]).size().unstack()
+
     tm.assert_frame_equal(result, expected)

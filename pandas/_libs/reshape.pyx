@@ -36,7 +36,7 @@ ctypedef fused reshape_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack(reshape_t[:, :] values, uint8_t[:] mask,
+def unstack(reshape_t[:, :] values, const uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
             reshape_t[:, :] new_values, uint8_t[:, :] new_mask):
     """

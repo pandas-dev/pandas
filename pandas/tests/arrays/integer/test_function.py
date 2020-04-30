@@ -103,6 +103,36 @@ def test_value_counts_na():
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_empty():
+    # https://github.com/pandas-dev/pandas/issues/33317
+    s = pd.Series([], dtype="Int64")
+    result = s.value_counts()
+    # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
+    idx = pd.Index([], dtype="object")
+    expected = pd.Series([], index=idx, dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("min_count", [0, 4])
+def test_integer_array_sum(skipna, min_count):
+    arr = pd.array([1, 2, 3, None], dtype="Int64")
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == 6
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize(
+    "values, expected", [([1, 2, 3], 6), ([1, 2, 3, None], 6), ([None], 0)]
+)
+def test_integer_array_numpy_sum(values, expected):
+    arr = pd.array(values, dtype="Int64")
+    result = np.sum(arr)
+    assert result == expected
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

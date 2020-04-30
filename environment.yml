@@ -4,15 +4,15 @@ channels:
 dependencies:
   # required
   - numpy>=1.15
-  - python=3.7
-  - python-dateutil>=2.6.1
+  - python=3
+  - python-dateutil>=2.7.3
   - pytz
 
   # benchmarks
   - asv
 
   # building
-  - cython>=0.29.13
+  - cython>=0.29.16
 
   # code checks
   - black=19.10b0
@@ -86,7 +86,7 @@ dependencies:
   - lxml
 
   # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
-  - openpyxl<=3.0.1
+  - openpyxl
   - xlrd
   - xlsxwriter
   - xlwt
@@ -97,7 +97,7 @@ dependencies:
   - python-snappy  # required by pyarrow
 
   - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
+  - pytables>=3.4.3  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
