@@ -376,7 +376,9 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
         else:
-            result = self.obj._constructor(indexed_output[0], index=index, name=columns[0])
+            result = self.obj._constructor(
+                indexed_output[0], index=index, name=columns[0]
+            )
 
         return result
 
@@ -435,7 +437,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return self.obj._constructor([], name=self._selection_name, index=keys, dtype=np.float64)
+            return self.obj._constructor(
+                [], name=self._selection_name, index=keys, dtype=np.float64
+            )
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -447,7 +451,9 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result = self._reindex_output(self.obj._constructor_expanddim(values, index=index))
+            result = self._reindex_output(
+                self.obj._constructor_expanddim(values, index=index)
+            )
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
             result = result.stack(dropna=self.observed)
@@ -461,7 +467,9 @@ class SeriesGroupBy(GroupBy[Series]):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
-            result = self.obj._constructor(data=values, index=_get_index(), name=self._selection_name)
+            result = self.obj._constructor(
+                data=values, index=_get_index(), name=self._selection_name
+            )
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
@@ -1375,7 +1383,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     #  fall through to the outer else clause
                     # TODO: sure this is right?  we used to do this
                     #  after raising AttributeError above
-                    return self.obj._constructor_sliced(values, index=key_index, name=self._selection_name)
+                    return self.obj._constructor_sliced(
+                        values, index=key_index, name=self._selection_name
+                    )
 
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
@@ -1426,7 +1436,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if cache_key not in NUMBA_FUNC_CACHE:
                     NUMBA_FUNC_CACHE[cache_key] = numba_func
                 # Return the result as a DataFrame for concatenation later
-                res = self.obj._constructor(res, index=group.index, columns=group.columns)
+                res = self.obj._constructor(
+                    res, index=group.index, columns=group.columns
+                )
             else:
                 # Try slow path and fast path.
                 try:
@@ -1525,7 +1537,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
 
-        return type(self.obj)._from_arrays(output, columns=result.columns, index=obj.index)
+        return type(self.obj)._from_arrays(
+            output, columns=result.columns, index=obj.index
+        )
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
@@ -1702,7 +1716,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
-            return self.obj._constructor(result, index=obj.columns, columns=result_index).T
+            return self.obj._constructor(
+                result, index=obj.columns, columns=result_index
+            ).T
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 

@@ -199,7 +199,7 @@ def test_inconsistent_return_type():
     "obj",
     [
         tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
-        tm.SubclassedSeries(np.arange(0, 10), name="A")
+        tm.SubclassedSeries(np.arange(0, 10), name="A"),
     ],
 )
 def test_groupby_preserves_subclass(obj, groupby_func):
@@ -207,12 +207,12 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip("Not applicable")
-    
+
     grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
-    
+
     args = []
     if groupby_func in {"fillna", "nth"}:
         args.append(0)

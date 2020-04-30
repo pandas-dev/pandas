@@ -467,7 +467,7 @@ class _Concatenator:
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
-            else:                
+            else:
                 data = dict(zip(range(len(self.objs)), self.objs))
 
                 # GH28330 Preserves subclassed objects through concat
