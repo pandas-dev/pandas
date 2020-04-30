@@ -573,3 +573,17 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = getattr(df, all_boolean_reductions)()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_idxmin_preserves_subclass(self):
+        # GH 28330
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.idxmin()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_idxmax_preserves_subclass(self):
+        # GH 28330
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.idxmax()
+        assert isinstance(result, tm.SubclassedSeries)
