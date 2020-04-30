@@ -1581,7 +1581,6 @@ class TestHDFStore:
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            expected.index = expected.index._with_freq(None)
             tm.assert_frame_equal(result, expected, check_index_type=False)
 
         with ensure_clean_store(setup_path) as store:
