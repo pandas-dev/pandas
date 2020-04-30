@@ -1394,6 +1394,9 @@ class TestSeriesConstructors:
         # see gh-15524, gh-15987
         msg = "dtype has no unit. Please pass in"
 
+        d = np.dtype(dtype)
+        assert d.name in ["timedelta64", "datetime64"]  # troubleshooting CI
+
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
 

@@ -387,6 +387,9 @@ class TestSeriesDtypes:
         data = [1]
         s = Series(data)
 
+        d = np.dtype(dtype)
+        assert d.name in ["datetime64", "timedelta64"]  # troubleshooting CI
+
         msg = (
             fr"The '{dtype.__name__}' dtype has no unit\. "
             fr"Please pass in '{dtype.__name__}\[ns\]' instead."
