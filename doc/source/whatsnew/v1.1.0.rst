@@ -700,7 +700,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
 - Bug where subclasses were not preserved through groupby operations (:issue:`28330`)
-  
+
 Reshaping
 ^^^^^^^^^
 
