@@ -1242,9 +1242,7 @@ class TestTSPlot(TestPlotBase):
         x = date_range(start="2012-01-02", periods=10, freq="D")
         y = list(range(len(x)))
         _, ax = self.plt.subplots()
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-            # multi-dimensional indexing
-            lines = ax.plot(x, y, label="Y")
+        lines = ax.plot(x, y, label="Y")
         tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
     @pytest.mark.slow
