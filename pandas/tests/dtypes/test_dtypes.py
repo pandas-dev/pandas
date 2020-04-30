@@ -296,6 +296,8 @@ class TestDatetimeTZDtype(Base):
         # numpy compat
         assert is_dtype_equal(np.dtype("M8[ns]"), "datetime64[ns]")
 
+        assert dtype == "M8[ns, US/Eastern]"
+
     def test_basic(self, dtype):
 
         assert is_datetime64tz_dtype(dtype)
