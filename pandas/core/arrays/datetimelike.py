@@ -1522,13 +1522,9 @@ class DatetimeLikeArrayMixin(
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif is_timedelta64_dtype(self.dtype):
-            if lib.is_integer(other) or is_integer_dtype(other):
-                # need to subtract before negating, since that flips freq
-                # -self flips self.freq, messing up results
-                return -(self - other)
-
             return (-self) + other
 
+        # We get here with e.g. datetime objects
         return -(self - other)
 
     def __iadd__(self, other):

@@ -221,7 +221,7 @@ def is_iterator(obj: object) -> bool:
     return PyIter_Check(obj)
 
 
-def item_from_zerodim(val: object) -> object:
+cpdef object item_from_zerodim(object val):
     """
     If the value is a zerodim array, return the item it contains.
 
@@ -2344,11 +2344,8 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
         else:
             val = f(arr[i])
 
-            if cnp.PyArray_IsZeroDim(val):
-                # unbox 0-dim arrays, GH#690
-                # TODO: is there a faster way to unbox?
-                #   item_from_zerodim?
-                val = val.item()
+            # unbox 0-dim arrays, GH#690
+            val = item_from_zerodim(val)
 
         result[i] = val
 
@@ -2386,11 +2383,8 @@ def map_infer(ndarray arr, object f, bint convert=True):
     for i in range(n):
         val = f(arr[i])
 
-        if cnp.PyArray_IsZeroDim(val):
-            # unbox 0-dim arrays, GH#690
-            # TODO: is there a faster way to unbox?
-            #   item_from_zerodim?
-            val = val.item()
+        # unbox 0-dim arrays, GH#690
+        val = item_from_zerodim(val)
 
         result[i] = val
 
