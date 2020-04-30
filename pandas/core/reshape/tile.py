@@ -384,11 +384,6 @@ def _bins_to_cuts(
     if not ordered and not labels:
         raise ValueError("'labels' must be provided if 'ordered = False'")
 
-    if labels and ordered and len(set(labels)) != len(labels):
-        raise ValueError(
-            "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
-        )
-
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
             "invalid value for 'duplicates' parameter, valid options are: raise, drop"
@@ -430,7 +425,10 @@ def _bins_to_cuts(
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
-
+        elif ordered and len(set(labels)) != len(labels):
+            raise ValueError(
+                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+            )
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
