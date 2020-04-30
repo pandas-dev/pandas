@@ -82,10 +82,7 @@ class TestDatetimeDtype(BaseDatetimeTests, base.BaseDtypeTests):
 
 
 class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
-    @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_scalar_with_index(self, data, dtype):
-        # TypeError: data type not understood
-        super().test_series_constructor_scalar_with_index(data, dtype)
+    pass
 
 
 class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):

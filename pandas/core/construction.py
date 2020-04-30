@@ -450,6 +450,8 @@ def sanitize_array(
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     elif isinstance(data, abc.Set):
         raise TypeError("Set type is unordered")
+    elif is_extension_array_dtype(dtype) and lib.is_scalar(data) and index is not None:
+        subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
@@ -533,10 +535,6 @@ def _try_cast(
     if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime
-
-        if lib.is_scalar(arr):
-            arr = [arr]
-
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
