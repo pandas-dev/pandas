@@ -100,13 +100,15 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    implements = {"__sub__", "__rsub__"}
+
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
-            if op_name in ("__sub__", "__rsub__"):
+            if op_name in self.implements:
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
@@ -145,6 +147,14 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         # other specific errors tested in the boolean array specific tests
         pass
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        if op_name in self.implements:
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+        else:
+            pytest.xfail("_reduce needs implementation")
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
@@ -341,6 +351,5 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 
-# TODO parsing not yet supported
-# class TestParsing(base.BaseParsingTests):
-#     pass
+class TestParsing(base.BaseParsingTests):
+    pass

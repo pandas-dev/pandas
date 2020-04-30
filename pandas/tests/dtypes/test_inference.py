@@ -123,6 +123,17 @@ def test_is_list_like_disallow_sets(maybe_list_like):
     assert inference.is_list_like(obj, allow_sets=False) == expected
 
 
+def test_is_list_like_recursion():
+    # GH 33721
+    # interpreter would crash with with SIGABRT
+    def foo():
+        inference.is_list_like([])
+        foo()
+
+    with pytest.raises(RecursionError):
+        foo()
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
@@ -354,71 +365,69 @@ def test_is_recompilable_fails(ll):
 
 
 class TestInference:
-    def test_infer_dtype_bytes(self):
-        compare = "bytes"
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.array(list("abc"), dtype="S1"),
+            np.array(list("abc"), dtype="S1").astype(object),
+            [b"a", np.nan, b"c"],
+        ],
+    )
+    def test_infer_dtype_bytes(self, arr):
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == "bytes"
 
-        # string array of bytes
-        arr = np.array(list("abc"), dtype="S1")
-        assert lib.infer_dtype(arr, skipna=True) == compare
-
-        # object array of bytes
-        arr = arr.astype(object)
-        assert lib.infer_dtype(arr, skipna=True) == compare
-
-        # object array of bytes with missing values
-        assert lib.infer_dtype([b"a", np.nan, b"c"], skipna=True) == compare
-
-    def test_isinf_scalar(self):
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (float("inf"), True),
+            (np.inf, True),
+            (-np.inf, False),
+            (1, False),
+            ("a", False),
+        ],
+    )
+    def test_isposinf_scalar(self, value, expected):
         # GH 11352
-        assert libmissing.isposinf_scalar(float("inf"))
-        assert libmissing.isposinf_scalar(np.inf)
-        assert not libmissing.isposinf_scalar(-np.inf)
-        assert not libmissing.isposinf_scalar(1)
-        assert not libmissing.isposinf_scalar("a")
+        result = libmissing.isposinf_scalar(value)
+        assert result is expected
 
-        assert libmissing.isneginf_scalar(float("-inf"))
-        assert libmissing.isneginf_scalar(-np.inf)
-        assert not libmissing.isneginf_scalar(np.inf)
-        assert not libmissing.isneginf_scalar(1)
-        assert not libmissing.isneginf_scalar("a")
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (float("-inf"), True),
+            (-np.inf, True),
+            (np.inf, False),
+            (1, False),
+            ("a", False),
+        ],
+    )
+    def test_isneginf_scalar(self, value, expected):
+        result = libmissing.isneginf_scalar(value)
+        assert result is expected
 
-    @pytest.mark.parametrize("maybe_int", [True, False])
+    @pytest.mark.parametrize("coerce_numeric", [True, False])
     @pytest.mark.parametrize(
         "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
     )
-    def test_maybe_convert_numeric_infinities(self, infinity, maybe_int):
+    @pytest.mark.parametrize("prefix", ["", "-", "+"])
+    def test_maybe_convert_numeric_infinities(self, coerce_numeric, infinity, prefix):
         # see gh-13274
-        na_values = {"", "NULL", "nan"}
+        result = lib.maybe_convert_numeric(
+            np.array([prefix + infinity], dtype=object),
+            na_values={"", "NULL", "nan"},
+            coerce_numeric=coerce_numeric,
+        )
+        expected = np.array([np.inf if prefix in ["", "+"] else -np.inf])
+        tm.assert_numpy_array_equal(result, expected)
 
-        pos = np.array(["inf"], dtype=np.float64)
-        neg = np.array(["-inf"], dtype=np.float64)
-
+    def test_maybe_convert_numeric_infinities_raises(self):
         msg = "Unable to parse string"
-
-        out = lib.maybe_convert_numeric(
-            np.array([infinity], dtype=object), na_values, maybe_int
-        )
-        tm.assert_numpy_array_equal(out, pos)
-
-        out = lib.maybe_convert_numeric(
-            np.array(["-" + infinity], dtype=object), na_values, maybe_int
-        )
-        tm.assert_numpy_array_equal(out, neg)
-
-        out = lib.maybe_convert_numeric(
-            np.array([infinity], dtype=object), na_values, maybe_int
-        )
-        tm.assert_numpy_array_equal(out, pos)
-
-        out = lib.maybe_convert_numeric(
-            np.array(["+" + infinity], dtype=object), na_values, maybe_int
-        )
-        tm.assert_numpy_array_equal(out, pos)
-
-        # too many characters
         with pytest.raises(ValueError, match=msg):
             lib.maybe_convert_numeric(
-                np.array(["foo_" + infinity], dtype=object), na_values, maybe_int
+                np.array(["foo_inf"], dtype=object),
+                na_values={"", "NULL", "nan"},
+                coerce_numeric=False,
             )
 
     def test_maybe_convert_numeric_post_floatify_nan(self, coerce):

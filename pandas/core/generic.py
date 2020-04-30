@@ -39,6 +39,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    ValueKeyFunc,
 )
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
@@ -104,6 +105,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -2359,7 +2361,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         dropna: Optional[bool_t] = None,
-        data_columns: Optional[List[str]] = None,
+        data_columns: Optional[Union[bool_t, List[str]]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
@@ -4108,6 +4110,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         kind: str = "quicksort",
         na_position: str = "last",
         ignore_index: bool_t = False,
+        key: ValueKeyFunc = None,
     ):
         """
         Sort by the values along either axis.
@@ -4135,10 +4138,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
              .. versionadded:: 1.0.0
 
+        key : callable, optional
+            Apply the key function to the values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect a
+            ``Series`` and return a Series with the same shape as the input.
+            It will be applied to each column in `by` independently.
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
-        sorted_obj : DataFrame or None
+        DataFrame or None
             DataFrame with sorted values if inplace=False, None otherwise.
+
+        See Also
+        --------
+        DataFrame.sort_index : Sort a DataFrame by the index.
+        Series.sort_values : Similar method for a Series.
 
         Examples
         --------
@@ -4146,59 +4164,71 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
         ...     'col2': [2, 1, 9, 8, 7, 4],
         ...     'col3': [0, 1, 9, 4, 2, 3],
+        ...     'col4': ['a', 'B', 'c', 'D', 'e', 'F']
         ... })
         >>> df
-            col1 col2 col3
-        0   A    2    0
-        1   A    1    1
-        2   B    9    9
-        3   NaN  8    4
-        4   D    7    2
-        5   C    4    3
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
 
         Sort by col1
 
         >>> df.sort_values(by=['col1'])
-            col1 col2 col3
-        0   A    2    0
-        1   A    1    1
-        2   B    9    9
-        5   C    4    3
-        4   D    7    2
-        3   NaN  8    4
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
 
         Sort by multiple columns
 
         >>> df.sort_values(by=['col1', 'col2'])
-            col1 col2 col3
-        1   A    1    1
-        0   A    2    0
-        2   B    9    9
-        5   C    4    3
-        4   D    7    2
-        3   NaN  8    4
+          col1  col2  col3 col4
+        1    A     1     1    B
+        0    A     2     0    a
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
 
         Sort Descending
 
         >>> df.sort_values(by='col1', ascending=False)
-            col1 col2 col3
-        4   D    7    2
-        5   C    4    3
-        2   B    9    9
-        0   A    2    0
-        1   A    1    1
-        3   NaN  8    4
+          col1  col2  col3 col4
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+        3  NaN     8     4    D
 
         Putting NAs first
 
         >>> df.sort_values(by='col1', ascending=False, na_position='first')
-            col1 col2 col3
-        3   NaN  8    4
-        4   D    7    2
-        5   C    4    3
-        2   B    9    9
-        0   A    2    0
-        1   A    1    1
+          col1  col2  col3 col4
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+
+        Sorting with a key function
+
+        >>> df.sort_values(by='col4', key=lambda col: col.str.lower())
+           col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
         """
         raise AbstractMethodError(self)
 
@@ -6671,9 +6701,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
@@ -8068,7 +8098,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.is_anchored() and hasattr(offset, "_inc"):
+        if isinstance(offset, Tick):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
@@ -9194,6 +9224,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if before is not None and after is not None:
             if before > after:
                 raise ValueError(f"Truncate: {after} must be after {before}")
+
+        if ax.is_monotonic_decreasing:
+            before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
@@ -11208,9 +11241,7 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
