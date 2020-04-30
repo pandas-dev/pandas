@@ -49,8 +49,6 @@ class BaseConstructorsTests(BaseExtensionTests):
         expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=dtype)
         self.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_with_one_element_index(self, data, dtype):
-        scalar = data[0]
         result = pd.Series(scalar, index=["foo"], dtype=dtype)
         expected = pd.Series([scalar], index=["foo"], dtype=dtype)
         self.assert_series_equal(result, expected)

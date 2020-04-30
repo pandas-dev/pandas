@@ -165,11 +165,6 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
         super().test_series_constructor_scalar_with_index(data, dtype)
 
-    @pytest.mark.xfail(reason="GH-26469")
-    def test_series_constructor_scalar_with_one_element_index(self, data, dtype):
-        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
-        super().test_series_constructor_scalar_with_one_element_index(data, dtype)
-
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.skip(reason="Different definitions of NA")
