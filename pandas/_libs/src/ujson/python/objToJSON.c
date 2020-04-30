@@ -279,7 +279,7 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
 }
 
 static int is_simple_frame(PyObject *obj) {
-    PyObject *check = get_sub_attr(obj, "_data", "is_mixed_type");
+    PyObject *check = get_sub_attr(obj, "_mgr", "is_mixed_type");
     int ret = (check == Py_False);
 
     if (!check) {
@@ -760,7 +760,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         goto BLKRET;
     }
 
-    blocks = get_sub_attr(obj, "_data", "blocks");
+    blocks = get_sub_attr(obj, "_mgr", "blocks");
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         goto BLKRET;

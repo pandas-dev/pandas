@@ -37,7 +37,9 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -46,7 +48,6 @@ from pandas.core.window.common import (
     calculate_center_offset,
     calculate_min_periods,
     get_weighted_roll_func,
-    validate_baseindexer_support,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -93,7 +94,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-        self._numba_func_cache: Dict[Optional[str], Callable] = dict()
 
     @property
     def _constructor(self):
@@ -252,7 +252,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = getattr(self._selected_obj, "values", self._selected_obj)
+            values = extract_array(self._selected_obj, extract_numpy=True)
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -392,12 +392,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self, window: int, func_name: Optional[str]) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support(func_name)
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -443,7 +442,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        window_indexer = self._get_window_indexer(window, name)
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -471,13 +470,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, BaseIndexer):
+                    if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
                     else:
                         min_periods = calculate_min_periods(
-                            self.min_periods or 1,
+                            window_indexer.window_size,
                             self.min_periods,
                             len(x),
                             require_min_periods,
@@ -505,7 +504,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                self._numba_func_cache[name] = func
+                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -900,6 +899,17 @@ class Window(_Window):
     3  2.0
     4  4.0
 
+    Same as above, but with forward-looking windows
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
+    4  4.0
+
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
@@ -1039,33 +1049,18 @@ class Window(_Window):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
-    >>> df.rolling(3, win_type='boxcar').agg('mean')
-              A         B         C
-    0       NaN       NaN       NaN
-    1       NaN       NaN       NaN
-    2 -0.885035  0.212600 -0.711689
-    3 -0.323928 -0.200122 -1.093408
-    4 -0.071445 -0.431533 -1.075833
-    5  0.504739  0.676083 -0.996353
-    6  0.358206  1.903256 -0.774200
-    7  0.906020  1.283573  0.085482
-    8 -0.096361  0.818139  0.472290
-    9  0.070889  0.134399 -0.031308
+    >>> df.rolling(2, win_type="boxcar").agg("mean")
+         A    B    C
+    0  NaN  NaN  NaN
+    1  1.5  4.5  7.5
+    2  2.5  5.5  8.5
     """
     )
 
@@ -1175,8 +1170,9 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("count")
+        # GH 32865. Using count with custom BaseIndexer subclass
+        # implementations shouldn't end up here
+        assert not isinstance(self.window, BaseIndexer)
 
         blocks, obj = self._create_blocks()
         results = []
@@ -1282,9 +1278,10 @@ class _Rolling_and_Expanding(_Rolling):
         elif engine == "numba":
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            if func in self._numba_func_cache:
+            cache_key = (func, "rolling_apply")
+            if cache_key in NUMBA_FUNC_CACHE:
                 # Return an already compiled version of roll_apply if available
-                apply_func = self._numba_func_cache[func]
+                apply_func = NUMBA_FUNC_CACHE[cache_key]
             else:
                 apply_func = generate_numba_apply_func(
                     args, kwargs, func, engine_kwargs
@@ -1301,6 +1298,7 @@ class _Rolling_and_Expanding(_Rolling):
             name=func,
             use_numba_cache=engine == "numba",
             raw=raw,
+            original_func=func,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1432,7 +1430,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
-        window_func = partial(window_func, win=self._get_window())
+        # GH 32865. Move max window size calculation to
+        # the median function implementation
         return self._apply(window_func, center=self.center, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):
@@ -1631,20 +1630,23 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("cov")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
-        # GH 16058: offset window
-        if self.is_freq_type:
-            window = self.win_freq
+        # GH 32865. We leverage rolling.mean, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
         else:
-            window = self._get_window(other)
+            # GH 16058: offset window
+            if self.is_freq_type:
+                window = self.win_freq
+            else:
+                window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1777,15 +1779,19 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("corr")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other) if not self.is_freq_type else self.win_freq
+
+        # GH 32865. We leverage rolling.cov and rolling.std here, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
+        else:
+            window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -1904,46 +1910,24 @@ class Rolling(_Rolling_and_Expanding):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
-    >>> df.rolling(3).sum()
-              A         B         C
-    0       NaN       NaN       NaN
-    1       NaN       NaN       NaN
-    2 -2.655105  0.637799 -2.135068
-    3 -0.971785 -0.600366 -3.280224
-    4 -0.214334 -1.294599 -3.227500
-    5  1.514216  2.028250 -2.989060
-    6  1.074618  5.709767 -2.322600
-    7  2.718061  3.850718  0.256446
-    8 -0.289082  2.454418  1.416871
-    9  0.212668  0.403198 -0.093924
+    >>> df.rolling(2).sum()
+         A     B     C
+    0  NaN   NaN   NaN
+    1  3.0   9.0  15.0
+    2  5.0  11.0  17.0
 
-    >>> df.rolling(3).agg({'A':'sum', 'B':'min'})
-              A         B
-    0       NaN       NaN
-    1       NaN       NaN
-    2 -2.655105 -0.165272
-    3 -0.971785 -1.340923
-    4 -0.214334 -1.340923
-    5  1.514216 -1.340923
-    6  1.074618  0.211596
-    7  2.718061 -1.647453
-    8 -0.289082 -1.647453
-    9  0.212668 -1.647453
+    >>> df.rolling(2).agg({"A": "sum", "B": "min"})
+         A    B
+    0  NaN  NaN
+    1  3.0  4.0
+    2  5.0  5.0
     """
     )
 
@@ -1965,7 +1949,9 @@ class Rolling(_Rolling_and_Expanding):
     def count(self):
 
         # different impl for freq counting
-        if self.is_freq_type:
+        # GH 32865. Use a custom count function implementation
+        # when using a BaseIndexer subclass as a window
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
             return self._apply(window_func, center=self.center, name="count")
 

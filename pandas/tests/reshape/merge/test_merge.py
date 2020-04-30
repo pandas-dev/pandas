@@ -1364,7 +1364,7 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
-        data1._data.blocks[0].values.flags.writeable = False
+        data1._mgr.blocks[0].values.flags.writeable = False
         data1.merge(data2)  # no error
 
 
@@ -2021,6 +2021,36 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     tm.assert_frame_equal(result, expected)
 
     result = pd.merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how,expected",
+    [
+        (
+            "right",
+            DataFrame(
+                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
+            ),
+        ),
+        (
+            "outer",
+            DataFrame(
+                {
+                    "A": [100, 200, 1, 300],
+                    "B1": [60, 70, 80, np.nan],
+                    "B2": [600, 700, np.nan, 800],
+                }
+            ),
+        ),
+    ],
+)
+def test_merge_duplicate_suffix(how, expected):
+    left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
+    right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
+    result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    expected.columns = ["A", "B_x", "B_x"]
+
     tm.assert_frame_equal(result, expected)
 
 

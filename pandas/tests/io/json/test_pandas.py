@@ -15,6 +15,16 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
 import pandas._testing as tm
 
+_seriesd = tm.getSeriesData()
+
+_frame = DataFrame(_seriesd)
+
+_cat_frame = _frame.copy()
+cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
+_cat_frame.index = pd.CategoricalIndex(cat, name="E")
+_cat_frame["E"] = list(reversed(cat))
+_cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
+
 
 def assert_json_roundtrip_equal(result, expected, orient):
     if orient == "records" or orient == "values":
@@ -26,6 +36,29 @@ def assert_json_roundtrip_equal(result, expected, orient):
 
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.categorical = _cat_frame.copy()
+
+        yield
+
+    @pytest.fixture
+    def datetime_series(self):
+        # Same as usual datetime_series, but with index freq set to None,
+        #  since that doesnt round-trip, see GH#33711
+        ser = tm.makeTimeSeries()
+        ser.name = "ts"
+        ser.index = ser.index._with_freq(None)
+        return ser
+
+    @pytest.fixture
+    def datetime_frame(self):
+        # Same as usual datetime_frame, but with index freq set to None,
+        #  since that doesnt round-trip, see GH#33711
+        df = DataFrame(tm.getTimeSeriesData())
+        df.index = df.index._with_freq(None)
+        return df
+
     def test_frame_double_encoded_labels(self, orient):
         df = DataFrame(
             [["a", "b"], ["c", "d"]],
@@ -167,21 +200,25 @@ class TestPandasContainer:
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_categorical(self, orient, convert_axes, numpy):
-        cats = ["a", "b"]
-        df = pd.DataFrame(
-            pd.Categorical(cats), index=pd.CategoricalIndex(cats), columns=["cat"]
-        )
+        # TODO: create a better frame to test with and improve coverage
+        if orient in ("index", "columns"):
+            pytest.xfail(f"Can't have duplicate index values for orient '{orient}')")
 
-        data = df.to_json(orient=orient)
-        if numpy and orient != "split":
+        data = self.categorical.to_json(orient=orient)
+        if numpy and orient in ("records", "values"):
             pytest.xfail(f"Orient {orient} is broken with numpy=True")
 
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
         )
 
-        # Categorical dtypes are not preserved on round trip
-        expected = pd.DataFrame(cats, index=cats, columns=["cat"])
+        expected = self.categorical.copy()
+        expected.index = expected.index.astype(str)  # Categorical not preserved
+        expected.index.name = None  # index names aren't preserved in JSON
+
+        if not numpy and orient == "index":
+            expected = expected.sort_index()
+
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
@@ -396,6 +433,9 @@ class TestPandasContainer:
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
+        dti = pd.date_range("2000-01-03", "2000-01-07")
+        # freq doesnt roundtrip
+        dti = pd.DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -405,7 +445,7 @@ class TestPandasContainer:
                 [0.05951614, -2.69652057, 1.28163262, 0.34703478],
             ],
             columns=["A", "B", "C", "D"],
-            index=pd.date_range("2000-01-03", "2000-01-07"),
+            index=dti,
         )
         df["date"] = pd.Timestamp("19920106 18:21:32.12")
         df.iloc[3, df.columns.get_loc("date")] = pd.Timestamp("20130101")
@@ -424,6 +464,9 @@ class TestPandasContainer:
 
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(list(index), freq=None)
+
         df_mixed = DataFrame(
             OrderedDict(
                 float_1=[
@@ -1639,3 +1682,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 31615
         result = pd.DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
+
+    def test_readjson_bool_series(self):
+        # GH31464
+        result = read_json("[true, true, false]", typ="series")
+        expected = pd.Series([True, True, False])
+        tm.assert_series_equal(result, expected)

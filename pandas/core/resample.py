@@ -17,7 +17,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
 from pandas.core.base import DataError, ShallowMixin
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
@@ -323,7 +323,7 @@ class Resampler(_GroupBy, ShallowMixin):
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -466,8 +466,6 @@ class Resampler(_GroupBy, ShallowMixin):
         ----------
         limit : int, optional
             Limit of how many values to fill.
-
-            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -775,7 +773,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         return self._upsample(method, limit=limit)
 
-    @Appender(_shared_docs["interpolate"] % _shared_docs_kwargs)
+    @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
         method="linear",
@@ -1019,7 +1017,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index._set_freq(self.freq)
+            obj.index = obj.index._with_freq(self.freq)
+            assert obj.index.freq == self.freq, (obj.index.freq, self.freq)
             return obj
 
         # do we have a regular frequency
@@ -1604,7 +1603,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         return obj._constructor(
-            obj._data.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
+            obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         )
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")

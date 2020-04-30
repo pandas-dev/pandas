@@ -75,3 +75,13 @@ Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
+
+# used in decorators to preserve the signature of the function it decorates
+# see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
+
+# types of vectorized key functions for DataFrame::sort_values and
+# DataFrame::sort_index, among others
+ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
+IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]

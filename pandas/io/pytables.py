@@ -230,7 +230,7 @@ def to_hdf(
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
     nan_rep=None,
     dropna: Optional[bool] = None,
-    data_columns: Optional[List[str]] = None,
+    data_columns: Optional[Union[bool, List[str]]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ):
@@ -306,9 +306,6 @@ def read_hdf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-
-        .. versionadded:: 0.21.0 support for __fspath__ protocol.
-
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -390,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
@@ -1462,8 +1462,6 @@ class HDFStore:
         """
         Print detailed information on the store.
 
-        .. versionadded:: 0.21.0
-
         Returns
         -------
         str
@@ -1921,9 +1919,7 @@ class IndexCol:
         if not hasattr(self.table, "cols"):
             # e.g. if infer hasn't been called yet, self.table will be None.
             return False
-        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
-        #  'error: "None" has no attribute "cols"'
-        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
+        return getattr(self.table.cols, self.cname).is_indexed
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
@@ -3065,7 +3061,7 @@ class BlockManagerFixed(GenericFixed):
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
-        data = obj._data
+        data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
 
@@ -3716,7 +3712,7 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        axis_name = obj._AXIS_NAMES[idx]
+        axis_name = obj._get_axis_name(idx)
         new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
@@ -3860,18 +3856,18 @@ class Table(Fixed):
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
+        blocks = block_obj._mgr.blocks
+        blk_items = get_blk_items(block_obj._mgr, blocks)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
+            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr, blocks)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
+                mgr = block_obj.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
@@ -3923,7 +3919,7 @@ class Table(Fixed):
 
                 def process_filter(field, filt):
 
-                    for axis_name in obj._AXIS_NAMES.values():
+                    for axis_name in obj._AXIS_ORDERS:
                         axis_number = obj._get_axis_number(axis_name)
                         axis_values = obj._get_axis(axis_name)
                         assert axis_number is not None

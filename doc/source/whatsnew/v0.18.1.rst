@@ -380,7 +380,7 @@ New behavior:
 
 .. _whatsnew_0181.numpy_compatibility:
 
-numpy function compatibility
+NumPy function compatibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Compatibility between pandas array-like methods (e.g. ``sum`` and ``take``) and their ``numpy``
