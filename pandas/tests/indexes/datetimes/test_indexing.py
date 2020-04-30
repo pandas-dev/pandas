@@ -518,6 +518,21 @@ class TestContains:
         ix = DatetimeIndex([d, d])
         assert d in ix
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["2015", "2015", "2016"],
+            ["2015", "2015", "2014"],
+        ],
+    )
+    def test_contains_nonunique(self, vals):
+        # GH#9512
+        idx = DatetimeIndex(vals)
+        assert idx[0] in idx
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
