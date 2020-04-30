@@ -84,6 +84,15 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        if all_arithmetic_operators in self.implements:
+            df = pd.DataFrame({"A": data})
+            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
+        else:
+            # ... but not the rest.
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # we implement substitution...
         if all_arithmetic_operators in self.implements:
