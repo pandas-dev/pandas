@@ -699,8 +699,6 @@ class DatetimeLikeArrayMixin(
 
     @Appender(ExtensionArray.shift.__doc__)
     def shift(self, periods=1, fill_value=None, axis=0):
-        if not self.size or periods == 0:
-            return self.copy()
 
         fill_value = self._validate_shift_value(fill_value)
         new_values = shift(self._data, periods, axis, fill_value)
@@ -745,7 +743,9 @@ class DatetimeLikeArrayMixin(
         # TODO(2.0): once this deprecation is enforced, used _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
-        elif not isinstance(fill_value, self._recognized_scalars):
+        elif isinstance(fill_value, self._recognized_scalars):
+            fill_value = self._scalar_type(fill_value)
+        else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
