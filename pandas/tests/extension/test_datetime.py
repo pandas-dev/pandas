@@ -87,6 +87,11 @@ class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
         # TypeError: data type not understood
         super().test_series_constructor_scalar_with_index(data)
 
+    @pytest.mark.xfail(reason="GH-26469")
+    def test_series_constructor_scalar_with_one_element_index(self, data):
+        # TypeError: data type not understood
+        super().test_series_constructor_scalar_with_one_element_index(data)
+
 
 class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
     pass
