@@ -1285,7 +1285,7 @@ class DataFrame(NDFrame):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self, dtype=None, copy: bool = False, na_value=lib.no_default, **kwargs
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
@@ -1343,10 +1343,11 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy)
-
-        if na_value is not lib.no_default:
-            result[isna(result)] = na_value
+        arr = [
+            self[c].to_numpy(dtype=dtype, na_value=na_value, **kwargs)
+            for c in self.columns
+        ]
+        result = np.array(arr).T
 
         return result
 
