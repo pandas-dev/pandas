@@ -1420,7 +1420,7 @@ Convert to an xarray DataArray
 
 .. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
 
-Deprecate GroupBy.agg() with a dictionary when renaming
+Deprecate groupby.agg() with a dictionary when renaming
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
