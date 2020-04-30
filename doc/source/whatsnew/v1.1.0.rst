@@ -36,6 +36,8 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_110.dataframe_or_series_comparing:
+
 Comparing two `DataFrame` or two `Series` and summarizing the differences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
