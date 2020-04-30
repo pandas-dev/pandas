@@ -519,13 +519,14 @@ class TestGetLoc:
         result = index.get_loc(2)
         expected = slice(0, 4)
         assert result == expected
-        # FIXME: dont leave commented-out
-        # pytest.raises(Exception, index.get_loc, 2)
 
         index = Index(["c", "a", "a", "b", "b"])
         rs = index.get_loc("c")
         xp = 0
         assert rs == xp
+
+        with pytest.raises(KeyError):
+            index.get_loc(2)
 
     def test_get_loc_level(self):
         index = MultiIndex(

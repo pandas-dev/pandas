@@ -356,7 +356,5 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 
-# FIXME: dont leave commented-out
-# TODO parsing not yet supported
-# class TestParsing(base.BaseParsingTests):
-#     pass
+class TestParsing(base.BaseParsingTests):
+    pass
