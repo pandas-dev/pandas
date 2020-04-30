@@ -198,11 +198,8 @@ def test_inconsistent_return_type():
 @pytest.mark.parametrize(
     "obj",
     [
-        tm.SubclassedDataFrame(
-            dict(A=[0, 0, 0, 1, 1, 1], B=range(6)),
-            index=["A", "B", "C", "D", "E", "F"]),
-        tm.SubclassedSeries([0, 0, 0, 1, 1, 1],
-                            index=["A", "B", "C", "D", "E", "F"]),
+        tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
+        tm.SubclassedSeries(np.arange(0, 10), name="A")
     ],
 )
 def test_groupby_preserves_subclass(obj, groupby_func):
@@ -211,7 +208,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip("Not applicable")
     
-    grouped = obj.groupby(np.repeat([0, 1], 3))
+    grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
