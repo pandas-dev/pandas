@@ -1,6 +1,6 @@
 from datetime import timedelta
 import operator
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Type, Union
 
 import numpy as np
 
@@ -20,6 +20,7 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr,
 )
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -172,8 +173,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls,
-        scalars: Sequence[Optional[Period]],
+        cls: Type["PeriodArray"],
+        scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         dtype: Optional[PeriodDtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
@@ -186,7 +187,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            assert isinstance(scalars, PeriodArray)  # for mypy
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
@@ -772,7 +772,7 @@ def raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Optional[Period]],
+    data: Union[Sequence[Optional[Period]], AnyArrayLike],
     freq: Optional[Union[str, Tick]] = None,
     copy: bool = False,
 ) -> PeriodArray:

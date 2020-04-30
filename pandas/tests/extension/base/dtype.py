@@ -75,7 +75,7 @@ class BaseDtypeTests(BaseExtensionTests):
         else:
             expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
-        # XXX: This should probably be *fixed* not ignored.
+        # FIXME: This should probably be *fixed* not ignored.
         # See libops.scalar_compare
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)

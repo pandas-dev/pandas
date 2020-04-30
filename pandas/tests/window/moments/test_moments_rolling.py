@@ -1013,55 +1013,17 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                 ),
             )
 
-            self._test_moments_consistency(
-                min_periods=min_periods,
-                count=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).count()
-                ),
-                mean=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).mean()
-                ),
-                corr=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).corr(y)
-                ),
-                var_unbiased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var()
-                ),
-                std_unbiased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).std()
-                ),
-                cov_unbiased=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).cov(y)
-                ),
-                var_biased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var(ddof=0)
-                ),
-                std_biased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).std(ddof=0)
-                ),
-                cov_biased=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).cov(y, ddof=0)
-                ),
-            )
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_apply_consistency(self, window, min_periods, center):
 
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*(empty slice|0 for slice).*",
+                category=RuntimeWarning,
+            )
             # test consistency between rolling_xyz() and either (a)
             # rolling_apply of Series.xyz(), or (b) rolling_apply of
             # np.nanxyz()
@@ -1103,6 +1065,111 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                     # GH 9422
                     if name in ["sum", "prod"]:
                         tm.assert_equal(rolling_f_result, rolling_apply_f_result)
+
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_consistency_var(self, window, min_periods, center):
+        self._test_moments_consistency_var_data(
+            min_periods,
+            count=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).count()
+            ),
+            mean=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).mean()
+            ),
+            var_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var()
+            ),
+            var_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var(
+                    ddof=0
+                )
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_consistency_std(self, window, min_periods, center):
+        self._test_moments_consistency_std_data(
+            var_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var()
+            ),
+            std_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).std()
+            ),
+            var_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var(
+                    ddof=0
+                )
+            ),
+            std_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).std(
+                    ddof=0
+                )
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_consistency_cov(self, window, min_periods, center):
+        self._test_moments_consistency_cov_data(
+            var_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var()
+            ),
+            cov_unbiased=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
+            ),
+            var_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var(
+                    ddof=0
+                )
+            ),
+            cov_biased=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).cov(
+                    y, ddof=0
+                )
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        "window,min_periods,center", list(_rolling_consistency_cases())
+    )
+    def test_rolling_consistency_series(self, window, min_periods, center):
+        self._test_moments_consistency_series_data(
+            mean=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).mean()
+            ),
+            corr=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).corr(y)
+            ),
+            var_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var()
+            ),
+            std_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).std()
+            ),
+            cov_unbiased=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
+            ),
+            var_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var(
+                    ddof=0
+                )
+            ),
+            std_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).std(
+                    ddof=0
+                )
+            ),
+            cov_biased=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).cov(
+                    y, ddof=0
+                )
+            ),
+        )
 
     # binary moments
     def test_rolling_cov(self):

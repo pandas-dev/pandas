@@ -244,7 +244,9 @@ class SeriesGroupBy(GroupBy[Series]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None
         columns = None
@@ -272,11 +274,16 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             try:
-                return self._python_agg_general(func, *args, **kwargs)
+                return self._python_agg_general(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
             except (ValueError, KeyError):
+                # Do not catch Numba errors here, we want to raise and not fall back.
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -340,7 +347,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -941,7 +948,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func=None, *args, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -961,6 +970,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = maybe_mangle_lambdas(func)
+
+        if engine == "numba":
+            return self._python_agg_general(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
@@ -1115,6 +1129,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # e.g. block.values was an IntegerArray
                     # (1, N) case can occur if block.values was Categorical
                     #  and result is ndarray[object]
+                    # TODO(EA2D): special casing not needed with 2D EAs
                     assert result.ndim == 1 or result.shape[0] == 1
                     try:
                         # Cast back if feasible

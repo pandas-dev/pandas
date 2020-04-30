@@ -178,6 +178,7 @@ def concat_categorical(to_concat, axis: int = 0):
     ]
     result = concat_compat(to_concat)
     if axis == 1:
+        # TODO(EA2D): not necessary with 2D EAs
         result = result.reshape(1, len(result))
     return result
 
