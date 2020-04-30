@@ -232,13 +232,9 @@ class MPLPlot:
                     )
 
     @staticmethod
-    def _color_in_style(style):
+    def _color_in_style(style: str) -> bool:
         """
-        Is there a color letter in the style string?
-
-        Returns
-        -------
-        bool
+        Check if there is a color letter in the style string.
         """
         from matplotlib.colors import BASE_COLORS
 

@@ -589,11 +589,11 @@ I/O
 Plotting
 ^^^^^^^^
 
-- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
+- :func:`.plot` for line/bar now accepts color by dictionary (:issue:`8193`).
 - Bug in :meth:`DataFrame.plot.hist` where weights are not working for multiple columns (:issue:`33173`)
 - Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
-- Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
-- Bug in :meth:`DataFrame.plot` where valid style kwds were rejected (:issue:`21003`)
+- Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars always use the first ``cmap`` (:issue:`33389`)
+- Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 
 
 Groupby/resample/rolling

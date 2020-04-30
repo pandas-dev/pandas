@@ -205,21 +205,22 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
     def test_color_and_marker(self):
-        # GH21003 2018-05-10
+        # GH21003 - code sample from 2018-05-10 is equivalent to this test
         df = DataFrame(np.random.random((7, 4)))
         # combining a color string and a marker letter should be allowed
         df.plot(color="green", style="d")  # d for diamond
 
     def test_color_list_and_marker(self):
-        # GH21003 2018-04-23
+        # GH21003 - code sample from 2020-04-23 is equivalent to this test
         df = DataFrame(np.random.random((7, 4)))
         # combining a color list and a marker letter should be allowed
         color = ["yellow", "red", "green", "blue"]
         ax = df.plot(color=color, style="d")
         output_colors = [line.get_color() for line in ax.lines]
         assert output_colors == color  # each "line" is one of the four colors
-        # In the Github bug the color list was passed to MPL like this:
+        # Before this patch was introduced, the result was like this:
         # ax.lines[i].get_color() == ['yellow', 'red', 'green', 'blue']
+        # which resulted in a ValueError when plt.draw() was called.
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
