@@ -1287,7 +1287,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         **kwargs, dtype_if_empty=object
                     )
                 else:
-                    backup = first_not_none._constructor(**kwargs)
+                    backup = first_not_none._constructor(**kwargs, dtype=object)
 
                 values = [x if (x is not None) else backup for x in values]
 
