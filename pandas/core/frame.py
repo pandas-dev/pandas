@@ -7204,6 +7204,14 @@ Wild         185.0
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
+        Notes
+        -----
+        In the current implementation apply calls `func` twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if `func` has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
         Examples
         --------
         >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])
