@@ -732,7 +732,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
-- Fixed bug in :class:`Series` construction with EA dtype and index but no data fails (:issue:`26469`)
+- Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 
 
 Other
