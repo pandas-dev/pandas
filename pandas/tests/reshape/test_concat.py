@@ -2802,3 +2802,17 @@ def test_concat_multiindex_datetime_object_index():
     )
     result = concat([s, s2], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
+        tm.SubclassedSeries(np.arange(0, 10), name="A"),
+    ],
+)
+def test_concat_preserves_subclass(obj):
+    # GH28330 -- preserve subclass
+
+    result = concat([obj, obj])
+    assert isinstance(result, type(obj))
