@@ -423,19 +423,38 @@ class BaseMethodsTests(BaseExtensionTests):
                 data.repeat(repeats, **kwargs)
 
     def test_equals(self, data, na_value):
-        cls = type(data)
-        ser = pd.Series(cls._from_sequence(data, dtype=data.dtype))
-        smaller_ser = pd.Series(cls._from_sequence(data[:5], dtype=data.dtype))
-        na_ser = pd.Series(cls._from_sequence([na_value], dtype=data.dtype))
+        data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
+        data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
 
-        assert data.equals(data)
-        assert ser.equals(ser)
-        assert na_ser.equals(na_ser)
+        assert data.equals(data) is True
+        assert data.equals(data.copy()) is True
 
-        assert not data.equals(na_value)
-        assert not na_ser.equals(ser)
-        assert not ser.equals(na_ser)
-        assert not ser.equals(smaller_ser)
-        assert not ser.equals(np.asarray(data))
-        assert not ser.equals(0)
-        assert not na_ser.equals(0)
+        # other data
+        assert data.equals(data2) is False
+        assert data.equals(data_na) is False
+
+        # different length
+        assert data[:2].equals(data[:3]) is False
+
+        # emtpy are equal
+        assert data[:0].equals(data[:0]) is True
+
+        # other types
+        assert data.equals(None) is False
+        assert data[[0]].equals(data[0]) is False
+
+        # TODO test series
+        # ser = pd.Series(data)
+        # smaller_ser = pd.Series(data[:5])
+        # na_ser = pd.Series(type(data)._from_sequence([na_value], dtype=data.dtype))
+
+        # assert ser.equals(ser)
+        # assert na_ser.equals(na_ser)
+
+        # assert not data.equals(na_value)
+        # assert not na_ser.equals(ser)
+        # assert not ser.equals(na_ser)
+        # assert not ser.equals(smaller_ser)
+        # assert not ser.equals(np.asarray(data))
+        # assert not ser.equals(0)
+        # assert not na_ser.equals(0)

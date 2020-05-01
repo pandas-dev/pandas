@@ -711,11 +711,17 @@ class ExtensionArray:
             Whether the arrays are equivalent.
 
         """
-        return (
-            type(self) == type(other)
-            and (((self == other) | (self.isna() == other.isna())).all())
-            and len(self) == len(other)
-        )
+        if not type(self) == type(other):
+            return False
+        elif not len(self) == len(other):
+            return False
+        else:
+            equal_values = self == other
+            if isinstance(equal_values, ExtensionArray):
+                # boolean array with NA -> fill with False
+                equal_values = equal_values.fillna(False)
+            equal_na = self.isna() & other.isna()
+            return (equal_values | equal_na).all().item()
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
@@ -1164,7 +1170,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True):
+    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the
@@ -1232,7 +1238,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
                 else:
-                    res = np.asarray(arr)
+                    res = np.asarray(arr, dtype=result_dtype)
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
@@ -1250,4 +1256,4 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        return cls._create_method(op, coerce_to_dtype=False)
+        return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)

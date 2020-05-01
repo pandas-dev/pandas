@@ -247,6 +247,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
 
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_equals(self, data, na_value):
+        pass
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
     @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
