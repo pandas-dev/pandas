@@ -699,8 +699,6 @@ class DatetimeLikeArrayMixin(
 
     @Appender(ExtensionArray.shift.__doc__)
     def shift(self, periods=1, fill_value=None, axis=0):
-        if not self.size or periods == 0:
-            return self.copy()
 
         fill_value = self._validate_shift_value(fill_value)
         new_values = shift(self._data, periods, axis, fill_value)
@@ -742,10 +740,12 @@ class DatetimeLikeArrayMixin(
         return fill_value
 
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, used _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
-        elif not isinstance(fill_value, self._recognized_scalars):
+        elif isinstance(fill_value, self._recognized_scalars):
+            fill_value = self._scalar_type(fill_value)
+        else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
@@ -782,6 +782,9 @@ class DatetimeLikeArrayMixin(
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
+        elif isinstance(value, type(self)):
+            pass
+
         elif is_list_like(value) and not isinstance(value, type(self)):
             value = array(value)
 
@@ -791,7 +794,7 @@ class DatetimeLikeArrayMixin(
                     f"not {type(value).__name__}"
                 )
 
-        if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
+        else:
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
 
         if isinstance(value, type(self)):
@@ -803,24 +806,40 @@ class DatetimeLikeArrayMixin(
         return value
 
     def _validate_setitem_value(self, value):
-        if lib.is_scalar(value) and not isna(value):
-            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
-            value = type(self)._from_sequence(value, dtype=self.dtype)
-            self._check_compatible_with(value, setitem=True)
-            value = value.asi8
-        elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value, setitem=True)
-            value = self._unbox_scalar(value)
+            value = array(value)
+            if is_dtype_equal(value.dtype, "string"):
+                # We got a StringArray
+                try:
+                    # TODO: Could use from_sequence_of_strings if implemented
+                    # Note: passing dtype is necessary for PeriodArray tests
+                    value = type(self)._from_sequence(value, dtype=self.dtype)
+                except ValueError:
+                    pass
+
+            if not type(self)._is_recognized_dtype(value):
+                raise TypeError(
+                    "setitem requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+
+        elif isinstance(value, self._recognized_scalars):
+            value = self._scalar_type(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
-            value = iNaT
+            value = NaT
         else:
             msg = (
                 f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
                 f"or array of those. Got '{type(value).__name__}' instead."
             )
             raise TypeError(msg)
+
+        self._check_compatible_with(value, setitem=True)
+        if isinstance(value, type(self)):
+            value = value.asi8
+        else:
+            value = self._unbox_scalar(value)
 
         return value
 
