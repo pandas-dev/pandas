@@ -60,16 +60,13 @@ _POSSIBLY_CAST_DTYPES = {
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
-_INT64_DTYPE = np.dtype(np.int64)
+INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
-
-_ensure_datetime64ns = conversion.ensure_datetime64ns
-_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def ensure_float(arr):

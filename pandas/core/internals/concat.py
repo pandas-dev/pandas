@@ -219,6 +219,7 @@ class JoinUnit:
         elif is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
+            # TODO(EA2D): no need for special case with 2D EAs
             values_flat = values
         else:
             values_flat = values.ravel(order="K")
@@ -252,6 +253,7 @@ class JoinUnit:
                 ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
+                        # TODO(EA2D): special case unneeded with 2D EAs
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
