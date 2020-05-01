@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 
+from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -23,7 +24,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 
@@ -104,7 +105,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        column=None,
+        column: Optional[Label] = None,
         **kwds,
     ):
 
@@ -251,8 +252,8 @@ class MPLPlot:
 
     @staticmethod
     def _create_iter_data_given_by(
-        data: ABCDataFrame, by: Optional[list]
-    ) -> Union[ABCDataFrame, Dict[str, Union[ABCDataFrame, ABCSeries]]]:
+        data: DataFrame, by: Optional[list]
+    ) -> Union[DataFrame, Dict[str, Union[DataFrame, Series]]]:
         """
         Create data for iteration given `by` is assigned or not, and it is only
         used in both hist and boxplot.
@@ -432,7 +433,7 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
-    def _reconstruct_data_with_by(self, data: ABCDataFrame) -> ABCDataFrame:
+    def _reconstruct_data_with_by(self, data: DataFrame) -> DataFrame:
         """
         Internal function to group data, and reassign multiindex column names onto the
         result in order to let grouped data be used in _compute_plot_data method.
