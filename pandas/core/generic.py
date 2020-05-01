@@ -39,8 +39,8 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
-    TimedeltaCompatibleTypes,
-    TimestampCompatibleTypes,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
 )
 from pandas.compat import set_function_name
@@ -7765,8 +7765,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Union[str, TimestampCompatibleTypes] = "start_day",
-        offset: Optional[TimedeltaCompatibleTypes] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> "Resampler":
         """
         Resample time-series data.

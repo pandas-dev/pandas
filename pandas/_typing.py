@@ -44,12 +44,12 @@ DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timed
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
-# timestamp and timedelta compatible types
+# timestamp and timedelta convertible types
 
-TimestampCompatibleTypes = Union[
+TimestampConvertibleTypes = Union[
     "Timestamp", datetime, np.datetime64, int, np.int64, float, str
 ]
-TimedeltaCompatibleTypes = Union[
+TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
 ]
 

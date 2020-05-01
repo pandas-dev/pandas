@@ -9,7 +9,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas._typing import TimedeltaCompatibleTypes, TimestampCompatibleTypes
+from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
@@ -1317,8 +1317,8 @@ class TimeGrouper(Grouper):
         kind: Optional[str] = None,
         convention: Optional[str] = None,
         base: Optional[int] = None,
-        origin: Union[str, TimestampCompatibleTypes] = "start_day",
-        offset: Optional[TimedeltaCompatibleTypes] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
