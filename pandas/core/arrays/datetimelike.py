@@ -454,6 +454,8 @@ class DatetimeLikeArrayMixin(
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
+    # TODO: make this a cache_readonly; need to get around _index_data
+    #  kludge in libreduction
     @property
     def _ndarray(self) -> np.ndarray:
         # NB: A bunch of Interval tests fail if we use ._data
@@ -525,6 +527,13 @@ class DatetimeLikeArrayMixin(
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
+
+        if lib.is_integer(key):
+            # fast-path
+            result = self._data[key]
+            if self.ndim == 1:
+                return self._box_func(result)
+            return self._simple_new(result, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
             # first convert to boolean, because check_array_indexer doesn't

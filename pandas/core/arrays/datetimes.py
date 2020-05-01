@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
 )
 import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -475,7 +476,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    @property
+    @cache_readonly
     def _box_func(self):
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
