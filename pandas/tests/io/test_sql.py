@@ -1130,8 +1130,6 @@ class _EngineToConnMixin:
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        # XXX:
-        # super().teardown_method(method)
 
 
 @pytest.mark.single
@@ -1491,7 +1489,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
-        dates = date_range("2018-01-01", periods=5, freq="6H")
+        dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
         expected.to_sql("foo_table", self.conn, index_label="info_date")
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")

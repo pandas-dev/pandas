@@ -194,6 +194,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         pass
 
     @unhashable
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
@@ -205,12 +209,16 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
-        super().test_sort_values(data_for_sorting, ascending)
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super().test_sort_values_missing(data_missing_for_sorting, ascending)
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        super().test_sort_values_missing(
+            data_missing_for_sorting, ascending, sort_by_key
+        )
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):

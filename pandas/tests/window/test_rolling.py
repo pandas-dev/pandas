@@ -7,7 +7,7 @@ from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
@@ -436,7 +436,9 @@ def test_rolling_window_as_string():
         + [95.0] * 20
     )
 
-    expected = Series(expData, index=Index(days, name="DateCol"), name="metric")
+    expected = Series(
+        expData, index=days.rename("DateCol")._with_freq(None), name="metric"
+    )
     tm.assert_series_equal(result, expected)
 
 
