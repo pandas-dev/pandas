@@ -2115,7 +2115,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             cumcounts = self._cumcount_array(ascending=ascending)
             return Series(cumcounts, index)
 
-
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def rank(
