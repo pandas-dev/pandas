@@ -487,6 +487,7 @@ Deprecations
   arguments (:issue:`27573`).
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
+- :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
 
 .. ---------------------------------------------------------------------------
 
