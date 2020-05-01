@@ -1356,18 +1356,31 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in {"epoch", "start_day", "start"}:
+        if origin in {"epoch", "start", "start_day"}:
             self.origin = origin
         else:
-            self.origin = Timestamp(origin)
-        self.offset = Timedelta(offset) if offset is not None else None
+            try:
+                self.origin = Timestamp(origin)
+            except Exception as e:
+                raise ValueError(
+                    "'origin' should be equal to 'epoch', 'start', 'start_day' or "
+                    f"should be a Timestamp convertible type. Got '{origin}' instead."
+                ) from e
+
+        try:
+            self.offset = Timedelta(offset) if offset is not None else None
+        except Exception as e:
+            raise ValueError(
+                "'offset' should be a Timedelta convertible type. "
+                f"Got '{offset}' instead."
+            ) from e
 
         # always sort time groupers
         kwargs["sort"] = True
 
         # Handle deprecated arguments since v1.1.0 of `base` and `loffset` (GH #31809)
         if base is not None and offset is not None:
-            raise ValueError("`offset` and `base` cannot be present at the same time")
+            raise ValueError("'offset' and 'base' cannot be present at the same time")
 
         if base and isinstance(freq, Tick):
             # this conversion handle the default behavior of base and the
@@ -1584,8 +1597,8 @@ class TimeGrouper(Grouper):
         bin_shift = 0
 
         if isinstance(self.freq, Tick):
-            # GH 23882 & 31809: get adjusted bin edge labels with `origin`
-            # and `origin` support. This call only makes sense if the freq is a
+            # GH 23882 & 31809: get adjusted bin edge labels with 'origin'
+            # and 'origin' support. This call only makes sense if the freq is a
             # Tick since offset and origin are only used in those cases.
             # Not doing this check could create an extra empty bin.
             p_start, end = _get_period_range_edges(

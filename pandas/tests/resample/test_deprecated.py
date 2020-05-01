@@ -55,6 +55,9 @@ def test_deprecating_on_loffset_and_base():
         df.resample("3T", base=0).sum()
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", loffset="0s").sum()
+    msg = "'offset' and 'base' cannot be present at the same time"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("a").resample("3T", base=0, offset=0).sum()
 
 
 @all_ts
@@ -228,7 +231,7 @@ def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, off
         result = s.resample(end_freq, base=base).mean()
     result = result.to_timestamp(end_freq)
 
-    # test that the replacement argument `offset` works
+    # test that the replacement argument 'offset' works
     result_offset = s.resample(end_freq, offset=offset).mean()
     result_offset = result_offset.to_timestamp(end_freq)
     tm.assert_series_equal(result, result_offset)
