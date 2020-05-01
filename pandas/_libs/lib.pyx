@@ -221,7 +221,7 @@ def is_iterator(obj: object) -> bool:
     return PyIter_Check(obj)
 
 
-cpdef object item_from_zerodim(object val):
+def item_from_zerodim(val: object) -> object:
     """
     If the value is a zerodim array, return the item it contains.
 
@@ -589,7 +589,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
             # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are change dto match datetime, see GH#28507
+            #  comparisons are changed to match datetime, see GH#28507
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
@@ -2344,8 +2344,9 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
         else:
             val = f(arr[i])
 
-            # unbox 0-dim arrays, GH#690
-            val = item_from_zerodim(val)
+            if cnp.PyArray_IsZeroDim(val):
+                # unbox 0-dim arrays, GH#690
+                val = val.item()
 
         result[i] = val
 
@@ -2383,8 +2384,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     for i in range(n):
         val = f(arr[i])
 
-        # unbox 0-dim arrays, GH#690
-        val = item_from_zerodim(val)
+        if cnp.PyArray_IsZeroDim(val):
+            # unbox 0-dim arrays, GH#690
+            val = val.item()
 
         result[i] = val
 
