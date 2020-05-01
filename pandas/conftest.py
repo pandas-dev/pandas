@@ -297,6 +297,10 @@ def index_or_series(request):
     return request.param
 
 
+# Generate cartesian product of index_or_series fixture:
+index_or_series2 = index_or_series
+
+
 @pytest.fixture
 def dict_subclass():
     """
