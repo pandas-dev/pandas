@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Special build for python3.8 until numpy puts its own wheels up
+# Special build for python3.9 until numpy puts its own wheels up
 
 sudo apt-get install build-essential gcc xvfb
 pip install --no-deps -U pip wheel setuptools
@@ -21,6 +21,3 @@ python -m pip install --no-build-isolation -e .
 python -c "import sys; print(sys.version_info)"
 python -c "import pandas as pd"
 python -c "import hypothesis"
-
-# TODO: Is there anything else in setup_env that we really want to do?
-# ci/setup_env.sh
