@@ -16,7 +16,6 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
-    _is_numpy_dev,
     date_range,
     isna,
 )
@@ -698,11 +697,6 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummin(numpy_dtypes_for_minmax):
     dtype = numpy_dtypes_for_minmax[0]
     min_val = numpy_dtypes_for_minmax[1]
@@ -751,11 +745,6 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummin_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
 
@@ -766,11 +755,6 @@ def test_cummin_all_nan_column():
     tm.assert_frame_equal(expected, result)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummax(numpy_dtypes_for_minmax):
     dtype = numpy_dtypes_for_minmax[0]
     max_val = numpy_dtypes_for_minmax[2]
@@ -819,11 +803,6 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    _is_numpy_dev,
-    reason="https://github.com/pandas-dev/pandas/issues/31992",
-    strict=False,
-)
 def test_cummax_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
 
@@ -1517,6 +1496,30 @@ def test_quantile_missing_group_values_correct_results():
         [1.0, 3.0], index=pd.Index([1.0, 3.0], name="key"), columns=["val"]
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([1, 0, None] * 2, dtype="Int64"),
+        pd.array([True, False, None] * 2, dtype="boolean"),
+    ],
+)
+@pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
+def test_groupby_quantile_nullable_array(values, q):
+    # https://github.com/pandas-dev/pandas/issues/33136
+    df = pd.DataFrame({"a": ["x"] * 3 + ["y"] * 3, "b": values})
+    result = df.groupby("a")["b"].quantile(q)
+
+    if isinstance(q, list):
+        idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
+        true_quantiles = [0.0, 0.5, 1.0]
+    else:
+        idx = pd.Index(["x", "y"], name="a")
+        true_quantiles = [0.5]
+
+    expected = pd.Series(true_quantiles * 2, index=idx, name="b")
+    tm.assert_series_equal(result, expected)
 
 
 # pipe

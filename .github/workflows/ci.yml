@@ -125,32 +125,18 @@ jobs:
     - name: Check ipython directive errors
       run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
-    - name: Install Rclone
-      run: sudo apt install rclone -y
-      if: github.event_name == 'push'
-
-    - name: Set up Rclone
+    - name: Install ssh key
       run: |
-        CONF=$HOME/.config/rclone/rclone.conf
-        mkdir -p `dirname $CONF`
-        echo "[ovh_host]" > $CONF
-        echo "type = swift" >> $CONF
-        echo "env_auth = false" >> $CONF
-        echo "auth_version = 3" >> $CONF
-        echo "auth = https://auth.cloud.ovh.net/v3/" >> $CONF
-        echo "endpoint_type = public" >> $CONF
-        echo "tenant_domain = default" >> $CONF
-        echo "tenant = 2977553886518025" >> $CONF
-        echo "domain = default" >> $CONF
-        echo "user = w4KGs3pmDxpd" >> $CONF
-        echo "key = ${{ secrets.ovh_object_store_key }}" >> $CONF
-        echo "region = BHS" >> $CONF
+        mkdir -m 700 -p ~/.ssh
+        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
       if: github.event_name == 'push'
 
-    - name: Sync web with OVH
-      run: rclone sync --exclude pandas-docs/** web/build ovh_host:prod
+    - name: Upload web
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: github.event_name == 'push'
 
-    - name: Sync dev docs with OVH
-      run: rclone sync doc/build/html ovh_host:prod/pandas-docs/dev
+    - name: Upload dev docs
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'

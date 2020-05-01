@@ -32,12 +32,6 @@ def df():
     return pd.DataFrame(block_manager)
 
 
-def test_concat_dataframe(df):
-    # GH17728
-    res = pd.concat([df, df])
-    assert isinstance(res._mgr.blocks[1], CustomBlock)
-
-
 def test_concat_axis1(df):
     # GH17954
     df2 = pd.DataFrame({"c": [0.1, 0.2, 0.3]})

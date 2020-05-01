@@ -867,12 +867,15 @@ class Parser:
         """
         Try to convert axes.
         """
-        for axis in self.obj._AXIS_NUMBERS.keys():
+        for axis_name in self.obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
-                axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True
+                name=axis_name,
+                data=self.obj._get_axis(axis_name),
+                use_dtypes=False,
+                convert_dates=True,
             )
             if result:
-                setattr(self.obj, axis, new_axis)
+                setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self):
         raise AbstractMethodError(self)
@@ -982,7 +985,7 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
         return data, False

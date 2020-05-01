@@ -885,15 +885,19 @@ class TestDataFrameAnalytics:
                 "A": np.arange(3),
                 "B": pd.date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
             }
         )
 
+        # datetime(tz) and timedelta work
         result = df.mean(numeric_only=False)
-        expected = pd.Series(
-            {"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"], "D": df.loc[1, "D"]}
-        )
+        expected = pd.Series({"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
+
+        # mean of period is not allowed
+        df["D"] = pd.period_range("2016", periods=3, freq="A")
+
+        with pytest.raises(TypeError, match="reduction operation 'mean' not allowed"):
+            df.mean(numeric_only=False)
 
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
@@ -1146,59 +1150,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Matrix-like
-
-    def test_dot(self):
-        a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
-        )
-        b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
-        )
-
-        result = a.dot(b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        # Check alignment
-        b1 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_frame_equal(result, expected)
-
-        # Check series argument
-        result = a.dot(b["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        result = a.dot(b1["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        # can pass correct-length arrays
-        row = a.iloc[0].values
-
-        result = a.dot(row)
-        expected = a.dot(a.iloc[0])
-        tm.assert_series_equal(result, expected)
-
-        with pytest.raises(ValueError, match="Dot product shape mismatch"):
-            a.dot(row[:-1])
-
-        a = np.random.rand(1, 5)
-        b = np.random.rand(5, 1)
-        A = DataFrame(a)
-
-        # TODO(wesm): unused
-        B = DataFrame(b)  # noqa
-
-        # it works
-        result = A.dot(b)
-
-        # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
-
-        with pytest.raises(ValueError, match="aligned"):
-            df.dot(df2)
 
     def test_matmul(self):
         # matmul test is for GH 10259

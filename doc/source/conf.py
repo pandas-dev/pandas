@@ -416,6 +416,7 @@ if pattern is None:
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
         "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
