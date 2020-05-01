@@ -896,7 +896,7 @@ class TestDataFrameAnalytics:
         # mean of period is not allowed
         df["D"] = pd.period_range("2016", periods=3, freq="A")
 
-        with pytest.raises(TypeError, match="reduction operation 'mean' not allowed"):
+        with pytest.raises(TypeError, match="mean is not implemented for Period"):
             df.mean(numeric_only=False)
 
     def test_mean_extensionarray_numeric_only_true(self):
