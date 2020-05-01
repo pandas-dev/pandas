@@ -14,7 +14,6 @@ from pandas import (
     Timedelta,
     Timestamp,
     UInt64Index,
-    _np_version_under1p14,
     concat,
     date_range,
     option_context,
@@ -169,9 +168,7 @@ class TestAstype:
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
 
-        # < 1.14 truncates
-        # >= 1.14 preserves the full repr
-        val = "1.12345678901" if _np_version_under1p14 else "1.1234567890123457"
+        val = "1.1234567890123457"
         expected = DataFrame([val])
         tm.assert_frame_equal(result, expected)
 
