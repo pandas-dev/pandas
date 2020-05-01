@@ -161,7 +161,12 @@ Grouper and resample now supports the arguments origin and offset
 
 The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
 
-For example:
+Two arguments are now deprecated (more information in the documentation of :class:`DataFrame.resample`):
+
+- ``base`` should be replaced by ``offset``.
+- ``loffset`` should be replaced by directly adding an offset to the index DataFrame after being resampled.
+
+Small example of the use of ``origin``:
 
 .. ipython:: python
 
@@ -185,38 +190,10 @@ Resample using a fixed origin:
     ts.resample('17min', origin='epoch').sum()
     ts.resample('17min', origin='2000-01-01').sum()
 
+If needed you can adjust the bins with the argument ``offset`` (a Timedelta) that would be added to the default ``origin``.
+
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
-If needed you can just adjust the bins with an offset that would be added to the default ``origin``.
-Those two examples are equivalent for this time series:
-
-.. ipython:: python
-
-    ts.resample('17min', origin='start').sum()
-    ts.resample('17min', offset='23h30min').sum()
-
-The argument ``base`` is now deprecated in favor of ``offset``. (:issue:`31809`)
-
-.. ipython:: python
-    :okwarning:
-
-    ts.resample('17min', base=2).sum()
-
-becomes:
-
-.. ipython:: python
-
-    ts.resample('17min', offset='2min').sum()
-
-The argument ``loffset`` is now deprecated. You should now add an offset to the index DataFrame after being resampled. (:issue:`31809`)
-
-.. ipython:: python
-
-    from pandas.tseries.frequencies import to_offset
-    loffset = '19min'
-    ts_out = ts.resample('17min').sum()
-    ts_out.index = ts_out.index + to_offset(loffset)
-    ts_out
 
 .. _whatsnew_110.enhancements.other:
 

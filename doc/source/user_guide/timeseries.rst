@@ -1809,8 +1809,8 @@ Here we can see that, when using ``origin`` with its default value (``'start_day
 
 .. ipython:: python
 
-    ts.resample('17min').sum()
-    ts[middle:end].resample('17min').sum()
+    ts.resample('17min', origin='start_day').sum()
+    ts[middle:end].resample('17min', origin='start_day').sum()
 
 
 Here we can see that, when setting ``origin`` to ``'epoch'``, the result after ``'2000-10-02 00:00:00'`` are identical depending on the start of time series:
