@@ -1291,7 +1291,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
-                if first_not_none._constructor is Series:
+                if isinstance(first_not_none, Series):
                     backup = create_series_with_explicit_dtype(
                         **kwargs, dtype_if_empty=object
                     )
