@@ -36,10 +36,12 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     result1 = getattr(grouped, groupby_func)(*args)
     result2 = grouped.agg(groupby_func, *args)
 
-    # Reduction or transformation kernels should preserve type
-    slices = groupby_func in {"cumcount", "ngroup", "size"}
-    if isinstance(obj, DataFrame) and slices:
+    # Reduction or transformation kernels should preserve type;
+    # ngroup() and cumcount() always return Series
+    if isinstance(obj, DataFrame) and groupby_func in {"size"}:
         assert isinstance(result1, type(obj._constructor_sliced(dtype=object)))
+    elif groupby_func in {"ngroup", "cumcount"}:
+        assert isinstance(result1, Series)
     else:
         assert isinstance(result1, type(obj))
 
