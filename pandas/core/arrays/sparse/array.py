@@ -335,7 +335,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):
@@ -439,11 +439,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
+        data = data.tocsc()
+        data.sort_indices()
         arr = data.data
-        idx, _ = data.nonzero()
-        loc = np.argsort(idx)
-        arr = arr.take(loc)
-        idx.sort()
+        idx = data.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)

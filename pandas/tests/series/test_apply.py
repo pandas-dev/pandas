@@ -248,18 +248,21 @@ class TestSeriesAggregate:
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
-        with pytest.raises(ValueError):
+        msg = "transforms cannot produce aggregated results"
+        with pytest.raises(ValueError, match=msg):
             string_series.transform(["min", "max"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot combine transform and aggregation"
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.agg(["sqrt", "max"])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.transform(["sqrt", "max"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot perform both aggregation and transformation"
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.agg({"foo": np.sqrt, "bar": "sum"})
 
