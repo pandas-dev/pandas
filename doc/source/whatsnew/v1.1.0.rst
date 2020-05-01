@@ -139,6 +139,7 @@ Other enhancements
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
+- The :func:`cut` will now accept parameter ``ordered`` with default ``ordered=True``. If ``ordered=False`` and no labels are provided, an error will be raised (:issue:`33141`)
 - :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_pickle`,
   and :meth:`DataFrame.to_json` now support passing a dict of
   compression arguments when using the ``gzip`` and ``bz2`` protocols.
@@ -486,6 +487,7 @@ Deprecations
   arguments (:issue:`27573`).
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
+- :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
 
 .. ---------------------------------------------------------------------------
 
@@ -570,6 +572,7 @@ Numeric
 - Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
 - Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
+- Bug in DataFrame reductions using ``numeric_only=True`` and ExtensionArrays (:issue:`33256`).
 - Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
 
@@ -722,6 +725,8 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
+- Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 
 
 Sparse
