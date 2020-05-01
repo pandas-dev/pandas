@@ -2137,6 +2137,13 @@ c  10  11  12  13  14\
         )
         assert str(df) == exp
 
+    def test_to_string_ending_header(self):
+        tm.reset_display_options()
+        df = DataFrame({"x": [1, 2], "y": [3, 4]})
+        df_s = df.to_string(ending_header=True)
+        expected = "   x  y\n0  1  3\n1  2  4\n   x  y"
+        assert df_s == expected
+
 
 def gen_series_formatting():
     s1 = pd.Series(["a"] * 100)
