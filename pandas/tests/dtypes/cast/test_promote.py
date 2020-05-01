@@ -98,14 +98,13 @@ def _assert_match(result_fill_value, expected_fill_value):
     # GH#23982/25425 require the same type in addition to equality/NA-ness
     res_type = type(result_fill_value)
     ex_type = type(expected_fill_value)
-    if res_type.__name__ == "uint64":
-        # No idea why, but these (sometimes) do not compare as equal
-        assert ex_type.__name__ == "uint64"
-    elif res_type.__name__ == "ulonglong":
-        # On some builds we get this instead of np.uint64
-        # Note: cant check res_type.dtype.itemsize directly on numpy 1.18
-        assert res_type(0).itemsize == 8
-        assert ex_type == res_type or ex_type == np.uint64
+
+    if hasattr(result_fill_value, "dtype"):
+        # Compare types in a way that is robust to platform-specific
+        #  idiosyncracies where e.g. sometimes we get "ulonglong" as an alias
+        #  for "uint64" or "intc" as an alias for "int32"
+        assert result_fill_value.dtype.kind == expected_fill_value.dtype.kind
+        assert result_fill_value.dtype.itemsize == expected_fill_value.dtype.itemsize
     else:
         # On some builds, type comparison fails, e.g. np.int32 != np.int32
         assert res_type == ex_type or res_type.__name__ == ex_type.__name__

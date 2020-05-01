@@ -33,7 +33,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.13.3"
+min_numpy_ver = "1.15.4"
 min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
