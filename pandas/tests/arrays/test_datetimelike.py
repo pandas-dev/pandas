@@ -241,6 +241,16 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
+    def test_setitem_str_array(self, arr1d):
+        if isinstance(arr1d, DatetimeArray) and arr1d.tz is not None:
+            pytest.xfail(reason="timezone comparisons inconsistent")
+        expected = arr1d.copy()
+        expected[[0, 1]] = arr1d[-2:]
+
+        arr1d[:2] = [str(x) for x in arr1d[-2:]]
+
+        tm.assert_equal(arr1d, expected)
+
     def test_setitem_raises(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
@@ -251,6 +261,17 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+    def test_setitem_numeric_raises(self, arr1d, box):
+        # We dont case e.g. int64 to our own dtype for setitem
+
+        msg = "requires compatible dtype"
+        with pytest.raises(TypeError, match=msg):
+            arr1d[:2] = box([0, 1])
+
+        with pytest.raises(TypeError, match=msg):
+            arr1d[:2] = box([0.0, 1.0])
 
     def test_inplace_arithmetic(self):
         # GH#24115 check that iadd and isub are actually in-place
@@ -302,7 +323,13 @@ class TestDatetimeArray(SharedTests):
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
+
+        dta = dti._data
+        result = dta.round(freq="2T")
+        expected = expected._data._with_freq(None)
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
         arr = DatetimeArray(datetime_index)

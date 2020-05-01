@@ -29,8 +29,14 @@ class BaseOpsUtil(BaseExtensionTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
-            expected = s.combine(other, op)
-            self.assert_series_equal(result, expected)
+            if isinstance(s, pd.DataFrame):
+                if len(s.columns) != 1:
+                    raise NotImplementedError
+                expected = s.iloc[:, 0].combine(other, op).to_frame()
+                self.assert_frame_equal(result, expected)
+            else:
+                expected = s.combine(other, op)
+                self.assert_series_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)

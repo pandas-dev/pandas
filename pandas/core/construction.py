@@ -13,7 +13,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import ArrayLike, Dtype, DtypeObj
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -54,7 +54,9 @@ if TYPE_CHECKING:
 
 
 def array(
-    data: Sequence[object], dtype: Optional[Dtype] = None, copy: bool = True,
+    data: Union[Sequence[object], AnyArrayLike],
+    dtype: Optional[Dtype] = None,
+    copy: bool = True,
 ) -> "ExtensionArray":
     """
     Create an array.
