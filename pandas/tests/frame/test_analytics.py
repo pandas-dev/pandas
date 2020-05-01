@@ -1273,4 +1273,3 @@ class TestDataFrameReductions:
         # check axis 1
         tm.assert_series_equal(df.min(axis=1), expected_float_series)
         tm.assert_series_equal(df.min(axis=1), expected_float_series)
-
