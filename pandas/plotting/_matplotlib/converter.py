@@ -387,23 +387,6 @@ class MilliSecondLocator(dates.DateLocator):
             return []
 
         # We need to cap at the endpoints of valid datetime
-
-        # FIXME: dont leave commented-out
-        # TODO(wesm) unused?
-        # if dmin > dmax:
-        #     dmax, dmin = dmin, dmax
-        # delta = relativedelta(dmax, dmin)
-        # try:
-        #     start = dmin - delta
-        # except ValueError:
-        #     start = _from_ordinal(1.0)
-
-        # try:
-        #     stop = dmax + delta
-        # except ValueError:
-        #     # The magic number!
-        #     stop = _from_ordinal(3652059.9999999)
-
         nmax, nmin = dates.date2num((dmax, dmin))
 
         num = (nmax - nmin) * 86400 * 1000
@@ -449,27 +432,7 @@ class MilliSecondLocator(dates.DateLocator):
         """
         Set the view limits to include the data range.
         """
-        dmin, dmax = self.datalim_to_dt()
-        if dmin > dmax:
-            dmax, dmin = dmin, dmax
-
         # We need to cap at the endpoints of valid datetime
-
-        # FIXME: dont leave commented-out
-        # TODO(wesm): unused?
-
-        # delta = relativedelta(dmax, dmin)
-        # try:
-        #     start = dmin - delta
-        # except ValueError:
-        #     start = _from_ordinal(1.0)
-
-        # try:
-        #     stop = dmax + delta
-        # except ValueError:
-        #     # The magic number!
-        #     stop = _from_ordinal(3652059.9999999)
-
         dmin, dmax = self.datalim_to_dt()
 
         vmin = dates.date2num(dmin)

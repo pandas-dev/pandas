@@ -1323,18 +1323,22 @@ class TestSeriesConstructors:
         # convert from a numpy array of non-ns datetime64
         # note that creating a numpy datetime64 is in LOCAL time!!!!
         # seems to work for M8[D], but not for M8[s]
+        # TODO: is the above comment still accurate/needed?
 
-        s = Series(
-            np.array(["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]")
+        arr = np.array(
+            ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
-        tm.assert_series_equal(s, Series(date_range("20130101", periods=3, freq="D")))
+        ser = Series(arr)
+        expected = Series(date_range("20130101", periods=3, freq="D"))
+        tm.assert_series_equal(ser, expected)
 
-        # FIXME: dont leave commented-out
-        # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
-        # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
-
-        # tm.assert_series_equal(s,date_range('20130101
-        # 00:00:01',period=3,freq='s'))
+        arr = np.array(
+            ["2013-01-01 00:00:01", "2013-01-01 00:00:02", "2013-01-01 00:00:03"],
+            dtype="datetime64[s]",
+        )
+        ser = Series(arr)
+        expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
+        tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
         "index",
@@ -1386,9 +1390,13 @@ class TestSeriesConstructors:
         tm.assert_series_equal(s, exp)
 
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
-    def test_constructor_generic_timestamp_no_frequency(self, dtype):
+    def test_constructor_generic_timestamp_no_frequency(self, dtype, request):
         # see gh-15524, gh-15987
         msg = "dtype has no unit. Please pass in"
+
+        if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
+            mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
+            request.node.add_marker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
