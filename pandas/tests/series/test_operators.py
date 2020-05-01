@@ -256,8 +256,8 @@ class TestSeriesLogicalOps:
 
     def test_scalar_na_logical_ops_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-        
-        msg = "Cannot perform.+with a dtyped.+array and scalar of type.+"
+
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s & datetime(2005, 1, 1)
 
