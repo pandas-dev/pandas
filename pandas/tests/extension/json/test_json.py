@@ -209,6 +209,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         pass
 
     @unhashable
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
