@@ -85,6 +85,7 @@ class ExtensionArray:
     * _from_factorized
     * __getitem__
     * __len__
+    * __eq__
     * dtype
     * nbytes
     * isna
@@ -334,40 +335,16 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: Any) -> Union[np.ndarray, "ExtensionArray"]:
         """
-        Whether the two arrays are equivalent.
-
-        Parameters
-        ----------
-        other: Any
-            The object to compare to this array.
-
-        Returns
-        -------
-        bool
+        Return for `self == other` (element-wise equality).
         """
+        raise AbstractMethodError(self)
 
-        return (
-            type(self) == type(other)
-            and (self.isna() == other.isna()).all()
-            and np.all(np.array(self) == np.array(other))
-        )
-
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: Any) -> Union[np.ndarray, "ExtensionArray"]:
         """
-        Whether the two arrays are not equivalent.
-
-        Parameters
-        ----------
-        other: Any
-            The object to compare to this array.
-
-        Returns
-        -------
-        bool
+        Return for `self != other` (element-wise in-equality).
         """
-
         return ~(self == other)
 
     def to_numpy(
@@ -719,7 +696,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: ABCExtensionArray) -> bool:
+    def equals(self, other: "ExtensionArray") -> bool:
         """
         Return if another array is equivalent to this array.
 
