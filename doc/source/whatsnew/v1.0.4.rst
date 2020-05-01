@@ -16,6 +16,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
+- Bug in DataFrame reductions using ``numeric_only=True`` and ExtensionArrays (:issue:`33256`).
 - 
 
 .. _whatsnew_104.bug_fixes:
