@@ -44,7 +44,9 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_bool_dtype,
     is_datetime64_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -200,14 +202,14 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+>>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
 ...    .pipe(f)
 ...    .pipe(g, arg1=a)
-...    .pipe(h, arg2=b, arg3=c))
+...    .pipe(h, arg2=b, arg3=c))  # doctest: +SKIP
 
 which is much more readable.
 
@@ -252,7 +254,36 @@ filled with the transformed values
 Parameters
 ----------
 f : function
-    Function to apply to each group
+    Function to apply to each group.
+
+    Can also accept a Numba JIT function with
+    ``engine='numba'`` specified.
+
+    If the ``'numba'`` engine is chosen, the function must be
+    a user defined function with ``values`` and ``index`` as the
+    first and second arguments respectively in the function signature.
+    Each group's index will be passed to the user defined function
+    and optionally available for use.
+
+    .. versionchanged:: 1.1.0
+*args
+    Positional arguments to pass to func
+engine : str, default 'cython'
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    Keyword arguments to be passed into func.
 
 Returns
 -------
@@ -260,7 +291,9 @@ Returns
 
 See Also
 --------
-aggregate, transform
+%(klass)s.groupby.apply
+%(klass)s.groupby.aggregate
+%(klass)s.transform
 
 Notes
 -----
@@ -279,14 +312,17 @@ The current implementation imposes three requirements on f:
 * f must not mutate groups. Mutation is not supported and may
   produce unexpected results.
 
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+
 Examples
 --------
 
-# Same shape
 >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
 ...                           'foo', 'bar'],
 ...                    'B' : ['one', 'one', 'two', 'three',
-...                          'two', 'two'],
+...                           'two', 'two'],
 ...                    'C' : [1, 5, 5, 2, 5, 5],
 ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
 >>> grouped = df.groupby('A')
@@ -299,7 +335,8 @@ Examples
 4  0.577350 -0.577350
 5  0.577350  1.000000
 
-# Broadcastable
+Broadcast result of the transformation
+
 >>> grouped.transform(lambda x: x.max() - x.min())
    C    D
 0  4  6.0
@@ -308,6 +345,69 @@ Examples
 3  3  8.0
 4  4  6.0
 5  3  8.0
+"""
+
+_agg_template = """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list or dict
+    Function to use for aggregating the data. If a function, must either
+    work when passed a %(klass)s or when passed to %(klass)s.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - dict of axis labels -> functions, function names or list of such.
+
+    Can also accept a Numba JIT function with
+    ``engine='numba'`` specified.
+
+    If the ``'numba'`` engine is chosen, the function must be
+    a user defined function with ``values`` and ``index`` as the
+    first and second arguments respectively in the function signature.
+    Each group's index will be passed to the user defined function
+    and optionally available for use.
+
+    .. versionchanged:: 1.1.0
+*args
+    Positional arguments to pass to func
+engine : str, default 'cython'
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    Keyword arguments to be passed into func.
+
+Returns
+-------
+%(klass)s
+
+See Also
+--------
+%(klass)s.groupby.apply
+%(klass)s.groupby.transform
+%(klass)s.aggregate
+
+Notes
+-----
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+%(examples)s
 """
 
 
@@ -879,9 +979,12 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
+    ):
         func = self._is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
+        if engine != "numba":
+            f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -892,11 +995,21 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            try:
-                # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
-            except TypeError:
-                continue
+            if engine == "numba":
+                result, counts = self.grouper.agg_series(
+                    obj,
+                    func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+            else:
+                try:
+                    # if this function is invalid for this dtype, we will ignore it.
+                    result, counts = self.grouper.agg_series(obj, f)
+                except TypeError:
+                    continue
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
@@ -1867,9 +1980,13 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 )
 
             inference = None
-            if is_integer_dtype(vals):
+            if is_integer_dtype(vals.dtype):
+                if is_extension_array_dtype(vals.dtype):
+                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = np.int64
-            elif is_datetime64_dtype(vals):
+            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
+                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
                 vals = np.asarray(vals).astype(np.float)
 
@@ -2011,7 +2128,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Essentially this is equivalent to
 
-        >>> self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
+        .. code-block:: python
+
+            self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
 
         Parameters
         ----------

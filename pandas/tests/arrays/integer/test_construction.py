@@ -70,7 +70,7 @@ def test_integer_array_constructor():
     expected = integer_array([1, 2, 3, np.nan], dtype="int64")
     tm.assert_extension_array_equal(result, expected)
 
-    msg = r".* should be .* numpy array. Use the 'integer_array' function instead"
+    msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 

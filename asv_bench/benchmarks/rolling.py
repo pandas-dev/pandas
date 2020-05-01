@@ -150,19 +150,40 @@ class Quantile:
         self.roll.quantile(percentile, interpolation=interpolation)
 
 
-class PeakMemFixed:
-    def setup(self):
-        N = 10
-        arr = 100 * np.random.random(N)
-        self.roll = pd.Series(arr).rolling(10)
+class PeakMemFixedWindowMinMax:
 
-    def peakmem_fixed(self):
-        # GH 25926
-        # This is to detect memory leaks in rolling operations.
-        # To save time this is only ran on one method.
-        # 6000 iterations is enough for most types of leaks to be detected
-        for x in range(6000):
-            self.roll.max()
+    params = ["min", "max"]
+
+    def setup(self, operation):
+        N = int(1e6)
+        arr = np.random.random(N)
+        self.roll = pd.Series(arr).rolling(2)
+
+    def peakmem_fixed(self, operation):
+        for x in range(5):
+            getattr(self.roll, operation)()
+
+
+class ForwardWindowMethods:
+    params = (
+        ["DataFrame", "Series"],
+        [10, 1000],
+        ["int", "float"],
+        ["median", "mean", "max", "min", "kurt", "sum"],
+    )
+    param_names = ["constructor", "window_size", "dtype", "method"]
+
+    def setup(self, constructor, window_size, dtype, method):
+        N = 10 ** 5
+        arr = np.random.random(N).astype(dtype)
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=window_size)
+        self.roll = getattr(pd, constructor)(arr).rolling(window=indexer)
+
+    def time_rolling(self, constructor, window_size, dtype, method):
+        getattr(self.roll, method)()
+
+    def peakmem_rolling(self, constructor, window_size, dtype, method):
+        getattr(self.roll, method)()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -733,7 +733,7 @@ is the case with :attr:`Period.end_time`, for example
 
 .. _whatsnew_0240.api_breaking.datetime_unique:
 
-Series.unique for Timezone-Aware Data
+Series.unique for timezone-aware data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
@@ -1131,7 +1131,7 @@ data is incompatible with a passed ``dtype=`` (:issue:`15832`)
 
 .. _whatsnew_0240.api.concat_categorical:
 
-Concatenation Changes
+Concatenation changes
 ^^^^^^^^^^^^^^^^^^^^^
 
 Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
