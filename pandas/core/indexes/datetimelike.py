@@ -691,19 +691,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if self.freq is None:
             return False
 
-        if other.freq != self.freq:
+        elif other.freq != self.freq:
             return False
 
-        if not self.is_monotonic_increasing:
+        elif not self.is_monotonic_increasing:
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        if self.freq.is_anchored():
+        elif self.freq.is_anchored():
             # this along with matching freqs ensure that we "line up",
             #  so intersection will preserve freq
             return True
 
-        if isinstance(self.freq, Tick):
+        elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
             #  is a multiple of our freq
             diff = self[0] - other[0]
