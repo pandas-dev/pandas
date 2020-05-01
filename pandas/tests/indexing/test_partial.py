@@ -128,7 +128,7 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
 
-        exp_other = DataFrame({0: 7}, index=[dates[-1] + dates.freq])
+        exp_other = DataFrame({0: 7}, index=dates[-1:] + dates.freq)
         expected = pd.concat([df_orig, exp_other], axis=1)
 
         df = df_orig.copy()

@@ -6,7 +6,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, join as libjoin, lib
+from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
@@ -41,7 +41,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import DateOffset
+from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -641,6 +641,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
+        res_name = get_op_result_name(self, other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
@@ -654,12 +655,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
+                    # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
+            assert result.name == res_name
             return result
 
         elif not self._can_fast_intersect(other):
             result = Index.intersection(self, other, sort=sort)
-            result = result._with_freq("infer")
+            assert result.name == res_name
+            # We need to invalidate the freq because Index.intersection
+            #  uses _shallow_copy on a view of self._data, which will preserve
+            #  self.freq if we're not careful.
+            result = result._with_freq(None)._with_freq("infer")
             return result
 
         # to make our life easier, "sort" the two ranges
@@ -674,27 +681,34 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[], dtype=self.dtype, freq=self.freq)
+            return type(self)(data=[], dtype=self.dtype, freq=self.freq, name=res_name)
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            return self._shallow_copy(left_chunk)
+            return type(self)._simple_new(left_chunk, name=res_name)
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         if self.freq is None:
             return False
 
-        if other.freq != self.freq:
+        elif other.freq != self.freq:
             return False
 
-        if not self.is_monotonic_increasing:
+        elif not self.is_monotonic_increasing:
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        if not self.freq.is_anchored():
-            # If freq is not anchored, then despite having matching freqs,
-            #  we might not "line up"
-            return False
+        elif self.freq.is_anchored():
+            # this along with matching freqs ensure that we "line up",
+            #  so intersection will preserve freq
+            return True
+
+        elif isinstance(self.freq, Tick):
+            # We "line up" if and only if the difference between two of our points
+            #  is a multiple of our freq
+            diff = self[0] - other[0]
+            remainder = diff % self.freq.delta
+            return remainder == Timedelta(0)
 
         return True
 
@@ -749,6 +763,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
+            # TODO: no tests rely on the _with_freq("infer"); needed?
             result = self._shallow_copy(dates)._with_freq("infer")
             return result
         else:
@@ -781,9 +796,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         if this._can_fast_union(other):
             result = this._fast_union(other, sort=sort)
-            if result.freq is None:
+            if sort is None:
                 # In the case where sort is None, _can_fast_union
                 #  implies that result.freq should match self.freq
+                assert result.freq == self.freq, (result.freq, self.freq)
+            elif result.freq is None:
+                # TODO: no tests rely on this; needed?
                 result = result._with_freq("infer")
             return result
         else:

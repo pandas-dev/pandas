@@ -222,7 +222,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx")
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -264,7 +264,7 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
-            assert result.freq is None
+            assert result.freq == expected.freq
 
     # parametrize over both anchored and non-anchored freqs, as they
     #  have different code paths
