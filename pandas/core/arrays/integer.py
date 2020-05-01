@@ -96,7 +96,7 @@ class _IntegerDtype(ExtensionDtype):
         """
         return IntegerArray
 
-    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # for now only handle other integer types
         if not all(isinstance(t, _IntegerDtype) for t in dtypes):
             return None

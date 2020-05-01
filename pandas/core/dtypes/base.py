@@ -324,7 +324,7 @@ class ExtensionDtype:
         """
         return False
 
-    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         """
         Return the common dtype, if one exists.
 

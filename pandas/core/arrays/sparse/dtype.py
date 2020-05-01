@@ -355,7 +355,7 @@ class SparseDtype(ExtensionDtype):
             return type(self.fill_value)
         return self.subtype
 
-    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
 
         fill_values = [x.fill_value for x in dtypes if isinstance(x, SparseDtype)]
         fill_value = fill_values[0]

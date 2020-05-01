@@ -640,7 +640,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return is_bool_dtype(self.categories)
 
-    def _get_common_type(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
             first = dtypes[0]

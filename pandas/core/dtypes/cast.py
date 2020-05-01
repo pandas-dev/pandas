@@ -1453,7 +1453,7 @@ def find_common_type(types):
     if any(isinstance(t, ExtensionDtype) for t in types):
         for t in types:
             if isinstance(t, ExtensionDtype):
-                res = t._get_common_type(types)
+                res = t._get_common_dtype(types)
                 if res is not None:
                     return res
         return np.dtype("object")
