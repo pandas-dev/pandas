@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_sparse,
-    is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
@@ -73,6 +72,7 @@ from pandas.core.arrays import (
     PandasDtype,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -1007,6 +1007,9 @@ class Block(PandasObject):
         """
         # if we cannot then coerce to object
         dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+
+        if isinstance(self.dtype, StringDtype):
+            dtype = StringDtype()
 
         if is_dtype_equal(self.dtype, dtype):
             return self

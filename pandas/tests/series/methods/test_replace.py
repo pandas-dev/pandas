@@ -274,7 +274,7 @@ class TestSeriesReplace:
         # GH 20656
         # make sure all replacers are matching against original values
         s = pd.Series(["a", "b"])
-        expected = pd.Series(["b", "a"], dtype="string")
+        expected = pd.Series(["b", "a"])
         result = s.replace({"a": "b", "b": "a"})
         tm.assert_series_equal(expected, result)
 
@@ -346,24 +346,19 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "ser, to_replace, exp, dtype",
+        "ser, to_replace, exp",
         [
-            ([1, 2, 3], {1: 2, 2: 3, 3: 4}, [2, 3, 4], "int64"),
-            (
-                ["1", "2", "3"],
-                {"1": "2", "2": "3", "3": "4"},
-                ["2", "3", "4"],
-                "string",
-            ),
+            ([1, 2, 3], {1: 2, 2: 3, 3: 4}, [2, 3, 4]),
+            (["1", "2", "3"], {"1": "2", "2": "3", "3": "4"}, ["2", "3", "4"]),
         ],
     )
-    def test_replace_commutative(self, ser, to_replace, exp, dtype):
+    def test_replace_commutative(self, ser, to_replace, exp):
         # GH 16051
         # DataFrame.replace() overwrites when values are non-numeric
 
         series = pd.Series(ser)
 
-        expected = pd.Series(exp, dtype=dtype)
+        expected = pd.Series(exp)
         result = series.replace(to_replace)
 
         tm.assert_series_equal(result, expected)
