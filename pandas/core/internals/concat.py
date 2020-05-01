@@ -1,4 +1,3 @@
-# TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
 from typing import List
