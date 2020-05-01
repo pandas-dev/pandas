@@ -1450,6 +1450,9 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
+    # get unique types (dict.fromkeys is used as order-preserving set())
+    types = list(dict.fromkeys(types).keys())
+
     if any(isinstance(t, ExtensionDtype) for t in types):
         for t in types:
             if isinstance(t, ExtensionDtype):
