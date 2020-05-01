@@ -8,6 +8,7 @@ from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 import pandas.core.common as com
 from pandas.core.series import Series
+from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
@@ -41,7 +42,7 @@ class HistPlot(LinePlot):
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
-    def _calculate_bins(self, data: ABCDataFrame) -> np.array:
+    def _calculate_bins(self, data: DataFrame) -> np.array:
         """Calculate bins given data"""
 
         values = data._convert(datetime=True)._get_numeric_data()
