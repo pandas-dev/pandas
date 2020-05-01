@@ -788,8 +788,8 @@ class DatetimeLikeArrayMixin(
             pass
 
         elif not type(self)._is_recognized_dtype(value):
-            raise TypeError(  # FIXME: dont be searchsorted-specific
-                "searchsorted requires compatible dtype or scalar, "
+            raise TypeError(
+                "Operation requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
 
