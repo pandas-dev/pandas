@@ -1,50 +1,34 @@
 from datetime import datetime
-import warnings
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCDateOffset
-
 import pandas as pd
 from pandas import (
+    DateOffset,
     DatetimeIndex,
     Index,
-    PeriodIndex,
     Series,
     Timestamp,
     bdate_range,
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.base.test_ops import Ops
 
-from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
+from pandas.tseries.offsets import BDay, Day, Hour
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, DatetimeIndex)
-        self.check_ops_properties(DatetimeIndex._field_ops, f)
-        self.check_ops_properties(DatetimeIndex._object_ops, f)
-        self.check_ops_properties(DatetimeIndex._bool_ops, f)
-
-    def test_ops_properties_basic(self):
+class TestDatetimeIndexOps:
+    def test_ops_properties_basic(self, datetime_series):
 
         # sanity check that the behavior didn't change
         # GH#7206
         for op in ["year", "day", "second", "weekday"]:
             msg = f"'Series' object has no attribute '{op}'"
             with pytest.raises(AttributeError, match=msg):
-                getattr(self.dt_series, op)
+                getattr(datetime_series, op)
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
@@ -150,11 +134,14 @@ class TestDatetimeIndexOps(Ops):
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected.index = expected.index._with_freq(None)
 
         for obj in [idx, Series(idx)]:
+
             tm.assert_series_equal(obj.value_counts(), expected)
 
         expected = pd.date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(idx.unique(), expected)
 
         idx = DatetimeIndex(
@@ -182,20 +169,6 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_series_equal(obj.value_counts(dropna=False), expected)
 
         tm.assert_index_equal(idx.unique(), exp_idx)
-
-    def test_nonunique_contains(self):
-        # GH 9512
-        for idx in map(
-            DatetimeIndex,
-            (
-                [0, 1, 0],
-                [0, 0, -1],
-                [0, -1, -1],
-                ["2015", "2015", "2016"],
-                ["2015", "2015", "2014"],
-            ),
-        ):
-            assert idx[0] in idx
 
     @pytest.mark.parametrize(
         "idx",
@@ -280,9 +253,9 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
-    def test_drop_duplicates_metadata(self):
+    def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
+        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -290,60 +263,42 @@ class TestDatetimeIndexOps(Ops):
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(result, expected)
         assert result.freq is None
 
-    def test_drop_duplicates(self):
-        # to check Index/Series compat
-        base = pd.date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx = base.append(base[:5])
-
-        res = idx.drop_duplicates()
-        tm.assert_index_equal(res, base)
-        res = Series(idx).drop_duplicates()
-        tm.assert_series_equal(res, Series(base))
-
-        res = idx.drop_duplicates(keep="last")
-        exp = base[5:].append(base[:5])
-        tm.assert_index_equal(res, exp)
-        res = Series(idx).drop_duplicates(keep="last")
-        tm.assert_series_equal(res, Series(exp, index=np.arange(5, 36)))
-
-        res = idx.drop_duplicates(keep=False)
-        tm.assert_index_equal(res, base[5:])
-        res = Series(idx).drop_duplicates(keep=False)
-        tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
-
     @pytest.mark.parametrize(
-        "freq",
+        "keep, expected, index",
         [
-            "A",
-            "2A",
-            "-2A",
-            "Q",
-            "-1Q",
-            "M",
-            "-1M",
-            "D",
-            "3D",
-            "-3D",
-            "W",
-            "-1W",
-            "H",
-            "2H",
-            "-2H",
-            "T",
-            "2T",
-            "S",
-            "-3S",
+            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                False,
+                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
+                np.arange(5, 10),
+            ),
         ],
     )
-    def test_infer_freq(self, freq):
+    def test_drop_duplicates(self, freq_sample, keep, expected, index):
+        # to check Index/Series compat
+        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        idx = idx.append(idx[:5])
+
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
+        expected = idx[~expected]
+
+        result = idx.drop_duplicates(keep=keep)
+        tm.assert_index_equal(result, expected)
+
+        result = Series(idx).drop_duplicates(keep=keep)
+        tm.assert_series_equal(result, Series(expected, index=index))
+
+    def test_infer_freq(self, freq_sample):
         # GH 11018
-        idx = pd.date_range("2011-01-01 09:00:00", freq=freq, periods=10)
+        idx = pd.date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
         result = pd.DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
-        assert result.freq == freq
+        assert result.freq == freq_sample
 
     def test_nat(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -384,7 +339,7 @@ class TestDatetimeIndexOps(Ops):
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz="US/Pacific")
+        idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
@@ -415,7 +370,7 @@ class TestDatetimeIndexOps(Ops):
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq
         assert idx.freq == freq
-        assert isinstance(idx.freq, ABCDateOffset)
+        assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
         idx._data.freq = None
@@ -437,6 +392,20 @@ class TestDatetimeIndexOps(Ops):
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
 
+    def test_freq_view_safe(self):
+        # Setting the freq for one DatetimeIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        dti = pd.date_range("2016-01-01", periods=5)
+        dta = dti._data
+
+        dti2 = DatetimeIndex(dta)._with_freq(None)
+        assert dti2.freq is None
+
+        # Original was not altered
+        assert dti.freq == "D"
+        assert dta.freq == "D"
+
 
 class TestBusinessDatetimeIndex:
     def setup_method(self, method):
@@ -449,31 +418,10 @@ class TestBusinessDatetimeIndex:
         assert comp[11]
         assert not comp[9]
 
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
-
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_shift(self):
-        shifted = self.rng.shift(5)
-        assert shifted[0] == self.rng[5]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(-5)
-        assert shifted[5] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(0)
-        assert shifted[0] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        rng = date_range(START, END, freq=BMonthEnd())
-        shifted = rng.shift(1, freq=BDay())
-        assert shifted[0] == rng[0] + BDay()
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
@@ -511,36 +459,6 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_shift(self):
-
-        shifted = self.rng.shift(5)
-        assert shifted[0] == self.rng[5]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(-5)
-        assert shifted[5] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        shifted = self.rng.shift(0)
-        assert shifted[0] == self.rng[0]
-        assert shifted.freq == self.rng.freq
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
-            rng = date_range(START, END, freq=BMonthEnd())
-            shifted = rng.shift(1, freq=CDay())
-            assert shifted[0] == rng[0] + CDay()
-
-    def test_shift_periods(self):
-        # GH#22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = pd.date_range(start=START, end=END, periods=3)
-        tm.assert_index_equal(idx.shift(periods=0), idx)
-        tm.assert_index_equal(idx.shift(0), idx)
-
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))

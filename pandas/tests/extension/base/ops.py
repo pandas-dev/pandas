@@ -29,8 +29,14 @@ class BaseOpsUtil(BaseExtensionTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
-            expected = s.combine(other, op)
-            self.assert_series_equal(result, expected)
+            if isinstance(s, pd.DataFrame):
+                if len(s.columns) != 1:
+                    raise NotImplementedError
+                expected = s.iloc[:, 0].combine(other, op).to_frame()
+                self.assert_frame_equal(result, expected)
+            else:
+                expected = s.combine(other, op)
+                self.assert_series_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
@@ -51,7 +57,8 @@ class BaseOpsUtil(BaseExtensionTests):
 
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
-    """Various Series and DataFrame arithmetic ops methods.
+    """
+    Various Series and DataFrame arithmetic ops methods.
 
     Subclasses supporting various ops should set the class variables
     to indicate that they support ops of that kind
@@ -156,3 +163,11 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)
+
+
+class BaseUnaryOpsTests(BaseOpsUtil):
+    def test_invert(self, data):
+        s = pd.Series(data, name="name")
+        result = ~s
+        expected = pd.Series(~data, name="name")
+        self.assert_series_equal(result, expected)

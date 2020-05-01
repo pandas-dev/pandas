@@ -198,8 +198,8 @@ class TestConcatAppendCommon:
 
             # cannot append non-index
             msg = (
-                r"cannot concatenate object of type '.+';"
-                " only Series and DataFrame objs are valid"
+                r"cannot concatenate object of type '.+'; "
+                "only Series and DataFrame objs are valid"
             )
             with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
@@ -228,7 +228,7 @@ class TestConcatAppendCommon:
                     # same dtype is tested in test_concatlike_same_dtypes
                     continue
                 elif typ1 == "category" or typ2 == "category":
-                    # ToDo: suspicious
+                    # TODO: suspicious
                     continue
 
                 # specify expected dtype
@@ -1113,28 +1113,28 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             assert b.values.base is None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
 
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
-                assert b.values.base is df._data.blocks[0].values.base
+                assert b.values.base is df._mgr.blocks[0].values.base
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
-        for b in result._data.blocks:
+        for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is None
             elif b.is_integer:
-                assert b.values.base is df2._data.blocks[0].values.base
+                assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
 
@@ -1220,13 +1220,17 @@ class TestConcatenate:
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_dict(self):
-        frames = {
-            "foo": DataFrame(np.random.randn(4, 3)),
-            "bar": DataFrame(np.random.randn(4, 3)),
-            "baz": DataFrame(np.random.randn(4, 3)),
-            "qux": DataFrame(np.random.randn(4, 3)),
-        }
+    @pytest.mark.parametrize("mapping", ["mapping", "dict"])
+    def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
+        constructor = dict if mapping == "dict" else non_dict_mapping_subclass
+        frames = constructor(
+            {
+                "foo": DataFrame(np.random.randn(4, 3)),
+                "bar": DataFrame(np.random.randn(4, 3)),
+                "baz": DataFrame(np.random.randn(4, 3)),
+                "qux": DataFrame(np.random.randn(4, 3)),
+            }
+        )
 
         sorted_keys = list(frames.keys())
 
@@ -1849,8 +1853,8 @@ class TestConcatenate:
             def __getitem__(self, index):
                 try:
                     return {0: df1, 1: df2}[index]
-                except KeyError:
-                    raise IndexError
+                except KeyError as err:
+                    raise IndexError from err
 
         tm.assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
 
@@ -1866,8 +1870,8 @@ class TestConcatenate:
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
         msg = (
-            "cannot concatenate object of type '{}';"
-            " only Series and DataFrame objs are valid"
+            "cannot concatenate object of type '{}'; "
+            "only Series and DataFrame objs are valid"
         )
         for obj in [1, dict(), [1, 2], (1, 2)]:
             with pytest.raises(TypeError, match=msg.format(type(obj))):
@@ -2749,4 +2753,52 @@ def test_concat_sparse():
         pd.SparseDtype(np.int64, 0)
     )
     result = pd.concat([a, a], axis=1)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+def test_concat_copy_index(test_series, axis):
+    # GH 29879
+    if test_series:
+        ser = Series([1, 2])
+        comb = concat([ser, ser], axis=axis, copy=True)
+        assert comb.index is not ser.index
+    else:
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        comb = concat([df, df], axis=axis, copy=True)
+        assert comb.index is not df.index
+        assert comb.columns is not df.columns
+
+
+def test_concat_multiindex_datetime_object_index():
+    # https://github.com/pandas-dev/pandas/issues/11058
+    s = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2014, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    s2 = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2015, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    expected = DataFrame(
+        [["a", "a"], ["b", np.nan], [np.nan, "b"]],
+        index=MultiIndex.from_arrays(
+            [
+                [1, 2, 2],
+                DatetimeIndex(
+                    ["2013-01-01", "2014-01-01", "2015-01-01"],
+                    dtype="datetime64[ns]",
+                    freq=None,
+                ),
+            ],
+            names=["first", "second"],
+        ),
+    )
+    result = concat([s, s2], axis=1)
     tm.assert_frame_equal(result, expected)

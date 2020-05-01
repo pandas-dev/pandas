@@ -28,7 +28,15 @@ async def test_tab_complete_ipython6_warning(ip):
     )
     await ip.run_code(code)
 
-    with tm.assert_produces_warning(None):
+    # TODO: remove it when Ipython updates
+    # GH 33567, jedi version raises Deprecation warning in Ipython
+    import jedi
+
+    if jedi.__version__ < "0.17.0":
+        warning = tm.assert_produces_warning(None)
+    else:
+        warning = tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False)
+    with warning:
         with provisionalcompleter("ignore"):
             list(ip.Completer.completions("rs.", 1))
 
@@ -228,6 +236,23 @@ def test_apply_with_mutated_index():
     expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_columns_multilevel():
+    # GH 16231
+    cols = pd.MultiIndex.from_tuples([("A", "a", "", "one"), ("B", "b", "i", "two")])
+    ind = date_range(start="2017-01-01", freq="15Min", periods=8)
+    df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
+    agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
+    result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
+    expected = DataFrame(
+        np.array([0] * 4).reshape(2, 2),
+        index=date_range(start="2017-01-01", freq="1H", periods=2),
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a", "", "one"), ("B", "b", "i", "two")]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_groupby_with_label():

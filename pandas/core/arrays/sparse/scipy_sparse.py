@@ -17,20 +17,21 @@ def _check_is_partition(parts, whole):
 
 
 def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
-    """ For arbitrary (MultiIndexed) SparseSeries return
+    """
+    For arbitrary (MultiIndexed) sparse Series return
     (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
-    passing to scipy.sparse.coo constructor. """
+    passing to scipy.sparse.coo constructor.
+    """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
 
-    # from the SparseSeries: get the labels and data for non-null entries
-    values = ss._data.internal_values()._valid_sp_values
+    # from the sparse Series: get the labels and data for non-null entries
+    values = ss.array._valid_sp_values
 
     nonnull_labels = ss.dropna()
 
     def get_indexers(levels):
         """ Return sparse coords and dense labels for subset levels """
-
         # TODO: how to do this better? cleanly slice nonnull_labels given the
         # coord
         values_ilabels = [tuple(x[i] for i in levels) for x in nonnull_labels.index]
@@ -44,7 +45,8 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
 
         def _get_label_to_i_dict(labels, sort_labels=False):
-            """ Return dict of unique labels to number.
+            """
+            Return dict of unique labels to number.
             Optionally sort by label.
             """
             labels = Index(map(tuple, labels)).unique().tolist()  # squish
@@ -85,11 +87,10 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
 
 def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
-    Convert a SparseSeries to a scipy.sparse.coo_matrix using index
+    Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
     labels respectively. Returns the sparse_matrix, row and column labels.
     """
-
     import scipy.sparse
 
     if ss.index.nlevels < 2:
@@ -133,8 +134,10 @@ def _coo_to_sparse_series(A, dense_index: bool = False):
 
     try:
         s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
-    except AttributeError:
-        raise TypeError(f"Expected coo_matrix. Got {type(A).__name__} instead.")
+    except AttributeError as err:
+        raise TypeError(
+            f"Expected coo_matrix. Got {type(A).__name__} instead."
+        ) from err
     s = s.sort_index()
     s = s.astype(SparseDtype(s.dtype))
     if dense_index:

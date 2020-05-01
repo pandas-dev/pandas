@@ -39,10 +39,11 @@
     // followed by the pip installed packages).
     "matrix": {
         "numpy": [],
-        "Cython": [],
+        "Cython": ["0.29.16"],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
+        "numba": [],
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],

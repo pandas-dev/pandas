@@ -13,7 +13,7 @@ def assert_invalid_addsub_type(left, right, msg=None):
     Helper to assert that left and right can be neither added nor subtracted.
 
     Parameters
-    ---------
+    ----------
     left : object
     right : object
     msg : str or None, default None

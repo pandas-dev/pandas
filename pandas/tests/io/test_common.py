@@ -129,7 +129,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -137,24 +137,27 @@ bar2,12,13,14,15
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
-    def test_read_non_existant(self, reader, module, error_class, fn_ext):
+    def test_read_non_existent(self, reader, module, error_class, fn_ext):
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = r"File (b')?.+does_not_exist\.{}'? does not exist".format(fn_ext)
+        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
         msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist:"
-            fr" '.+does_not_exist\.{fn_ext}'"
+            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            fr"'.+does_not_exist\.{fn_ext}'"
         )
         msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+
         with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7})"
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -165,7 +168,7 @@ bar2,12,13,14,15
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -186,16 +189,18 @@ bar2,12,13,14,15
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist:"
-            fr" '.+does_not_exist\.{fn_ext}'"
+            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            fr"'.+does_not_exist\.{fn_ext}'"
         )
         msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7})"
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -212,7 +217,7 @@ bar2,12,13,14,15
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
             (
                 pd.read_feather,
-                "feather",
+                "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
             ),
             (
@@ -249,7 +254,7 @@ bar2,12,13,14,15
         [
             ("to_csv", {}, "os"),
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
-            ("to_feather", {}, "feather"),
+            ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Top level ``eval`` module.
 """
@@ -26,30 +24,29 @@ def _check_engine(engine: Optional[str]) -> str:
     Parameters
     ----------
     engine : str
+        String to validate.
 
     Raises
     ------
     KeyError
-      * If an invalid engine is passed
+      * If an invalid engine is passed.
     ImportError
-      * If numexpr was requested but doesn't exist
+      * If numexpr was requested but doesn't exist.
 
     Returns
     -------
-    string engine
+    str
+        Engine name.
     """
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
     if engine is None:
-        if _NUMEXPR_INSTALLED:
-            engine = "numexpr"
-        else:
-            engine = "python"
+        engine = "numexpr" if _NUMEXPR_INSTALLED else "python"
 
     if engine not in _engines:
-        valid = list(_engines.keys())
+        valid_engines = list(_engines.keys())
         raise KeyError(
-            f"Invalid engine {repr(engine)} passed, valid engines are {valid}"
+            f"Invalid engine '{engine}' passed, valid engines are {valid_engines}"
         )
 
     # TODO: validate this in a more general way (thinking of future engines
@@ -58,10 +55,8 @@ def _check_engine(engine: Optional[str]) -> str:
     if engine == "numexpr":
         if not _NUMEXPR_INSTALLED:
             raise ImportError(
-                "'numexpr' is not installed or an "
-                "unsupported version. Cannot use "
-                "engine='numexpr' for query/eval "
-                "if 'numexpr' is not installed"
+                "'numexpr' is not installed or an unsupported version. Cannot use "
+                "engine='numexpr' for query/eval if 'numexpr' is not installed"
             )
 
     return engine
@@ -80,11 +75,9 @@ def _check_parser(parser: str):
     KeyError
       * If an invalid parser is passed
     """
-
     if parser not in _parsers:
         raise KeyError(
-            f"Invalid parser {repr(parser)} passed, "
-            f"valid parsers are {_parsers.keys()}"
+            f"Invalid parser '{parser}' passed, valid parsers are {_parsers.keys()}"
         )
 
 
@@ -94,8 +87,8 @@ def _check_resolvers(resolvers):
             if not hasattr(resolver, "__getitem__"):
                 name = type(resolver).__name__
                 raise TypeError(
-                    f"Resolver of type {repr(name)} does not "
-                    f"implement the __getitem__ method"
+                    f"Resolver of type '{name}' does not "
+                    "implement the __getitem__ method"
                 )
 
 
@@ -155,10 +148,8 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
         msg = "The '@' prefix is only supported by the pandas parser"
     elif at_top_of_stack:
         msg = (
-            "The '@' prefix is not allowed in "
-            "top-level eval calls, \nplease refer to "
-            "your variables by name without the '@' "
-            "prefix"
+            "The '@' prefix is not allowed in top-level eval calls.\n"
+            "please refer to your variables by name without the '@' prefix."
         )
 
     if at_top_of_stack or not_pandas_parser:
@@ -274,8 +265,10 @@ def eval(
 
     See Also
     --------
-    DataFrame.query
-    DataFrame.eval
+    DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+    DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
     Notes
     -----
@@ -284,14 +277,30 @@ def eval(
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
-    """
 
+    Examples
+    --------
+    >>> df = pd.DataFrame({"animal": ["dog", "pig"], "age": [10, 20]})
+    >>> df
+      animal  age
+    0    dog   10
+    1    pig   20
+
+    We can add a new column using ``pd.eval``:
+
+    >>> pd.eval("double_age = df.age * 2", target=df)
+      animal  age  double_age
+    0    dog   10          20
+    1    pig   20          40
+    """
     inplace = validate_bool_kwarg(inplace, "inplace")
 
     if truediv is not no_default:
         warnings.warn(
-            "The `truediv` parameter in pd.eval is deprecated and will be "
-            "removed in a future version.",
+            (
+                "The `truediv` parameter in pd.eval is deprecated and "
+                "will be removed in a future version."
+            ),
             FutureWarning,
             stacklevel=2,
         )
@@ -354,8 +363,8 @@ def eval(
             if not inplace and first_expr:
                 try:
                     target = env.target.copy()
-                except AttributeError:
-                    raise ValueError("Cannot return a copy of the target")
+                except AttributeError as err:
+                    raise ValueError("Cannot return a copy of the target") from err
             else:
                 target = env.target
 
@@ -367,8 +376,8 @@ def eval(
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
-            except (TypeError, IndexError):
-                raise ValueError("Cannot assign expression output to target")
+            except (TypeError, IndexError) as err:
+                raise ValueError("Cannot assign expression output to target") from err
 
             if not resolvers:
                 resolvers = ({assigner: ret},)

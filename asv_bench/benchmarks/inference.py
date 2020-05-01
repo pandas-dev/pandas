@@ -1,53 +1,8 @@
 import numpy as np
 
-from pandas import DataFrame, Series, to_numeric
+from pandas import Series, to_numeric
 
-from .pandas_vb_common import lib, numeric_dtypes, tm
-
-
-class NumericInferOps:
-    # from GH 7332
-    params = numeric_dtypes
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        N = 5 * 10 ** 5
-        self.df = DataFrame(
-            {"A": np.arange(N).astype(dtype), "B": np.arange(N).astype(dtype)}
-        )
-
-    def time_add(self, dtype):
-        self.df["A"] + self.df["B"]
-
-    def time_subtract(self, dtype):
-        self.df["A"] - self.df["B"]
-
-    def time_multiply(self, dtype):
-        self.df["A"] * self.df["B"]
-
-    def time_divide(self, dtype):
-        self.df["A"] / self.df["B"]
-
-    def time_modulo(self, dtype):
-        self.df["A"] % self.df["B"]
-
-
-class DateInferOps:
-    # from GH 7332
-    def setup_cache(self):
-        N = 5 * 10 ** 5
-        df = DataFrame({"datetime64": np.arange(N).astype("datetime64[ms]")})
-        df["timedelta"] = df["datetime64"] - df["datetime64"]
-        return df
-
-    def time_subtract_datetimes(self, df):
-        df["datetime64"] - df["datetime64"]
-
-    def time_timedelta_plus_datetime(self, df):
-        df["timedelta"] + df["datetime64"]
-
-    def time_add_timedeltas(self, df):
-        df["timedelta"] + df["timedelta"]
+from .pandas_vb_common import lib, tm
 
 
 class ToNumeric:

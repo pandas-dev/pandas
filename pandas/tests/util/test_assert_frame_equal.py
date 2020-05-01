@@ -1,5 +1,6 @@
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -46,13 +47,9 @@ def _assert_not_frame_equal(a, b, **kwargs):
     kwargs : dict
         The arguments passed to `tm.assert_frame_equal`.
     """
-    try:
+    msg = "The two DataFrames were equal when they shouldn't have been"
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(a, b, **kwargs)
-        msg = "The two DataFrames were equal when they shouldn't have been"
-
-        pytest.fail(msg=msg)
-    except AssertionError:
-        pass
 
 
 def _assert_not_frame_equal_both(a, b, **kwargs):
@@ -181,6 +178,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
     msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[4, 5, 6\\]
 \\[right\\]: \\[4, 5, 7\\]"""
 
@@ -200,6 +198,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
             """{obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]""",
         ),
@@ -209,6 +208,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
             """{obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) are different
 
 {obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) values are different \\(100\\.0 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[a, a, a\\]""",
         ),
@@ -222,3 +222,41 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, obj_fixture):
     msg = msg.format(obj=obj_fixture)
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2, by_blocks=by_blocks_fixture, obj=obj_fixture)
+
+
+def test_assert_frame_equal_extension_dtype_mismatch():
+    # https://github.com/pandas-dev/pandas/issues/32747
+    left = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    right = left.astype(int)
+
+    msg = (
+        "Attributes of DataFrame\\.iloc\\[:, 0\\] "
+        '\\(column name="a"\\) are different\n\n'
+        'Attribute "dtype" are different\n'
+        "\\[left\\]:  Int64\n"
+        "\\[right\\]: int[32|64]"
+    )
+
+    tm.assert_frame_equal(left, right, check_dtype=False)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, check_dtype=True)
+
+
+def test_assert_frame_equal_interval_dtype_mismatch():
+    # https://github.com/pandas-dev/pandas/issues/32747
+    left = DataFrame({"a": [pd.Interval(0, 1)]}, dtype="interval")
+    right = left.astype(object)
+
+    msg = (
+        "Attributes of DataFrame\\.iloc\\[:, 0\\] "
+        '\\(column name="a"\\) are different\n\n'
+        'Attribute "dtype" are different\n'
+        "\\[left\\]:  interval\\[int64\\]\n"
+        "\\[right\\]: object"
+    )
+
+    tm.assert_frame_equal(left, right, check_dtype=False)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, check_dtype=True)

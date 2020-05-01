@@ -1,11 +1,17 @@
-"""Extend pandas with custom array types"""
-from typing import Any, List, Optional, Tuple, Type
+"""
+Extend pandas with custom array types.
+"""
+
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 
 class ExtensionDtype:
@@ -26,7 +32,6 @@ class ExtensionDtype:
 
     * type
     * name
-    * construct_from_string
 
     The following attributes influence the behavior of the dtype in
     pandas operations
@@ -71,7 +76,7 @@ class ExtensionDtype:
         class ExtensionDtype:
 
             def __from_arrow__(
-                self, array: pyarrow.Array/ChunkedArray
+                self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
             ) -> ExtensionArray:
                 ...
 
@@ -119,11 +124,11 @@ class ExtensionDtype:
     def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
     @property
-    def na_value(self):
+    def na_value(self) -> object:
         """
         Default NA value to use for this type.
 
@@ -181,7 +186,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ExtensionArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -231,12 +236,14 @@ class ExtensionDtype:
         ...     if match:
         ...         return cls(**match.groupdict())
         ...     else:
-        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
-        ...             " "'{string}'")
+        ...         raise TypeError(
+        ...             f"Cannot construct a '{cls.__name__}' from '{string}'"
+        ...         )
         """
         if not isinstance(string, str):
-            raise TypeError(f"Expects a string, got {type(string).__name__}")
-
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
         assert isinstance(cls.name, str), (cls, type(cls.name))
@@ -245,7 +252,7 @@ class ExtensionDtype:
         return cls()
 
     @classmethod
-    def is_dtype(cls, dtype) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Check if we match 'dtype'.
 
@@ -256,7 +263,7 @@ class ExtensionDtype:
 
         Returns
         -------
-        is_dtype : bool
+        bool
 
         Notes
         -----

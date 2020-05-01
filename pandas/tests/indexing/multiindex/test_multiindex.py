@@ -26,26 +26,6 @@ class TestMultiIndexBasic:
         with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(0,)]
 
-    def test_multiindex_contains_dropped(self):
-        # GH 19027
-        # test that dropped MultiIndex levels are not in the MultiIndex
-        # despite continuing to be in the MultiIndex's levels
-        idx = MultiIndex.from_product([[1, 2], [3, 4]])
-        assert 2 in idx
-        idx = idx.drop(2)
-
-        # drop implementation keeps 2 in the levels
-        assert 2 in idx.levels[0]
-        # but it should no longer be in the index itself
-        assert 2 not in idx
-
-        # also applies to strings
-        idx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
-        assert "a" in idx
-        idx = idx.drop("a")
-        assert "a" in idx.levels[0]
-        assert "a" not in idx
-
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
 
@@ -85,10 +65,21 @@ class TestMultiIndexBasic:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_contains(self):
-        # GH 24570
-        tx = pd.timedelta_range("09:30:00", "16:00:00", freq="30 min")
-        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
-        assert tx[0] in idx
-        assert "element_not_exit" not in idx
-        assert "0 day 09:30:00" in idx
+    def test_nested_tuples_duplicates(self):
+        # GH#30892
+
+        dti = pd.to_datetime(["20190101", "20190101", "20190102"])
+        idx = pd.Index(["a", "a", "c"])
+        mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
+
+        df = pd.DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
+
+        expected = pd.DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
+
+        df2 = df.copy(deep=True)
+        df2.loc[(dti[0], "a"), "c2"] = 1.0
+        tm.assert_frame_equal(df2, expected)
+
+        df3 = df.copy(deep=True)
+        df3.loc[[(dti[0], "a")], "c2"] = 1.0
+        tm.assert_frame_equal(df3, expected)

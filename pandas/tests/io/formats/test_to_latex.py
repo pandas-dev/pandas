@@ -117,10 +117,10 @@ Index: Index([], dtype='object') \\
 
         formatters = {
             "datetime64": lambda x: x.strftime("%Y-%m"),
-            "float": lambda x: "[{x: 4.1f}]".format(x=x),
-            "int": lambda x: "0x{x:x}".format(x=x),
-            "object": lambda x: "-{x!s}-".format(x=x),
-            "__index__": lambda x: "index: {x}".format(x=x),
+            "float": lambda x: f"[{x: 4.1f}]",
+            "int": lambda x: f"0x{x:x}",
+            "object": lambda x: f"-{x!s}-",
+            "__index__": lambda x: f"index: {x}",
         }
         result = df.to_latex(formatters=dict(formatters))
 
@@ -664,7 +664,8 @@ AA &  BB \\
 
         assert withoutescape_result == withoutescape_expected
 
-        with pytest.raises(ValueError):
+        msg = "Writing 2 cols but got 1 aliases"
+        with pytest.raises(ValueError, match=msg):
             df.to_latex(header=["A"])
 
     def test_to_latex_decimal(self, float_frame):
@@ -744,9 +745,7 @@ AA &  BB \\
 
         idx_names = tuple(n or "{}" for n in names)
         idx_names_row = (
-            "{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n".format(
-                idx_names=idx_names
-            )
+            f"{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n"
             if (0 in axes and any(names))
             else ""
         )

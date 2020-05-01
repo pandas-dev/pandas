@@ -91,7 +91,7 @@ class Base:
 
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
+        tm.assert_numpy_array_equal(np.array(result), expected_values)
 
     @pytest.mark.parametrize(
         "breaks",
@@ -114,7 +114,7 @@ class Base:
         assert result.empty
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
+        tm.assert_numpy_array_equal(np.array(result), expected_values)
 
     @pytest.mark.parametrize(
         "breaks",
@@ -164,7 +164,7 @@ class Base:
             constructor(dtype="int64", **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type [\"']invalid[\"'] not understood"
         with pytest.raises(TypeError, match=msg):
             constructor(dtype="invalid", **filler)
 

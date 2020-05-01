@@ -78,6 +78,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -98,8 +99,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
     ):
         raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
         )
 
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
@@ -297,7 +297,7 @@ def zsqrt(x):
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():

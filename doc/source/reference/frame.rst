@@ -28,6 +28,7 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
+   DataFrame.info
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.axes
@@ -43,6 +44,7 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
+   DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna
@@ -168,6 +170,7 @@ Computations / descriptive stats
    DataFrame.std
    DataFrame.var
    DataFrame.nunique
+   DataFrame.value_counts
 
 Reindexing / selection / label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -248,7 +251,7 @@ Combining / joining / merging
    DataFrame.merge
    DataFrame.update
 
-Time series-related
+Time Series-related
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -346,7 +349,6 @@ Serialization / IO / conversion
 
    DataFrame.from_dict
    DataFrame.from_records
-   DataFrame.info
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv

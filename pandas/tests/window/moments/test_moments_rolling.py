@@ -9,10 +9,20 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, isna, notna
+from pandas import DataFrame, DatetimeIndex, Index, Series, isna, notna
 import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
-from pandas.tests.window.common import Base, ConsistencyBase
+from pandas.tests.window.common import (
+    Base,
+    ConsistencyBase,
+    moments_consistency_cov_data,
+    moments_consistency_is_constant,
+    moments_consistency_mock_mean,
+    moments_consistency_series_data,
+    moments_consistency_std_data,
+    moments_consistency_var_data,
+    moments_consistency_var_debiasing_factors,
+)
 
 import pandas.tseries.offsets as offsets
 
@@ -777,8 +787,8 @@ class TestMoments(Base):
                 series_result = get_result(series, window=win, min_periods=minp)
                 frame_result = get_result(frame, window=win, min_periods=minp)
             else:
-                series_result = get_result(series, window=win)
-                frame_result = get_result(frame, window=win)
+                series_result = get_result(series, window=win, min_periods=0)
+                frame_result = get_result(frame, window=win, min_periods=0)
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * offsets.BDay()
@@ -835,8 +845,8 @@ class TestMoments(Base):
                 nan_mask = ~nan_mask
                 tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
         else:
-            result = get_result(self.series, len(self.series) + 1)
-            expected = get_result(self.series, len(self.series))
+            result = get_result(self.series, len(self.series) + 1, min_periods=0)
+            expected = get_result(self.series, len(self.series), min_periods=0)
             nan_mask = isna(result)
             tm.assert_series_equal(nan_mask, isna(expected))
 
@@ -851,15 +861,16 @@ class TestMoments(Base):
                     pd.concat([obj, Series([np.NaN] * 9)]), 20, min_periods=15
                 )[9:].reset_index(drop=True)
             else:
-                result = get_result(obj, 20, center=True)
-                expected = get_result(pd.concat([obj, Series([np.NaN] * 9)]), 20)[
-                    9:
-                ].reset_index(drop=True)
+                result = get_result(obj, 20, min_periods=0, center=True)
+                print(result)
+                expected = get_result(
+                    pd.concat([obj, Series([np.NaN] * 9)]), 20, min_periods=0
+                )[9:].reset_index(drop=True)
 
             tm.assert_series_equal(result, expected)
 
             # shifter index
-            s = ["x{x:d}".format(x=x) for x in range(12)]
+            s = [f"x{x:d}" for x in range(12)]
 
             if has_min_periods:
                 minp = 10
@@ -893,21 +904,27 @@ class TestMoments(Base):
             else:
                 series_xp = (
                     get_result(
-                        self.series.reindex(list(self.series.index) + s), window=25
+                        self.series.reindex(list(self.series.index) + s),
+                        window=25,
+                        min_periods=0,
                     )
                     .shift(-12)
                     .reindex(self.series.index)
                 )
                 frame_xp = (
                     get_result(
-                        self.frame.reindex(list(self.frame.index) + s), window=25
+                        self.frame.reindex(list(self.frame.index) + s),
+                        window=25,
+                        min_periods=0,
                     )
                     .shift(-12)
                     .reindex(self.frame.index)
                 )
 
-                series_rs = get_result(self.series, window=25, center=True)
-                frame_rs = get_result(self.frame, window=25, center=True)
+                series_rs = get_result(
+                    self.series, window=25, min_periods=0, center=True
+                )
+                frame_rs = get_result(self.frame, window=25, min_periods=0, center=True)
 
             if fill_value is not None:
                 series_xp = series_xp.fillna(fill_value)
@@ -929,162 +946,57 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "window,min_periods,center", list(_rolling_consistency_cases())
     )
-    def test_rolling_consistency(self, window, min_periods, center):
-
-        # suppress warnings about empty slices, as we are deliberately testing
-        # with empty/0-length Series/DataFrames
+    def test_rolling_apply_consistency(
+        self, consistency_data, window, min_periods, center
+    ):
+        x, is_constant, no_nans = consistency_data
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
                 message=".*(empty slice|0 for slice).*",
                 category=RuntimeWarning,
             )
-
-            # test consistency between different rolling_* moments
-            self._test_moments_consistency_mock_mean(
-                mean=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).mean()
-                ),
-                mock_mean=lambda x: (
-                    x.rolling(window=window, min_periods=min_periods, center=center)
-                    .sum()
-                    .divide(
-                        x.rolling(
-                            window=window, min_periods=min_periods, center=center
-                        ).count()
-                    )
-                ),
-            )
-
-            self._test_moments_consistency_is_constant(
-                min_periods=min_periods,
-                count=lambda x: (x.rolling(window=window, center=center).count()),
-                mean=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).mean()
-                ),
-                corr=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).corr(y)
-                ),
-            )
-
-            self._test_moments_consistency_var_debiasing_factors(
-                var_unbiased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var()
-                ),
-                var_biased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var(ddof=0)
-                ),
-                var_debiasing_factors=lambda x: (
-                    x.rolling(window=window, center=center)
-                    .count()
-                    .divide(
-                        (x.rolling(window=window, center=center).count() - 1.0).replace(
-                            0.0, np.nan
-                        )
-                    )
-                ),
-            )
-
-            self._test_moments_consistency(
-                min_periods=min_periods,
-                count=lambda x: (x.rolling(window=window, center=center).count()),
-                mean=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).mean()
-                ),
-                corr=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).corr(y)
-                ),
-                var_unbiased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var()
-                ),
-                std_unbiased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).std()
-                ),
-                cov_unbiased=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).cov(y)
-                ),
-                var_biased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).var(ddof=0)
-                ),
-                std_biased=lambda x: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).std(ddof=0)
-                ),
-                cov_biased=lambda x, y: (
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).cov(y, ddof=0)
-                ),
-            )
-
             # test consistency between rolling_xyz() and either (a)
             # rolling_apply of Series.xyz(), or (b) rolling_apply of
             # np.nanxyz()
-            for (x, is_constant, no_nans) in self.data:
-                functions = self.base_functions
+            functions = self.base_functions
 
-                # GH 8269
-                if no_nans:
-                    functions = self.base_functions + self.no_nan_functions
-                for (f, require_min_periods, name) in functions:
-                    rolling_f = getattr(
-                        x.rolling(
-                            window=window, center=center, min_periods=min_periods
-                        ),
-                        name,
-                    )
+            # GH 8269
+            if no_nans:
+                functions = self.base_functions + self.no_nan_functions
+            for (f, require_min_periods, name) in functions:
+                rolling_f = getattr(
+                    x.rolling(window=window, center=center, min_periods=min_periods),
+                    name,
+                )
 
-                    if (
-                        require_min_periods
-                        and (min_periods is not None)
-                        and (min_periods < require_min_periods)
-                    ):
-                        continue
+                if (
+                    require_min_periods
+                    and (min_periods is not None)
+                    and (min_periods < require_min_periods)
+                ):
+                    continue
 
-                    if name == "count":
-                        rolling_f_result = rolling_f()
-                        rolling_apply_f_result = x.rolling(
-                            window=window, min_periods=0, center=center
-                        ).apply(func=f, raw=True)
+                if name == "count":
+                    rolling_f_result = rolling_f()
+                    rolling_apply_f_result = x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).apply(func=f, raw=True)
+                else:
+                    if name in ["cov", "corr"]:
+                        rolling_f_result = rolling_f(pairwise=False)
                     else:
-                        if name in ["cov", "corr"]:
-                            rolling_f_result = rolling_f(pairwise=False)
-                        else:
-                            rolling_f_result = rolling_f()
-                        rolling_apply_f_result = x.rolling(
-                            window=window, min_periods=min_periods, center=center
-                        ).apply(func=f, raw=True)
+                        rolling_f_result = rolling_f()
+                    rolling_apply_f_result = x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).apply(func=f, raw=True)
 
-                    # GH 9422
-                    if name in ["sum", "prod"]:
-                        tm.assert_equal(rolling_f_result, rolling_apply_f_result)
+                # GH 9422
+                if name in ["sum", "prod"]:
+                    tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
     # binary moments
     def test_rolling_cov(self):
@@ -1317,7 +1229,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
     def test_rolling_max_gh6297(self):
         """Replicate result expected in GH #6297"""
-
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 2 datapoints on one of the days
         indices.append(datetime(1975, 1, 3, 6, 0))
@@ -1329,7 +1240,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
         expected = Series(
             [1.0, 2.0, 6.0, 4.0, 5.0],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         x = series.resample("D").max().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
@@ -1349,7 +1262,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # Default how should be max
         expected = Series(
             [0.0, 1.0, 2.0, 3.0, 20.0],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         x = series.resample("D").max().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
@@ -1357,7 +1272,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # Now specify median (10.0)
         expected = Series(
             [0.0, 1.0, 2.0, 3.0, 10.0],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         x = series.resample("D").median().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
@@ -1366,7 +1283,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         v = (4.0 + 10.0 + 20.0) / 3.0
         expected = Series(
             [0.0, 1.0, 2.0, 3.0, v],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         x = series.resample("D").mean().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
@@ -1386,7 +1305,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # Default how should be min
         expected = Series(
             [0.0, 1.0, 2.0, 3.0, 4.0],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         r = series.resample("D").min().rolling(window=1)
         tm.assert_series_equal(expected, r.min())
@@ -1406,7 +1327,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # Default how should be median
         expected = Series(
             [0.0, 1.0, 2.0, 3.0, 10],
-            index=[datetime(1975, 1, i, 0) for i in range(1, 6)],
+            index=DatetimeIndex(
+                [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+            ),
         )
         x = series.resample("D").median().rolling(window=1).median()
         tm.assert_series_equal(expected, x)
@@ -1420,13 +1343,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def test_rolling_min_max_numeric_types(self):
 
         # GH12373
-        types_test = [np.dtype("f{}".format(width)) for width in [4, 8]]
+        types_test = [np.dtype(f"f{width}") for width in [4, 8]]
         types_test.extend(
-            [
-                np.dtype("{}{}".format(sign, width))
-                for width in [1, 2, 4, 8]
-                for sign in "ui"
-            ]
+            [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"]
         )
         for data_type in types_test:
             # Just testing that these don't throw exceptions and that
@@ -1509,3 +1428,180 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
             df2_result = f(df2)
             tm.assert_frame_equal(df2_result, df2_expected)
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_var(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+    moments_consistency_var_data(
+        x=x,
+        is_constant=is_constant,
+        min_periods=min_periods,
+        count=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).count()
+        ),
+        mean=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).mean()
+        ),
+        var_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var()
+        ),
+        var_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_std(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+    moments_consistency_std_data(
+        x=x,
+        var_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var()
+        ),
+        std_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).std()
+        ),
+        var_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
+        ),
+        std_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).std(ddof=0)
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_cov(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+    moments_consistency_cov_data(
+        x=x,
+        var_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var()
+        ),
+        cov_unbiased=lambda x, y: (
+            x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
+        ),
+        var_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
+        ),
+        cov_biased=lambda x, y: (
+            x.rolling(window=window, min_periods=min_periods, center=center).cov(
+                y, ddof=0
+            )
+        ),
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_series(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+    moments_consistency_series_data(
+        x=x,
+        mean=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).mean()
+        ),
+        corr=lambda x, y: (
+            x.rolling(window=window, min_periods=min_periods, center=center).corr(y)
+        ),
+        var_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var()
+        ),
+        std_unbiased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).std()
+        ),
+        cov_unbiased=lambda x, y: (
+            x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
+        ),
+        var_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
+        ),
+        std_biased=lambda x: (
+            x.rolling(window=window, min_periods=min_periods, center=center).std(ddof=0)
+        ),
+        cov_biased=lambda x, y: (
+            x.rolling(window=window, min_periods=min_periods, center=center).cov(
+                y, ddof=0
+            )
+        ),
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+    # suppress warnings about empty slices, as we are deliberately testing
+    # with empty/0-length Series/DataFrames
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+        )
+
+        # test consistency between different rolling_* moments
+        moments_consistency_mock_mean(
+            x=x,
+            mean=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).mean()
+            ),
+            mock_mean=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center)
+                .sum()
+                .divide(
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).count()
+                )
+            ),
+        )
+
+        moments_consistency_is_constant(
+            x=x,
+            is_constant=is_constant,
+            min_periods=min_periods,
+            count=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).count()
+            ),
+            mean=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).mean()
+            ),
+            corr=lambda x, y: (
+                x.rolling(window=window, min_periods=min_periods, center=center).corr(y)
+            ),
+        )
+
+        moments_consistency_var_debiasing_factors(
+            x=x,
+            var_unbiased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var()
+            ),
+            var_biased=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center).var(
+                    ddof=0
+                )
+            ),
+            var_debiasing_factors=lambda x: (
+                x.rolling(window=window, min_periods=min_periods, center=center)
+                .count()
+                .divide(
+                    (
+                        x.rolling(
+                            window=window, min_periods=min_periods, center=center
+                        ).count()
+                        - 1.0
+                    ).replace(0.0, np.nan)
+                )
+            ),
+        )

@@ -50,7 +50,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install pip  # create conda to create a historical artifact for pip & setuptools
+conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
 echo "conda info -a"
@@ -115,6 +115,11 @@ echo "we use the one from the CI"
 conda remove postgresql -y --force || true
 
 echo
+echo "remove qt"
+echo "causes problems with the clipboard, we use xsel for that"
+conda remove qt -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
@@ -123,7 +128,7 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i -j2
 
-# XXX: Some of our environments end up with old versions of pip (10.x)
+# TODO: Some of our environments end up with old versions of pip (10.x)
 # Adding a new enough version of pip to the requirements explodes the
 # solve time. Just using pip to update itself.
 # - py35_macos

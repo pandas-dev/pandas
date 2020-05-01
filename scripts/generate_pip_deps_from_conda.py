@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Convert the conda environment.yml to the pip requirements-dev.txt,
 or check that they have the same packages (for the CI)
@@ -132,8 +132,7 @@ if __name__ == "__main__":
         )
         if args.azure:
             msg = (
-                "##vso[task.logissue type=error;"
-                f"sourcepath=requirements-dev.txt]{msg}"
+                f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
             )
         sys.stderr.write(msg)
     sys.exit(res)

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import Series
 import pandas._testing as tm
 
@@ -44,3 +45,12 @@ class TestSeriesRound:
         expected_rounded = Series([1.12, 2.12, 3.12], index=range(3))
         result = round(ser, decimals)
         tm.assert_series_equal(result, expected_rounded)
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
+    def test_round_nat(self, method, freq):
+        # GH14940
+        ser = Series([pd.NaT])
+        expected = Series(pd.NaT)
+        round_method = getattr(ser.dt, method)
+        tm.assert_series_equal(round_method(freq), expected)

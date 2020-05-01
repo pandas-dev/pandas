@@ -6,7 +6,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -21,90 +20,12 @@ from pandas.core.indexing import IndexingError
 
 
 class TestSlicing:
-    def test_dti_slicing(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
-        dti2 = dti[[1, 3, 5]]
-
-        v1 = dti2[0]
-        v2 = dti2[1]
-        v3 = dti2[2]
-
-        assert v1 == Timestamp("2/28/2005")
-        assert v2 == Timestamp("4/30/2005")
-        assert v3 == Timestamp("6/30/2005")
-
-        # don't carry freq through irregular slicing
-        assert dti2.freq is None
-
-    def test_slice_keeps_name(self):
-        # GH4226
-        st = pd.Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
-        et = pd.Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
-        dr = pd.date_range(st, et, freq="H", name="timebucket")
-        assert dr[1:].name == dr.name
-
-    def test_slice_with_negative_step(self):
-        ts = Series(np.arange(20), date_range("2014-01-01", periods=20, freq="MS"))
-        SLC = pd.IndexSlice
-
-        def assert_slices_equivalent(l_slc, i_slc):
-            tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
-            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-
-        assert_slices_equivalent(SLC[Timestamp("2014-10-01") :: -1], SLC[9::-1])
-        assert_slices_equivalent(SLC["2014-10-01"::-1], SLC[9::-1])
-
-        assert_slices_equivalent(SLC[: Timestamp("2014-10-01") : -1], SLC[:8:-1])
-        assert_slices_equivalent(SLC[:"2014-10-01":-1], SLC[:8:-1])
-
-        assert_slices_equivalent(SLC["2015-02-01":"2014-10-01":-1], SLC[13:8:-1])
-        assert_slices_equivalent(
-            SLC[Timestamp("2015-02-01") : Timestamp("2014-10-01") : -1], SLC[13:8:-1]
-        )
-        assert_slices_equivalent(
-            SLC["2015-02-01" : Timestamp("2014-10-01") : -1], SLC[13:8:-1]
-        )
-        assert_slices_equivalent(
-            SLC[Timestamp("2015-02-01") : "2014-10-01" : -1], SLC[13:8:-1]
-        )
-
-        assert_slices_equivalent(SLC["2014-10-01":"2015-02-01":-1], SLC[:0])
-
-    def test_slice_with_zero_step_raises(self):
-        ts = Series(np.arange(20), date_range("2014-01-01", periods=20, freq="MS"))
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]
-
-    def test_slice_bounds_empty(self):
-        # GH#14354
-        empty_idx = date_range(freq="1H", periods=0, end="2015")
-
-        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
-        exp = Timestamp("2015-01-02 23:59:59.999999999")
-        assert right == exp
-
-        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
-        exp = Timestamp("2015-01-02 00:00:00")
-        assert left == exp
-
-    def test_slice_duplicate_monotonic(self):
-        # https://github.com/pandas-dev/pandas/issues/16515
-        idx = pd.DatetimeIndex(["2017", "2017"])
-        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
-        expected = Timestamp("2017-01-01")
-        assert result == expected
-
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
         # Testing accessing the first element in a monotonic descending
         # partial string indexing.
 
-        df = pd.DataFrame(list(range(5)))
+        df = DataFrame(list(range(5)))
         date_list = [
             "2018-01-02",
             "2017-02-10",
@@ -112,15 +33,13 @@ class TestSlicing:
             "2015-03-15",
             "2014-03-16",
         ]
-        date_index = pd.to_datetime(date_list)
+        date_index = DatetimeIndex(date_list)
         df["date"] = date_index
-        expected = pd.DataFrame({0: list(range(5)), "date": date_index})
+        expected = DataFrame({0: list(range(5)), "date": date_index})
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame(
-            {"A": [1, 2, 3]}, index=pd.date_range("20170101", periods=3)[::-1]
-        )
-        expected = pd.DataFrame({"A": 1}, index=pd.date_range("20170103", periods=1))
+        df = DataFrame({"A": [1, 2, 3]}, index=date_range("20170101", periods=3)[::-1])
+        expected = DataFrame({"A": 1}, index=date_range("20170103", periods=1)[::-1])
         tm.assert_frame_equal(df.loc["2017-01-03"], expected)
 
     def test_slice_year(self):
@@ -141,6 +60,26 @@ class TestSlicing:
         result = rng.get_loc("2009")
         expected = slice(3288, 3653)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "partial_dtime",
+        [
+            "2019",
+            "2019Q4",
+            "Dec 2019",
+            "2019-12-31",
+            "2019-12-31 23",
+            "2019-12-31 23:59",
+        ],
+    )
+    def test_slice_end_of_period_resolution(self, partial_dtime):
+        # GH#31064
+        dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
+
+        ser = Series(range(10), index=dti)
+        result = ser[partial_dtime]
+        expected = ser.iloc[:5]
+        tm.assert_series_equal(result, expected)
 
     def test_slice_quarter(self):
         dti = date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
@@ -338,7 +277,7 @@ class TestSlicing:
         tm.assert_frame_equal(result, expected)
 
         expected = df_multi.loc[
-            (pd.Timestamp("2013-06-19 09:30:00", tz=None), "ACCT1", "ABC")
+            (Timestamp("2013-06-19 09:30:00", tz=None), "ACCT1", "ABC")
         ]
         result = df_multi.loc[("2013-06-19 09:30:00", "ACCT1", "ABC")]
         tm.assert_series_equal(result, expected)
@@ -351,31 +290,31 @@ class TestSlicing:
 
         # GH 4294
         # partial slice on a series mi
-        s = pd.DataFrame(
-            np.random.rand(1000, 1000), index=pd.date_range("2000-1-1", periods=1000)
+        s = DataFrame(
+            np.random.rand(1000, 1000), index=date_range("2000-1-1", periods=1000)
         ).stack()
 
         s2 = s[:-1].copy()
         expected = s2["2000-1-4"]
-        result = s2[pd.Timestamp("2000-1-4")]
+        result = s2[Timestamp("2000-1-4")]
         tm.assert_series_equal(result, expected)
 
-        result = s[pd.Timestamp("2000-1-4")]
+        result = s[Timestamp("2000-1-4")]
         expected = s["2000-1-4"]
         tm.assert_series_equal(result, expected)
 
-        df2 = pd.DataFrame(s)
+        df2 = DataFrame(s)
         expected = df2.xs("2000-1-4")
-        result = df2.loc[pd.Timestamp("2000-1-4")]
+        result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
 
     def test_partial_slice_doesnt_require_monotonicity(self):
         # For historical reasons.
-        s = pd.Series(np.arange(10), pd.date_range("2014-01-01", periods=10))
+        s = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
         nonmonotonic = s[[3, 5, 4]]
         expected = nonmonotonic.iloc[:0]
-        timestamp = pd.Timestamp("2014-01-10")
+        timestamp = Timestamp("2014-01-10")
 
         tm.assert_series_equal(nonmonotonic["2014-01-10":], expected)
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
@@ -387,9 +326,9 @@ class TestSlicing:
 
     def test_loc_datetime_length_one(self):
         # GH16071
-        df = pd.DataFrame(
+        df = DataFrame(
             columns=["1"],
-            index=pd.date_range("2016-10-01T00:00:00", "2016-10-01T23:59:59"),
+            index=date_range("2016-10-01T00:00:00", "2016-10-01T23:59:59"),
         )
         result = df.loc[datetime(2016, 10, 1) :]
         tm.assert_frame_equal(result, df)
@@ -420,10 +359,10 @@ class TestSlicing:
         df = DataFrame(
             {
                 "A": [
-                    pd.Timestamp("20120101"),
-                    pd.Timestamp("20130101"),
+                    Timestamp("20120101"),
+                    Timestamp("20130101"),
                     np.nan,
-                    pd.Timestamp("20130103"),
+                    Timestamp("20130103"),
                 ]
             }
         )
@@ -435,26 +374,26 @@ class TestSlicing:
         "start",
         [
             "2018-12-02 21:50:00+00:00",
-            pd.Timestamp("2018-12-02 21:50:00+00:00"),
-            pd.Timestamp("2018-12-02 21:50:00+00:00").to_pydatetime(),
+            Timestamp("2018-12-02 21:50:00+00:00"),
+            Timestamp("2018-12-02 21:50:00+00:00").to_pydatetime(),
         ],
     )
     @pytest.mark.parametrize(
         "end",
         [
             "2018-12-02 21:52:00+00:00",
-            pd.Timestamp("2018-12-02 21:52:00+00:00"),
-            pd.Timestamp("2018-12-02 21:52:00+00:00").to_pydatetime(),
+            Timestamp("2018-12-02 21:52:00+00:00"),
+            Timestamp("2018-12-02 21:52:00+00:00").to_pydatetime(),
         ],
     )
     def test_getitem_with_datestring_with_UTC_offset(self, start, end):
         # GH 24076
-        idx = pd.date_range(
+        idx = date_range(
             start="2018-12-02 14:50:00-07:00",
             end="2018-12-02 14:50:00-07:00",
             freq="1min",
         )
-        df = pd.DataFrame(1, index=idx, columns=["A"])
+        df = DataFrame(1, index=idx, columns=["A"])
         result = df[start:end]
         expected = df.iloc[0:3, :]
         tm.assert_frame_equal(result, expected)
@@ -471,11 +410,9 @@ class TestSlicing:
 
     def test_slice_reduce_to_series(self):
         # GH 27516
-        df = pd.DataFrame(
-            {"A": range(24)}, index=pd.date_range("2000", periods=24, freq="M")
-        )
-        expected = pd.Series(
-            range(12), index=pd.date_range("2000", periods=12, freq="M"), name="A"
+        df = DataFrame({"A": range(24)}, index=date_range("2000", periods=24, freq="M"))
+        expected = Series(
+            range(12), index=date_range("2000", periods=12, freq="M"), name="A"
         )
         result = df.loc["2000", "A"]
         tm.assert_series_equal(result, expected)

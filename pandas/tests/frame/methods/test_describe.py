@@ -86,7 +86,7 @@ class TestDataFrameDescribe:
 
     def test_describe_categorical(self):
         df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)
@@ -230,15 +230,15 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
         exp_repr = (
-            "                           t1                      t2\n"
-            "count                       5                       5\n"
-            "mean          3 days 00:00:00         0 days 03:00:00\n"
-            "std    1 days 13:56:50.394919  0 days 01:34:52.099788\n"
-            "min           1 days 00:00:00         0 days 01:00:00\n"
-            "25%           2 days 00:00:00         0 days 02:00:00\n"
-            "50%           3 days 00:00:00         0 days 03:00:00\n"
-            "75%           4 days 00:00:00         0 days 04:00:00\n"
-            "max           5 days 00:00:00         0 days 05:00:00"
+            "                              t1                         t2\n"
+            "count                          5                          5\n"
+            "mean             3 days 00:00:00            0 days 03:00:00\n"
+            "std    1 days 13:56:50.394919273  0 days 01:34:52.099788303\n"
+            "min              1 days 00:00:00            0 days 01:00:00\n"
+            "25%              2 days 00:00:00            0 days 02:00:00\n"
+            "50%              3 days 00:00:00            0 days 03:00:00\n"
+            "75%              4 days 00:00:00            0 days 04:00:00\n"
+            "max              5 days 00:00:00            0 days 05:00:00"
         )
         assert repr(result) == exp_repr
 
@@ -253,52 +253,19 @@ class TestDataFrameDescribe:
 
         expected = DataFrame(
             {
-                "s1": [
-                    5,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    2,
-                    1.581139,
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                ],
+                "s1": [5, 2, 0, 1, 2, 3, 4, 1.581139],
                 "s2": [
                     5,
-                    5,
-                    s2.value_counts().index[0],
-                    1,
+                    Timestamp(2018, 1, 3).tz_localize(tz),
                     start.tz_localize(tz),
+                    s2[1],
+                    s2[2],
+                    s2[3],
                     end.tz_localize(tz),
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
                     np.nan,
                 ],
             },
-            index=[
-                "count",
-                "unique",
-                "top",
-                "freq",
-                "first",
-                "last",
-                "mean",
-                "std",
-                "min",
-                "25%",
-                "50%",
-                "75%",
-                "max",
-            ],
+            index=["count", "mean", "min", "25%", "50%", "75%", "max", "std"],
         )
         result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)

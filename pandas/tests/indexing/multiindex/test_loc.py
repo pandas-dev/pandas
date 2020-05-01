@@ -134,16 +134,15 @@ class TestMultiIndexLoc:
 
     @pytest.mark.parametrize("key, pos", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])
     def test_loc_multiindex_list_missing_label(self, key, pos):
-        # GH 27148 - lists with missing labels do not raise:
+        # GH 27148 - lists with missing labels _do_ raise
         df = DataFrame(
             np.random.randn(3, 3),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
 
-        expected = df.iloc[pos]
-        result = df.loc[key]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="not in index"):
+            df.loc[key]
 
     def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
@@ -295,8 +294,8 @@ class TestMultiIndexLoc:
     [
         ([], []),  # empty ok
         (["A"], slice(3)),
-        (["A", "D"], slice(3)),
-        (["D", "E"], []),  # no values found - fine
+        (["A", "D"], []),  # "D" isnt present -> raise
+        (["D", "E"], []),  # no values found -> raise
         (["D"], []),  # same, with single item list: GH 27148
         (pd.IndexSlice[:, ["foo"]], slice(2, None, 3)),
         (pd.IndexSlice[:, ["foo", "bah"]], slice(2, None, 3)),
@@ -310,8 +309,13 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     )
     s = Series(np.arange(9, dtype="int64"), index=idx).sort_index()
     expected = s.iloc[pos]
-    result = s.loc[indexer]
-    tm.assert_series_equal(result, expected)
+
+    if expected.size == 0 and indexer != []:
+        with pytest.raises(KeyError, match=str(indexer)):
+            s.loc[indexer]
+    else:
+        result = s.loc[indexer]
+        tm.assert_series_equal(result, expected)
 
 
 def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
@@ -465,6 +469,25 @@ def test_loc_period_string_indexing():
         name="OMS",
         index=pd.MultiIndex.from_tuples(
             [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_datetime_mask_slicing():
+    # GH 16699
+    dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
+    m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
+    df = pd.DataFrame(
+        data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
+    )
+    result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
+    expected = pd.Series(
+        [3],
+        name="C1",
+        index=MultiIndex.from_tuples(
+            [(pd.Timestamp("2017-05-04"), pd.Timestamp("2017-05-05"))],
+            names=["Idx1", "Idx2"],
         ),
     )
     tm.assert_series_equal(result, expected)

@@ -7,13 +7,30 @@ from libc.math cimport fabs, sqrt
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
-                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
-                    NPY_FLOAT32, NPY_FLOAT64,
-                    NPY_OBJECT,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    NPY_FLOAT32,
+    NPY_FLOAT64,
+    NPY_INT8,
+    NPY_INT16,
+    NPY_INT32,
+    NPY_INT64,
+    NPY_OBJECT,
+    NPY_UINT8,
+    NPY_UINT16,
+    NPY_UINT32,
+    NPY_UINT64,
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 cnp.import_array()
 
 
@@ -21,23 +38,29 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport numeric, get_nat
 
 from pandas._libs.khash cimport (
-    khiter_t, kh_destroy_int64, kh_put_int64, kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
+    kh_destroy_int64,
+    kh_get_int64,
+    kh_init_int64,
+    kh_int64_t,
+    kh_put_int64,
+    kh_resize_int64,
+    khiter_t,
+)
+
 
 import pandas._libs.missing as missing
 
-cdef float64_t FP_ERR = 1e-13
-
-cdef float64_t NaN = <float64_t>np.NaN
-
-cdef int64_t NPY_NAT = get_nat()
+cdef:
+    float64_t FP_ERR = 1e-13
+    float64_t NaN = <float64_t>np.NaN
+    int64_t NPY_NAT = get_nat()
 
 tiebreakers = {
-    'average': TIEBREAK_AVERAGE,
-    'min': TIEBREAK_MIN,
-    'max': TIEBREAK_MAX,
-    'first': TIEBREAK_FIRST,
-    'dense': TIEBREAK_DENSE,
+    "average": TIEBREAK_AVERAGE,
+    "min": TIEBREAK_MIN,
+    "max": TIEBREAK_MAX,
+    "first": TIEBREAK_FIRST,
+    "dense": TIEBREAK_DENSE,
 }
 
 
@@ -96,6 +119,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         kh_int64_t *table
         int ret = 0
         list uniques = []
+        ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
     kh_resize_int64(table, 10)
@@ -237,7 +261,7 @@ def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
+def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
@@ -301,7 +325,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
+def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -557,7 +581,7 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
+def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
@@ -774,25 +798,26 @@ ctypedef fused rank_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def rank_1d(rank_t[:] in_arr, ties_method='average',
-            ascending=True, na_option='keep', pct=False):
+def rank_1d(
+    rank_t[:] in_arr,
+    ties_method="average",
+    bint ascending=True,
+    na_option="keep",
+    bint pct=False,
+):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
     cdef:
         Py_ssize_t i, j, n, dups = 0, total_tie_count = 0, non_na_idx = 0
-
         ndarray[rank_t] sorted_data, values
-
         ndarray[float64_t] ranks
         ndarray[int64_t] argsorted
         ndarray[uint8_t, cast=True] sorted_mask
-
         rank_t val, nan_value
-
         float64_t sum_ranks = 0
         int tiebreak = 0
-        bint keep_na = 0
+        bint keep_na = False
         bint isnan, condition
         float64_t count = 0.0
 
@@ -914,8 +939,7 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                         ranks[argsorted[j]] = i + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
-                        raise ValueError('first not supported for '
-                                         'non-numeric data')
+                        raise ValueError('first not supported for non-numeric data')
                     else:
                         for j in range(i - dups + 1, i + 1):
                             ranks[argsorted[j]] = j + 1
@@ -971,8 +995,7 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                             ranks[argsorted[j]] = i + 1
                     elif tiebreak == TIEBREAK_FIRST:
                         if rank_t is object:
-                            raise ValueError('first not supported for '
-                                             'non-numeric data')
+                            raise ValueError('first not supported for non-numeric data')
                         else:
                             for j in range(i - dups + 1, i + 1):
                                 ranks[argsorted[j]] = j + 1
@@ -994,26 +1017,27 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
         return ranks
 
 
-def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
-            ascending=True, na_option='keep', pct=False):
+def rank_2d(
+    rank_t[:, :] in_arr,
+    int axis=0,
+    ties_method="average",
+    bint ascending=True,
+    na_option="keep",
+    bint pct=False,
+):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
     cdef:
         Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
-
         Py_ssize_t infs
-
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-
         ndarray[int64_t, ndim=2] argsorted
-
         rank_t val, nan_value
-
         float64_t sum_ranks = 0
         int tiebreak = 0
-        bint keep_na = 0
+        bint keep_na = False
         float64_t count = 0.0
         bint condition, skip_condition
 
@@ -1137,8 +1161,7 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
                         ranks[i, argsorted[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
-                        raise ValueError('first not supported '
-                                         'for non-numeric data')
+                        raise ValueError('first not supported for non-numeric data')
                     else:
                         for z in range(j - dups + 1, j + 1):
                             ranks[i, argsorted[i, z]] = z + 1
@@ -1176,12 +1199,15 @@ ctypedef fused out_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def diff_2d(ndarray[diff_t, ndim=2] arr,
-            ndarray[out_t, ndim=2] out,
-            Py_ssize_t periods, int axis):
+def diff_2d(
+    diff_t[:, :] arr,
+    out_t[:, :] out,
+    Py_ssize_t periods,
+    int axis,
+):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.flags.f_contiguous
+        bint f_contig = arr.is_f_contig()
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646

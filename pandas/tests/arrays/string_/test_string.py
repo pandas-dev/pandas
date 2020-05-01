@@ -194,6 +194,33 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array([]))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", np.nan], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", None], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
+
+
+@pytest.mark.parametrize("copy", [True, False])
+def test_from_sequence_no_mutate(copy):
+    a = np.array(["a", np.nan], dtype=object)
+    original = a.copy()
+    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    tm.assert_extension_array_equal(result, expected)
+    tm.assert_numpy_array_equal(a, original)
+
+
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
@@ -201,6 +228,32 @@ def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
     assert result == "abc"
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_min_max(method, skipna):
+    arr = pd.Series(["a", "b", "c", None], dtype="string")
+    result = getattr(arr, method)(skipna=skipna)
+    if skipna:
+        expected = "a" if method == "min" else "c"
+        assert result == expected
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.Series(["a", "b", "c", None], dtype="string"),
+        pd.array(["a", "b", "c", None], dtype="string"),
+    ],
+)
+def test_min_max_numpy(method, arr):
+    result = getattr(np, method)(arr)
+    expected = "a" if method == "min" else "c"
+    assert result == expected
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -239,3 +292,14 @@ def test_arrow_roundtrip():
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
+
+
+def test_value_counts_na():
+    arr = pd.array(["a", "b", "a", pd.NA], dtype="string")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)

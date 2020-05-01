@@ -2,13 +2,15 @@
 Boilerplate functions used in defining binary operations.
 """
 from functools import wraps
+from typing import Callable
 
 from pandas._libs.lib import item_from_zerodim
+from pandas._typing import F
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
-def unpack_zerodim_and_defer(name: str):
+def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -21,7 +23,7 @@ def unpack_zerodim_and_defer(name: str):
     decorator
     """
 
-    def wrapper(method):
+    def wrapper(method: F) -> F:
         return _unpack_zerodim_and_defer(method, name)
 
     return wrapper
@@ -43,7 +45,6 @@ def _unpack_zerodim_and_defer(method, name: str):
     -------
     method
     """
-
     is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)

@@ -300,7 +300,7 @@ def test_to_html_border(option, result, expected):
     else:
         with option_context("display.html.border", option):
             result = result(df)
-    expected = 'border="{}"'.format(expected)
+    expected = f'border="{expected}"'
     assert expected in result
 
 
@@ -318,7 +318,7 @@ def test_to_html(biggie_df_fixture):
     assert isinstance(s, str)
 
     df.to_html(columns=["B", "A"], col_space=17)
-    df.to_html(columns=["B", "A"], formatters={"A": lambda x: "{x:.1f}".format(x=x)})
+    df.to_html(columns=["B", "A"], formatters={"A": lambda x: f"{x:.1f}"})
 
     df.to_html(columns=["B", "A"], float_format=str)
     df.to_html(columns=["B", "A"], col_space=12, float_format=str)
@@ -745,7 +745,7 @@ def test_to_html_with_col_space_units(unit):
     if isinstance(unit, int):
         unit = str(unit) + "px"
     for h in hdrs:
-        expected = '<th style="min-width: {unit};">'.format(unit=unit)
+        expected = f'<th style="min-width: {unit};">'
         assert expected in h
 
 

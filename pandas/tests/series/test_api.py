@@ -85,10 +85,6 @@ class TestSeriesMisc:
             result = getattr(s, op)(cp)
             assert result.name is None
 
-    def test_combine_first_name(self, datetime_series):
-        result = datetime_series.combine_first(datetime_series[:5])
-        assert result.name == datetime_series.name
-
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
         assert result.name == datetime_series.name
@@ -114,10 +110,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_sort_index_name(self, datetime_series):
-        result = datetime_series.sort_index(ascending=False)
-        assert result.name == datetime_series.name
-
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
         result = Series(d)
@@ -136,9 +128,7 @@ class TestSeriesMisc:
 
     def test_constructor_ordereddict(self):
         # GH3283
-        data = OrderedDict(
-            ("col{i}".format(i=i), np.random.random()) for i in range(12)
-        )
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
 
         series = Series(data)
         expected = Series(list(data.values()), list(data.keys()))
@@ -258,7 +248,7 @@ class TestSeriesMisc:
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),
-            Index(["a{}".format(i) for i in range(101)]),
+            Index([f"a{i}" for i in range(101)]),
             pd.MultiIndex.from_tuples(zip("ABCD", "EFGH")),
             pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH")),
         ],
@@ -501,7 +491,18 @@ class TestSeriesMisc:
 
         code = "import pandas as pd; s = pd.Series()"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # TODO: remove it when Ipython updates
+        # GH 33567, jedi version raises Deprecation warning in Ipython
+        import jedi
+
+        if jedi.__version__ < "0.17.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("s.", 1))
 

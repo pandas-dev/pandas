@@ -1303,9 +1303,15 @@ class TestDataFrameReplace:
     def test_categorical_replace_with_dict(self, replace_dict, final_data):
         # GH 26988
         df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
-        expected = DataFrame(final_data, columns=["a", "b"], dtype="category")
-        expected["a"] = expected["a"].cat.set_categories([1, 2, 3])
-        expected["b"] = expected["b"].cat.set_categories([1, 2, 3])
+
+        final_data = np.array(final_data)
+
+        a = pd.Categorical(final_data[:, 0], categories=[3, 2])
+
+        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=excat)
+
+        expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
         tm.assert_frame_equal(result, expected)
         with pytest.raises(AssertionError):
@@ -1356,3 +1362,21 @@ class TestDataFrameReplace:
         result = df.replace({"a": replacer, "b": replacer})
         expected = pd.DataFrame([replacer])
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_after_convert_dtypes(self):
+        # GH31517
+        df = pd.DataFrame({"grp": [1, 2, 3, 4, 5]}, dtype="Int64")
+        result = df.replace(1, 10)
+        expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_invalid_to_replace(self):
+        # GH 18634
+        # API: replace() should raise an exception if invalid argument is given
+        df = pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]})
+        msg = (
+            r"Expecting 'to_replace' to be either a scalar, array-like, "
+            r"dict or None, got invalid type.*"
+        )
+        with pytest.raises(TypeError, match=msg):
+            df.replace(lambda x: x.strip())

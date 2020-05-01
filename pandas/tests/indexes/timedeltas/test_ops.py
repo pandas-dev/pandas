@@ -3,40 +3,29 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCDateOffset
-
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
-from pandas.tests.base.test_ops import Ops
 
-from pandas.tseries.offsets import Day, Hour
+from pandas.tseries.offsets import DateOffset, Day, Hour
 
 
-class TestTimedeltaIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: isinstance(x, TimedeltaIndex)
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = []
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, TimedeltaIndex)
-        self.check_ops_properties(TimedeltaIndex._field_ops, f)
-        self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
+class TestTimedeltaIndexOps:
     def test_value_counts_unique(self):
         # GH 7735
-
         idx = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = TimedeltaIndex(np.repeat(idx.values, range(1, len(idx) + 1)))
 
         exp_idx = timedelta_range("1 days 18:00:00", freq="-1H", periods=10)
+        exp_idx = exp_idx._with_freq(None)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
 
-        for obj in [idx, Series(idx)]:
-            tm.assert_series_equal(obj.value_counts(), expected)
+        obj = idx
+        tm.assert_series_equal(obj.value_counts(), expected)
+
+        obj = Series(idx)
+        tm.assert_series_equal(obj.value_counts(), expected)
 
         expected = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         tm.assert_index_equal(idx.unique(), expected)
@@ -126,15 +115,6 @@ class TestTimedeltaIndexOps(Ops):
             ["1 day", "3 day", "5 day", "2 day", "1 day"], name="idx2"
         )
 
-        # TODO(wesm): unused?
-        # exp2 = TimedeltaIndex(['1 day', '1 day', '2 day',
-        #                        '3 day', '5 day'], name='idx2')
-
-        # idx3 = TimedeltaIndex([pd.NaT, '3 minute', '5 minute',
-        #                        '2 minute', pd.NaT], name='idx3')
-        # exp3 = TimedeltaIndex([pd.NaT, pd.NaT, '2 minute', '3 minute',
-        #                        '5 minute'], name='idx3')
-
         for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
@@ -158,9 +138,9 @@ class TestTimedeltaIndexOps(Ops):
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq is None
 
-    def test_drop_duplicates_metadata(self):
+    def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.timedelta_range("1 day", "31 day", freq="D", name="idx")
+        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -168,42 +148,42 @@ class TestTimedeltaIndexOps(Ops):
         idx_dup = idx.append(idx)
         assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
+        expected = idx._with_freq(None)
+        tm.assert_index_equal(expected, result)
         assert result.freq is None
 
-    def test_drop_duplicates(self):
-        # to check Index/Series compat
-        base = pd.timedelta_range("1 day", "31 day", freq="D", name="idx")
-        idx = base.append(base[:5])
-
-        res = idx.drop_duplicates()
-        tm.assert_index_equal(res, base)
-        res = Series(idx).drop_duplicates()
-        tm.assert_series_equal(res, Series(base))
-
-        res = idx.drop_duplicates(keep="last")
-        exp = base[5:].append(base[:5])
-        tm.assert_index_equal(res, exp)
-        res = Series(idx).drop_duplicates(keep="last")
-        tm.assert_series_equal(res, Series(exp, index=np.arange(5, 36)))
-
-        res = idx.drop_duplicates(keep=False)
-        tm.assert_index_equal(res, base[5:])
-        res = Series(idx).drop_duplicates(keep=False)
-        tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
-
     @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
+        "keep, expected, index",
+        [
+            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                False,
+                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
+                np.arange(5, 10),
+            ),
+        ],
     )
-    def test_infer_freq(self, freq):
+    def test_drop_duplicates(self, freq_sample, keep, expected, index):
+        # to check Index/Series compat
+        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
+        idx = idx.append(idx[:5])
+
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
+        expected = idx[~expected]
+
+        result = idx.drop_duplicates(keep=keep)
+        tm.assert_index_equal(result, expected)
+
+        result = Series(idx).drop_duplicates(keep=keep)
+        tm.assert_series_equal(result, Series(expected, index=index))
+
+    def test_infer_freq(self, freq_sample):
         # GH#11018
-        idx = pd.timedelta_range("1", freq=freq, periods=10)
+        idx = pd.timedelta_range("1", freq=freq_sample, periods=10)
         result = pd.TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
-        assert result.freq == freq
-
-    def test_shift(self):
-        pass  # handled in test_arithmetic.py
+        assert result.freq == freq_sample
 
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")
@@ -288,7 +268,7 @@ class TestTimedeltaIndexOps(Ops):
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq
         assert idx.freq == freq
-        assert isinstance(idx.freq, ABCDateOffset)
+        assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
         idx._data.freq = None
@@ -314,3 +294,17 @@ class TestTimedeltaIndexOps(Ops):
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
+
+    def test_freq_view_safe(self):
+        # Setting the freq for one TimedeltaIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        tdi = TimedeltaIndex(["0 days", "2 days", "4 days"], freq="2D")
+        tda = tdi._data
+
+        tdi2 = TimedeltaIndex(tda)._with_freq(None)
+        assert tdi2.freq is None
+
+        # Original was not altered
+        assert tdi.freq == "2D"
+        assert tda.freq == "2D"

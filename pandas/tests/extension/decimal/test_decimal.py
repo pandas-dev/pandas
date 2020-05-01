@@ -66,7 +66,8 @@ def data_for_grouping():
 
 
 class BaseDecimal:
-    def assert_series_equal(self, left, right, *args, **kwargs):
+    @classmethod
+    def assert_series_equal(cls, left, right, *args, **kwargs):
         def convert(x):
             # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
             # because Series[object].isnan doesn't recognize decimal(NaN) as
@@ -88,7 +89,8 @@ class BaseDecimal:
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na], right[~right_na], *args, **kwargs)
 
-    def assert_frame_equal(self, left, right, *args, **kwargs):
+    @classmethod
+    def assert_frame_equal(cls, left, right, *args, **kwargs):
         # TODO(EA): select_dtypes
         tm.assert_index_equal(
             left.columns,
@@ -97,13 +99,13 @@ class BaseDecimal:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{kwargs.get('obj', 'DataFrame')}.columns",
         )
 
         decimals = (left.dtypes == "decimal").index
 
         for col in decimals:
-            self.assert_series_equal(left[col], right[col], *args, **kwargs)
+            cls.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=decimals)
         right = right.drop(columns=decimals)
@@ -146,7 +148,8 @@ class Reduce:
     def check_reduce(self, s, op_name, skipna):
 
         if op_name in ["median", "skew", "kurt"]:
-            with pytest.raises(NotImplementedError):
+            msg = r"decimal does not support the .* operation"
+            with pytest.raises(NotImplementedError, match=msg):
                 getattr(s, op_name)(skipna=skipna)
 
         else:
@@ -177,6 +180,10 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(reason="value_counts not implemented yet.")
+    def test_value_counts_with_normalize(self, data):
+        return super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):

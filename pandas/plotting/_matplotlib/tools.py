@@ -9,6 +9,8 @@ import numpy as np
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
+from pandas.plotting._matplotlib import compat
+
 
 def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
@@ -100,13 +102,14 @@ def _subplots(
     layout_type="box",
     **fig_kw,
 ):
-    """Create a figure with a set of subplots already made.
+    """
+    Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
     subplots, including the enclosing figure object, in a single call.
 
-    Keyword arguments:
-
+    Parameters
+    ----------
     naxes : int
       Number of required axes. Exceeded axes are set invisible. Default is
       nrows * ncols.
@@ -146,16 +149,16 @@ def _subplots(
         Note that all keywords not recognized above will be
         automatically included here.
 
-    Returns:
-
+    Returns
+    -------
     fig, ax : tuple
       - fig is the Matplotlib Figure object
       - ax can be either a single axis object or an array of axis objects if
       more than one subplot was created.  The dimensions of the resulting array
       can be controlled with the squeeze keyword, see above.
 
-    **Examples:**
-
+    Examples
+    --------
     x = np.linspace(0, 2*np.pi, 400)
     y = np.sin(x**2)
 
@@ -190,8 +193,7 @@ def _subplots(
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified "
-                    "when creating axes",
+                    "are ignored. These settings must be specified when creating axes",
                     UserWarning,
                     stacklevel=4,
                 )
@@ -288,6 +290,12 @@ def _remove_labels_from_axis(axis):
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
     if nplots > 1:
+        if compat._mpl_ge_3_2_0():
+            row_num = lambda x: x.get_subplotspec().rowspan.start
+            col_num = lambda x: x.get_subplotspec().colspan.start
+        else:
+            row_num = lambda x: x.rowNum
+            col_num = lambda x: x.colNum
 
         if nrows > 1:
             try:
@@ -295,13 +303,13 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 # so that we can correctly handle 'gaps"
                 layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
                 for ax in axarr:
-                    layout[ax.rowNum, ax.colNum] = ax.get_visible()
+                    layout[row_num(ax), col_num(ax)] = ax.get_visible()
 
                 for ax in axarr:
                     # only the last row of subplots should get x labels -> all
                     # other off layout handles the case that the subplot is
                     # the last in the column, because below is no subplot/gap.
-                    if not layout[ax.rowNum + 1, ax.colNum]:
+                    if not layout[row_num(ax) + 1, col_num(ax)]:
                         continue
                     if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)

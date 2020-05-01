@@ -31,11 +31,6 @@ class TestSparseArrayArithmetics:
 
     def _check_numeric_ops(self, a, b, a_dense, b_dense, mix, op):
         with np.errstate(invalid="ignore", divide="ignore"):
-            if op in [operator.floordiv, ops.rfloordiv]:
-                # FIXME: GH#13843
-                if self._base == pd.Series and a.dtype.subtype == np.dtype("int64"):
-                    pytest.xfail("Not defined/working.  See GH#13843")
-
             if mix:
                 result = op(a, b_dense).to_dense()
             else:
@@ -388,6 +383,14 @@ class TestSparseArrayArithmetics:
         assert b.dtype == SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
+    def test_xor(self):
+        s = SparseArray([True, True, False, False])
+        t = SparseArray([True, False, True, False])
+        result = s ^ t
+        sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
+        expected = SparseArray([False, True, True], sparse_index=sp_index)
+        tm.assert_sp_array_equal(result, expected)
+
 
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
 def test_with_list(op):
@@ -467,6 +470,14 @@ def test_invert(fill_value):
     result = ~sparray
     expected = SparseArray(~arr, fill_value=not fill_value)
     tm.assert_sp_array_equal(result, expected)
+
+    result = ~pd.Series(sparray)
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)
+
+    result = ~pd.DataFrame({"A": sparray})
+    expected = pd.DataFrame({"A": expected})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])

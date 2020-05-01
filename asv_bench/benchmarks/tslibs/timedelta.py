@@ -10,6 +10,11 @@ from pandas import Timedelta
 
 
 class TimedeltaConstructor:
+    def setup(self):
+        self.nptimedelta64 = np.timedelta64(3600)
+        self.dttimedelta = datetime.timedelta(seconds=3600)
+        self.td = Timedelta(3600, unit="s")
+
     def time_from_int(self):
         Timedelta(123456789)
 
@@ -28,10 +33,10 @@ class TimedeltaConstructor:
         )
 
     def time_from_datetime_timedelta(self):
-        Timedelta(datetime.timedelta(days=1, seconds=1))
+        Timedelta(self.dttimedelta)
 
     def time_from_np_timedelta(self):
-        Timedelta(np.timedelta64(1, "ms"))
+        Timedelta(self.nptimedelta64)
 
     def time_from_string(self):
         Timedelta("1 days")
@@ -41,6 +46,9 @@ class TimedeltaConstructor:
 
     def time_from_missing(self):
         Timedelta("nat")
+
+    def time_from_pd_timedelta(self):
+        Timedelta(self.td)
 
 
 class TimedeltaProperties:

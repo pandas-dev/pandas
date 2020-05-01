@@ -45,11 +45,17 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_ts_plot_with_tz(self, tz_aware_fixture):
-        # GH2877, GH17173
+        # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        _check_plot_works(ts.plot)
+        with tm.assert_produces_warning(None):
+            _check_plot_works(ts.plot)
+            ax = ts.plot()
+            xdata = list(ax.get_lines())[0].get_xdata()
+            # Check first and last points' labels are correct
+            assert (xdata[0].hour, xdata[0].minute) == (0, 0)
+            assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
@@ -121,8 +127,8 @@ class TestTSPlot(TestPlotBase):
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
-            "keyword argument. Please use one or the other or pass 'style'"
-            " without a color symbol"
+            "keyword argument. Please use one or the other or pass 'style' "
+            "without a color symbol"
         )
         with pytest.raises(ValueError, match=msg):
             ts.plot(style="b-", color="#000099")
@@ -1462,7 +1468,9 @@ class TestTSPlot(TestPlotBase):
         ax.scatter(x="time", y="y", data=df)
         self.plt.draw()
         label = ax.get_xticklabels()[0]
-        if self.mpl_ge_3_0_0:
+        if self.mpl_ge_3_2_0:
+            expected = "2018-01-01"
+        elif self.mpl_ge_3_0_0:
             expected = "2017-12-08"
         else:
             expected = "2017-12-12"
