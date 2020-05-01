@@ -11,7 +11,6 @@ from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_list_like,
@@ -258,7 +257,7 @@ class Grouping:
     index : Index
     grouper :
     obj Union[DataFrame, Series]:
-    name :
+    name : Label
     level :
     observed : bool, default False
         If we are a Categorical, use the observed values
@@ -300,7 +299,7 @@ class Grouping:
             self.name = grouper.name
 
         if isinstance(grouper, MultiIndex):
-            self.grouper = grouper.values
+            self.grouper = grouper._values
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -418,7 +417,7 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = ensure_categorical(self.grouper)
+        values = Categorical(self.grouper)
         return values._reverse_indexer()
 
     @property
