@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Type, TypeVar, Union, cast
+from typing import Any, Callable, Sequence, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -441,6 +441,8 @@ class DatetimeLikeArrayMixin(
     and that the inheriting class has methods:
         _generate_range
     """
+
+    _is_recognized_dtype: Callable[["DatetimeLikeArrayMixin"], bool]
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
