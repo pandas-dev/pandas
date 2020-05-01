@@ -3,7 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -1423,7 +1423,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
     return value
 
 
-def find_common_type(types):
+def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
