@@ -295,6 +295,13 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
+pc_ending_header = """
+: bool
+    This specifies if the to_string method of a Dataframe contains header
+    repeated at the end
+    Valid values: False,True
+"""
+
 
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
@@ -381,6 +388,7 @@ with cf.config_prefix("display"):
     cf.register_option(
         "colheader_justify", "right", colheader_justify_doc, validator=is_text
     )
+    cf.register_option("ending_header", False, pc_ending_header, validator=is_bool)
     cf.register_option("notebook_repr_html", True, pc_nb_repr_h_doc, validator=is_bool)
     cf.register_option("pprint_nest_depth", 3, pc_pprint_nest_depth, validator=is_int)
     cf.register_option("multi_sparse", True, pc_multi_sparse_doc, validator=is_bool)

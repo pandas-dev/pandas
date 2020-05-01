@@ -805,6 +805,7 @@ class DataFrame(NDFrame):
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
         encoding: Optional[str] = None,
+        ending_header: Optional[bool] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -855,6 +856,7 @@ class DataFrame(NDFrame):
                 show_dimensions=show_dimensions,
                 decimal=decimal,
                 line_width=line_width,
+                ending_header=ending_header,
             )
             return formatter.to_string(buf=buf, encoding=encoding)
 

@@ -139,6 +139,8 @@ common_docstring = """
             Display DataFrame dimensions (number of rows by number of columns).
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
+        ending_header : bool, optional
+            Display header at the end of DataFrame.
     """
 
 _VALID_JUSTIFY_PARAMETERS = (
@@ -559,6 +561,7 @@ class DataFrameFormatter(TableFormatter):
         render_links: bool = False,
         bold_rows: bool = False,
         escape: bool = True,
+        ending_header: Optional[bool] = None,
     ):
         self.frame = frame
         self.show_index_names = index_names
@@ -599,6 +602,11 @@ class DataFrameFormatter(TableFormatter):
 
         self.bold_rows = bold_rows
         self.escape = escape
+
+        if ending_header is None:
+            self.ending_header = get_option("display.ending_header")
+        else:
+            self.ending_header = ending_header
 
         if columns is not None:
             self.columns = ensure_index(columns)
@@ -756,7 +764,10 @@ class DataFrameFormatter(TableFormatter):
 
                 max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                stringified.append(cheader + fmt_values)
+                if self.ending_header:
+                    stringified.append(cheader + fmt_values + cheader)
+                else:
+                    stringified.append(cheader + fmt_values)
 
         strcols = stringified
         if self.index:
