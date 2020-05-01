@@ -608,13 +608,17 @@ class TestDatetimeIndex:
         key = dti[1]
 
         with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            dti.get_value(arr, key)
+            with tm.assert_produces_warning(FutureWarning):
+                dti.get_value(arr, key)
 
-        result = dti.get_value(ser, key)
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key)
         assert result == 7
 
-        result = dti.get_value(ser, key.to_pydatetime())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_pydatetime())
         assert result == 7
 
-        result = dti.get_value(ser, key.to_datetime64())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
