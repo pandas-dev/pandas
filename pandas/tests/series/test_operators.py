@@ -121,12 +121,12 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        msg = "Cannot perform.+with a dtyped.+array and scalar of type.+"
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_0123 & np.NaN
         with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
-        msg = "unsupported operand type.+for &:.+"
+        msg = "unsupported operand type.+for &:"
         with pytest.raises(TypeError, match=msg):
             s_0123 & [0.1, 4, 3.14, 2]
         with pytest.raises(TypeError, match=msg):
@@ -136,10 +136,10 @@ class TestSeriesLogicalOps:
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
-        msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type.+"
+        msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
-        with pytest.raises(TypeError, match="unsupported operand.+for &.+"):
+        with pytest.raises(TypeError, match="unsupported operand.+for &"):
             s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
@@ -454,7 +454,7 @@ class TestSeriesLogicalOps:
             expected = Series([True, True, True], index=index)
             tm.assert_series_equal(result, expected)
 
-        msg = "Cannot perform.+with a dtyped.+array and scalar of type.+"
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan, "foo"]:
             with pytest.raises(TypeError, match=msg):
                 t | v
@@ -473,7 +473,7 @@ class TestSeriesLogicalOps:
             result = Series([True, False, True], index=index) & v
             expected = Series([False, False, False], index=index)
             tm.assert_series_equal(result, expected)
-        msg = "Cannot perform.+with a dtyped.+array and scalar of type.+"
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan]:
             with pytest.raises(TypeError, match=msg):
                 t & v

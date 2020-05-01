@@ -244,7 +244,7 @@ class TestSeriesDatetimeValues:
             s.dt.hour = 5
 
         # trying to set a copy
-        msg = "modifications to a property of a datetimelike.+not supported.+"
+        msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             with pytest.raises(com.SettingWithCopyError, match=msg):
                 s.dt.hour[0] = 5
