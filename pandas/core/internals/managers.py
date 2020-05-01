@@ -781,14 +781,18 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose: bool = False) -> np.ndarray:
+    def as_array(
+        self, transpose: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
 
         Parameters
         ----------
         transpose : bool, default False
-            If True, transpose the return array,
+            If True, transpose the return array.
+        na_value : object, default lib.no_default
+            Value to be used as the missing value sentinel.
 
         Returns
         -------
@@ -807,6 +811,9 @@ class BlockManager(PandasObject):
             arr = np.asarray(self.blocks[0].get_values())
         else:
             arr = self._interleave()
+
+        if na_value is not lib.no_default:
+            arr[isna(arr)] = na_value
 
         return arr.transpose() if transpose else arr
 
