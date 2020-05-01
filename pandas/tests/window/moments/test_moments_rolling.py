@@ -1064,7 +1064,7 @@ def test_rolling_corr_with_zero_variance(window):
 def test_flex_binary_moment():
     # GH3155
     # don't blow the stack
-    msg = "arguments to moment function must be of type " "np.ndarray/Series/DataFrame"
+    msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
     with pytest.raises(TypeError, match=msg):
         _flex_binary_moment(5, 6, None)
 
