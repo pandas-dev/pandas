@@ -550,7 +550,8 @@ def test_getitem_categorical_str():
     tm.assert_series_equal(result, expected)
 
     # Check the intermediate steps work as expected
-    result = ser.index.get_value(ser, "a")
+    with tm.assert_produces_warning(FutureWarning):
+        result = ser.index.get_value(ser, "a")
     tm.assert_series_equal(result, expected)
 
 
