@@ -10,7 +10,7 @@ from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
-from pandas._typing import DatetimeLikeScalar
+from pandas._typing import DatetimeLikeScalar, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
@@ -442,7 +442,7 @@ class DatetimeLikeArrayMixin(
         _generate_range
     """
 
-    _is_recognized_dtype: Callable[["DatetimeLikeArrayMixin"], bool]
+    _is_recognized_dtype: Callable[[DtypeObj], bool]
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
