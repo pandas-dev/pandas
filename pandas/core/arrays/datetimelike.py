@@ -85,7 +85,7 @@ def _datetimelike_array_cmp(cls, op):
 
         else:
             try:
-                other = self._validate_listlike(other, allow_object=True)
+                other = self._validate_listlike(other, opname, allow_object=True)
             except TypeError as err:
                 raise InvalidComparison(other) from err
 
@@ -757,6 +757,7 @@ class DatetimeLikeArrayMixin(
     def _validate_listlike(
         self,
         value,
+        opname: str,
         cast_str: bool = False,
         cast_cat: bool = False,
         allow_object: bool = False,
@@ -769,7 +770,7 @@ class DatetimeLikeArrayMixin(
         value = array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string") and cast_str:
+        if cast_str and is_dtype_equal(value.dtype, "string"):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -778,7 +779,7 @@ class DatetimeLikeArrayMixin(
             except ValueError:
                 pass
 
-        if is_categorical_dtype(value.dtype) and cast_cat:
+        if cast_cat and is_categorical_dtype(value.dtype):
             # e.g. we have a Categorical holding self.dtype
             if is_dtype_equal(value.categories.dtype, self.dtype):
                 # TODO: do we need equal dtype or just comparable?
@@ -789,7 +790,7 @@ class DatetimeLikeArrayMixin(
 
         elif not type(self)._is_recognized_dtype(value):
             raise TypeError(
-                "Operation requires compatible dtype or scalar, "
+                f"{opname} requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
 
@@ -815,7 +816,7 @@ class DatetimeLikeArrayMixin(
 
         else:
             # TODO: cast_str?  we accept it for scalar
-            value = self._validate_listlike(value)
+            value = self._validate_listlike(value, "searchsorted")
 
         if isinstance(value, type(self)):
             self._check_compatible_with(value)
@@ -828,7 +829,7 @@ class DatetimeLikeArrayMixin(
     def _validate_setitem_value(self, value):
 
         if is_list_like(value):
-            value = self._validate_listlike(value, cast_str=True)
+            value = self._validate_listlike(value, "setitem", cast_str=True)
 
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
@@ -875,7 +876,7 @@ class DatetimeLikeArrayMixin(
             raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
-            other = self._validate_listlike(other, cast_cat=True)
+            other = self._validate_listlike(other, "where", cast_cat=True)
             self._check_compatible_with(other, setitem=True)
 
         if lib.is_scalar(other):
