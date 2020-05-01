@@ -12,7 +12,6 @@ from pandas._libs.tslibs.timedeltas import (
     precision_from_unit,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -114,7 +113,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
     #  operates pointwise.
 
-    @cache_readonly
+    @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit="ns")
 
