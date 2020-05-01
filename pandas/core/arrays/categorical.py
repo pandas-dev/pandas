@@ -1196,7 +1196,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         fill_value = self._validate_fill_value(fill_value)
 
-        codes = shift(codes.copy(), periods, axis=0, fill_value=fill_value)
+        codes = shift(codes, periods, axis=0, fill_value=fill_value)
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
