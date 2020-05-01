@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Any
-import weakref
 
 import numpy as np
 
@@ -71,7 +70,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "freq", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -321,12 +320,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
     # Indexing
-
-    @cache_readonly
-    def _engine(self):
-        # To avoid a reference cycle, pass a weakref of self._values to _engine_type.
-        period = weakref.ref(self._values)
-        return self._engine_type(period, len(self))
 
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:

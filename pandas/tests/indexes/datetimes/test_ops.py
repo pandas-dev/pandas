@@ -134,7 +134,7 @@ class TestDatetimeIndexOps:
 
         exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
-        expected.index._set_freq(None)
+        expected.index = expected.index._with_freq(None)
 
         for obj in [idx, Series(idx)]:
 
@@ -169,20 +169,6 @@ class TestDatetimeIndexOps:
             tm.assert_series_equal(obj.value_counts(dropna=False), expected)
 
         tm.assert_index_equal(idx.unique(), exp_idx)
-
-    def test_nonunique_contains(self):
-        # GH 9512
-        for idx in map(
-            DatetimeIndex,
-            (
-                [0, 1, 0],
-                [0, 0, -1],
-                [0, -1, -1],
-                ["2015", "2015", "2016"],
-                ["2015", "2015", "2014"],
-            ),
-        ):
-            assert idx[0] in idx
 
     @pytest.mark.parametrize(
         "idx",
@@ -406,6 +392,20 @@ class TestDatetimeIndexOps:
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
 
+    def test_freq_view_safe(self):
+        # Setting the freq for one DatetimeIndex shouldn't alter the freq
+        #  for another that views the same data
+
+        dti = pd.date_range("2016-01-01", periods=5)
+        dta = dti._data
+
+        dti2 = DatetimeIndex(dta)._with_freq(None)
+        assert dti2.freq is None
+
+        # Original was not altered
+        assert dti.freq == "D"
+        assert dta.freq == "D"
+
 
 class TestBusinessDatetimeIndex:
     def setup_method(self, method):
@@ -417,10 +417,6 @@ class TestBusinessDatetimeIndex:
         comp = self.rng > d
         assert comp[11]
         assert not comp[9]
-
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -463,10 +459,6 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_pickle_unpickle(self):
-        unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.freq is not None
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))

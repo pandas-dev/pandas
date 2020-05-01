@@ -267,7 +267,7 @@ class Base:
         if is_datetime64tz_dtype(indices.dtype):
             result = result.tz_localize("UTC").tz_convert(indices.tz)
         if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
-            indices._set_freq(None)
+            indices = indices._with_freq(None)
 
         tm.assert_index_equal(indices, result)
 
@@ -397,7 +397,7 @@ class Base:
         i = self.create_index()
         if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
             # where does not preserve freq
-            i._set_freq(None)
+            i = i._with_freq(None)
 
         cond = [True] * len(i)
         result = i.where(klass(cond))
@@ -561,8 +561,7 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
-            # TODO: CategoricalIndex can be re-allowed following GH#32167
+        if not isinstance(indices, RangeIndex):
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)

@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._typing import FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import NumbaUtilError
 
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
@@ -32,10 +33,10 @@ def check_kwargs_and_nopython(
 
     Raises
     ------
-    ValueError
+    NumbaUtilError
     """
     if kwargs and nopython:
-        raise ValueError(
+        raise NumbaUtilError(
             "numba does not support kwargs with nopython=True: "
             "https://github.com/numba/numba/issues/2916"
         )
@@ -76,7 +77,6 @@ def jit_user_function(
     ----------
     func : function
         user defined function
-
     nopython : bool
         nopython parameter for numba.JIT
     nogil : bool
@@ -151,6 +151,10 @@ def validate_udf(func: Callable) -> None:
     Returns
     -------
     None
+
+    Raises
+    ------
+    NumbaUtilError
     """
     udf_signature = list(inspect.signature(func).parameters.keys())
     expected_args = ["values", "index"]
@@ -159,7 +163,7 @@ def validate_udf(func: Callable) -> None:
         len(udf_signature) < min_number_args
         or udf_signature[:min_number_args] != expected_args
     ):
-        raise ValueError(
+        raise NumbaUtilError(
             f"The first {min_number_args} arguments to {func.__name__} must be "
             f"{expected_args}"
         )
