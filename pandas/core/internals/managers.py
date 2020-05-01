@@ -781,9 +781,7 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(
-        self, transpose: bool = False, na_value=lib.no_default
-    ) -> np.ndarray:
+    def as_array(self, transpose: bool = False, na_value=lib.no_default) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
 
