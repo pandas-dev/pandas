@@ -417,9 +417,7 @@ def test_to_numpy_kwargs_raises():
         {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])},
     ],
 )
-@pytest.mark.parametrize(
-    "dtype, na_value", [(float, np.nan), (object, None)]
-)
+@pytest.mark.parametrize("dtype, na_value", [(float, np.nan), (object, None)])
 def test_to_numpy_dataframe_na_value(data, dtype, na_value):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
