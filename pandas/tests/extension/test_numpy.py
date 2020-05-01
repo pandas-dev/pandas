@@ -262,9 +262,9 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         return super().test_diff(data, periods)
 
     @skip_nested
-    def test_equals(self, data, na_value):
+    def test_equals(self, data, na_value, as_series):
         # Fails creating with _from_sequence
-        super().test_equals(data, na_value)
+        super().test_equals(data, na_value, as_series)
 
 
 @skip_nested

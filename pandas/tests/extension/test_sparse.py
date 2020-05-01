@@ -316,9 +316,9 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         data._sparse_values[0] = data._sparse_values[1]
         assert result._sparse_values[0] != result._sparse_values[1]
 
-    def test_equals(self, data, na_value):
+    def test_equals(self, data, na_value, as_series):
         self._check_unsupported(data)
-        super().test_equals(data, na_value)
+        super().test_equals(data, na_value, as_series)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):

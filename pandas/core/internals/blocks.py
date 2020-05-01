@@ -1861,6 +1861,11 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
+    def equals(self, other) -> bool:
+        if self.dtype != other.dtype or self.shape != other.shape:
+            return False
+        return self.values.equals(other.values)
+
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the

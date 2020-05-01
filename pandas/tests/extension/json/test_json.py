@@ -248,7 +248,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_searchsorted(data_for_sorting)
 
     @pytest.mark.skip(reason="Can't compare dicts.")
-    def test_equals(self, data, na_value):
+    def test_equals(self, data, na_value, as_series):
         pass
 
 
