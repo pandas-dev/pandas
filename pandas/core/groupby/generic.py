@@ -78,11 +78,8 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
-    check_kwargs_and_nopython,
-    get_jit_arguments,
-    jit_user_function,
+    generate_numba_func,
     split_for_numba,
-    validate_udf,
 )
 
 from pandas.plotting import boxplot_frame_groupby
@@ -493,12 +490,8 @@ class SeriesGroupBy(GroupBy[Series]):
         """
 
         if engine == "numba":
-            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-            check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
-            cache_key = (func, "groupby_transform")
-            numba_func = NUMBA_FUNC_CACHE.get(
-                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_transform"
             )
 
         klass = type(self._selected_obj)
@@ -1377,12 +1370,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         if engine == "numba":
-            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-            check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
-            cache_key = (func, "groupby_transform")
-            numba_func = NUMBA_FUNC_CACHE.get(
-                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_transform"
             )
         else:
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
