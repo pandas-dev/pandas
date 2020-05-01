@@ -451,13 +451,9 @@ def sanitize_array(
     elif isinstance(data, abc.Set):
         raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
-        try:
-            data = maybe_cast_to_datetime(data, dtype)
-        except TypeError:
-            pass
-        else:
-            if not lib.is_scalar(data):
-                data = data[0]
+        data = maybe_cast_to_datetime(data, dtype)
+        if not lib.is_scalar(data):
+            data = data[0]
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
