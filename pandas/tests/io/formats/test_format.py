@@ -2810,6 +2810,63 @@ class TestSeriesFormatting:
         assert res == exp
 
 
+class TestGenericArrayFormatter:
+    def test_1d_array(self):
+        # GenericArrayFormatter is used on types for which there isn't a dedicated
+        # formatter. np.bool is one of those types.
+        obj = fmt.GenericArrayFormatter(np.array([True, False]))
+        res = obj.get_result()
+        assert len(res) == 2
+        # Results should be right-justified.
+        assert res[0] == "  True"
+        assert res[1] == " False"
+
+    def test_2d_array(self):
+        obj = fmt.GenericArrayFormatter(np.array([[True, False], [False, True]]))
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [True, False]"
+        assert res[1] == " [False, True]"
+
+    def test_3d_array(self):
+        obj = fmt.GenericArrayFormatter(
+            np.array([[[True, True], [False, False]], [[False, True], [True, False]]])
+        )
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [[True, True], [False, False]]"
+        assert res[1] == " [[False, True], [True, False]]"
+
+    def test_2d_extension_type(self):
+        # GH 33770
+
+        # Define a stub extension type with just enough code to run Series.__repr__()
+        class DtypeStub(pd.api.extensions.ExtensionDtype):
+            @property
+            def type(self):
+                return np.ndarray
+
+            @property
+            def name(self):
+                return "DtypeStub"
+
+        class ExtTypeStub(pd.api.extensions.ExtensionArray):
+            def __len__(self):
+                return 2
+
+            def __getitem__(self, ix):
+                return [ix == 1, ix == 0]
+
+            @property
+            def dtype(self):
+                return DtypeStub()
+
+        series = pd.Series(ExtTypeStub())
+        res = repr(series)  # This line crashed before #33770 was fixed.
+        expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
+        assert res == expected
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 
