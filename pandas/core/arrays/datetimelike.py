@@ -84,24 +84,10 @@ def _datetimelike_array_cmp(cls, op):
             raise ValueError("Lengths must match")
 
         else:
-            if isinstance(other, list):
-                # TODO: could use pd.Index to do inference?
-                other = np.array(other)
-
-            if not isinstance(other, (np.ndarray, type(self))):
-                raise InvalidComparison(other)
-
-            elif is_object_dtype(other.dtype):
-                pass
-
-            elif not type(self)._is_recognized_dtype(other.dtype):
-                raise InvalidComparison(other)
-
-            else:
-                # For PeriodDType this casting is unnecessary
-                # TODO: use Index to do inference?
-                other = type(self)._from_sequence(other)
-                self._check_compatible_with(other)
+            try:
+                other = self._validate_listlike(other, allow_object=True)
+            except TypeError as err:
+                raise InvalidComparison(other) from err
 
         return other
 
@@ -126,6 +112,7 @@ def _datetimelike_array_cmp(cls, op):
             other_i8 = self._unbox_scalar(other)
         else:
             # Then type(other) == type(self)
+            self._check_compatible_with(other)
             other_i8 = other.asi8
 
         result = op(self.asi8, other_i8)
@@ -767,6 +754,47 @@ class DatetimeLikeArrayMixin(
         fill_value = self._unbox_scalar(fill_value)
         return fill_value
 
+    def _validate_listlike(
+        self,
+        value,
+        cast_str: bool = False,
+        cast_cat: bool = False,
+        allow_object: bool = False,
+    ):
+        if isinstance(value, type(self)):
+            return value
+
+        # Do type inference if necessary up front
+        # e.g. we passed PeriodIndex.values and got an ndarray of Periods
+        value = array(value)
+        value = extract_array(value, extract_numpy=True)
+
+        if is_dtype_equal(value.dtype, "string") and cast_str:
+            # We got a StringArray
+            try:
+                # TODO: Could use from_sequence_of_strings if implemented
+                # Note: passing dtype is necessary for PeriodArray tests
+                value = type(self)._from_sequence(value, dtype=self.dtype)
+            except ValueError:
+                pass
+
+        if is_categorical_dtype(value.dtype) and cast_cat:
+            # e.g. we have a Categorical holding self.dtype
+            if is_dtype_equal(value.categories.dtype, self.dtype):
+                # TODO: do we need equal dtype or just comparable?
+                value = value._internal_get_values()
+
+        if allow_object and is_object_dtype(value.dtype):
+            pass
+
+        elif not type(self)._is_recognized_dtype(value):
+            raise TypeError(  # FIXME: dont be searchsorted-specific
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return value
+
     def _validate_searchsorted_value(self, value):
         if isinstance(value, str):
             try:
@@ -782,20 +810,12 @@ class DatetimeLikeArrayMixin(
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
-        elif isinstance(value, type(self)):
-            pass
-
-        elif is_list_like(value) and not isinstance(value, type(self)):
-            value = array(value)
-
-            if not type(self)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
+        elif not is_list_like(value):
+            raise TypeError(f"Unexpected type for 'value': {type(value)}")
 
         else:
-            raise TypeError(f"Unexpected type for 'value': {type(value)}")
+            # TODO: cast_str?  we accept it for scalar
+            value = self._validate_listlike(value)
 
         if isinstance(value, type(self)):
             self._check_compatible_with(value)
@@ -808,21 +828,7 @@ class DatetimeLikeArrayMixin(
     def _validate_setitem_value(self, value):
 
         if is_list_like(value):
-            value = array(value)
-            if is_dtype_equal(value.dtype, "string"):
-                # We got a StringArray
-                try:
-                    # TODO: Could use from_sequence_of_strings if implemented
-                    # Note: passing dtype is necessary for PeriodArray tests
-                    value = type(self)._from_sequence(value, dtype=self.dtype)
-                except ValueError:
-                    pass
-
-            if not type(self)._is_recognized_dtype(value):
-                raise TypeError(
-                    "setitem requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
+            value = self._validate_listlike(value, cast_str=True)
 
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
@@ -869,18 +875,7 @@ class DatetimeLikeArrayMixin(
             raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
-            # Do type inference if necessary up front
-            # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-            other = array(other)
-            other = extract_array(other, extract_numpy=True)
-
-            if is_categorical_dtype(other.dtype):
-                # e.g. we have a Categorical holding self.dtype
-                if is_dtype_equal(other.categories.dtype, self.dtype):
-                    other = other._internal_get_values()
-
-            if not type(self)._is_recognized_dtype(other.dtype):
-                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
+            other = self._validate_listlike(other, cast_cat=True)
             self._check_compatible_with(other, setitem=True)
 
         if lib.is_scalar(other):
