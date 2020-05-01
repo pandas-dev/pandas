@@ -139,6 +139,7 @@ Other enhancements
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
+- The :func:`cut` will now accept parameter ``ordered`` with default ``ordered=True``. If ``ordered=False`` and no labels are provided, an error will be raised (:issue:`33141`)
 - :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_pickle`,
   and :meth:`DataFrame.to_json` now support passing a dict of
   compression arguments when using the ``gzip`` and ``bz2`` protocols.
@@ -723,6 +724,7 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 
 
 Sparse
