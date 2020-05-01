@@ -63,10 +63,11 @@ from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
+from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
+    _agg_template,
     _apply_docs,
     _transform_template,
     get_groupby,
@@ -79,7 +80,6 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     check_kwargs_and_nopython,
     get_jit_arguments,
-    is_numba_util_related_error,
     jit_user_function,
     split_for_numba,
     validate_udf,
@@ -178,16 +178,6 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             return self._selection
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
-    """
-    )
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -225,8 +215,7 @@ class SeriesGroupBy(GroupBy[Series]):
     ... )
        minimum  maximum
     1        1        2
-    2        3        4
-    """
+    2        3        4"""
     )
 
     @Appender(
@@ -238,13 +227,9 @@ class SeriesGroupBy(GroupBy[Series]):
         return super().apply(func, *args, **kwargs)
 
     @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="Series",
-        axis="",
+        examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_shared_docs["aggregate"])
+    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -283,10 +268,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 return self._python_agg_general(
                     func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
                 )
-            except (ValueError, KeyError) as err:
+            except (ValueError, KeyError):
                 # Do not catch Numba errors here, we want to raise and not fall back.
-                if is_numba_util_related_error(str(err)):
-                    raise err
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -350,7 +333,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -479,7 +462,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
-    @Substitution(klass="Series", selected="A.")
+    @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
@@ -857,16 +840,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
-    """
-    )
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -931,7 +904,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     1      1  0.590715
     2      3  0.704907
 
-
     - The keywords are the *output* column names
     - The values are tuples whose first element is the column to select
       and the second element is the aggregation to apply to that column.
@@ -939,18 +911,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more.
-    """
+    See :ref:`groupby.aggregate.named` for more."""
     )
 
     @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="DataFrame",
-        axis="",
+        examples=_agg_examples_doc, klass="DataFrame",
     )
-    @Appender(_shared_docs["aggregate"])
+    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -1132,6 +1099,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # e.g. block.values was an IntegerArray
                     # (1, N) case can occur if block.values was Categorical
                     #  and result is ndarray[object]
+                    # TODO(EA2D): special casing not needed with 2D EAs
                     assert result.ndim == 1 or result.shape[0] == 1
                     try:
                         # Cast back if feasible
@@ -1469,7 +1437,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
         return self._set_result_index_ordered(concatenated)
 
-    @Substitution(klass="DataFrame", selected="")
+    @Substitution(klass="DataFrame")
     @Appender(_transform_template)
     def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
 

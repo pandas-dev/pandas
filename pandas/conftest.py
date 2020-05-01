@@ -297,6 +297,10 @@ def index_or_series(request):
     return request.param
 
 
+# Generate cartesian product of index_or_series fixture:
+index_or_series2 = index_or_series
+
+
 @pytest.fixture
 def dict_subclass():
     """
@@ -1187,5 +1191,14 @@ def cython_table_items(request):
 def tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
     """
     return request.param

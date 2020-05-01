@@ -1721,7 +1721,7 @@ class ExtensionBlock(Block):
         return self.make_block_same_class(new_values, new_mgr_locs)
 
     def _can_hold_element(self, element: Any) -> bool:
-        # XXX: We may need to think about pushing this onto the array.
+        # TODO: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
 
@@ -2237,7 +2237,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
             raise NotImplementedError
-        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        if n == 0:
+            # Fastpath avoids making a copy in `shift`
+            new_values = np.zeros(self.values.shape, dtype=np.int64)
+        else:
+            new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
 
         # Reshape the new_values like how algos.diff does for timedelta data
         new_values = new_values.reshape(1, len(new_values))
