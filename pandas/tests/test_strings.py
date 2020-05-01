@@ -209,18 +209,7 @@ class TestStringMethods:
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
 
-        if dtype == "category" and len(values) and values[1] is pd.NA:
-            pytest.xfail(reason="Categorical does not yet support pd.NA")
-
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
-
-        # TODO: get rid of these xfails
-        if dtype == "category" and inferred_dtype in ["period", "interval"]:
-            pytest.xfail(
-                reason="Conversion to numpy array fails because "
-                "the ._values-attribute is not a numpy array for "
-                "PeriodArray/IntervalArray; see GH 23553"
-            )
 
         types_passing_constructor = [
             "string",
