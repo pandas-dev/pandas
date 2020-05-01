@@ -34,11 +34,12 @@ class ExtensionDtype:
     * type
     * name
 
-    The following attributes influence the behavior of the dtype in
+    The following attributes and methods influence the behavior of the dtype in
     pandas operations
 
     * _is_numeric
     * _is_boolean
+    * _get_common_dtype
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry. See
@@ -333,7 +334,8 @@ class ExtensionDtype:
 
         If no common dtype exists, return None (which gives the other dtypes
         the chance to determine a common dtype). If all dtypes in the list
-        return None, then the common dtype will be "object" dtype.
+        return None, then the common dtype will be "object" dtype (this means
+        it is never needed to return "object" dtype from this method itself).
 
         Parameters
         ----------
