@@ -5931,7 +5931,7 @@ class DataFrame(NDFrame):
             if isinstance(arr, (ABCIndexClass, ABCSeries)):
                 arr = arr._values
 
-            if needs_i8_conversion(arr):
+            if needs_i8_conversion(arr.dtype):
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:

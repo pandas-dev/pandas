@@ -118,7 +118,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             return result
 
         attrs = self._get_attributes_dict()
-        if not is_period_dtype(self) and attrs["freq"]:
+        if not is_period_dtype(self.dtype) and attrs["freq"]:
             # no need to infer if freq is None
             attrs["freq"] = "infer"
         return Index(result, **attrs)
@@ -542,7 +542,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         new_i8s = np.delete(self.asi8, loc)
 
         freq = None
-        if is_period_dtype(self):
+        if is_period_dtype(self.dtype):
             freq = self.freq
         elif is_integer(loc):
             if loc in (0, -len(self), -1, len(self) - 1):
