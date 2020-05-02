@@ -424,3 +424,11 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
     result = df.to_numpy(dtype=dtype, na_value=na_value)
     expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_dataframe_single_block():
+    # https://github.com/pandas-dev/pandas/issues/33820
+    df = pd.DataFrame({"a": pd.array([1, 2, None])})
+    result = df.to_numpy(dtype=float, na_value=np.nan)
+    expected = np.array([[1.0], [2.0], [np.nan]], dtype=float)
+    tm.assert_numpy_array_equal(result, expected)

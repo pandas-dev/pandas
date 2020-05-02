@@ -1347,8 +1347,10 @@ class DataFrame(NDFrame):
             transpose=self._AXIS_REVERSED, dtype=dtype, na_value=na_value
         )
 
-        if copy:
-            result = result.copy()
+        if copy or result.dtype is not dtype:
+            # FIXME: The dtype conversion is potentially needed since the
+            #  single extension block case is not correctly cast above
+            result = np.array(result, dtype=dtype, copy=copy)
 
         return result
 
