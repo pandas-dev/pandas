@@ -249,8 +249,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if value is NaT:
             return value.value
         elif isinstance(value, self._scalar_type):
-            if not isna(value):
-                self._check_compatible_with(value)
+            self._check_compatible_with(value)
             return value.ordinal
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
