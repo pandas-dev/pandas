@@ -335,13 +335,19 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __eq__(self, other: Any) -> Union[np.ndarray, "ExtensionArray"]:
+    def __eq__(self, other: Any) -> ArrayLike:
         """
         Return for `self == other` (element-wise equality).
         """
+        # Implementer note: this should return a boolean numpy ndarray or
+        # a boolean ExtensionArray.
+        # When `other` is one of Series, Index, or DataFrame, this method should
+        # return NotImplemented (to ensure that those objects are responsible for
+        # first unpacking the arrays, and then dispatch the operation to the
+        # underlying arrays)
         raise AbstractMethodError(self)
 
-    def __ne__(self, other: Any) -> Union[np.ndarray, "ExtensionArray"]:
+    def __ne__(self, other: Any) -> ArrayLike:
         """
         Return for `self != other` (element-wise in-equality).
         """
@@ -712,6 +718,8 @@ class ExtensionArray:
 
         """
         if not type(self) == type(other):
+            return False
+        elif not self.dtype == other.dtype:
             return False
         elif not len(self) == len(other):
             return False

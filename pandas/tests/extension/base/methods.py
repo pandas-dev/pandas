@@ -422,14 +422,17 @@ class BaseMethodsTests(BaseExtensionTests):
             else:
                 data.repeat(repeats, **kwargs)
 
-    def test_equals(self, data, na_value, as_series):
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
         data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
 
-        if as_series:
-            data = pd.Series(data)
-            data2 = pd.Series(data2)
-            data_na = pd.Series(data_na)
+        data = tm.box_expected(data, box, transpose=False)
+        data2 = tm.box_expected(data2, box, transpose=False)
+        data_na = tm.box_expected(data_na, box, transpose=False)
+
+        # we are asserting with `is True/False` explicitly, to test that the
+        # result is an actual Python bool, and not something "truthy"
 
         assert data.equals(data) is True
         assert data.equals(data.copy()) is True

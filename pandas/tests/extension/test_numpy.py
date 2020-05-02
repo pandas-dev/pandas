@@ -262,9 +262,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         return super().test_diff(data, periods)
 
     @skip_nested
-    def test_equals(self, data, na_value, as_series):
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
         # Fails creating with _from_sequence
-        super().test_equals(data, na_value, as_series)
+        super().test_equals(data, na_value, as_series, box)
 
 
 @skip_nested
