@@ -81,7 +81,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         -------
         parsed : Series
         """
-        return parsing.try_parse_dates(parsing._concat_date_cols(date_cols))
+        return parsing.try_parse_dates(parsing.concat_date_cols(date_cols))
 
     result = parser.read_csv(
         StringIO(data),
@@ -208,7 +208,7 @@ def test_concat_date_col_fail(container, dim):
     date_cols = tuple(container([value]) for _ in range(dim))
 
     with pytest.raises(ValueError, match=msg):
-        parsing._concat_date_cols(date_cols)
+        parsing.concat_date_cols(date_cols)
 
 
 @pytest.mark.parametrize("keep_date_col", [True, False])

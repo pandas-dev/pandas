@@ -1685,7 +1685,7 @@ cdef class _Period:
         resampled : Period
         """
         freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
         base1, mult1 = get_freq_code(self.freq)
         base2, mult2 = get_freq_code(freq)
 
@@ -1758,7 +1758,7 @@ cdef class _Period:
         """
         if freq is not None:
             freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
@@ -2509,7 +2509,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     return year, month
 
 
-def _validate_end_alias(how):
+def validate_end_alias(how):
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}
