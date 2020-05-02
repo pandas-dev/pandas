@@ -828,9 +828,11 @@ def period_array(
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
     """
-    if is_datetime64_dtype(data):
+    data_dtype = getattr(data, "dtype", None)
+
+    if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
-    if is_period_dtype(data):
+    if is_period_dtype(data_dtype):
         return PeriodArray(data, freq)
 
     # other iterable of some kind

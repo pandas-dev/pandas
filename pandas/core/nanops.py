@@ -287,7 +287,7 @@ def _get_values(
 
     dtype = values.dtype
 
-    if needs_i8_conversion(values):
+    if needs_i8_conversion(values.dtype):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
         values = np.asarray(values.view("i8"))

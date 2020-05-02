@@ -266,7 +266,7 @@ def interpolate_1d(
         if method in ("values", "index"):
             inds = np.asarray(xvalues)
             # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype.type):
+            if needs_i8_conversion(inds.dtype):
                 inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)

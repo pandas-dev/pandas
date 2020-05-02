@@ -215,10 +215,10 @@ class TestCommon:
         if not indices._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if is_period_dtype(indices):
+        if is_period_dtype(indices.dtype):
             vals = indices[[0] * 5]._data
             vals[0] = pd.NaT
-        elif needs_i8_conversion(indices):
+        elif needs_i8_conversion(indices.dtype):
             vals = indices.asi8[[0] * 5]
             vals[0] = iNaT
         else:
