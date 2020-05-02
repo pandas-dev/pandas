@@ -7,6 +7,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -293,7 +295,8 @@ def test_agg_multiple_functions_same_name(df):
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
-    tm.assert_frame_equal(result, expected)
+    with tm.assert_produces_warning(PerformanceWarning):
+        tm.assert_frame_equal(result, expected)
 
 
 def test_named_aggregation_with_resample():
