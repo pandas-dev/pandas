@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
+from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -287,7 +287,7 @@ def _get_values(
 
     dtype = values.dtype
 
-    if needs_i8_conversion(values):
+    if needs_i8_conversion(values.dtype):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
         values = np.asarray(values.view("i8"))
@@ -300,11 +300,8 @@ def _get_values(
         dtype, fill_value=fill_value, fill_value_typ=fill_value_typ
     )
 
-    copy = (mask is not None) and (fill_value is not None)
-
-    if skipna and copy:
+    if skipna and (mask is not None) and (fill_value is not None):
         values = values.copy()
-        assert mask is not None  # for mypy
         if dtype_ok and mask.any():
             np.putmask(values, mask, fill_value)
 
@@ -355,14 +352,6 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
             result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
-
-    elif isinstance(dtype, PeriodDtype):
-        if is_float(result) and result.is_integer():
-            result = int(result)
-        if is_integer(result):
-            result = Period._from_ordinal(result, freq=dtype.freq)
-        else:
-            raise NotImplementedError(type(result), result)
 
     return result
 
@@ -519,6 +508,7 @@ def nansum(
     return _wrap_results(the_sum, dtype)
 
 
+@disallow(PeriodDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -550,7 +540,12 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or needs_i8_conversion(dtype):
+    # not using needs_i8_conversion because that includes period
+    if (
+        is_integer_dtype(dtype)
+        or is_datetime64_any_dtype(dtype)
+        or is_timedelta64_dtype(dtype)
+    ):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
@@ -1332,30 +1327,33 @@ def nancorr(
 
 
 def get_corr_func(method):
-    if method in ["kendall", "spearman"]:
-        from scipy.stats import kendalltau, spearmanr
-    elif method in ["pearson"]:
-        pass
+    if method == "kendall":
+        from scipy.stats import kendalltau
+
+        def func(a, b):
+            return kendalltau(a, b)[0]
+
+        return func
+    elif method == "spearman":
+        from scipy.stats import spearmanr
+
+        def func(a, b):
+            return spearmanr(a, b)[0]
+
+        return func
+    elif method == "pearson":
+
+        def func(a, b):
+            return np.corrcoef(a, b)[0, 1]
+
+        return func
     elif callable(method):
         return method
-    else:
-        raise ValueError(
-            f"Unknown method '{method}', expected one of 'kendall', 'spearman'"
-        )
 
-    def _pearson(a, b):
-        return np.corrcoef(a, b)[0, 1]
-
-    def _kendall(a, b):
-        # kendallttau returns a tuple of the tau statistic and pvalue
-        rs = kendalltau(a, b)
-        return rs[0]
-
-    def _spearman(a, b):
-        return spearmanr(a, b)[0]
-
-    _cor_methods = {"pearson": _pearson, "kendall": _kendall, "spearman": _spearman}
-    return _cor_methods[method]
+    raise ValueError(
+        f"Unknown method '{method}', expected one of "
+        "'kendall', 'spearman', 'pearson', or callable"
+    )
 
 
 @disallow("M8", "m8")

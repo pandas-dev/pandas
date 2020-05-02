@@ -208,6 +208,19 @@ class TestSparseArray:
         expected = mat.toarray().ravel()
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_including_explicit_zero(self, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(10, 1, density=0.5, format=format)
+        mat.data[0] = 0
+        result = SparseArray.from_spmatrix(mat)
+
+        result = np.asarray(result)
+        expected = mat.toarray().ravel()
+        tm.assert_numpy_array_equal(result, expected)
+
     @td.skip_if_no_scipy
     def test_from_spmatrix_raises(self):
         import scipy.sparse

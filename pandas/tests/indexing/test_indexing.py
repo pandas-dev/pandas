@@ -809,8 +809,7 @@ class TestMisc:
     @pytest.mark.parametrize(
         "slc",
         [
-            # FIXME: dont leave commented-out
-            # pd.IndexSlice[:, :],
+            pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
             pd.IndexSlice[[1], [1]],
