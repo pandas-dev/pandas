@@ -124,7 +124,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
