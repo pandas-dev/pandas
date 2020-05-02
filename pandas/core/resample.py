@@ -1356,7 +1356,7 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in {"epoch", "start", "start_day"}:
+        if origin in ("epoch", "start", "start_day"):
             self.origin = origin
         else:
             try:
@@ -1705,6 +1705,8 @@ def _get_timestamp_range_edges(
             # So "pretend" the dates are naive when adjusting the endpoints
             first = first.tz_localize(None)
             last = last.tz_localize(None)
+            if isinstance(origin, Timestamp):
+                origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
             first, last, freq, closed=closed, origin=origin, offset=offset,
