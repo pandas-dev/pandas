@@ -130,20 +130,21 @@ def _ensure_data(
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
-    if needs_i8_conversion(values) or needs_i8_conversion(dtype):
-        if is_period_dtype(values) or is_period_dtype(dtype):
+    vals_dtype = getattr(values, "dtype", None)
+    if needs_i8_conversion(vals_dtype) or needs_i8_conversion(dtype):
+        if is_period_dtype(vals_dtype) or is_period_dtype(dtype):
             from pandas import PeriodIndex
 
             values = PeriodIndex(values)
             dtype = values.dtype
-        elif is_timedelta64_dtype(values) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(vals_dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
             values = TimedeltaIndex(values)
             dtype = values.dtype
         else:
             # Datetime
-            if values.ndim > 1 and is_datetime64_ns_dtype(values):
+            if values.ndim > 1 and is_datetime64_ns_dtype(vals_dtype):
                 # Avoid calling the DatetimeIndex constructor as it is 1D only
                 # Note: this is reached by DataFrame.rank calls GH#27027
                 # TODO(EA2D): special case not needed with 2D EAs
@@ -158,7 +159,7 @@ def _ensure_data(
 
         return values.asi8, dtype
 
-    elif is_categorical_dtype(values) and (
+    elif is_categorical_dtype(vals_dtype) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
         values = values.codes
@@ -1089,7 +1090,7 @@ class SelectN:
         return self.compute("nsmallest")
 
     @staticmethod
-    def is_valid_dtype_n_method(dtype) -> bool:
+    def is_valid_dtype_n_method(dtype: DtypeObj) -> bool:
         """
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
@@ -1872,7 +1873,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     is_timedelta = False
     is_bool = False
-    if needs_i8_conversion(arr):
+    if needs_i8_conversion(arr.dtype):
         dtype = np.float64
         arr = arr.view("i8")
         na = iNaT
