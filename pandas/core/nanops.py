@@ -1,14 +1,14 @@
 import functools
 import itertools
 import operator
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union, cast
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
-from pandas._typing import ArrayLike, Dtype, Scalar
+from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
+from pandas._typing import ArrayLike, Dtype, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
@@ -57,7 +57,7 @@ class disallow:
     def check(self, obj) -> bool:
         return hasattr(obj, "dtype") and issubclass(obj.dtype.type, self.dtypes)
 
-    def __call__(self, f):
+    def __call__(self, f: F) -> F:
         @functools.wraps(f)
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
@@ -78,7 +78,7 @@ class disallow:
                     raise TypeError(e) from e
                 raise
 
-        return _f
+        return cast(F, _f)
 
 
 class bottleneck_switch:
@@ -287,7 +287,7 @@ def _get_values(
 
     dtype = values.dtype
 
-    if needs_i8_conversion(values):
+    if needs_i8_conversion(values.dtype):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
         values = np.asarray(values.view("i8"))
@@ -352,14 +352,6 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
             result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
-
-    elif isinstance(dtype, PeriodDtype):
-        if is_float(result) and result.is_integer():
-            result = int(result)
-        if is_integer(result):
-            result = Period._from_ordinal(result, freq=dtype.freq)
-        else:
-            raise NotImplementedError(type(result), result)
 
     return result
 
@@ -516,6 +508,7 @@ def nansum(
     return _wrap_results(the_sum, dtype)
 
 
+@disallow(PeriodDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -547,7 +540,12 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or needs_i8_conversion(dtype):
+    # not using needs_i8_conversion because that includes period
+    if (
+        is_integer_dtype(dtype)
+        or is_datetime64_any_dtype(dtype)
+        or is_timedelta64_dtype(dtype)
+    ):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
@@ -880,7 +878,7 @@ def nanargmax(
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
-) -> int:
+) -> Union[int, np.ndarray]:
     """
     Parameters
     ----------
@@ -892,15 +890,25 @@ def nanargmax(
 
     Returns
     -------
-    result : int
-        The index of max value in specified axis or -1 in the NA case
+    result : int or ndarray[int]
+        The index/indices  of max value in specified axis or -1 in the NA case
 
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1, 2, 3, np.nan, 4])
-    >>> nanops.nanargmax(s)
+    >>> arr = np.array([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmax(arr)
     4
+
+    >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
+    >>> arr[2:, 2] = np.nan
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7., nan],
+           [ 9., 10., nan]])
+    >>> nanops.nanargmax(arr, axis=1)
+    array([2, 2, 1, 1], dtype=int64)
     """
     values, mask, dtype, _, _ = _get_values(
         values, True, fill_value_typ="-inf", mask=mask
@@ -916,7 +924,7 @@ def nanargmin(
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
-) -> int:
+) -> Union[int, np.ndarray]:
     """
     Parameters
     ----------
@@ -928,15 +936,25 @@ def nanargmin(
 
     Returns
     -------
-    result : int
-        The index of min value in specified axis or -1 in the NA case
+    result : int or ndarray[int]
+        The index/indices of min value in specified axis or -1 in the NA case
 
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1, 2, 3, np.nan, 4])
-    >>> nanops.nanargmin(s)
+    >>> arr = np.array([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmin(arr)
     0
+
+    >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
+    >>> arr[2:, 0] = np.nan
+    >>> arr
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [nan,  7.,  8.],
+           [nan, 10., 11.]])
+    >>> nanops.nanargmin(arr, axis=1)
+    array([0, 0, 1, 1], dtype=int64)
     """
     values, mask, dtype, _, _ = _get_values(
         values, True, fill_value_typ="+inf", mask=mask

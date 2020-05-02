@@ -266,7 +266,7 @@ def interpolate_1d(
         if method in ("values", "index"):
             inds = np.asarray(xvalues)
             # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype.type):
+            if needs_i8_conversion(inds.dtype):
                 inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
@@ -445,8 +445,9 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
-    x : scalar or array_like of length M.
-    der : int or list, optional
+    x : scalar or array_like
+        Of length M.
+    der : int, optional
         How many derivatives to extract; None for all potentially
         nonzero derivatives (that is a number equal to the number
         of points), or a list of derivatives to extract. This number
@@ -468,12 +469,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
 
-    if der == 0:
-        return P(x)
-    elif interpolate._isscalar(der):
-        return P(x, der=der)
-    else:
-        return [P(x, nu) for nu in der]
+    return P(x, nu=der)
 
 
 def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
