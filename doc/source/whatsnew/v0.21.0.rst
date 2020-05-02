@@ -115,7 +115,7 @@ Setting a list-like data structure into a new attribute now raises a ``UserWarni
 
 .. _whatsnew_0210.enhancements.drop_api:
 
-Method ``drop`` now also accepts Index/columns keywords
+Method ``drop`` now also accepts index/columns keywords
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an

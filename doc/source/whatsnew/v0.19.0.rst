@@ -37,7 +37,7 @@ New features
 
 .. _whatsnew_0190.enhancements.asof_merge:
 
-Function ``merge_asof`` for asof-style time-Series joining
+Function ``merge_asof`` for asof-style time-series joining
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A long-time requested feature has been added through the :func:`merge_asof` function, to
@@ -127,7 +127,7 @@ passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` me
 
 .. _whatsnew_0190.enhancements.rolling_ts:
 
-Method ``.rolling()`` is now time-Series aware
+Method ``.rolling()`` is now time-series aware
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.rolling()`` objects are now time-series aware and can accept a time-series offset (or convertible) for the ``window`` argument (:issue:`13327`, :issue:`12995`).
@@ -863,7 +863,7 @@ Furthermore:
 ``Period`` changes
 ^^^^^^^^^^^^^^^^^^
 
-The ``PeriodIndex`` now has ``Period`` dtype
+The ``PeriodIndex`` now has ``period`` dtype
 """"""""""""""""""""""""""""""""""""""""""""
 
 ``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
@@ -1078,7 +1078,7 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 
 .. _whatsnew_0190.api.multiindex:
 
-``MultiIndex`` constructors, ``groupby`` and ``set_index`` preserve Categorical dtypes
+``MultiIndex`` constructors, ``groupby`` and ``set_index`` preserve categorical dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``MultiIndex.from_arrays`` and ``MultiIndex.from_product`` will now preserve categorical dtype
