@@ -56,8 +56,9 @@ def test_deprecating_on_loffset_and_base():
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", loffset="0s").sum()
     msg = "'offset' and 'base' cannot be present at the same time"
-    with pytest.raises(ValueError, match=msg):
-        df.groupby("a").resample("3T", base=0, offset=0).sum()
+    with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match=msg):
+            df.groupby("a").resample("3T", base=0, offset=0).sum()
 
 
 @all_ts

@@ -176,7 +176,7 @@ Small example of the use of ``origin``:
     ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     ts
 
-Resample with the default behavior 'start_day' (origin is 2000-10-01 00:00:00):
+Resample with the default behavior ``'start_day'`` (origin is ``2000-10-01 00:00:00``):
 
 .. ipython:: python
 
