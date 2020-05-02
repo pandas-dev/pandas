@@ -151,7 +151,6 @@ def _make_arithmetic_op(op, cls):
         return Index(result)
 
     name = f"__{op.__name__}__"
-    # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
 
 
@@ -4541,6 +4540,13 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
+        warnings.warn(
+            "get_value is deprecated and will be removed in a future version. "
+            "Use Series[key] instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         self._check_indexing_error(key)
 
         try:
