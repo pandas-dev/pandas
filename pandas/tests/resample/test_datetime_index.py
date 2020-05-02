@@ -535,11 +535,13 @@ def test_upsample_with_limit():
     tm.assert_series_equal(result, expected)
 
 
-def test_nearest_upsample_with_limit():
-    rng = date_range("1/1/2000", periods=3, freq="5t")
+@pytest.mark.parametrize("freq", ["Y", "10M", "5D", "10H", "5Min", "10S"])
+@pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
+def test_nearest_upsample_with_limit(freq, rule):
+    rng = date_range("1/1/2000", periods=3, freq=freq)
     ts = Series(np.random.randn(len(rng)), rng)
 
-    result = ts.resample("t").nearest(limit=2)
+    result = ts.resample(rule).nearest(limit=2)
     expected = ts.reindex(result.index, method="nearest", limit=2)
     tm.assert_series_equal(result, expected)
 
