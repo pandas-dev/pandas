@@ -335,12 +335,13 @@ class TestSeriesComparison:
     def test_comparison_different_length(self):
         a = Series(["a", "b", "c"])
         b = Series(["b", "a"])
-        with pytest.raises(ValueError):
+        msg = "only compare identically-labeled Series"
+        with pytest.raises(ValueError, match=msg):
             a < b
 
         a = Series([1, 2])
         b = Series([2, 3, 4])
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             a == b
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
@@ -474,23 +475,25 @@ class TestSeriesComparison:
         assert (~(f == a) == (f != a)).all()
 
         # non-equality is not comparable
-        with pytest.raises(TypeError):
+        msg = "can only compare equality or not"
+        with pytest.raises(TypeError, match=msg):
             a < b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b < a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a > b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b > a
 
     def test_unequal_categorical_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))
-        with pytest.raises(TypeError):
+        msg = "can only compare equality or not"
+        with pytest.raises(TypeError, match=msg):
             cat > "b"
 
         cat = Series(Categorical(list("abc"), ordered=False))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             cat > "b"
 
         # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
@@ -498,13 +501,14 @@ class TestSeriesComparison:
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
 
-        with pytest.raises(TypeError):
+        msg = "Cannot compare a Categorical for op.+with a scalar"
+        with pytest.raises(TypeError, match=msg):
             cat < "d"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             cat > "d"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             "d" < cat
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             "d" > cat
 
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
@@ -668,10 +672,11 @@ class TestTimeSeriesArithmetic:
 
         ser_utc = ser.tz_localize("utc")
 
-        with pytest.raises(Exception):
+        msg = "Cannot join tz-naive with tz-aware DatetimeIndex"
+        with pytest.raises(Exception, match=msg):
             ser + ser_utc
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match=msg):
             ser_utc + ser
 
     def test_datetime_understood(self):
