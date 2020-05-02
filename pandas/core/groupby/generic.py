@@ -225,9 +225,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return super().apply(func, *args, **kwargs)
 
     @doc(
-        _agg_template,
-        examples=_agg_examples_doc,
-        klass="Series",
+        _agg_template, examples=_agg_examples_doc, klass="Series",
     )
     @Appender(_agg_template)
     def aggregate(
@@ -918,9 +916,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     )
 
     @doc(
-        _agg_template,
-        examples=_agg_examples_doc,
-        klass="DataFrame",
+        _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
