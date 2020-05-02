@@ -848,7 +848,7 @@ def test_resample_origin_with_tz():
 
 def test_resample_origin_with_day_freq_on_dst():
     # GH 31809
-    tz = "dateutil//usr/share/zoneinfo/America/Chicago"
+    tz = "America/Chicago"
 
     def _create_series(values, timestamps, freq="D"):
         return pd.Series(
