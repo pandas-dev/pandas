@@ -1384,7 +1384,9 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                         pass
 
         # coerce datetimelike to object
-        elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
+        elif is_datetime64_dtype(
+            getattr(value, "dtype", None)
+        ) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
                 if value.dtype != DT64NS_DTYPE:
                     value = value.astype(DT64NS_DTYPE)
