@@ -783,7 +783,7 @@ class DatetimeLikeArrayMixin(
         if allow_object and is_object_dtype(value.dtype):
             pass
 
-        elif not type(self)._is_recognized_dtype(value):
+        elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
                 f"{opname} requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
@@ -1022,7 +1022,7 @@ class DatetimeLikeArrayMixin(
                     func = missing.backfill_1d
 
                 values = self._data
-                if not is_period_dtype(self):
+                if not is_period_dtype(self.dtype):
                     # For PeriodArray self._data is i8, which gets copied
                     #  by `func`.  Otherwise we need to make a copy manually
                     # to avoid modifying `self` in-place.
@@ -1107,10 +1107,7 @@ class DatetimeLikeArrayMixin(
         freq : DateOffset
             The frequency to validate
         """
-        if is_period_dtype(cls):
-            # Frequency validation is not meaningful for Period Array/Index
-            return None
-
+        # TODO: this is not applicable to PeriodArray, move to correct Mixin
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
             return None
@@ -1251,7 +1248,7 @@ class DatetimeLikeArrayMixin(
         """
         Add pd.NaT to self
         """
-        if is_period_dtype(self):
+        if is_period_dtype(self.dtype):
             raise TypeError(
                 f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
@@ -1291,7 +1288,7 @@ class DatetimeLikeArrayMixin(
         result : np.ndarray[object]
             Array of DateOffset objects; nulls represented by NaT.
         """
-        if not is_period_dtype(self):
+        if not is_period_dtype(self.dtype):
             raise TypeError(
                 f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
             )
@@ -1396,7 +1393,7 @@ class DatetimeLikeArrayMixin(
         elif lib.is_integer(other):
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
-            if not is_period_dtype(self):
+            if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = self._time_shift(other)
 
@@ -1411,7 +1408,7 @@ class DatetimeLikeArrayMixin(
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
         elif is_integer_dtype(other):
-            if not is_period_dtype(self):
+            if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.add)
         else:
@@ -1435,6 +1432,8 @@ class DatetimeLikeArrayMixin(
     @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
 
+        other_dtype = getattr(other, "dtype", None)
+
         # scalar others
         if other is NaT:
             result = self._sub_nat()
@@ -1448,7 +1447,7 @@ class DatetimeLikeArrayMixin(
         elif lib.is_integer(other):
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
-            if not is_period_dtype(self):
+            if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = self._time_shift(-other)
 
@@ -1465,11 +1464,11 @@ class DatetimeLikeArrayMixin(
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
-        elif is_period_dtype(other):
+        elif is_period_dtype(other_dtype):
             # PeriodIndex
             result = self._sub_period_array(other)
-        elif is_integer_dtype(other):
-            if not is_period_dtype(self):
+        elif is_integer_dtype(other_dtype):
+            if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.sub)
         else:
@@ -1518,7 +1517,7 @@ class DatetimeLikeArrayMixin(
         result = self + other
         self[:] = result[:]
 
-        if not is_period_dtype(self):
+        if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
             self._freq = result._freq
         return self
@@ -1527,7 +1526,7 @@ class DatetimeLikeArrayMixin(
         result = self - other
         self[:] = result[:]
 
-        if not is_period_dtype(self):
+        if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
             self._freq = result._freq
         return self
@@ -1619,7 +1618,7 @@ class DatetimeLikeArrayMixin(
         -----
         mean is only defined for Datetime and Timedelta dtypes, not for Period.
         """
-        if is_period_dtype(self):
+        if is_period_dtype(self.dtype):
             # See discussion in GH#24757
             raise TypeError(
                 f"mean is not implemented for {type(self).__name__} since the "
