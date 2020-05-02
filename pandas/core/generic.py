@@ -11187,15 +11187,15 @@ def _make_cum_function(
         def block_accum_func(blk_values):
             values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-            result = nanops.na_accum_func(values, accum_func, skipna=skipna)
+            if is_extension_array_dtype(values.dtype):
+                result = values._accumulate(name, skipna, **kwargs)
+            else:
+                result = nanops.na_accum_func(values, accum_func, skipna=skipna)
 
             result = result.T if hasattr(result, "T") else result
             return result
 
-        if isinstance(self.values, ExtensionArray):
-            result = self.values._accumulate(name, skipna, **kwargs)
-        else:
-            result = self._mgr.apply(block_accum_func)
+        result = self._mgr.apply(block_accum_func)
 
         # y = com.values_from_object(self).copy()
 
