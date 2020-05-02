@@ -952,27 +952,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        fill_values = [x.fill_value for x in to_concat]
-
-        fill_value = fill_values[0]
-
-        # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
-            warnings.warn(
-                "Concatenating sparse arrays with multiple fill "
-                f"values: '{fill_values}'. Picking the first and "
-                "converting the rest.",
-                PerformanceWarning,
-                stacklevel=6,
-            )
-            keep = to_concat[0]
-            to_concat2 = [keep]
-
-            for arr in to_concat[1:]:
-                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
-
-            to_concat = to_concat2
+        fill_value = to_concat[0].fill_value
 
         values = []
         length = 0

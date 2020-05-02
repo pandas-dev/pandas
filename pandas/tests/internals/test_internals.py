@@ -584,7 +584,7 @@ class TestBlockManager:
         mgr = create_mgr("a: complex")
         assert mgr.as_array().dtype == "complex"
         mgr = create_mgr("a: f8; b: category")
-        assert mgr.as_array().dtype == "object"
+        assert mgr.as_array().dtype == "f8"
         mgr = create_mgr("a: M8[ns]; b: category")
         assert mgr.as_array().dtype == "object"
         mgr = create_mgr("a: M8[ns]; b: bool")
