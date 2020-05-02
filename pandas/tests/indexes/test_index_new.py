@@ -83,7 +83,7 @@ class TestIndexConstructorInference:
         ],
     )
     def test_constructor_infer_nat_dt_like(
-        self, pos, klass, dtype, ctor, nulls_fixture
+        self, pos, klass, dtype, ctor, nulls_fixture, request
     ):
         expected = klass([NaT, NaT])
         assert expected.dtype == dtype
@@ -92,7 +92,8 @@ class TestIndexConstructorInference:
 
         if nulls_fixture is NA:
             expected = Index([NA, NaT])
-            pytest.xfail("Broken with np.NaT ctor; see GH 31884")
+            mark = pytest.mark.xfail(reason="Broken with np.NaT ctor; see GH 31884")
+            request.node.add_marker(mark)
 
         result = Index(data)
         tm.assert_index_equal(result, expected)
