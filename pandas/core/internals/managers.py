@@ -781,7 +781,9 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose: bool = False, na_value=lib.no_default) -> np.ndarray:
+    def as_array(
+        self, transpose: bool = False, dtype=None, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
 
@@ -789,6 +791,8 @@ class BlockManager(PandasObject):
         ----------
         transpose : bool, default False
             If True, transpose the return array.
+        dtype : object, default None
+            Data type of the return array.
         na_value : object, default lib.no_default
             Value to be used as the missing value sentinel.
 
@@ -808,19 +812,20 @@ class BlockManager(PandasObject):
         elif self._is_single_block or not self.is_mixed_type:
             arr = np.asarray(self.blocks[0].get_values())
         else:
-            arr = self._interleave()
+            arr = self._interleave(dtype=dtype, na_value=na_value)
 
         if na_value is not lib.no_default:
             arr[isna(arr)] = na_value
 
         return arr.transpose() if transpose else arr
 
-    def _interleave(self) -> np.ndarray:
+    def _interleave(self, dtype=None, na_value=lib.no_default) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        dtype = _interleaved_dtype(self.blocks)
+        if not dtype:
+            dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
@@ -835,7 +840,11 @@ class BlockManager(PandasObject):
 
         for blk in self.blocks:
             rl = blk.mgr_locs
-            result[rl.indexer] = blk.get_values(dtype)
+            if blk.is_extension:
+                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
+            else:
+                arr = blk.get_values(dtype)
+            result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
