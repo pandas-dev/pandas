@@ -942,10 +942,8 @@ class TestSeriesReductions:
         s2 = Series(pd.date_range("20120102", periods=3))
         expected = Series(s2 - s1)
 
-        # FIXME: don't leave commented-out code
-        # this fails as numpy returns timedelta64[us]
-        # result = np.abs(s1-s2)
-        # assert_frame_equal(result,expected)
+        result = np.abs(s1 - s2)
+        tm.assert_series_equal(result, expected)
 
         result = (s1 - s2).abs()
         tm.assert_series_equal(result, expected)
