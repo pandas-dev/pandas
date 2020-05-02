@@ -1007,12 +1007,6 @@ def test_rolling_apply_consistency(
     consistency_data, base_functions, no_nan_functions, window, min_periods, center
 ):
     x, is_constant, no_nans = consistency_data
-    functions = base_functions
-
-    # GH 8269
-    if no_nans:
-        functions = functions + no_nan_functions
-    f, require_min_periods, name = functions
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -1021,34 +1015,40 @@ def test_rolling_apply_consistency(
         # test consistency between rolling_xyz() and either (a)
         # rolling_apply of Series.xyz(), or (b) rolling_apply of
         # np.nanxyz()
-        rolling_f = getattr(
-            x.rolling(window=window, center=center, min_periods=min_periods), name,
-        )
+        functions = base_functions
 
-        if (
-            require_min_periods
-            and (min_periods is not None)
-            and (min_periods < require_min_periods)
-        ):
-            continue
+        # GH 8269
+        if no_nans:
+            functions = no_nan_functions + base_functions
+        for (f, require_min_periods, name) in functions:
+            rolling_f = getattr(
+                x.rolling(window=window, center=center, min_periods=min_periods), name,
+            )
 
-        if name == "count":
-            rolling_f_result = rolling_f()
-            rolling_apply_f_result = x.rolling(
-                window=window, min_periods=min_periods, center=center
-            ).apply(func=f, raw=True)
-        else:
-            if name in ["cov", "corr"]:
-                rolling_f_result = rolling_f(pairwise=False)
-            else:
+            if (
+                require_min_periods
+                and (min_periods is not None)
+                and (min_periods < require_min_periods)
+            ):
+                pass
+
+            if name == "count":
                 rolling_f_result = rolling_f()
-            rolling_apply_f_result = x.rolling(
-                window=window, min_periods=min_periods, center=center
-            ).apply(func=f, raw=True)
+                rolling_apply_f_result = x.rolling(
+                    window=window, min_periods=min_periods, center=center
+                ).apply(func=f, raw=True)
+            else:
+                if name in ["cov", "corr"]:
+                    rolling_f_result = rolling_f(pairwise=False)
+                else:
+                    rolling_f_result = rolling_f()
+                rolling_apply_f_result = x.rolling(
+                    window=window, min_periods=min_periods, center=center
+                ).apply(func=f, raw=True)
 
-        # GH 9422
-        if name in ["sum", "prod"]:
-            tm.assert_equal(rolling_f_result, rolling_apply_f_result)
+            # GH 9422
+            if name in ["sum", "prod"]:
+                tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
 
 @pytest.mark.parametrize("window", range(7))
