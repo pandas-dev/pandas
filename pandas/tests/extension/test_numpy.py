@@ -151,6 +151,11 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_array_from_scalars(data)
 
+    @skip_nested
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # ValueError: Length of passed values is 1, index implies 3.
+        super().test_series_constructor_scalar_with_index(data, dtype)
+
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     @pytest.mark.skip(reason="Incorrect expected.")

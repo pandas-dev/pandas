@@ -450,6 +450,11 @@ def sanitize_array(
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     elif isinstance(data, abc.Set):
         raise TypeError("Set type is unordered")
+    elif lib.is_scalar(data) and index is not None and dtype is not None:
+        data = maybe_cast_to_datetime(data, dtype)
+        if not lib.is_scalar(data):
+            data = data[0]
+        subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
@@ -516,7 +521,7 @@ def _try_cast(
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray, scalar, list, tuple, iterator (catchall)
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool

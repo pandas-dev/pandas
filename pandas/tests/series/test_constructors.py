@@ -1444,3 +1444,9 @@ class TestSeriesConstructors:
 
         series = Series(dates)
         assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
+
+    def test_constructor_datetimelike_scalar_to_string_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/33846
+        result = Series("M", index=[1, 2, 3], dtype="string")
+        expected = pd.Series(["M", "M", "M"], index=[1, 2, 3], dtype="string")
+        tm.assert_series_equal(result, expected)
