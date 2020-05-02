@@ -631,6 +631,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
