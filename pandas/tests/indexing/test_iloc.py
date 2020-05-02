@@ -705,6 +705,15 @@ class TestiLoc2:
         expected = pd.Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
 
+    def test_iloc_setitem_frame_no_alignment(self):
+        # GH 22046
+        # setting with iloc should not align labels
+        df = pd.DataFrame({"a": [1, 2], "b": [2, 3]}, index=[2, 1])
+        expected = df.copy()
+        df2 = pd.DataFrame({"b": [1, 2], "a": [2, 3]}, index=[1, 2])
+        df.iloc[:, [0, 1]] = df2.iloc[:, [0, 1]]
+        tm.assert_frame_equal(df, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
@@ -733,3 +742,10 @@ class TestILocSetItemDuplicateColumns:
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+    def test_iloc_settime_frame_duplicate_columns(self):
+        idx = pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))
+        df = pd.DataFrame([[1, 1]], columns=idx)
+        expected = pd.DataFrame([[2, 2]], columns=idx)
+        df.iloc[:, [0, 1]] = expected.iloc[:, [0, 1]]
+        tm.assert_frame_equal(df, expected)

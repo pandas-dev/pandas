@@ -718,6 +718,7 @@ Indexing
 - Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
 - Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
+- Bug in :meth:`DataFrame.iloc` when setting values with list arguments would align row/column labels (:issue:`22046`)
 
 Missing
 ^^^^^^^
