@@ -49,7 +49,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodArray(data, copy=False)
 
         raise TypeError(
@@ -449,7 +449,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")
