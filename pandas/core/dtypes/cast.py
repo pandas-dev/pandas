@@ -3,7 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -1423,7 +1423,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
     return value
 
 
-def find_common_type(types):
+def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
@@ -1450,8 +1450,16 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
+    # get unique types (dict.fromkeys is used as order-preserving set())
+    types = list(dict.fromkeys(types).keys())
+
     if any(isinstance(t, ExtensionDtype) for t in types):
-        return np.object
+        for t in types:
+            if isinstance(t, ExtensionDtype):
+                res = t._get_common_dtype(types)
+                if res is not None:
+                    return res
+        return np.dtype("object")
 
     # take lowest unit
     if all(is_datetime64_dtype(t) for t in types):
