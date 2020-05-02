@@ -2218,14 +2218,15 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize
+        itemsize = dtype.itemsize  # type: ignore
 
         shape = values.shape
         if values.ndim == 1:
             # EA, use block shape pretending it is 2D
+            # TODO(EA2D): not necessary with 2D EAs
             shape = (1, values.size)
 
-        if is_categorical_dtype(dtype):
+        if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
