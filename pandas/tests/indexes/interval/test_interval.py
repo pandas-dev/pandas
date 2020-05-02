@@ -19,6 +19,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.indexes.base import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -856,6 +857,37 @@ class TestIntervalIndex:
         )
         year_2017_index = pd.IntervalIndex([year_2017])
         assert not year_2017_index.is_all_dates
+
+    def test_get_loc_errors(self):
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+
+        # key is not scalar
+        # GH 31117
+        key = [5]
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_loc(key)
+
+        key = (2, 3)
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_loc(key)
+
+    def test_get_value_errors(self):
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        s = pd.Series(range(len(idx)), index=idx)
+
+        # key is not scalar
+        # GH 31117
+        key = [5]
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_value(s, key)
+
+        key = (2, 3)
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_value(s, key)
 
 
 def test_dir():
