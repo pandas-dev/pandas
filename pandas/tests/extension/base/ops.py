@@ -174,6 +174,12 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         else:
             raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
 
+        if hasattr(data, "__ne__"):
+            result = data.__ne__(other)
+            assert result is NotImplemented
+        else:
+            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
+
 
 class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
