@@ -818,6 +818,8 @@ class BlockManager(PandasObject):
             )
         elif self._is_single_block or not self.is_mixed_type:
             arr = np.asarray(self.blocks[0].get_values())
+            if dtype:
+                arr = arr.astype(dtype)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
 
