@@ -1421,9 +1421,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         result = self.grouper.size()
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if isinstance(self.obj, Series):
-            result = self.obj._constructor(result)
+        if self.obj._constructor is Series:
             result.name = self.obj.name
+        elif isinstance(self.obj, Series):
+            result = self.obj._constructor(result, name=self.obj.name)
         elif isinstance(self.obj, DataFrame):
             result = self.obj._constructor_sliced(result)
         return self._reindex_output(result, fill_value=0)
@@ -2120,7 +2121,13 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         with _group_selection_context(self):
             index = self._selected_obj.index
-            result = Series(self.grouper.group_info[0], index)
+
+            # GH28330 preserve subclassed Series/DataFrames
+            if isinstance(self.obj, Series):
+                result = self.obj._constructor(self.grouper.group_info[0], index)
+            elif isinstance(self.obj, DataFrame):
+                result = self.obj._constructor_sliced(self.grouper.group_info[0], index)
+
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
@@ -2182,7 +2189,12 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
-            return Series(cumcounts, index)
+
+            # GH28330 preserve subclassed Series/DataFrames
+            if isinstance(self.obj, Series):
+                return self.obj._constructor(cumcounts, index)
+            elif isinstance(self.obj, DataFrame):
+                return self.obj._constructor_sliced(cumcounts, index)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
