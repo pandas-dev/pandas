@@ -1006,7 +1006,7 @@ class ExtensionArray:
         cls, to_concat: Sequence["ExtensionArray"]
     ) -> "ExtensionArray":
         """
-        Concatenate multiple array.
+        Concatenate multiple array of this dtype.
 
         Parameters
         ----------
@@ -1016,6 +1016,11 @@ class ExtensionArray:
         -------
         ExtensionArray
         """
+        # Implementer note: this method will only be called with a sequence of
+        # ExtensionArrays of this class and with the same dtype as self. This
+        # should allow "easy" concatenation (no upcasting needed), and result
+        # in a new ExtensionArray of the same dtype.
+        # Note: this strict behaviour is only guaranteed starting with pandas 1.1
         raise AbstractMethodError(cls)
 
     # The _can_hold_na attribute is set to True so that pandas internals
@@ -1240,7 +1245,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             return _maybe_convert(res)
 
-        op_name = ops._get_op_name(op, True)
+        op_name = f"__{op.__name__}__"
         return set_function_name(_binop, op_name, cls)
 
     @classmethod

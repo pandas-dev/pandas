@@ -23,7 +23,6 @@ from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import operator
 import os
-from typing import List
 
 from dateutil.tz import tzlocal, tzutc
 import hypothesis
@@ -32,7 +31,6 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas._typing import Dtype
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -258,7 +256,9 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA])
+@pytest.fixture(
+    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
+)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -295,6 +295,10 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
+
+
+# Generate cartesian product of index_or_series fixture:
+index_or_series2 = index_or_series
 
 
 @pytest.fixture
@@ -875,39 +879,7 @@ def utc_fixture(request):
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
-
-UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
-
-FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
-COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: List[Dtype] = [str, "str", "U"]
-
-DATETIME64_DTYPES = ["datetime64[ns]", "M8[ns]"]
-TIMEDELTA64_DTYPES = ["timedelta64[ns]", "m8[ns]"]
-
-BOOL_DTYPES = [bool, "bool"]
-BYTES_DTYPES = [bytes, "bytes"]
-OBJECT_DTYPES = [object, "object"]
-
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = (
-    ALL_REAL_DTYPES
-    + COMPLEX_DTYPES
-    + STRING_DTYPES
-    + DATETIME64_DTYPES
-    + TIMEDELTA64_DTYPES
-    + BOOL_DTYPES
-    + OBJECT_DTYPES
-    + BYTES_DTYPES
-)
-
-
-@pytest.fixture(params=STRING_DTYPES)
+@pytest.fixture(params=tm.STRING_DTYPES)
 def string_dtype(request):
     """
     Parametrized fixture for string dtypes.
@@ -919,7 +891,7 @@ def string_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=BYTES_DTYPES)
+@pytest.fixture(params=tm.BYTES_DTYPES)
 def bytes_dtype(request):
     """
     Parametrized fixture for bytes dtypes.
@@ -930,7 +902,7 @@ def bytes_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=OBJECT_DTYPES)
+@pytest.fixture(params=tm.OBJECT_DTYPES)
 def object_dtype(request):
     """
     Parametrized fixture for object dtypes.
@@ -941,7 +913,7 @@ def object_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=DATETIME64_DTYPES)
+@pytest.fixture(params=tm.DATETIME64_DTYPES)
 def datetime64_dtype(request):
     """
     Parametrized fixture for datetime64 dtypes.
@@ -952,7 +924,7 @@ def datetime64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=TIMEDELTA64_DTYPES)
+@pytest.fixture(params=tm.TIMEDELTA64_DTYPES)
 def timedelta64_dtype(request):
     """
     Parametrized fixture for timedelta64 dtypes.
@@ -963,7 +935,7 @@ def timedelta64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=FLOAT_DTYPES)
+@pytest.fixture(params=tm.FLOAT_DTYPES)
 def float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -975,7 +947,7 @@ def float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=COMPLEX_DTYPES)
+@pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
@@ -987,7 +959,7 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=SIGNED_INT_DTYPES)
+@pytest.fixture(params=tm.SIGNED_INT_DTYPES)
 def sint_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
@@ -1001,7 +973,7 @@ def sint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=UNSIGNED_INT_DTYPES)
+@pytest.fixture(params=tm.UNSIGNED_INT_DTYPES)
 def uint_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
@@ -1014,7 +986,7 @@ def uint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=ALL_INT_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any integer dtype.
@@ -1032,7 +1004,7 @@ def any_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=ALL_EA_INT_DTYPES)
+@pytest.fixture(params=tm.ALL_EA_INT_DTYPES)
 def any_nullable_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
@@ -1049,7 +1021,7 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=ALL_REAL_DTYPES)
+@pytest.fixture(params=tm.ALL_REAL_DTYPES)
 def any_real_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
@@ -1070,7 +1042,7 @@ def any_real_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=ALL_NUMPY_DTYPES)
+@pytest.fixture(params=tm.ALL_NUMPY_DTYPES)
 def any_numpy_dtype(request):
     """
     Parameterized fixture for all numpy dtypes.
@@ -1230,5 +1202,14 @@ def cython_table_items(request):
 def tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
     """
     return request.param

@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -653,7 +653,9 @@ class MultiIndex(Index):
             vals = self._get_level_values(i)
             if is_categorical_dtype(vals):
                 vals = vals._internal_get_values()
-            if isinstance(vals.dtype, ExtensionDtype) or hasattr(vals, "_box_values"):
+            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
+                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            ):
                 vals = vals.astype(object)
             vals = np.array(vals, copy=False)
             values.append(vals)
@@ -1046,16 +1048,17 @@ class MultiIndex(Index):
         result._cache.pop("levels", None)  # GH32669
         return result
 
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        # On equal MultiIndexes the difference is empty.
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        # On equal symmetric_difference MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
-        if len(values) == 0:
+        tups = Index.symmetric_difference(self, other, result_name, sort)
+        if len(tups) == 0:
             return MultiIndex(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                **kwargs,
+                names=tups.name,
             )
-        return self._shallow_copy(values, **kwargs)
+        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
@@ -2288,7 +2291,7 @@ class MultiIndex(Index):
 
             # GH7774: preserve dtype/tz if target is empty and not an Index.
             # target may be an iterator
-            target = ibase._ensure_has_len(target)
+            target = ibase.ensure_has_len(target)
             if len(target) == 0 and not isinstance(target, Index):
                 idx = self.levels[level]
                 attrs = idx._get_attributes_dict()
@@ -2333,23 +2336,19 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_value(self, series, key):
-        # Label-based
+    def _check_indexing_error(self, key):
         if not is_hashable(key) or is_iterator(key):
             # We allow tuples if they are hashable, whereas other Index
             #  subclasses require scalar.
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-        try:
-            loc = self.get_loc(key)
-        except KeyError:
-            if is_integer(key):
-                loc = key
-            else:
-                raise
-
-        return self._get_values_for_loc(series, loc, key)
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        Should integer key(s) be treated as positional?
+        """
+        # GH#33355
+        return self.levels[0]._should_fallback_to_positional()
 
     def _get_values_for_loc(self, series: "Series", loc, key):
         """

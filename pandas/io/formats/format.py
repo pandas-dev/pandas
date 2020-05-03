@@ -1228,7 +1228,11 @@ class GenericArrayFormatter:
 
         vals = extract_array(self.values, extract_numpy=True)
 
-        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
+        is_float_type = (
+            lib.map_infer(vals, is_float)
+            # vals may have 2 or more dimensions
+            & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
+        )
         leading_space = self.leading_space
         if leading_space is None:
             leading_space = is_float_type.any()

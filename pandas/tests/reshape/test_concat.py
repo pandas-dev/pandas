@@ -228,7 +228,7 @@ class TestConcatAppendCommon:
                     # same dtype is tested in test_concatlike_same_dtypes
                     continue
                 elif typ1 == "category" or typ2 == "category":
-                    # ToDo: suspicious
+                    # TODO: suspicious
                     continue
 
                 # specify expected dtype
@@ -610,11 +610,11 @@ class TestConcatAppendCommon:
         s2 = pd.Series([2, 1, 2], dtype="category")
         s3 = pd.Series([1, 2, 1, 2, np.nan])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype="object")
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype="float")
         tm.assert_series_equal(pd.concat([s1, s2, s3], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s3], ignore_index=True), exp)
 
-        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype="object")
+        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype="float")
         tm.assert_series_equal(pd.concat([s3, s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s3.append([s1, s2], ignore_index=True), exp)
 
@@ -698,7 +698,7 @@ class TestConcatAppendCommon:
         s1 = pd.Series([1, np.nan], dtype="category")
         s2 = pd.Series([np.nan, np.nan])
 
-        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype="object")
+        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype="float")
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
@@ -2768,3 +2768,52 @@ def test_concat_copy_index(test_series, axis):
         comb = concat([df, df], axis=axis, copy=True)
         assert comb.index is not df.index
         assert comb.columns is not df.columns
+
+
+def test_concat_multiindex_datetime_object_index():
+    # https://github.com/pandas-dev/pandas/issues/11058
+    s = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2014, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    s2 = Series(
+        ["a", "b"],
+        index=MultiIndex.from_arrays(
+            [[1, 2], Index([dt.date(2013, 1, 1), dt.date(2015, 1, 1)], dtype="object")],
+            names=["first", "second"],
+        ),
+    )
+    expected = DataFrame(
+        [["a", "a"], ["b", np.nan], [np.nan, "b"]],
+        index=MultiIndex.from_arrays(
+            [
+                [1, 2, 2],
+                DatetimeIndex(
+                    ["2013-01-01", "2014-01-01", "2015-01-01"],
+                    dtype="datetime64[ns]",
+                    freq=None,
+                ),
+            ],
+            names=["first", "second"],
+        ),
+    )
+    result = concat([s, s2], axis=1)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [["e", "f", "f"], ["f", "e", "f"]])
+def test_duplicate_keys(keys):
+    # GH 33654
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    s1 = Series([7, 8, 9], name="c")
+    s2 = Series([10, 11, 12], name="d")
+    result = concat([df, s1, s2], axis=1, keys=keys)
+    expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]
+    expected_columns = pd.MultiIndex.from_tuples(
+        [(keys[0], "a"), (keys[0], "b"), (keys[1], "c"), (keys[2], "d")]
+    )
+    expected = DataFrame(expected_values, columns=expected_columns)
+    tm.assert_frame_equal(result, expected)

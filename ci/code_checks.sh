@@ -150,7 +150,13 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas._testing instead of `import pandas._testing as tm`
     invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas import _testing as tm" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # No direct imports from conftest
+    invgrep -R --include="*.py*" -E "conftest import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    invgrep -R --include="*.py*" -E "import conftest" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG
@@ -292,10 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -316,6 +318,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests dtypes'; echo $MSG
     pytest -q --doctest-modules pandas/core/dtypes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests groupby' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests indexes' ; echo $MSG

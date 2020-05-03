@@ -49,7 +49,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodArray(data, copy=False)
 
         raise TypeError(
@@ -218,6 +218,37 @@ class DatetimeProperties(Properties):
     @property
     def freq(self):
         return self._get_values().inferred_freq
+
+    def isocalendar(self):
+        """
+        Returns a DataFrame with the year, week, and day calculated according to
+        the ISO 8601 standard.
+
+        .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame
+            with columns year, week and day
+
+        See Also
+        --------
+        Timestamp.isocalendar
+        datetime.date.isocalendar
+
+        Examples
+        --------
+        >>> ser = pd.to_datetime(pd.Series(["2010-01-01", pd.NaT]))
+        >>> ser.dt.isocalendar()
+           year  week  day
+        0  2009    53     5
+        1  <NA>  <NA>  <NA>
+        >>> ser.dt.isocalendar().week
+        0      53
+        1    <NA>
+        Name: week, dtype: UInt32
+        """
+        return self._get_values().isocalendar().set_index(self._parent.index)
 
 
 @delegate_names(
@@ -397,7 +428,6 @@ class CombinedDatetimelikeProperties(
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
         # do all the validation here.
-        from pandas import Series
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
@@ -406,7 +436,7 @@ class CombinedDatetimelikeProperties(
 
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
-            data = Series(
+            data = data._constructor(
                 orig.array,
                 name=orig.name,
                 copy=False,
@@ -419,7 +449,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")
