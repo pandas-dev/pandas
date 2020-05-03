@@ -822,7 +822,9 @@ class BlockManager(PandasObject):
             arr = self._interleave(dtype=dtype, na_value=na_value)
 
         if na_value is not lib.no_default:
-            arr[isna(arr)] = na_value
+            na_mask = isna(arr)
+            if na_mask.any():
+                arr[na_mask] = na_value
 
         return arr.transpose() if transpose else arr
 
