@@ -84,7 +84,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype

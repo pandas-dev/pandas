@@ -680,7 +680,7 @@ class BooleanArray(BaseMaskedArray):
 
     def _accumulate(
         self, name: str, skipna: bool = True, **kwargs
-    ): # TODO Type hints not working propery here due to circular imports
+    ):  # TODO Type hints not working propery here due to circular imports
         data = self._data
         mask = self._mask
 
