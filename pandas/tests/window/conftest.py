@@ -280,13 +280,13 @@ no_nan_functions_list = [
 ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def base_functions():
     """Fixture for base functions."""
     return base_functions_list
 
 
-@pytest.fixture()
+@pytest.fixture
 def no_nan_functions():
     """Fixture for no nan functions."""
     return no_nan_functions_list
