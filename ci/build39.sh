@@ -6,7 +6,7 @@ pip install --no-deps -U pip wheel setuptools
 pip install python-dateutil pytz pytest pytest-xdist hypothesis
 pip install cython --pre # https://github.com/cython/cython/issues/3395
 
-pip install --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com numpy
+pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
 
 python setup.py build_ext -inplace
 python -m pip install --no-build-isolation -e .
