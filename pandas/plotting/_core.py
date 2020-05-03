@@ -611,13 +611,13 @@ class PlotAccessor(PandasObject):
     subplots : bool, default False
         Make separate subplots for each column.
     sharex : bool, default True if ax is None else False
-        In case subplots=True, share x axis and set some x axis labels
+        In case ``subplots=True``, share x axis and set some x axis labels
         to invisible; defaults to True if ax is None otherwise False if
         an ax is passed in; Be aware, that passing in both an ax and
-        sharex=True will alter all x axis labels for all axis in a figure.
+        ``sharex=True`` will alter all x axis labels for all axis in a figure.
     sharey : bool, default False
-        In case aubplots=True, share y axis and set some y axis labels to invisible.
-    layout : tuple (optional)
+        In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+    layout : tuple, optional
         (rows, columns) for the layout of subplots.
     figsize : a tuple (width, height) in inches
         Size of a figure object.
@@ -681,7 +681,7 @@ class PlotAccessor(PandasObject):
     stacked : bool, default False in line and bar plots, and True in area plot
         If True, create stacked plot.
     sort_columns : bool, default False
-        Sort columns names to determine plot ordering.
+        Sort column names to determine plot ordering.
     secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis if a list/tuple, which
         columns to plot on secondary y-axis.
