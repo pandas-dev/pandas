@@ -537,8 +537,8 @@ def test_upsample_with_limit():
 
 @pytest.mark.parametrize("freq", ["Y", "10M", "5D", "10H", "5Min", "10S"])
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
-def test_nearest_upsample_with_limit(freq, rule):
-    rng = date_range("1/1/2000", periods=3, freq=freq)
+def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
+    rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture)
     ts = Series(np.random.randn(len(rng)), rng)
 
     result = ts.resample(rule).nearest(limit=2)
