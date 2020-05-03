@@ -7,7 +7,7 @@ import pandas.util._test_decorators as td
 
 from pandas import Series
 import pandas._testing as tm
-from pandas.core.tools.datetimes import to_time
+from pandas.core.tools.times import to_time
 
 
 class TestToTime:
