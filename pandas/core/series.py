@@ -45,13 +45,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -272,7 +266,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Cannot construct a Series from an ndarray with "
                         "compound dtype.  Use DataFrame instead."
                     )
-            elif isinstance(data, ABCSeries):
+            elif isinstance(data, Series):
                 if index is None:
                     index = data.index
                 else:
@@ -3549,7 +3543,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
-        assert isinstance(self.index, ABCMultiIndex)
+        assert isinstance(self.index, MultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self, method="swaplevel"
@@ -3574,7 +3568,7 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
-        assert isinstance(result.index, ABCMultiIndex)
+        assert isinstance(result.index, MultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
@@ -4661,7 +4655,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        assert isinstance(self.index, (DatetimeIndex, PeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
@@ -4688,7 +4682,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, ABCDatetimeIndex)
+        assert isinstance(self.index, DatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
