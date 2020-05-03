@@ -257,10 +257,9 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
 
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
-            if (
-                dtype is None
-                or is_extension_array_dtype(dtype)
-                or np.issubdtype(dtype, np.flexible)
+            if dtype is None or (
+                not is_extension_array_dtype(dtype)
+                and np.issubdtype(dtype, np.flexible)
             ):
                 # GH#1783
                 nan_dtype = np.dtype(object)

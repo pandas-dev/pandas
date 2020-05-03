@@ -83,9 +83,7 @@ class TestCasting(BaseInterval, base.BaseCastingTests):
 
 
 class TestConstructors(BaseInterval, base.BaseConstructorsTests):
-    @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_construct_empty_dataframe(self, dtype):
-        super().test_construct_empty_dataframe(dtype)
+    pass
 
 
 class TestGetitem(BaseInterval, base.BaseGetitemTests):

@@ -57,10 +57,6 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
 
-    @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_construct_empty_dataframe(self, dtype):
-        super().test_construct_empty_dataframe(dtype)
-
     @pytest.mark.skipif(not PY37, reason="timeout on Linux py36_locale")
     @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
@@ -72,6 +68,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="raises AssertionError")
+    def test_construct_empty_dataframe(self, dtype):
+        super().test_construct_empty_dataframe(dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):
