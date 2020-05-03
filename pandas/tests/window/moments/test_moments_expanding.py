@@ -219,7 +219,6 @@ def test_expanding_consistency_std(consistency_data, min_periods):
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_expanding_consistency_cov(consistency_data, min_periods):
     x, is_constant, no_nans = consistency_data
