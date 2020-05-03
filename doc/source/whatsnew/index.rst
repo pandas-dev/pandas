@@ -3,7 +3,7 @@
 {{ header }}
 
 *************
-Release Notes
+Release notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
