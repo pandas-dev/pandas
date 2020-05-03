@@ -431,7 +431,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         from pandas.core.arrays import DatetimeArray
 
-        how = libperiod._validate_end_alias(how)
+        how = libperiod.validate_end_alias(how)
 
         end = how == "E"
         if end:
@@ -523,7 +523,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]', freq='M')
         """
-        how = libperiod._validate_end_alias(how)
+        how = libperiod.validate_end_alias(how)
 
         freq = Period._maybe_convert_freq(freq)
 

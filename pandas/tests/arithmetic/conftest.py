@@ -231,22 +231,6 @@ def box(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        pd.Index,
-        pd.Series,
-        pytest.param(pd.DataFrame, marks=pytest.mark.xfail),
-        tm.to_array,
-    ],
-    ids=id_func,
-)
-def box_df_fail(request):
-    """
-    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
 def box_with_array(request):
     """
