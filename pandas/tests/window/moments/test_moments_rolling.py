@@ -1000,6 +1000,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         tm.assert_frame_equal(res3, exp)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
@@ -1030,7 +1031,7 @@ def test_rolling_apply_consistency(
                 and (min_periods is not None)
                 and (min_periods < require_min_periods)
             ):
-                pass
+                continue
 
             if name == "count":
                 rolling_f_result = rolling_f()

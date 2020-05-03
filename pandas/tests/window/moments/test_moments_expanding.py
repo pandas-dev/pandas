@@ -163,7 +163,7 @@ def test_expanding_apply_consistency(
 
         # GH 8269
         if no_nans:
-            functions = no_nan_functions + base_functions
+            functions = base_functions + no_nan_functions
         for (f, require_min_periods, name) in functions:
             expanding_f = getattr(x.expanding(min_periods=min_periods), name)
 
