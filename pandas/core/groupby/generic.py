@@ -227,7 +227,6 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(
         _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
