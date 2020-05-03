@@ -1228,11 +1228,13 @@ class _LocIndexer(_LocationIndexer):
         indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
+            self._validate_read_indexer(
+                keyarr, indexer, axis, raise_missing=raise_missing
+            )
             return ax[indexer], indexer
 
         if ax.is_unique and not getattr(ax, "is_overlapping", False):
-            indexer = ax.get_indexer_for(key)
+            indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
