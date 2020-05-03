@@ -40,9 +40,10 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
 )
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
-    from pandas import Series, DatetimeIndex  # noqa:F401
+    from pandas import Series  # noqa:F401
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -158,7 +159,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
 
 def _box_as_indexlike(
     dt_array: ArrayLike, utc: Optional[bool] = None, name: Optional[str] = None
-) -> Union["Index", "DatetimeIndex"]:
+) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
@@ -178,7 +179,6 @@ def _box_as_indexlike(
         - DatetimeIndex if convertible to sole datetime64 type
         - general Index otherwise
     """
-    from pandas import DatetimeIndex  # noqa:F811
 
     if is_datetime64_dtype(dt_array):
         tz = "utc" if utc else None
@@ -282,7 +282,6 @@ def _convert_listlike_datetimes(
     -------
     Index-like of parsed dates
     """
-    from pandas import DatetimeIndex  # noqa:F811
 
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
@@ -328,7 +327,6 @@ def _convert_listlike_datetimes(
             )
 
         if errors == "ignore":
-            from pandas import Index
 
             result = Index(result, name=name)
         else:
@@ -362,8 +360,6 @@ def _convert_listlike_datetimes(
             result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(result, name=name)
         elif errors == "ignore":
-            from pandas import Index
-
             result = Index(arg, name=name)
             return result
         raise
