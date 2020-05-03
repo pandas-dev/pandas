@@ -72,7 +72,6 @@ from pandas.core.arrays import (
     PandasDtype,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -1008,13 +1007,17 @@ class Block(PandasObject):
         # if we cannot then coerce to object
         dtype, _ = infer_dtype_from(other, pandas_dtype=True)
 
-        if isinstance(self.dtype, StringDtype):
-            dtype = StringDtype()
-
         if is_dtype_equal(self.dtype, dtype):
             return self
 
-        if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
+        if (
+            is_extension_array_dtype(self.dtype)
+            and not is_categorical_dtype(self.dtype)
+            and not self.is_datetime
+        ):
+            dtype = self.dtype
+
+        elif self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
             # we don't upcast to bool
             return self.astype(object)
 
