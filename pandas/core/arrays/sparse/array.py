@@ -335,7 +335,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):
@@ -439,11 +439,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
+        data = data.tocsc()
+        data.sort_indices()
         arr = data.data
-        idx, _ = data.nonzero()
-        loc = np.argsort(idx)
-        arr = arr.take(loc)
-        idx.sort()
+        idx = data.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
@@ -953,27 +952,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        fill_values = [x.fill_value for x in to_concat]
-
-        fill_value = fill_values[0]
-
-        # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
-            warnings.warn(
-                "Concatenating sparse arrays with multiple fill "
-                f"values: '{fill_values}'. Picking the first and "
-                "converting the rest.",
-                PerformanceWarning,
-                stacklevel=6,
-            )
-            keep = to_concat[0]
-            to_concat2 = [keep]
-
-            for arr in to_concat[1:]:
-                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
-
-            to_concat = to_concat2
+        fill_value = to_concat[0].fill_value
 
         values = []
         length = 0

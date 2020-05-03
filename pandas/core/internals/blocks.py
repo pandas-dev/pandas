@@ -51,7 +51,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCExtensionArray,
     ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
@@ -216,7 +215,7 @@ class Block(PandasObject):
         """
         This is used in the JSON C code.
         """
-        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        # TODO(EA2D): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
     @property
@@ -341,6 +340,7 @@ class Block(PandasObject):
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
+            # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
@@ -584,8 +584,7 @@ class Block(PandasObject):
                 newb = self.copy() if copy else self
                 return newb
 
-        # TODO(extension)
-        # should we make this attribute?
+        # TODO(EA2D): special case not needed with 2D EAs
         if isinstance(values, np.ndarray):
             values = values.reshape(self.shape)
 
@@ -1548,11 +1547,12 @@ class ExtensionBlock(Block):
         super().__init__(values, placement, ndim=ndim)
 
         if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(2DEA): check unnecessary with 2D EAs
+            # TODO(EA2D): check unnecessary with 2D EAs
             raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
+        # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return ((len(self.values)),)
         return (len(self.mgr_locs), len(self.values))
@@ -1560,6 +1560,7 @@ class ExtensionBlock(Block):
     def iget(self, col):
 
         if self.ndim == 2 and isinstance(col, tuple):
+            # TODO(EA2D): unnecessary with 2D EAs
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
@@ -1668,6 +1669,7 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if isinstance(indexer, tuple):
+            # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
             indexer = indexer[0]
 
@@ -1677,6 +1679,7 @@ class ExtensionBlock(Block):
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
+        # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
     def array_values(self) -> ExtensionArray:
@@ -1690,6 +1693,7 @@ class ExtensionBlock(Block):
         values = np.asarray(values.astype(object))
         values[mask] = na_rep
 
+        # TODO(EA2D): reshape not needed with 2D EAs
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
@@ -1702,6 +1706,7 @@ class ExtensionBlock(Block):
         if fill_value is lib.no_default:
             fill_value = None
 
+        # TODO(EA2D): special case not needed with 2D EAs
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
@@ -1716,7 +1721,7 @@ class ExtensionBlock(Block):
         return self.make_block_same_class(new_values, new_mgr_locs)
 
     def _can_hold_element(self, element: Any) -> bool:
-        # XXX: We may need to think about pushing this onto the array.
+        # TODO: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
 
@@ -2228,10 +2233,16 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         by apply.
         """
         if axis == 0:
+            # TODO(EA2D): special case not needed with 2D EAs
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
             raise NotImplementedError
-        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        if n == 0:
+            # Fastpath avoids making a copy in `shift`
+            new_values = np.zeros(self.values.shape, dtype=np.int64)
+        else:
+            new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
 
         # Reshape the new_values like how algos.diff does for timedelta data
         new_values = new_values.reshape(1, len(new_values))
@@ -2273,13 +2284,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
-        # kludge for 2D block with 1D values
+        # TODO(EA2D): kludge for 2D block with 1D values
         naive = naive.reshape(self.shape)
 
         blk = self.make_block(naive)
         res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
 
-        # ravel is kludge for 2D block with 1D values, assumes column-like
+        # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
         aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
@@ -2398,7 +2409,7 @@ class ObjectBlock(Block):
                 copy=copy,
             )
             if isinstance(values, np.ndarray):
-                # TODO: allow EA once reshape is supported
+                # TODO(EA2D): allow EA once reshape is supported
                 values = values.reshape(shape)
 
             return values
@@ -2662,13 +2673,13 @@ def get_block_type(values, dtype=None):
     elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values)
+        assert not is_datetime64tz_dtype(values.dtype)
         cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
@@ -2692,6 +2703,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
         if ndim and ndim > 1:
+            # TODO(EA2D): special case not needed with 2D EAs
             values = np.atleast_2d(values)
 
     if isinstance(dtype, PandasDtype):
@@ -2757,8 +2769,10 @@ def _safe_reshape(arr, new_shape):
     """
     if isinstance(arr, ABCSeries):
         arr = arr._values
-    if not isinstance(arr, ABCExtensionArray):
-        arr = arr.reshape(new_shape)
+    if not is_extension_array_dtype(arr.dtype):
+        # Note: this will include TimedeltaArray and tz-naive DatetimeArray
+        # TODO(EA2D): special case will be unnecessary with 2D EAs
+        arr = np.asarray(arr).reshape(new_shape)
     return arr
 
 
