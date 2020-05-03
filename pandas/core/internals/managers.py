@@ -809,6 +809,13 @@ class BlockManager(PandasObject):
             # always be object dtype. Some callers seem to want the
             # DatetimeArray (previously DTI)
             arr = self.blocks[0].get_values(dtype=object)
+        elif self._is_single_block and self.blocks[0].is_extension:
+            # Avoid implicit conversion of extension blocks to object
+            arr = (
+                self.blocks[0]
+                .values.to_numpy(dtype=dtype, na_value=na_value)
+                .reshape(self.blocks[0].shape)
+            )
         elif self._is_single_block or not self.is_mixed_type:
             arr = np.asarray(self.blocks[0].get_values())
         else:
@@ -841,6 +848,7 @@ class BlockManager(PandasObject):
         for blk in self.blocks:
             rl = blk.mgr_locs
             if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
                 arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
             else:
                 arr = blk.get_values(dtype)
