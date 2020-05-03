@@ -23,9 +23,6 @@ class TestABCClasses:
 
     def test_abc_types(self):
         assert isinstance(pd.Index(["a", "b", "c"]), gt.ABCIndex)
-        assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCInt64Index)
-        assert isinstance(pd.UInt64Index([1, 2, 3]), gt.ABCUInt64Index)
-        assert isinstance(pd.Float64Index([1, 2, 3]), gt.ABCFloat64Index)
         assert isinstance(self.multi_index, gt.ABCMultiIndex)
         assert isinstance(self.datetime_index, gt.ABCDatetimeIndex)
         assert isinstance(self.timedelta_index, gt.ABCTimedeltaIndex)

@@ -21,13 +21,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCFloat64Index,
-    ABCInt64Index,
-    ABCRangeIndex,
-    ABCSeries,
-    ABCUInt64Index,
-)
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -273,9 +267,9 @@ class Int64Index(IntegerIndex):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _is_compatible_with_other(self, other) -> bool:
+        # Note: RangeIndex is a subclass of Int64Index
         return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCInt64Index, ABCFloat64Index, ABCRangeIndex))
-            for obj in [self, other]
+            isinstance(obj, (Int64Index, Float64Index)) for obj in [self, other]
         )
 
 
@@ -331,7 +325,7 @@ class UInt64Index(IntegerIndex):
 
     def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCUInt64Index, ABCFloat64Index)) for obj in [self, other]
+            isinstance(obj, (UInt64Index, Float64Index)) for obj in [self, other]
         )
 
 
@@ -460,10 +454,9 @@ class Float64Index(NumericIndex):
         return algorithms.isin(np.array(self), values)
 
     def _is_compatible_with_other(self, other) -> bool:
+        # Note: RangeIndex is a subclass of Int64Index
         return super()._is_compatible_with_other(other) or all(
-            isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
-            )
+            isinstance(obj, (Int64Index, Float64Index, UInt64Index))
             for obj in [self, other]
         )
 
