@@ -55,7 +55,9 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
 from pandas.tseries.offsets import DateOffset
+
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
     _attributes: List[str] = [
