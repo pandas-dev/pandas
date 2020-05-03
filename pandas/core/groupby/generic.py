@@ -23,6 +23,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -1079,7 +1080,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     continue
                 else:
                     # Ensure result is DataFrame-like type
-                    assert isinstance(result, type(self.obj))
+                    if not isinstance(result, DataFrame):
+                        result = cast(DataFrame, result)
 
                     # unwrap DataFrame to get array
                     if len(result._mgr.blocks) != 1:
