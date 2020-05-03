@@ -2236,7 +2236,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing:
-            if not callable(pre_processing):
+            if not callable(post_processing):
                 raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
