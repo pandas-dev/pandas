@@ -427,7 +427,7 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, arr",
+    "data, expected",
     [
         (
             {"a": pd.array([1, 2, None])},
@@ -439,9 +439,8 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, arr):
+def test_to_numpy_dataframe_single_block(data, expected):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
     result = df.to_numpy(dtype=float, na_value=np.nan)
-    expected = arr
     tm.assert_numpy_array_equal(result, expected)
