@@ -782,7 +782,11 @@ class BlockManager(PandasObject):
         return res
 
     def as_array(
-        self, transpose: bool = False, dtype=None, na_value=lib.no_default
+        self,
+        transpose: bool = False,
+        dtype=None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
@@ -793,6 +797,10 @@ class BlockManager(PandasObject):
             If True, transpose the return array.
         dtype : object, default None
             Data type of the return array.
+        copy : bool, default False
+            If True then guarantee that a copy is returned. A value of
+            False does not guarantee that the underlying data is not
+            copied.
         na_value : object, default lib.no_default
             Value to be used as the missing value sentinel.
 
@@ -823,11 +831,11 @@ class BlockManager(PandasObject):
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
 
+        if copy or na_value is not lib.no_default:
+            arr = arr.copy()
+
         if na_value is not lib.no_default:
-            na_mask = isna(arr)
-            if na_mask.any():
-                arr = arr.copy()
-                arr[na_mask] = na_value
+            arr[isna(arr)] = na_value
 
         return arr.transpose() if transpose else arr
 

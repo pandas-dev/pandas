@@ -1344,11 +1344,8 @@ class DataFrame(NDFrame):
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
         result = self._mgr.as_array(
-            transpose=self._AXIS_REVERSED, dtype=dtype, na_value=na_value
+            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
         )
-
-        if copy:
-            result = result.copy()
 
         return result
 
