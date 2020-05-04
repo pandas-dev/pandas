@@ -1458,9 +1458,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
         if (is_datetimelike) {
             if (nanosecVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
+                len = 4;
+                cLabel = PyObject_Malloc(len + 1);
+                strncpy(cLabel, "null", len + 1);
             } else {
                 if (enc->datetimeIso) {
                     if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
@@ -1486,23 +1486,22 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 }
             }
         } else { // Fallback to string representation
-            PyObject *str = PyObject_Str(item);
-            if (str == NULL) {
-                Py_DECREF(item);
+            // Replace item with the string to keep it alive.
+            Py_SETREF(item, PyObject_Str(item));
+            if (item == NULL) {
                 NpyArr_freeLabels(ret, num);
                 ret = 0;
                 break;
             }
 
-            cLabel = (char *)PyUnicode_AsUTF8(str);
-            Py_DECREF(str);
+            cLabel = (char *)PyUnicode_AsUTF8(item);
             len = strlen(cLabel);
         }
 
-        Py_DECREF(item);
         // Add 1 to include NULL terminator
         ret[i] = PyObject_Malloc(len + 1);
         memcpy(ret[i], cLabel, len + 1);
+        Py_DECREF(item);
 
         if (is_datetimelike) {
             PyObject_Free(cLabel);

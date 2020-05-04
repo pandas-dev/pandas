@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDateOffset,
     ABCDatetimeIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -56,6 +55,8 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+from pandas.tseries.offsets import DateOffset
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -1838,7 +1839,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, ABCDateOffset, timedelta)
+            self.window, (str, DateOffset, timedelta)
         ):
 
             self._validate_monotonic()
