@@ -2132,7 +2132,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
         if not any(is_cat):

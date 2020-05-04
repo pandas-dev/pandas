@@ -1729,7 +1729,7 @@ class TestMergeCategorical:
 
         X = change(right.X.astype("object"))
         right = right.assign(X=X)
-        assert is_categorical_dtype(left.X.values)
+        assert is_categorical_dtype(left.X.values.dtype)
         # assert not left.X.values.is_dtype_equal(right.X.values)
 
         merged = pd.merge(left, right, on="X", how=join_type)

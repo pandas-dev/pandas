@@ -234,9 +234,9 @@ class TestIntervalIndex:
         df["D"] = s.values
         df["E"] = np.array(s.values)
 
-        assert is_categorical_dtype(df["B"])
+        assert is_categorical_dtype(df["B"].dtype)
         assert is_interval_dtype(df["B"].cat.categories)
-        assert is_categorical_dtype(df["D"])
+        assert is_categorical_dtype(df["D"].dtype)
         assert is_interval_dtype(df["D"].cat.categories)
 
         assert is_object_dtype(df["C"])

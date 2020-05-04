@@ -156,7 +156,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.iloc[2, :]
@@ -166,7 +166,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.iloc[2, 0]
@@ -176,7 +176,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -186,7 +186,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -197,7 +197,7 @@ class TestCategoricalIndex:
         # res_df = df.loc["j":"k",[0,1]] # doesn't work?
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -207,7 +207,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", df.columns[0]]
@@ -240,23 +240,23 @@ class TestCategoricalIndex:
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
     def test_slicing_doc_examples(self):
 

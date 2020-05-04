@@ -1065,7 +1065,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if is_categorical_dtype(expected[col]):
+            if is_categorical_dtype(expected[col].dtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1095,7 +1095,7 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not is_categorical_dtype(parsed[col]):
+            if not is_categorical_dtype(parsed[col].dtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered

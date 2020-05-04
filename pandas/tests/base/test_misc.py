@@ -122,8 +122,8 @@ def test_memory_usage(index_or_series_obj):
     is_object = is_object_dtype(obj) or (
         isinstance(obj, Series) and is_object_dtype(obj.index)
     )
-    is_categorical = is_categorical_dtype(obj) or (
-        isinstance(obj, Series) and is_categorical_dtype(obj.index)
+    is_categorical = is_categorical_dtype(obj.dtype) or (
+        isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
     )
 
     if len(obj) == 0:
