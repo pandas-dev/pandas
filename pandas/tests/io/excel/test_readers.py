@@ -1085,7 +1085,8 @@ class TestExcelFileRead:
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
-    def test_header_skiprows_nrows(self, engine, read_ext):
+    @pytest.mark.parametrize("header, skiprows", [(1, 2), (0, 3)]) 
+    def test_header_skiprows_nrows(self, engine, read_ext, header, skiprows):
         data = pd.read_excel("test1" + read_ext, engine=engine)
         expected = (
             DataFrame(data.iloc[3:6])
@@ -1093,8 +1094,6 @@ class TestExcelFileRead:
             .rename(columns=data.iloc[2].rename(None))
         )
         actual = pd.read_excel(
-            "test1" + read_ext, engine=engine, header=1, skiprows=2, nrows=3
+            "test1" + read_ext, engine=engine, header=header, skiprows=skiprows, nrows=3
         )
-        tm.assert_frame_equal(expected, actual)
-        actual = pd.read_excel("test1" + read_ext, engine=engine, skiprows=3, nrows=3)
         tm.assert_frame_equal(expected, actual)
