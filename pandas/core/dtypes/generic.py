@@ -63,7 +63,6 @@ ABCTimedeltaArray = create_pandas_abc_type(
     "ABCTimedeltaArray", "_typ", ("timedeltaarray")
 )
 ABCPeriodArray = create_pandas_abc_type("ABCPeriodArray", "_typ", ("periodarray",))
-ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ", ("dateoffset",))
 ABCExtensionArray = create_pandas_abc_type(
     "ABCExtensionArray",
     "_typ",
