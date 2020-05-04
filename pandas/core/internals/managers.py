@@ -826,6 +826,7 @@ class BlockManager(PandasObject):
         if na_value is not lib.no_default:
             na_mask = isna(arr)
             if na_mask.any():
+                arr = arr.copy()
                 arr[na_mask] = na_value
 
         return arr.transpose() if transpose else arr
