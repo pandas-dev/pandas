@@ -673,21 +673,24 @@ class TestGetValue:
         input0 = pd.Series(np.array([1, 2, 3]), index=idx0)
         expected0 = 2
 
-        result0 = idx0.get_value(input0, p1)
+        with tm.assert_produces_warning(FutureWarning):
+            result0 = idx0.get_value(input0, p1)
         assert result0 == expected0
 
         idx1 = PeriodIndex([p1, p1, p2])
         input1 = pd.Series(np.array([1, 2, 3]), index=idx1)
         expected1 = input1.iloc[[0, 1]]
 
-        result1 = idx1.get_value(input1, p1)
+        with tm.assert_produces_warning(FutureWarning):
+            result1 = idx1.get_value(input1, p1)
         tm.assert_series_equal(result1, expected1)
 
         idx2 = PeriodIndex([p1, p2, p1])
         input2 = pd.Series(np.array([1, 2, 3]), index=idx2)
         expected2 = input2.iloc[[0, 2]]
 
-        result2 = idx2.get_value(input2, p1)
+        with tm.assert_produces_warning(FutureWarning):
+            result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
 
     @pytest.mark.parametrize("freq", ["H", "D"])
@@ -700,7 +703,8 @@ class TestGetValue:
         ts = dti[0]
 
         assert pi.get_loc(ts) == 0
-        assert pi.get_value(ser, ts) == 7
+        with tm.assert_produces_warning(FutureWarning):
+            assert pi.get_value(ser, ts) == 7
         assert ser[ts] == 7
         assert ser.loc[ts] == 7
 
@@ -709,14 +713,16 @@ class TestGetValue:
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 pi.get_loc(ts2)
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
-                pi.get_value(ser, ts2)
+                with tm.assert_produces_warning(FutureWarning):
+                    pi.get_value(ser, ts2)
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 ser[ts2]
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 ser.loc[ts2]
         else:
             assert pi.get_loc(ts2) == 0
-            assert pi.get_value(ser, ts2) == 7
+            with tm.assert_produces_warning(FutureWarning):
+                assert pi.get_value(ser, ts2) == 7
             assert ser[ts2] == 7
             assert ser.loc[ts2] == 7
 
@@ -726,13 +732,15 @@ class TestGetValue:
         pi = dti.to_period("D")
         ser = pd.Series(range(3), index=pi)
         with pytest.raises(IndexError, match=msg):
-            pi.get_value(ser, 16801)
+            with tm.assert_produces_warning(FutureWarning):
+                pi.get_value(ser, 16801)
 
         msg = "index 46 is out of bounds for axis 0 with size 3"
         pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
         ser2 = pd.Series(range(3), index=pi2)
         with pytest.raises(IndexError, match=msg):
-            pi2.get_value(ser2, 46)
+            with tm.assert_produces_warning(FutureWarning):
+                pi2.get_value(ser2, 46)
 
 
 class TestContains:
@@ -758,11 +766,33 @@ class TestContains:
         with pytest.raises(KeyError, match=key):
             idx0.get_loc(key)
         with pytest.raises(KeyError, match=key):
-            idx0.get_value(ser, key)
+            with tm.assert_produces_warning(FutureWarning):
+                idx0.get_value(ser, key)
 
         assert "2017-09" in idx0
 
         assert p3 not in idx0
+
+    def test_contains_freq_mismatch(self):
+        rng = period_range("2007-01", freq="M", periods=10)
+
+        assert Period("2007-01", freq="M") in rng
+        assert not Period("2007-01", freq="D") in rng
+        assert not Period("2007-01", freq="2M") in rng
+
+    def test_contains_nat(self):
+        # see gh-13582
+        idx = period_range("2007-01", freq="M", periods=10)
+        assert NaT not in idx
+        assert None not in idx
+        assert float("nan") not in idx
+        assert np.nan not in idx
+
+        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
+        assert NaT in idx
+        assert None in idx
+        assert float("nan") in idx
+        assert np.nan in idx
 
 
 class TestAsOfLocs:

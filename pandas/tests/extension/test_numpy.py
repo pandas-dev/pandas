@@ -151,6 +151,11 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_array_from_scalars(data)
 
+    @skip_nested
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # ValueError: Length of passed values is 1, index implies 3.
+        super().test_series_constructor_scalar_with_index(data, dtype)
+
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     @pytest.mark.skip(reason="Incorrect expected.")
@@ -198,6 +203,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     @pytest.mark.skip(reason="TODO: remove?")
     def test_value_counts(self, all_data, dropna):
         pass
+
+    @pytest.mark.xfail(reason="not working. will be covered by #32028")
+    def test_value_counts_with_normalize(self, data):
+        return super().test_value_counts_with_normalize(data)
 
     @pytest.mark.skip(reason="Incorrect expected")
     # We have a bool dtype, so the result is an ExtensionArray

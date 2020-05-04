@@ -1301,7 +1301,7 @@ class DataFrame(NDFrame):
         dtype : str or numpy.dtype, optional
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
+            Whether to ensure that the returned value is not a view on
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
@@ -5916,7 +5916,7 @@ class DataFrame(NDFrame):
             if isinstance(arr, (ABCIndexClass, ABCSeries)):
                 arr = arr._values
 
-            if needs_i8_conversion(arr):
+            if needs_i8_conversion(arr.dtype):
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:
@@ -8325,10 +8325,10 @@ Wild         185.0
             out_dtype = "bool" if filter_type == "bool" else None
 
             def blk_func(values):
-                if values.ndim == 1 and not isinstance(values, np.ndarray):
-                    # we can't pass axis=1
-                    return op(values, axis=0, skipna=skipna, **kwds)
-                return op(values, axis=1, skipna=skipna, **kwds)
+                if isinstance(values, ExtensionArray):
+                    return values._reduce(name, skipna=skipna, **kwds)
+                else:
+                    return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
@@ -8522,6 +8522,12 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+
+        # indices will always be np.ndarray since axis is not None and
+        # values is a 2d array for DataFrame
+        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
+        assert isinstance(indices, np.ndarray)  # for mypy
+
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
@@ -8589,6 +8595,12 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+
+        # indices will always be np.ndarray since axis is not None and
+        # values is a 2d array for DataFrame
+        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
+        assert isinstance(indices, np.ndarray)  # for mypy
+
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
@@ -8989,7 +9001,6 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data):
-    # TODO: this should be seriously cythonized
     new_data = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():

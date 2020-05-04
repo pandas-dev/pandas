@@ -1196,7 +1196,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         fill_value = self._validate_fill_value(fill_value)
 
-        codes = shift(codes.copy(), periods, axis=0, fill_value=fill_value)
+        codes = shift(codes, periods, axis=0, fill_value=fill_value)
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
@@ -1424,7 +1424,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             Index if datetime / periods.
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if needs_i8_conversion(self.categories):
+        if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=np.nan)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
@@ -2296,9 +2296,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     @classmethod
     def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import concat_categorical
+        from pandas.core.dtypes.concat import union_categoricals
 
-        return concat_categorical(to_concat)
+        return union_categoricals(to_concat)
 
     def isin(self, values):
         """
