@@ -1168,7 +1168,7 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
-def _is_potential_multi_index(columns, index_col=None):
+def _is_potential_multi_index(columns, index_col):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
