@@ -1309,7 +1309,7 @@ class DataFrame(NDFrame):
             a copy is made, even if not strictly necessary.
         na_value : Any, optional
             The value to use for missing values. The default value depends
-            on `dtype` and the type of the array.
+            on `dtype` and the dtypes of the DataFrame columns.
 
             .. versionadded:: 1.1.0
 
