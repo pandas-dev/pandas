@@ -1182,9 +1182,12 @@ def _is_potential_multi_index(columns, index_col):
     -------
     boolean : Whether or not columns could become a MultiIndex
     """
-    if index_col is None:
+    if index_col is None or isinstance(index_col, bool):
         index_col = []
+    elif isinstance(index_col, int):
+        index_col = [index_col]
     columns_to_check = [col for col in columns if col not in list(index_col)]
+
     return (
         len(columns)
         and not isinstance(columns, MultiIndex)
