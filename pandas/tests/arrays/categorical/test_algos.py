@@ -94,14 +94,14 @@ def test_isin_empty(empty):
 
 def test_diff():
     s = pd.Series([1, 2, 3], dtype="category")
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = s.diff()
     expected = pd.Series([np.nan, 1, 1])
     tm.assert_series_equal(result, expected)
 
     expected = expected.to_frame(name="A")
     df = s.to_frame(name="A")
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = df.diff()
 
     tm.assert_frame_equal(result, expected)

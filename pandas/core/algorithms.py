@@ -1857,7 +1857,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=stacklevel+1,
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
