@@ -1168,7 +1168,7 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
-def _is_potential_multi_index(columns):
+def _is_potential_multi_index(columns, index_col=None):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
@@ -1182,10 +1182,13 @@ def _is_potential_multi_index(columns):
     -------
     boolean : Whether or not columns could become a MultiIndex
     """
+    if index_col is None:
+        index_col = []
+    columns_to_check = [col for col in columns if col not in list(index_col)]
     return (
         len(columns)
         and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns)
+        and all(isinstance(c, tuple) for c in columns_to_check)
     )
 
 
@@ -1570,7 +1573,7 @@ class ParserBase:
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names)
+            is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
                 cur_count = counts[col]
@@ -1591,7 +1594,7 @@ class ParserBase:
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if _is_potential_multi_index(columns):
+        if _is_potential_multi_index(columns, self.index_col):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
