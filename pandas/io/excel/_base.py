@@ -390,7 +390,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
     def should_read_row(
         self,
-        index,
+        index: int,
         header: Optional[Union[int, Sequence[int]]],
         skiprows: Optional[Union[int, Sequence[int]]],
         nrows: Optional[int],
