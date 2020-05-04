@@ -222,7 +222,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx")
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -231,9 +231,7 @@ class TestDatetimeIndexSetOps:
         ]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
             assert result.freq == expected.freq
-            assert result.tz == expected.tz
 
         # non-monotonic
         base = DatetimeIndex(
@@ -255,6 +253,7 @@ class TestDatetimeIndexSetOps:
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
         expected4 = DatetimeIndex([], tz=tz, name="idx")
+        assert expected4.freq is None
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -265,18 +264,37 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq is None
-            assert result.tz == expected.tz
+            assert result.freq == expected.freq
 
-    def test_intersection_empty(self):
+    # parametrize over both anchored and non-anchored freqs, as they
+    #  have different code paths
+    @pytest.mark.parametrize("freq", ["T", "B"])
+    def test_intersection_empty(self, tz_aware_fixture, freq):
         # empty same freq GH2129
-        rng = date_range("6/1/2000", "6/15/2000", freq="T")
+        tz = tz_aware_fixture
+        rng = date_range("6/1/2000", "6/15/2000", freq=freq, tz=tz)
         result = rng[0:0].intersection(rng)
         assert len(result) == 0
+        assert result.freq == rng.freq
 
         result = rng.intersection(rng[0:0])
         assert len(result) == 0
+        assert result.freq == rng.freq
+
+        # no overlap GH#33604
+        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
+        result = rng[:3].intersection(rng[-3:])
+        tm.assert_index_equal(result, rng[:0])
+        if check_freq:
+            # We don't preserve freq on non-anchored offsets
+            assert result.freq == rng.freq
+
+        # swapped left and right
+        result = rng[-3:].intersection(rng[:3])
+        tm.assert_index_equal(result, rng[:0])
+        if check_freq:
+            # We don't preserve freq on non-anchored offsets
+            assert result.freq == rng.freq
 
     def test_intersection_bug_1708(self):
         from pandas import DateOffset
@@ -450,6 +468,7 @@ class TestBusinessDatetimeIndex:
         b = bdate_range("12/10/2011", "12/20/2011")
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
+        assert result.freq == b.freq
 
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone
@@ -527,3 +546,4 @@ class TestCustomDatetimeIndex:
         b = bdate_range("12/10/2011", "12/20/2011", freq="C")
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
+        assert result.freq == b.freq

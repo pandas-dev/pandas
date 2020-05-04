@@ -22,8 +22,8 @@ import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
     DT64NS_DTYPE,
+    INT64_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -302,11 +302,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype=None,
         copy=False,
         tz=None,
-        freq=None,
+        freq=lib.no_default,
         dayfirst=False,
         yearfirst=False,
         ambiguous="raise",
     ):
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -321,6 +323,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         )
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         dtype = tz_to_dtype(tz)
         result = cls._simple_new(subarr, freq=freq, dtype=dtype)
@@ -404,7 +408,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                     start = start.tz_localize(None)
                 if end is not None:
                     end = end.tz_localize(None)
-            # TODO: consider re-implementing _cached_range; GH#17914
+
             values, _tz = generate_regular_range(start, end, periods, freq)
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
@@ -698,7 +702,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return type(self)._from_sequence(result).tz_localize(self.tz)
 
-        return type(self)._from_sequence(result)._with_freq("infer")
+        return type(self)._from_sequence(result)
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -886,7 +890,7 @@ default 'raise'
         DatetimeIndex(['2018-03-01 09:00:00-05:00',
                        '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq='D')
+                      dtype='datetime64[ns, US/Eastern]', freq=None)
 
         With the ``tz=None``, we can remove the time zone information
         while keeping the local time (not converted to UTC):
@@ -894,7 +898,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[ns]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -973,7 +977,16 @@ default 'raise'
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
         dtype = tz_to_dtype(tz)
-        return self._simple_new(new_dates, dtype=dtype, freq=self.freq)
+
+        freq = None
+        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            freq = self.freq
+        elif tz is None and self.tz is None:
+            # no-op
+            freq = self.freq
+        return self._simple_new(new_dates, dtype=dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1102,7 +1115,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies._base_and_stride(freq)
+                base, stride = libfrequencies.base_and_stride(freq)
                 res = f"{stride}{base}"
 
             freq = res
@@ -1277,7 +1290,11 @@ default 'raise'
         """
         from pandas import DataFrame
 
-        sarray = fields.build_isocalendar_sarray(self.asi8)
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
+        else:
+            values = self.asi8
+        sarray = fields.build_isocalendar_sarray(values)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
@@ -1950,7 +1967,7 @@ def sequence_to_dt64ns(
         if tz:
             tz = timezones.maybe_get_tz(tz)
 
-        if data.dtype != _INT64_DTYPE:
+        if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         result = data.view(DT64NS_DTYPE)
 

@@ -942,10 +942,8 @@ class TestSeriesReductions:
         s2 = Series(pd.date_range("20120102", periods=3))
         expected = Series(s2 - s1)
 
-        # FIXME: don't leave commented-out code
-        # this fails as numpy returns timedelta64[us]
-        # result = np.abs(s1-s2)
-        # assert_frame_equal(result,expected)
+        result = np.abs(s1 - s2)
+        tm.assert_series_equal(result, expected)
 
         result = (s1 - s2).abs()
         tm.assert_series_equal(result, expected)
@@ -1097,6 +1095,14 @@ class TestCategoricalSeriesReductions:
         result = getattr(cat, function)(skipna=True)
         expected = categories[0] if function == "min" else categories[2]
         assert result == expected
+
+    @pytest.mark.parametrize("function", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_ordered_with_nan_only(self, function, skipna):
+        # https://github.com/pandas-dev/pandas/issues/33450
+        cat = Series(Categorical([np.nan], categories=[1, 2], ordered=True))
+        result = getattr(cat, function)(skipna=skipna)
+        assert result is np.nan
 
     @pytest.mark.parametrize("function", ["min", "max"])
     @pytest.mark.parametrize("skipna", [True, False])
