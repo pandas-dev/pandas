@@ -1165,9 +1165,7 @@ class TestIndex(Base):
         assert indices.is_all_dates is expected
 
     @pytest.mark.parametrize(
-        "index",
-        ["datetime", "datetime-tz", "period", "timedelta"],
-        indirect=["index"],
+        "index", ["datetime", "datetime-tz", "period", "timedelta"], indirect=["index"],
     )
     def test_is_all_dates_consistency(self, index):
         # GH 19204
