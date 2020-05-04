@@ -23,7 +23,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_integer_object, is_float_object)
+    is_datetime64_object, is_integer_object, is_float_object, is_period_object)
 
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
@@ -285,7 +285,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
-    elif getattr(ts, '_typ', None) == 'period':
+    elif is_period_object(ts):
         raise ValueError("Cannot convert Period to Timestamp "
                          "unambiguously. Use to_timestamp")
     else:
