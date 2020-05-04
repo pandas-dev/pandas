@@ -1466,7 +1466,7 @@ cdef bint is_any_td_scalar(object obj):
 
 cdef bint _should_cast_to_timedelta(object obj):
     """
-    Should we treat this objecf as a Timedelta for the purpose of a binary op
+    Should we treat this object as a Timedelta for the purpose of a binary op
     """
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
