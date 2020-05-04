@@ -36,7 +36,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -2465,6 +2464,15 @@ class Period(_Period):
                                      dt.microsecond, 0, base)
 
         return cls._from_ordinal(ordinal, freq)
+
+
+cdef bint is_period_object(object obj):
+    """
+    Cython-optimized equivalent of isinstance(obj, Period)
+    """
+    # Note: this is significantly faster than the implementation in tslibs.util,
+    #  only use the util version when necessary to prevent circular imports.
+    return isinstance(obj, _Period)
 
 
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
