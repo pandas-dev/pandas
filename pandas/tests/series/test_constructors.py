@@ -377,12 +377,12 @@ class TestSeriesConstructors:
         result = pd.Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
-        assert is_categorical_dtype(result) is True
+        assert is_categorical_dtype(result.dtype) is True
         tm.assert_index_equal(result.cat.categories, pd.Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = pd.Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
-        assert is_categorical_dtype(result)
+        assert is_categorical_dtype(result.dtype)
         tm.assert_index_equal(result.cat.categories, pd.Index(["b", "a"]))
         assert result.cat.ordered is False
 
