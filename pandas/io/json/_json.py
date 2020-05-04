@@ -645,7 +645,7 @@ class JsonReader(abc.Iterator):
         lines,
         chunksize,
         compression,
-        nrows
+        nrows,
     ):
 
         self.path_or_buf = filepath_or_buffer
@@ -742,7 +742,7 @@ class JsonReader(abc.Iterator):
             data = ensure_str(self.data)
             data = data.split("\n")
             if self.nrows:
-                data = data[:self.nrows]
+                data = data[: self.nrows]
             obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
