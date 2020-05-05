@@ -1569,16 +1569,7 @@ cdef class _Period:
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return NotImplemented
-        else:
-            if op == Py_EQ:
-                return NotImplemented
-            elif op == Py_NE:
-                return NotImplemented
-            raise TypeError(f"Cannot compare type {type(self).__name__} "
-                            f"with type {type(other).__name__}")
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1654,13 +1645,7 @@ cdef class _Period:
                     raise IncompatibleFrequency(msg)
                 # GH 23915 - mul by base freq since __add__ is agnostic of n
                 return (self.ordinal - other.ordinal) * self.freq.base
-            elif getattr(other, '_typ', None) == 'periodindex':
-                # GH#21314 PeriodIndex - Period returns an object-index
-                # of DateOffset objects, for which we cannot use __neg__
-                # directly, so we have to apply it pointwise
-                return other.__sub__(self).map(lambda x: -x)
-            else:  # pragma: no cover
-                return NotImplemented
+            return NotImplemented
         elif is_period_object(other):
             if self is NaT:
                 return NaT
