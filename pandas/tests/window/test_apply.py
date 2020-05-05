@@ -139,11 +139,12 @@ def test_invalid_kwargs_nopython():
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )
 
+
 def test_apply_kwargs():
     def foo(x, par):
         return np.sum(x + par)
 
     df = DataFrame({"gr": [1, 1], "a": [1, 2]})
     result = df.groupby("gr")["a"].rolling(1).apply(foo, kwargs={"par": 10})
-    expected = np.array([11.,12.])
+    expected = np.array([11.0, 12.0])
     np.testing.assert_array_equal(result.values, expected)
