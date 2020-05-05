@@ -36,7 +36,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -1685,7 +1684,7 @@ cdef class _Period:
         resampled : Period
         """
         freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
         base1, mult1 = get_freq_code(self.freq)
         base2, mult2 = get_freq_code(freq)
 
@@ -1758,7 +1757,7 @@ cdef class _Period:
         """
         if freq is not None:
             freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
@@ -2467,6 +2466,15 @@ class Period(_Period):
         return cls._from_ordinal(ordinal, freq)
 
 
+cdef bint is_period_object(object obj):
+    """
+    Cython-optimized equivalent of isinstance(obj, Period)
+    """
+    # Note: this is significantly faster than the implementation in tslibs.util,
+    #  only use the util version when necessary to prevent circular imports.
+    return isinstance(obj, _Period)
+
+
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                                   int hour, int minute, int second, freq):
     base, mult = get_freq_code(freq)
@@ -2509,7 +2517,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     return year, month
 
 
-def _validate_end_alias(how):
+def validate_end_alias(how):
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}

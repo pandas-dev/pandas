@@ -151,7 +151,6 @@ def _make_arithmetic_op(op, cls):
         return Index(result)
 
     name = f"__{op.__name__}__"
-    # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
 
 
@@ -632,6 +631,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
@@ -4541,6 +4543,13 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
+        warnings.warn(
+            "get_value is deprecated and will be removed in a future version. "
+            "Use Series[key] instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         self._check_indexing_error(key)
 
         try:

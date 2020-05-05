@@ -121,23 +121,25 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        with pytest.raises(TypeError):
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s_0123 & np.NaN
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type.+for &:"
+        with pytest.raises(TypeError, match=msg):
             s_0123 & [0.1, 4, 3.14, 2]
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & np.array([0.1, 4, 3.14, 2])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & Series([0.1, 4, -3.14, 2])
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
-
-        with pytest.raises(TypeError):
+        msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="unsupported operand.+for &"):
             s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
@@ -255,7 +257,8 @@ class TestSeriesLogicalOps:
     def test_scalar_na_logical_ops_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
 
-        with pytest.raises(TypeError):
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s & datetime(2005, 1, 1)
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
@@ -451,8 +454,9 @@ class TestSeriesLogicalOps:
             expected = Series([True, True, True], index=index)
             tm.assert_series_equal(result, expected)
 
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan, "foo"]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 t | v
 
         for v in [False, 0]:
@@ -469,8 +473,9 @@ class TestSeriesLogicalOps:
             result = Series([True, False, True], index=index) & v
             expected = Series([False, False, False], index=index)
             tm.assert_series_equal(result, expected)
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 t & v
 
     def test_logical_ops_df_compat(self):

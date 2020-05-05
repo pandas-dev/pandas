@@ -75,6 +75,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslibs.period cimport is_period_object
 
 from pandas._libs.missing cimport (
     checknull,
@@ -185,7 +186,7 @@ def is_scalar(val: object) -> bool:
 
     # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
     return (PyNumber_Check(val)
-            or util.is_period_object(val)
+            or is_period_object(val)
             or is_interval(val)
             or util.is_offset_object(val))
 
@@ -589,7 +590,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
             # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are change dto match datetime, see GH#28507
+            #  comparisons are changed to match datetime, see GH#28507
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
@@ -942,7 +943,7 @@ def is_period(val: object) -> bool:
     -------
     bool
     """
-    return util.is_period_object(val)
+    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
@@ -1417,7 +1418,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_bytes_array(values, skipna=skipna):
             return "bytes"
 
-    elif util.is_period_object(val):
+    elif is_period_object(val):
         if is_period_array(values):
             return "period"
 
@@ -1849,7 +1850,7 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_period_object(value)
+        return is_period_object(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return checknull_with_nat(value)
@@ -2346,8 +2347,6 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
             if cnp.PyArray_IsZeroDim(val):
                 # unbox 0-dim arrays, GH#690
-                # TODO: is there a faster way to unbox?
-                #   item_from_zerodim?
                 val = val.item()
 
         result[i] = val
@@ -2388,8 +2387,6 @@ def map_infer(ndarray arr, object f, bint convert=True):
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
-            # TODO: is there a faster way to unbox?
-            #   item_from_zerodim?
             val = val.item()
 
         result[i] = val

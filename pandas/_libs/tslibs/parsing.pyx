@@ -938,7 +938,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 
@@ -957,7 +957,7 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     --------
     >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
     >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = _concat_date_cols((dates, times))
+    >>> result = concat_date_cols((dates, times))
     >>> result
     array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
     """
