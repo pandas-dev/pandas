@@ -128,7 +128,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
 .. _whatsnew_0230.enhancements.merge_on_columns_and_levels:
 
-Merging on a combination of columns and Index levels
+Merging on a combination of columns and index levels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
@@ -158,7 +158,7 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
 
 .. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
 
-Sorting by a combination of columns and Index levels
+Sorting by a combination of columns and index levels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to :meth:`DataFrame.sort_values` as the ``by`` parameter may

@@ -121,7 +121,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "East",
     "Asian",
     "None",
-    "Expanding",
     "False",
     "Styler",
     "os",
