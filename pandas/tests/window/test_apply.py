@@ -147,4 +147,4 @@ def test_apply_kwargs():
     df = DataFrame({"gr": [1, 1], "a": [1, 2]})
     result = df.groupby("gr")["a"].rolling(1).apply(foo, kwargs={"par": 10})
     expected = np.array([11.0, 12.0])
-    np.testing.assert_array_equal(result.values, expected)
+    tm.assert_numpy_array_equal(result.values, expected)
