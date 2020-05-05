@@ -2151,12 +2151,8 @@ class CParserWrapper(ParserBase):
 
             # columns as list
             alldata = [x[1] for x in data]
-            if len(names) != len(data) and notna(data[len(names) :]).any():
-                warnings.warn(
-                    "Expected {} columns instead of {}".format(len(names), len(data)),
-                    ParserWarning,
-                    stacklevel=2,
-                )
+            _check_unexpected_data(names, data)
+
             data = {k: v for k, (i, v) in zip(names, data)}
 
             names, data = self._do_date_conversions(names, data)
@@ -2190,6 +2186,15 @@ class CParserWrapper(ParserBase):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values
+
+
+def _check_unexpected_data(columns, data):
+    if len(columns) != len(data) and notna(data[len(columns) :]).any():
+        warnings.warn(
+            "Expected {} columns instead of {}".format(len(columns), len(data)),
+            ParserWarning,
+            stacklevel=2,
+        )
 
 
 def TextParser(*args, **kwds):
@@ -2512,12 +2517,8 @@ class PythonParser(ParserBase):
             content = content[1:]
 
         alldata = self._rows_to_cols(content)
-        if len(columns) != len(alldata) and notna(alldata[len(columns) :]).any():
-            warnings.warn(
-                "Expected {} columns instead of {}".format(len(columns), len(alldata)),
-                ParserWarning,
-                stacklevel=2,
-            )
+
+        _check_unexpected_data(columns, alldata)
 
         data = self._exclude_implicit_index(alldata)
 
