@@ -703,6 +703,7 @@ Plotting
 - :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 - Bug in :meth:`DataFrame.plot.hist` where weights are not working for multiple columns (:issue:`33173`)
 - Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
+- Bug in :meth:`DataFrame.hist` where the order of ``column`` argument was ignored (:issue:`29235`)
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 
 
@@ -757,6 +758,7 @@ ExtensionArray
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
+- Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 
 
 Other
