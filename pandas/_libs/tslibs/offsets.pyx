@@ -86,6 +86,14 @@ for _d in DAYS:
 # ---------------------------------------------------------------------
 # Misc Helpers
 
+cdef bint is_offset_object(object obj):
+    return isinstance(obj, _BaseOffset)
+
+
+cdef bint is_tick_object(object obj):
+    return isinstance(obj, _Tick)
+
+
 cdef to_offset(object obj):
     """
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
@@ -608,7 +616,7 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-class _Tick:
+cdef class _Tick:
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
@@ -618,12 +626,18 @@ class _Tick:
     __array_priority__ = 1000
 
     def __truediv__(self, other):
-        result = self.delta.__truediv__(other)
+        if not isinstance(self, _Tick):
+            # cython semantics mean the args are sometimes swapped
+            result = other.delta.__rtruediv__(self)
+        else:
+            result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
-    def __rtruediv__(self, other):
-        result = self.delta.__rtruediv__(other)
-        return _wrap_timedelta_result(result)
+    def __reduce__(self):
+        return (type(self), (self.n,))
+
+    def __setstate__(self, state):
+        object.__setattr__(self, "n", state["n"])
 
 
 class BusinessMixin:
