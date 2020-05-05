@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_number,
+    is_categorical_dtype,
     is_numeric_dtype,
     is_object_dtype,
     is_re_compilable,
@@ -5226,6 +5227,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         After regular attribute access, try setting the name
         This allows simpler access to columns for interactive use.
         """
+        # Fix for handling assignment to a Catagorical dtype
+        # with a category which is not predefined.
+        if isinstance(value, BlockManager) and is_categorical_dtype(self):
+            if len(value) > 0:
+                new_value = value.as_array()[-1]
+            else:
+                new_value = None
+            if not pd.isna(new_value) and new_value not in self.dtype.categories.values:
+                raise ValueError(
+                    "Cannot setitem on a Categorical with a new "
+                    "category, set the categories first"
+                )
+
         # first try regular attribute access via __getattribute__, so that
         # e.g. ``obj.x`` and ``obj.x = 4`` will always reference/modify
         # the same attribute.
