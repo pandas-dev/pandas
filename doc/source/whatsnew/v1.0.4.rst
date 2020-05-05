@@ -1,0 +1,31 @@
+
+.. _whatsnew_104:
+
+What's new in 1.0.4 (May ??, 2020)
+------------------------------------
+
+These are the changes in pandas 1.0.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_104.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- 
+- 
+
+.. _whatsnew_104.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- 
+- 
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.3..v1.0.4|HEAD
