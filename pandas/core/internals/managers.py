@@ -812,6 +812,8 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
+        should_copy = copy or na_value is not lib.no_default
+
         if self._is_single_block and self.blocks[0].is_datetimetz:
             # TODO(Block.get_values): Make DatetimeTZBlock.get_values
             # always be object dtype. Some callers seem to want the
@@ -830,8 +832,9 @@ class BlockManager(PandasObject):
                 arr = arr.astype(dtype)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
+            should_copy = False
 
-        if copy or na_value is not lib.no_default:
+        if should_copy:
             arr = arr.copy()
 
         if na_value is not lib.no_default:
