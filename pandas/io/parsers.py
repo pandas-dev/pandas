@@ -1184,19 +1184,13 @@ def _is_potential_multi_index(columns, index_col=None):
     -------
     boolean : Whether or not columns could become a MultiIndex
     """
-    print(columns, index_col)
     if index_col is None or isinstance(index_col, bool):
         index_col = []
-    columns_to_check = [col for col in columns if col not in list(index_col)]
-    print((
-        len(columns)
-        and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns_to_check)
-    ))
+
     return (
         len(columns)
         and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns_to_check)
+        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
     )
 
 
