@@ -1085,7 +1085,7 @@ class TestExcelFileRead:
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
-    @pytest.mark.parametrize("header, skiprows", [(1, 2), (0, 3)]) 
+    @pytest.mark.parametrize("header, skiprows", [(1, 2), (0, 3)])
     def test_header_skiprows_nrows(self, engine, read_ext, header, skiprows):
         data = pd.read_excel("test1" + read_ext, engine=engine)
         expected = (
