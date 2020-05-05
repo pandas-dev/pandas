@@ -2,6 +2,7 @@ import cython
 
 import time
 from typing import Any
+import warnings
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
                                PyDelta_Check,
@@ -103,7 +104,7 @@ def as_datetime(obj):
     return obj
 
 
-cpdef bint _is_normalized(dt):
+cpdef bint is_normalized(dt):
     if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
             dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
         return False
@@ -157,8 +158,8 @@ cdef _wrap_timedelta_result(result):
     """
     if PyDelta_Check(result):
         # convert Timedelta back to a Tick
-        from pandas.tseries.offsets import _delta_to_tick
-        return _delta_to_tick(result)
+        from pandas.tseries.offsets import delta_to_tick
+        return delta_to_tick(result)
 
     return result
 
@@ -230,7 +231,7 @@ def _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64D(dt) for dt in holidays]
+    holidays = [to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
     kwargs = {'weekmask': weekmask}
@@ -241,7 +242,7 @@ def _get_calendar(weekmask, holidays, calendar):
     return busdaycalendar, holidays
 
 
-def _to_dt64D(dt):
+def to_dt64D(dt):
     # Currently
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
@@ -264,7 +265,7 @@ def _to_dt64D(dt):
 # Validation
 
 
-def _validate_business_time(t_input):
+def validate_business_time(t_input):
     if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
@@ -440,6 +441,9 @@ class _BaseOffset:
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
+    # ------------------------------------------------------------------
+    # Name and Rendering Methods
+
     def __repr__(self) -> str:
         className = getattr(self, '_outputName', type(self).__name__)
 
@@ -454,6 +458,44 @@ class _BaseOffset:
 
         out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
         return out
+
+    @property
+    def name(self) -> str:
+        return self.rule_code
+
+    @property
+    def _prefix(self) -> str:
+        raise NotImplementedError("Prefix not defined")
+
+    @property
+    def rule_code(self) -> str:
+        return self._prefix
+
+    @property
+    def freqstr(self) -> str:
+        try:
+            code = self.rule_code
+        except NotImplementedError:
+            return str(repr(self))
+
+        if self.n != 1:
+            fstr = f"{self.n}{code}"
+        else:
+            fstr = code
+
+        try:
+            if self._offset:
+                fstr += self._offset_str()
+        except AttributeError:
+            # TODO: standardize `_offset` vs `offset` naming convention
+            pass
+
+        return fstr
+
+    def _offset_str(self) -> str:
+        return ""
+
+    # ------------------------------------------------------------------
 
     def _get_offset_day(self, datetime other):
         # subclass must implement `_day_opt`; calling from the base class
@@ -530,6 +572,26 @@ class _BaseOffset:
 
         return state
 
+    @property
+    def nanos(self):
+        raise ValueError(f"{self} is a non-fixed frequency")
+
+    def onOffset(self, dt) -> bool:
+        warnings.warn(
+            "onOffset is a deprecated, use is_on_offset instead",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self.is_on_offset(dt)
+
+    def isAnchored(self) -> bool:
+        warnings.warn(
+            "isAnchored is a deprecated, use is_anchored instead",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self.is_anchored()
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
@@ -562,6 +624,49 @@ class _Tick:
     def __rtruediv__(self, other):
         result = self.delta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
+
+
+class BusinessMixin:
+    """
+    Mixin to business types to provide related functions.
+    """
+
+    @property
+    def offset(self):
+        """
+        Alias for self._offset.
+        """
+        # Alias for backward compat
+        return self._offset
+
+    def _repr_attrs(self) -> str:
+        if self.offset:
+            attrs = [f"offset={repr(self.offset)}"]
+        else:
+            attrs = []
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+
+class CustomMixin:
+    """
+    Mixin for classes that define and validate calendar, holidays,
+    and weekdays attributes.
+    """
+
+    def __init__(self, weekmask, holidays, calendar):
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+
+        object.__setattr__(self, "weekmask", weekmask)
+        object.__setattr__(self, "holidays", holidays)
+        object.__setattr__(self, "calendar", calendar)
 
 
 # ----------------------------------------------------------------------
