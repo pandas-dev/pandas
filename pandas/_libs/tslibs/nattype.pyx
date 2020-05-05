@@ -31,8 +31,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.missing cimport C_NA
-
 
 # ----------------------------------------------------------------------
 # Constants
@@ -811,7 +809,7 @@ cdef inline bint checknull_with_nat(object val):
     """
     Utility to check if a value is a nat or not.
     """
-    return val is None or util.is_nan(val) or val is c_NaT or val is C_NA
+    return val is None or util.is_nan(val) or val is c_NaT
 
 
 cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
