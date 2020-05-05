@@ -102,8 +102,8 @@ class TestFeather:
 
     def test_unsupported_other(self):
 
-        # period
-        df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
+        # mixed python objects
+        df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # Some versions raise ValueError, others raise ArrowInvalid.
         self.check_error_on_write(df, Exception)
 
