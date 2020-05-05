@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -1196,7 +1196,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         fill_value = self._validate_fill_value(fill_value)
 
-        codes = shift(codes.copy(), periods, axis=0, fill_value=fill_value)
+        codes = shift(codes, periods, axis=0, fill_value=fill_value)
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
@@ -1424,7 +1424,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             Index if datetime / periods.
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if needs_i8_conversion(self.categories):
+        if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=np.nan)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
@@ -1834,7 +1834,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
@@ -2296,9 +2296,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     @classmethod
     def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import concat_categorical
+        from pandas.core.dtypes.concat import union_categoricals
 
-        return concat_categorical(to_concat)
+        return union_categoricals(to_concat)
 
     def isin(self, values):
         """
