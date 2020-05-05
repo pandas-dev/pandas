@@ -255,7 +255,9 @@ def _sanitize_and_check(indexes):
 
     if list in kinds:
         if len(kinds) > 1:
-            indexes = [Index(x) if not isinstance(x, Index) else x for x in indexes]
+            indexes = [
+                Index(list(x)) if not isinstance(x, Index) else x for x in indexes
+            ]
             kinds.remove(list)
         else:
             return indexes, "list"
