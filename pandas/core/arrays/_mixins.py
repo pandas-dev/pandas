@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.algorithms import take, unique
 from pandas.core.arrays.base import ExtensionArray
@@ -64,6 +65,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     # ------------------------------------------------------------------------
 
+    # TODO: make this a cache_readonly; for that to work we need to remove
+    #  the _index_data kludge in libreduction
     @property
     def shape(self) -> Tuple[int, ...]:
         return self._ndarray.shape
@@ -71,15 +74,15 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def __len__(self) -> int:
         return self.shape[0]
 
-    @property
+    @cache_readonly
     def ndim(self) -> int:
         return len(self.shape)
 
-    @property
+    @cache_readonly
     def size(self) -> int:
         return np.prod(self.shape)
 
-    @property
+    @cache_readonly
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 
