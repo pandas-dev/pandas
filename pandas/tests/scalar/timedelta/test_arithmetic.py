@@ -417,8 +417,8 @@ class TestTimedeltaMultiplicationDivision:
                 np.float64("NaN"),
                 marks=pytest.mark.xfail(
                     _is_numpy_dev,
+                    raises=RuntimeWarning,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
-                    strict=False,
                 ),
             ),
             float("nan"),
@@ -651,7 +651,6 @@ class TestTimedeltaMultiplicationDivision:
         msg = "Invalid dtype"
         with pytest.raises(TypeError, match=msg):
             # Deprecated GH#19761, enforced GH#29797
-            # TODO: GH-19761. Change to TypeError.
             ser // td
 
     # ----------------------------------------------------------------
