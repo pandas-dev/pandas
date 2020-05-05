@@ -802,10 +802,10 @@ class DataFrame(NDFrame):
         max_cols: Optional[int] = None,
         show_dimensions: bool = False,
         decimal: str = ".",
+        ending_header: Optional[bool] = None,
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
         encoding: Optional[str] = None,
-        ending_header: Optional[bool] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
