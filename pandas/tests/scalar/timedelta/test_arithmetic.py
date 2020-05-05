@@ -329,7 +329,7 @@ class TestTimedeltaMultiplicationDivision:
         msg = "|".join(
             [
                 rf"unsupported operand type\(s\) for \*: '{typs}' and '{typs}'",
-                r"ufunc 'multiply' cannot use operands with types",
+                r"ufunc '?multiply'? cannot use operands with types",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -528,7 +528,7 @@ class TestTimedeltaMultiplicationDivision:
             [
                 r"Invalid dtype datetime64\[D\] for __floordiv__",
                 "'dtype' is an invalid keyword argument for this function",
-                r"ufunc 'floor_divide' cannot use operands with types",
+                r"ufunc '?floor_divide'? cannot use operands with types",
             ]
         )
         with pytest.raises(TypeError, match=msg):
