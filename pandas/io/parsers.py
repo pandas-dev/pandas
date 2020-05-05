@@ -1168,7 +1168,7 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
-def _is_potential_multi_index(columns, index_col):
+def _is_potential_multi_index(columns, index_col=None):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
@@ -1177,17 +1177,22 @@ def _is_potential_multi_index(columns, index_col):
     ----------
     columns : array-like
         Object which may or may not be convertible into a MultiIndex
+    index_col : None, bool or list, optional
+        Column or columns to use as the (possibly hierarchical) index
 
     Returns
     -------
     boolean : Whether or not columns could become a MultiIndex
     """
+    print(columns, index_col)
     if index_col is None or isinstance(index_col, bool):
         index_col = []
-    elif isinstance(index_col, int):
-        index_col = [index_col]
     columns_to_check = [col for col in columns if col not in list(index_col)]
-
+    print((
+        len(columns)
+        and not isinstance(columns, MultiIndex)
+        and all(isinstance(c, tuple) for c in columns_to_check)
+    ))
     return (
         len(columns)
         and not isinstance(columns, MultiIndex)
@@ -1597,7 +1602,7 @@ class ParserBase:
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if _is_potential_multi_index(columns, self.index_col):
+        if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
