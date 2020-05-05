@@ -29,6 +29,8 @@ from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import IndexOpsMixin
+import pandas.core.common as com
+from pandas.core.construction import array as pd_array, extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -39,6 +41,7 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
+from pandas.core.tools.datetimes import DateParseError
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.offsets import DateOffset, Tick
@@ -572,6 +575,22 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
 
         return type(self)._simple_new(new_data, name=name)
+
+    @doc(Index._convert_arr_indexer)
+    def _convert_arr_indexer(self, keyarr):
+        if lib.infer_dtype(keyarr) == "string":
+            # Weak reasoning that indexer is a list of strings
+            # representing datetime or timedelta or period
+            try:
+                extension_arr = pd_array(keyarr, self.dtype)
+            except (ValueError, DateParseError):
+                # Fail to infer keyarr from self.dtype
+                return keyarr
+
+            converted_arr = extract_array(extension_arr, extract_numpy=True)
+        else:
+            converted_arr = com.asarray_tuplesafe(keyarr)
+        return converted_arr
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):

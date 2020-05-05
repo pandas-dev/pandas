@@ -434,7 +434,7 @@ class CombinedDatetimelikeProperties(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
-        orig = data if is_categorical_dtype(data) else None
+        orig = data if is_categorical_dtype(data.dtype) else None
         if orig is not None:
             data = data._constructor(
                 orig.array,

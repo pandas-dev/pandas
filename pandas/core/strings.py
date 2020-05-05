@@ -2092,7 +2092,7 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data)
+        self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = data.dtype.name == "string"
 
         # ._values.categories works for both Series/Index
