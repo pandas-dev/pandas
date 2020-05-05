@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 import warnings
 
 import numpy as np
@@ -168,8 +168,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
+        self.legend_handles: List = []
+        self.legend_labels: List = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -251,7 +251,7 @@ class MPLPlot:
 
     @staticmethod
     def _create_iter_data_given_by(
-        data: DataFrame, by: Optional[list]
+        data: DataFrame, by: Optional[List]
     ) -> Union[DataFrame, Dict[str, Union[DataFrame, Series]]]:
         """
         Create data for iteration given `by` is assigned or not, and it is only
@@ -279,16 +279,19 @@ class MPLPlot:
         >>> mi = MultiIndex.from_tuples(tuples)
         >>> value = [[1, 3, np.nan, np.nan],
         ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
-        >>> data = DataFrame(value, columns=mi) # doctest: +SKIP
+        >>> data = DataFrame(value, columns=mi)
         >>> _create_iter_data_given_by(data, by=["col1"]) # doctest: +SKIP
         {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
          'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
         """
+        iter_data: Union[DataFrame, Dict[str, Union[DataFrame, Series]]]
         if not by:
             iter_data = data
         else:
             # Select sub-columns based on the value of first level of MI
-            cols = data.columns.levels[0]
+            # TODO: mypy complains because Index does not have levels, only MI has.
+            cols = data.columns.levels[0]  # type: ignore
+            print(data.columns.get_level_values(0))
             iter_data = {
                 col: data.loc[:, data.columns.get_level_values(0) == col]
                 for col in cols
