@@ -262,7 +262,10 @@ def andrews_curves(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv')
+        >>> df = pd.read_csv(
+        ...     'https://raw.github.com/pandas-dev/'
+        ...     'pandas/master/pandas/tests/data/iris.csv'
+        ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -384,8 +387,13 @@ def parallel_coordinates(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv')
-        >>> pd.plotting.parallel_coordinates(df, 'Name', color=('#556270', '#4ECDC4', '#C7F464'))
+        >>> df = pd.read_csv(
+        ...     'https://raw.github.com/pandas-dev/'
+        ...     'pandas/master/pandas/tests/data/iris.csv'
+        ... )
+        >>> pd.plotting.parallel_coordinates(
+        ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
+        ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
@@ -464,7 +472,7 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     Examples
     --------
 
-    The horizontal lines displayed in the plot correspond to 95% and 99% confidence bands.
+    The horizontal lines in the plot correspond to 95% and 99% confidence bands.
 
     The dashed line is 99% confidence band.
 
