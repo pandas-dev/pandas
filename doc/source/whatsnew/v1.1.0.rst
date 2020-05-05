@@ -584,7 +584,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Serires.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
--
+- Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 
 
 Other
