@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import types
 from typing import Any, Callable, Dict, Optional, Tuple
 
@@ -42,7 +43,12 @@ def make_rolling_apply(
     else:
         loop_range = range
 
-    if isinstance(func, numba.targets.registry.CPUDispatcher):
+    if LooseVersion(numba.__version__) >= LooseVersion("0.49.0"):
+        is_jitted = numba.extending.is_jitted(func)
+    else:
+        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
+
+    if is_jitted:
         # Don't jit a user passed jitted function
         numba_func = func
     else:
