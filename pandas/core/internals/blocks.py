@@ -1599,7 +1599,7 @@ class ExtensionBlock(Block):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if isinstance(new, np.ndarray) and len(new) == len(mask):
+        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)

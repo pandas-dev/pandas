@@ -74,3 +74,27 @@ class TestUpdate:
         # GH 33215
         series.update(other)
         tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize(
+        "result, target, expected",
+        [
+            (
+                Series(["a", None], dtype="string"),
+                Series([None, "b"], dtype="string"),
+                Series(["a", "b"], dtype="string"),
+            ),
+            (
+                Series([1, None], dtype="Int64"),
+                Series([None, 2], dtype="Int64"),
+                Series([1, 2], dtype="Int64"),
+            ),
+            (
+                Series([True, None], dtype="boolean"),
+                Series([None, False], dtype="boolean"),
+                Series([True, False], dtype="boolean"),
+            ),
+        ],
+    )
+    def test_update_extension_array_series(self, result, target, expected):
+        result.update(target)
+        tm.assert_series_equal(result, expected)
