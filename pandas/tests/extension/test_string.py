@@ -85,6 +85,14 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
+    def test_memory_usage(self, data):
+        # GH 33963
+        series = pd.Series(data, dtype="string")
+
+        assert (
+            0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+        )
+
 
 class TestCasting(base.BaseCastingTests):
     pass
