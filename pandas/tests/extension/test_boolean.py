@@ -16,8 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p14
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -111,9 +109,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             if op_name in self.implements:
-                # subtraction for bools raises TypeError (but not yet in 1.13)
-                if _np_version_under1p14:
-                    pytest.skip("__sub__ does not yet raise in numpy 1.13")
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
