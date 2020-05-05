@@ -292,6 +292,12 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
+    def memory_usage(self, deep=False):
+        result = self._ndarray.nbytes
+        if deep:
+            return result + lib.memory_usage_of_objects(self._ndarray)
+        return result
+
     # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
