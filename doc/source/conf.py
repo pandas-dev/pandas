@@ -410,7 +410,7 @@ if pattern is None:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/", None),
-        "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+        "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
