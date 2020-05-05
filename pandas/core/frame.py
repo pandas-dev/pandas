@@ -7891,9 +7891,15 @@ Wild         185.0
 
             out_dtype = "bool" if filter_type == "bool" else None
 
+            def blk_func(values):
+                if isinstance(values, ExtensionArray):
+                    return values._reduce(name, skipna=skipna, **kwds)
+                else:
+                    return op(values, axis=1, skipna=skipna, **kwds)
+
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            res = df._data.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()

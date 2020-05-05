@@ -891,6 +891,20 @@ class TestDataFrameAnalytics:
         )
         tm.assert_series_equal(result, expected)
 
+        # mean of period is not allowed
+        df["D"] = pd.period_range("2016", periods=3, freq="A")
+
+        with pytest.raises(TypeError, match="mean is not implemented for Period"):
+            df.mean(numeric_only=False)
+
+    def test_mean_extensionarray_numeric_only_true(self):
+        # https://github.com/pandas-dev/pandas/issues/33256
+        arr = np.random.randint(1000, size=(10, 5))
+        df = pd.DataFrame(arr, dtype="Int64")
+        result = df.mean(numeric_only=True)
+        expected = pd.DataFrame(arr).mean()
+        tm.assert_series_equal(result, expected)
+
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
         float_string_frame.std(1)
