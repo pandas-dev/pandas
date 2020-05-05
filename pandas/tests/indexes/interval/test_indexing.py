@@ -158,16 +158,11 @@ class TestGetLoc:
         expected = 0
         assert result == expected
 
-    def test_get_loc_non_scalar_errors(self):
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_loc_non_scalar_errors(self, key):
+        # GH 31117
         idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
 
-        # GH 31117
-        key = [5]
-        msg = str(key)
-        with pytest.raises(InvalidIndexError, match=msg):
-            idx.get_loc(key)
-
-        key = (2, 3)
         msg = str(key)
         with pytest.raises(InvalidIndexError, match=msg):
             idx.get_loc(key)
