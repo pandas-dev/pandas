@@ -158,13 +158,23 @@ Other enhancements
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
+Some minimum supported versions of dependencies were updated (:issue:`33718`, :issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| python-dateutil | 2.7.3           |    X     |         |
+| numpy           | 1.15.4          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| pytz            | 2015.4          |    X     |         |
++-----------------+-----------------+----------+---------+
+| python-dateutil | 2.7.3           |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.2.1           |          |         |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.6.2           |          |         |
++-----------------+-----------------+----------+---------+
+| pytest (dev)    | 4.0.2           |          |         |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
@@ -196,7 +206,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | s3fs            | 0.3.0           |         |
 +-----------------+-----------------+---------+
-| scipy           | 0.19.0          |         |
+| scipy           | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.1.4           |         |
 +-----------------+-----------------+---------+
@@ -242,6 +252,9 @@ Backwards incompatible API changes
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
 - Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
 - Passing an invalid ``fill_value`` to :meth:`Categorical.take` raises a ``ValueError`` instead of ``TypeError`` (:issue:`33660`)
+- Combining a ``Categorical`` with integer categories and which contains missing values
+  with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
+  will now result in a float column instead of an object dtyped column (:issue:`33607`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -548,6 +561,8 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
 - Bug in :class:`DatetimeIndex` addition and subtraction with some types of :class:`DateOffset` objects incorrectly retaining an invalid ``freq`` attribute (:issue:`33779`)
 - Bug in :class:`DatetimeIndex` where setting the ``freq`` attribute on an index could silently change the ``freq`` attribute on another index viewing the same data (:issue:`33552`)
+- Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
+- Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
 
 Timedelta
 ^^^^^^^^^
@@ -622,6 +637,7 @@ Indexing
 - Bug in :meth:`Series.__setitem__` with an :class:`IntervalIndex` and a list-like key of integers (:issue:`33473`)
 - Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
+- Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
 
 Missing
 ^^^^^^^
@@ -688,6 +704,7 @@ Plotting
 - :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 - Bug in :meth:`DataFrame.plot.hist` where weights are not working for multiple columns (:issue:`33173`)
 - Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
+- Bug in :meth:`DataFrame.hist` where the order of ``column`` argument was ignored (:issue:`29235`)
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 
 
@@ -740,7 +757,8 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
--
+- Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
+- Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 
 
 Other

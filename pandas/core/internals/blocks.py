@@ -535,10 +535,13 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         # may need to convert to categorical
         if is_categorical_dtype(dtype):
 
-            if is_categorical_dtype(self.values):
+            if is_categorical_dtype(self.values.dtype):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
 
@@ -2673,13 +2676,13 @@ def get_block_type(values, dtype=None):
     elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values)
+        assert not is_datetime64tz_dtype(values.dtype)
         cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock

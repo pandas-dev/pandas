@@ -4,7 +4,6 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -105,7 +104,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        column: Optional[Label] = None,
+        column=None,
         **kwds,
     ):
 

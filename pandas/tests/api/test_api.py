@@ -193,8 +193,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p14",
-        "_np_version_under1p15",
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
