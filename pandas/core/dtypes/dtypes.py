@@ -21,10 +21,11 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
@@ -893,7 +894,7 @@ class PeriodDtype(PandasExtensionDtype):
             u._freq = None
             return u
 
-        if not isinstance(freq, ABCDateOffset):
+        if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
 
         try:
@@ -935,7 +936,7 @@ class PeriodDtype(PandasExtensionDtype):
         if (
             isinstance(string, str)
             and (string.startswith("period[") or string.startswith("Period["))
-            or isinstance(string, ABCDateOffset)
+            or isinstance(string, BaseOffset)
         ):
             # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
