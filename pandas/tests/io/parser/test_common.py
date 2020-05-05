@@ -2139,7 +2139,7 @@ def test_no_header_two_extra_columns(all_parsers):
 
 
 def test_first_row_length(all_parsers):
-    stream = StringIO("col1,col2,col3\n0,1,2,X\n4,5,6\n6,7,8")
+    stream = StringIO("col1,col2,col3\n0,1,2,X\n4,5,6,\n6,7,8")
     parser = all_parsers
     with tm.assert_produces_warning(ParserWarning):
         parser.read_csv(stream, index_col=False)
