@@ -234,6 +234,12 @@ class TestCategoricalIndexing:
         with pytest.raises(ValueError, match="without identical categories"):
             ser.where([True, False, True], other)
 
+    def test_loc_new_category_raises(self):
+        ser = pd.Series(Categorical(["a", "b", "c"]))
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[3] = "d"
+
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean(index):
