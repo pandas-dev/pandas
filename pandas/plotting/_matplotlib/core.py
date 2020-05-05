@@ -291,7 +291,6 @@ class MPLPlot:
             # Select sub-columns based on the value of first level of MI
             # TODO: mypy complains because Index does not have levels, only MI has.
             cols = data.columns.levels[0]  # type: ignore
-            print(data.columns.get_level_values(0))
             iter_data = {
                 col: data.loc[:, data.columns.get_level_values(0) == col]
                 for col in cols
