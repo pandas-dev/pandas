@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -1834,7 +1834,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
