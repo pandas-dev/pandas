@@ -1260,7 +1260,7 @@ def test_get_nonexistent_category():
 
 
 def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool
+    reduction_func: str, observed: bool, request
 ):
     # GH 17605
 
@@ -1268,7 +1268,8 @@ def test_series_groupby_on_2_categoricals_unobserved(
         pytest.skip("ngroup is not truly a reduction")
 
     if reduction_func == "corrwith":  # GH 32293
-        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
+        mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {
