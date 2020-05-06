@@ -1431,6 +1431,7 @@ def test_moment_functions_zero_length_pairwise():
         tm.assert_frame_equal(df2_result, df2_expected)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
@@ -1455,6 +1456,7 @@ def test_rolling_consistency_var(consistency_data, window, min_periods, center):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
