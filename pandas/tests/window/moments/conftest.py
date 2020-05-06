@@ -58,11 +58,21 @@ no_nan_functions_list = [
 
 @pytest.fixture(scope="session")
 def base_functions():
-    """Fixture for base functions."""
+    """Fixture for base functions.
+
+    Returns
+    -------
+    List of tuples: (applied function, require_min_periods, name of applied function)
+    """
     return base_functions_list
 
 
 @pytest.fixture(scope="session")
 def no_nan_functions():
-    """Fixture for no nan functions."""
+    """Fixture for no nan functions.
+
+    Returns
+    -------
+    List of tuples: (applied function, require_min_periods, name of applied function)
+    """
     return no_nan_functions_list
