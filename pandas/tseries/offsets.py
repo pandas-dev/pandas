@@ -2363,16 +2363,15 @@ class Easter(DateOffset):
 # Ticks
 
 
-def _tick_comp(opname: str):
+def _tick_comp(op):
     """
     Tick comparisons should behave identically to Timedelta comparisons.
     """
 
     def f(self, other):
-        op = getattr(self.delta, opname)
-        return op(other)
+        return op(self.delta, other)
 
-    f.__name__ = opname
+    f.__name__ = f"__{op.__name__}__"
     return f
 
 
@@ -2388,10 +2387,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )  # GH#21427
 
-    __gt__ = _tick_comp("__gt__")
-    __ge__ = _tick_comp("__ge__")
-    __lt__ = _tick_comp("__lt__")
-    __le__ = _tick_comp("__le__")
+    __gt__ = _tick_comp(operator.gt)
+    __ge__ = _tick_comp(operator.ge)
+    __lt__ = _tick_comp(operator.lt)
+    __le__ = _tick_comp(operator.le)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2422,7 +2421,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return False
 
-        return _tick_comp("__eq__")(self, other)
+        return _tick_comp(operator.eq)(self, other)
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2441,7 +2440,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return True
 
-        return _tick_comp("__ne__")(self, other)
+        return _tick_comp(operator.ne)(self, other)
 
     @property
     def delta(self) -> Timedelta:
