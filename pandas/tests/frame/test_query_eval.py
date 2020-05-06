@@ -698,17 +698,12 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        expected = pd.DataFrame(
-            index=pd.date_range(
-                start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
-            )
+        df_index = pd.date_range(
+            start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
         )
+        expected = pd.DataFrame(index=df_index)
 
-        df = pd.DataFrame(
-            index=pd.date_range(
-                start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
-            )
-        )
+        df = pd.DataFrame(index=df_index)
         result = df.query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
