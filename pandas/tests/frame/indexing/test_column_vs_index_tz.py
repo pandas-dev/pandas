@@ -14,7 +14,7 @@ class TestColumnvsIndexTZEquality:
         df_query = df.query('"2019-01-03 00:00:00+00" < time')
         l1 = pd.DataFrame(list(df_query["time"]))
 
-        # # This raises an exception.
+        # # This was earlier raising an exception.
         index_query = df.set_index("time").query('"2019-01-03 00:00:00+00" < time')
         l2 = pd.DataFrame(list(index_query.index))
         tm.assert_frame_equal(l1, l2)
