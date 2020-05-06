@@ -67,7 +67,7 @@ class LatexFormatter(TableFormatter):
         else:
             strcols = self.fmt._to_str_columns()
 
-        def get_col_type(dtype, col_space):
+        def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return "r"
             else:
@@ -107,8 +107,7 @@ class LatexFormatter(TableFormatter):
 
         if self.column_format is None:
             dtypes = self.frame.dtypes._values
-            col_spaces = [self.col_space[col] for col in self.frame.columns]
-            column_format = "".join(map(get_col_type, dtypes, col_spaces))
+            column_format = "".join(map(get_col_type, dtypes))
             if self.fmt.index:
                 index_format = "l" * self.frame.index.nlevels
                 column_format = index_format + column_format
