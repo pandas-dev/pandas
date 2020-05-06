@@ -78,6 +78,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -296,7 +297,7 @@ def zsqrt(x):
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():

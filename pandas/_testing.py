@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
+from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -72,6 +72,37 @@ lzma = _import_lzma()
 _N = 30
 _K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
+
+UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+
+FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: List[Dtype] = [str, "str", "U"]
+
+DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
+
+BOOL_DTYPES = [bool, "bool"]
+BYTES_DTYPES = [bytes, "bytes"]
+OBJECT_DTYPES = [object, "object"]
+
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_NUMPY_DTYPES = (
+    ALL_REAL_DTYPES
+    + COMPLEX_DTYPES
+    + STRING_DTYPES
+    + DATETIME64_DTYPES
+    + TIMEDELTA64_DTYPES
+    + BOOL_DTYPES
+    + OBJECT_DTYPES
+    + BYTES_DTYPES
+)
+
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
@@ -248,16 +279,10 @@ def write_to_compressed(compression, path, data, dest="test"):
     ValueError : An invalid compression value was passed in.
     """
     if compression == "zip":
-        import zipfile
-
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        import gzip
-
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        import bz2
-
         compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = _get_lzma_file(lzma)
@@ -693,7 +718,7 @@ def assert_index_equal(
         assert_interval_array_equal(left._values, right._values)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
@@ -888,8 +913,15 @@ def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None):
+def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
     __tracebackhide__ = True
+
+    msg = f"""{obj} are different
+
+{message}"""
+
+    if isinstance(index_values, np.ndarray):
+        msg += f"\n[index]: {pprint_thing(index_values)}"
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
@@ -901,9 +933,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    msg = f"""{obj} are different
-
-{message}
+    msg += f"""
 [left]:  {left}
 [right]: {right}"""
 
@@ -921,6 +951,7 @@ def assert_numpy_array_equal(
     err_msg=None,
     check_same=None,
     obj="numpy array",
+    index_values=None,
 ):
     """
     Check that 'np.ndarray' is equivalent.
@@ -940,6 +971,8 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    index_values : numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
     """
     __tracebackhide__ = True
 
@@ -977,7 +1010,7 @@ def assert_numpy_array_equal(
 
             diff = diff * 100.0 / left.size
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right)
+            raise_assert_detail(obj, msg, left, right, index_values=index_values)
 
         raise AssertionError(err_msg)
 
@@ -991,7 +1024,12 @@ def assert_numpy_array_equal(
 
 
 def assert_extension_array_equal(
-    left, right, check_dtype=True, check_less_precise=False, check_exact=False
+    left,
+    right,
+    check_dtype=True,
+    check_less_precise=False,
+    check_exact=False,
+    index_values=None,
 ):
     """
     Check that left and right ExtensionArrays are equal.
@@ -1008,6 +1046,8 @@ def assert_extension_array_equal(
         If int, then specify the digits to compare.
     check_exact : bool, default False
         Whether to compare number exactly.
+    index_values : numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
 
     Notes
     -----
@@ -1023,17 +1063,23 @@ def assert_extension_array_equal(
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
-        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
+        assert_numpy_array_equal(
+            np.asarray(left.asi8), np.asarray(right.asi8), index_values=index_values
+        )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-    assert_numpy_array_equal(left_na, right_na, obj="ExtensionArray NA mask")
+    assert_numpy_array_equal(
+        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+    )
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
     if check_exact:
-        assert_numpy_array_equal(left_valid, right_valid, obj="ExtensionArray")
+        assert_numpy_array_equal(
+            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+        )
     else:
         _testing.assert_almost_equal(
             left_valid,
@@ -1041,6 +1087,7 @@ def assert_extension_array_equal(
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
             obj="ExtensionArray",
+            index_values=index_values,
         )
 
 
@@ -1124,6 +1171,10 @@ def assert_series_equal(
         check_categorical=check_categorical,
         obj=f"{obj}.index",
     )
+    if isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+        lidx = left.index
+        ridx = right.index
+        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
@@ -1143,7 +1194,11 @@ def assert_series_equal(
             raise AssertionError("check_exact may only be used with numeric Series")
 
         assert_numpy_array_equal(
-            left._values, right._values, check_dtype=check_dtype, obj=str(obj)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1169,12 +1224,17 @@ def assert_series_equal(
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values, right._values, index_values=np.asarray(left.index)
+        )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values, right._values, index_values=np.asarray(left.index)
+        )
     else:
         _testing.assert_almost_equal(
             left._values,
@@ -1182,6 +1242,7 @@ def assert_series_equal(
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
+            index_values=np.asarray(left.index),
         )
 
     # metadata comparison
@@ -1189,7 +1250,7 @@ def assert_series_equal(
         assert_attr_equal("name", left, right, obj=obj)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(
                 left._values,
                 right._values,
@@ -1391,6 +1452,8 @@ def assert_equal(left, right, **kwargs):
 
     if isinstance(left, pd.Index):
         assert_index_equal(left, right, **kwargs)
+        if isinstance(left, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, pd.Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
@@ -1456,11 +1519,13 @@ def box_expected(expected, box_cls, transpose=True):
 
 def to_array(obj):
     # temporary implementation until we get pd.array in place
-    if is_period_dtype(obj):
+    dtype = getattr(obj, "dtype", None)
+
+    if is_period_dtype(dtype):
         return period_array(obj)
-    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return DatetimeArray._from_sequence(obj)
-    elif is_timedelta64_dtype(obj):
+    elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
@@ -2649,3 +2714,34 @@ def external_error_raised(
     import pytest
 
     return pytest.raises(expected_exception, match=None)
+
+
+cython_table = pd.core.base.SelectionMixin._cython_table.items()
+
+
+def get_cython_table_params(ndframe, func_names_and_expected):
+    """
+    Combine frame, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    ndframe : DataFrame or Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value.
+
+    Returns
+    -------
+    list
+        List of three items (DataFrame, function, expected result)
+    """
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((ndframe, func_name, expected))
+        results += [
+            (ndframe, func, expected)
+            for func, name in cython_table
+            if name == func_name
+        ]
+    return results

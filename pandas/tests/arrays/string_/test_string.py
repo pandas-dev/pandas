@@ -214,12 +214,46 @@ def test_from_sequence_no_mutate(copy):
     tm.assert_numpy_array_equal(a, original)
 
 
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
     assert result == "abc"
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_min_max(method, skipna):
+    arr = pd.Series(["a", "b", "c", None], dtype="string")
+    result = getattr(arr, method)(skipna=skipna)
+    if skipna:
+        expected = "a" if method == "min" else "c"
+        assert result == expected
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.Series(["a", "b", "c", None], dtype="string"),
+        pd.array(["a", "b", "c", None], dtype="string"),
+    ],
+)
+def test_min_max_numpy(method, arr):
+    result = getattr(np, method)(arr)
+    expected = "a" if method == "min" else "c"
+    assert result == expected
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -269,3 +303,10 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+def test_memory_usage():
+    # GH 33963
+    series = pd.Series(["a", "b", "c"], dtype="string")
+
+    assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)

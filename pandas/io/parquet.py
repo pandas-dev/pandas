@@ -8,7 +8,12 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
+from pandas.io.common import (
+    get_filepath_or_buffer,
+    get_fs_for_path,
+    is_gcs_url,
+    is_s3_url,
+)
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -18,20 +23,23 @@ def get_engine(engine: str) -> "BaseImpl":
 
     if engine == "auto":
         # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
+        engine_classes = [PyArrowImpl, FastParquetImpl]
 
-        try:
-            return FastParquetImpl()
-        except ImportError:
-            pass
+        error_msgs = ""
+        for engine_class in engine_classes:
+            try:
+                return engine_class()
+            except ImportError as err:
+                error_msgs += "\n - " + str(err)
 
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet support"
+            "A suitable version of "
+            "pyarrow or fastparquet is required for parquet "
+            "support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
         )
 
     if engine == "pyarrow":
@@ -89,13 +97,15 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
+        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        # write_to_dataset does not support a file-like object when
+        # a dircetory path is used, so just pass the path string.
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
                 table,
@@ -106,19 +116,17 @@ class PyArrowImpl(BaseImpl):
             )
         else:
             self.api.parquet.write_table(
-                table, path, compression=compression, **kwargs,
+                table, file_obj_or_path, compression=compression, **kwargs
             )
+        if should_close:
+            file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, should_close = get_filepath_or_buffer(path)
-
-        kwargs["use_pandas_metadata"] = True
-        result = self.api.parquet.read_table(
-            path, columns=columns, **kwargs
-        ).to_pandas()
-        if should_close:
-            path.close()
-
+        parquet_ds = self.api.parquet.ParquetDataset(
+            path, filesystem=get_fs_for_path(path), **kwargs
+        )
+        kwargs["columns"] = columns
+        result = parquet_ds.read_pandas(**kwargs).to_pandas()
         return result
 
 
@@ -260,8 +268,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     path : str, path object or file-like object
@@ -272,7 +278,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables``
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
@@ -287,8 +293,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
-        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 

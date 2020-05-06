@@ -15,12 +15,12 @@ class TestMap:
         ],
         ids=["string", "interval"],
     )
-    def test_map_str(self, data, categories, ordered_fixture):
+    def test_map_str(self, data, categories, ordered):
         # GH 31202 - override base class since we want to maintain categorical/ordered
-        index = CategoricalIndex(data, categories=categories, ordered=ordered_fixture)
+        index = CategoricalIndex(data, categories=categories, ordered=ordered)
         result = index.map(str)
         expected = CategoricalIndex(
-            map(str, data), categories=map(str, categories), ordered=ordered_fixture
+            map(str, data), categories=map(str, categories), ordered=ordered
         )
         tm.assert_index_equal(result, expected)
 

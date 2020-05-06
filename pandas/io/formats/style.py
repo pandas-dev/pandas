@@ -765,8 +765,6 @@ class Styler:
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
-        .. versionadded:: 0.21.0
-
         Parameters
         ----------
         cond : callable

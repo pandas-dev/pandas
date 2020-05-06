@@ -9,6 +9,7 @@ import pytest
 import pytz
 from pytz import timezone
 
+from pandas._libs.tslibs import timezones
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -217,7 +218,7 @@ class TestDateRanges:
         rng = date_range(snap, periods=n, normalize=False, freq="2D")
 
         offset = timedelta(2)
-        values = DatetimeIndex([snap + i * offset for i in range(n)])
+        values = DatetimeIndex([snap + i * offset for i in range(n)], freq=offset)
 
         tm.assert_index_equal(rng, values)
 
@@ -412,7 +413,7 @@ class TestDateRanges:
             pre_dst,
             pst_dst,
         ]
-        expected = DatetimeIndex(expect_data)
+        expected = DatetimeIndex(expect_data, freq="H")
         result = date_range(start="2010-11-7", periods=3, freq="H", tz="US/Pacific")
         tm.assert_index_equal(result, expected)
 
@@ -426,7 +427,8 @@ class TestDateRanges:
                 Timestamp("2013-01-01 00:00:00+09:00"),
                 Timestamp("2013-01-01 01:00:00+09:00"),
                 Timestamp("2013-01-01 02:00:00+09:00"),
-            ]
+            ],
+            freq="H",
         )
         tm.assert_index_equal(result, expected)
 
@@ -441,7 +443,7 @@ class TestDateRanges:
         result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
-        expected = DatetimeIndex([start + i * offset for i in range(5)])
+        expected = DatetimeIndex([start + i * offset for i in range(5)], freq=offset)
         tm.assert_index_equal(result, expected)
 
     def test_range_tz_pytz(self):
@@ -662,6 +664,60 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
 
+class TestDateRangeTZ:
+    """Tests for date_range with timezones"""
+
+    def test_hongkong_tz_convert(self):
+        # GH#1673 smoke test
+        dr = date_range("2012-01-01", "2012-01-10", freq="D", tz="Hongkong")
+
+        # it works!
+        dr.hour
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_span_dst_transition(self, tzstr):
+        # GH#1778
+
+        # Standard -> Daylight Savings Time
+        dr = date_range("03/06/2012 00:00", periods=200, freq="W-FRI", tz="US/Eastern")
+
+        assert (dr.hour == 0).all()
+
+        dr = date_range("2012-11-02", periods=10, tz=tzstr)
+        result = dr.hour
+        expected = pd.Index([0] * 10)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_timezone_str_argument(self, tzstr):
+        tz = timezones.maybe_get_tz(tzstr)
+        result = date_range("1/1/2000", periods=10, tz=tzstr)
+        expected = date_range("1/1/2000", periods=10, tz=tz)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_with_fixedoffset_noname(self):
+        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+
+        off = fixed_off_no_name
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
+
+        idx = pd.Index([start, end])
+        assert off == idx.tz
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_date_range_with_tz(self, tzstr):
+        stamp = Timestamp("3/11/2012 05:00", tz=tzstr)
+        assert stamp.hour == 5
+
+        rng = date_range("3/11/2012 04:00", periods=10, freq="H", tz=tzstr)
+
+        assert stamp == rng[1]
+
+
 class TestGenRangeGeneration:
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
@@ -790,7 +846,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        rng2._data.freq = BDay()  # TODO: shouldn't this already be set?
+        assert rng2._data.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -806,6 +862,7 @@ class TestBusinessDateRange:
         bday_end = "2018-07-27"  # Friday
         expected = pd.date_range(bday_start, bday_end, freq="D")
         tm.assert_index_equal(result, expected)
+        # Note: we do _not_ expect the freqs to match here
 
     def test_bday_near_overflow(self):
         # GH#24252 avoid doing unnecessary addition that _would_ overflow
@@ -848,22 +905,26 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        rng2._data.freq = CDay()  # TODO: shouldn't this already be set?
+        assert rng2._data.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
 
     def test_cdaterange(self):
         result = bdate_range("2013-05-01", periods=3, freq="C")
-        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-03"])
+        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-03"], freq="C")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
     def test_cdaterange_weekmask(self):
         result = bdate_range(
             "2013-05-01", periods=3, freq="C", weekmask="Sun Mon Tue Wed Thu"
         )
-        expected = DatetimeIndex(["2013-05-01", "2013-05-02", "2013-05-05"])
+        expected = DatetimeIndex(
+            ["2013-05-01", "2013-05-02", "2013-05-05"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (
@@ -875,8 +936,11 @@ class TestCustomDateRange:
 
     def test_cdaterange_holidays(self):
         result = bdate_range("2013-05-01", periods=3, freq="C", holidays=["2013-05-01"])
-        expected = DatetimeIndex(["2013-05-02", "2013-05-03", "2013-05-06"])
+        expected = DatetimeIndex(
+            ["2013-05-02", "2013-05-03", "2013-05-06"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (
@@ -894,8 +958,11 @@ class TestCustomDateRange:
             weekmask="Sun Mon Tue Wed Thu",
             holidays=["2013-05-01"],
         )
-        expected = DatetimeIndex(["2013-05-02", "2013-05-05", "2013-05-06"])
+        expected = DatetimeIndex(
+            ["2013-05-02", "2013-05-05", "2013-05-06"], freq=result.freq
+        )
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
         # raise with non-custom freq
         msg = (

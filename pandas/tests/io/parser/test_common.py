@@ -974,6 +974,15 @@ def test_no_permission(all_parsers):
     msg = r"\[Errno 13\]"
     with tm.ensure_clean() as path:
         os.chmod(path, 0)  # make file unreadable
+
+        # verify that this process cannot open the file (not running as sudo)
+        try:
+            with open(path):
+                pass
+            pytest.skip("Running as sudo.")
+        except PermissionError:
+            pass
+
         with pytest.raises(PermissionError, match=msg) as e:
             parser.read_csv(path)
         assert path == e.value.filename
@@ -2116,3 +2125,13 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     parser = all_parsers
     df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
     tm.assert_frame_equal(df, ref[:nrows])
+
+
+def test_no_header_two_extra_columns(all_parsers):
+    # GH 26218
+    column_names = ["one", "two", "three"]
+    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
+    stream = StringIO("foo,bar,baz,bam,blah")
+    parser = all_parsers
+    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    tm.assert_frame_equal(df, ref)
