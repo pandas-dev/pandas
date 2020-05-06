@@ -965,8 +965,8 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win):
+def roll_max_fixed(float64_t[:] values, int64_t[:] start,
+                   int64_t[:] end, int64_t minp, int64_t win):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -982,7 +982,7 @@ def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
             make the interval closed on the right, left,
             both or neither endpoints
     """
-    return _roll_min_max_fixed(values, start, end, minp, win, is_max=1)
+    return _roll_min_max_fixed(values, minp, win, is_max=1)
 
 
 def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1005,8 +1005,8 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max_variable(values, start, end, minp, is_max=1)
 
 
-def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win):
+def roll_min_fixed(float64_t[:] values, int64_t[:] start,
+                   int64_t[:] end, int64_t minp, int64_t win):
     """
     Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1019,7 +1019,7 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
     index : ndarray, optional
        index for window computation
     """
-    return _roll_min_max_fixed(values, start, end, minp, win, is_max=0)
+    return _roll_min_max_fixed(values, minp, win, is_max=0)
 
 
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1121,9 +1121,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
     return output
 
 
-cdef _roll_min_max_fixed(ndarray[numeric] values,
-                         ndarray[int64_t] starti,
-                         ndarray[int64_t] endi,
+cdef _roll_min_max_fixed(numeric[:] values,
                          int64_t minp,
                          int64_t win,
                          bint is_max):
