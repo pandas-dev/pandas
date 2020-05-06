@@ -1,6 +1,5 @@
 __all__ = [
     "localize_pydatetime",
-    "normalize_date",
     "NaT",
     "NaTType",
     "iNaT",
