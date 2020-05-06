@@ -251,9 +251,11 @@ cdef class _Timestamp(datetime):
             # delta --> offsets.Tick
             # logic copied from delta_to_nanoseconds to prevent circular import
             if hasattr(other, 'nanos'):
+                # Tick
                 nanos = other.nanos
             elif hasattr(other, 'delta'):
-                nanos = other.delta
+                # pd.Timedelta
+                nanos = other.value
             elif PyDelta_Check(other):
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
                          other.seconds * 1000000 +
@@ -273,15 +275,7 @@ cdef class _Timestamp(datetime):
                     dtype=object,
                 )
 
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return NotImplemented
-
-        result = datetime.__add__(self, other)
-        if PyDateTime_Check(result):
-            result = type(self)(result)
-            result.nanosecond = self.nanosecond
-        return result
+        return NotImplemented
 
     def __sub__(self, other):
 
@@ -301,9 +295,6 @@ cdef class _Timestamp(datetime):
                     [self - other[n] for n in range(len(other))],
                     dtype=object,
                 )
-
-        typ = getattr(other, '_typ', None)
-        if typ is not None:
             return NotImplemented
 
         if other is NaT:
@@ -339,6 +330,8 @@ cdef class _Timestamp(datetime):
                             "to datetime.datetime with 'Timestamp.to_pydatetime()' "
                             "before subtracting."
                         ) from err
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
