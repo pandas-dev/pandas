@@ -28,7 +28,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- 
+- Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
 - 
 
 Contributors
