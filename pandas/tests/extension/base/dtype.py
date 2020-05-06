@@ -16,8 +16,7 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_kind(self, dtype):
         valid = set("biufcmMOSUV")
-        if dtype.kind is not None:
-            assert dtype.kind in valid
+        assert dtype.kind in valid
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)
@@ -37,6 +36,9 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_is_dtype_from_self(self, dtype):
         result = type(dtype).is_dtype(dtype)
         assert result is True
+
+    def test_is_dtype_other_input(self, dtype):
+        assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
         return not pd.api.types.is_string_dtype(dtype)
@@ -73,7 +75,7 @@ class BaseDtypeTests(BaseExtensionTests):
         else:
             expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
-        # XXX: This should probably be *fixed* not ignored.
+        # FIXME: This should probably be *fixed* not ignored.
         # See libops.scalar_compare
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
@@ -103,3 +105,17 @@ class BaseDtypeTests(BaseExtensionTests):
         msg = f"Cannot construct a '{type(dtype).__name__}' from 'another_type'"
         with pytest.raises(TypeError, match=msg):
             type(dtype).construct_from_string("another_type")
+
+    def test_construct_from_string_wrong_type_raises(self, dtype):
+        with pytest.raises(
+            TypeError,
+            match="'construct_from_string' expects a string, got <class 'int'>",
+        ):
+            type(dtype).construct_from_string(0)
+
+    def test_get_common_dtype(self, dtype):
+        # in practice we will not typically call this with a 1-length list
+        # (we shortcut to just use that dtype as the common dtype), but
+        # still testing as good practice to have this working (and it is the
+        # only case we can test in general)
+        assert dtype._get_common_dtype([dtype]) == dtype

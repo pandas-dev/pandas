@@ -57,11 +57,12 @@ def integer_op_not_supported(obj):
     #  the caller; mypy finds this more palatable.
     cls = type(obj).__name__
 
+    # GH#30886 using an fstring raises SystemError
     int_addsub_msg = (
-        f"Addition/subtraction of integers and integer-arrays with {cls} is "
+        "Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    )
+    ).format(cls=cls)
     return TypeError(int_addsub_msg)
 
 
@@ -113,6 +114,18 @@ cdef class _Timestamp(datetime):
                         return NotImplemented
                 elif is_array(other):
                     # avoid recursion error GH#15183
+                    if other.dtype.kind == "M":
+                        if self.tz is None:
+                            return PyObject_RichCompare(self.asm8, other, op)
+                        raise TypeError(
+                            "Cannot compare tz-naive and tz-aware timestamps"
+                        )
+                    if other.dtype.kind == "O":
+                        # Operate element-wise
+                        return np.array(
+                            [PyObject_RichCompare(self, x, op) for x in other],
+                            dtype=bool,
+                        )
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
@@ -123,7 +136,7 @@ cdef class _Timestamp(datetime):
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
-        # http://bugs.python.org/issue28730
+        # https://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
@@ -238,9 +251,11 @@ cdef class _Timestamp(datetime):
             # delta --> offsets.Tick
             # logic copied from delta_to_nanoseconds to prevent circular import
             if hasattr(other, 'nanos'):
+                # Tick
                 nanos = other.nanos
             elif hasattr(other, 'delta'):
-                nanos = other.delta
+                # pd.Timedelta
+                nanos = other.value
             elif PyDelta_Check(other):
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
                          other.seconds * 1000000 +
@@ -252,16 +267,15 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 + other
+                return np.asarray(
+                    [self + other[n] for n in range(len(other))],
+                    dtype=object,
+                )
 
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return NotImplemented
-
-        result = datetime.__add__(self, other)
-        if PyDateTime_Check(result):
-            result = type(self)(result)
-            result.nanosecond = self.nanosecond
-        return result
+        return NotImplemented
 
     def __sub__(self, other):
 
@@ -274,9 +288,13 @@ cdef class _Timestamp(datetime):
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
-
-        typ = getattr(other, '_typ', None)
-        if typ is not None:
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 - other
+                return np.asarray(
+                    [self - other[n] for n in range(len(other))],
+                    dtype=object,
+                )
             return NotImplemented
 
         if other is NaT:
@@ -285,6 +303,10 @@ cdef class _Timestamp(datetime):
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
+            # both_timestamps is to determine whether Timedelta(self - other)
+            # should raise the OOB error, or fall back returning a timedelta.
+            both_timestamps = (isinstance(other, _Timestamp) and
+                               isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
                 other = type(self)(other)
             else:
@@ -300,7 +322,16 @@ cdef class _Timestamp(datetime):
             from pandas._libs.tslibs.timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime):
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                if isinstance(other, _Timestamp):
+                    if both_timestamps:
+                        raise OutOfBoundsDatetime(
+                            "Result is too large for pandas.Timedelta. Convert inputs "
+                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                            "before subtracting."
+                        ) from err
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually

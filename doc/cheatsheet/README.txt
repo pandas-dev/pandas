@@ -5,4 +5,4 @@ and pick "PDF" as the format.
 This cheat sheet was inspired by the RStudio Data Wrangling Cheatsheet[1], written by Irv Lustig, Princeton Consultants[2].
 
 [1]: https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf
-[2]: http://www.princetonoptimization.com/
+[2]: https://www.princetonoptimization.com/

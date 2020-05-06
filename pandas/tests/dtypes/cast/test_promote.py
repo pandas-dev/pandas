@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT
-from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -99,14 +98,13 @@ def _assert_match(result_fill_value, expected_fill_value):
     # GH#23982/25425 require the same type in addition to equality/NA-ness
     res_type = type(result_fill_value)
     ex_type = type(expected_fill_value)
-    if res_type.__name__ == "uint64":
-        # No idea why, but these (sometimes) do not compare as equal
-        assert ex_type.__name__ == "uint64"
-    elif res_type.__name__ == "ulonglong":
-        # On some builds we get this instead of np.uint64
-        # Note: cant check res_type.dtype.itemsize directly on numpy 1.18
-        assert res_type(0).itemsize == 8
-        assert ex_type == res_type or ex_type == np.uint64
+
+    if hasattr(result_fill_value, "dtype"):
+        # Compare types in a way that is robust to platform-specific
+        #  idiosyncracies where e.g. sometimes we get "ulonglong" as an alias
+        #  for "uint64" or "intc" as an alias for "int32"
+        assert result_fill_value.dtype.kind == expected_fill_value.dtype.kind
+        assert result_fill_value.dtype.itemsize == expected_fill_value.dtype.itemsize
     else:
         # On some builds, type comparison fails, e.g. np.int32 != np.int32
         assert res_type == ex_type or res_type.__name__ == ex_type.__name__
@@ -406,7 +404,6 @@ def test_maybe_promote_any_with_datetime64(
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-@pytest.mark.xfail(reason="Fails to upcast to object")
 def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     tz_aware_fixture, any_numpy_dtype_reduced
 ):
@@ -427,11 +424,6 @@ def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fix
     dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture2)
 
-    from dateutil.tz import tzlocal
-
-    if is_platform_windows() and tz_aware_fixture2 == tzlocal():
-        pytest.xfail("Cannot process fill_value with this dtype, see GH 24310")
-
     # create array of given dtype; casts "1" to correct dtype
     fill_value = pd.Series([10 ** 9], dtype=fill_dtype)[0]
 
@@ -441,7 +433,6 @@ def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fix
         expected_dtype = dtype
     else:
         expected_dtype = np.dtype(object)
-        pytest.xfail("fails to cast to object")
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 

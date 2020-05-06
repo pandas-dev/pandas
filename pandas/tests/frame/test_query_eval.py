@@ -8,8 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-import pandas.util.testing as tm
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
@@ -78,45 +78,48 @@ class TestCompat:
 
 
 class TestDataFrameEval:
-    def test_ops(self):
+
+    # smaller hits python, larger hits numexpr
+    @pytest.mark.parametrize("n", [4, 4000])
+    @pytest.mark.parametrize(
+        "op_str,op,rop",
+        [
+            ("+", "__add__", "__radd__"),
+            ("-", "__sub__", "__rsub__"),
+            ("*", "__mul__", "__rmul__"),
+            ("/", "__truediv__", "__rtruediv__"),
+        ],
+    )
+    def test_ops(self, op_str, op, rop, n):
 
         # tst ops and reversed ops in evaluation
         # GH7198
 
-        # smaller hits python, larger hits numexpr
-        for n in [4, 4000]:
+        df = DataFrame(1, index=range(n), columns=list("abcd"))
+        df.iloc[0] = 2
+        m = df.mean()
 
-            df = DataFrame(1, index=range(n), columns=list("abcd"))
-            df.iloc[0] = 2
-            m = df.mean()
+        base = DataFrame(  # noqa
+            np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
+        )
 
-            for op_str, op, rop in [
-                ("+", "__add__", "__radd__"),
-                ("-", "__sub__", "__rsub__"),
-                ("*", "__mul__", "__rmul__"),
-                ("/", "__truediv__", "__rtruediv__"),
-            ]:
+        expected = eval(f"base {op_str} df")
 
-                base = DataFrame(  # noqa
-                    np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
-                )
+        # ops as strings
+        result = eval(f"m {op_str} df")
+        tm.assert_frame_equal(result, expected)
 
-                expected = eval("base{op}df".format(op=op_str))
+        # these are commutative
+        if op in ["+", "*"]:
+            result = getattr(df, op)(m)
+            tm.assert_frame_equal(result, expected)
 
-                # ops as strings
-                result = eval("m{op}df".format(op=op_str))
-                tm.assert_frame_equal(result, expected)
+        # these are not
+        elif op in ["-", "/"]:
+            result = getattr(df, rop)(m)
+            tm.assert_frame_equal(result, expected)
 
-                # these are commutative
-                if op in ["+", "*"]:
-                    result = getattr(df, op)(m)
-                    tm.assert_frame_equal(result, expected)
-
-                # these are not
-                elif op in ["-", "/"]:
-                    result = getattr(df, rop)(m)
-                    tm.assert_frame_equal(result, expected)
-
+    def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
         df = DataFrame(dict(A=np.random.randn(25000)))
@@ -451,9 +454,7 @@ class TestDataFrameQueryNumExprPandas:
 
         for op in ["<", ">", "<=", ">="]:
             with pytest.raises(TypeError):
-                df.query(
-                    "dates {op} nondate".format(op=op), parser=parser, engine=engine
-                )
+                df.query(f"dates {op} nondate", parser=parser, engine=engine)
 
     def test_query_syntax_error(self):
         engine, parser = self.engine, self.parser
@@ -687,10 +688,9 @@ class TestDataFrameQueryNumExprPandas:
         n = 10
         df = DataFrame({"a": np.random.rand(n), "b": np.random.rand(n)})
         df.loc[::2, 0] = np.inf
-        ops = "==", "!="
-        d = dict(zip(ops, (operator.eq, operator.ne)))
+        d = {"==": operator.eq, "!=": operator.ne}
         for op, f in d.items():
-            q = "a {op} inf".format(op=op)
+            q = f"a {op} inf"
             expected = df[f(df.a, np.inf)]
             result = df.query(q, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(result, expected)
@@ -854,7 +854,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = "{lhs} {op} {rhs}".format(lhs=lhs, op=op, rhs=rhs)
+                ex = f"{lhs} {op} {rhs}"
                 msg = r"'(Not)?In' nodes are not implemented"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
@@ -895,7 +895,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = "{lhs} {op} {rhs}".format(lhs=lhs, op=op, rhs=rhs)
+                ex = f"{lhs} {op} {rhs}"
                 with pytest.raises(NotImplementedError):
                     df.query(ex, engine=engine, parser=parser)
         else:
@@ -1042,19 +1042,41 @@ class TestDataFrameEvalWithFrame:
         msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
 
         with pytest.raises(TypeError, match=msg):
-            df.eval("a {0} b".format(op), engine=engine, parser=parser)
+            df.eval(f"a {op} b", engine=engine, parser=parser)
 
 
 class TestDataFrameQueryBacktickQuoting:
     @pytest.fixture(scope="class")
     def df(self):
+        """
+        Yields a dataframe with strings that may or may not need escaping
+        by backticks. The last two columns cannot be escaped by backticks
+        and should raise a ValueError.
+        """
         yield DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],
                 "C C": [4, 5, 6],
+                "C  C": [7, 4, 3],
                 "C_C": [8, 9, 10],
                 "D_D D": [11, 1, 101],
+                "E.E": [6, 3, 5],
+                "F-F": [8, 1, 10],
+                "1e1": [2, 4, 8],
+                "def": [10, 11, 2],
+                "A (x)": [4, 1, 3],
+                "B(x)": [1, 1, 5],
+                "B (x)": [2, 7, 4],
+                "  &^ :!€$?(} >    <++*''  ": [2, 5, 6],
+                "": [10, 11, 1],
+                " A": [4, 7, 9],
+                "  ": [1, 2, 1],
+                "it's": [6, 3, 1],
+                "that's": [9, 1, 8],
+                "☺": [8, 7, 6],
+                "foo#bar": [2, 4, 5],
+                1: [5, 7, 9],
             }
         )
 
@@ -1093,7 +1115,69 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df["A"] + df["D_D D"]
         tm.assert_series_equal(res, expect)
 
-    def backtick_quote_name_with_no_spaces(self, df):
+    def test_backtick_quote_name_with_no_spaces(self, df):
         res = df.eval("A + `C_C`")
         expect = df["A"] + df["C_C"]
         tm.assert_series_equal(res, expect)
+
+    def test_special_characters(self, df):
+        res = df.eval("`E.E` + `F-F` - A")
+        expect = df["E.E"] + df["F-F"] - df["A"]
+        tm.assert_series_equal(res, expect)
+
+    def test_start_with_digit(self, df):
+        res = df.eval("A + `1e1`")
+        expect = df["A"] + df["1e1"]
+        tm.assert_series_equal(res, expect)
+
+    def test_keyword(self, df):
+        res = df.eval("A + `def`")
+        expect = df["A"] + df["def"]
+        tm.assert_series_equal(res, expect)
+
+    def test_unneeded_quoting(self, df):
+        res = df.query("`A` > 2")
+        expect = df[df["A"] > 2]
+        tm.assert_frame_equal(res, expect)
+
+    def test_parenthesis(self, df):
+        res = df.query("`A (x)` > 2")
+        expect = df[df["A (x)"] > 2]
+        tm.assert_frame_equal(res, expect)
+
+    def test_empty_string(self, df):
+        res = df.query("`` > 5")
+        expect = df[df[""] > 5]
+        tm.assert_frame_equal(res, expect)
+
+    def test_multiple_spaces(self, df):
+        res = df.query("`C  C` > 5")
+        expect = df[df["C  C"] > 5]
+        tm.assert_frame_equal(res, expect)
+
+    def test_start_with_spaces(self, df):
+        res = df.eval("` A` + `  `")
+        expect = df[" A"] + df["  "]
+        tm.assert_series_equal(res, expect)
+
+    def test_lots_of_operators_string(self, df):
+        res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")
+        expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
+        tm.assert_frame_equal(res, expect)
+
+    def test_missing_attribute(self, df):
+        message = "module 'pandas' has no attribute 'thing'"
+        with pytest.raises(AttributeError, match=message):
+            df.eval("@pd.thing")
+
+    def test_failing_quote(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`it's` > `that's`")
+
+    def test_failing_character_outside_range(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`☺` > 4")
+
+    def test_failing_hashtag(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`foo#bar` > 4")

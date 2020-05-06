@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_invalid_addsub_type(left, right, msg=None):
@@ -13,7 +13,7 @@ def assert_invalid_addsub_type(left, right, msg=None):
     Helper to assert that left and right can be neither added nor subtracted.
 
     Parameters
-    ---------
+    ----------
     left : object
     right : object
     msg : str or None, default None
@@ -70,7 +70,7 @@ def assert_invalid_comparison(left, right, box):
     result = right != left
     tm.assert_equal(result, ~expected)
 
-    msg = "Invalid comparison between"
+    msg = "Invalid comparison between|Cannot compare type|not supported between"
     with pytest.raises(TypeError, match=msg):
         left < right
     with pytest.raises(TypeError, match=msg):

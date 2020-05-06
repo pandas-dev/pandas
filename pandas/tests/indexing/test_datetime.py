@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from dateutil import tz
 import numpy as np
@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDatetimeIndex:
@@ -145,7 +145,11 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            tm.assert_series_equal(ser[sel], ser)
+            result = ser[sel]
+            expected = ser.copy()
+            if sel is not index:
+                expected.index = expected.index._with_freq(None)
+            tm.assert_series_equal(result, expected)
 
             # setitem
             result = ser.copy()
@@ -154,7 +158,11 @@ class TestDatetimeIndex:
             tm.assert_series_equal(result, expected)
 
             # .loc getitem
-            tm.assert_series_equal(ser.loc[sel], ser)
+            result = ser.loc[sel]
+            expected = ser.copy()
+            if sel is not index:
+                expected.index = expected.index._with_freq(None)
+            tm.assert_series_equal(result, expected)
 
             # .loc setitem
             result = ser.copy()
@@ -226,6 +234,7 @@ class TestDatetimeIndex:
 
         result = ser.loc[[Timestamp("2011-01-01"), Timestamp("2011-01-02")]]
         exp = Series([0.1, 0.2], index=idx, name="s")
+        exp.index = exp.index._with_freq(None)
         tm.assert_series_equal(result, exp, check_index_type=True)
 
         keys = [
@@ -349,4 +358,24 @@ class TestDatetimeIndex:
         result = ser.loc[: ix[-2]]
         expected = ser.iloc[:-1]
 
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slice_, positions",
+        [
+            [slice(date(2018, 1, 1), None), [0, 1, 2]],
+            [slice(date(2019, 1, 2), None), [2]],
+            [slice(date(2020, 1, 1), None), []],
+            [slice(None, date(2020, 1, 1)), [0, 1, 2]],
+            [slice(None, date(2019, 1, 1)), [0]],
+        ],
+    )
+    def test_getitem_slice_date(self, slice_, positions):
+        # https://github.com/pandas-dev/pandas/issues/31501
+        s = pd.Series(
+            [0, 1, 2],
+            pd.DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
+        )
+        result = s[slice_]
+        expected = s.take(positions)
         tm.assert_series_equal(result, expected)

@@ -34,7 +34,7 @@ jobs:
     - bash: |
         source activate pandas-dev
         conda list
-        python setup.py build_ext -q -i
+        python setup.py build_ext -q -i -j 4
         python -m pip install --no-build-isolation -e .
       displayName: 'Build'
 

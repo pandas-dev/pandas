@@ -1189,8 +1189,14 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
 
     /* cannot guarantee that nrows + 1 has been observed */
     word_deletions = self->line_start[nrows - 1] + self->line_fields[nrows - 1];
-    char_count = (self->word_starts[word_deletions - 1] +
-                  strlen(self->words[word_deletions - 1]) + 1);
+    if (word_deletions >= 1) {
+        char_count = (self->word_starts[word_deletions - 1] +
+                      strlen(self->words[word_deletions - 1]) + 1);
+    } else {
+        /* if word_deletions == 0 (i.e. this case) then char_count must
+         * be 0 too, as no data needs to be skipped */
+        char_count = 0;
+    }
 
     TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
            char_count));
@@ -1774,11 +1780,18 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+    // This is called from a nogil block in parsers.pyx
+    // so need to explicitly get GIL before Python calls
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
     double r = PyOS_string_to_double(p, q, 0);
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
     else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
+
+    PyGILState_Release(gstate);
     return r;
 }
 

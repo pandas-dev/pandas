@@ -4,7 +4,7 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -18,6 +18,9 @@ class BaseInterfaceTests(BaseExtensionTests):
 
     def test_len(self, data):
         assert len(data) == 100
+
+    def test_size(self, data):
+        assert data.size == 100
 
     def test_ndim(self, data):
         assert data.ndim == 1
@@ -53,7 +56,7 @@ class BaseInterfaceTests(BaseExtensionTests):
 
     def test_is_numeric_honored(self, data):
         result = pd.Series(data)
-        assert result._data.blocks[0].is_numeric is data.dtype._is_numeric
+        assert result._mgr.blocks[0].is_numeric is data.dtype._is_numeric
 
     def test_isna_extension_array(self, data_missing):
         # If your `isna` returns an ExtensionArray, you must also implement

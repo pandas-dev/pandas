@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas import Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
@@ -33,11 +33,11 @@ def test_apply_ticks():
 def test_delta_to_tick():
     delta = timedelta(3)
 
-    tick = offsets._delta_to_tick(delta)
+    tick = offsets.delta_to_tick(delta)
     assert tick == offsets.Day(3)
 
     td = Timedelta(nanoseconds=5)
-    tick = offsets._delta_to_tick(td)
+    tick = offsets.delta_to_tick(td)
     assert tick == Nano(5)
 
 
@@ -284,7 +284,7 @@ def test_tick_equalities(cls):
 
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_offset(cls):
-    assert not cls().isAnchored()
+    assert not cls().is_anchored()
 
 
 @pytest.mark.parametrize("cls", tick_classes)

@@ -7,9 +7,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, concat
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.tests.window.common import Base
-import pandas.util.testing as tm
 
 
 class TestApi(Base):
@@ -237,10 +237,10 @@ class TestApi(Base):
             columns=cols,
         )
 
-        result = df.rolling(window=2).count()
+        result = df.rolling(window=2, min_periods=0).count()
         tm.assert_frame_equal(result, expected)
 
-        result = df.rolling(1).count()
+        result = df.rolling(1, min_periods=0).count()
         expected = df.notna().astype(float)
         tm.assert_frame_equal(result, expected)
 

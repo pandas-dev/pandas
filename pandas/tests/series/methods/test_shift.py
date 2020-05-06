@@ -13,7 +13,7 @@ from pandas import (
     date_range,
     offsets,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -212,8 +212,11 @@ class TestShift:
             datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
         )
         shifted = inferred_ts.tshift(1)
+        expected = datetime_series.tshift(1)
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(shifted, expected)
+
         unshifted = shifted.tshift(-1)
-        tm.assert_series_equal(shifted, datetime_series.tshift(1))
         tm.assert_series_equal(unshifted, inferred_ts)
 
         no_freq = datetime_series[[0, 5, 7]]
@@ -263,3 +266,13 @@ class TestShift:
 
         tm.assert_index_equal(s.values.categories, sp1.values.categories)
         tm.assert_index_equal(s.values.categories, sn2.values.categories)
+
+    def test_shift_dt64values_int_fill_deprecated(self):
+        # GH#31971
+        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.shift(1, fill_value=0)
+
+        expected = pd.Series([pd.Timestamp(0), ser[0]])
+        tm.assert_series_equal(result, expected)

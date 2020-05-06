@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _check_accum_op(name, series, check_dtype=True):
@@ -47,6 +47,7 @@ class TestSeriesCumulativeOps:
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.dropna())
 
+        result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     def test_cummax(self, datetime_series):
@@ -59,6 +60,7 @@ class TestSeriesCumulativeOps:
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.dropna())
 
+        result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])

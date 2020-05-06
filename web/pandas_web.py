@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Simple static site generator for the pandas web.
 
@@ -28,16 +28,18 @@ import datetime
 import importlib
 import operator
 import os
+import re
 import shutil
 import sys
 import time
 import typing
 
-import feedparser
-import markdown
 import jinja2
 import requests
 import yaml
+
+import feedparser
+import markdown
 
 
 class Preprocessors:
@@ -74,13 +76,56 @@ class Preprocessors:
         preprocessor fetches the posts in the feeds, and returns the relevant
         information for them (sorted from newest to oldest).
         """
+        tag_expr = re.compile("<.*?>")
         posts = []
+        # posts from the file system
+        if context["blog"]["posts_path"]:
+            posts_path = os.path.join(
+                context["source_path"], *context["blog"]["posts_path"].split("/")
+            )
+            for fname in os.listdir(posts_path):
+                if fname.startswith("index."):
+                    continue
+                link = (
+                    f"/{context['blog']['posts_path']}"
+                    f"/{os.path.splitext(fname)[0]}.html"
+                )
+                md = markdown.Markdown(
+                    extensions=context["main"]["markdown_extensions"]
+                )
+                with open(os.path.join(posts_path, fname)) as f:
+                    html = md.convert(f.read())
+                title = md.Meta["title"][0]
+                summary = re.sub(tag_expr, "", html)
+                try:
+                    body_position = summary.index(title) + len(title)
+                except ValueError:
+                    raise ValueError(
+                        f'Blog post "{fname}" should have a markdown header '
+                        f'corresponding to its "Title" element "{title}"'
+                    )
+                summary = " ".join(summary[body_position:].split(" ")[:30])
+                posts.append(
+                    {
+                        "title": title,
+                        "author": context["blog"]["author"],
+                        "published": datetime.datetime.strptime(
+                            md.Meta["date"][0], "%Y-%m-%d"
+                        ),
+                        "feed": context["blog"]["feed_name"],
+                        "link": link,
+                        "description": summary,
+                        "summary": summary,
+                    }
+                )
+        # posts from rss feeds
         for feed_url in context["blog"]["feed"]:
             feed_data = feedparser.parse(feed_url)
             for entry in feed_data.entries:
                 published = datetime.datetime.fromtimestamp(
                     time.mktime(entry.published_parsed)
                 )
+                summary = re.sub(tag_expr, "", entry.summary)
                 posts.append(
                     {
                         "title": entry.title,
@@ -89,7 +134,7 @@ class Preprocessors:
                         "feed": feed_data["feed"]["title"],
                         "link": entry.link,
                         "description": entry.description,
-                        "summary": entry.summary,
+                        "summary": summary,
                     }
                 )
         posts.sort(key=operator.itemgetter("published"), reverse=True)
@@ -176,6 +221,7 @@ def get_context(config_fname: str, ignore_io_errors: bool, **kwargs):
     with open(config_fname) as f:
         context = yaml.safe_load(f)
 
+    context["source_path"] = os.path.dirname(config_fname)
     context["ignore_io_errors"] = ignore_io_errors
     context.update(kwargs)
 

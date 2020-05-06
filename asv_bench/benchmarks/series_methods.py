@@ -3,7 +3,8 @@ from datetime import datetime
 import numpy as np
 
 from pandas import NaT, Series, date_range
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class SeriesConstructor:
@@ -222,27 +223,27 @@ class SeriesGetattr:
 
 class All:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
-    param_names = ["N", "case"]
+    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    param_names = ["N", "case", "dtype"]
 
-    def setup(self, N, case):
+    def setup(self, N, case, dtype):
         val = case != "fast"
-        self.s = Series([val] * N)
+        self.s = Series([val] * N, dtype=dtype)
 
-    def time_all(self, N, case):
+    def time_all(self, N, case, dtype):
         self.s.all()
 
 
 class Any:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
-    param_names = ["N", "case"]
+    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    param_names = ["N", "case", "dtype"]
 
-    def setup(self, N, case):
+    def setup(self, N, case, dtype):
         val = case == "fast"
-        self.s = Series([val] * N)
+        self.s = Series([val] * N, dtype=dtype)
 
-    def time_any(self, N, case):
+    def time_any(self, N, case, dtype):
         self.s.any()
 
 
@@ -264,11 +265,14 @@ class NanOps:
             "prod",
         ],
         [10 ** 3, 10 ** 6],
-        ["int8", "int32", "int64", "float64"],
+        ["int8", "int32", "int64", "float64", "Int64", "boolean"],
     ]
     param_names = ["func", "N", "dtype"]
 
     def setup(self, func, N, dtype):
+        if func == "argmax" and dtype in {"Int64", "boolean"}:
+            # Skip argmax for nullable int since this doesn't work yet (GH-24382)
+            raise NotImplementedError
         self.s = Series([1] * N, dtype=dtype)
         self.func = getattr(self.s, func)
 

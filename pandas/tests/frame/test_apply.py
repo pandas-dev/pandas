@@ -11,10 +11,9 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
-from pandas.conftest import _get_cython_table_params
+import pandas._testing as tm
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -49,7 +48,8 @@ class TestDataFrameApply:
 
         # invalid axis
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
-        with pytest.raises(ValueError):
+        msg = "No axis named 2 for object type DataFrame"
+        with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: x, 2)
 
         # GH 9573
@@ -221,7 +221,8 @@ class TestDataFrameApply:
         df = int_frame_const_col
 
         # > 1 ndim
-        with pytest.raises(ValueError):
+        msg = "too many dims to broadcast"
+        with pytest.raises(ValueError, match=msg):
             df.apply(
                 lambda x: np.array([1, 2]).reshape(-1, 2),
                 axis=1,
@@ -229,13 +230,21 @@ class TestDataFrameApply:
             )
 
         # cannot broadcast
-        with pytest.raises(ValueError):
+        msg = "cannot broadcast result"
+        with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: [1, 2], axis=1, result_type="broadcast")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
 
-    def test_apply_raw(self, float_frame):
+    def test_apply_raw(self, float_frame, mixed_type_frame):
+        def _assert_raw(x):
+            assert isinstance(x, np.ndarray)
+            assert x.ndim == 1
+
+        float_frame.apply(_assert_raw, raw=True)
+        float_frame.apply(_assert_raw, axis=1, raw=True)
+
         result0 = float_frame.apply(np.mean, raw=True)
         result1 = float_frame.apply(np.mean, axis=1, raw=True)
 
@@ -249,6 +258,10 @@ class TestDataFrameApply:
         result = float_frame.apply(lambda x: x * 2, raw=True)
         expected = float_frame * 2
         tm.assert_frame_equal(result, expected)
+
+        # Mixed dtype (GH-32423)
+        mixed_type_frame.apply(_assert_raw, raw=True)
+        mixed_type_frame.apply(_assert_raw, axis=1, raw=True)
 
     def test_apply_axis1(self, float_frame):
         d = float_frame.index[0]
@@ -339,7 +352,7 @@ class TestDataFrameApply:
         tm.assert_frame_equal(result, float_frame)
 
     def test_apply_reduce_Series(self, float_frame):
-        float_frame.loc[::2, "A"] = np.nan
+        float_frame["A"].iloc[::2] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
@@ -691,6 +704,26 @@ class TestDataFrameApply:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_apply_nested_result_axis_1(self):
+        # GH 13820
+        def apply_list(row):
+            return [2 * row["A"], 2 * row["C"], 2 * row["B"]]
+
+        df = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
+        result = df.apply(apply_list, axis=1)
+        expected = Series(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_apply_noreduction_tzaware_object(self):
+        # https://github.com/pandas-dev/pandas/issues/31505
+        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        result = df.apply(lambda x: x)
+        tm.assert_frame_equal(result, df)
+        result = df.apply(lambda x: x.copy())
+        tm.assert_frame_equal(result, df)
+
 
 class TestInferOutputShape:
     # the user has supplied an opaque UDF where
@@ -919,7 +952,11 @@ class TestInferOutputShape:
         # allowed result_type
         df = int_frame_const_col
 
-        with pytest.raises(ValueError):
+        msg = (
+            "invalid value for result_type, must be one of "
+            "{None, 'reduce', 'broadcast', 'expand'}"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
 
     @pytest.mark.parametrize(
@@ -1015,14 +1052,16 @@ class TestDataFrameAggregate:
 
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        with pytest.raises(ValueError):
+        msg = "transforms cannot produce aggregated results"
+        with pytest.raises(ValueError, match=msg):
             float_frame.transform(["max", "min"], axis=axis)
 
-        with pytest.raises(ValueError):
+        msg = "cannot combine transform and aggregation operations"
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 float_frame.agg(["max", "sqrt"], axis=axis)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 float_frame.transform(["max", "sqrt"], axis=axis)
 
@@ -1283,7 +1322,7 @@ class TestDataFrameAggregate:
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame(),
                 [
                     ("sum", Series(dtype="float64")),
@@ -1298,7 +1337,7 @@ class TestDataFrameAggregate:
                     ("median", Series(dtype="float64")),
                 ],
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
                     ("sum", Series([1.0, 3])),
@@ -1325,14 +1364,14 @@ class TestDataFrameAggregate:
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
             ),
-            _get_cython_table_params(
+            tm.get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
-                    ("cumprod", DataFrame([[np.nan, 1], [1.0, 2.0]])),
-                    ("cumsum", DataFrame([[np.nan, 1], [1.0, 3.0]])),
+                    ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
+                    ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
                 ],
             ),
         ),
@@ -1341,18 +1380,23 @@ class TestDataFrameAggregate:
         # GH 21224
         # test transforming functions in
         # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        if axis == "columns" or axis == 1:
+            # operating blockwise doesn't let us preserve dtypes
+            expected = expected.astype("float64")
+
         result = df.agg(func, axis=axis)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df, func, expected",
-        _get_cython_table_params(
+        tm.get_cython_table_params(
             DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
         ),
     )
     def test_agg_cython_table_raises(self, df, func, expected, axis):
         # GH 21224
-        with pytest.raises(expected):
+        msg = "can't multiply sequence by non-int of type 'str'"
+        with pytest.raises(expected, match=msg):
             df.agg(func, axis=axis)
 
     @pytest.mark.parametrize("num_cols", [2, 3, 5])

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, CategoricalDtype, CategoricalIndex, Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCategoricalIndexConstructors:
@@ -136,12 +136,3 @@ class TestCategoricalIndexConstructors:
 
         with pytest.raises(ValueError, match=msg):
             Index(data, ordered=ordered, dtype=dtype)
-
-    def test_create_categorical(self):
-        # GH#17513 The public CI constructor doesn't hit this code path with
-        # instances of CategoricalIndex, but we still want to test the code
-        ci = CategoricalIndex(["a", "b", "c"])
-        # First ci is self, second ci is data.
-        result = CategoricalIndex._create_categorical(ci, ci)
-        expected = Categorical(["a", "b", "c"])
-        tm.assert_categorical_equal(result, expected)

@@ -2,18 +2,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_error():
     df = pd.DataFrame(
         {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="column must be a scalar"):
         df.explode(list("AA"))
 
     df.columns = list("AA")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="columns must be unique"):
         df.explode("A")
 
 

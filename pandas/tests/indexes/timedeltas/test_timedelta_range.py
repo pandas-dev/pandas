@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import timedelta_range, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, Second
 
@@ -31,23 +30,6 @@ class TestTimedeltas:
         result = timedelta_range("0 days", freq="30T", periods=50)
         tm.assert_index_equal(result, expected)
 
-        # GH 11776
-        arr = np.arange(10).reshape(2, 5)
-        df = pd.DataFrame(np.arange(10).reshape(2, 5))
-        for arg in (arr, df):
-            with pytest.raises(TypeError, match="1-d array"):
-                to_timedelta(arg)
-            for errors in ["ignore", "raise", "coerce"]:
-                with pytest.raises(TypeError, match="1-d array"):
-                    to_timedelta(arg, errors=errors)
-
-        # issue10583
-        df = pd.DataFrame(np.random.normal(size=(10, 4)))
-        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
-        expected = df.loc[pd.Timedelta("0s") :, :]
-        result = df.loc["0s":, :]
-        tm.assert_frame_equal(expected, result)
-
     @pytest.mark.parametrize(
         "periods, freq", [(3, "2D"), (5, "D"), (6, "19H12T"), (7, "16H"), (9, "12H")]
     )
@@ -56,6 +38,7 @@ class TestTimedeltas:
         result = timedelta_range(start="0 days", end="4 days", periods=periods)
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
+        assert result.freq == freq
 
     def test_errors(self):
         # not enough params

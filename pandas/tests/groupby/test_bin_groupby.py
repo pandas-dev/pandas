@@ -5,13 +5,14 @@ from pandas._libs import groupby, lib, reduction as libreduction
 
 from pandas.core.dtypes.common import ensure_int64
 
+import pandas as pd
 from pandas import Index, Series, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_series_grouper():
     obj = Series(np.random.randn(10))
-    dummy = obj[:0]
+    dummy = obj.iloc[:0]
 
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
@@ -28,7 +29,7 @@ def test_series_grouper():
 def test_series_grouper_requires_nonempty_raises():
     # GH#29500
     obj = Series(np.random.randn(10))
-    dummy = obj[:0]
+    dummy = obj.iloc[:0]
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
     with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):
@@ -49,6 +50,30 @@ def test_series_bin_grouper():
 
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     tm.assert_almost_equal(counts, exp_counts)
+
+
+def assert_block_lengths(x):
+    assert len(x) == len(x._mgr.blocks[0].mgr_locs)
+    return 0
+
+
+def cumsum_max(x):
+    x.cumsum().max()
+    return 0
+
+
+@pytest.mark.parametrize("func", [cumsum_max, assert_block_lengths])
+def test_mgr_locs_updated(func):
+    # https://github.com/pandas-dev/pandas/issues/31802
+    # Some operations may require creating new blocks, which requires
+    # valid mgr_locs
+    df = pd.DataFrame({"A": ["a", "a", "a"], "B": ["a", "b", "b"], "C": [1, 1, 1]})
+    result = df.groupby(["A", "B"]).agg(func)
+    expected = pd.DataFrame(
+        {"C": [0, 0]},
+        index=pd.MultiIndex.from_product([["a"], ["a", "b"]], names=["A", "B"]),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -87,7 +112,7 @@ def test_group_ohlc():
         counts = np.zeros(len(out), dtype=np.int64)
         labels = ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
 
-        func = getattr(groupby, "group_ohlc_{dtype}".format(dtype=dtype))
+        func = getattr(groupby, f"group_ohlc_{dtype}")
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):

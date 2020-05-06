@@ -6,6 +6,8 @@
 Reshaping and pivot tables
 **************************
 
+.. _reshaping.reshaping:
+
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
@@ -14,8 +16,7 @@ Reshaping by pivoting DataFrame objects
 .. ipython:: python
    :suppress:
 
-   import pandas.util.testing as tm
-   tm.N = 3
+   import pandas._testing as tm
 
    def unpivot(frame):
        N, K = frame.shape
@@ -25,7 +26,7 @@ Reshaping by pivoting DataFrame objects
        columns = ['date', 'variable', 'value']
        return pd.DataFrame(data, columns=columns)
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 Data is often stored in so-called "stacked" or "record" format:
 
@@ -38,10 +39,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
-
-   tm.N = 3
-
+   import pandas._testing as tm
 
    def unpivot(frame):
        N, K = frame.shape
@@ -51,7 +49,7 @@ For the curious here is how the above ``DataFrame`` was created:
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])
 
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 To select out everything for variable ``A`` we could do:
 
@@ -274,7 +272,7 @@ the right thing:
 
 .. _reshaping.melt:
 
-Reshaping by Melt
+Reshaping by melt
 -----------------
 
 .. image:: ../_static/reshaping_melt.png
@@ -313,6 +311,8 @@ user-friendly.
   dft["id"] = dft.index
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
+
+.. _reshaping.combine_with_groupby:
 
 Combining with stats and GroupBy
 --------------------------------
@@ -471,15 +471,23 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
 
     pd.crosstab(df['A'], df['B'])
 
-Any input passed containing ``Categorical`` data will have **all** of its
-categories included in the cross-tabulation, even if the actual data does
-not contain any instances of a particular category.
+``crosstab`` can also be implemented
+to ``Categorical`` data.
 
 .. ipython:: python
 
     foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     pd.crosstab(foo, bar)
+
+If you want to include **all** of data categories even if the actual data does
+not contain any instances of a particular category, you should set ``dropna=False``.
+
+For example:
+
+.. ipython:: python
+
+    pd.crosstab(foo, bar, dropna=False)
 
 Normalization
 ~~~~~~~~~~~~~

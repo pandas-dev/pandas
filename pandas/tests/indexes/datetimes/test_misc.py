@@ -1,4 +1,5 @@
 import calendar
+from datetime import datetime
 import locale
 import unicodedata
 
@@ -6,20 +7,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, datetime, offsets
-import pandas.util.testing as tm
+from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
+import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_pass_datetimeindex_to_index(self):
-        # Bugs in #1396
-        rng = date_range("1/1/2000", "3/1/2000")
-        idx = Index(rng, dtype=object)
-
-        expected = Index(rng.to_pydatetime(), dtype=object)
-
-        tm.assert_numpy_array_equal(idx.values, expected.values)
-
     def test_range_edges(self):
         # GH#13672
         idx = pd.date_range(
@@ -33,7 +25,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.000000002",
                 "1970-01-01 00:00:00.000000003",
                 "1970-01-01 00:00:00.000000004",
-            ]
+            ],
+            freq="N",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -42,7 +35,7 @@ class TestTimeSeries:
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
         )
-        exp = DatetimeIndex([])
+        exp = DatetimeIndex([], freq="N")
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
@@ -50,7 +43,7 @@ class TestTimeSeries:
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
         )
-        exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"])
+        exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"], freq="N")
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
@@ -64,7 +57,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.000002",
                 "1970-01-01 00:00:00.000003",
                 "1970-01-01 00:00:00.000004",
-            ]
+            ],
+            freq="U",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -79,7 +73,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:00.002",
                 "1970-01-01 00:00:00.003",
                 "1970-01-01 00:00:00.004",
-            ]
+            ],
+            freq="L",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -94,7 +89,8 @@ class TestTimeSeries:
                 "1970-01-01 00:00:02",
                 "1970-01-01 00:00:03",
                 "1970-01-01 00:00:04",
-            ]
+            ],
+            freq="S",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -109,7 +105,8 @@ class TestTimeSeries:
                 "1970-01-01 00:02",
                 "1970-01-01 00:03",
                 "1970-01-01 00:04",
-            ]
+            ],
+            freq="T",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -124,14 +121,17 @@ class TestTimeSeries:
                 "1970-01-01 02:00",
                 "1970-01-01 03:00",
                 "1970-01-01 04:00",
-            ]
+            ],
+            freq="H",
         )
         tm.assert_index_equal(idx, exp)
 
         idx = pd.date_range(
             start=Timestamp("1970-01-01"), end=Timestamp("1970-01-04"), freq="D"
         )
-        exp = DatetimeIndex(["1970-01-01", "1970-01-02", "1970-01-03", "1970-01-04"])
+        exp = DatetimeIndex(
+            ["1970-01-01", "1970-01-02", "1970-01-03", "1970-01-04"], freq="D"
+        )
         tm.assert_index_equal(idx, exp)
 
 
@@ -381,3 +381,17 @@ def test_iter_readonly():
     arr.setflags(write=False)
     dti = pd.to_datetime(arr)
     list(dti)
+
+
+def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
+    # GH 6538: Check that DatetimeIndex and its TimeStamp elements
+    # return the same weekofyear accessor close to new year w/ tz
+    dates = ["2013/12/29", "2013/12/30", "2013/12/31"]
+    dates = DatetimeIndex(dates, tz="Europe/Brussels")
+    result = dates.isocalendar()
+    expected_data_frame = pd.DataFrame(
+        [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
+        columns=["year", "week", "day"],
+        dtype="UInt32",
+    )
+    tm.assert_frame_equal(result, expected_data_frame)

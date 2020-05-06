@@ -9,6 +9,8 @@ import warnings
 
 from pandas import Index
 
+from pandas.tseries.offsets import Tick
+
 if TYPE_CHECKING:
     from pandas import Series, DataFrame
 
@@ -38,6 +40,11 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
+        elif args and issubclass(args[0], Tick):
+            # TypeError: object.__new__(Day) is not safe, use Day.__new__()
+            cls = args[0]
+            stack[-1] = cls.__new__(*args)
+            return
 
         raise
 
@@ -169,9 +176,9 @@ _class_locations_map = {
 
 
 # our Unpickler sub-class to override methods and some dispatcher
-# functions for compat
+# functions for compat and uses a non-public class of the pickle module.
 
-
+# error: Name 'pkl._Unpickler' is not defined
 class Unpickler(pkl._Unpickler):  # type: ignore
     def find_class(self, module, name):
         # override superclass
@@ -229,7 +236,6 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
     encoding : an optional encoding
     is_verbose : show exception output
     """
-
     try:
         fh.seek(0)
         if encoding is not None:

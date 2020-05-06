@@ -1,9 +1,8 @@
 import numpy as np
 
 from pandas import DataFrame, Index, MultiIndex, Series, date_range, period_range
-import pandas.util.testing as tm
 
-from .pandas_vb_common import lib
+from .pandas_vb_common import lib, tm
 
 
 class Reindex:

@@ -12,7 +12,7 @@ import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader, read_csv
 
