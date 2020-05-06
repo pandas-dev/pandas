@@ -57,8 +57,7 @@ from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
-from pandas._libs.tslibs.offsets cimport to_offset
-from pandas._libs.tslibs.offsets import _Tick
+from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -1588,9 +1587,9 @@ cdef class _Period:
             int64_t nanos, offset_nanos
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                isinstance(other, _Tick)):
+                is_tick_object(other)):
             offset = to_offset(self.freq.rule_code)
-            if isinstance(offset, _Tick):
+            if is_tick_object(offset):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
