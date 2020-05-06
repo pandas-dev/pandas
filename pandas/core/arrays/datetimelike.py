@@ -210,7 +210,7 @@ class AttributesMixin:
         ----------
         other
         setitem : bool, default False
-            For __setitem__ we may have stricter compatibility resrictions than
+            For __setitem__ we may have stricter compatibility restrictions than
             for comparisons.
 
         Raises

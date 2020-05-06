@@ -2007,7 +2007,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         # tuple of indexers (dataframe)
         elif isinstance(key, tuple):
             # only allow 1 dimensional slicing, but can
-            # in a 2-d case be passd (slice(None),....)
+            # in a 2-d case be passed (slice(None),....)
             if len(key) == 2:
                 if not com.is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim categorical")

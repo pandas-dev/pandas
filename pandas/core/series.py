@@ -912,7 +912,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determin if this slice is positional
+            # _convert_slice_indexer to determine if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -3377,7 +3377,7 @@ Name: Max Speed, dtype: float64
         ...                         "Malta": 434000, "Maldives": 434000,
         ...                         "Brunei": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -3475,7 +3475,7 @@ Name: Max Speed, dtype: float64
         ...                         "Brunei": 434000, "Malta": 434000,
         ...                         "Maldives": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000

@@ -143,7 +143,7 @@ def _bn_ok_dtype(dtype: Dtype, name: str) -> bool:
 
         # GH 9422
         # further we also want to preserve NaN when all elements
-        # are NaN, unlinke bottleneck/numpy which consider this
+        # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
         if name in ["nansum", "nanprod"]:
             return False
