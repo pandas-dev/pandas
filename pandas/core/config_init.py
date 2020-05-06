@@ -356,8 +356,7 @@ with cf.config_prefix("display"):
             )
 
     cf.register_option(
-        # FIXME: change `validator=is_nonnegative_int`
-        # in version 1.2
+        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
         "max_colwidth",
         50,
         max_colwidth_doc,

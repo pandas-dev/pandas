@@ -148,13 +148,13 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # other specific errors tested in the boolean array specific tests
         pass
 
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
-        if op_name in self.implements:
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-        else:
-            pytest.xfail("_reduce needs implementation")
+        if op_name not in self.implements:
+            mark = pytest.mark.xfail(reason="_reduce needs implementation")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
