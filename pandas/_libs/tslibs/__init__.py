@@ -1,6 +1,5 @@
 __all__ = [
     "localize_pydatetime",
-    "normalize_date",
     "NaT",
     "NaTType",
     "iNaT",
@@ -17,7 +16,7 @@ __all__ = [
 ]
 
 
-from .conversion import localize_pydatetime, normalize_date
+from .conversion import localize_pydatetime
 from .nattype import NaT, NaTType, iNaT, is_null_datetimelike
 from .np_datetime import OutOfBoundsDatetime
 from .period import IncompatibleFrequency, Period
