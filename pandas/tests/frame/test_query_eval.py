@@ -695,6 +695,23 @@ class TestDataFrameQueryNumExprPandas:
             result = df.query(q, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(result, expected)
 
+    def test_check_tz_aware_index_query(self, tz_aware_fixture):
+        # https://github.com/pandas-dev/pandas/issues/29463
+        tz = tz_aware_fixture
+        expected = pd.DataFrame(
+            index=pd.date_range(
+                start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+            )
+        )
+
+        df = pd.DataFrame(
+            index=pd.date_range(
+                start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+            )
+        )
+        result = df.query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no_ne
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
