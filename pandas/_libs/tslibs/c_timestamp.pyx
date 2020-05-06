@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timezones cimport (
     get_timezone, is_utc, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.offsets cimport is_tick_object
 
 
 class NullFrequencyError(ValueError):
@@ -247,13 +248,9 @@ cdef class _Timestamp(datetime):
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
 
-        elif PyDelta_Check(other) or hasattr(other, 'delta'):
-            # delta --> offsets.Tick
+        elif PyDelta_Check(other):
             # logic copied from delta_to_nanoseconds to prevent circular import
-            if hasattr(other, 'nanos'):
-                # Tick
-                nanos = other.nanos
-            elif hasattr(other, 'delta'):
+            if hasattr(other, 'delta'):
                 # pd.Timedelta
                 nanos = other.value
             elif PyDelta_Check(other):
@@ -261,6 +258,16 @@ cdef class _Timestamp(datetime):
                          other.seconds * 1000000 +
                          other.microseconds) * 1000
 
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
+
+        elif is_tick_object(other):
+            try:
+                nanos = other.nanos
+            except OverflowError:
+                raise OverflowError(
+                    f"the add operation between {other} and {self} will overflow"
+                )
             result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
             return result
 
@@ -280,8 +287,7 @@ cdef class _Timestamp(datetime):
     def __sub__(self, other):
 
         if (is_timedelta64_object(other) or is_integer_object(other) or
-                PyDelta_Check(other) or hasattr(other, 'delta')):
-            # `delta` attribute is for offsets.Tick or offsets.Week obj
+                PyDelta_Check(other) or is_tick_object(other)):
             neg_other = -other
             return self + neg_other
 

@@ -147,8 +147,7 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif hasattr(other, "delta"):
-            # Timedelta, offsets.Tick, offsets.Week
+        elif util.is_offset_object(other):
             return c_NaT
 
         elif util.is_integer_object(other) or util.is_period_object(other):
@@ -184,8 +183,7 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif hasattr(other, "delta"):
-            # offsets.Tick, offsets.Week
+        elif util.is_offset_object(other):
             return c_NaT
 
         elif util.is_integer_object(other) or util.is_period_object(other):
