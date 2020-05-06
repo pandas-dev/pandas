@@ -9,8 +9,7 @@ from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import Timestamp, algos, hashtable as htable, lib
-from pandas._libs.tslib import iNaT
+from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
 from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
 from pandas.util._decorators import doc
 
