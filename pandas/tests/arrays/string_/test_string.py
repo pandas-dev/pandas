@@ -303,3 +303,10 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+def test_memory_usage():
+    # GH 33963
+    series = pd.Series(["a", "b", "c"], dtype="string")
+
+    assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
