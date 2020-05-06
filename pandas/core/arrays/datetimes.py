@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
     conversion,
     fields,
     iNaT,
-    normalize_date,
     resolution as libresolution,
     timezones,
     tzconversion,
@@ -2288,19 +2287,21 @@ def _infer_tz_from_endpoints(start, end, tz):
     return tz
 
 
-def _maybe_normalize_endpoints(start, end, normalize):
+def _maybe_normalize_endpoints(
+    start: Optional[Timestamp], end: Optional[Timestamp], normalize: bool
+):
     _normalized = True
 
     if start is not None:
         if normalize:
-            start = normalize_date(start)
+            start = start.normalize()
             _normalized = True
         else:
             _normalized = _normalized and start.time() == _midnight
 
     if end is not None:
         if normalize:
-            end = normalize_date(end)
+            end = end.normalize()
             _normalized = True
         else:
             _normalized = _normalized and end.time() == _midnight
