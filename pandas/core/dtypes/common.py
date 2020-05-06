@@ -484,7 +484,6 @@ def is_period_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Period
 
-    # TODO: Consider making Period an instance of PeriodDtype
     if arr_or_dtype is None:
         return False
     return PeriodDtype.is_dtype(arr_or_dtype)
@@ -523,7 +522,6 @@ def is_interval_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Interval
 
-    # TODO: Consider making Interval an instance of IntervalDtype
     if arr_or_dtype is None:
         return False
     return IntervalDtype.is_dtype(arr_or_dtype)
