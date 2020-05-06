@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 from pytz import UTC
 
-from pandas._libs.tslib import iNaT
-from pandas._libs.tslibs import conversion, timezones, tzconversion
+from pandas._libs.tslibs import conversion, iNaT, timezones, tzconversion
 
 from pandas import Timestamp, date_range
 import pandas._testing as tm

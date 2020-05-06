@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer
 

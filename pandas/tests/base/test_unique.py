@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
 
