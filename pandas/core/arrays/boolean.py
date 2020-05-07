@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
@@ -584,13 +583,10 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_logical_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def logical_method(self, other):
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other = lib.item_from_zerodim(other)
             other_is_booleanarray = isinstance(other, BooleanArray)
             other_is_scalar = lib.is_scalar(other)
             mask = None
@@ -630,16 +626,14 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
             from pandas.arrays import IntegerArray
 
-            if isinstance(
-                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
-            ):
+            if isinstance(other, IntegerArray):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -735,13 +729,8 @@ class BooleanArray(BaseMaskedArray):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @ops.unpack_zerodim_and_defer(op_name)
         def boolean_arithmetic_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):

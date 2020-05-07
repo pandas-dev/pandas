@@ -22,7 +22,6 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -1173,6 +1172,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         of the underlying elements of the ExtensionArray
         """
 
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def _binop(self, other):
             def convert_values(param):
                 if isinstance(param, ExtensionArray) or is_list_like(param):
@@ -1180,10 +1180,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 else:  # Assume its an object
                     ovalues = [param] * len(self)
                 return ovalues
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                # rely on pandas to unbox and dispatch to us
-                return NotImplemented
 
             lvalues = self
             rvalues = convert_values(other)
