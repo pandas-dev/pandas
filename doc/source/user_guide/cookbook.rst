@@ -179,7 +179,7 @@ One could hard code:
 Selection
 ---------
 
-DataFrames
+Dataframes
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -290,7 +290,7 @@ Notice the same results, with the exception of the index.
 
 .. _cookbook.multi_index:
 
-MultiIndexing
+Multiindexing
 -------------
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
@@ -913,7 +913,7 @@ The :ref:`Plotting <visualization>` docs.
    @savefig quartile_boxplot.png
    df.boxplot(column='price', by='quartiles')
 
-Data In/Out
+Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5
@@ -1332,33 +1332,6 @@ Values can be set to NaT using np.nan, similar to datetime
 
    y[1] = np.nan
    y
-
-Aliasing axis names
--------------------
-
-To globally provide aliases for axis names, one can define these 2 functions:
-
-.. ipython:: python
-
-   def set_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES[alias] = axis
-
-.. ipython:: python
-
-   def clear_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES.pop(alias, None)
-
-.. ipython:: python
-
-   set_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
-   df2 = pd.DataFrame(np.random.randn(3, 2), columns=['c1', 'c2'],
-                      index=['i1', 'i2', 'i3'])
-   df2.sum(axis='myaxis2')
-   clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
 Creating example data
 ---------------------
