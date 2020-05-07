@@ -11,6 +11,8 @@ from typing import List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
+from pandas.core.dtypes.cast import maybe_cast_result
+
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
@@ -484,7 +486,7 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
+            values = ensure_int_or_float(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
@@ -548,17 +550,6 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -581,6 +572,9 @@ class BaseGrouper:
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
+
+        if is_extension_array_dtype(orig_values.dtype):
+            result = maybe_cast_result(result=result, obj=orig_values, how=how)
 
         return result, names
 

@@ -73,6 +73,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray  # noqa: F401
@@ -313,12 +315,12 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
-    d = {
-        (np.dtype(np.bool), "add"): np.dtype(np.int64),
-        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
-        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-    }
-    return d.get((dtype, how), dtype)
+    if how in ["add", "cumsum", "sum"]:
+        if dtype == np.dtype(np.bool):
+            return np.dtype(np.int64)
+        if isinstance(dtype, pd.BooleanDtype):
+            return pd.Int64Dtype()
+    return dtype
 
 
 def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
