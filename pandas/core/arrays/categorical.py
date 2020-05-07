@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -344,7 +344,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     ) from err
             except ValueError as err:
 
-                # FIXME
+                # TODO(EA2D)
                 raise NotImplementedError(
                     "> 1 ndim Categorical are not supported at this time"
                 ) from err
@@ -1425,7 +1425,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=np.nan)
+            return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
