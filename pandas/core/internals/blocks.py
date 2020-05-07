@@ -535,10 +535,13 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         # may need to convert to categorical
         if is_categorical_dtype(dtype):
 
-            if is_categorical_dtype(self.values):
+            if is_categorical_dtype(self.values.dtype):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
 
@@ -1596,7 +1599,7 @@ class ExtensionBlock(Block):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if isinstance(new, np.ndarray) and len(new) == len(mask):
+        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)
