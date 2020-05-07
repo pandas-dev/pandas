@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 import pandas as pd
 from pandas import (

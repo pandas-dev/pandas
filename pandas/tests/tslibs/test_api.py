@@ -38,7 +38,6 @@ def test_namespace():
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
-        "normalize_date",
         "tz_convert_single",
     ]
 
