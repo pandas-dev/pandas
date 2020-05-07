@@ -4,7 +4,7 @@ from typing import Optional, Type
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -561,8 +561,7 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
-            # TODO: CategoricalIndex can be re-allowed following GH#32167
+        if not isinstance(indices, RangeIndex):
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)

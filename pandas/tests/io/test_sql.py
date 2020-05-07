@@ -1130,8 +1130,6 @@ class _EngineToConnMixin:
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        # XXX:
-        # super().teardown_method(method)
 
 
 @pytest.mark.single

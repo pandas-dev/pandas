@@ -140,12 +140,10 @@ class TestDatetime64ArrayLikeComparisons:
         ts = pd.Timestamp.now(tz)
         ser = pd.Series([ts, pd.NaT])
 
-        # FIXME: Can't transpose because that loses the tz dtype on
-        #  the NaT column
-        obj = tm.box_expected(ser, box, transpose=False)
+        obj = tm.box_expected(ser, box)
 
         expected = pd.Series([True, False], dtype=np.bool_)
-        expected = tm.box_expected(expected, xbox, transpose=False)
+        expected = tm.box_expected(expected, xbox)
 
         result = obj == ts
         tm.assert_equal(result, expected)
@@ -529,9 +527,9 @@ class TestDatetimeIndexComparisons:
         "op",
         [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
     )
-    def test_comparison_tzawareness_compat(self, op, box_df_fail):
+    def test_comparison_tzawareness_compat(self, op, box_with_array):
         # GH#18162
-        box = box_df_fail
+        box = box_with_array
 
         dr = pd.date_range("2016-01-01", periods=6)
         dz = dr.tz_localize("US/Pacific")
@@ -543,34 +541,35 @@ class TestDatetimeIndexComparisons:
         with pytest.raises(TypeError, match=msg):
             op(dr, dz)
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
+        if box is pd.DataFrame:
+            tolist = lambda x: x.astype(object).values.tolist()[0]
+        else:
+            tolist = list
+
         with pytest.raises(TypeError, match=msg):
-            op(dr, list(dz))
+            op(dr, tolist(dz))
         with pytest.raises(TypeError, match=msg):
-            op(dr, np.array(list(dz), dtype=object))
+            op(dr, np.array(tolist(dz), dtype=object))
         with pytest.raises(TypeError, match=msg):
             op(dz, dr)
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
         with pytest.raises(TypeError, match=msg):
-            op(dz, list(dr))
+            op(dz, tolist(dr))
         with pytest.raises(TypeError, match=msg):
-            op(dz, np.array(list(dr), dtype=object))
+            op(dz, np.array(tolist(dr), dtype=object))
 
         # The aware==aware and naive==naive comparisons should *not* raise
         assert np.all(dr == dr)
-        assert np.all(dr == list(dr))
-        assert np.all(list(dr) == dr)
-        assert np.all(np.array(list(dr), dtype=object) == dr)
-        assert np.all(dr == np.array(list(dr), dtype=object))
+        assert np.all(dr == tolist(dr))
+        assert np.all(tolist(dr) == dr)
+        assert np.all(np.array(tolist(dr), dtype=object) == dr)
+        assert np.all(dr == np.array(tolist(dr), dtype=object))
 
         assert np.all(dz == dz)
-        assert np.all(dz == list(dz))
-        assert np.all(list(dz) == dz)
-        assert np.all(np.array(list(dz), dtype=object) == dz)
-        assert np.all(dz == np.array(list(dz), dtype=object))
+        assert np.all(dz == tolist(dz))
+        assert np.all(tolist(dz) == dz)
+        assert np.all(np.array(tolist(dz), dtype=object) == dz)
+        assert np.all(dz == np.array(tolist(dz), dtype=object))
 
     @pytest.mark.parametrize(
         "op",
@@ -843,10 +842,8 @@ class TestDatetime64Arithmetic:
         other = np.timedelta64("NaT")
         expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
 
-        # FIXME: fails with transpose=True due to tz-aware DataFrame
-        #  transpose bug
-        obj = tm.box_expected(dti, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        obj = tm.box_expected(dti, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1438,64 +1435,41 @@ class TestDatetime64DateOffsetArithmetic:
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
-    # TODO: __sub__, __rsub__
-    def test_dt64arr_add_mixed_offset_array(self, box_with_array):
-        # GH#10699
-        # array of offsets
-        s = DatetimeIndex([Timestamp("2000-1-1"), Timestamp("2000-2-1")])
-        s = tm.box_expected(s, box_with_array)
-
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
-        with tm.assert_produces_warning(warn):
-            other = pd.Index([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()])
-            other = tm.box_expected(other, box_with_array)
-            result = s + other
-            exp = DatetimeIndex([Timestamp("2001-1-1"), Timestamp("2000-2-29")])
-            exp = tm.box_expected(exp, box_with_array)
-            tm.assert_equal(result, exp)
-
-            # same offset
-            other = pd.Index(
+    @pytest.mark.parametrize(
+        "other",
+        [
+            np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)]),
+            np.array([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()]),
+            np.array(  # matching offsets
                 [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)]
-            )
-            other = tm.box_expected(other, box_with_array)
-            result = s + other
-            exp = DatetimeIndex([Timestamp("2001-1-1"), Timestamp("2001-2-1")])
-            exp = tm.box_expected(exp, box_with_array)
-            tm.assert_equal(result, exp)
-
-    # TODO: overlap with test_dt64arr_add_mixed_offset_array?
-    def test_dt64arr_add_sub_offset_ndarray(self, tz_naive_fixture, box_with_array):
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
+    @pytest.mark.parametrize("box_other", [True, False])
+    def test_dt64arr_add_sub_offset_array(
+        self, tz_naive_fixture, box_with_array, box_other, op, other
+    ):
         # GH#18849
+        # GH#10699 array of offsets
 
         tz = tz_naive_fixture
         dti = pd.date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
+        expected = tm.box_expected(expected, box_with_array)
+
+        if box_other:
+            other = tm.box_expected(other, box_with_array)
 
         warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and tz is not None:
+        if box_with_array is pd.DataFrame and not (tz is None and not box_other):
             warn = None
-
         with tm.assert_produces_warning(warn):
-            res = dtarr + other
-        expected = DatetimeIndex(
-            [dti[n] + other[n] for n in range(len(dti))], name=dti.name, freq="infer"
-        )
-        expected = tm.box_expected(expected, box_with_array)
-        tm.assert_equal(res, expected)
+            res = op(dtarr, other)
 
-        with tm.assert_produces_warning(warn):
-            res2 = other + dtarr
-        tm.assert_equal(res2, expected)
-
-        with tm.assert_produces_warning(warn):
-            res = dtarr - other
-        expected = DatetimeIndex(
-            [dti[n] - other[n] for n in range(len(dti))], name=dti.name, freq="infer"
-        )
-        expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(res, expected)
 
     @pytest.mark.parametrize(
@@ -1905,9 +1879,9 @@ class TestTimestampSeriesArithmetic:
 
     # TODO: parametrize over box
     @pytest.mark.parametrize("op", ["__add__", "__radd__", "__sub__", "__rsub__"])
-    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
-    def test_dt64_series_add_intlike(self, tz, op):
+    def test_dt64_series_add_intlike(self, tz_naive_fixture, op):
         # GH#19123
+        tz = tz_naive_fixture
         dti = pd.DatetimeIndex(["2016-01-02", "2016-02-03", "NaT"], tz=tz)
         ser = Series(dti)
 
@@ -2376,12 +2350,9 @@ class TestDatetimeIndexArithmetic:
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
 
-    @pytest.mark.parametrize(
-        "names", [("foo", None, None), ("baz", "bar", None), ("bar", "bar", "bar")]
-    )
-    @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-    def test_dti_add_series(self, tz, names):
+    def test_dti_add_series(self, tz_naive_fixture, names):
         # GH#13905
+        tz = tz_naive_fixture
         index = DatetimeIndex(
             ["2016-06-28 05:30", "2016-06-28 05:31"], tz=tz, name=names[0]
         )
@@ -2403,9 +2374,6 @@ class TestDatetimeIndexArithmetic:
         tm.assert_index_equal(result4, expected)
 
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
     def test_dti_addsub_offset_arraylike(
         self, tz_naive_fixture, names, op, index_or_series
     ):

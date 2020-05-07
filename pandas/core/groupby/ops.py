@@ -56,11 +56,8 @@ from pandas.core.sorting import (
 )
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
-    check_kwargs_and_nopython,
-    get_jit_arguments,
-    jit_user_function,
+    generate_numba_func,
     split_for_numba,
-    validate_udf,
 )
 
 
@@ -461,7 +458,7 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
@@ -476,8 +473,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(values.dtype):
             # Cast to naive; we'll cast back at the end of the function
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
+            # TODO: possible need to reshape?
+            # TODO(EA2D):kludge can be avoided when 2D EA is allowed.
             values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
@@ -689,12 +686,8 @@ class BaseGrouper:
     ):
 
         if engine == "numba":
-            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-            check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
-            cache_key = (func, "groupby_agg")
-            numba_func = NUMBA_FUNC_CACHE.get(
-                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_agg"
             )
 
         group_index, _, ngroups = self.group_info
@@ -717,7 +710,7 @@ class BaseGrouper:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing import res.index info?
+                        # FIXME: are we potentially losing important res.index info?
                         res = res.item()
                     else:
                         raise ValueError("Function does not reduce")
