@@ -1,3 +1,4 @@
+from cpython.datetime cimport tzinfo
 from datetime import timezone
 
 # dateutil compat
@@ -24,12 +25,13 @@ cnp.import_array()
 from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 
 cdef int64_t NPY_NAT = get_nat()
-cdef object utc_stdlib = timezone.utc
+cdef tzinfo utc_stdlib = timezone.utc
+cdef tzinfo utc_pytz = UTC
 
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
+    return tz is utc_pytz or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
 cdef inline bint is_tzlocal(object tz):
@@ -152,11 +154,11 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo, obj):
+cdef get_utcoffset(tzinfo tz, obj):
     try:
-        return tzinfo._utcoffset
+        return tz._utcoffset
     except AttributeError:
-        return tzinfo.utcoffset(obj)
+        return tz.utcoffset(obj)
 
 
 cdef inline bint is_fixed_offset(object tz):

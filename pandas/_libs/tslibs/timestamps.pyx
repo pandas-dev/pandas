@@ -25,8 +25,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, maybe_get_tz, treat_tz_as_pytz)
-from pandas._libs.tslibs.timezones import UTC
+    is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC
+)
 from pandas._libs.tslibs.tzconversion import (
     tz_localize_to_utc, tz_convert_single)
 
