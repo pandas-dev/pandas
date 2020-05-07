@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timezones cimport (
     get_timezone, is_utc, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.offsets cimport is_tick_object
 
 
 class NullFrequencyError(ValueError):
@@ -247,18 +248,26 @@ cdef class _Timestamp(datetime):
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
 
-        elif PyDelta_Check(other) or hasattr(other, 'delta'):
-            # delta --> offsets.Tick
+        elif PyDelta_Check(other):
             # logic copied from delta_to_nanoseconds to prevent circular import
-            if hasattr(other, 'nanos'):
-                nanos = other.nanos
-            elif hasattr(other, 'delta'):
-                nanos = other.delta
+            if hasattr(other, 'delta'):
+                # pd.Timedelta
+                nanos = other.value
             elif PyDelta_Check(other):
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
                          other.seconds * 1000000 +
                          other.microseconds) * 1000
 
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
+
+        elif is_tick_object(other):
+            try:
+                nanos = other.nanos
+            except OverflowError:
+                raise OverflowError(
+                    f"the add operation between {other} and {self} will overflow"
+                )
             result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
             return result
 
@@ -273,21 +282,12 @@ cdef class _Timestamp(datetime):
                     dtype=object,
                 )
 
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return NotImplemented
-
-        result = datetime.__add__(self, other)
-        if PyDateTime_Check(result):
-            result = type(self)(result)
-            result.nanosecond = self.nanosecond
-        return result
+        return NotImplemented
 
     def __sub__(self, other):
 
         if (is_timedelta64_object(other) or is_integer_object(other) or
-                PyDelta_Check(other) or hasattr(other, 'delta')):
-            # `delta` attribute is for offsets.Tick or offsets.Week obj
+                PyDelta_Check(other) or is_tick_object(other)):
             neg_other = -other
             return self + neg_other
 
@@ -301,9 +301,6 @@ cdef class _Timestamp(datetime):
                     [self - other[n] for n in range(len(other))],
                     dtype=object,
                 )
-
-        typ = getattr(other, '_typ', None)
-        if typ is not None:
             return NotImplemented
 
         if other is NaT:
@@ -339,6 +336,8 @@ cdef class _Timestamp(datetime):
                             "to datetime.datetime with 'Timestamp.to_pydatetime()' "
                             "before subtracting."
                         ) from err
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
