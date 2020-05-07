@@ -214,20 +214,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if is_valid_nat_for_dtype(key, self.dtype):
-            key = NaT
-
-        elif isinstance(key, str):
-            try:
-                key = Timedelta(key)
-            except ValueError as err:
-                raise KeyError(key) from err
-
-        elif isinstance(key, self._data._recognized_scalars) or key is NaT:
-            key = Timedelta(key)
-
-        else:
-            raise KeyError(key)
+        try:
+            key = self._data._validate_scalar(key, "loc", cast_str=True)
+        except TypeError as err:
+            raise KeyError(key) from err
 
         return Index.get_loc(self, key, method, tolerance)
 
