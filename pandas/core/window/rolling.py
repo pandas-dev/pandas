@@ -2123,7 +2123,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             **kwargs,
         )
         group_keys = self._groupby.grouper._get_group_keys()
-        return self._groupby._wrap_applied_output(group_keys, result)
+        return self._groupby._wrap_applied_output(group_keys, [result])
 
     @property
     def _constructor(self):
