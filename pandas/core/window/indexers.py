@@ -1,5 +1,5 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -180,8 +180,9 @@ class GroupbyRollingIndexer(BaseIndexer):
         index_array: Optional[np.ndarray] = None,
         window_size: int = 0,
         groupby_indicies: Optional[Dict] = None,
-        rolling_indexer: Optional[BaseIndexer] = None,
-        # need to know which BaseIndex subclass to accpet here
+        rolling_indexer: Optional[
+            Union[FixedWindowIndexer, VariableWindowIndexer]
+        ] = None,
         **kwargs,
     ):
         """
@@ -202,14 +203,18 @@ class GroupbyRollingIndexer(BaseIndexer):
         center: Optional[bool] = None,
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        # Reuse a either FixedWindowIndexer or VariableWindowIndexer here
-        # results = (start, end)
-        # for each group index
-        #   s, e = FixedWindowIndexer(group_index, window).get_window bounds
-        #   start.append(s)
-        #   end.append(e)
-        # return results
-        return (
-            np.zeros(num_values, dtype=np.int64),
-            np.arange(1, num_values + 1, dtype=np.int64),
-        )
+        start_arrays = []
+        end_arrays = []
+        for key, indicies in self.groupby_indicies.items():
+            indexer = self.rolling_indexer(
+                index_array=indicies, window_size=self.window_size
+            )
+            start, end = indexer.get_window_bounds(
+                len(indicies), min_periods, center, closed
+            )
+            indicies = np.append(indicies, [indicies[-1] + 1])  # Check this assumption
+            start_arrays.append(indicies.take(start))
+            end_arrays.append(indicies.take(end))
+        start = np.concatenate(start_arrays)
+        end = np.concatenate(end_arrays)
+        return start, end

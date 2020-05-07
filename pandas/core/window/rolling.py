@@ -2089,9 +2089,41 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Overwrite window with a GroupbyRollingIndexer
-        window = GroupbyRollingIndexer(groupby_indicies=self._groupby.indices)
+        if self.is_freq_type:
+            rolling_indexer = VariableWindowIndexer
+        else:
+            rolling_indexer = FixedWindowIndexer
+        window = GroupbyRollingIndexer(
+            window_size=self.window,
+            groupby_indicies=self._groupby.indices,
+            rolling_indexer=rolling_indexer,
+        )
         self.window = window
+
+    def _apply(
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        use_numba_cache: bool = False,
+        **kwargs,
+    ):
+        # result here needs to be a list somehow
+        result = super()._apply(
+            func,
+            center,
+            require_min_periods,
+            floor,
+            is_weighted,
+            name,
+            use_numba_cache,
+            **kwargs,
+        )
+        group_keys = self._groupby.grouper._get_group_keys()
+        return self._groupby._wrap_applied_output(group_keys, result)
 
     @property
     def _constructor(self):

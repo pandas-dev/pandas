@@ -64,34 +64,36 @@ class WindowGroupByMixin(GroupByMixin):
     corr = _dispatch("corr", other=None, pairwise=None)
     cov = _dispatch("cov", other=None, pairwise=None)
 
-    def _apply(
-        self,
-        func: Callable,
-        center: bool,
-        require_min_periods: int = 0,
-        floor: int = 1,
-        is_weighted: bool = False,
-        name: Optional[str] = None,
-        use_numba_cache: bool = False,
-        **kwargs,
-    ):
-        """
-        Dispatch to apply; we are stripping all of the _apply kwargs and
-        performing the original function call on the grouped object.
-        """
-        kwargs.pop("floor", None)
-        kwargs.pop("original_func", None)
+    # def _apply(
+    #    self,
+    #    func: Callable,
+    #    center: bool,
+    #    require_min_periods: int = 0,
+    #    floor: int = 1,
+    #    is_weighted: bool = False,
+    #    name: Optional[str] = None,
+    #    use_numba_cache: bool = False,
+    #    **kwargs,
+    # ):
+    #    """
+    #    Dispatch to apply; we are stripping all of the _apply kwargs and
+    #    performing the original function call on the grouped object.
+    #    """
+    #    kwargs.pop("floor", None)
+    #    kwargs.pop("original_func", None)
 
-        # TODO: can we de-duplicate with _dispatch?
-        def f(x, name=name, *args):
-            x = self._shallow_copy(x)
 
-            if isinstance(name, str):
-                return getattr(x, name)(*args, **kwargs)
-
-            return x.apply(name, *args, **kwargs)
-
-        return self._groupby.apply(f)
+#
+#    # TODO: can we de-duplicate with _dispatch?
+#    def f(x, name=name, *args):
+#        x = self._shallow_copy(x)
+#
+#        if isinstance(name, str):
+#            return getattr(x, name)(*args, **kwargs)
+#
+#        return x.apply(name, *args, **kwargs)
+#
+#    return self._groupby.apply(f)
 
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):
