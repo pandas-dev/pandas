@@ -6,7 +6,7 @@ import warnings
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
                                PyDelta_Check,
-                               datetime, timedelta,
+                               datetime, timedelta, date,
                                time as dt_time)
 PyDateTime_IMPORT
 
@@ -29,12 +29,13 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
+from pandas._libs.tslibs.timestamps import Timestamp
 
 # ---------------------------------------------------------------------
 # Constants
@@ -140,6 +141,63 @@ def apply_index_wraps(func):
 
         if self.normalize:
             result = result.to_period('D').to_timestamp()
+        return result
+
+    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    try:
+        wrapper.__module__ = func.__module__
+    except AttributeError:
+        # AttributeError: 'method_descriptor' object has no
+        # attribute '__module__'
+        pass
+    return wrapper
+
+
+def apply_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely with cython class methods
+
+    def wrapper(self, other):
+        if other is NaT:
+            return NaT
+        elif isinstance(other, (timedelta, BaseOffset)):
+            # timedelta path
+            return func(self, other)
+        elif isinstance(other, (np.datetime64, datetime, date)):
+            other = Timestamp(other)
+        else:
+            raise TypeError(other)
+
+        tz = other.tzinfo
+        nano = other.nanosecond
+
+        if self._adjust_dst:
+            other = other.tz_localize(None)
+
+        result = func(self, other)
+
+        result = Timestamp(result)
+        if self._adjust_dst:
+            result = result.tz_localize(tz)
+
+        if self.normalize:
+            result = result.normalize()
+
+        # nanosecond may be deleted depending on offset process
+        if not self.normalize and nano != 0:
+            if result.nanosecond != nano:
+                if result.tz is not None:
+                    # convert to UTC
+                    value = result.tz_localize(None).value
+                else:
+                    value = result.value
+                result = Timestamp(value + nano)
+
+        if tz is not None and result.tzinfo is None:
+            result = result.tz_localize(tz)
+
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
@@ -348,6 +406,10 @@ class _BaseOffset:
     _typ = "dateoffset"
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
+    _use_relativedelta = False
+    _adjust_dst = False
+    _deprecations = frozenset(["isAnchored", "onOffset"])
+    normalize = False  # default for prior pickles
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
@@ -508,10 +570,40 @@ class _BaseOffset:
 
     # ------------------------------------------------------------------
 
+    def rollback(self, dt):
+        """
+        Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
+        """
+        dt = Timestamp(dt)
+        if not self.is_on_offset(dt):
+            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
+        return dt
+
+    def rollforward(self, dt):
+        """
+        Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
+        """
+        dt = Timestamp(dt)
+        if not self.is_on_offset(dt):
+            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
+        return dt
+
     def _get_offset_day(self, datetime other):
         # subclass must implement `_day_opt`; calling from the base class
         # will raise NotImplementedError.
         return get_day_of_month(other, self._day_opt)
+
+    # ------------------------------------------------------------------
 
     def _validate_n(self, n):
         """
@@ -627,6 +719,12 @@ cdef class _Tick(ABCTick):
 
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    def is_anchored(self) -> bool:
+        return False
 
     def __truediv__(self, other):
         if not isinstance(self, _Tick):

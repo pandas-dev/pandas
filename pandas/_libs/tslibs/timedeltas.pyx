@@ -31,7 +31,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
-from pandas._libs.tslibs.offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1284,6 +1283,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
+        from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
