@@ -1275,7 +1275,8 @@ class TestDataFrameReductions:
         tm.assert_series_equal(df.max(axis=1), expected_dt_series)
 
     def test_min_max_dt64_api_consistency_empty_df(self):
-        # check DataFrame/Series api consistency when calling min/max on an empty DataFrame/Series.
+        # check DataFrame/Series api consistency when calling min/max on an empty
+        # DataFrame/Series.
         df = pd.DataFrame(dict(x=[]))
         expected_float_series = pd.Series([], dtype=float)
         # check axis 0
