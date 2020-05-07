@@ -1,5 +1,5 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -170,3 +170,46 @@ class FixedForwardWindowIndexer(BaseIndexer):
         end = np.concatenate([end_s, end_e])
 
         return start, end
+
+
+class GroupbyRollingIndexer(BaseIndexer):
+    """Calculate bounds to compute groupby rolling, mimicking df.groupby().rolling()"""
+
+    def __init__(
+        self,
+        index_array: Optional[np.ndarray] = None,
+        window_size: int = 0,
+        groupby_indicies: Optional[Dict] = None,
+        rolling_indexer: Optional[BaseIndexer] = None,
+        # need to know which BaseIndex subclass to accpet here
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        **kwargs :
+            keyword arguments that will be available when get_window_bounds is called
+        """
+        self.groupby_indicies = groupby_indicies
+        self.rolling_indexer = rolling_indexer
+        super().__init__(index_array, window_size, **kwargs)
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # Reuse a either FixedWindowIndexer or VariableWindowIndexer here
+        # results = (start, end)
+        # for each group index
+        #   s, e = FixedWindowIndexer(group_index, window).get_window bounds
+        #   start.append(s)
+        #   end.append(e)
+        # return results
+        return (
+            np.zeros(num_values, dtype=np.int64),
+            np.arange(1, num_values + 1, dtype=np.int64),
+        )

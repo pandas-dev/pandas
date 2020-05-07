@@ -51,6 +51,7 @@ from pandas.core.window.common import (
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
+    GroupbyRollingIndexer,
     FixedWindowIndexer,
     VariableWindowIndexer,
 )
@@ -2083,6 +2084,12 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Overwrite window with a GroupbyRollingIndexer
+        window = GroupbyRollingIndexer(groupby_indicies=self._groupby.indices)
+        self.window = window
 
     @property
     def _constructor(self):
