@@ -11,6 +11,7 @@ cdef class ABCTimestamp(datetime):
 cdef class ABCTick:
     pass
 
+
 cdef class ABCPeriod:
     pass
 
