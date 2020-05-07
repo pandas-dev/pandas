@@ -2,14 +2,12 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 from typing import Any, Optional
-import warnings
 
 from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
     NaT,
-    OutOfBoundsDatetime,
     Period,
     Timedelta,
     Timestamp,
@@ -17,20 +15,19 @@ from pandas._libs.tslibs import (
     conversion,
     delta_to_nanoseconds,
     frequencies as libfrequencies,
-    normalize_date,
     offsets as liboffsets,
-    timezones,
 )
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     BaseOffset,
-    _get_calendar,
-    _is_normalized,
-    _to_dt64D,
+    BusinessMixin,
+    CustomMixin,
     apply_index_wraps,
     as_datetime,
+    is_normalized,
     roll_yearday,
     shift_month,
+    to_dt64D,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -76,73 +73,47 @@ __all__ = [
     "DateOffset",
 ]
 
-# convert to/from datetime/timestamp to allow invalid Timestamp ranges to
-# pass thru
-
-
-def as_timestamp(obj):
-    if isinstance(obj, Timestamp):
-        return obj
-    try:
-        return Timestamp(obj)
-    except (OutOfBoundsDatetime):
-        pass
-    return obj
-
 
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
         if other is NaT:
             return NaT
-        elif isinstance(other, (timedelta, Tick, DateOffset)):
+        elif isinstance(other, (timedelta, DateOffset)):
             # timedelta path
             return func(self, other)
         elif isinstance(other, (np.datetime64, datetime, date)):
-            other = as_timestamp(other)
+            other = Timestamp(other)
+        else:
+            raise TypeError(other)
 
-        tz = getattr(other, "tzinfo", None)
-        nano = getattr(other, "nanosecond", 0)
+        tz = other.tzinfo
+        nano = other.nanosecond
 
-        try:
-            if self._adjust_dst and isinstance(other, Timestamp):
-                other = other.tz_localize(None)
+        if self._adjust_dst:
+            other = other.tz_localize(None)
 
-            result = func(self, other)
+        result = func(self, other)
 
-            if self._adjust_dst:
-                result = conversion.localize_pydatetime(result, tz)
+        result = Timestamp(result)
+        if self._adjust_dst:
+            result = result.tz_localize(tz)
 
-            result = Timestamp(result)
-            if self.normalize:
-                result = result.normalize()
+        if self.normalize:
+            result = result.normalize()
 
-            # nanosecond may be deleted depending on offset process
-            if not self.normalize and nano != 0:
-                if not isinstance(self, Nano) and result.nanosecond != nano:
-                    if result.tz is not None:
-                        # convert to UTC
-                        value = conversion.tz_convert_single(
-                            result.value, timezones.UTC, result.tz
-                        )
-                    else:
-                        value = result.value
-                    result = Timestamp(value + nano)
+        # nanosecond may be deleted depending on offset process
+        if not self.normalize and nano != 0:
+            if not isinstance(self, Nano) and result.nanosecond != nano:
+                if result.tz is not None:
+                    # convert to UTC
+                    value = result.tz_localize(None).value
+                else:
+                    value = result.value
+                result = Timestamp(value + nano)
 
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-        except OutOfBoundsDatetime:
-            result = func(self, as_datetime(other))
-
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = normalize_date(result)
-
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-            result = Timestamp(result)
+        if tz is not None and result.tzinfo is None:
+            result = result.tz_localize(tz)
 
         return result
 
@@ -249,6 +220,7 @@ class DateOffset(BaseOffset):
     """
 
     _params = cache_readonly(BaseOffset._params.fget)
+    freqstr = cache_readonly(BaseOffset.freqstr.fget)
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
@@ -289,7 +261,7 @@ class DateOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = conversion.localize_pydatetime(other, tzinfo)
 
-            return as_timestamp(other)
+            return Timestamp(other)
         else:
             return other + timedelta(self.n)
 
@@ -366,22 +338,6 @@ class DateOffset(BaseOffset):
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
 
-    def onOffset(self, dt):
-        warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.is_on_offset(dt)
-
-    def isAnchored(self) -> bool:
-        warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.is_anchored()
-
     # TODO: Combine this with BusinessMixin version by defining a whitelisted
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
@@ -400,10 +356,6 @@ class DateOffset(BaseOffset):
             out += ": " + ", ".join(attrs)
         return out
 
-    @property
-    def name(self) -> str:
-        return self.rule_code
-
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
@@ -413,7 +365,7 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -427,15 +379,15 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def is_on_offset(self, dt):
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
-        # XXX, see #1395
+        # TODO, see #1395
         if type(self) == DateOffset or isinstance(self, Tick):
             return True
 
@@ -446,43 +398,6 @@ class DateOffset(BaseOffset):
         b = (dt + self) - self
         return a == b
 
-    # way to get around weirdness with rule_code
-    @property
-    def _prefix(self) -> str:
-        raise NotImplementedError("Prefix not defined")
-
-    @property
-    def rule_code(self) -> str:
-        return self._prefix
-
-    @cache_readonly
-    def freqstr(self) -> str:
-        try:
-            code = self.rule_code
-        except NotImplementedError:
-            return repr(self)
-
-        if self.n != 1:
-            fstr = f"{self.n}{code}"
-        else:
-            fstr = code
-
-        try:
-            if self._offset:
-                fstr += self._offset_str()
-        except AttributeError:
-            # TODO: standardize `_offset` vs `offset` naming convention
-            pass
-
-        return fstr
-
-    def _offset_str(self) -> str:
-        return ""
-
-    @property
-    def nanos(self):
-        raise ValueError(f"{self} is a non-fixed frequency")
-
 
 class SingleConstructorOffset(DateOffset):
     @classmethod
@@ -491,49 +406,6 @@ class SingleConstructorOffset(DateOffset):
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
-
-
-class _CustomMixin:
-    """
-    Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes.
-    """
-
-    def __init__(self, weekmask, holidays, calendar):
-        calendar, holidays = _get_calendar(
-            weekmask=weekmask, holidays=holidays, calendar=calendar
-        )
-        # Custom offset instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        object.__setattr__(self, "weekmask", weekmask)
-        object.__setattr__(self, "holidays", holidays)
-        object.__setattr__(self, "calendar", calendar)
-
-
-class BusinessMixin:
-    """
-    Mixin to business types to provide related functions.
-    """
-
-    @property
-    def offset(self):
-        """
-        Alias for self._offset.
-        """
-        # Alias for backward compat
-        return self._offset
-
-    def _repr_attrs(self) -> str:
-        if self.offset:
-            attrs = [f"offset={repr(self.offset)}"]
-        else:
-            attrs = []
-        out = ""
-        if attrs:
-            out += ": " + ", ".join(attrs)
-        return out
 
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
@@ -643,7 +515,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return result
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return dt.weekday() < 5
 
@@ -661,8 +533,8 @@ class BusinessHourMixin(BusinessMixin):
         if not len(end):
             raise ValueError("Must include at least 1 end time")
 
-        start = np.array([liboffsets._validate_business_time(x) for x in start])
-        end = np.array([liboffsets._validate_business_time(x) for x in end])
+        start = np.array([liboffsets.validate_business_time(x) for x in start])
+        end = np.array([liboffsets.validate_business_time(x) for x in end])
 
         # Validation of input
         if len(start) != len(end):
@@ -889,7 +761,7 @@ class BusinessHourMixin(BusinessMixin):
 
             # adjust by business days first
             if bd != 0:
-                if isinstance(self, _CustomMixin):  # GH 30593
+                if isinstance(self, CustomMixin):  # GH 30593
                     skip_bd = CustomBusinessDay(
                         n=bd,
                         weekmask=self.weekmask,
@@ -949,7 +821,7 @@ class BusinessHourMixin(BusinessMixin):
             raise ApplyTypeError("Only know how to combine business hour with datetime")
 
     def is_on_offset(self, dt):
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:
@@ -964,7 +836,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         Slight speedups using calculated values.
         """
-        # if self.normalize and not _is_normalized(dt):
+        # if self.normalize and not is_normalized(dt):
         #     return False
         # Valid BH can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
@@ -1009,7 +881,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
         super().__init__(start=start, end=end, offset=offset)
 
 
-class CustomBusinessDay(_CustomMixin, BusinessDay):
+class CustomBusinessDay(CustomMixin, BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
 
@@ -1044,7 +916,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
-        _CustomMixin.__init__(self, weekmask, holidays, calendar)
+        CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
     def apply(self, other):
@@ -1080,13 +952,13 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
-        day64 = _to_dt64D(dt)
+        day64 = to_dt64D(dt)
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(_CustomMixin, BusinessHourMixin, SingleConstructorOffset):
+class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -1111,7 +983,7 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin, SingleConstructorOffse
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
-        _CustomMixin.__init__(self, weekmask, holidays, calendar)
+        CustomMixin.__init__(self, weekmask, holidays, calendar)
         BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
 
@@ -1125,16 +997,8 @@ class MonthOffset(SingleConstructorOffset):
 
     __init__ = BaseOffset.__init__
 
-    @property
-    def name(self) -> str:
-        if self.is_anchored:
-            return self.rule_code
-        else:
-            month = ccalendar.MONTH_ALIASES[self.n]
-            return f"{self.code_rule}-{month}"
-
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -1147,9 +1011,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
+        return type(i)._simple_new(shifted, dtype=i.dtype)
 
 
 class MonthEnd(MonthOffset):
@@ -1188,7 +1050,7 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = "business_start"
 
 
-class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
+class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -1230,7 +1092,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
-        _CustomMixin.__init__(self, weekmask, holidays, calendar)
+        CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
     def cbday_roll(self):
@@ -1419,7 +1281,7 @@ class SemiMonthEnd(SemiMonthOffset):
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         days_in_month = ccalendar.get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
@@ -1477,7 +1339,7 @@ class SemiMonthBegin(SemiMonthOffset):
     _prefix = "SMS"
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
 
@@ -1616,7 +1478,7 @@ class Week(DateOffset):
         return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         elif self.weekday is None:
             return True
@@ -1659,7 +1521,7 @@ class _WeekOfMonthMixin:
         return liboffsets.shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt):
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -1858,7 +1720,7 @@ class QuarterOffset(DateOffset):
         return shift_month(other, months, self._day_opt)
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
@@ -1868,11 +1730,7 @@ class QuarterOffset(DateOffset):
         shifted = liboffsets.shift_quarters(
             dtindex.asi8, self.n, self.startingMonth, self._day_opt
         )
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1954,14 +1812,10 @@ class YearOffset(DateOffset):
         shifted = liboffsets.shift_quarters(
             dtindex.asi8, self.n, self.month, self._day_opt, modby=12
         )
-        # TODO: going through __new__ raises on call to _validate_frequency;
-        #  are we passing incorrect freq?
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
@@ -2106,7 +1960,7 @@ class FY5253(DateOffset):
         )
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
@@ -2429,7 +2283,7 @@ class FY5253Quarter(DateOffset):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
             return True
@@ -2500,7 +2354,7 @@ class Easter(DateOffset):
         return new
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not _is_normalized(dt):
+        if self.normalize and not is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
@@ -2548,7 +2402,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
-                return _delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self.delta + other.delta)
         elif isinstance(other, Period):
             return other + self
         try:
@@ -2622,7 +2476,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
-            return as_timestamp(other) + self
+            return Timestamp(other) + self
 
         if isinstance(other, timedelta):
             return other + self.delta
@@ -2635,7 +2489,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return False
 
 
-def _delta_to_tick(delta: timedelta) -> Tick:
+def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:
