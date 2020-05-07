@@ -3,7 +3,7 @@ import functools
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Optional, Type, Iterator
 
 import numpy as np
 
@@ -350,20 +350,20 @@ class JSONTableWriter(FrameWriter):
 )
 def read_json(
     path_or_buf=None,
-    orient=None,
-    typ="frame",
+    orient: str = None,
+    typ: str = "frame",
     dtype=None,
-    convert_axes=None,
+    convert_axes: bool = None,
     convert_dates=True,
-    keep_default_dates=True,
-    numpy=False,
-    precise_float=False,
-    date_unit=None,
-    encoding=None,
-    lines=False,
-    chunksize=None,
-    compression="infer",
-    nrows=None,
+    keep_default_dates: bool = True,
+    numpy: bool = False,
+    precise_float: bool = False,
+    date_unit: str = None,
+    encoding: str = None,
+    lines: bool = False,
+    chunksize: Optional[int] = None,
+    compression: str = "infer",
+    nrows: int = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -495,10 +495,12 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
 
-    chunksize : int, optional
+    nrows : int, default None
         The number of lines from the line-delimited jsonfile that has to be read.
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
+        .. versionadded:: 1.1
+
 
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
@@ -632,20 +634,20 @@ class JsonReader(abc.Iterator):
     def __init__(
         self,
         filepath_or_buffer,
-        orient,
-        typ,
+        orient: str,
+        typ: str,
         dtype,
-        convert_axes,
+        convert_axes: bool,
         convert_dates,
-        keep_default_dates,
-        numpy,
-        precise_float,
-        date_unit,
-        encoding,
-        lines,
-        chunksize,
-        compression,
-        nrows,
+        keep_default_dates: bool,
+        numpy: bool,
+        precise_float: bool,
+        date_unit: str,
+        encoding: str,
+        lines: bool,
+        chunksize: Optional[int],
+        compression: str,
+        nrows: int,
     ):
 
         self.path_or_buf = filepath_or_buffer
@@ -732,6 +734,15 @@ class JsonReader(abc.Iterator):
         lines = filter(None, map(lambda x: x.strip(), lines))
         return "[" + ",".join(lines) + "]"
 
+    def _jsonstring_to_list_generaor(self, data: str) -> Iterator[str]:
+        prev_index = -1
+        while True:
+            next_index = data.find("\n", prev_index + 1)
+            if next_index < 0:
+                break
+            yield data[prev_index + 1 : next_index]
+            prev_index = next_index
+
     def read(self):
         """
         Read the whole JSON input into a pandas object.
@@ -740,9 +751,10 @@ class JsonReader(abc.Iterator):
             obj = concat(self)
         elif self.lines:
             data = ensure_str(self.data)
-            data = data.split("\n")
             if self.nrows:
-                data = data[: self.nrows]
+                data = list(islice(self._jsonstring_to_list_generaor(data), self.nrows))
+            else:
+                data = data.split("\n")
             obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
