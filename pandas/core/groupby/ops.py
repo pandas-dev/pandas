@@ -11,8 +11,6 @@ from typing import List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
-from pandas.core.dtypes.cast import maybe_cast_result
-
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
@@ -20,6 +18,7 @@ from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
