@@ -705,10 +705,9 @@ class TestDataFrameQueryNumExprPandas:
         df = pd.DataFrame(index=df_index)
         result = df.query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
-        df2 = pd.DataFrame(
-            {"time": pd.date_range(start="2019-01-01", freq="1d", periods=10, tz=tz)}
-        )
-        result = df2.set_index("time").query('"2018-01-03 00:00:00+00" < time')
+
+        expected = pd.DataFrame(df_index)
+        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
 
