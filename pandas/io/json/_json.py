@@ -3,7 +3,7 @@ import functools
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type, Iterator
+from typing import Any, Callable, Iterator, Optional, Type
 
 import numpy as np
 
@@ -350,20 +350,20 @@ class JSONTableWriter(FrameWriter):
 )
 def read_json(
     path_or_buf=None,
-    orient: str = None,
-    typ: str = "frame",
+    orient=None,
+    typ="frame",
     dtype=None,
-    convert_axes: bool = None,
+    convert_axes=None,
     convert_dates=True,
     keep_default_dates: bool = True,
     numpy: bool = False,
     precise_float: bool = False,
-    date_unit: str = None,
-    encoding: str = None,
+    date_unit=None,
+    encoding=None,
     lines: bool = False,
     chunksize: Optional[int] = None,
-    compression: str = "infer",
-    nrows: int = None,
+    compression="infer",
+    nrows: Optional[int] = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -495,19 +495,18 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
 
-    nrows : int, default None
-        The number of lines from the line-delimited jsonfile that has to be read.
-        This can only be passed if `lines=True`.
-        If this is None, all the rows will be returned.
-        .. versionadded:: 1.1
-
-
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
+
+    nrows : int, optional
+        The number of lines from the line-delimited jsonfile that has to be read.
+        This can only be passed if `lines=True`.
+        If this is None, all the rows will be returned.
+        .. versionadded:: 1.1
 
     Returns
     -------
@@ -634,20 +633,20 @@ class JsonReader(abc.Iterator):
     def __init__(
         self,
         filepath_or_buffer,
-        orient: str,
-        typ: str,
+        orient,
+        typ,
         dtype,
-        convert_axes: bool,
+        convert_axes,
         convert_dates,
         keep_default_dates: bool,
         numpy: bool,
         precise_float: bool,
-        date_unit: str,
-        encoding: str,
+        date_unit,
+        encoding,
         lines: bool,
         chunksize: Optional[int],
-        compression: str,
-        nrows: int,
+        compression,
+        nrows: Optional[int],
     ):
 
         self.path_or_buf = filepath_or_buffer
