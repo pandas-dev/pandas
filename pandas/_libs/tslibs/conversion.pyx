@@ -13,7 +13,7 @@ from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
@@ -353,7 +353,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         offset = get_utcoffset(obj.tzinfo, ts)
         obj.value -= int(offset.total_seconds() * 1e9)
 
-    if isinstance(ts, _Timestamp):
+    if isinstance(ts, ABCTimestamp):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
@@ -668,7 +668,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
     if tz is None:
         return dt
-    elif isinstance(dt, _Timestamp):
+    elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
     elif is_utc(tz):
         return _localize_pydatetime(dt, tz)

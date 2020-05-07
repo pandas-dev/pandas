@@ -21,7 +21,7 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
@@ -31,7 +31,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -595,7 +595,7 @@ def _binary_op_method_timedeltalike(op, name):
             pass
 
         elif is_datetime64_object(other) or (
-           PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
+           PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)):
             # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
@@ -753,7 +753,7 @@ cdef _to_py_int_float(v):
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(timedelta):
+cdef class _Timedelta(ABCTimedelta):
     cdef readonly:
         int64_t value      # nanoseconds
         object freq        # frequency reference

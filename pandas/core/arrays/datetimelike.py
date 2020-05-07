@@ -6,10 +6,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+from pandas._libs.tslibs.timestamps import (
+    RoundTo,
+    integer_op_not_supported,
+    round_nsint64,
+)
 from pandas._typing import DatetimeLikeScalar, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv

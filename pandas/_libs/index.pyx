@@ -23,7 +23,7 @@ cimport pandas._libs.util as util
 
 from pandas._libs.tslibs import Period, Timedelta
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -378,7 +378,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
-        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
+        if not (isinstance(scalar, ABCTimestamp) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
