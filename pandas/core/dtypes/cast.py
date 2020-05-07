@@ -315,11 +315,10 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
-    if how in ["add", "cumsum", "sum"]:
-        if dtype == np.dtype(np.bool):
-            return np.dtype(np.int64)
-        if isinstance(dtype, pd.BooleanDtype):
-            return pd.Int64Dtype()
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+        return np.dtype(np.int64)
+    if how in ["add", "cumsum", "sum"] and isinstance(dtype, pd.BooleanDtype):
+        return pd.Int64Dtype()
     return dtype
 
 
