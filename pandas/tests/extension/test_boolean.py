@@ -328,7 +328,7 @@ class TestGroupby(base.BaseGroupbyTests):
 
     @pytest.mark.parametrize("min_count", [0, 10])
     def test_groupby_sum_mincount(self, data_for_grouping, min_count):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping,})
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("A").sum(min_count=min_count)
         if min_count == 0:
             expected = pd.DataFrame(
