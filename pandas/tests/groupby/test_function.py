@@ -1307,6 +1307,14 @@ def test_size_groupby_all_null():
     tm.assert_series_equal(result, expected)
 
 
+def test_size_period_index():
+    # https://github.com/pandas-dev/pandas/issues/34010
+    ser = Series([1], index=pd.PeriodIndex(["2000"], name="A", freq="D"))
+    grp = ser.groupby(level="A")
+    result = grp.size()
+    tm.assert_series_equal(result, ser)
+
+
 # quantile
 # --------------------------------
 
