@@ -335,7 +335,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override] # NOQA
+    def __eq__(self, other: Any) -> ArrayLike:
         """
         Return for `self == other` (element-wise equality).
         """
@@ -347,7 +347,7 @@ class ExtensionArray:
         # underlying arrays)
         raise AbstractMethodError(self)
 
-    def __ne__(self, other: Any) -> ArrayLike:  # type: ignore[override] # NOQA
+    def __ne__(self, other: Any) -> ArrayLike:
         """
         Return for `self != other` (element-wise in-equality).
         """
