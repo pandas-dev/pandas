@@ -1234,7 +1234,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), list of tuples, dict, or DataFrame.
+            dtype), sequence of tuples, sequence of dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
 
         Examples
@@ -1633,9 +1633,13 @@ class DataFrame(NDFrame):
         """
         Convert structured or record ndarray to DataFrame.
 
+        Creates a DataFrame object from a structured ndarray, sequence of
+        tuples, sequence of dicts, or DataFrame.
+
         Parameters
         ----------
-        data : ndarray (structured dtype), list of tuples, dict, or DataFrame
+        data : ndarray (structured dtype), sequence of tuples, sequence of dicts, or DataFrame
+            Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -1675,7 +1679,7 @@ class DataFrame(NDFrame):
         2      1     c
         3      0     d
 
-        Data can be provided as a list of dictionaries:
+        Data can be provided as a list of dicts:
 
         >>> data = [{'col_1': 3, 'col_2': 'a'},
         ...         {'col_1': 2, 'col_2': 'b'},
