@@ -1701,7 +1701,7 @@ class DataFrame(NDFrame):
         1      2     b
         2      1     c
         3      0     d
-        """
+        """  # noqa: E501
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = ensure_index(columns)
