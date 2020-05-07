@@ -7,7 +7,6 @@ def test_namespace():
 
     submodules = [
         "base",
-        "c_timestamp",
         "ccalendar",
         "conversion",
         "fields",

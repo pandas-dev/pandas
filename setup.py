@@ -604,10 +604,6 @@ ext_data = {
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
