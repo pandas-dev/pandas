@@ -32,7 +32,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 
