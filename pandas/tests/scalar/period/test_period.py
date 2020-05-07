@@ -992,7 +992,8 @@ class TestPeriodComparisons:
         assert not jan == 1
         assert jan != 1
 
-        msg = "Cannot compare type Period with type int"
+        int_or_per = "'(Period|int)'"
+        msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
 
             with pytest.raises(TypeError, match=msg):
