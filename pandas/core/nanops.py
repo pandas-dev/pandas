@@ -385,7 +385,7 @@ def _na_for_min_count(
         assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
         # calling np.full with dtype parameter throws an ValueError when called
-        # with np.datetime64 and pd.NaT
+        # with dtype=np.datetime64 and and fill_value=pd.NaT
         try:
             result = np.full(result_shape, fill_value, dtype=values.dtype)
         except ValueError:

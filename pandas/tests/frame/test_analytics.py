@@ -1259,6 +1259,7 @@ class TestDataFrameReductions:
         exp = pd.Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
+    def test_min_max_dt64_api_consistency_with_NaT(self):
         # Calling the following sum functions returned an error for dataframes but
         # returned NaT for series. These tests check that the API is consistent in
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
@@ -1273,6 +1274,8 @@ class TestDataFrameReductions:
         tm.assert_series_equal(df.min(axis=1), expected_dt_series)
         tm.assert_series_equal(df.max(axis=1), expected_dt_series)
 
+    def test_min_max_dt64_api_consistency_empty_df(self):
+        # check DataFrame/Series api consistency when calling min/max on an empty DataFrame/Series.
         df = pd.DataFrame(dict(x=[]))
         expected_float_series = pd.Series([], dtype=float)
         # check axis 0
