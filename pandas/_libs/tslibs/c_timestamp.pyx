@@ -37,8 +37,9 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
     reverse_ops, cmp_scalar)
 from pandas._libs.tslibs.timezones cimport (
-    get_timezone, is_utc, tz_compare)
-from pandas._libs.tslibs.timezones import UTC
+    get_timezone, is_utc, tz_compare,
+    utc_pytz as UTC,
+)
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 from pandas._libs.tslibs.offsets cimport is_tick_object
 
