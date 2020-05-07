@@ -607,11 +607,9 @@ def get_grouper(
 
     # if the grouper is obj[name]
     def is_in_obj(gpr) -> bool:
-        if not hasattr(gpr, "name"):
-            return False
         try:
-            return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+            return id(gpr) == id(obj[gpr.name])
+        except Exception:
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
