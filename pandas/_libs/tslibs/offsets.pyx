@@ -21,6 +21,8 @@ cnp.import_array()
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object
 
+from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp
+
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
@@ -32,7 +34,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 
 # ---------------------------------------------------------------------
@@ -107,7 +108,7 @@ cdef to_offset(object obj):
 
 
 def as_datetime(obj: datetime) -> datetime:
-    if isinstance(obj, _Timestamp):
+    if isinstance(obj, ABCTimestamp):
         return obj.to_pydatetime()
     return obj
 
@@ -116,7 +117,7 @@ cpdef bint is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
         return False
-    if isinstance(dt, _Timestamp):
+    if isinstance(dt, ABCTimestamp):
         return dt.nanosecond == 0
     return True
 
@@ -618,7 +619,7 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-cdef class _Tick:
+cdef class _Tick(ABCTick):
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets

@@ -1,8 +1,9 @@
 from cpython.datetime cimport datetime
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from numpy cimport int64_t
 
-cdef class _Timestamp(datetime):
+cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
         int64_t value, nanosecond
         object freq

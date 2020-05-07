@@ -31,6 +31,8 @@ from pandas._libs.tslibs.util cimport (
     is_datetime64_object, is_timedelta64_object, is_integer_object,
     is_array)
 
+from pandas._libs.tslibs.base cimport ABCTimestamp
+
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
@@ -67,7 +69,7 @@ def integer_op_not_supported(obj):
     return TypeError(int_addsub_msg)
 
 
-cdef class _Timestamp(datetime):
+cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
