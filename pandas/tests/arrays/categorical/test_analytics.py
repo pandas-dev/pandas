@@ -1,3 +1,4 @@
+import re
 import sys
 
 import numpy as np
@@ -92,6 +93,17 @@ class TestCategoricalAnalytics:
         )
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             getattr(cat, method)(numeric_only=True)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_raises(self, method):
+        cat = Categorical(["a", "b", "c", "b"], ordered=False)
+        msg = (
+            f"Categorical is not ordered for operation {method}\n"
+            "you can use .as_ordered() to change the Categorical to an ordered one"
+        )
+        method = getattr(np, method)
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            method(cat)
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
