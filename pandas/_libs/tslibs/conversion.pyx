@@ -28,8 +28,9 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
-from pandas._libs.tslibs.timezones import UTC
+    get_timezone, maybe_get_tz, tz_compare,
+    utc_pytz as UTC,
+)
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.nattype import nat_strings
@@ -265,7 +266,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             ts = <int64_t>ts
         except OverflowError:
             # GH#26651 re-raise as OutOfBoundsDatetime
-            raise OutOfBoundsDatetime(ts)
+            raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp {ts}")
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -680,37 +681,6 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 
 # ----------------------------------------------------------------------
 # Normalization
-
-
-def normalize_date(dt: object) -> datetime:
-    """
-    Normalize datetime.datetime value to midnight. Returns datetime.date as a
-    datetime.datetime at midnight
-
-    Parameters
-    ----------
-    dt : date, datetime, or Timestamp
-
-    Returns
-    -------
-    normalized : datetime.datetime or Timestamp
-
-    Raises
-    ------
-    TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
-    """
-    if PyDateTime_Check(dt):
-        if isinstance(dt, _Timestamp):
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
-                              nanosecond=0)
-        else:
-            # regular datetime object
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
-            # TODO: Make sure DST crossing is handled correctly here
-    elif PyDate_Check(dt):
-        return datetime(dt.year, dt.month, dt.day)
-    else:
-        raise TypeError(f'Unrecognized type: {type(dt)}')
 
 
 @cython.wraparound(False)

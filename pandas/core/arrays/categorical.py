@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -344,7 +344,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     ) from err
             except ValueError as err:
 
-                # FIXME
+                # TODO(EA2D)
                 raise NotImplementedError(
                     "> 1 ndim Categorical are not supported at this time"
                 ) from err
@@ -1424,8 +1424,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             Index if datetime / periods.
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if needs_i8_conversion(self.categories):
-            return self.categories.take(self._codes, fill_value=np.nan)
+        if needs_i8_conversion(self.categories.dtype):
+            return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
@@ -1834,7 +1834,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
@@ -2296,9 +2296,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     @classmethod
     def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import concat_categorical
+        from pandas.core.dtypes.concat import union_categoricals
 
-        return concat_categorical(to_concat)
+        return union_categoricals(to_concat)
 
     def isin(self, values):
         """
