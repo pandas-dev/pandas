@@ -28,8 +28,9 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
-from pandas._libs.tslibs.timezones import UTC
+    get_timezone, maybe_get_tz, tz_compare,
+    utc_pytz as UTC,
+)
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.nattype import nat_strings
