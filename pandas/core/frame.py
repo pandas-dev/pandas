@@ -47,6 +47,7 @@ from pandas._typing import (
     Axis,
     Dtype,
     FilePathOrBuffer,
+    FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
     Level,
@@ -7014,8 +7015,8 @@ Wild         185.0
         self,
         key: Union[str, List[str]],
         ndim: int,
-        subset: Optional[Union[Series, "DataFrame"]] = None,
-    ) -> Union[Series, "DataFrame"]:
+        subset: Optional[FrameOrSeriesUnion] = None,
+    ) -> FrameOrSeriesUnion:
         """
         Sub-classes to define. Return a sliced object.
 
