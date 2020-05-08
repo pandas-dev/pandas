@@ -269,7 +269,7 @@ class DateOffset(BaseOffset):
     def apply_index(self, i):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplentedError for offsets without a
+        raises NotImplementedError for offsets without a
         vectorized implementation.
 
         Parameters
@@ -667,7 +667,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         Return business hours in a day by seconds.
         """
-        # create dummy datetime to calculate businesshours in a day
+        # create dummy datetime to calculate business hours in a day
         dtstart = datetime(2014, 4, 1, start.hour, start.minute)
         day = 1 if start < end else 2
         until = datetime(2014, 4, day, end.hour, end.minute)
@@ -2216,7 +2216,7 @@ class FY5253Quarter(DateOffset):
             # roll adjustment
             qtr_lens = self.get_weeks(norm)
 
-            # check thet qtr_lens is consistent with self._offset addition
+            # check that qtr_lens is consistent with self._offset addition
             end = liboffsets.shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.is_on_offset(end), (start, end, qtr_lens)
 

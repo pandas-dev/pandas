@@ -180,7 +180,7 @@ def info(
 
     if verbose:
         _verbose_repr()
-    elif verbose is False:  # specifically set to False, not nesc None
+    elif verbose is False:  # specifically set to False, not necessarily None
         _non_verbose_repr()
     else:
         if exceeds_info_cols:
