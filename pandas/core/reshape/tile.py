@@ -440,7 +440,7 @@ def _bins_to_cuts(
                 categories=labels if len(set(labels)) == len(labels) else None,
                 ordered=ordered,
             )
-        # TODO: handle mismach between categorical label order and pandas.cut order.
+        # TODO: handle mismatch between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
 
