@@ -1284,9 +1284,6 @@ class BlockManager(PandasObject):
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
-        #
-        # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
-        # pytables serialization will break otherwise.
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:

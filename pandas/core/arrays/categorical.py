@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -45,7 +45,12 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
+from pandas.core.base import (
+    ExtensionArray,
+    NoNewAttributesMixin,
+    PandasObject,
+    _shared_docs,
+)
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
@@ -124,17 +129,20 @@ def _cat_compare_op(op):
                         "scalar, which is not a category."
                     )
         else:
-
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
-            if opname in ["__eq__", "__ne__"]:
-                return getattr(np.array(self), opname)(np.array(other))
+            if opname not in ["__eq__", "__ne__"]:
+                raise TypeError(
+                    f"Cannot compare a Categorical for op {opname} with "
+                    f"type {type(other)}.\nIf you want to compare values, "
+                    "use 'np.asarray(cat) <op> other'."
+                )
 
-            raise TypeError(
-                f"Cannot compare a Categorical for op {opname} with "
-                f"type {type(other)}.\nIf you want to compare values, "
-                "use 'np.asarray(cat) <op> other'."
-            )
+            if isinstance(other, ExtensionArray) and needs_i8_conversion(other):
+                # We would return NotImplemented here, but that messes up
+                #  ExtensionIndex's wrapped methods
+                return op(other, self)
+            return getattr(np.array(self), opname)(np.array(other))
 
     func.__name__ = opname
 
@@ -344,7 +352,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     ) from err
             except ValueError as err:
 
-                # FIXME
+                # TODO(EA2D)
                 raise NotImplementedError(
                     "> 1 ndim Categorical are not supported at this time"
                 ) from err
@@ -1425,7 +1433,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=np.nan)
+            return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
