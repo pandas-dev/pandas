@@ -1,6 +1,6 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import NaT, Timedelta, index as libindex, lib
+from pandas._libs import Timedelta, index as libindex, lib
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
@@ -13,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -214,8 +213,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
+        msg = str(key)
         try:
-            key = self._data._validate_scalar(key, "loc", cast_str=True)
+            key = self._data._validate_scalar(key, msg, cast_str=True)
         except TypeError as err:
             raise KeyError(key) from err
 

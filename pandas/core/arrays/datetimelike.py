@@ -722,13 +722,14 @@ class DatetimeLikeArrayMixin(
         ------
         ValueError
         """
+        msg = (
+            f"'fill_value' should be a {self._scalar_type}. "
+            f"Got '{str(fill_value)}'."
+        )
         try:
-            fill_value = self._validate_scalar(fill_value, "take")
+            fill_value = self._validate_scalar(fill_value, msg)
         except TypeError as err:
-            raise ValueError(
-                f"'fill_value' should be a {self._scalar_type}. "
-                f"Got '{str(fill_value)}'."
-            ) from err
+            raise ValueError(msg) from err
         return self._unbox(fill_value)
 
     def _validate_shift_value(self, fill_value):
@@ -758,15 +759,13 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, opname: str, cast_str: bool = False):
+    def _validate_scalar(self, value, msg: str, cast_str: bool = False):
         if cast_str and isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
             except ValueError as err:
-                raise TypeError(
-                    f"{opname} requires compatible dtype or scalar"
-                ) from err
+                raise TypeError(msg) from err
 
         elif is_valid_nat_for_dtype(value, self.dtype):
             # GH#18295
@@ -776,7 +775,7 @@ class DatetimeLikeArrayMixin(
             value = self._scalar_type(value)  # type: ignore
 
         else:
-            raise TypeError(f"{opname} requires compatible dtype or scalar")
+            raise TypeError(msg)
 
         return value
 
@@ -818,8 +817,9 @@ class DatetimeLikeArrayMixin(
         return value
 
     def _validate_searchsorted_value(self, value):
+        msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
-            value = self._validate_scalar(value, "searchsorted", cast_str=True)
+            value = self._validate_scalar(value, msg, cast_str=True)
         else:
             # TODO: cast_str?  we accept it for scalar
             value = self._validate_listlike(value, "searchsorted")
@@ -827,17 +827,22 @@ class DatetimeLikeArrayMixin(
         return self._unbox(value)
 
     def _validate_setitem_value(self, value):
+        msg = (
+            f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
+            f"or array of those. Got '{type(value).__name__}' instead."
+        )
         if is_list_like(value):
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
             # TODO: cast_str for consistency?
-            value = self._validate_scalar(value, "setitem", cast_str=False)
+            value = self._validate_scalar(value, msg, cast_str=False)
 
         self._check_compatible_with(value, setitem=True)
         return self._unbox(value)
 
     def _validate_insert_value(self, value):
-        value = self._validate_scalar(value, "insert", cast_str=False)
+        msg = f"cannot insert {type(self).__name__} with incompatible label"
+        value = self._validate_scalar(value, msg, cast_str=False)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?
@@ -845,8 +850,9 @@ class DatetimeLikeArrayMixin(
         return value
 
     def _validate_where_value(self, other):
+        msg = f"Where requires matching dtype, not {type(other)}"
         if not is_list_like(other):
-            other = self._validate_scalar(other, "where")
+            other = self._validate_scalar(other, msg)
         else:
             other = self._validate_listlike(other, "where")
             self._check_compatible_with(other, setitem=True)
