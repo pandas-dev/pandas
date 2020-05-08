@@ -37,6 +37,8 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
+from pandas._libs.tslibs.base cimport ABCPeriod
+
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -1520,7 +1522,7 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period:
+cdef class _Period(ABCPeriod):
 
     cdef readonly:
         int64_t ordinal
