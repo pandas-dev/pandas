@@ -7,9 +7,7 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int64_t,
-                    PyArray_SETITEM)
+from numpy cimport ndarray, int64_t
 
 cnp.import_array()
 
