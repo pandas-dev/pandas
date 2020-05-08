@@ -706,16 +706,19 @@ class ExtensionArray:
         """
         Return if another array is equivalent to this array.
 
+        Equivalent means that both arrays have the same shape and dtype, and
+        all values compare equal. Missing values in the same location are
+        considered equal (in contrast with normal equality).
+
         Parameters
         ----------
-        other: ExtensionArray
+        other : ExtensionArray
             Array to compare to this Array.
 
         Returns
         -------
         boolean
             Whether the arrays are equivalent.
-
         """
         if not type(self) == type(other):
             return False
