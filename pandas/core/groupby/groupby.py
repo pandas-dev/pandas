@@ -2646,7 +2646,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         ----------
         n : int, optional
             Number of items to return. Cannot be used with `frac`.
-            Default = 1 if `frac` = None.
+            Default = 1 if `frac` is None.
         frac : float, optional
             Fraction of items to return. Cannot be used with `n`.
         replace : bool, default False
