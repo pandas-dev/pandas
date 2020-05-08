@@ -2656,6 +2656,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
 
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         Series or DataFrame
