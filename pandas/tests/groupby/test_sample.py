@@ -42,9 +42,7 @@ def test_groupby_sample_n_and_frac_raises():
 
 def test_groupby_sample_frac_gt_one_without_replacement_raises():
     df = DataFrame({"a": [1] * 10 + [2] * 10, "b": [1] * 20})
-    msg = (
-        "Replace has to be set to `True` when upsampling " "the population `frac` > 1."
-    )
+    msg = "Replace has to be set to `True` when upsampling the population `frac` > 1."
 
     with pytest.raises(ValueError, match=msg):
         df.groupby("a").sample(frac=1.5, replace=False)
