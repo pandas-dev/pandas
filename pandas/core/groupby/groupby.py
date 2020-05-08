@@ -2630,6 +2630,69 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         return output.reset_index(drop=True)
 
+    def sample(
+        self,
+        n: Optional[int] = None,
+        frac: Optional[float] = None,
+        replace: bool = False,
+        random_state=None,
+    ):
+        """
+        Return a random sample of items from each group.
+
+        You can use `random_state` for reproducibility.
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of items to return. Cannot be used with `frac`.
+            Default = 1 if `frac` = None.
+        frac : float, optional
+            Fraction of items to return. Cannot be used with `n`.
+        replace : bool, default False
+            Allow or disallow sampling of the same row more than once.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator
+            If np.random.RandomState, use as numpy RandomState object.
+
+        Returns
+        -------
+        Series or DataFrame
+            A new object of same type as caller containing items randomly
+            sampled within each group from the caller object.
+
+        See Also
+        --------
+        DataFrame.sample: Generate random samples from a DataFrame object.
+        numpy.random.choice: Generates a random sample from a given 1-D numpy
+            array.
+        """
+        if frac is not None and frac > 1 and not replace:
+            raise ValueError("replace must be set to True when frac > 1")
+        if n is not None and (n != int(n) or n < 0):
+            raise ValueError("Only non-negative integers accepted as n values")
+
+        if n is None and frac is None:
+            ns = [1] * self.ngroups
+        elif n is None and frac is not None:
+            ns = [int(frac * len(i)) for i in self.indices.values()]
+        elif n is not None and frac is None:
+            ns = [n] * self.ngroups
+        else:
+            raise ValueError("Please enter a value for frac or n but not both")
+
+        rs = com.random_state(random_state)
+
+        idx_list = [
+            rs.choice(i, m, replace=replace) for i, m in zip(self.indices.values(), ns)
+        ]
+
+        cons = self._selected_obj.index._constructor
+        idx = cons(np.concatenate(idx_list))
+
+        return self._selected_obj.loc[idx]
+
 
 GroupBy._add_numeric_operations()
 
