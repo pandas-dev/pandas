@@ -1234,7 +1234,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), sequence of tuples, sequence of dicts, or DataFrame.
+            dtype), sequence of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
 
         Examples
@@ -1634,11 +1634,11 @@ class DataFrame(NDFrame):
         Convert structured or record ndarray to DataFrame.
 
         Creates a DataFrame object from a structured ndarray, sequence of
-        tuples, sequence of dicts, or DataFrame.
+        tuples or dicts, or DataFrame.
 
         Parameters
         ----------
-        data : ndarray (structured dtype), sequence of tuples, sequence of dicts, or DataFrame
+        data : ndarray (structured dtype), sequence of tuples or dicts, or DataFrame
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
@@ -1701,7 +1701,7 @@ class DataFrame(NDFrame):
         1      2     b
         2      1     c
         3      0     d
-        """  # noqa: E501
+        """
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = ensure_index(columns)
