@@ -96,7 +96,7 @@ def test_join_multi_wrong_order():
     midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
     midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["b", "a"])
 
-    join_idx, lidx, ridx = midx1.join(midx2, return_indexers=False)
+    join_idx, lidx, ridx = midx1.join(midx2, return_indexers=True)
 
     exp_ridx = np.array([-1, -1, -1, -1], dtype=np.intp)
 
