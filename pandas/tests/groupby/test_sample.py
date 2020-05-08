@@ -52,7 +52,7 @@ def test_groupby_sample_frac_gt_one_without_replacement_raises():
 
 
 @pytest.mark.parametrize("n", [-1, 1.5])
-def test_groupby_sample_invalid_n(n):
+def test_groupby_sample_invalid_n_raises(n):
     df = DataFrame({"a": [1] * 10 + [2] * 10, "b": [1] * 20})
 
     if n < 0:
