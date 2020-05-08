@@ -1233,8 +1233,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), sequence of tuples or dicts, or DataFrame.
+        DataFrame.from_records : DataFrame from structured ndarray, sequence
+			of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
 
         Examples
@@ -1638,7 +1638,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        data : ndarray (structured dtype), sequence of tuples or dicts, or DataFrame
+        data : structured ndarray, sequence of tuples or dicts, or DataFrame
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
