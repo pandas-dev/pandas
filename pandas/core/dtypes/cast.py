@@ -103,9 +103,9 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj):
+    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
 
-        if any(isinstance(v, ABCSeries) for v in obj.values):
+        if any(isinstance(v, ABCSeries) for v in obj._values):
             return True
 
     return False

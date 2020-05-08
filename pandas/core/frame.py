@@ -5673,8 +5673,10 @@ class DataFrame(NDFrame):
             new_data = ops.dispatch_to_series(self, other, _arith_op)
         else:
             with np.errstate(all="ignore"):
-                res_values = _arith_op(self.values, other.values)
-            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
+                res_values = _arith_op(self._values, other._values)
+            new_data = dispatch_fill_zeros(
+                func, self._values, other._values, res_values
+            )
 
         return new_data
 
@@ -7347,7 +7349,7 @@ Wild         185.0
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.astype(object).values, func)
+            return lib.map_infer(x.astype(object)._values, func)
 
         return self.apply(infer)
 

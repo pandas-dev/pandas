@@ -344,7 +344,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     val = com.dict_compat(val)
                 else:
                     val = dict(val)
-                val = lib.fast_multiget(val, oindex.values, default=np.nan)
+                val = lib.fast_multiget(val, oindex._values, default=np.nan)
             val = sanitize_array(
                 val, index, dtype=dtype, copy=False, raise_cast_failure=False
             )
