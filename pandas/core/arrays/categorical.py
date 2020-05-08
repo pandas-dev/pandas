@@ -2090,6 +2090,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
+        # TODO: validate kwargs
         self.check_for_ordered("min")
 
         if not len(self._codes):
@@ -2125,6 +2126,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
+        # TODO: validate kwargs
         self.check_for_ordered("max")
 
         if not len(self._codes):
