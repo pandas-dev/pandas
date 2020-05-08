@@ -26,7 +26,7 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     _string_to_dts,
@@ -617,7 +617,7 @@ cpdef array_to_datetime(
                                              'datetime64 unless utc=True')
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if isinstance(val, _Timestamp):
+                        if isinstance(val, ABCTimestamp):
                             iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 
