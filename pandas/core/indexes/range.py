@@ -741,7 +741,7 @@ class RangeIndex(Int64Index):
             """
             Parameters
             ----------
-            op : callable that accepts 2 parms
+            op : callable that accepts 2 params
                 perform the binary op
             step : callable, optional, default to False
                 op to apply to the step parm if not None

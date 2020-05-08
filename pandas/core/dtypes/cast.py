@@ -198,8 +198,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
         return result
 
     if isinstance(result, list):
-        # reached via groupoby.agg _ohlc; really this should be handled
-        #  earlier
+        # reached via groupby.agg._ohlc; really this should be handled earlier
         result = np.array(result)
 
     def trans(x):
@@ -1693,7 +1692,7 @@ def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
     Parameters
     ----------
     scalar : scalar
-    dtype : np.dtpye
+    dtype : np.dtype
 
     Returns
     -------

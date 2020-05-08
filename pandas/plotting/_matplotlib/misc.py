@@ -385,7 +385,7 @@ def parallel_coordinates(
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
+    # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
     kwds.setdefault("c", plt.rcParams["patch.facecolor"])

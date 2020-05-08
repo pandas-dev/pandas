@@ -284,7 +284,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         elif dtype == bool:
             return ~self._isnan
 
-        # This will raise TypeErorr for non-object dtypes
+        # This will raise TypeError for non-object dtypes
         return np.array(list(self), dtype=object)
 
     def __arrow_array__(self, type=None):

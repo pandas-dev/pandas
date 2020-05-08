@@ -543,7 +543,7 @@ def _try_cast(
         return subarr
 
     try:
-        # GH#15832: Check if we are requesting a numeric dype and
+        # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats

@@ -600,7 +600,7 @@ class BlockManager(PandasObject):
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # figure out our mask a-priori to avoid repeated replacements
+        # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
         def comp(s, regex=False):

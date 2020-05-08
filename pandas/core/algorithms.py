@@ -125,7 +125,7 @@ def _ensure_data(
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall through to here
+        # and it is incompatible this will fall through to here
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
@@ -473,7 +473,7 @@ def _factorize_array(
     values : ndarray
     na_sentinel : int, default -1
     size_hint : int, optional
-        Passsed through to the hashtable's 'get_labels' method
+        Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
         A value in `values` to consider missing. Note: only use this
         parameter when you know that you don't have any values pandas would
@@ -1239,7 +1239,7 @@ class SelectNFrame(SelectN):
                 break
 
             # Now find all values which are equal to
-            # the (nsmallest: largest)/(nlarrgest: smallest)
+            # the (nsmallest: largest)/(nlargest: smallest)
             # from our series.
             border_value = values == values[values.index[-1]]
 

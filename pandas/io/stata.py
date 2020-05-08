@@ -627,7 +627,7 @@ class StataValueLabel:
 
     def generate_value_label(self, byteorder: str) -> bytes:
         """
-        Generate the binary representation of the value labals.
+        Generate the binary representation of the value labels.
 
         Parameters
         ----------

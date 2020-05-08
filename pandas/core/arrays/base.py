@@ -696,7 +696,7 @@ class ExtensionArray:
         na_value : object
             The value in `values` to consider missing. This will be treated
             as NA in the factorization routines, so it will be coded as
-            `na_sentinal` and not included in `uniques`. By default,
+            `na_sentinel` and not included in `uniques`. By default,
             ``np.nan`` is used.
 
         Notes

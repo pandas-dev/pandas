@@ -89,7 +89,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     ]
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
-    # get the new indice of columns by comparison
+    # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
@@ -182,7 +182,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     is_dict = is_dict_like(agg_spec)
     if not (is_dict or is_list_like(agg_spec)):
         return agg_spec
-    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
+    mangled_aggspec = type(agg_spec)()  # dict or OrderedDict
 
     if is_dict:
         for key, aggfuncs in agg_spec.items():

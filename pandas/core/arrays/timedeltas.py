@@ -258,7 +258,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if start is None and end is None:
             if closed is not None:
                 raise ValueError(
-                    "Closed has to be None if not both of startand end are defined"
+                    "Closed has to be None if not both of start and end are defined"
                 )
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
@@ -877,7 +877,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
     """
     Parameters
     ----------
-    array : list-like
+    data : list-like
     copy : bool, default False
     unit : str, default "ns"
         The timedelta unit to treat integers as multiples of.
@@ -930,7 +930,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # cast the unit, multiply base/frace separately
+        # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
         mask = np.isnan(data)
         m, p = precision_from_unit(unit)
