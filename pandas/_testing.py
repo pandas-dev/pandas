@@ -1141,10 +1141,12 @@ def assert_series_equal(
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
         Whether to compare category order of internal Categoricals.
+
+        .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
 
-        .. versionadded:: 1.0.2
+        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1333,6 +1335,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
