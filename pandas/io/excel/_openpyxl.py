@@ -550,7 +550,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         )
 
         for i, row in enumerate(sheet.iter_rows(max_row=max_row)):
-            should_continue, _ = self.should_read_row(i, header, skiprows, nrows)
+            should_continue, _ = self.should_skip_row(i, header, skiprows, nrows)
             if should_continue:
                 data.append([])
                 continue

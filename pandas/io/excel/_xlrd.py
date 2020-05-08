@@ -108,7 +108,7 @@ class _XlrdReader(_BaseExcelReader):
 
         for i in range(sheet.nrows):
 
-            should_continue, should_break = self.should_read_row(
+            should_continue, should_break = self.should_skip_row(
                 i, header, skiprows, nrows
             )
             if should_continue:

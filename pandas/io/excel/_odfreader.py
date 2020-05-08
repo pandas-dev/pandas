@@ -88,7 +88,7 @@ class _ODFReader(_BaseExcelReader):
 
         for i, sheet_row in enumerate(sheet_rows):
 
-            should_continue, should_break = self.should_read_row(
+            should_continue, should_break = self.should_skip_row(
                 i, header, skiprows, nrows
             )
             if should_continue:
