@@ -646,9 +646,8 @@ class BlockManager(PandasObject):
                         )
 
                     if m.any() or convert:
-                        new_rb = _extend_blocks(
-                            b.split_and_operate(m, f, inplace), new_rb
-                        )
+                        result = b.split_and_operate(m, f, inplace)
+                        new_rb = _extend_blocks(result, new_rb)
                     else:
                         new_rb.append(b)
                 rb = new_rb
