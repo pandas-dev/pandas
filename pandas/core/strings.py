@@ -2977,7 +2977,6 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_strip"
     ] = r"""
-    
     Strip whitespaces (including newlines) or a set of specified characters
     from each string in the Series/Index from %(side)s.
     Equivalent to :meth:`str.%(method)s`.
