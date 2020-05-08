@@ -2675,6 +2675,30 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         DataFrame.sample: Generate random samples from a DataFrame object.
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"a": ["red"] * 2 + ["blue"] * 2 + ["black"] * 2, "b": range(6)}
+        ... )
+        >>> df
+               a  b
+        0    red  0
+        1    red  1
+        2   blue  2
+        3   blue  3
+        4  black  4
+        5  black  5
+        >>> df.groupby("a").sample(n=1, random_state=1)
+               a  b
+        4  black  4
+        2   blue  2
+        0    red  0
+        >>> df.groupby("a")["b"].sample(frac=0.5, random_state=2)
+        5    5
+        3    3
+        1    1
+        Name: b, dtype: int64
         """
         from pandas.core.reshape.concat import concat
 
