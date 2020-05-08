@@ -126,3 +126,16 @@ class TestDataFrameSetItem:
         df["new_column"] = sp_series
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
+
+    def test_setitem_from_duplicate_axis(self):
+        # GH#34034
+        df = DataFrame(
+            [[20, "a"], [200, "a"], [200, "a"]],
+            columns=["col1", "col2"],
+            index=[10, 1, 1],
+        )
+        df.loc[1, "col1"] = np.arange(2)
+        expected = DataFrame(
+            [[20, "a"], [0, "a"], [1, "a"]], columns=["col1", "col2"], index=[10, 1, 1]
+        )
+        tm.assert_frame_equal(df, expected)
