@@ -95,7 +95,7 @@ class _ODFReader(_BaseExcelReader):
                 table.append([])
                 continue
             if should_break:
-                break
+                continue
 
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0

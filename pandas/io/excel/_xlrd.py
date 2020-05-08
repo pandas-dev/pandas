@@ -115,7 +115,7 @@ class _XlrdReader(_BaseExcelReader):
                 data.append([])
                 continue
             if should_break:
-                break
+                continue
 
             row = [
                 _parse_cell(value, typ)
