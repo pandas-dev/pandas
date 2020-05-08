@@ -1228,7 +1228,11 @@ class GenericArrayFormatter:
 
         vals = extract_array(self.values, extract_numpy=True)
 
-        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
+        is_float_type = (
+            lib.map_infer(vals, is_float)
+            # vals may have 2 or more dimensions
+            & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
+        )
         leading_space = self.leading_space
         if leading_space is None:
             leading_space = is_float_type.any()
@@ -1547,7 +1551,7 @@ def _is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    assert values.ndim == 1
+    values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1672,14 +1676,9 @@ def _get_format_timedelta64(
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )
-    all_sub_day = (
-        np.logical_and(consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
-    )
 
     if even_days:
         format = None
-    elif all_sub_day:
-        format = "sub_day"
     else:
         format = "long"
 

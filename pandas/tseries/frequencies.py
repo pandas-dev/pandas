@@ -91,23 +91,23 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     See Also
     --------
-    DateOffset
+    DateOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
-    >>> to_offset('5min')
+    >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset('1D1H')
+    >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(('W', 2))
+    >>> to_offset(("W", 2))
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, 'B'))
+    >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
@@ -124,7 +124,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -272,12 +272,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_dtype(index):
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index):
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()

@@ -6,6 +6,10 @@ gcsfs = import_optional_dependency(
 )
 
 
+def get_fs():
+    return gcsfs.GCSFileSystem()
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer, encoding=None, compression=None, mode=None
 ):
@@ -13,6 +17,6 @@ def get_filepath_or_buffer(
     if mode is None:
         mode = "rb"
 
-    fs = gcsfs.GCSFileSystem()
+    fs = get_fs()
     filepath_or_buffer = fs.open(filepath_or_buffer, mode)
     return filepath_or_buffer, None, compression, True

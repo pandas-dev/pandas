@@ -41,6 +41,7 @@ _any_string_method = [
     ("join", (",",), {}),
     ("ljust", (10,), {}),
     ("match", ("a",), {}),
+    ("fullmatch", ("a",), {}),
     ("normalize", ("NFC",), {}),
     ("pad", (10,), {}),
     ("partition", (" ",), {"expand": False}),
@@ -208,18 +209,7 @@ class TestStringMethods:
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
 
-        if dtype == "category" and len(values) and values[1] is pd.NA:
-            pytest.xfail(reason="Categorical does not yet support pd.NA")
-
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
-
-        # TODO: get rid of these xfails
-        if dtype == "category" and inferred_dtype in ["period", "interval"]:
-            pytest.xfail(
-                reason="Conversion to numpy array fails because "
-                "the ._values-attribute is not a numpy array for "
-                "PeriodArray/IntervalArray; see GH 23553"
-            )
 
         types_passing_constructor = [
             "string",
@@ -246,6 +236,7 @@ class TestStringMethods:
         dtype,
         any_allowed_skipna_inferred_dtype,
         any_string_method,
+        request,
     ):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
@@ -257,26 +248,24 @@ class TestStringMethods:
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if (
-            method_name in ["partition", "rpartition"]
-            and box == Index
-            and inferred_dtype == "empty"
-        ):
-            pytest.xfail(reason="Method cannot deal with empty Index")
-        if (
-            method_name == "split"
-            and box == Index
-            and values.size == 0
-            and kwargs.get("expand", None) is not None
-        ):
-            pytest.xfail(reason="Split fails on empty Series when expand=True")
-        if (
-            method_name == "get_dummies"
-            and box == Index
-            and inferred_dtype == "empty"
-            and (dtype == object or values.size == 0)
-        ):
-            pytest.xfail(reason="Need to fortify get_dummies corner cases")
+        reason = None
+        if box is Index and values.size == 0:
+            if method_name in ["partition", "rpartition"] and kwargs.get(
+                "expand", True
+            ):
+                reason = "Method cannot deal with empty Index"
+            elif method_name == "split" and kwargs.get("expand", None):
+                reason = "Split fails on empty Series when expand=True"
+            elif method_name == "get_dummies":
+                reason = "Need to fortify get_dummies corner cases"
+
+        elif box is Index and inferred_dtype == "empty" and dtype == object:
+            if method_name == "get_dummies":
+                reason = "Need to fortify get_dummies corner cases"
+
+        if reason is not None:
+            mark = pytest.mark.xfail(reason=reason)
+            request.node.add_marker(mark)
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
@@ -670,14 +659,10 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    index_or_series2 = [Series, Index]  # type: ignore
-    # List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
-    # See GH#29725
-
-    @pytest.mark.parametrize("other", index_or_series2)
-    def test_str_cat_all_na(self, index_or_series, other):
+    def test_str_cat_all_na(self, index_or_series, index_or_series2):
         # GH 24044
         box = index_or_series
+        other = index_or_series2
 
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])
@@ -1176,9 +1161,9 @@ class TestStringMethods:
         exp = Series([True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
-        values = Series(["fooBAD__barBAD", np.nan, "foo"])
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
         result = values.str.match(".*BAD[_]+.*BAD")
-        exp = Series([True, np.nan, False])
+        exp = Series([True, True, np.nan, False])
         tm.assert_series_equal(result, exp)
 
         # mixed
@@ -1207,6 +1192,22 @@ class TestStringMethods:
         res = Series(["a", 0, np.nan]).str.match("a")
         exp = Series([True, np.nan, np.nan])
         tm.assert_series_equal(exp, res)
+
+    def test_fullmatch(self):
+        # GH 32806
+        values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
+        result = values.str.fullmatch(".*BAD[_]+.*BAD")
+        exp = Series([True, False, np.nan, False])
+        tm.assert_series_equal(result, exp)
+
+        # Make sure that the new string arrays work
+        string_values = Series(
+            ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype="string"
+        )
+        result = string_values.str.fullmatch(".*BAD[_]+.*BAD")
+        # Result is nullable boolean with StringDtype
+        string_exp = Series([True, False, np.nan, False], dtype="boolean")
+        tm.assert_series_equal(result, string_exp)
 
     def test_extract_expand_None(self):
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
@@ -3384,6 +3385,9 @@ class TestStringMethods:
         result = data.str.match(pat, flags=re.IGNORECASE)
         assert result[0]
 
+        result = data.str.fullmatch(pat, flags=re.IGNORECASE)
+        assert result[0]
+
         result = data.str.findall(pat, flags=re.IGNORECASE)
         assert result[0][0] == ("dave", "google", "com")
 
@@ -3604,3 +3608,12 @@ def test_string_array_extract():
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
+def test_cat_different_classes(klass):
+    # https://github.com/pandas-dev/pandas/issues/33425
+    s = pd.Series(["a", "b", "c"])
+    result = s.str.cat(klass(["x", "y", "z"]))
+    expected = pd.Series(["ax", "by", "cz"])
+    tm.assert_series_equal(result, expected)
