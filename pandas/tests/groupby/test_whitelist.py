@@ -328,6 +328,7 @@ def test_tab_completion(mframe):
         "rolling",
         "expanding",
         "pipe",
+        "sample",
     }
     assert results == expected
 
