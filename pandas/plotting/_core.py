@@ -1694,7 +1694,7 @@ def _find_backend(backend: str):
     try:
         return _backends[backend]
     except KeyError:
-        # Fall back to unregisted, module name approach.
+        # Fall back to unregistered, module name approach.
         try:
             module = importlib.import_module(backend)
         except ImportError:
