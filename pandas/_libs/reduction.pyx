@@ -9,9 +9,8 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
                     int64_t,
-                    PyArray_SETITEM,
-                    PyArray_ITER_NEXT, PyArray_ITER_DATA, PyArray_IterNew,
-                    flatiter)
+                    PyArray_SETITEM)
+
 cnp.import_array()
 
 cimport pandas._libs.util as util
@@ -45,15 +44,11 @@ cdef class Reducer:
         n, k = (<object>arr).shape
 
         if axis == 0:
-            if not arr.flags.f_contiguous:
-                arr = arr.copy('F')
-
             self.nresults = k
             self.chunksize = n
             self.increment = n * arr.dtype.itemsize
         else:
-            if not arr.flags.c_contiguous:
-                arr = arr.copy('C')
+            arr = arr.T
 
             self.nresults = n
             self.chunksize = k
@@ -95,31 +90,23 @@ cdef class Reducer:
             char* dummy_buf
             ndarray arr, result, chunk
             Py_ssize_t i
-            flatiter it
             object res, name, labels
             object cached_typ = None
 
         arr = self.arr
-        chunk = self.dummy
-        dummy_buf = chunk.data
-        chunk.data = arr.data
         labels = self.labels
 
         result = np.empty(self.nresults, dtype='O')
-        it = <flatiter>PyArray_IterNew(result)
 
-        try:
-            for i in range(self.nresults):
-
-                # create the cached type
-                # each time just reassign the data
+        with np.nditer([arr, result], flags=["reduce_ok", "external_loop", "refs_ok"], op_flags=[["readonly"], ["readwrite"]], order="F") as it: 
+            for i, (x, y) in enumerate(it):
                 if i == 0:
 
                     if self.typ is not None:
                         # In this case, we also have self.index
                         name = labels[i]
                         cached_typ = self.typ(
-                            chunk, index=self.index, name=name, dtype=arr.dtype)
+                            x, index=self.index, name=name, dtype=arr.dtype)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
@@ -127,11 +114,11 @@ cdef class Reducer:
                     name = labels[i]
 
                     object.__setattr__(
-                        cached_typ._mgr._block, 'values', chunk)
+                        cached_typ._mgr._block, 'values', x)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
-                    res = self.f(chunk)
+                    res = self.f(x)
 
                 # TODO: reason for not squeezing here?
                 res = _extract_result(res, squeeze=False)
@@ -140,12 +127,7 @@ cdef class Reducer:
                     #  if this looks like a reduction.
                     _check_result_array(res, len(self.dummy))
 
-                PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
-                chunk.data = chunk.data + self.increment
-                PyArray_ITER_NEXT(it)
-        finally:
-            # so we don't free the wrong memory
-            chunk.data = dummy_buf
+                y[...] = res
 
         result = maybe_convert_objects(result)
         return result
