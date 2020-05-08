@@ -51,6 +51,18 @@ def test_groupby_sample_frac_gt_one_without_replacement_raises():
         df.groupby("a")["b"].sample(frac=1.5, replace=False)
 
 
+@pytest.mark.parametrize("n", [-1, 1.5])
+def test_groupby_sample_invalid_n(n):
+    df = DataFrame({"a": [1] * 10 + [2] * 10, "b": [1] * 20})
+    msg = "Only non-negative integers accepted as n values"
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("a").sample(n=n)
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("a")["b"].sample(n=n)
+
+
 def test_groupby_sample_oversample():
     df = DataFrame({"a": [1] * 10 + [2] * 10, "b": [1] * 20})
 
