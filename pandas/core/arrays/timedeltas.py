@@ -465,10 +465,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other):
-            # Exclude timedelta64 here so we correctly raise TypeError
-            #  for that instead of ValueError
-            raise ValueError("Cannot multiply with unequal lengths")
 
         if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
@@ -512,10 +508,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
@@ -565,10 +558,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
@@ -617,10 +607,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -671,10 +659,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
