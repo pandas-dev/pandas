@@ -986,7 +986,7 @@ class DataFrame(NDFrame):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        for k, v in zip(self.index, self.values):
+        for k, v in zip(self.index, self._values):
             s = klass(v, index=columns, name=k)
             yield k, s
 
@@ -1162,11 +1162,11 @@ class DataFrame(NDFrame):
 
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
-            lvals = left.values
+            lvals = left._values
             rvals = right.values
         else:
             left = self
-            lvals = self.values
+            lvals = self._values
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError(
@@ -1336,7 +1336,7 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy)
+        result = np.array(self._values, dtype=dtype, copy=copy)
         return result
 
     def to_dict(self, orient="dict", into=dict):
@@ -1840,7 +1840,7 @@ class DataFrame(NDFrame):
         if index:
             if isinstance(self.index, ABCMultiIndex):
                 # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index.values)))
+                ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
                 ix_vals = [self.index.values]
 
@@ -2653,7 +2653,7 @@ class DataFrame(NDFrame):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
-            values = self.values
+            values = self._values
 
             new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
             result = self._constructor(
@@ -2661,7 +2661,7 @@ class DataFrame(NDFrame):
             )
 
         else:
-            new_values = self.values.T
+            new_values = self._values.T
             if copy:
                 new_values = new_values.copy()
             result = self._constructor(
@@ -2820,7 +2820,7 @@ class DataFrame(NDFrame):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
+                new_values = self._values[:, loc]
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns
                 )
@@ -2943,7 +2943,7 @@ class DataFrame(NDFrame):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not is_bool_dtype(key._values):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -3693,7 +3693,7 @@ class DataFrame(NDFrame):
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
-            values = self.values
+            values = self._values
             ridx = self.index.get_indexer(row_labels)
             cidx = self.columns.get_indexer(col_labels)
             if (ridx == -1).any():
@@ -3782,7 +3782,7 @@ class DataFrame(NDFrame):
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
             new_values = algorithms.take_2d_multi(
-                self.values, indexer, fill_value=fill_value
+                self._values, indexer, fill_value=fill_value
             )
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
@@ -8092,7 +8092,7 @@ Wild         185.0
                 return nanops.nancorr(x[0], x[1], method=method)
 
             correl = Series(
-                map(c, zip(left.values.T, right.values.T)), index=left.columns
+                map(c, zip(left._values.T, right._values.T)), index=left.columns
             )
 
         else:
@@ -8235,12 +8235,12 @@ Wild         185.0
         # Mask NaNs: Mask rows or columns where the index level is NaN, and all
         # values in the DataFrame that are NaN
         if frame._is_mixed_type:
-            # Since we have mixed types, calling notna(frame.values) might
+            # Since we have mixed types, calling notna(frame._values) might
             # upcast everything to object
-            values_mask = notna(frame).values
+            values_mask = notna(frame)._values
         else:
             # But use the speedup when we have homogeneous dtypes
-            values_mask = notna(frame.values)
+            values_mask = notna(frame._values)
 
         index_mask = notna(count_axis.get_level_values(level=level))
         if axis == 1:
@@ -8341,11 +8341,11 @@ Wild         185.0
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
             if axis == 0 and is_object_dtype(out.dtype):
-                out[:] = coerce_to_dtypes(out.values, df.dtypes)
+                out[:] = coerce_to_dtypes(out._values, df.dtypes)
             return out
 
         if not self._is_homogeneous_type:
-            # try to avoid self.values call
+            # try to avoid self._values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
                 # operate column-wise
@@ -8373,7 +8373,7 @@ Wild         185.0
 
         if numeric_only is None:
             data = self
-            values = data.values
+            values = data._values
 
             try:
                 result = f(values)
@@ -8385,7 +8385,7 @@ Wild         185.0
                 data = _get_data(axis_matters=False)
                 labels = data._get_agg_axis(axis)
 
-                values = data.values
+                values = data._values
                 with np.errstate(all="ignore"):
                     result = f(values)
 
@@ -8394,10 +8394,10 @@ Wild         185.0
                 data = _get_data(axis_matters=True)
                 labels = data._get_agg_axis(axis)
 
-                values = data.values
+                values = data._values
             else:
                 data = self
-                values = data.values
+                values = data._values
             result = f(values)
 
         if filter_type == "bool" and is_object_dtype(values) and axis is None:
@@ -8521,7 +8521,7 @@ Wild         185.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        indices = nanops.nanargmin(self._values, axis=axis, skipna=skipna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -8594,7 +8594,7 @@ Wild         185.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        indices = nanops.nanargmax(self._values, axis=axis, skipna=skipna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -8948,7 +8948,7 @@ Wild         185.0
                     f"you passed a '{type(values).__name__}'"
                 )
             return DataFrame(
-                algorithms.isin(self.values.ravel(), values).reshape(self.shape),
+                algorithms.isin(self._values.ravel(), values).reshape(self.shape),
                 self.index,
                 self.columns,
             )

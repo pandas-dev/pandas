@@ -439,7 +439,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self.values.copy()
+            values = self._values.view("M8[ns]").copy()
 
         return Series(values, index=index, name=name)
 
