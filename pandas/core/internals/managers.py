@@ -628,16 +628,27 @@ class BlockManager(PandasObject):
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
                     convert = i == src_len  # only convert once at the end
-                    result = b._replace_coerce(
-                        mask=m,
-                        to_replace=s,
-                        value=d,
-                        inplace=inplace,
-                        convert=convert,
-                        regex=regex,
-                    )
+                    start = b.mgr_locs.indexer.start
+                    step = b.mgr_locs.indexer.step
+                    idx_ = start
+
+                    def f(mask, values, idx):
+                        nonlocal idx_
+                        block = b.getitem_block(slice(idx_, idx_ + 1))
+                        idx_ += step
+                        return block._replace_coerce(
+                            mask=mask,
+                            to_replace=s,
+                            value=d,
+                            inplace=inplace,
+                            convert=convert,
+                            regex=regex,
+                        )
+
                     if m.any() or convert:
-                        new_rb = _extend_blocks(result, new_rb)
+                        new_rb = _extend_blocks(
+                            b.split_and_operate(m, f, inplace), new_rb
+                        )
                     else:
                         new_rb.append(b)
                 rb = new_rb

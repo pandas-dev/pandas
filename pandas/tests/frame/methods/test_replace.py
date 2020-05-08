@@ -1380,3 +1380,67 @@ class TestDataFrameReplace:
         )
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
+
+    def test_replace_real_dont_change_other_columns(self, any_real_dtype):
+        # GH30512
+        dtype = any_real_dtype
+        value_a = 2
+        value_b = 3
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_string_dont_change_other_columns(self, string_dtype):
+        # GH30512
+        dtype = string_dtype
+        value_a = "a"
+        value_b = "b"
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_datetime64_dont_change_other_columns(self, datetime64_dtype):
+        # GH30512
+        dtype = datetime64_dtype
+        value_a = pd.Timestamp("2020-01-24")
+        value_b = pd.Timestamp("2020-01-25")
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_timedelta64_dont_change_other_columns(self, timedelta64_dtype):
+        # GH30512
+        dtype = timedelta64_dtype
+        value_a = pd.Timedelta(3)
+        value_b = pd.Timedelta(4)
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_bool_dont_change_other_columns(self):
+        # GH30512
+        dtype = bool
+        value_a = 1
+        value_b = 0
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_complex_dont_change_other_columns(self, complex_dtype):
+        # GH30512
+        dtype = complex_dtype
+        value_a = 1 + 2j
+        value_b = 1 + 3j
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_bytes_dont_change_other_columns(self, bytes_dtype):
+        # GH30512
+        dtype = bytes_dtype
+        value_a = b"a"
+        value_b = b"b"
+        _test_replace_doesnt_change_other_columns(value_a, value_b, dtype)
+
+    def test_replace_tz_aware_dont_change_other_columns(self, tz_aware_fixture):
+        # GH30512
+        value_a = Timestamp("20130102", tz=tz_aware_fixture)
+        value_b = Timestamp("20130103", tz=tz_aware_fixture)
+        _test_replace_doesnt_change_other_columns(value_a, value_b, None)
+
+
+def _test_replace_doesnt_change_other_columns(value_a, value_b, dtype):
+    # GH30512
+    df = pd.DataFrame({"A": [value_a], "B": [value_b]}, dtype=dtype)
+    expected = df.copy()
+    expected["A"] = expected["A"].replace(to_replace={value_a: None})
+    result = df.replace(to_replace={value_a: None})
+    tm.assert_frame_equal(result, expected)
