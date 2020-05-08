@@ -2635,6 +2635,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         n: Optional[int] = None,
         frac: Optional[float] = None,
         replace: bool = False,
+        weights=None,
         random_state=None,
     ):
         """
@@ -2653,6 +2654,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             Fraction of items to return. Cannot be used with `n`.
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
+        weights : list-like, optional
+            Default None results in equal probability weighting.
+            If passed a list-like then values must have the same length as
+            the underlying object and will be used as sampling probabilities
+            after normalization within each group.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator
@@ -2670,30 +2676,22 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
         """
-        if frac is not None and frac > 1 and not replace:
-            raise ValueError("replace must be set to True when frac > 1")
-        if n is not None and (n != int(n) or n < 0):
-            raise ValueError("Only non-negative integers accepted as n values")
+        from pandas.core.reshape.concat import concat
 
-        if n is None and frac is None:
-            ns = [1] * self.ngroups
-        elif n is None and frac is not None:
-            ns = [int(frac * len(i)) for i in self.indices.values()]
-        elif n is not None and frac is None:
-            ns = [n] * self.ngroups
+        if weights is not None:
+            weights = Series(weights, index=self._selected_obj.index)
+            ws = [weights[idx] for idx in self.indices.values()]
         else:
-            raise ValueError("Please enter a value for frac or n but not both")
+            ws = [None] * self.ngroups
 
-        rs = com.random_state(random_state)
-
-        idx_list = [
-            rs.choice(i, m, replace=replace) for i, m in zip(self.indices.values(), ns)
+        samples = [
+            self._selected_obj.loc[idx].sample(
+                n=n, frac=frac, replace=replace, weights=w, random_state=random_state
+            )
+            for idx, w in zip(self.indices.values(), ws)
         ]
 
-        cons = self._selected_obj.index._constructor
-        idx = cons(np.concatenate(idx_list))
-
-        return self._selected_obj.loc[idx]
+        return concat(samples, axis=self.axis)
 
 
 GroupBy._add_numeric_operations()
