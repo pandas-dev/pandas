@@ -4661,7 +4661,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        if not isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+            raise TypeError(f"unsupported Type {self.index}")
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
@@ -4688,7 +4689,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, ABCDatetimeIndex)
+        if not isinstance(self.index, ABCDatetimeIndex):
+            raise TypeError(f"unsupported Type {self.index}")
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
