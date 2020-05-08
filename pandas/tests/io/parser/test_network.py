@@ -172,18 +172,27 @@ class TestS3:
     def test_write_s3_csv_fails(self, tips_df):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
-        import botocore  # 2020-05-08 Travis builds want NoSuchBucket
 
-        err = (FileNotFoundError, botocore.errorfactory.NoSuchBucket)
+        import botocore
+
+        err = FileNotFoundError
+        if hasattr(botocore.errorfactory, "NoSuchBucket"):
+            # 2020-05-08 Travis builds are faiing because it wants NoSuchBucket
+            #  instead of FileNotBoundError
+            err = botocore.errorfactory.NoSuchBucket
         with pytest.raises(err, match="The specified bucket does not exist"):
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
         # GH 27679
-        import botocore  # 2020-05-08 Travis builds want NoSuchBucket
+        import botocore
 
-        err = (FileNotFoundError, botocore.errorfactory.NoSuchBucket)
+        err = FileNotFoundError
+        if hasattr(botocore.errorfactory, "NoSuchBucket"):
+            # 2020-05-08 Travis builds are faiing because it wants NoSuchBucket
+            #  instead of FileNotBoundError
+            err = botocore.errorfactory.NoSuchBucket
         with pytest.raises(err, match="The specified bucket does not exist"):
             tips_df.to_parquet("s3://an_s3_bucket_data_doesnt_exit/not_real.parquet")
 
