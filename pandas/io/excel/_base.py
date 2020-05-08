@@ -388,7 +388,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def get_sheet_data(self, sheet, convert_float, header, skiprows, nrows):
         pass
 
-    def should_read_row(
+    def should_skip_row(
         self,
         index: int,
         header: Optional[Union[int, Sequence[int]]],
@@ -402,9 +402,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         ----------
         index : int
             Index of row.
-        header : int
-            Row used as column labels.
-        skiprows : int
+        header : int, list of int
+            Rows used as column labels.
+        skiprows : int, list of int
             Rows to skip at the begining.
         nrows : int
             Number of rows to parse.
@@ -414,7 +414,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         Tuple with the first bool element determining if row should be
         skipped and second bool element determining if reading should be stopped.
         """
-        if nrows is not None:
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
             if index < header + skiprows - 1:
                 return True, False
             if index <= header + skiprows + nrows:
