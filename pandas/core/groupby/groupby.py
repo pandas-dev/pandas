@@ -2673,7 +2673,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         See Also
         --------
         DataFrame.sample: Generate random samples from a DataFrame object.
-        numpy.random.choice: Generates a random sample from a given 1-D numpy
+        numpy.random.choice: Generate a random sample from a given 1-D numpy
             array.
 
         Examples
