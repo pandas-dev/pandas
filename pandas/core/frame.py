@@ -1234,7 +1234,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_records : DataFrame from structured ndarray, sequence
-			of tuples or dicts, or DataFrame.
+            of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
 
         Examples
