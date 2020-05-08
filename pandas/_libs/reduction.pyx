@@ -49,7 +49,6 @@ cdef class Reducer:
             self.increment = n * arr.dtype.itemsize
         else:
             arr = arr.T
-
             self.nresults = n
             self.chunksize = k
             self.increment = k * arr.dtype.itemsize
@@ -57,38 +56,21 @@ cdef class Reducer:
         self.f = f
         self.arr = arr
         self.labels = labels
-        self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
-            dummy=dummy)
+
+        # TODO: do we still need this?
+        self._check_dummy(dummy=dummy)
 
     cdef _check_dummy(self, object dummy=None):
-        cdef:
-            object index = None, typ = None, ityp = None
-
-        if dummy is None:
-            dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
-
-            # our ref is stolen later since we are creating this array
-            # in cython, so increment first
-            Py_INCREF(dummy)
-
-        else:
-
-            # we passed a Series
-            typ = type(dummy)
-            index = dummy.index
-            dummy = dummy.values
-
+        if dummy is not None:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError(f'Dummy array must be length {self.chunksize}')
 
-        return dummy, typ, index, ityp
 
     def get_result(self):
         cdef:
-            char* dummy_buf
-            ndarray arr, result, chunk
+            ndarray arr, result
             Py_ssize_t i
             object res, name, labels
             object cached_typ = None
@@ -125,7 +107,7 @@ cdef class Reducer:
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
-                    _check_result_array(res, len(self.dummy))
+                    _check_result_array(res, len(x))
 
                 y[...] = res
 
