@@ -223,7 +223,8 @@ def test_setitem_raises_length():
 
 def test_setitem_raises_type():
     arr = PeriodArray(np.arange(3), freq="D")
-    with pytest.raises(TypeError, match="int"):
+    msg = "setitem requires compatible dtype or scalar"
+    with pytest.raises(TypeError, match=msg):
         arr[0] = 1
 
 

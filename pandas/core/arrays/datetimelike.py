@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Callable, Sequence, Type, TypeVar, Union, cast
+from typing import Any, Callable, Sequence, Tuple, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -440,6 +440,7 @@ class DatetimeLikeArrayMixin(
     """
 
     _is_recognized_dtype: Callable[[DtypeObj], bool]
+    _recognized_scalars: Tuple[Type, ...]
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
@@ -727,7 +728,7 @@ class DatetimeLikeArrayMixin(
             raise ValueError(
                 f"'fill_value' should be a {self._scalar_type}. "
                 f"Got '{str(fill_value)}'."
-            )
+            ) from err
         return self._unbox(fill_value)
 
     def _validate_shift_value(self, fill_value):
@@ -772,10 +773,10 @@ class DatetimeLikeArrayMixin(
             value = NaT
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)
+            value = self._scalar_type(value)  # type: ignore
 
         else:
-            raise TypeError(f"Unexpected type for 'value': {type(value)}")
+            raise TypeError(f"{opname} requires compatible dtype or scalar")
 
         return value
 
@@ -830,25 +831,13 @@ class DatetimeLikeArrayMixin(
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
             # TODO: cast_str for consistency?
-            try:
-                value = self._validate_scalar(value, "setitem", cast_str=False)
-            except TypeError as err:
-                msg = (
-                    f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
-                    f"or array of those. Got '{type(value).__name__}' instead."
-                )
-                raise TypeError(msg) from err
+            value = self._validate_scalar(value, "setitem", cast_str=False)
 
         self._check_compatible_with(value, setitem=True)
         return self._unbox(value)
 
     def _validate_insert_value(self, value):
-        try:
-            value = self._validate_scalar(value, "insert", cast_str=False)
-        except TypeError as err:
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            ) from err
+        value = self._validate_scalar(value, "insert", cast_str=False)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?

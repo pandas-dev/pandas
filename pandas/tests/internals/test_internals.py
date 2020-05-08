@@ -1102,10 +1102,7 @@ class TestCanHoldElement:
         val = date(2010, 10, 10)
         assert not block._can_hold_element(val)
 
-        msg = (
-            "'value' should be a 'Timestamp', 'NaT', "
-            "or array of those. Got 'date' instead."
-        )
+        msg = "setitem requires compatible dtype or scalar"
         with pytest.raises(TypeError, match=msg):
             arr[0] = val
 

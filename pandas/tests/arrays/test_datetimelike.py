@@ -308,7 +308,8 @@ class SharedTests:
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
             arr[12] = val
 
-        with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
+        msg = "setitem requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
             arr[0] = object()
 
     @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
@@ -928,10 +929,7 @@ def test_casting_nat_setitem_array(array, casting_nats):
     ids=lambda x: type(x).__name__,
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
-    msg = (
-        "'value' should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
-        "Got '(timedelta64|datetime64|int)' instead."
-    )
+    msg = "setitem requires compatible dtype or scalar"
 
     for nat in non_casting_nats:
         with pytest.raises(TypeError, match=msg):
