@@ -2626,7 +2626,7 @@ class GenericFixed(Fixed):
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes: List[str] = []
 
-    # indexer helpders
+    # indexer helpers
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
@@ -2819,7 +2819,7 @@ class GenericFixed(Fixed):
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
-        # have written a sentinel. Here we relace it with the original.
+        # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
             data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
@@ -3592,7 +3592,7 @@ class Table(Fixed):
             )
 
         # evaluate the passed data_columns, True == use all columns
-        # take only valide axis labels
+        # take only valid axis labels
         if data_columns is True:
             data_columns = list(axis_labels)
         elif data_columns is None:
