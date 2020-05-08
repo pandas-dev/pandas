@@ -2642,6 +2642,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         You can use `random_state` for reproducibility.
 
+        .. versionadded:: 1.1.0
+
         Parameters
         ----------
         n : int, optional
@@ -2655,8 +2657,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
