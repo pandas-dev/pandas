@@ -173,7 +173,7 @@ class TestS3:
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
 
-        import botocore
+        import botocore.errorfactory
 
         err = FileNotFoundError
         if hasattr(botocore.errorfactory, "NoSuchBucket"):
@@ -186,7 +186,7 @@ class TestS3:
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
         # GH 27679
-        import botocore
+        import botocore.errorfactory
 
         err = FileNotFoundError
         if hasattr(botocore.errorfactory, "NoSuchBucket"):
