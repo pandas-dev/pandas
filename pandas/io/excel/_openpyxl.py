@@ -550,6 +550,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         )
 
         for i, row in enumerate(sheet.iter_rows(max_row=max_row)):
+
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
         return data
