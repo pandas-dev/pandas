@@ -425,10 +425,10 @@ class TestIntervalIndex:
         key = make_key(breaks2)
 
         msg = (
-            "Cannot index an IntervalIndex of subtype {dtype1} with "
-            "values of dtype {dtype2}"
+            f"Cannot index an IntervalIndex of subtype {breaks1.dtype} with "
+            f"values of dtype {breaks2.dtype}"
         )
-        msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
+        msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 

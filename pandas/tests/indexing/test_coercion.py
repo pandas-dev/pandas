@@ -31,8 +31,7 @@ def check_comprehensiveness(request):
 
     for combo in combos:
         if not has_test(combo):
-            msg = "test method is not defined: {0}, {1}"
-            raise AssertionError(msg.format(cls.__name__, combo))
+            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
 
     yield
 
