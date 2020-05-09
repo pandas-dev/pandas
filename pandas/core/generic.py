@@ -7475,6 +7475,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------

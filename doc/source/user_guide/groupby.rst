@@ -199,6 +199,33 @@ For example, the groups created by ``groupby()`` below are in the order they app
    df3.groupby(['X']).get_group('B')
 
 
+.. _groupby.dropna:
+
+.. versionadded:: 1.1.0
+
+GroupBy dropna
+^^^^^^^^^^^^^^
+
+By default ``NA`` values are excluded from group keys during the ``groupby`` operation. However,
+in case you want to include ``NA`` values in group keys, you could pass ``dropna=False`` to achieve it.
+
+.. ipython:: python
+
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
+
+    df_dropna
+
+.. ipython:: python
+
+    # Default `dropna` is set to True, which will exclude NaNs in keys
+    df_dropna.groupby(by=["b"], dropna=True).sum()
+
+    # In order to allow NaN in keys, set `dropna` to False
+    df_dropna.groupby(by=["b"], dropna=False).sum()
+
+The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
+
 
 .. _groupby.attributes:
 
