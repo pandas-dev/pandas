@@ -816,12 +816,7 @@ class BlockManager(PandasObject):
         # mutating the original object
         copy = copy or na_value is not lib.no_default
 
-        if self._is_single_block and self.blocks[0].is_datetimetz:
-            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
-            # always be object dtype. Some callers seem to want the
-            # DatetimeArray (previously DTI)
-            arr = self.blocks[0].get_values(dtype=object)
-        elif self._is_single_block and self.blocks[0].is_extension:
+        if self._is_single_block and self.blocks[0].is_extension:
             # Avoid implicit conversion of extension blocks to object
             arr = (
                 self.blocks[0]
