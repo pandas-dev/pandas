@@ -153,9 +153,11 @@ class TestPeriodIndexComparisons:
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
-        msg = (
-            r"(:?Invalid comparison between dtype=period\[D\] and .*)"
-            r"|(:?Cannot compare type Period with type .*)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'Period' and 'int'",
+                r"Invalid comparison between dtype=period\[D\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             idx < other
@@ -906,9 +908,8 @@ class TestPeriodIndexArithmetic:
         pi = pd.PeriodIndex(["2016-01"], freq="2M")
         expected = pd.PeriodIndex(["2016-04"], freq="2M")
 
-        # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        pi = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = pi + to_offset("3M")
         tm.assert_equal(result, expected)
@@ -1446,8 +1447,13 @@ class TestPeriodIndexSeriesMethods:
         tm.assert_index_equal(result, exp)
 
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
-        tm.assert_index_equal(idx - pd.Period("NaT", freq="M"), exp)
-        tm.assert_index_equal(pd.Period("NaT", freq="M") - idx, exp)
+        result = idx - pd.Period("NaT", freq="M")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == exp.freq
+
+        result = pd.Period("NaT", freq="M") - idx
+        tm.assert_index_equal(result, exp)
+        assert result.freq == exp.freq
 
     def test_pi_sub_pdnat(self):
         # GH#13071

@@ -423,7 +423,7 @@ class TestPivotTable:
             index=pd.Grouper(freq="A"), columns=pd.Grouper(key="dt", freq="M")
         )
         exp = pd.DataFrame(
-            [3], index=pd.DatetimeIndex(["2011-12-31"]), columns=exp_columns
+            [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
         )
         tm.assert_frame_equal(res, exp)
 
@@ -1026,6 +1026,14 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_retains_tz(self):
+        dti = date_range("2016-01-01", periods=3, tz="Europe/Amsterdam")
+        df = DataFrame({"A": np.random.randn(3), "B": np.random.randn(3), "C": dti})
+        result = df.pivot_table(index=["B", "C"], dropna=False)
+
+        # check tz retention
+        assert result.index.levels[1].equals(dti)
+
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
 
@@ -1216,7 +1224,7 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([10, 18, 3], dtype="int64").reshape(1, 3),
-            index=[datetime(2013, 12, 31)],
+            index=pd.DatetimeIndex([datetime(2013, 12, 31)], freq="A"),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1242,7 +1250,9 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([1, np.nan, 3, 9, 18, np.nan]).reshape(2, 3),
-            index=[datetime(2013, 1, 1), datetime(2013, 7, 1)],
+            index=pd.DatetimeIndex(
+                [datetime(2013, 1, 1), datetime(2013, 7, 1)], freq="6MS"
+            ),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1399,18 +1409,24 @@ class TestPivotTable:
                     np.nan,
                 ]
             ).reshape(4, 4),
-            index=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
-            columns=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
+            index=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
+            columns=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
         )
         expected.index.name = "Date"
         expected.columns.name = "PayDay"
@@ -1748,18 +1764,14 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_categorical(self, observed, ordered_fixture):
+    def test_pivot_with_categorical(self, observed, ordered):
         # gh-21370
         idx = [np.nan, "low", "high", "low", np.nan]
         col = [np.nan, "A", "B", np.nan, "A"]
         df = pd.DataFrame(
             {
-                "In": pd.Categorical(
-                    idx, categories=["low", "high"], ordered=ordered_fixture
-                ),
-                "Col": pd.Categorical(
-                    col, categories=["A", "B"], ordered=ordered_fixture
-                ),
+                "In": pd.Categorical(idx, categories=["low", "high"], ordered=ordered),
+                "Col": pd.Categorical(col, categories=["A", "B"], ordered=ordered),
                 "Val": range(1, 6),
             }
         )
@@ -1768,16 +1780,14 @@ class TestPivotTable:
             index="In", columns="Col", values="Val", observed=observed
         )
 
-        expected_cols = pd.CategoricalIndex(
-            ["A", "B"], ordered=ordered_fixture, name="Col"
-        )
+        expected_cols = pd.CategoricalIndex(["A", "B"], ordered=ordered, name="Col")
 
         expected = pd.DataFrame(
             data=[[2.0, np.nan], [np.nan, 3.0]], columns=expected_cols
         )
         expected.index = Index(
             pd.Categorical(
-                ["low", "high"], categories=["low", "high"], ordered=ordered_fixture
+                ["low", "high"], categories=["low", "high"], ordered=ordered
             ),
             name="In",
         )

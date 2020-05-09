@@ -1,5 +1,4 @@
 from copy import copy
-from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
 from cpython.ref cimport Py_INCREF
@@ -37,7 +36,12 @@ cdef class Reducer:
         object dummy, f, labels, typ, ityp, index
         ndarray arr
 
-    def __init__(self, ndarray arr, object f, axis=1, dummy=None, labels=None):
+    def __init__(
+        self, ndarray arr, object f, int axis=1, object dummy=None, object labels=None
+    ):
+        cdef:
+            Py_ssize_t n, k
+
         n, k = (<object>arr).shape
 
         if axis == 0:
@@ -61,7 +65,7 @@ cdef class Reducer:
         self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
             dummy=dummy)
 
-    cdef _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, object dummy=None):
         cdef:
             object index = None, typ = None, ityp = None
 
@@ -123,7 +127,7 @@ cdef class Reducer:
                     name = labels[i]
 
                     object.__setattr__(
-                        cached_typ._data._block, 'values', chunk)
+                        cached_typ._mgr._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
@@ -148,7 +152,7 @@ cdef class Reducer:
 
 
 cdef class _BaseGrouper:
-    cdef _check_dummy(self, dummy):
+    cdef _check_dummy(self, object dummy):
         # both values and index must be an ndarray!
 
         values = dummy.values
@@ -176,8 +180,8 @@ cdef class _BaseGrouper:
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
-            object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
-            object.__setattr__(cached_typ._data._block, 'mgr_locs',
+            object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
                                slice(len(vslider.buf)))
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
@@ -191,13 +195,16 @@ cdef class _BaseGrouper:
         """
         Call self.f on our new group, then update to the next group.
         """
+        cdef:
+            object res
+
         cached_ityp._engine.clear_mapping()
         res = self.f(cached_typ)
         res = _extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
-            initialized = 1
+            initialized = True
             _check_result_array(res, len(self.dummy_arr))
 
         islider.advance(group_size)
@@ -535,12 +542,16 @@ cdef class BlockSlider:
     cdef:
         char **base_ptrs
 
-    def __init__(self, frame):
+    def __init__(self, object frame):
+        cdef:
+            Py_ssize_t i
+            object b
+
         self.frame = frame
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [b.values for b in self.dummy._data.blocks]
+        self.blocks = [b.values for b in self.dummy._mgr.blocks]
 
         for x in self.blocks:
             util.set_array_not_contiguous(x)

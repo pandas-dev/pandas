@@ -4,7 +4,7 @@ from typing import Optional, Type
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -48,34 +48,6 @@ class Base:
         )
         with pytest.raises(TypeError, match=msg):
             self._holder()
-
-    def test_to_series(self):
-        # assert that we are creating a copy of the index
-
-        idx = self.create_index()
-        s = idx.to_series()
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name == idx.name
-
-    def test_to_series_with_arguments(self):
-        # GH18699
-
-        # index kwarg
-        idx = self.create_index()
-        s = idx.to_series(index=idx)
-
-        assert s.values is not idx.values
-        assert s.index is idx
-        assert s.name == idx.name
-
-        # name kwarg
-        idx = self.create_index()
-        s = idx.to_series(name="__test")
-
-        assert s.values is not idx.values
-        assert s.index is not idx
-        assert s.name != idx.name
 
     @pytest.mark.parametrize("name", [None, "new_name"])
     def test_to_frame(self, name):
@@ -198,15 +170,6 @@ class Base:
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_boolean_context_compat(self):
-
-        # boolean context compat
-        idx = self.create_index()
-
-        with pytest.raises(ValueError, match="The truth value of a"):
-            if idx:
-                pass
-
     def test_reindex_base(self):
         idx = self.create_index()
         expected = np.arange(idx.size, dtype=np.intp)
@@ -252,14 +215,6 @@ class Base:
 
         idx = self.create_index()
         tm.assert_index_equal(eval(repr(idx)), idx)
-
-    def test_str(self):
-
-        # test the string repr
-        idx = self.create_index()
-        idx.name = "foo"
-        assert "'foo'" in str(idx)
-        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -311,18 +266,15 @@ class Base:
         result = index_type(indices.values, copy=True, **init_kwargs)
         if is_datetime64tz_dtype(indices.dtype):
             result = result.tz_localize("UTC").tz_convert(indices.tz)
+        if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
+            indices = indices._with_freq(None)
 
         tm.assert_index_equal(indices, result)
-        tm.assert_numpy_array_equal(
-            indices._ndarray_values, result._ndarray_values, check_same="copy"
-        )
 
         if isinstance(indices, PeriodIndex):
             # .values an object array of Period, thus copied
             result = index_type(ordinal=indices.asi8, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
-            )
+            tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
         elif isinstance(indices, IntervalIndex):
             # checked in test_interval.py
             pass
@@ -330,9 +282,6 @@ class Base:
             result = index_type(indices.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(
                 indices.values, result.values, check_same="same"
-            )
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
             )
 
     def test_memory_usage(self, indices):
@@ -402,7 +351,8 @@ class Base:
 
         if not isinstance(indices, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
             # GH 10791
-            with pytest.raises(AttributeError):
+            msg = r"'(.*Index)' object has no attribute 'freq'"
+            with pytest.raises(AttributeError, match=msg):
                 indices.freq
 
     def test_take_invalid_kwargs(self):
@@ -445,6 +395,9 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
+        if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            # where does not preserve freq
+            i = i._with_freq(None)
 
         cond = [True] * len(i)
         result = i.where(klass(cond))
@@ -590,9 +543,10 @@ class Base:
         assert result.equals(expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
-            indices.delete(len(indices))
+        length = len(indices)
+        msg = f"index {length} is out of bounds for axis 0 with size {length}"
+        with pytest.raises(IndexError, match=msg):
+            indices.delete(length)
 
     def test_equals(self, indices):
         if isinstance(indices, IntervalIndex):
@@ -607,8 +561,7 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
-            # TODO: CategoricalIndex can be re-allowed following GH#32167
+        if not isinstance(indices, RangeIndex):
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)
@@ -840,13 +793,14 @@ class Base:
         # GH18368
         index = self.create_index()
 
-        with pytest.raises(ValueError):
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
             index.putmask(np.ones(len(index) + 1, np.bool), 1)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             index.putmask(np.ones(len(index) - 1, np.bool), 1)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             index.putmask("foo", 1)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -914,11 +868,35 @@ class Base:
 
     def test_contains_requires_hashable_raises(self):
         idx = self.create_index()
-        with pytest.raises(TypeError, match="unhashable type"):
+
+        msg = "unhashable type: 'list'"
+        with pytest.raises(TypeError, match=msg):
             [] in idx
 
-        with pytest.raises(TypeError):
+        msg = "|".join(
+            [
+                r"unhashable type: 'dict'",
+                r"must be real number, not dict",
+                r"an integer is required",
+                r"\{\}",
+                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
             {} in idx._engine
+
+    def test_copy_copies_cache(self):
+        # GH32898
+        idx = self.create_index()
+        idx.get_loc(idx[0])  # populates the _cache.
+        copy = idx.copy()
+
+        # check that the copied cache is a copy of the original
+        assert idx._cache == copy._cache
+        assert idx._cache is not copy._cache
+        # cache values should reference the same object
+        for key, val in idx._cache.items():
+            assert copy._cache[key] is val, key
 
     def test_shallow_copy_copies_cache(self):
         # GH32669

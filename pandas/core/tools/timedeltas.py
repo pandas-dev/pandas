@@ -28,8 +28,8 @@ def to_timedelta(arg, unit="ns", errors="raise"):
         The data to be converted to timedelta.
     unit : str, default 'ns'
         Denotes the unit of the arg. Possible values:
-        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
-        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
         'sec', 'second', 'ms', 'milliseconds', 'millisecond',
         'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
         'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
@@ -58,19 +58,19 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     >>> pd.to_timedelta('1 days 06:05:01.00003')
     Timedelta('1 days 06:05:01.000030')
     >>> pd.to_timedelta('15.5us')
-    Timedelta('0 days 00:00:00.000015')
+    Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), unit='s')
-    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
-                    '00:00:03', '00:00:04'],
+    TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                    '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],

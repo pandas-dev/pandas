@@ -91,23 +91,23 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     See Also
     --------
-    DateOffset
+    DateOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
-    >>> to_offset('5min')
+    >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset('1D1H')
+    >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(('W', 2))
+    >>> to_offset(("W", 2))
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, 'B'))
+    >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
@@ -124,7 +124,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -147,13 +147,11 @@ def to_offset(freq) -> Optional[DateOffset]:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(libfreqs.opattern, freq)
-            if splitted[-1] != "" and not splitted[-1].isspace():
+            split = re.split(libfreqs.opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
-            for sep, stride, name in zip(
-                splitted[0::4], splitted[1::4], splitted[2::4]
-            ):
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = libfreqs._lite_rule_alias.get(name) or name
@@ -274,12 +272,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_dtype(index):
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index):
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
@@ -289,7 +290,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
-        index = index.values
+        index = index._values
 
     if not isinstance(index, pd.DatetimeIndex):
         index = pd.DatetimeIndex(index)
@@ -305,13 +306,13 @@ class _FrequencyInferer:
 
     def __init__(self, index, warn: bool = True):
         self.index = index
-        self.values = index.asi8
+        self.i8values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.values = tz_convert(self.values, UTC, index.tz)
+                self.i8values = tz_convert(self.i8values, UTC, index.tz)
 
         self.warn = warn
 
@@ -324,10 +325,12 @@ class _FrequencyInferer:
 
     @cache_readonly
     def deltas(self):
-        return unique_deltas(self.values)
+        return unique_deltas(self.i8values)
 
     @cache_readonly
     def deltas_asi8(self):
+        # NB: we cannot use self.i8values here because we may have converted
+        #  the tz in __init__
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
@@ -341,7 +344,7 @@ class _FrequencyInferer:
     def get_freq(self) -> Optional[str]:
         """
         Find the appropriate frequency string to describe the inferred
-        frequency of self.values
+        frequency of self.i8values
 
         Returns
         -------
@@ -393,11 +396,11 @@ class _FrequencyInferer:
 
     @cache_readonly
     def fields(self):
-        return build_field_sarray(self.values)
+        return build_field_sarray(self.i8values)
 
     @cache_readonly
     def rep_stamp(self):
-        return Timestamp(self.values[0])
+        return Timestamp(self.i8values[0])
 
     def month_position_check(self):
         return libresolution.month_position_check(self.fields, self.index.dayofweek)

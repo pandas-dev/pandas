@@ -192,7 +192,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
-    sep = ","
+    sep = "\t"
 
     expected = parser.read_csv(pth, sep=sep, encoding=encoding)
     expected = expected.apply(Categorical)
@@ -299,7 +299,8 @@ def test_categorical_coerces_numeric(all_parsers):
 
 def test_categorical_coerces_datetime(all_parsers):
     parser = all_parsers
-    dtype = {"b": CategoricalDtype(pd.date_range("2017", "2019", freq="AS"))}
+    dti = pd.DatetimeIndex(["2017-01-01", "2018-01-01", "2019-01-01"], freq=None)
+    dtype = {"b": CategoricalDtype(dti)}
 
     data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})

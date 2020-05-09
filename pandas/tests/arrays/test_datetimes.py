@@ -89,11 +89,26 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(ValueError, match="list"):
             DatetimeArray([1, 2, 3])
 
-    def test_other_type_raises(self):
+    def test_bool_dtype_raises(self):
+        arr = np.array([1, 2, 3], dtype="bool")
+
         with pytest.raises(
             ValueError, match="The dtype of 'values' is incorrect.*bool"
         ):
-            DatetimeArray(np.array([1, 2, 3], dtype="bool"))
+            DatetimeArray(arr)
+
+        msg = r"dtype bool cannot be converted to datetime64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray._from_sequence(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            sequence_to_dt64ns(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.DatetimeIndex(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.to_datetime(arr)
 
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
@@ -358,6 +373,40 @@ class TestDatetimeArray:
         )
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
+
+    def test_shift_fill_value(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        dta = dti._data
+        expected = DatetimeArray(np.roll(dta._data, 1))
+
+        fv = dta[-1]
+        for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
+            result = dta.shift(1, fill_value=fill_value)
+            tm.assert_datetime_array_equal(result, expected)
+
+        dta = dta.tz_localize("UTC")
+        expected = expected.tz_localize("UTC")
+        fv = dta[-1]
+        for fill_value in [fv, fv.to_pydatetime()]:
+            result = dta.shift(1, fill_value=fill_value)
+            tm.assert_datetime_array_equal(result, expected)
+
+    def test_shift_value_tzawareness_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        dta = dti._data
+
+        fv = dta[-1].tz_localize("UTC")
+        for invalid in [fv, fv.to_pydatetime()]:
+            with pytest.raises(TypeError, match="Cannot compare"):
+                dta.shift(1, fill_value=invalid)
+
+        dta = dta.tz_localize("UTC")
+        fv = dta[-1].tz_localize(None)
+        for invalid in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
+            with pytest.raises(TypeError, match="Cannot compare"):
+                dta.shift(1, fill_value=invalid)
 
 
 class TestSequenceToDT64NS:

@@ -5,6 +5,7 @@ and Index.__new__.
 These should not depend on core.internals.
 """
 
+from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
@@ -12,7 +13,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -26,7 +27,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
@@ -35,9 +35,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_timedelta64_ns_dtype,
-    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, registry
+from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -51,13 +50,14 @@ import pandas.core.common as com
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 
 def array(
-    data: Sequence[object],
-    dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+    data: Union[Sequence[object], AnyArrayLike],
+    dtype: Optional[Dtype] = None,
     copy: bool = True,
-) -> ABCExtensionArray:
+) -> "ExtensionArray":
     """
     Create an array.
 
@@ -186,7 +186,7 @@ def array(
 
     >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
     <TimedeltaArray>
-    ['01:00:00', '02:00:00']
+    ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
 
     Examples
@@ -387,14 +387,16 @@ def extract_array(obj, extract_numpy: bool = False):
 
 
 def sanitize_array(
-    data, index, dtype=None, copy: bool = False, raise_cast_failure: bool = False
-):
+    data,
+    index: Optional["Index"],
+    dtype: Optional[DtypeObj] = None,
+    copy: bool = False,
+    raise_cast_failure: bool = False,
+) -> ArrayLike:
     """
-    Sanitize input data to an ndarray, copy if specified, coerce to the
-    dtype if specified.
+    Sanitize input data to an ndarray or ExtensionArray, copy if specified,
+    coerce to the dtype if specified.
     """
-    if dtype is not None:
-        dtype = pandas_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
@@ -446,6 +448,13 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    elif isinstance(data, abc.Set):
+        raise TypeError("Set type is unordered")
+    elif lib.is_scalar(data) and index is not None and dtype is not None:
+        data = maybe_cast_to_datetime(data, dtype)
+        if not lib.is_scalar(data):
+            data = data[0]
+        subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
@@ -505,17 +514,14 @@ def sanitize_array(
 
 
 def _try_cast(
-    arr,
-    dtype: Optional[Union[np.dtype, "ExtensionDtype"]],
-    copy: bool,
-    raise_cast_failure: bool,
+    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
 ):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray, scalar, list, tuple, iterator (catchall)
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
@@ -529,13 +535,23 @@ def _try_cast(
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
+    if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
+        # create an extension array from its dtype
+        # DatetimeTZ case needs to go through maybe_cast_to_datetime
+        array_type = dtype.construct_array_type()._from_sequence
+        subarr = array_type(arr, dtype=dtype, copy=copy)
+        return subarr
+
     try:
-        # GH#15832: Check if we are requesting a numeric dype and
+        # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
-            subarr = maybe_cast_to_integer_array(arr, dtype)
+            # this will raise if we have e.g. floats
+            maybe_cast_to_integer_array(arr, dtype)
+            subarr = arr
+        else:
+            subarr = maybe_cast_to_datetime(arr, dtype)
 
-        subarr = maybe_cast_to_datetime(arr, dtype)
         # Take care in creating object arrays (but iterators are not
         # supported):
         if is_object_dtype(dtype) and (
@@ -549,19 +565,7 @@ def _try_cast(
         # in case of out of bound datetime64 -> always raise
         raise
     except (ValueError, TypeError):
-        if is_categorical_dtype(dtype):
-            # We *do* allow casting to categorical, since we know
-            # that Categorical is the only array type for 'category'.
-            dtype = cast(CategoricalDtype, dtype)
-            subarr = dtype.construct_array_type()(
-                arr, dtype.categories, ordered=dtype.ordered
-            )
-        elif is_extension_array_dtype(dtype):
-            # create an extension array from its dtype
-            dtype = cast(ExtensionDtype, dtype)
-            array_type = dtype.construct_array_type()._from_sequence
-            subarr = array_type(arr, dtype=dtype, copy=copy)
-        elif dtype is not None and raise_cast_failure:
+        if dtype is not None and raise_cast_failure:
             raise
         else:
             subarr = np.array(arr, dtype=object, copy=copy)

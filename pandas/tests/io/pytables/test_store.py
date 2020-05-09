@@ -1217,20 +1217,22 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
 
             # column oriented
             df = tm.makeTimeDataFrame()
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
+
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
             store.append("df1", df.iloc[:, 2:])
@@ -2382,7 +2384,7 @@ class TestHDFStore:
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
             recons = store["df"]
-            assert recons._data.is_consolidated()
+            assert recons._mgr.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
@@ -4776,3 +4778,14 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
+
+    def test_unsuppored_hdf_file_error(self, datapath):
+        # GH 9539
+        data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
+        message = (
+            r"Dataset\(s\) incompatible with Pandas data types, "
+            "not table, or no datasets found in HDF5 file."
+        )
+
+        with pytest.raises(ValueError, match=message):
+            pd.read_hdf(data_path)

@@ -26,7 +26,7 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     _string_to_dts,
@@ -50,8 +50,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_datetime_to_tsobject,
     get_datetime64_nanos)
 
-# many modules still look for NaT and iNaT here despite them not being needed
-from pandas._libs.tslibs.nattype import nat_strings, iNaT  # noqa:F821
+from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
 
@@ -114,7 +113,7 @@ def ints_to_pydatetime(
     const int64_t[:] arr,
     object tz=None,
     object freq=None,
-    bint fold=0,
+    bint fold=False,
     str box="datetime"
 ):
     """
@@ -288,7 +287,8 @@ def format_array_from_datetime(
     cdef:
         int64_t val, ns, N = len(values)
         ndarray[int64_t] consider_values
-        bint show_ms = 0, show_us = 0, show_ns = 0, basic_format = 0
+        bint show_ms = False, show_us = False, show_ns = False
+        bint basic_format = False
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         npy_datetimestruct dts
@@ -576,10 +576,10 @@ cpdef array_to_datetime(
         ndarray[object] oresult
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
-        bint seen_integer = 0
-        bint seen_string = 0
-        bint seen_datetime = 0
-        bint seen_datetime_offset = 0
+        bint seen_integer = False
+        bint seen_string = False
+        bint seen_datetime = False
+        bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -606,7 +606,7 @@ cpdef array_to_datetime(
                     iresult[i] = NPY_NAT
 
                 elif PyDateTime_Check(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     if val.tzinfo is not None:
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
@@ -617,22 +617,22 @@ cpdef array_to_datetime(
                                              'datetime64 unless utc=True')
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if isinstance(val, _Timestamp):
+                        if isinstance(val, ABCTimestamp):
                             iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     iresult[i] = pydate_to_dt64(val, &dts)
                     check_dts_bounds(&dts)
 
                 elif is_datetime64_object(val):
-                    seen_datetime = 1
+                    seen_datetime = True
                     iresult[i] = get_datetime64_nanos(val)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
-                    seen_integer = 1
+                    seen_integer = True
 
                     if val != val or val == NPY_NAT:
                         iresult[i] = NPY_NAT
@@ -651,7 +651,7 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = 1
+                    seen_string = True
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
@@ -693,7 +693,7 @@ cpdef array_to_datetime(
                             raise TypeError("invalid string coercion to datetime")
 
                         if tz is not None:
-                            seen_datetime_offset = 1
+                            seen_datetime_offset = True
                             # dateutil timezone objects cannot be hashed, so
                             # store the UTC offsets in seconds instead
                             out_tzoffset_vals.add(tz.total_seconds())
@@ -709,7 +709,7 @@ cpdef array_to_datetime(
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
                         if out_local == 1:
-                            seen_datetime_offset = 1
+                            seen_datetime_offset = True
                             # Store the out_tzoffset in seconds
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects
