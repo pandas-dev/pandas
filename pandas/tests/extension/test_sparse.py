@@ -321,13 +321,8 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     )
     def test_argmin_argmax_all_na(self, method, data, na_value):
         # overriding because Sparse[int64, 0] cannot handle na_value
-        if data.dtype.fill_value == 0:
-            pytest.skip("missing values not supported with Sparse[int64, 0]")
-
-        err_msg = "attempt to get"
-        data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
-        with pytest.raises(ValueError, match=err_msg):
-            getattr(data_na, method)()
+        self._check_unsupported(data)
+        super().test_argmin_argmax_all_na(method, data, na_value)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
