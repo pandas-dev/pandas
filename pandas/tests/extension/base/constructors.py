@@ -108,3 +108,11 @@ class BaseConstructorsTests(BaseExtensionTests):
         result = pd.array(data, dtype=np.dtype(object))
         expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
         self.assert_equal(result, expected)
+
+    def test_construct_empty_dataframe(self, dtype):
+        # GH 33623
+        result = pd.DataFrame(columns=["a"], dtype=dtype)
+        expected = pd.DataFrame(
+            {"a": pd.array([], dtype=dtype)}, index=pd.Index([], dtype="object")
+        )
+        self.assert_frame_equal(result, expected)
