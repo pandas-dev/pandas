@@ -10,7 +10,7 @@ from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
 # a fixture value can be overridden by the test parameter value. Note that the
@@ -182,7 +182,6 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
 @pytest.mark.parametrize("dtype", [np.float, np.int, np.object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
-
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
@@ -215,13 +214,7 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
     if isinstance(arg, list):
         expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
 
-    # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
-    if isinstance(expected.index, TimedeltaIndex):
-        msg = "DataFrame are different"
-        with pytest.raises(AssertionError, match=msg):
-            tm.assert_frame_equal(result_agg, expected)
-    else:
-        tm.assert_frame_equal(result_agg, expected)
+    tm.assert_frame_equal(result_agg, expected)
 
 
 @all_ts
