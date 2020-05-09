@@ -37,7 +37,8 @@ class TestStyler:
         ]
 
     def test_init_non_pandas(self):
-        with pytest.raises(TypeError):
+        msg = "``data`` must be a Series or DataFrame"
+        with pytest.raises(TypeError, match=msg):
             Styler([1, 2, 3])
 
     def test_init_series(self):
@@ -1013,7 +1014,8 @@ class TestStyler:
 
     def test_bar_bad_align_raises(self):
         df = pd.DataFrame({"A": [-100, -60, -30, -20]})
-        with pytest.raises(ValueError):
+        msg = "`align` must be one of {'left', 'zero',' mid'}"
+        with pytest.raises(ValueError, match=msg):
             df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
     def test_format_with_na_rep(self):
@@ -1082,7 +1084,8 @@ class TestStyler:
     def test_format_with_bad_na_rep(self):
         # GH 21527 28358
         df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-        with pytest.raises(TypeError):
+        msg = "Expected a string, got -1 instead"
+        with pytest.raises(TypeError, match=msg):
             df.style.format(None, na_rep=-1)
 
     def test_highlight_null(self, null_color="red"):
@@ -1091,12 +1094,30 @@ class TestStyler:
         expected = {(0, 0): [""], (1, 0): ["background-color: red"]}
         assert result == expected
 
+    def test_highlight_null_subset(self):
+        # GH 31345
+        df = pd.DataFrame({"A": [0, np.nan], "B": [0, np.nan]})
+        result = (
+            df.style.highlight_null(null_color="red", subset=["A"])
+            .highlight_null(null_color="green", subset=["B"])
+            ._compute()
+            .ctx
+        )
+        expected = {
+            (0, 0): [""],
+            (1, 0): ["background-color: red"],
+            (0, 1): [""],
+            (1, 1): ["background-color: green"],
+        }
+        assert result == expected
+
     def test_nonunique_raises(self):
         df = pd.DataFrame([[1, 2]], columns=["A", "A"])
-        with pytest.raises(ValueError):
+        msg = "style is not supported for non-unique indices."
+        with pytest.raises(ValueError, match=msg):
             df.style
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Styler(df)
 
     def test_caption(self):
@@ -1243,9 +1264,12 @@ class TestStyler:
 
     def test_display_format_raises(self):
         df = pd.DataFrame(np.random.randn(2, 2))
-        with pytest.raises(TypeError):
+        msg = "Expected a template string or callable, got 5 instead"
+        with pytest.raises(TypeError, match=msg):
             df.style.format(5)
-        with pytest.raises(TypeError):
+
+        msg = "Expected a template string or callable, got True instead"
+        with pytest.raises(TypeError, match=msg):
             df.style.format(True)
 
     def test_display_set_precision(self):
@@ -1318,19 +1342,21 @@ class TestStyler:
 
     def test_bad_apply_shape(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with pytest.raises(ValueError):
+        msg = "returned the wrong shape"
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: "x", subset=pd.IndexSlice[[0, 1], :])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: [""], subset=pd.IndexSlice[[0, 1], :])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", "", ""])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], subset=1)
 
-        with pytest.raises(ValueError):
+        msg = "Length mismatch: Expected axis has 3 elements"
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
     def test_apply_bad_return(self):
@@ -1338,7 +1364,8 @@ class TestStyler:
             return ""
 
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with pytest.raises(TypeError):
+        msg = "must return a DataFrame when passed to `Styler.apply` with axis=None"
+        with pytest.raises(TypeError, match=msg):
             df.style._apply(f, axis=None)
 
     def test_apply_bad_labels(self):
@@ -1346,7 +1373,8 @@ class TestStyler:
             return pd.DataFrame(index=[1, 2], columns=["a", "b"])
 
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with pytest.raises(ValueError):
+        msg = "must have identical index and columns as the input"
+        with pytest.raises(ValueError, match=msg):
             df.style._apply(f, axis=None)
 
     def test_get_level_lengths(self):

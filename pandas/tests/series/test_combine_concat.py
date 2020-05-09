@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import Series
 
 
-class TestSeriesCombine:
+class TestSeriesConcat:
     @pytest.mark.parametrize(
         "dtype", ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"]
     )

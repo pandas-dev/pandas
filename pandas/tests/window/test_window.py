@@ -29,11 +29,10 @@ class TestWindow(Base):
         c(win_type="boxcar", window=2, min_periods=1, center=False)
 
         # not valid
-        msg = "|".join(["min_periods must be an integer", "center must be a boolean"])
         for w in [2.0, "foo", np.array([2])]:
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(ValueError, match="min_periods must be an integer"):
                 c(win_type="boxcar", window=2, min_periods=w)
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(ValueError, match="center must be a boolean"):
                 c(win_type="boxcar", window=2, min_periods=1, center=w)
 
         for wt in ["foobar", 1]:

@@ -1,39 +1,57 @@
+"""
+_Timestamp is a c-defined subclass of datetime.datetime
+
+_Timestamp is PITA. Because we inherit from datetime, which has very specific
+construction requirements, we need to do object instantiation in python
+(see Timestamp class below). This will serve as a C extension type that
+shadows the python class, where we do any heavy lifting.
+"""
 import warnings
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, int8_t, uint8_t, ndarray
 cnp.import_array()
 
-from datetime import time as datetime_time, timedelta
-from cpython.datetime cimport (datetime,
+from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
+                             Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
+
+from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
                                PyTZInfo_Check, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_integer_object, is_offset_object)
+    is_datetime64_object, is_float_object, is_integer_object, is_offset_object,
+    is_timedelta64_object, is_array,
+)
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp, is_tick_object
+
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_to_tsobject,
     convert_datetime_to_tsobject)
+from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct)
+    check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
+    reverse_ops, cmp_scalar,
+)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, maybe_get_tz, treat_tz_as_pytz)
-from pandas._libs.tslibs.timezones import UTC
-from pandas._libs.tslibs.tzconversion import (
-    tz_localize_to_utc, tz_convert_single)
+    is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
+    get_timezone, tz_compare,
+)
+from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 # ----------------------------------------------------------------------
 # Constants
-_zero_time = datetime_time(0, 0)
+_zero_time = time(0, 0)
 _no_input = object()
 
 # ----------------------------------------------------------------------
@@ -41,12 +59,12 @@ _no_input = object()
 
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
-                                            object tz, object freq):
+                                            object tz, object freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
-                                 dts.sec, dts.us, tz)
+                                 dts.sec, dts.us, tz, fold=fold)
     ts_base.value = value
     ts_base.freq = freq
     ts_base.nanosecond = dts.ps // 1000
@@ -165,6 +183,400 @@ def round_nsint64(values, mode, freq):
 
 # ----------------------------------------------------------------------
 
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+    pass
+
+
+def integer_op_not_supported(obj):
+    # GH#22535 add/sub of integers and int-arrays is no longer allowed
+    # Note we return rather than raise the exception so we can raise in
+    #  the caller; mypy finds this more palatable.
+    cls = type(obj).__name__
+
+    # GH#30886 using an fstring raises SystemError
+    int_addsub_msg = (
+        "Addition/subtraction of integers and integer-arrays with {cls} is "
+        "no longer supported.  Instead of adding/subtracting `n`, "
+        "use `n * obj.freq`"
+    ).format(cls=cls)
+    return TypeError(int_addsub_msg)
+
+
+# ----------------------------------------------------------------------
+
+cdef class _Timestamp(ABCTimestamp):
+
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
+    def __hash__(_Timestamp self):
+        if self.nanosecond:
+            return hash(self.value)
+        return datetime.__hash__(self)
+
+    def __richcmp__(_Timestamp self, object other, int op):
+        cdef:
+            _Timestamp ots
+            int ndim
+
+        if isinstance(other, _Timestamp):
+            ots = other
+        elif other is NaT:
+            return op == Py_NE
+        elif PyDateTime_Check(other):
+            if self.nanosecond == 0:
+                val = self.to_pydatetime()
+                return PyObject_RichCompareBool(val, other, op)
+
+            try:
+                ots = type(self)(other)
+            except ValueError:
+                return self._compare_outside_nanorange(other, op)
+        else:
+            ndim = getattr(other, "ndim", -1)
+
+            if ndim != -1:
+                if ndim == 0:
+                    if is_datetime64_object(other):
+                        other = type(self)(other)
+                    elif is_array(other):
+                        # zero-dim array, occurs if try comparison with
+                        #  datetime64 scalar on the left hand side
+                        # Unfortunately, for datetime64 values, other.item()
+                        #  incorrectly returns an integer, so we need to use
+                        #  the numpy C api to extract it.
+                        other = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other),
+                                                     other)
+                        other = type(self)(other)
+                    else:
+                        return NotImplemented
+                elif is_array(other):
+                    # avoid recursion error GH#15183
+                    if other.dtype.kind == "M":
+                        if self.tz is None:
+                            return PyObject_RichCompare(self.asm8, other, op)
+                        raise TypeError(
+                            "Cannot compare tz-naive and tz-aware timestamps"
+                        )
+                    if other.dtype.kind == "O":
+                        # Operate element-wise
+                        return np.array(
+                            [PyObject_RichCompare(self, x, op) for x in other],
+                            dtype=bool,
+                        )
+                    return PyObject_RichCompare(np.array([self]), other, op)
+                return PyObject_RichCompare(other, self, reverse_ops[op])
+            else:
+                return NotImplemented
+
+        self._assert_tzawareness_compat(other)
+        return cmp_scalar(self.value, ots.value, op)
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # https://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
+    def __repr__(self) -> str:
+        stamp = self._repr_base
+        zone = None
+
+        try:
+            stamp += self.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+        except ValueError:
+            year2000 = self.replace(year=2000)
+            stamp += year2000.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+
+        try:
+            stamp += zone.strftime(' %%Z')
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
+            pass
+
+        tz = f", tz='{zone}'" if zone is not None else ""
+        freq = "" if self.freq is None else f", freq='{self.freqstr}'"
+
+        return f"Timestamp('{stamp}'{tz}{freq})"
+
+    cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
+                                         int op) except -1:
+        cdef:
+            datetime dtval = self.to_pydatetime()
+
+        self._assert_tzawareness_compat(other)
+
+        if self.nanosecond == 0:
+            return PyObject_RichCompareBool(dtval, other, op)
+        else:
+            if op == Py_EQ:
+                return False
+            elif op == Py_NE:
+                return True
+            elif op == Py_LT:
+                return dtval < other
+            elif op == Py_LE:
+                return dtval < other
+            elif op == Py_GT:
+                return dtval >= other
+            elif op == Py_GE:
+                return dtval >= other
+
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
+        if self.tzinfo is None:
+            if other.tzinfo is not None:
+                raise TypeError('Cannot compare tz-naive and tz-aware '
+                                'timestamps')
+        elif other.tzinfo is None:
+            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
+
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
+        """
+        Convert a Timestamp object to a native Python datetime object.
+
+        If warn=True, issue a warning if nanoseconds is nonzero.
+        """
+        if self.nanosecond != 0 and warn:
+            warnings.warn("Discarding nonzero nanoseconds in conversion",
+                          UserWarning, stacklevel=2)
+
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, self.tzinfo)
+
+    cpdef to_datetime64(self):
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
+        return np.datetime64(self.value, 'ns')
+
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+        """
+        Convert the Timestamp to a NumPy datetime64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.datetime64
+
+        See Also
+        --------
+        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+        """
+        return self.to_datetime64()
+
+    def __add__(self, other):
+        cdef:
+            int64_t other_int, nanos = 0
+
+        if is_timedelta64_object(other):
+            other_int = other.astype('timedelta64[ns]').view('i8')
+            return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
+
+        elif is_integer_object(other):
+            raise integer_op_not_supported(self)
+
+        elif PyDelta_Check(other):
+            # logic copied from delta_to_nanoseconds to prevent circular import
+            if hasattr(other, 'delta'):
+                # pd.Timedelta
+                nanos = other.value
+            elif PyDelta_Check(other):
+                nanos = (other.days * 24 * 60 * 60 * 1000000 +
+                         other.seconds * 1000000 +
+                         other.microseconds) * 1000
+
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
+
+        elif is_tick_object(other):
+            try:
+                nanos = other.nanos
+            except OverflowError:
+                raise OverflowError(
+                    f"the add operation between {other} and {self} will overflow"
+                )
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
+
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 + other
+                return np.asarray(
+                    [self + other[n] for n in range(len(other))],
+                    dtype=object,
+                )
+
+        return NotImplemented
+
+    def __sub__(self, other):
+
+        if (is_timedelta64_object(other) or is_integer_object(other) or
+                PyDelta_Check(other) or is_tick_object(other)):
+            neg_other = -other
+            return self + neg_other
+
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                raise integer_op_not_supported(self)
+            if other.dtype.kind == "m":
+                if self.tz is None:
+                    return self.asm8 - other
+                return np.asarray(
+                    [self - other[n] for n in range(len(other))],
+                    dtype=object,
+                )
+            return NotImplemented
+
+        if other is NaT:
+            return NaT
+
+        # coerce if necessary if we are a Timestamp-like
+        if (PyDateTime_Check(self)
+                and (PyDateTime_Check(other) or is_datetime64_object(other))):
+            # both_timestamps is to determine whether Timedelta(self - other)
+            # should raise the OOB error, or fall back returning a timedelta.
+            both_timestamps = (isinstance(other, _Timestamp) and
+                               isinstance(self, _Timestamp))
+            if isinstance(self, _Timestamp):
+                other = type(self)(other)
+            else:
+                self = type(other)(self)
+
+            # validate tz's
+            if not tz_compare(self.tzinfo, other.tzinfo):
+                raise TypeError("Timestamp subtraction must have the "
+                                "same timezones or no timezones")
+
+            # scalar Timestamp/datetime - Timestamp/datetime -> yields a
+            # Timedelta
+            from pandas._libs.tslibs.timedeltas import Timedelta
+            try:
+                return Timedelta(self.value - other.value)
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                if isinstance(other, _Timestamp):
+                    if both_timestamps:
+                        raise OutOfBoundsDatetime(
+                            "Result is too large for pandas.Timedelta. Convert inputs "
+                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                            "before subtracting."
+                        ) from err
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
+                pass
+        elif is_datetime64_object(self):
+            # GH#28286 cython semantics for __rsub__, `other` is actually
+            #  the Timestamp
+            return type(other)(self) - other
+
+        return NotImplemented
+
+    cdef int64_t _maybe_convert_value_to_local(self):
+        """Convert UTC i8 value to local i8 value if tz exists"""
+        cdef:
+            int64_t val
+        val = self.value
+        if self.tz is not None and not is_utc(self.tz):
+            val = tz_convert_single(self.value, UTC, self.tz)
+        return val
+
+    cpdef bint _get_start_end_field(self, str field):
+        cdef:
+            int64_t val
+            dict kwds
+            ndarray[uint8_t, cast=True] out
+            int month_kw
+
+        freq = self.freq
+        if freq:
+            kwds = freq.kwds
+            month_kw = kwds.get('startingMonth', kwds.get('month', 12))
+            freqstr = self.freqstr
+        else:
+            month_kw = 12
+            freqstr = None
+
+        val = self._maybe_convert_value_to_local()
+        out = get_start_end_field(np.array([val], dtype=np.int64),
+                                  field, freqstr, month_kw)
+        return out[0]
+
+    cpdef _get_date_name_field(self, object field, object locale):
+        cdef:
+            int64_t val
+            object[:] out
+
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64),
+                                  field, locale=locale)
+        return out[0]
+
+    @property
+    def _repr_base(self) -> str:
+        return f"{self._date_repr} {self._time_repr}"
+
+    @property
+    def _date_repr(self) -> str:
+        # Ideal here would be self.strftime("%Y-%m-%d"), but
+        # the datetime strftime() methods require year >= 1900
+        return f'{self.year}-{self.month:02d}-{self.day:02d}'
+
+    @property
+    def _time_repr(self) -> str:
+        result = f'{self.hour:02d}:{self.minute:02d}:{self.second:02d}'
+
+        if self.nanosecond != 0:
+            result += f'.{self.nanosecond + 1000 * self.microsecond:09d}'
+        elif self.microsecond != 0:
+            result += f'.{self.microsecond:06d}'
+
+        return result
+
+    @property
+    def _short_repr(self) -> str:
+        # format a Timestamp with only _date_repr if possible
+        # otherwise _repr_base
+        if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+            return self._date_repr
+        return self._repr_base
+
+    @property
+    def asm8(self) -> np.datetime64:
+        """
+        Return numpy datetime64 format in nanoseconds.
+        """
+        return np.datetime64(self.value, 'ns')
+
+    def timestamp(self):
+        """Return POSIX timestamp as float."""
+        # GH 17329
+        # Note: Naive timestamps will not match datetime.stdlib
+        return round(self.value / 1e9, 6)
+
+
+# ----------------------------------------------------------------------
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 
@@ -195,6 +607,13 @@ class Timestamp(_Timestamp):
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
+    fold : {0, 1}, default None, keyword-only
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -350,7 +769,9 @@ class Timestamp(_Timestamp):
         second=None,
         microsecond=None,
         nanosecond=None,
-        tzinfo=None
+        tzinfo=None,
+        *,
+        fold=None
     ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
@@ -390,6 +811,32 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
+        # Allow fold only for unambiguous input
+        if fold is not None:
+            if fold not in [0, 1]:
+                raise ValueError(
+                    "Valid values for the fold argument are None, 0, or 1."
+                )
+
+            if (ts_input is not _no_input and not (
+                    PyDateTime_Check(ts_input) and
+                    getattr(ts_input, 'tzinfo', None) is None)):
+                raise ValueError(
+                    "Cannot pass fold with possibly unambiguous input: int, "
+                    "float, numpy.datetime64, str, or timezone-aware "
+                    "datetime-like. Pass naive datetime-like or build "
+                    "Timestamp from components."
+                )
+
+            if tz is not None and treat_tz_as_pytz(tz):
+                raise ValueError(
+                    "pytz timezones do not support fold. Please use dateutil "
+                    "timezones."
+                )
+
+            if hasattr(ts_input, 'fold'):
+                ts_input = ts_input.replace(fold=fold)
+
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
@@ -419,7 +866,8 @@ class Timestamp(_Timestamp):
                 "hour": hour or 0,
                 "minute": minute or 0,
                 "second": second or 0,
-                "microsecond": microsecond or 0
+                "microsecond": microsecond or 0,
+                "fold": fold or 0
             }
             if year is not None:
                 datetime_kwargs["year"] = year
@@ -435,7 +883,7 @@ class Timestamp(_Timestamp):
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
             ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0)
+                                year or 0, month or 0, day or 0, fold=fold or 0)
             nanosecond = hour
             tz = minute
             freq = None
@@ -455,7 +903,7 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
@@ -843,8 +1291,7 @@ default 'raise'
             raise ValueError('Cannot infer offset with only one time.')
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
-        if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, timedelta):
+        if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
                 "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
@@ -999,7 +1446,7 @@ default 'raise'
         if value != NPY_NAT:
             check_dts_bounds(&dts)
 
-        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
+        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq, fold)
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
@@ -1054,11 +1501,10 @@ default 'raise'
 
     def normalize(self):
         """
-        Normalize Timestamp to midnight, preserving
-        tz information.
+        Normalize Timestamp to midnight, preserving tz information.
         """
         if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1000000000
+            DAY_NS = DAY_SECONDS * 1_000_000_000
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
@@ -1077,7 +1523,7 @@ cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
 # use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
+cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

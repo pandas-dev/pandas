@@ -91,7 +91,6 @@ class TestIndexSetOps:
         with pytest.raises(TypeError, match=".*"):
             idx.union(idx[:1], sort=True)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_base(self, sort):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = Index([0, "a", 1, "b", 2, "c"])
@@ -103,7 +102,6 @@ class TestIndexSetOps:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_different_type_base(self, klass, sort):
         # GH 10149
         index = Index([0, "a", 1, "b", 2, "c"])
@@ -123,7 +121,6 @@ class TestIndexSetOps:
         tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
         tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = Index([0, "a", 1, "b", 2, "c"])

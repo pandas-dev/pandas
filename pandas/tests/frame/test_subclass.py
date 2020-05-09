@@ -163,12 +163,14 @@ class TestDataFrameSubclassing:
 
         # frame + series
         res1, res2 = df.align(s, axis=0)
-        exp1 = pd.DataFrame(
+        exp1 = tm.SubclassedDataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
         )
         # name is lost when
-        exp2 = pd.Series([1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x")
+        exp2 = tm.SubclassedSeries(
+            [1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x"
+        )
 
         assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)

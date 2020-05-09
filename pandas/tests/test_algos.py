@@ -31,7 +31,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
@@ -362,7 +361,7 @@ class TestUnique:
 
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
-        if any_numpy_dtype in (BYTES_DTYPES + STRING_DTYPES):
+        if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
             pytest.skip("skip string dtype")
         elif is_integer_dtype(any_numpy_dtype):
             data = [1, 2, 2]
@@ -758,6 +757,16 @@ class TestIsin:
         St = Series(Categorical(1).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
         result = algos.isin(Sd, St)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_categorical_isin(self):
+        vals = np.array([0, 1, 2, 0])
+        cats = ["a", "b", "c"]
+        cat = Categorical(1).from_codes(vals, cats)
+        other = Categorical(1).from_codes(np.array([0, 1]), cats)
+
+        expected = np.array([True, True, False, True])
+        result = algos.isin(cat, other)
         tm.assert_numpy_array_equal(expected, result)
 
     def test_same_nan_is_in(self):

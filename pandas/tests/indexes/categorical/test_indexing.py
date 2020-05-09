@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index
+from pandas import CategoricalIndex, Index, IntervalIndex
 import pandas._testing as tm
 
 
@@ -65,7 +65,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_datetime(self):
@@ -104,7 +105,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_invalid_kwargs(self):
@@ -248,3 +250,104 @@ class TestGetIndexer:
         msg = "method='nearest' not implemented yet for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="nearest")
+
+
+class TestWhere:
+    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+    def test_where(self, klass):
+        i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+
+class TestContains:
+    def test_contains(self):
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=False)
+
+        assert "a" in ci
+        assert "z" not in ci
+        assert "e" not in ci
+        assert np.nan not in ci
+
+        # assert codes NOT in index
+        assert 0 not in ci
+        assert 1 not in ci
+
+    def test_contains_nan(self):
+        ci = CategoricalIndex(list("aabbca") + [np.nan], categories=list("cabdef"))
+        assert np.nan in ci
+
+    @pytest.mark.parametrize("unwrap", [True, False])
+    def test_contains_na_dtype(self, unwrap):
+        dti = pd.date_range("2016-01-01", periods=100).insert(0, pd.NaT)
+        pi = dti.to_period("D")
+        tdi = dti - dti[-1]
+        ci = CategoricalIndex(dti)
+
+        obj = ci
+        if unwrap:
+            obj = ci._data
+
+        assert np.nan in obj
+        assert None in obj
+        assert pd.NaT in obj
+        assert np.datetime64("NaT") in obj
+        assert np.timedelta64("NaT") not in obj
+
+        obj2 = CategoricalIndex(tdi)
+        if unwrap:
+            obj2 = obj2._data
+
+        assert np.nan in obj2
+        assert None in obj2
+        assert pd.NaT in obj2
+        assert np.datetime64("NaT") not in obj2
+        assert np.timedelta64("NaT") in obj2
+
+        obj3 = CategoricalIndex(pi)
+        if unwrap:
+            obj3 = obj3._data
+
+        assert np.nan in obj3
+        assert None in obj3
+        assert pd.NaT in obj3
+        assert np.datetime64("NaT") not in obj3
+        assert np.timedelta64("NaT") not in obj3
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (pd.Interval(0, 1), True),
+            (1.5, True),
+            (pd.Interval(0.5, 1.5), False),
+            ("a", False),
+            (pd.Timestamp(1), False),
+            (pd.Timedelta(1), False),
+        ],
+        ids=str,
+    )
+    def test_contains_interval(self, item, expected):
+        # GH 23705
+        ci = CategoricalIndex(IntervalIndex.from_breaks(range(3)))
+        result = item in ci
+        assert result is expected
+
+    def test_contains_list(self):
+        # GH#21729
+        idx = pd.CategoricalIndex([1, 2, 3])
+
+        assert "a" not in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in idx
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in idx

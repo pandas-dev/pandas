@@ -12,7 +12,7 @@ def test_upcast_error(result):
     # GH23823 require result arg to be ndarray
     mask = np.array([False, True, False])
     other = np.array([61, 62, 63])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The result input must be a ndarray"):
         result, _ = maybe_upcast_putmask(result, mask, other)
 
 

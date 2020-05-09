@@ -252,7 +252,7 @@ class TestCategoricalConstructors:
     def test_constructor_with_null(self):
 
         # Cannot have NaN in categories
-        msg = "Categorial categories cannot be null"
+        msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):
             Categorical([np.nan, "a", "b", "c"], categories=[np.nan, "a", "b", "c"])
 
@@ -331,6 +331,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_from_index_series_datetimetz(self):
         idx = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
+        idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
@@ -339,6 +340,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_from_index_series_timedelta(self):
         idx = timedelta_range("1 days", freq="D", periods=3)
+        idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
@@ -500,7 +502,7 @@ class TestCategoricalConstructors:
             Categorical.from_codes([0, 1, 2], categories=["a", "a", "b"])
 
     def test_from_codes_nan_cat_included(self):
-        with pytest.raises(ValueError, match="Categorial categories cannot be null"):
+        with pytest.raises(ValueError, match="Categorical categories cannot be null"):
             Categorical.from_codes([0, 1, 2], categories=["a", "b", np.nan])
 
     def test_from_codes_too_negative(self):
