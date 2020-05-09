@@ -21,6 +21,8 @@ cnp.import_array()
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object
 
+from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp
+
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
@@ -30,7 +32,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 
@@ -105,17 +107,18 @@ cdef to_offset(object obj):
     return to_offset(obj)
 
 
-def as_datetime(obj):
-    f = getattr(obj, 'to_pydatetime', None)
-    if f is not None:
-        obj = f()
+def as_datetime(obj: datetime) -> datetime:
+    if isinstance(obj, ABCTimestamp):
+        return obj.to_pydatetime()
     return obj
 
 
-cpdef bint is_normalized(dt):
-    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
-            dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
+cpdef bint is_normalized(datetime dt):
+    if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
+        # Regardless of whether dt is datetime vs Timestamp
         return False
+    if isinstance(dt, ABCTimestamp):
+        return dt.nanosecond == 0
     return True
 
 
@@ -124,7 +127,7 @@ def apply_index_wraps(func):
     # not play nicely with cython class methods
     def wrapper(self, other):
 
-        is_index = getattr(other, "_typ", "") == "datetimeindex"
+        is_index = not util.is_array(other._data)
 
         # operate on DatetimeArray
         arr = other._data if is_index else other
@@ -409,11 +412,6 @@ class _BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
-                                            "datetimearray", "periodarray",
-                                            "series", "period", "dataframe"]:
-            # defer to the other class's implementation
-            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -432,12 +430,12 @@ class _BaseOffset:
         return self.apply(other)
 
     def __mul__(self, other):
-        if hasattr(other, "_typ"):
-            return NotImplemented
         if util.is_array(other):
             return np.array([self * x for x in other])
-        return type(self)(n=other * self.n, normalize=self.normalize,
-                          **self.kwds)
+        elif is_integer_object(other):
+            return type(self)(n=other * self.n, normalize=self.normalize,
+                              **self.kwds)
+        return NotImplemented
 
     def __neg__(self):
         # Note: we are deferring directly to __mul__ instead of __rmul__, as
@@ -610,13 +608,10 @@ class BaseOffset(_BaseOffset):
         return self.__add__(other)
 
     def __rsub__(self, other):
-        if getattr(other, '_typ', None) in ['datetimeindex', 'series']:
-            # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
-            return other - self
-        return -self + other
+        return (-self).__add__(other)
 
 
-cdef class _Tick:
+cdef class _Tick(ABCTick):
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets

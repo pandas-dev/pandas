@@ -6,7 +6,7 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.generic import ABCMultiIndex
