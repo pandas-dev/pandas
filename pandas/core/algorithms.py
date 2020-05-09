@@ -125,7 +125,7 @@ def _ensure_data(
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall through to here
+        # and it is incompatible this will fall through to here
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
@@ -461,7 +461,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None
+    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -473,12 +473,16 @@ def _factorize_array(
     values : ndarray
     na_sentinel : int, default -1
     size_hint : int, optional
-        Passsed through to the hashtable's 'get_labels' method
+        Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
         A value in `values` to consider missing. Note: only use this
         parameter when you know that you don't have any values pandas would
         consider missing in the array (NaN for float data, iNaT for
         datetimes, etc.).
+    mask : ndarray[bool], optional
+        If not None, the mask is used as indicator for missing values
+        (True = missing, False = valid) instead of `na_value` or
+        condition "val != val".
 
     Returns
     -------
@@ -488,7 +492,9 @@ def _factorize_array(
     hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
-    uniques, codes = table.factorize(values, na_sentinel=na_sentinel, na_value=na_value)
+    uniques, codes = table.factorize(
+        values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
+    )
 
     codes = ensure_platform_int(codes)
     return codes, uniques
@@ -1239,7 +1245,7 @@ class SelectNFrame(SelectN):
                 break
 
             # Now find all values which are equal to
-            # the (nsmallest: largest)/(nlarrgest: smallest)
+            # the (nsmallest: largest)/(nlargest: smallest)
             # from our series.
             border_value = values == values[values.index[-1]]
 
