@@ -316,6 +316,11 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         data._sparse_values[0] = data._sparse_values[1]
         assert result._sparse_values[0] != result._sparse_values[1]
 
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value, as_series, box)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
