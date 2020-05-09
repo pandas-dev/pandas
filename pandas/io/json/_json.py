@@ -3,7 +3,8 @@ import functools
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Iterator, Optional, Type
+import re
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
@@ -733,15 +734,6 @@ class JsonReader(abc.Iterator):
         lines = filter(None, map(lambda x: x.strip(), lines))
         return "[" + ",".join(lines) + "]"
 
-    def _jsonstring_to_list_generaor(self, data: str) -> Iterator[str]:
-        prev_index = -1
-        while True:
-            next_index = data.find("\n", prev_index + 1)
-            if next_index < 0:
-                break
-            yield data[prev_index + 1 : next_index]
-            prev_index = next_index
-
     def read(self):
         """
         Read the whole JSON input into a pandas object.
@@ -751,7 +743,9 @@ class JsonReader(abc.Iterator):
         elif self.lines:
             data = ensure_str(self.data)
             if self.nrows:
-                data = list(islice(self._jsonstring_to_list_generaor(data), self.nrows))
+                compiled_pattern = re.compile("\n")
+                data_iterator = compiled_pattern.finditer("data")
+                data = list(islice(data_iterator, self.nrows))
             else:
                 data = data.split("\n")
             obj = self._get_object_parser(self._combine_lines(data))
