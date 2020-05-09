@@ -276,6 +276,12 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
+    @skip_nested
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        # Fails creating with _from_sequence
+        super().test_equals(data, na_value, as_series, box)
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
