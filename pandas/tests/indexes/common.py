@@ -4,7 +4,7 @@ from typing import Optional, Type
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -266,6 +266,8 @@ class Base:
         result = index_type(indices.values, copy=True, **init_kwargs)
         if is_datetime64tz_dtype(indices.dtype):
             result = result.tz_localize("UTC").tz_convert(indices.tz)
+        if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
+            indices = indices._with_freq(None)
 
         tm.assert_index_equal(indices, result)
 
@@ -393,6 +395,9 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
+        if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            # where does not preserve freq
+            i = i._with_freq(None)
 
         cond = [True] * len(i)
         result = i.where(klass(cond))
@@ -556,8 +561,7 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
-            # TODO: CategoricalIndex can be re-allowed following GH#32167
+        if not isinstance(indices, RangeIndex):
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)

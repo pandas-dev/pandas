@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import ArrayLike, Axis, DtypeObj, Label
+from pandas._typing import ArrayLike, Axis, DtypeObj, IndexKeyFunc, Label, ValueKeyFunc
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -89,6 +89,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -259,12 +260,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # astype copies
                     data = data.astype(dtype)
                 else:
-                    # need to copy to avoid aliasing issues
+                    # GH#24096 we need to ensure the index remains immutable
                     data = data._values.copy()
-                    if isinstance(data, ABCDatetimeIndex) and data.tz is not None:
-                        # GH#24096 need copy to be deep for datetime64tz case
-                        # TODO: See if we can avoid these copies
-                        data = data._values.copy(deep=True)
                 copy = False
 
             elif isinstance(data, np.ndarray):
@@ -280,6 +277,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     index = data.index
                 else:
                     data = data.reindex(index, copy=copy)
+                    copy = False
                 data = data._mgr
             elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
@@ -914,7 +912,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determin if this slice is positional
+            # _convert_slice_indexer to determine if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -2789,7 +2787,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        other : Series
+        other : Series, or object coercible into Series
 
         Examples
         --------
@@ -2827,7 +2825,30 @@ Name: Max Speed, dtype: float64
         1    2
         2    6
         dtype: int64
+
+        ``other`` can also be a non-Series object type
+        that is coercible into a Series
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update([4, np.nan, 6])
+        >>> s
+        0    4
+        1    2
+        2    6
+        dtype: int64
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update({1: 9})
+        >>> s
+        0    1
+        1    9
+        2    3
+        dtype: int64
         """
+
+        if not isinstance(other, Series):
+            other = Series(other)
+
         other = other.reindex_like(self)
         mask = notna(other)
 
@@ -2845,6 +2866,7 @@ Name: Max Speed, dtype: float64
         kind: str = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
+        key: ValueKeyFunc = None,
     ):
         """
         Sort by the values.
@@ -2868,9 +2890,18 @@ Name: Max Speed, dtype: float64
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
         ignore_index : bool, default False
-             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
-             .. versionadded:: 1.0.0
+            .. versionadded:: 1.0.0
+
+        key : callable, optional
+            If not None, apply the key function to the series values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect a
+            ``Series`` and return an array-like.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -2953,6 +2984,48 @@ Name: Max Speed, dtype: float64
         2    d
         0    z
         dtype: object
+
+        Sort using a key function. Your `key` function will be
+        given the ``Series`` of values and should return an array-like.
+
+        >>> s = pd.Series(['a', 'B', 'c', 'D', 'e'])
+        >>> s.sort_values()
+        1    B
+        3    D
+        0    a
+        2    c
+        4    e
+        dtype: object
+        >>> s.sort_values(key=lambda x: x.str.lower())
+        0    a
+        1    B
+        2    c
+        3    D
+        4    e
+        dtype: object
+
+        NumPy ufuncs work well here. For example, we can
+        sort by the ``sin`` of the value
+
+        >>> s = pd.Series([-4, -2, 0, 2, 4])
+        >>> s.sort_values(key=np.sin)
+        1   -2
+        4    4
+        2    0
+        0   -4
+        3    2
+        dtype: int64
+
+        More complicated user-defined functions can be used,
+        as long as they expect a Series and return an array-like
+
+        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        0   -4
+        3    2
+        4    4
+        1   -2
+        2    0
+        dtype: int64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
@@ -2966,6 +3039,9 @@ Name: Max Speed, dtype: float64
             )
 
         def _try_kind_sort(arr):
+            arr = ensure_key_mapped(arr, key)
+            arr = getattr(arr, "_values", arr)
+
             # easier to ask forgiveness than permission
             try:
                 # if kind==mergesort, it can fail for object dtype
@@ -2983,7 +3059,7 @@ Name: Max Speed, dtype: float64
         good = ~bad
         idx = ibase.default_index(len(self))
 
-        argsorted = _try_kind_sort(arr[good])
+        argsorted = _try_kind_sort(self[good])
 
         if is_list_like(ascending):
             if len(ascending) != 1:
@@ -3029,6 +3105,7 @@ Name: Max Speed, dtype: float64
         na_position: str = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
+        key: IndexKeyFunc = None,
     ):
         """
         Sort Series by index labels.
@@ -3062,6 +3139,15 @@ Name: Max Speed, dtype: float64
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.0.0
+
+        key : callable, optional
+            If not None, apply the key function to the index values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect an
+            ``Index`` and return an ``Index`` of the same shape.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3144,22 +3230,35 @@ Name: Max Speed, dtype: float64
         baz  two    5
         bar  two    7
         dtype: int64
+
+        Apply a key function before sorting
+
+        >>> s = pd.Series([1, 2, 3, 4], index=['A', 'b', 'C', 'd'])
+        >>> s.sort_index(key=lambda x : x.str.lower())
+        A    1
+        b    2
+        C    3
+        d    4
+        dtype: int64
         """
+
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-        index = self.index
+        index = ensure_key_mapped(self.index, key, levels=level)
 
         if level is not None:
             new_index, indexer = index.sortlevel(
                 level, ascending=ascending, sort_remaining=sort_remaining
             )
+
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
             labels = index._sort_levels_monotonic()
+
             indexer = lexsort_indexer(
                 labels._get_codes_for_sorting(),
                 orders=ascending,
@@ -3183,7 +3282,7 @@ Name: Max Speed, dtype: float64
             )
 
         indexer = ensure_platform_int(indexer)
-        new_index = index.take(indexer)
+        new_index = self.index.take(indexer)
         new_index = new_index._sort_levels_monotonic()
 
         new_values = self._values.take(indexer)
@@ -3278,7 +3377,7 @@ Name: Max Speed, dtype: float64
         ...                         "Malta": 434000, "Maldives": 434000,
         ...                         "Brunei": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -3290,7 +3389,7 @@ Name: Max Speed, dtype: float64
         Nauru          11300
         Tuvalu         11300
         Anguilla       11300
-        Monserat        5200
+        Montserrat      5200
         dtype: int64
 
         The `n` largest elements where ``n=5`` by default.
@@ -3376,7 +3475,7 @@ Name: Max Speed, dtype: float64
         ...                         "Brunei": 434000, "Malta": 434000,
         ...                         "Maldives": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -3388,13 +3487,13 @@ Name: Max Speed, dtype: float64
         Nauru          11300
         Tuvalu         11300
         Anguilla       11300
-        Monserat        5200
+        Montserrat      5200
         dtype: int64
 
         The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
-        Monserat      5200
+        Montserrat    5200
         Nauru        11300
         Tuvalu       11300
         Anguilla     11300
@@ -3405,7 +3504,7 @@ Name: Max Speed, dtype: float64
         'first' so Nauru and Tuvalu will be kept.
 
         >>> s.nsmallest(3)
-        Monserat     5200
+        Montserrat   5200
         Nauru       11300
         Tuvalu      11300
         dtype: int64
@@ -3415,7 +3514,7 @@ Name: Max Speed, dtype: float64
         with value 11300 based on the index order.
 
         >>> s.nsmallest(3, keep='last')
-        Monserat     5200
+        Montserrat   5200
         Anguilla    11300
         Tuvalu      11300
         dtype: int64
@@ -3424,7 +3523,7 @@ Name: Max Speed, dtype: float64
         that the returned Series has four elements due to the three duplicates.
 
         >>> s.nsmallest(3, keep='all')
-        Monserat     5200
+        Montserrat   5200
         Nauru       11300
         Tuvalu      11300
         Anguilla    11300

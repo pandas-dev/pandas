@@ -233,6 +233,8 @@ class TestSeriesDatetimeValues:
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
+        # freq not preserved by tz_localize above
+        exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(s, expected)
 
@@ -242,8 +244,9 @@ class TestSeriesDatetimeValues:
             s.dt.hour = 5
 
         # trying to set a copy
+        msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(com.SettingWithCopyError):
+            with pytest.raises(com.SettingWithCopyError, match=msg):
                 s.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
@@ -309,7 +312,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         # raise
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(pytz.AmbiguousTimeError):
             getattr(df1.date.dt, method)("H", ambiguous="raise")
 
     @pytest.mark.parametrize(
