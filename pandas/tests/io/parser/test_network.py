@@ -185,7 +185,7 @@ class TestS3:
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
         # GH 27679
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+        # Attempting to write to an invalid S3 path should raise
         import botocore
 
         # GH 34087
