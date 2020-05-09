@@ -176,7 +176,9 @@ class TestS3:
         # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
         import botocore
 
-        with pytest.raises(botocore.exceptions.ClientError, match="The specified bucket does not exist"):
+        with pytest.raises(
+            botocore.exceptions.ClientError, match="The specified bucket does not exist"
+        ):
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
     @td.skip_if_no("pyarrow")
