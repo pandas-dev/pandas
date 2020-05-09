@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -30,14 +29,14 @@ from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.indexers import check_array_indexer
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
-class BooleanDtype(ExtensionDtype):
+class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
@@ -65,23 +64,16 @@ class BooleanDtype(ExtensionDtype):
     name = "boolean"
 
     @property
-    def na_value(self) -> libmissing.NAType:
-        """
-        BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
-
-        .. warning::
-
-           `na_value` may change in a future release.
-        """
-        return libmissing.NA
-
-    @property
     def type(self) -> Type[np.bool_]:
         return np.bool_
 
     @property
     def kind(self) -> str:
         return "b"
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        return np.dtype("bool")
 
     @classmethod
     def construct_array_type(cls) -> Type["BooleanArray"]:
@@ -303,15 +295,6 @@ class BooleanArray(BaseMaskedArray):
 
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
-
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
-        data = self._data.astype("int8")
-        data[self._mask] = -1
-        return data, -1
-
-    @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
-        return cls._from_sequence(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
