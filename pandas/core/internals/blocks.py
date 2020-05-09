@@ -825,7 +825,7 @@ class Block(PandasObject):
 
             return self.astype(dtype).setitem(indexer, value)
 
-        # value must be storeable at this moment
+        # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
@@ -1863,6 +1863,9 @@ class ExtensionBlock(Block):
             )
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
+
+    def equals(self, other) -> bool:
+        return self.values.equals(other.values)
 
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
