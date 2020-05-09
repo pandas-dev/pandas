@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -58,7 +58,7 @@ import pandas.io.formats.printing as printing
 _sparray_doc_kwargs = dict(klass="SparseArray")
 
 
-def _get_fill(arr: ABCSparseArray) -> np.ndarray:
+def _get_fill(arr: "SparseArray") -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -83,7 +83,7 @@ def _get_fill(arr: ABCSparseArray) -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: ABCSparseArray, right: ABCSparseArray, op: Callable, name: str
+    left: "SparseArray", right: "SparseArray", op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -232,7 +232,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : {'int', 'block'}, default 'int'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -335,7 +335,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):
@@ -439,11 +439,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
+        data = data.tocsc()
+        data.sort_indices()
         arr = data.data
-        idx, _ = data.nonzero()
-        loc = np.argsort(idx)
-        arr = arr.take(loc)
-        idx.sort()
+        idx = data.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
@@ -785,7 +784,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
@@ -953,27 +952,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        fill_values = [x.fill_value for x in to_concat]
-
-        fill_value = fill_values[0]
-
-        # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
-            warnings.warn(
-                "Concatenating sparse arrays with multiple fill "
-                f"values: '{fill_values}'. Picking the first and "
-                "converting the rest.",
-                PerformanceWarning,
-                stacklevel=6,
-            )
-            keep = to_concat[0]
-            to_concat2 = [keep]
-
-            for arr in to_concat[1:]:
-                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
-
-            to_concat = to_concat2
+        fill_value = to_concat[0].fill_value
 
         values = []
         length = 0
@@ -1048,7 +1027,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = SparseArray([0, 0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
         >>> arr
         [0, 0, 1, 2]
         Fill: 0
@@ -1066,8 +1045,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         >>> arr.astype(np.dtype('float64'))
         ... # doctest: +NORMALIZE_WHITESPACE
-        [0, 0, 1.0, 2.0]
-        Fill: 0
+        [0.0, 0.0, 1.0, 2.0]
+        Fill: 0.0
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
@@ -1107,19 +1086,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Examples
         --------
         >>> arr = pd.arrays.SparseArray([0, 1, 2])
-        >>> arr.apply(lambda x: x + 10)
+        >>> arr.map(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply({0: 10, 1: 11, 2: 12})
+        >>> arr.map({0: 10, 1: 11, 2: 12})
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply(pd.Series([10, 11, 12], index=[0, 1, 2]))
+        >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         [10, 11, 12]
         Fill: 10
         IntIndex

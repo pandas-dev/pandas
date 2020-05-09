@@ -1165,6 +1165,11 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
         tm.assert_frame_equal(res, expect)
 
+    def test_missing_attribute(self, df):
+        message = "module 'pandas' has no attribute 'thing'"
+        with pytest.raises(AttributeError, match=message):
+            df.eval("@pd.thing")
+
     def test_failing_quote(self, df):
         with pytest.raises(SyntaxError):
             df.query("`it's` > `that's`")

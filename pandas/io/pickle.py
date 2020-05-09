@@ -43,7 +43,6 @@ def to_pickle(
         HIGHEST_PROTOCOL.
 
         .. [1] https://docs.python.org/3/library/pickle.html
-        .. versionadded:: 0.21.0
 
     See Also
     --------
@@ -174,7 +173,8 @@ def read_pickle(
     # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
 
     try:
-        excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError)
+        excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+        # TypeError for Cython complaints about object.__new__ vs Tick.__new__
         try:
             with warnings.catch_warnings(record=True):
                 # We want to silence any warnings about, e.g. moved modules.

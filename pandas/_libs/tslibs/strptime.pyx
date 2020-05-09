@@ -4,7 +4,6 @@ import time
 import locale
 import calendar
 import re
-import datetime
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -13,6 +12,7 @@ import pytz
 import numpy as np
 from numpy cimport int64_t
 
+cimport cpython.datetime as datetime
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
@@ -544,7 +544,7 @@ class TimeRE(dict):
             'w': r"(?P<w>[0-6])",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
-            # XXX: Does 'Y' need to worry about having less or more than
+            # TODO: Does 'Y' need to worry about having less or more than
             #     4 digits?
             'Y': r"(?P<Y>\d\d\d\d)",
             'z': r"(?P<z>[+-]\d\d:?[0-5]\d(:?[0-5]\d(\.\d{1,6})?)?|Z)",

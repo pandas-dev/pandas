@@ -7,8 +7,8 @@
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
-structures. Here's how to create some of the objects used in the examples from
-the previous section:
+structures. To begin, let's create some example objects like we did in
+the :ref:`10 minutes to pandas <10min>` section:
 
 .. ipython:: python
 
@@ -1224,8 +1224,6 @@ following can be done:
 This means that the reindexed Series's index is the same Python object as the
 DataFrame's index.
 
-.. versionadded:: 0.21.0
-
 :meth:`DataFrame.reindex` also supports an "axis-style" calling convention,
 where you specify a single ``labels`` argument and the ``axis`` it applies to.
 
@@ -1434,8 +1432,6 @@ Series can also be used:
 
 If the mapping doesn't include a column/index label, it isn't renamed. Note that
 extra labels in the mapping don't throw an error.
-
-.. versionadded:: 0.21.0
 
 :meth:`DataFrame.rename` also supports an "axis-style" calling convention, where
 you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
@@ -1785,6 +1781,31 @@ used to sort a pandas object by its index levels.
    # Series
    unsorted_df['three'].sort_index()
 
+.. _basics.sort_index_key:
+
+.. versionadded:: 1.1.0
+
+Sorting by index also supports a ``key`` parameter that takes a callable
+function to apply to the index being sorted. For `MultiIndex` objects,
+the key is applied per-level to the levels specified by `level`.
+
+.. ipython:: python
+
+   s1 = pd.DataFrame({
+       "a": ['B', 'a', 'C'],
+       "b": [1, 2, 3],
+       "c": [2, 3, 4]
+   }).set_index(list("ab"))
+   s1
+
+.. ipython:: python
+
+   s1.sort_index(level="a")
+   s1.sort_index(level="a", key=lambda idx: idx.str.lower())
+
+For information on key sorting by value, see :ref:`value sorting
+<basics.sort_value_key>`.
+
 .. _basics.sort_values:
 
 By values
@@ -1816,6 +1837,39 @@ argument:
    s[2] = np.nan
    s.sort_values()
    s.sort_values(na_position='first')
+
+.. _basics.sort_value_key:
+
+.. versionadded:: 1.1.0
+
+Sorting also supports a ``key`` parameter that takes a callable function
+to apply to the values being sorted.
+
+.. ipython:: python
+
+   s1 = pd.Series(['B', 'a', 'C'])
+
+.. ipython:: python
+
+   s1.sort_values()
+   s1.sort_values(key=lambda x: x.str.lower())
+
+`key` will be given the :class:`Series` of values and should return a ``Series``
+or array of the same shape with the transformed values. For `DataFrame` objects,
+the key is applied per column, so the key should still expect a Series and return
+a Series, e.g.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ['B', 'a', 'C'], "b": [1, 2, 3]})
+
+.. ipython:: python
+
+   df.sort_values(by='a')
+   df.sort_values(by='a', key=lambda col: col.str.lower())
+
+The name or type of each column can be used to apply different functions to
+different columns.
 
 .. _basics.sort_indexes_and_values:
 

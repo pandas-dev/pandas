@@ -134,7 +134,7 @@ def _map_stringarray(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     """
-    Map a callable over valid elements of a StringArrray.
+    Map a callable over valid elements of a StringArray.
 
     Parameters
     ----------
@@ -652,9 +652,9 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     To get the idea:
 
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
-    0    <_sre.SRE_Match object; span=(0, 1), match='f'>oo
-    1    <_sre.SRE_Match object; span=(0, 1), match='f'>uz
-    2                                                  NaN
+    0    <re.Match object; span=(0, 1), match='f'>oo
+    1    <re.Match object; span=(0, 1), match='f'>uz
+    2                                            NaN
     dtype: object
 
     Reverse every lowercase alphabetic word:
@@ -2008,11 +2008,11 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs,
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
-        result = _na_map(f, self._parent, **kargs)
+        result = _na_map(f, self._parent, **kwargs)
         return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
@@ -2076,13 +2076,23 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s.str.split('_')
-    >>> s.str.replace('_', '')
+    >>> s = pd.Series(["A_Str_Series"])
+    >>> s
+    0    A_Str_Series
+    dtype: object
+
+    >>> s.str.split("_")
+    0    [A, Str, Series]
+    dtype: object
+
+    >>> s.str.replace("_", "")
+    0    AStrSeries
+    dtype: object
     """
 
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data)
+        self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = data.dtype.name == "string"
 
         # ._values.categories works for both Series/Index
@@ -2287,7 +2297,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndexClass):
-            return [Series(others._values, index=others)]
+            return [Series(others._values, index=idx)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -2311,7 +2321,7 @@ class StringMethods(NoNewAttributesMixin):
             elif all(not is_list_like(x) for x in others):
                 return [Series(others, index=idx)]
         raise TypeError(
-            "others must be Series, Index, DataFrame, np.ndarrary "
+            "others must be Series, Index, DataFrame, np.ndarray "
             "or list-like (either containing only strings or "
             "containing only objects of type Series/Index/"
             "np.ndarray[1-dim])"
@@ -2583,9 +2593,14 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence",
-    ...                "https://docs.python.org/3/tutorial/index.html",
-    ...                np.nan])
+    >>> s = pd.Series(
+    ...     [
+    ...         "this is a regular sentence",
+    ...         "https://docs.python.org/3/tutorial/index.html",
+    ...         np.nan
+    ...     ]
+    ... )
+    >>> s
     0                       this is a regular sentence
     1    https://docs.python.org/3/tutorial/index.html
     2                                              NaN
@@ -2625,7 +2640,7 @@ class StringMethods(NoNewAttributesMixin):
 
     The `pat` parameter can be used to split by other characters.
 
-    >>> s.str.split(pat = "/")
+    >>> s.str.split(pat="/")
     0                         [this is a regular sentence]
     1    [https:, , docs.python.org, 3, tutorial, index...
     2                                                  NaN
@@ -2636,14 +2651,10 @@ class StringMethods(NoNewAttributesMixin):
     the columns during the split.
 
     >>> s.str.split(expand=True)
-                                                   0     1     2        3
-    0                                           this    is     a  regular
-    1  https://docs.python.org/3/tutorial/index.html  None  None     None
-    2                                            NaN   NaN   NaN      NaN \
-                 4
-    0     sentence
-    1         None
-    2          NaN
+                                                   0     1     2        3         4
+    0                                           this    is     a  regular  sentence
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
+    2                                            NaN   NaN   NaN      NaN       NaN
 
     For slightly more complex use cases like splitting the html document name
     from a url, a combination of parameter settings can be used.
@@ -2658,7 +2669,9 @@ class StringMethods(NoNewAttributesMixin):
     expressions.
 
     >>> s = pd.Series(["1+1=2"])
-
+    >>> s
+    0    1+1=2
+    dtype: object
     >>> s.str.split(r"\+|=", expand=True)
          0    1    2
     0    1    1    2
@@ -2750,7 +2763,7 @@ class StringMethods(NoNewAttributesMixin):
     >>> idx.str.partition()
     MultiIndex([('X', ' ', '123'),
                 ('Y', ' ', '999')],
-               dtype='object')
+               )
 
     Or an index with tuples with ``expand=False``:
 

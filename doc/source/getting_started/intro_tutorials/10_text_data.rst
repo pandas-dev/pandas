@@ -199,7 +199,7 @@ names in the ``Name`` column. By using pandas string methods, the
 
 Next, we need to get the corresponding location, preferably the index
 label, in the table for which the name length is the largest. The
-:meth:`~Series.idxmax`` method does exactly that. It is not a string method and is
+:meth:`~Series.idxmax` method does exactly that. It is not a string method and is
 applied to integers, so no ``str`` is used.
 
 .. ipython:: python
@@ -238,7 +238,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
     </ul>
 
 .. warning::
-    There is also a :meth:`~Series.str.replace` methods available to replace a
+    There is also a :meth:`~Series.str.replace` method available to replace a
     specific set of characters. However, when having a mapping of multiple
     values, this would become:
 

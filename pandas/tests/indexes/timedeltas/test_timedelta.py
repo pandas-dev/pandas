@@ -29,7 +29,11 @@ class TestTimedeltaIndex(DatetimeLike):
         return tm.makeTimedeltaIndex(10)
 
     def create_index(self) -> TimedeltaIndex:
-        return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
+        assert index.freq == "D"
+        ret = index + pd.offsets.Hour(1)
+        assert ret.freq == "D"
+        return ret
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
@@ -42,20 +46,12 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_pickle_compat_construction(self):
         pass
 
-    def test_fillna_timedelta(self):
-        # GH 11343
-        idx = pd.TimedeltaIndex(["1 day", pd.NaT, "3 day"])
+    def test_pickle_after_set_freq(self):
+        tdi = timedelta_range("1 day", periods=4, freq="s")
+        tdi = tdi._with_freq(None)
 
-        exp = pd.TimedeltaIndex(["1 day", "2 day", "3 day"])
-        tm.assert_index_equal(idx.fillna(pd.Timedelta("2 day")), exp)
-
-        exp = pd.TimedeltaIndex(["1 day", "3 hour", "3 day"])
-        idx.fillna(pd.Timedelta("3 hour"))
-
-        exp = pd.Index(
-            [pd.Timedelta("1 day"), "x", pd.Timedelta("3 day")], dtype=object
-        )
-        tm.assert_index_equal(idx.fillna("x"), exp)
+        res = tm.round_trip_pickle(tdi)
+        tm.assert_index_equal(res, tdi)
 
     def test_isin(self):
 
@@ -156,13 +152,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = a.append(c)
         assert (result["B"] == td).all()
-
-    def test_delete_doesnt_infer_freq(self):
-        # GH#30655 behavior matches DatetimeIndex
-
-        tdi = pd.TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
-        result = tdi.delete(2)
-        assert result.freq is None
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")

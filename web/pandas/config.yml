@@ -15,6 +15,7 @@ main:
   - toc
   - tables
   - fenced_code
+  - meta
 static:
   logo: /static/img/pandas_white.svg
   css:
@@ -23,7 +24,7 @@ navbar:
   - name: "About us"
     target:
     - name: "About pandas"
-      target: /about/index.html
+      target: /about/
     - name: "Project roadmap"
       target: /about/roadmap.html
     - name: "Team"
@@ -39,7 +40,7 @@ navbar:
   - name: "Community"
     target:
     - name: "Blog"
-      target: /community/blog.html
+      target: /community/blog/
     - name: "Ask a question (StackOverflow)"
       target: https://stackoverflow.com/questions/tagged/pandas
     - name: "Code of conduct"
@@ -49,9 +50,11 @@ navbar:
   - name: "Contribute"
     target: /contribute.html
 blog:
-  num_posts: 8
+  num_posts: 50
+  posts_path: community/blog
+  author: "pandas team"
+  feed_name: "pandas blog"
   feed:
-  - https://dev.pandas.io/pandas-blog/feeds/all.atom.xml
   - https://wesmckinney.com/feeds/pandas.atom.xml
   - https://tomaugspurger.github.io/feed
   - https://jorisvandenbossche.github.io/feeds/pandas.atom.xml

@@ -11,13 +11,14 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 """
 
 import argparse
+import ast
 import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Tuple
+from typing import IO, Callable, FrozenSet, Iterable, List, Tuple
 
-FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
+PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
@@ -83,23 +84,34 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     -----
     GH #23922
     """
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
+    contents = file_obj.read()
+    tree = ast.parse(contents)
 
-    for counter, current_token in enumerate(tokens, start=1):
-        if not (current_token.type == token.NAME and current_token.string == "raises"):
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
             continue
-        for next_token in tokens[counter:]:
-            if next_token.type == token.NAME and next_token.string == "match":
-                break
-            # token.NEWLINE refers to the end of a logical line
-            # unlike token.NL or "\n" which represents a newline
-            if next_token.type == token.NEWLINE:
+
+        try:
+            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
+                continue
+        except AttributeError:
+            continue
+
+        if not node.keywords:
+            yield (
+                node.lineno,
+                "Bare pytests raise have been found. "
+                "Please pass in the argument 'match' as well the exception.",
+            )
+        else:
+            # Means that there are arguments that are being passed in,
+            # now we validate that `match` is one of the passed in arguments
+            if not any(keyword.arg == "match" for keyword in node.keywords):
                 yield (
-                    current_token.start[0],
+                    node.lineno,
                     "Bare pytests raise have been found. "
                     "Please pass in the argument 'match' as well the exception.",
                 )
-                break
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
@@ -280,6 +292,7 @@ def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
     output_format: str,
+    file_extensions_to_check: str,
 ) -> bool:
     """
     Main entry point of the script.
@@ -309,6 +322,10 @@ def main(
     is_failed: bool = False
     file_path: str = ""
 
+    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
+        file_extensions_to_check.split(",")
+    )
+
     if os.path.isfile(source_path):
         file_path = source_path
         with open(file_path, "r") as file_obj:
@@ -321,6 +338,8 @@ def main(
                 )
 
     for subdir, _, files in os.walk(source_path):
+        if any(path in subdir for path in PATHS_TO_IGNORE):
+            continue
         for file_name in files:
             if not any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
@@ -355,7 +374,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}.",
+        default="{source_path}:{line_number}:{msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(
@@ -365,6 +384,11 @@ if __name__ == "__main__":
         required=True,
         help="Validation test case to check.",
     )
+    parser.add_argument(
+        "--included-file-extensions",
+        default="py,pyx,pxd,pxi",
+        help="Coma seperated file extensions to check.",
+    )
 
     args = parser.parse_args()
 
@@ -373,5 +397,6 @@ if __name__ == "__main__":
             function=globals().get(args.validation_type),  # type: ignore
             source_path=args.path,
             output_format=args.format,
+            file_extensions_to_check=args.included_file_extensions,
         )
     )
