@@ -130,10 +130,7 @@ Other enhancements
 - :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
-<<<<<<< HEAD
 - Add :meth:`ExtensionArray.argmax`, :meth:`ExtensionArray.max`, :meth:`ExtensionArray.argmin` and :meth:`ExtensionArray.min` (:issue:`24382`)
--
-=======
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
@@ -154,7 +151,6 @@ Other enhancements
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
->>>>>>> upstream/master
 -
 
 .. ---------------------------------------------------------------------------
