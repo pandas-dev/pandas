@@ -172,11 +172,11 @@ class TestS3:
     def test_write_s3_csv_fails(self, tips_df):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
-        # Catch a ClientError since AWS Service Errors are defined dynamically
         import botocore
 
         # GH 34087
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+        # Catch a ClientError since AWS Service Errors are defined dynamically
         error = (FileNotFoundError, botocore.exceptions.ClientError)
 
         with pytest.raises(error, match="The specified bucket does not exist"):
