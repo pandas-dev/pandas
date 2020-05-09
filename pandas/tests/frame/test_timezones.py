@@ -171,14 +171,14 @@ class TestDataFrameTimezones:
         "initial",
         ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
     )
-    @pytest.mark.parametrize("method", [DataFrame.min, DataFrame.max])
+    @pytest.mark.parametrize("method", ["min", "max"])
     def test_preserve_timezone(self, initial: str, method):
         # GH 28552
         # Given
         initial_dt = pd.to_datetime(initial)
-        series = pd.Series([initial_dt])
-        df = DataFrame([series])
+        expected = pd.Series([initial_dt])
+        df = DataFrame([expected])
         # When
-        actual_df = method(df, axis=1)
+        result: pd.Series = getattr(df, method)(axis=1)
         # Then
-        assert actual_df[0].tz == initial_dt.tz
+        tm.assert_series_equal(result, expected)
