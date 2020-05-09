@@ -96,7 +96,12 @@ hypothesis.settings.load_profile("ci")
 for name in "MonthBegin MonthEnd BMonthBegin BMonthEnd".split():
     cls = getattr(pd.tseries.offsets, name)
     st.register_type_strategy(
-        cls, st.builds(cls, n=st.integers(-99, 99), normalize=st.booleans())
+        cls,
+        st.builds(
+            cls,
+            n=st.integers(-99, 99).filter(lambda x: x != 0),
+            normalize=st.booleans(),
+        ),
     )
 
 for name in "YearBegin YearEnd BYearBegin BYearEnd".split():
@@ -105,7 +110,7 @@ for name in "YearBegin YearEnd BYearBegin BYearEnd".split():
         cls,
         st.builds(
             cls,
-            n=st.integers(-5, 5),
+            n=st.integers(-5, 5).filter(lambda x: x != 0),
             normalize=st.booleans(),
             month=st.integers(min_value=1, max_value=12),
         ),
@@ -117,7 +122,7 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
         cls,
         st.builds(
             cls,
-            n=st.integers(-24, 24),
+            n=st.integers(-24, 24).filter(lambda x: x != 0),
             normalize=st.booleans(),
             startingMonth=st.integers(min_value=1, max_value=12),
         ),
