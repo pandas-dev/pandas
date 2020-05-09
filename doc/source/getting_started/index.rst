@@ -10,7 +10,7 @@ Installation
 ------------
 
 .. panels::
-    :card: shadow install-card
+    :card: + install-card
     :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-3
 
     Working with conda?
@@ -25,7 +25,7 @@ Installation
 
         conda install pandas
 
-    ...
+    ---
 
     Prefer pip?
     ^^^^^^^^^^^
@@ -38,8 +38,8 @@ Installation
 
         conda install pandas
 
-    ...
-    column = col-12 p-3
+    ---
+    :column: col-12 p-3
 
     In-depth instructions?
     ^^^^^^^^^^^^^^^^^^^^^^
