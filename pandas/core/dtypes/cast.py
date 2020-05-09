@@ -218,7 +218,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             return trans(result).astype(dtype)
 
         # do a test on the first element, if it fails then we are done
-        r = result.ravel()
+        r = result.ravel(order="K")
         arr = np.array([r[0]])
 
         if isna(arr).any():
@@ -1217,8 +1217,8 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
         return value
 
     shape = v.shape
-    if not v.ndim == 1:
-        v = v.ravel()
+    if v.ndim != 1:
+        v = v.ravel(order="K")
 
     if not len(v):
         return value
