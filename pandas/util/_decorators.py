@@ -345,7 +345,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     *args : str or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under function.
-    **kwags : str
+    **kwargs : str
         The string which would be used to format docstring template.
     """
 

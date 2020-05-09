@@ -604,7 +604,7 @@ plotting_backend_doc = """
 : str
     The plotting backend to use. The default value is "matplotlib", the
     backend provided with pandas. Other backends can be specified by
-    prodiving the name of the module that implements the backend.
+    providing the name of the module that implements the backend.
 """
 
 
