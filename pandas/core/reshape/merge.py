@@ -652,7 +652,7 @@ class _MergeOperation:
         ) = self._get_merge_keys()
 
         # validate the merge keys dtypes. We may need to coerce
-        # to avoid incompat dtypes
+        # to avoid incompatible dtypes
         self._maybe_coerce_merge_keys()
 
         # If argument passed to validate,
@@ -1067,7 +1067,7 @@ class _MergeOperation:
         return left_keys, right_keys, join_names
 
     def _maybe_coerce_merge_keys(self):
-        # we have valid mergees but we may have to further
+        # we have valid merges but we may have to further
         # coerce these if they are originally incompatible types
         #
         # for example if these are categorical, but are not dtype_equal
@@ -1392,7 +1392,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index) -> MultiIndex:
+    def _convert_to_multiindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1402,7 +1402,7 @@ def _restore_dropped_levels_multijoin(
     # the returned index if of type Index
     # Assure that join_index is of type MultiIndex
     # so that dropped levels can be appended
-    join_index = _convert_to_mulitindex(join_index)
+    join_index = _convert_to_multiindex(join_index)
 
     join_levels = join_index.levels
     join_codes = join_index.codes

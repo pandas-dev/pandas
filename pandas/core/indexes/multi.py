@@ -2784,7 +2784,7 @@ class MultiIndex(Index):
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
-            # kludgearound
+            # kludge around
             orig_index = new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):

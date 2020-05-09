@@ -6,10 +6,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+from pandas._libs.tslibs.timestamps import (
+    RoundTo,
+    integer_op_not_supported,
+    round_nsint64,
+)
 from pandas._typing import DatetimeLikeScalar, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -95,7 +98,6 @@ def _datetimelike_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-
         try:
             other = _validate_comparison_value(self, other)
         except InvalidComparison:
@@ -196,7 +198,7 @@ class AttributesMixin:
         ----------
         other
         setitem : bool, default False
-            For __setitem__ we may have stricter compatibility resrictions than
+            For __setitem__ we may have stricter compatibility restrictions than
             for comparisons.
 
         Raises
@@ -759,12 +761,7 @@ class DatetimeLikeArrayMixin(
         return self._unbox(fill_value)
 
     def _validate_listlike(
-        self,
-        value,
-        opname: str,
-        cast_str: bool = False,
-        cast_cat: bool = False,
-        allow_object: bool = False,
+        self, value, opname: str, cast_str: bool = False, allow_object: bool = False,
     ):
         if isinstance(value, type(self)):
             return value
@@ -783,7 +780,7 @@ class DatetimeLikeArrayMixin(
             except ValueError:
                 pass
 
-        if cast_cat and is_categorical_dtype(value.dtype):
+        if is_categorical_dtype(value.dtype):
             # e.g. we have a Categorical holding self.dtype
             if is_dtype_equal(value.categories.dtype, self.dtype):
                 # TODO: do we need equal dtype or just comparable?
@@ -868,7 +865,7 @@ class DatetimeLikeArrayMixin(
             raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
         else:
-            other = self._validate_listlike(other, "where", cast_cat=True)
+            other = self._validate_listlike(other, "where")
             self._check_compatible_with(other, setitem=True)
 
         self._check_compatible_with(other, setitem=True)
