@@ -128,7 +128,7 @@ def apply_index_wraps(func):
     # not play nicely with cython class methods
     def wrapper(self, other):
 
-        is_index = getattr(other, "_typ", "") == "datetimeindex"
+        is_index = not util.is_array(other._data)
 
         # operate on DatetimeArray
         arr = other._data if is_index else other
@@ -168,7 +168,8 @@ def apply_wraps(func):
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = Timestamp(other)
         else:
-            raise TypeError(other)
+            # This will end up returning NotImplemented back in __add__
+            raise ApplyTypeError
 
         tz = other.tzinfo
         nano = other.nanosecond
@@ -474,11 +475,6 @@ class _BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
-                                            "datetimearray", "periodarray",
-                                            "series", "period", "dataframe"]:
-            # defer to the other class's implementation
-            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -497,12 +493,12 @@ class _BaseOffset:
         return self.apply(other)
 
     def __mul__(self, other):
-        if hasattr(other, "_typ"):
-            return NotImplemented
         if util.is_array(other):
             return np.array([self * x for x in other])
-        return type(self)(n=other * self.n, normalize=self.normalize,
-                          **self.kwds)
+        elif is_integer_object(other):
+            return type(self)(n=other * self.n, normalize=self.normalize,
+                              **self.kwds)
+        return NotImplemented
 
     def __neg__(self):
         # Note: we are deferring directly to __mul__ instead of __rmul__, as
@@ -705,10 +701,7 @@ class BaseOffset(_BaseOffset):
         return self.__add__(other)
 
     def __rsub__(self, other):
-        if getattr(other, '_typ', None) in ['datetimeindex', 'series']:
-            # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
-            return other - self
-        return -self + other
+        return (-self).__add__(other)
 
 
 cdef class _Tick(ABCTick):
