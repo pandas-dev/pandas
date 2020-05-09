@@ -329,6 +329,11 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
 
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value, as_series, box)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
