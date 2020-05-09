@@ -373,23 +373,20 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
-        align_copy = False
-        if f == "where":
-            align_copy = True
-
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
             if aligned_args:
-                b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
-                        axis = obj._info_axis_number
-                        kwargs[k] = obj.reindex(
-                            b_items, axis=axis, copy=align_copy
-                        )._values
+                        # The caller is responsible for ensuring that
+                        #  obj.axes[-1].equals(self.items)
+                        if obj.ndim == 1:
+                            kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
+                        else:
+                            kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
@@ -603,7 +600,7 @@ class BlockManager(PandasObject):
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # figure out our mask a-priori to avoid repeated replacements
+        # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
         def comp(s, regex=False):
@@ -1125,6 +1122,7 @@ class BlockManager(PandasObject):
         new_axis = self.items.insert(loc, item)
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+            # TODO(EA2D): special case not needed with 2D EAs
             value = _safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
@@ -1286,9 +1284,6 @@ class BlockManager(PandasObject):
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
-        #
-        # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
-        # pytables serialization will break otherwise.
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:

@@ -15,10 +15,9 @@ from cpython.datetime cimport (
     datetime,
     timedelta,
 )
+PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
-
-PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
@@ -30,6 +29,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value,
 )
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.base cimport is_period_object
 
 from pandas._libs.missing cimport C_NA
 
@@ -147,11 +147,10 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif hasattr(other, "delta"):
-            # Timedelta, offsets.Tick, offsets.Week
+        elif util.is_offset_object(other):
             return c_NaT
 
-        elif util.is_integer_object(other) or util.is_period_object(other):
+        elif util.is_integer_object(other) or is_period_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -184,11 +183,10 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif hasattr(other, "delta"):
-            # offsets.Tick, offsets.Week
+        elif util.is_offset_object(other):
             return c_NaT
 
-        elif util.is_integer_object(other) or util.is_period_object(other):
+        elif util.is_integer_object(other) or is_period_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
