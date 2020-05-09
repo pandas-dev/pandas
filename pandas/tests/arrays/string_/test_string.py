@@ -325,3 +325,10 @@ def test_use_inf_as_na(values, expected):
         result = pd.DataFrame(values).isna()
         expected = pd.DataFrame(expected)
         tm.assert_frame_equal(result, expected)
+
+
+def test_memory_usage():
+    # GH 33963
+    series = pd.Series(["a", "b", "c"], dtype="string")
+
+    assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
