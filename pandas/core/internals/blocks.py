@@ -728,11 +728,6 @@ class Block(PandasObject):
 
         mask = missing.mask_missing(values, to_replace)
 
-        if not mask.any():
-            if inplace:
-                return [self]
-            return [self.copy()]
-
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
             # Note: it is _not_ the case that self._can_hold_element(value)
