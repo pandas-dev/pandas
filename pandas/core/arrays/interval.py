@@ -605,9 +605,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return result
 
-    def __ne__(self, other):
-        return ~self.__eq__(other)
-
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
