@@ -539,7 +539,8 @@ class _OpenpyxlReader(_BaseExcelReader):
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        for row in (sheet.rows:
+        for row in sheet.rows:
+
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
         return data
