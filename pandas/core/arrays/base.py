@@ -509,12 +509,14 @@ class ExtensionArray:
 
     def argmin(self):
         """
-        Return the minimum argument indexer.
+        Return the index of minimum value.
+
+        In case of multiple occurrences of the minimum value, the index
+        corresponding to the first occurrence is returned.
 
         Returns
         -------
-        scalar
-            Minimum argument indexer.
+        int
 
         See Also
         --------
@@ -524,12 +526,14 @@ class ExtensionArray:
 
     def argmax(self):
         """
-        Return the maximum argument indexer.
+        Return the index of maximum value.
+
+        In case of multiple occurrences of the maximum value, the index
+        corresponding to the first occurrence is returned.
 
         Returns
         -------
-        scalar
-            Maximum argument indexer.
+        int
 
         See Also
         --------

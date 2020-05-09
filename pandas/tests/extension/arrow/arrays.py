@@ -158,12 +158,6 @@ class ArrowExtensionArray(ExtensionArray):
     def all(self, axis=0, out=None):
         return self._data.to_pandas().all()
 
-    def argmin(self):
-        raise NotImplementedError
-
-    def argmax(self):
-        raise NotImplementedError
-
 
 class ArrowBoolArray(ArrowExtensionArray):
     def __init__(self, values):
