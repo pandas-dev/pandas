@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     NaT,
-    OutOfBoundsDatetime,
     Period,
     Timedelta,
     Timestamp,
@@ -16,9 +15,7 @@ from pandas._libs.tslibs import (
     conversion,
     delta_to_nanoseconds,
     frequencies as libfrequencies,
-    normalize_date,
     offsets as liboffsets,
-    timezones,
 )
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
@@ -76,73 +73,48 @@ __all__ = [
     "DateOffset",
 ]
 
-# convert to/from datetime/timestamp to allow invalid Timestamp ranges to
-# pass thru
-
-
-def as_timestamp(obj):
-    if isinstance(obj, Timestamp):
-        return obj
-    try:
-        return Timestamp(obj)
-    except (OutOfBoundsDatetime):
-        pass
-    return obj
-
 
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
         if other is NaT:
             return NaT
-        elif isinstance(other, (timedelta, Tick, DateOffset)):
+        elif isinstance(other, (timedelta, DateOffset)):
             # timedelta path
             return func(self, other)
         elif isinstance(other, (np.datetime64, datetime, date)):
-            other = as_timestamp(other)
+            other = Timestamp(other)
+        else:
+            # This will end up returning NotImplemented back in __add__
+            raise ApplyTypeError
 
-        tz = getattr(other, "tzinfo", None)
-        nano = getattr(other, "nanosecond", 0)
+        tz = other.tzinfo
+        nano = other.nanosecond
 
-        try:
-            if self._adjust_dst and isinstance(other, Timestamp):
-                other = other.tz_localize(None)
+        if self._adjust_dst:
+            other = other.tz_localize(None)
 
-            result = func(self, other)
+        result = func(self, other)
 
-            if self._adjust_dst:
-                result = conversion.localize_pydatetime(result, tz)
+        result = Timestamp(result)
+        if self._adjust_dst:
+            result = result.tz_localize(tz)
 
-            result = Timestamp(result)
-            if self.normalize:
-                result = result.normalize()
+        if self.normalize:
+            result = result.normalize()
 
-            # nanosecond may be deleted depending on offset process
-            if not self.normalize and nano != 0:
-                if not isinstance(self, Nano) and result.nanosecond != nano:
-                    if result.tz is not None:
-                        # convert to UTC
-                        value = conversion.tz_convert_single(
-                            result.value, timezones.UTC, result.tz
-                        )
-                    else:
-                        value = result.value
-                    result = Timestamp(value + nano)
+        # nanosecond may be deleted depending on offset process
+        if not self.normalize and nano != 0:
+            if not isinstance(self, Nano) and result.nanosecond != nano:
+                if result.tz is not None:
+                    # convert to UTC
+                    value = result.tz_localize(None).value
+                else:
+                    value = result.value
+                result = Timestamp(value + nano)
 
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-        except OutOfBoundsDatetime:
-            result = func(self, as_datetime(other))
-
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = normalize_date(result)
-
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-            result = Timestamp(result)
+        if tz is not None and result.tzinfo is None:
+            result = result.tz_localize(tz)
 
         return result
 
@@ -290,7 +262,7 @@ class DateOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = conversion.localize_pydatetime(other, tzinfo)
 
-            return as_timestamp(other)
+            return Timestamp(other)
         else:
             return other + timedelta(self.n)
 
@@ -298,7 +270,7 @@ class DateOffset(BaseOffset):
     def apply_index(self, i):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplentedError for offsets without a
+        raises NotImplementedError for offsets without a
         vectorized implementation.
 
         Parameters
@@ -394,7 +366,7 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -408,7 +380,7 @@ class DateOffset(BaseOffset):
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -696,7 +668,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         Return business hours in a day by seconds.
         """
-        # create dummy datetime to calculate businesshours in a day
+        # create dummy datetime to calculate business hours in a day
         dtstart = datetime(2014, 4, 1, start.hour, start.minute)
         day = 1 if start < end else 2
         until = datetime(2014, 4, day, end.hour, end.minute)
@@ -2245,7 +2217,7 @@ class FY5253Quarter(DateOffset):
             # roll adjustment
             qtr_lens = self.get_weeks(norm)
 
-            # check thet qtr_lens is consistent with self._offset addition
+            # check that qtr_lens is consistent with self._offset addition
             end = liboffsets.shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.is_on_offset(end), (start, end, qtr_lens)
 
@@ -2505,7 +2477,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
-            return as_timestamp(other) + self
+            return Timestamp(other) + self
 
         if isinstance(other, timedelta):
             return other + self.delta

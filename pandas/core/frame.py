@@ -47,6 +47,7 @@ from pandas._typing import (
     Axis,
     Dtype,
     FilePathOrBuffer,
+    FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
     Level,
@@ -105,12 +106,6 @@ from pandas.core.dtypes.common import (
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -644,7 +639,7 @@ class DataFrame(NDFrame):
 
         In case of non-interactive session, no boundaries apply.
 
-        `ignore_width` is here so ipnb+HTML output can behave the way
+        `ignore_width` is here so ipynb+HTML output can behave the way
         users expect. display.max_columns remains in effect.
         GH3541, GH3573
         """
@@ -1848,7 +1843,7 @@ class DataFrame(NDFrame):
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
         if index:
-            if isinstance(self.index, ABCMultiIndex):
+            if isinstance(self.index, MultiIndex):
                 # array of tuples to numpy cols. copy copy copy
                 ix_vals = list(map(np.array, zip(*self.index.values)))
             else:
@@ -1861,7 +1856,7 @@ class DataFrame(NDFrame):
             count = 0
             index_names = list(self.index.names)
 
-            if isinstance(self.index, ABCMultiIndex):
+            if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
                         index_names[i] = f"level_{count}"
@@ -2792,7 +2787,7 @@ class DataFrame(NDFrame):
             # The behavior is inconsistent. It returns a Series, except when
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
-            if data.shape[1] == 1 and not isinstance(self.columns, ABCMultiIndex):
+            if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
                 data = data[key]
 
         return data
@@ -3610,7 +3605,7 @@ class DataFrame(NDFrame):
         elif isinstance(value, DataFrame):
             # align right-hand-side columns if self.columns
             # is multi-index and self[key] is a sub-frame
-            if isinstance(self.columns, ABCMultiIndex) and key in self.columns:
+            if isinstance(self.columns, MultiIndex) and key in self.columns:
                 loc = self.columns.get_loc(key)
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
@@ -3659,7 +3654,7 @@ class DataFrame(NDFrame):
 
         # broadcast across multiple columns if necessary
         if broadcast and key in self.columns and value.ndim == 1:
-            if not self.columns.is_unique or isinstance(self.columns, ABCMultiIndex):
+            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
@@ -4347,9 +4342,7 @@ class DataFrame(NDFrame):
 
         missing: List[Label] = []
         for col in keys:
-            if isinstance(
-                col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
-            ):
+            if isinstance(col, (Index, Series, np.ndarray, list, abc.Iterator)):
                 # arrays are fine as long as they are one-dimensional
                 # iterators get converted to list below
                 if getattr(col, "ndim", 1) != 1:
@@ -4378,7 +4371,7 @@ class DataFrame(NDFrame):
         names = []
         if append:
             names = list(self.index.names)
-            if isinstance(self.index, ABCMultiIndex):
+            if isinstance(self.index, MultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -4386,11 +4379,11 @@ class DataFrame(NDFrame):
 
         to_remove: List[Label] = []
         for col in keys:
-            if isinstance(col, ABCMultiIndex):
+            if isinstance(col, MultiIndex):
                 for n in range(col.nlevels):
                     arrays.append(col._get_level_values(n))
                 names.extend(col.names)
-            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+            elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
                 arrays.append(col)
                 names.append(col.name)
@@ -4635,7 +4628,7 @@ class DataFrame(NDFrame):
 
         if not drop:
             to_insert: Iterable[Tuple[Any, Optional[Any]]]
-            if isinstance(self.index, ABCMultiIndex):
+            if isinstance(self.index, MultiIndex):
                 names = [
                     (n if n is not None else f"level_{i}")
                     for i, n in enumerate(self.index.names)
@@ -4646,7 +4639,7 @@ class DataFrame(NDFrame):
                 names = [default] if self.index.name is None else [self.index.name]
                 to_insert = ((self.index, None),)
 
-            multi_col = isinstance(self.columns, ABCMultiIndex)
+            multi_col = isinstance(self.columns, MultiIndex)
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 if not (level is None or i in level):
                     continue
@@ -5250,7 +5243,7 @@ class DataFrame(NDFrame):
                 level, ascending=ascending, sort_remaining=sort_remaining
             )
 
-        elif isinstance(labels, ABCMultiIndex):
+        elif isinstance(labels, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
             indexer = lexsort_indexer(
@@ -5617,14 +5610,14 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
 
-        if not isinstance(result._get_axis(axis), ABCMultiIndex):  # pragma: no cover
+        if not isinstance(result._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only swap levels on a hierarchical axis.")
 
         if axis == 0:
-            assert isinstance(result.index, ABCMultiIndex)
+            assert isinstance(result.index, MultiIndex)
             result.index = result.index.swaplevel(i, j)
         else:
-            assert isinstance(result.columns, ABCMultiIndex)
+            assert isinstance(result.columns, MultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
 
@@ -5645,16 +5638,16 @@ class DataFrame(NDFrame):
         DataFrame
         """
         axis = self._get_axis_number(axis)
-        if not isinstance(self._get_axis(axis), ABCMultiIndex):  # pragma: no cover
+        if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
 
         if axis == 0:
-            assert isinstance(result.index, ABCMultiIndex)
+            assert isinstance(result.index, MultiIndex)
             result.index = result.index.reorder_levels(order)
         else:
-            assert isinstance(result.columns, ABCMultiIndex)
+            assert isinstance(result.columns, MultiIndex)
             result.columns = result.columns.reorder_levels(order)
         return result
 
@@ -5923,7 +5916,8 @@ class DataFrame(NDFrame):
             # Does two things:
             # 1. maybe gets the values from the Series / Index
             # 2. convert datelike to i8
-            if isinstance(arr, (ABCIndexClass, ABCSeries)):
+            # TODO: extract_array?
+            if isinstance(arr, (Index, Series)):
                 arr = arr._values
 
             if needs_i8_conversion(arr.dtype):
@@ -5935,7 +5929,8 @@ class DataFrame(NDFrame):
 
         def combiner(x, y):
             mask = isna(x)
-            if isinstance(mask, (ABCIndexClass, ABCSeries)):
+            # TODO: extract_array?
+            if isinstance(mask, (Index, Series)):
                 mask = mask._values
 
             x_values = extract_values(x)
@@ -6149,6 +6144,41 @@ Parrot       25.0
 Type
 Captive      210.0
 Wild         185.0
+
+We can also choose to include NA in group keys or not by setting
+`dropna` parameter, the default setting is `True`:
+
+>>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+>>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+
+>>> df.groupby(by=["b"]).sum()
+    a   c
+b
+1.0 2   3
+2.0 2   5
+
+>>> df.groupby(by=["b"], dropna=False).sum()
+    a   c
+b
+1.0 2   3
+2.0 2   5
+NaN 1   4
+
+>>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+>>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+
+>>> df.groupby(by="a").sum()
+    b     c
+a
+a   13.0   13.0
+b   12.3  123.0
+
+>>> df.groupby(by="a", dropna=False).sum()
+    b     c
+a
+a   13.0   13.0
+b   12.3  123.0
+NaN 12.3   33.0
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
@@ -6162,6 +6192,7 @@ Wild         185.0
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
+        dropna: bool = True,
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
 
@@ -6179,6 +6210,7 @@ Wild         185.0
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
+            dropna=dropna,
         )
 
     _shared_docs[
@@ -7030,8 +7062,8 @@ Wild         185.0
         self,
         key: Union[str, List[str]],
         ndim: int,
-        subset: Optional[Union[Series, ABCDataFrame]] = None,
-    ) -> Union[Series, ABCDataFrame]:
+        subset: Optional[FrameOrSeriesUnion] = None,
+    ) -> FrameOrSeriesUnion:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -8235,7 +8267,7 @@ Wild         185.0
         count_axis = frame._get_axis(axis)
         agg_axis = frame._get_agg_axis(axis)
 
-        if not isinstance(count_axis, ABCMultiIndex):
+        if not isinstance(count_axis, MultiIndex):
             raise TypeError(
                 f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
@@ -8348,9 +8380,7 @@ Wild         185.0
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
-            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
-                # FIXME: needs_i8_conversion check is kludge, not sure
-                #  why it is necessary in this case and this case alone
+            if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 

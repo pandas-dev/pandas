@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -255,16 +256,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end)
 
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError(
-                    "Closed has to be None if not both of startand end are defined"
-                )
-
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
         if freq is not None:
-            index = _generate_regular_range(start, end, periods, freq)
+            index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
             if len(index) >= 2:
@@ -877,7 +872,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
     """
     Parameters
     ----------
-    array : list-like
+    data : list-like
     copy : bool, default False
     unit : str, default "ns"
         The timedelta unit to treat integers as multiples of.
@@ -930,7 +925,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # cast the unit, multiply base/frace separately
+        # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
         mask = np.isnan(data)
         m, p = precision_from_unit(unit)
@@ -1048,24 +1043,3 @@ def _validate_td64_dtype(dtype):
         raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype
-
-
-def _generate_regular_range(start, end, periods, offset):
-    stride = offset.nanos
-    if periods is None:
-        b = Timedelta(start).value
-        e = Timedelta(end).value
-        e += stride - e % stride
-    elif start is not None:
-        b = Timedelta(start).value
-        e = b + periods * stride
-    elif end is not None:
-        e = Timedelta(end).value + stride
-        b = e - periods * stride
-    else:
-        raise ValueError(
-            "at least 'start' or 'end' should be specified if a 'period' is given."
-        )
-
-    data = np.arange(b, e, stride, dtype=np.int64)
-    return data
