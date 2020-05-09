@@ -562,18 +562,11 @@ class TestDataFrameSubclassing:
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
 
-    def test_subclassed_numeric_reductions(self, all_numeric_reductions):
+    def test_subclassed_reductions(self, all_reductions):
         # GH 25596
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = getattr(df, all_numeric_reductions)()
-        assert isinstance(result, tm.SubclassedSeries)
-
-    def test_subclassed_boolean_reductions(self, all_boolean_reductions):
-        # GH 25596
-
-        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = getattr(df, all_boolean_reductions)()
+        result = getattr(df, all_reductions)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_subclassed_count(self):
