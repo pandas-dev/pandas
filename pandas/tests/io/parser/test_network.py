@@ -173,11 +173,10 @@ class TestS3:
     def test_write_s3_csv_fails(self, tips_df):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
         import botocore
 
-        with pytest.raises(
-            botocore.errorfactory.NoSuchBucket, match="An error occurred (NoSuchBucket)"
-        ):
+        with pytest.raises(botocore.exceptions.ClientError):
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
     @td.skip_if_no("pyarrow")
