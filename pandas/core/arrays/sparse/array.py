@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -58,7 +58,7 @@ import pandas.io.formats.printing as printing
 _sparray_doc_kwargs = dict(klass="SparseArray")
 
 
-def _get_fill(arr: ABCSparseArray) -> np.ndarray:
+def _get_fill(arr: "SparseArray") -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -83,7 +83,7 @@ def _get_fill(arr: ABCSparseArray) -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: ABCSparseArray, right: ABCSparseArray, op: Callable, name: str
+    left: "SparseArray", right: "SparseArray", op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -784,7 +784,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()

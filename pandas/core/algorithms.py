@@ -9,9 +9,8 @@ from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import Timestamp, algos, hashtable as htable, lib
-from pandas._libs.tslib import iNaT
-from pandas._typing import AnyArrayLike, DtypeObj
+from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
+from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -44,6 +43,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -66,7 +66,9 @@ _shared_docs: Dict[str, str] = {}
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(values, dtype=None):
+def _ensure_data(
+    values, dtype: Optional[DtypeObj] = None
+) -> Tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -88,29 +90,30 @@ def _ensure_data(values, dtype=None):
     Returns
     -------
     values : ndarray
-    pandas_dtype : str or dtype
+    pandas_dtype : np.dtype or ExtensionDtype
     """
+
     if not isinstance(values, ABCMultiIndex):
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
     if is_object_dtype(dtype):
-        return ensure_object(np.asarray(values)), "object"
+        return ensure_object(np.asarray(values)), np.dtype("object")
     elif is_object_dtype(values) and dtype is None:
-        return ensure_object(np.asarray(values)), "object"
+        return ensure_object(np.asarray(values)), np.dtype("object")
 
     try:
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
-            return np.asarray(values).astype("uint64"), "bool"
+            return np.asarray(values).astype("uint64"), np.dtype("bool")
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return ensure_int64(values), "int64"
+            return ensure_int64(values), np.dtype("int64")
         elif is_unsigned_integer_dtype(values) or is_unsigned_integer_dtype(dtype):
-            return ensure_uint64(values), "uint64"
+            return ensure_uint64(values), np.dtype("uint64")
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return ensure_float64(values), "float64"
+            return ensure_float64(values), np.dtype("float64")
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
@@ -118,12 +121,12 @@ def _ensure_data(values, dtype=None):
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            return values, "float64"
+            return values, np.dtype("float64")
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall through to here
-        return ensure_object(values), "object"
+        # and it is incompatible this will fall through to here
+        return ensure_object(values), np.dtype("object")
 
     # datetimelike
     vals_dtype = getattr(values, "dtype", None)
@@ -159,7 +162,7 @@ def _ensure_data(values, dtype=None):
         is_categorical_dtype(dtype) or dtype is None
     ):
         values = values.codes
-        dtype = "category"
+        dtype = pandas_dtype("category")
 
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
@@ -169,22 +172,24 @@ def _ensure_data(values, dtype=None):
 
     # we have failed, return object
     values = np.asarray(values, dtype=np.object)
-    return ensure_object(values), "object"
+    return ensure_object(values), np.dtype("object")
 
 
-def _reconstruct_data(values, dtype, original):
+def _reconstruct_data(
+    values: ArrayLike, dtype: DtypeObj, original: AnyArrayLike
+) -> ArrayLike:
     """
     reverse of _ensure_data
 
     Parameters
     ----------
-    values : ndarray
-    dtype : pandas_dtype
-    original : ndarray-like
+    values : np.ndarray or ExtensionArray
+    dtype : np.ndtype or ExtensionDtype
+    original : AnyArrayLike
 
     Returns
     -------
-    Index for extension types, otherwise ndarray casted to dtype
+    ExtensionArray or np.ndarray
     """
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
@@ -416,6 +421,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
+        # TODO: could use ensure_arraylike here
 
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
@@ -467,7 +473,7 @@ def _factorize_array(
     values : ndarray
     na_sentinel : int, default -1
     size_hint : int, optional
-        Passsed through to the hashtable's 'get_labels' method
+        Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
         A value in `values` to consider missing. Note: only use this
         parameter when you know that you don't have any values pandas would
@@ -729,6 +735,7 @@ def value_counts(
     return result
 
 
+# Called once from SparseArray
 def _value_counts_arraylike(values, dropna: bool):
     """
     Parameters
@@ -823,6 +830,7 @@ def mode(values, dropna: bool = True) -> "Series":
     # categorical is a fast-path
     if is_categorical_dtype(values):
         if isinstance(values, Series):
+            # TODO: should we be passing `name` below?
             return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
@@ -1231,7 +1239,7 @@ class SelectNFrame(SelectN):
                 break
 
             # Now find all values which are equal to
-            # the (nsmallest: largest)/(nlarrgest: smallest)
+            # the (nsmallest: largest)/(nlargest: smallest)
             # from our series.
             border_value = values == values[values.index[-1]]
 

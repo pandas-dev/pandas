@@ -1560,7 +1560,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        f : function
+        func : function
             Function to apply to each subframe. Should return True or False.
         dropna : Drop groups that do not pass the filter. True by default;
             If False, groups that evaluate False are filled with NaNs.
