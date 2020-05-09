@@ -1,11 +1,11 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import NaT, Timedelta, index as libindex
+from pandas._libs import NaT, Timedelta, index as libindex, lib
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
+    TD64NS_DTYPE,
     is_float,
     is_integer,
     is_scalar,
@@ -29,16 +29,7 @@ from pandas.tseries.frequencies import to_offset
 
 
 @inherit_names(
-    [
-        "_box_values",
-        "__neg__",
-        "__pos__",
-        "__abs__",
-        "total_seconds",
-        "round",
-        "floor",
-        "ceil",
-    ]
+    ["__neg__", "__pos__", "__abs__", "total_seconds", "round", "floor", "ceil"]
     + TimedeltaArray._field_ops,
     TimedeltaArray,
     wrap=True,
@@ -57,11 +48,10 @@ from pandas.tseries.frequencies import to_offset
         "std",
         "median",
         "_format_native_types",
-        "freq",
     ],
     TimedeltaArray,
 )
-class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
+class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.
@@ -121,7 +111,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
-    _infer_as_myclass = True
 
     _data: TimedeltaArray
 
@@ -132,9 +121,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         cls,
         data=None,
         unit=None,
-        freq=None,
+        freq=lib.no_default,
         closed=None,
-        dtype=_TD_DTYPE,
+        dtype=TD64NS_DTYPE,
         copy=False,
         name=None,
     ):
@@ -152,12 +141,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(data, TimedeltaArray) and freq is None:
+        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
             if copy:
                 return data.copy()
             else:
@@ -207,11 +196,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
                 return Index(result, name=self.name)
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
-
-    def _maybe_promote(self, other):
-        if other.inferred_type == "timedelta":
-            other = TimedeltaIndex(other)
-        return self, other
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -351,11 +335,11 @@ def timedelta_range(
     >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                 '5 days 00:00:00'],
-               dtype='timedelta64[ns]', freq=None)
+               dtype='timedelta64[ns]', freq='32H')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
-    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    freq, _ = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
     return TimedeltaIndex._simple_new(tdarr, name=name)

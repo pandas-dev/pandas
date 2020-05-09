@@ -53,7 +53,7 @@ def test_series_bin_grouper():
 
 
 def assert_block_lengths(x):
-    assert len(x) == len(x._data.blocks[0].mgr_locs)
+    assert len(x) == len(x._mgr.blocks[0].mgr_locs)
     return 0
 
 

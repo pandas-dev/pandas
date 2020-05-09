@@ -127,9 +127,9 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_dataframe(empty_frame, freq, resample_method):
+def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
-    df = empty_frame
+    df = empty_frame_dti
     # count retains dimensions too
     result = getattr(df.resample(freq), resample_method)()
     if resample_method != "size":
@@ -149,15 +149,14 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_count_empty_dataframe(freq, empty_frame):
+def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).count()
+    result = empty_frame_dti.resample(freq).count()
 
-    index = _asfreq_compat(empty_frame.index, freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
 
     expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
 
@@ -166,15 +165,14 @@ def test_resample_count_empty_dataframe(freq, empty_frame):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_size_empty_dataframe(freq, empty_frame):
+def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
-    empty_frame = empty_frame.copy()
-    empty_frame["a"] = []
+    empty_frame_dti["a"] = []
 
-    result = empty_frame.resample(freq).size()
+    result = empty_frame_dti.resample(freq).size()
 
-    index = _asfreq_compat(empty_frame.index, freq)
+    index = _asfreq_compat(empty_frame_dti.index, freq)
 
     expected = pd.Series([], dtype="int64", index=index)
 

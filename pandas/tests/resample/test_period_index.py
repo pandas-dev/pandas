@@ -270,7 +270,10 @@ class TestPeriodIndex:
         )
         result = s.resample("D").mean()
         expected = Series(
-            2, index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz="US/Eastern")
+            2,
+            index=pd.DatetimeIndex(
+                ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="D"
+            ),
         )
         tm.assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
@@ -308,6 +311,7 @@ class TestPeriodIndex:
         index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15T")
         s = Series(np.zeros(len(index)), index=index)
         expected = s.tz_localize("US/Pacific")
+        expected.index = pd.DatetimeIndex(expected.index, freq="900S")
         result = expected.resample("900S").mean()
         tm.assert_series_equal(result, expected)
 
@@ -471,6 +475,7 @@ class TestPeriodIndex:
         ]
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
+        exp.index = pd.DatetimeIndex(exp.index, freq="W")
 
         tm.assert_series_equal(result, exp)
 
@@ -582,6 +587,7 @@ class TestPeriodIndex:
         index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
             "America/Chicago"
         )
+        index = pd.DatetimeIndex(index, freq="12h")
         expected = pd.DataFrame(
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0],
             index=index,
@@ -650,7 +656,9 @@ class TestPeriodIndex:
         df = DataFrame(np.random.randn(9, 3), index=date_range("2000-1-1", periods=9))
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T
-        expected.index = [Timestamp("2000-1-1"), Timestamp("2000-1-6")]
+        expected.index = pd.DatetimeIndex(
+            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], freq="5D"
+        )
         tm.assert_frame_equal(result, expected)
 
         index = date_range(start="2001-5-4", periods=28)
@@ -836,6 +844,9 @@ class TestPeriodIndex:
         # to_timestamp casts 24H -> D
         result = result.asfreq(end_freq) if end_freq == "24H" else result
         expected = s.to_timestamp().resample(end_freq, base=base).mean()
+        if end_freq == "M":
+            # TODO: is non-tick the relevant characteristic?
+            expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

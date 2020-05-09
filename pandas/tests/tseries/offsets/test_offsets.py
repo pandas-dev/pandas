@@ -3501,7 +3501,7 @@ class TestSemiMonthEnd(Base):
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SM")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SM")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -3760,7 +3760,7 @@ class TestSemiMonthBegin(Base):
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SMS")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SMS")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -4313,6 +4313,13 @@ def test_valid_month_attributes(kwd, month_classes):
     # check that we cannot create e.g. MonthEnd(weeks=3)
     with pytest.raises(TypeError):
         cls(**{kwd: 3})
+
+
+def test_month_offset_name(month_classes):
+    # GH#33757 off.name with n != 1 should not raise AttributeError
+    obj = month_classes(1)
+    obj2 = month_classes(2)
+    assert obj2.name == obj.name
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))

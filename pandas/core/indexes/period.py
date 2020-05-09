@@ -1,14 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Any
-import weakref
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import Period, frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
-from pandas._libs.tslibs.period import Period
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -72,7 +70,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "freq", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -138,7 +136,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     Examples
     --------
-    >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
+    >>> idx = pd.PeriodIndex(year=[2000, 2002], quarter=[1, 3])
+    >>> idx
+    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]', freq='Q-DEC')
     """
 
     _typ = "periodindex"
@@ -146,9 +146,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: PeriodArray
+    freq: DateOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -321,12 +321,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     # ------------------------------------------------------------------------
     # Indexing
 
-    @cache_readonly
-    def _engine(self):
-        # To avoid a reference cycle, pass a weakref of self to _engine_type.
-        period = weakref.ref(self)
-        return self._engine_type(period, len(self))
-
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         if isinstance(key, Period):
@@ -479,7 +473,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         Parameters
         ----------
         key : Period, NaT, str, or datetime
-            String or datetime key must be parseable as Period.
+            String or datetime key must be parsable as Period.
 
         Returns
         -------
@@ -627,6 +621,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 other, how=how, level=level, return_indexers=return_indexers, sort=sort
             )
 
+        # _assert_can_do_setop ensures we have matching dtype
         result = Int64Index.join(
             self,
             other,
@@ -635,11 +630,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return_indexers=return_indexers,
             sort=sort,
         )
-
-        if return_indexers:
-            result, lidx, ridx = result
-            return self._apply_meta(result), lidx, ridx
-        return self._apply_meta(result)
+        return result
 
     # ------------------------------------------------------------------------
     # Set Operation Methods
@@ -677,10 +668,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
-            # TODO: fastpath for if we have a different PeriodDtype
-            this = self.astype("O")
-            other = other.astype("O")
+        elif is_object_dtype(other.dtype):
+            return self.astype("O").intersection(other, sort=sort)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            # We can infer that the intersection is empty.
+            # assert_can_do_setop ensures that this is not just a mismatched freq
+            this = self[:0].astype("O")
+            other = other[:0].astype("O")
             return this.intersection(other, sort=sort)
 
         return self._setop(other, sort, opname="intersection")
@@ -717,13 +712,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
-
-    def _apply_meta(self, rawarr) -> "PeriodIndex":
-        if not isinstance(rawarr, PeriodIndex):
-            if not isinstance(rawarr, PeriodArray):
-                rawarr = PeriodArray(rawarr, freq=self.freq)
-            rawarr = PeriodIndex._simple_new(rawarr, name=self.name)
-        return rawarr
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
@@ -774,10 +762,10 @@ def period_range(
     Examples
     --------
     >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
-    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
-                 '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',
-                 '2017-10', '2017-11', '2017-12', '2018-01'],
-                dtype='period[M]', freq='M')
+    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
+             '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
+             '2018-01'],
+            dtype='period[M]', freq='M')
 
     If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
     endpoints for a ``PeriodIndex`` with frequency matching that of the

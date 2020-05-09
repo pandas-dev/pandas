@@ -212,8 +212,11 @@ class TestShift:
             datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
         )
         shifted = inferred_ts.tshift(1)
+        expected = datetime_series.tshift(1)
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(shifted, expected)
+
         unshifted = shifted.tshift(-1)
-        tm.assert_series_equal(shifted, datetime_series.tshift(1))
         tm.assert_series_equal(unshifted, inferred_ts)
 
         no_freq = datetime_series[[0, 5, 7]]

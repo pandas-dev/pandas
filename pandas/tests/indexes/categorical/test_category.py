@@ -3,10 +3,8 @@ import pytest
 
 from pandas._libs import index as libindex
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
-from pandas import Categorical, IntervalIndex
+from pandas import Categorical
 import pandas._testing as tm
 from pandas.core.indexes.api import CategoricalIndex, Index
 
@@ -192,66 +190,9 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(list("aabbc"), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with pytest.raises((IndexError, ValueError)):
+        with tm.external_error_raised((IndexError, ValueError)):
             # Either depending on NumPy version
             ci.delete(10)
-
-    def test_astype(self):
-
-        ci = self.create_index()
-        result = ci.astype(object)
-        tm.assert_index_equal(result, Index(np.array(ci)))
-
-        # this IS equal, but not the same class
-        assert result.equals(ci)
-        assert isinstance(result, Index)
-        assert not isinstance(result, CategoricalIndex)
-
-        # interval
-        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0], right=[2, 4], closed="right")
-
-        ci = CategoricalIndex(
-            Categorical.from_codes([0, 1, -1], categories=ii, ordered=True)
-        )
-
-        result = ci.astype("interval")
-        expected = ii.take([0, 1, -1])
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex(result.values)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("name", [None, "foo"])
-    @pytest.mark.parametrize("dtype_ordered", [True, False])
-    @pytest.mark.parametrize("index_ordered", [True, False])
-    def test_astype_category(self, name, dtype_ordered, index_ordered):
-        # GH 18630
-        index = self.create_index(ordered=index_ordered)
-        if name:
-            index = index.rename(name)
-
-        # standard categories
-        dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(
-            index.tolist(),
-            name=name,
-            categories=index.categories,
-            ordered=dtype_ordered,
-        )
-        tm.assert_index_equal(result, expected)
-
-        # non-standard categories
-        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected)
-
-        if dtype_ordered is False:
-            # dtype='category' can't specify ordered, so only test once
-            result = index.astype("category")
-            expected = index
-            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "data, non_lexsorted_data",
@@ -292,16 +233,81 @@ class TestCategoricalIndex(Base):
         assert c.is_monotonic_decreasing is False
 
     def test_has_duplicates(self):
-
         idx = CategoricalIndex([0, 0, 0], name="foo")
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-    def test_drop_duplicates(self):
+        idx = CategoricalIndex([0, 1], categories=[2, 3], name="foo")
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 0, 0], name="foo")
-        expected = CategoricalIndex([0], name="foo")
-        tm.assert_index_equal(idx.drop_duplicates(), expected)
+        idx = CategoricalIndex([0, 1, 2, 3], categories=[1, 2, 3], name="foo")
+        assert idx.is_unique is True
+        assert idx.has_duplicates is False
+
+    @pytest.mark.parametrize(
+        "data, categories, expected",
+        [
+            (
+                [1, 1, 1],
+                [1, 2, 3],
+                {
+                    "first": np.array([False, True, True]),
+                    "last": np.array([True, True, False]),
+                    False: np.array([True, True, True]),
+                },
+            ),
+            (
+                [1, 1, 1],
+                list("abc"),
+                {
+                    "first": np.array([False, True, True]),
+                    "last": np.array([True, True, False]),
+                    False: np.array([True, True, True]),
+                },
+            ),
+            (
+                [2, "a", "b"],
+                list("abc"),
+                {
+                    "first": np.zeros(shape=(3), dtype=np.bool),
+                    "last": np.zeros(shape=(3), dtype=np.bool),
+                    False: np.zeros(shape=(3), dtype=np.bool),
+                },
+            ),
+            (
+                list("abb"),
+                list("abc"),
+                {
+                    "first": np.array([False, False, True]),
+                    "last": np.array([False, True, False]),
+                    False: np.array([False, True, True]),
+                },
+            ),
+        ],
+    )
+    def test_drop_duplicates(self, data, categories, expected):
+
+        idx = CategoricalIndex(data, categories=categories, name="foo")
+        for keep, e in expected.items():
+            tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
+            e = idx[~e]
+            result = idx.drop_duplicates(keep=keep)
+            tm.assert_index_equal(result, e)
+
+    @pytest.mark.parametrize(
+        "data, categories, expected_data, expected_categories",
+        [
+            ([1, 1, 1], [1, 2, 3], [1], [1]),
+            ([1, 1, 1], list("abc"), [np.nan], []),
+            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan], [1, 2]),
+            ([2, "a", "b"], list("abc"), [np.nan, "a", "b"], ["a", "b"]),
+        ],
+    )
+    def test_unique(self, data, categories, expected_data, expected_categories):
+
+        idx = CategoricalIndex(data, categories=categories)
+        expected = CategoricalIndex(expected_data, categories=expected_categories)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
@@ -441,18 +447,6 @@ class TestCategoricalIndex(Base):
         result = repr(df)
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
-
-    def test_fillna_categorical(self):
-        # GH 11343
-        idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name="x")
-        # fill by value in categories
-        exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name="x")
-        tm.assert_index_equal(idx.fillna(1.0), exp)
-
-        # fill by value not in categories raises ValueError
-        msg = "fill value must be in categories"
-        with pytest.raises(ValueError, match=msg):
-            idx.fillna(2.0)
 
     @pytest.mark.parametrize(
         "dtype, engine_type",

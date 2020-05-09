@@ -28,6 +28,18 @@ class BaseMethodsTests(BaseExtensionTests):
 
         self.assert_series_equal(result, expected)
 
+    def test_value_counts_with_normalize(self, data):
+        # GH 33172
+        data = data[:10].unique()
+        values = np.array(data[~data.isna()])
+
+        result = (
+            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
+        )
+
+        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        self.assert_series_equal(result, expected)
+
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis="columns")
@@ -76,9 +88,9 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
             expected = expected[::-1]
@@ -86,9 +98,11 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
         ser = pd.Series(data_missing_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         if ascending:
             expected = ser.iloc[[2, 0, 1]]
         else:
@@ -234,6 +248,13 @@ class BaseMethodsTests(BaseExtensionTests):
             compare = self.assert_series_equal
 
         compare(result, expected)
+
+    def test_shift_0_periods(self, data):
+        # GH#33856 shifting with periods=0 should return a copy, not same obj
+        result = data.shift(0)
+        assert data[0] != data[1]  # otherwise below is invalid
+        data[0] = data[1]
+        assert result[0] != result[1]  # i.e. not the same object/view
 
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
