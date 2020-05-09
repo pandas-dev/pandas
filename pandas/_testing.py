@@ -718,7 +718,7 @@ def assert_index_equal(
         assert_interval_array_equal(left._values, right._values)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
@@ -1250,7 +1250,7 @@ def assert_series_equal(
         assert_attr_equal("name", left, right, obj=obj)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(
                 left._values,
                 right._values,
@@ -1490,7 +1490,9 @@ def box_expected(expected, box_cls, transpose=True):
     -------
     subclass of box_cls
     """
-    if box_cls is pd.Index:
+    if box_cls is pd.array:
+        expected = pd.array(expected)
+    elif box_cls is pd.Index:
         expected = pd.Index(expected)
     elif box_cls is pd.Series:
         expected = pd.Series(expected)
@@ -1519,11 +1521,13 @@ def box_expected(expected, box_cls, transpose=True):
 
 def to_array(obj):
     # temporary implementation until we get pd.array in place
-    if is_period_dtype(obj):
+    dtype = getattr(obj, "dtype", None)
+
+    if is_period_dtype(dtype):
         return period_array(obj)
-    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return DatetimeArray._from_sequence(obj)
-    elif is_timedelta64_dtype(obj):
+    elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)

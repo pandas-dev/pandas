@@ -56,11 +56,8 @@ from pandas.core.sorting import (
 )
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
-    check_kwargs_and_nopython,
-    get_jit_arguments,
-    jit_user_function,
+    generate_numba_func,
     split_for_numba,
-    validate_udf,
 )
 
 
@@ -408,8 +405,8 @@ class BaseGrouper:
 
         Parameters
         ----------
-        kind : sttr
-        how : srt
+        kind : str
+        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -461,7 +458,7 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
@@ -646,7 +643,7 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
@@ -689,12 +686,8 @@ class BaseGrouper:
     ):
 
         if engine == "numba":
-            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-            check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
-            cache_key = (func, "groupby_agg")
-            numba_func = NUMBA_FUNC_CACHE.get(
-                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_agg"
             )
 
         group_index, _, ngroups = self.group_info
@@ -902,7 +895,7 @@ class BinGrouper(BaseGrouper):
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
+            # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]

@@ -254,9 +254,11 @@ class TestFloat64Index(Numeric):
 
         expected = vals[1]
 
-        result = ser.index.get_value(ser, 4.0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.index.get_value(ser, 4.0)
         assert isinstance(result, type(expected)) and result == expected
-        result = ser.index.get_value(ser, 4)
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.index.get_value(ser, 4)
         assert isinstance(result, type(expected)) and result == expected
 
         result = ser[4.0]
