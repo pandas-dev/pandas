@@ -151,6 +151,9 @@ Other enhancements
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
+- The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
+  method, similarly to :meth:`Series.equals` (:issue:`27081`).
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -521,6 +524,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
+- Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 
 
@@ -758,6 +762,7 @@ ExtensionArray
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
+- Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 
 
