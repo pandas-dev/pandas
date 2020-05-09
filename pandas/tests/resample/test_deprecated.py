@@ -8,7 +8,7 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.indexes.timedeltas import timedelta_range
 
 from pandas.tseries.offsets import BDay, Minute
 
