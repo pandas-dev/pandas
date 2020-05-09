@@ -37,7 +37,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
     WindowGroupByMixin,
@@ -2111,7 +2111,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         use_numba_cache: bool = False,
         **kwargs,
     ):
-        # result here needs to be a list somehow
         result = super()._apply(
             func,
             center,
@@ -2122,8 +2121,25 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             use_numba_cache,
             **kwargs,
         )
-        group_keys = self._groupby.grouper._get_group_keys()
-        return self._groupby._wrap_applied_output(group_keys, [result])
+        # _wrap_outputs does not know about what the result index should be
+        index_names = [self._selected_obj.index.name]
+        if not is_list_like(self._groupby.keys):
+            index_names = [self._groupby.keys] + index_names
+            index_data = [
+                (key, val)
+                for key, values in self._groupby.grouper.indices.items()
+                for val in values
+            ]
+        else:
+            index_names = [*self._groupby.keys] + index_names
+            index_data = [
+                (*key, val)
+                for key, values in self._groupby.grouper.indices.items()
+                for val in values
+            ]
+        result_index = MultiIndex.from_tuples(index_data, names=index_names)
+        result.index = result_index
+        return result
 
     @property
     def _constructor(self):
