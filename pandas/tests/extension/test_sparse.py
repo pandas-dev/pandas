@@ -316,6 +316,19 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         data._sparse_values[0] = data._sparse_values[1]
         assert result._sparse_values[0] != result._sparse_values[1]
 
+    @pytest.mark.parametrize(
+        "method", ["argmax", "argmin"],
+    )
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        # overriding because Sparse[int64, 0] cannot handle na_value
+        if data.dtype.fill_value == 0:
+            pytest.skip("missing values not supported with Sparse[int64, 0]")
+
+        err_msg = "attempt to get"
+        data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
+        with pytest.raises(ValueError, match=err_msg):
+            getattr(data_na, method)()
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):

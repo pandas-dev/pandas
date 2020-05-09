@@ -28,7 +28,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
-from pandas.core.sorting import nargsort
+from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
 
@@ -520,10 +520,7 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
-        if len(self) == 0:
-            raise ValueError("attempt to get argmin of an empty sequence")
-
-        return self.argsort()[0]
+        return nargminmax(self, "argmin")
 
     def argmax(self):
         """
@@ -538,12 +535,7 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
-
-        if len(self) == 0:
-            raise ValueError("attempt to get argmax of an empty sequence")
-
-        no_nan = self.isna().sum()
-        return self.argsort()[-1 - no_nan]
+        return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
         """
