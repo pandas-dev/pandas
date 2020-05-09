@@ -1501,7 +1501,9 @@ def box_expected(expected, box_cls, transpose=True):
     -------
     subclass of box_cls
     """
-    if box_cls is pd.Index:
+    if box_cls is pd.array:
+        expected = pd.array(expected)
+    elif box_cls is pd.Index:
         expected = pd.Index(expected)
     elif box_cls is pd.Series:
         expected = pd.Series(expected)
