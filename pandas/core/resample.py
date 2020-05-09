@@ -1700,8 +1700,8 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
         first, last, offset, closed=closed, base=base
     )
 
-    first = (first + adjust_first * offset).to_period(offset)
-    last = (last - adjust_last * offset).to_period(offset)
+    first = (first + int(adjust_first) * offset).to_period(offset)
+    last = (last - int(adjust_last) * offset).to_period(offset)
     return first, last
 
 

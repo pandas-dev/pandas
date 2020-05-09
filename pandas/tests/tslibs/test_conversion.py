@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 def _compare_utc_to_local(tz_didx):
     def f(x):
-        return conversion.tz_convert_single(x, UTC, tz_didx.tz)
+        return tzconversion.tz_convert_single(x, UTC, tz_didx.tz)
 
     result = tzconversion.tz_convert(tz_didx.asi8, UTC, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
@@ -22,7 +22,7 @@ def _compare_utc_to_local(tz_didx):
 
 def _compare_local_to_utc(tz_didx, utc_didx):
     def f(x):
-        return conversion.tz_convert_single(x, tz_didx.tz, UTC)
+        return tzconversion.tz_convert_single(x, tz_didx.tz, UTC)
 
     result = tzconversion.tz_convert(utc_didx.asi8, tz_didx.tz, UTC)
     expected = np.vectorize(f)(utc_didx.asi8)

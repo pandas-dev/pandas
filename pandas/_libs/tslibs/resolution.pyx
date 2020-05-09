@@ -1,7 +1,7 @@
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
-from pandas._libs.tslibs.util cimport get_nat
+from pandas._libs.tslibs.util cimport get_nat, is_offset_object
 
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
@@ -118,7 +118,7 @@ def get_freq_group(freq) -> int:
     >>> get_freq_group('W-FRI')
     4000
     """
-    if getattr(freq, '_typ', None) == 'dateoffset':
+    if is_offset_object(freq):
         freq = freq.rule_code
 
     if isinstance(freq, str):
