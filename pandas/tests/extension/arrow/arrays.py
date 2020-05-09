@@ -161,13 +161,7 @@ class ArrowExtensionArray(ExtensionArray):
     def argmin(self):
         raise NotImplementedError
 
-    def min(self):
-        raise NotImplementedError
-
     def argmax(self):
-        raise NotImplementedError
-
-    def max(self):
         raise NotImplementedError
 
 

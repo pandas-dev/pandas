@@ -75,20 +75,6 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
         # Period + Period is not defined.
         pass
 
-    @pytest.mark.parametrize(
-        "method", ["argmax", "max", "argmin", "min"],
-    )
-    def test_extremize_empty_array(self, method, data):
-        # GH 24382
-        err_msg = "attempt to get"
-        empty_arr = data[:0]
-        if method in ("max", "min"):
-            result = getattr(empty_arr, method)()
-            assert result is pd.NaT
-        else:
-            with pytest.raises(ValueError, match=err_msg):
-                getattr(empty_arr, method)()
-
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 

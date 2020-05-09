@@ -153,15 +153,6 @@ class TestMethods(base.BaseMethodsTests):
         if not data_for_sorting.ordered:
             raise pytest.skip(reason="searchsorted requires ordered data.")
 
-    @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
-    )
-    def test_extremize_empty_array(self, method, data_missing_for_sorting):
-        # GH 24382
-        err_msg = "attempt to get"
-        with pytest.raises(ValueError, match=err_msg):
-            getattr(data_missing_for_sorting[:0], method)()
-
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])

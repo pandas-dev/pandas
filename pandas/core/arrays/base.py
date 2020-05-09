@@ -525,30 +525,6 @@ class ExtensionArray:
 
         return self.argsort()[0]
 
-    def min(self):
-        """
-        Return the minimum value.
-
-        Returns
-        -------
-        scalar
-            Minimum value.
-
-        See Also
-        --------
-        ExtensionArray.max : Return the maximum value of the object.
-        Series.min : Return the minimum value in a Series.
-        DataFrame.min : Return the minimum values in a DataFrame.
-        """
-        return self._min()
-
-    def _min(self):
-        if len(self) == 0:
-            raise ValueError("attempt to get min of an empty sequence")
-
-        min_idx = self.argmin()
-        return self[min_idx]
-
     def argmax(self):
         """
         Return the maximum argument indexer.
@@ -568,30 +544,6 @@ class ExtensionArray:
 
         no_nan = self.isna().sum()
         return self.argsort()[-1 - no_nan]
-
-    def max(self):
-        """
-        Return the maximum value.
-
-        Returns
-        -------
-        scalar
-            Maximum value.
-
-        See Also
-        --------
-        ExtensionArray.min : Return the minimum value of the object.
-        Series.max : Return the maximum value in a Series.
-        DataFrame.max : Return the maximum values in a DataFrame.
-        """
-        return self._max()
-
-    def _max(self):
-        if len(self) == 0:
-            raise ValueError("attempt to get max of an empty sequence")
-
-        max_idx = self.argmax()
-        return self[max_idx]
 
     def fillna(self, value=None, method=None, limit=None):
         """

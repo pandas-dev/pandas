@@ -292,12 +292,6 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    def min(self):
-        return self._min()
-
-    def max(self):
-        return self._max()
-
     def memory_usage(self, deep=False):
         result = self._ndarray.nbytes
         if deep:
