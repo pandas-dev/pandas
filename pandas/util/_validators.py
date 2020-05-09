@@ -353,7 +353,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
 
-    This function checks if the given float oriterable of floats is a valid percentile
+    This function checks if the given float or iterable of floats is a valid percentile
     otherwise raises a ValueError.
 
     Parameters

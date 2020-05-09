@@ -357,7 +357,7 @@ def _concatenate_2d(to_concat, axis: int):
 def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
+    single M8[ns], datetime64[ns, tz] or m8[ns] dtype
 
     Parameters
     ----------
