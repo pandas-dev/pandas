@@ -539,17 +539,7 @@ class _OpenpyxlReader(_BaseExcelReader):
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
 
-        max_row = (
-            header + skiprows + nrows + 1
-            if (
-                isinstance(header, int)
-                and isinstance(skiprows, int)
-                and isinstance(nrows, int)
-            )
-            else None
-        )
-
-        for i, row in enumerate(sheet.iter_rows(max_row=max_row)):
+        for row in sheet.rows:
 
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
