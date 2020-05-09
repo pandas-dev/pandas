@@ -75,6 +75,10 @@ class TestPandasDtype:
             "datetime64[ns, US/Eastern]",
             "datetime64[ns, Asia/Tokyo]",
             "datetime64[ns, UTC]",
+            # GH#33885 check that the M8 alias is understood
+            "M8[ns, US/Eastern]",
+            "M8[ns, Asia/Tokyo]",
+            "M8[ns, UTC]",
         ],
     )
     def test_datetimetz_dtype(self, dtype):
