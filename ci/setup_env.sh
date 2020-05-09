@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+if [ "$JOB" == "3.9-dev" ]; then
+    /bin/bash ci/build39.sh
+    exit 0
+fi
+
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"

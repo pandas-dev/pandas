@@ -16,6 +16,7 @@ from pandas._typing import F
 
 PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
+PY39 = sys.version_info >= (3, 9)
 PYPY = platform.python_implementation() == "PyPy"
 
 
