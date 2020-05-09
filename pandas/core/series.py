@@ -1603,6 +1603,34 @@ Type
 Captive    210.0
 Wild       185.0
 Name: Max Speed, dtype: float64
+
+We can also choose to include `NA` in group keys or not by defining
+`dropna` parameter, the default setting is `True`:
+
+>>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+>>> ser.groupby(level=0).sum()
+a    3
+b    3
+dtype: int64
+
+>>> ser.groupby(level=0, dropna=False).sum()
+a    3
+b    3
+NaN  3
+dtype: int64
+
+>>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
+>>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
+>>> ser.groupby(["a", "b", "a", np.nan]).mean()
+a    210.0
+b    350.0
+Name: Max Speed, dtype: float64
+
+>>> ser.groupby(["a", "b", "a", np.nan], dropna=False).mean()
+a    210.0
+b    350.0
+NaN   20.0
+Name: Max Speed, dtype: float64
 """
     )
     @Appender(generic._shared_docs["groupby"] % _shared_doc_kwargs)
@@ -1616,6 +1644,7 @@ Name: Max Speed, dtype: float64
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
+        dropna: bool = True,
     ) -> "SeriesGroupBy":
         from pandas.core.groupby.generic import SeriesGroupBy
 
@@ -1633,6 +1662,7 @@ Name: Max Speed, dtype: float64
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
+            dropna=dropna,
         )
 
     # ----------------------------------------------------------------------
