@@ -3,7 +3,7 @@ from typing import IO, TYPE_CHECKING, Optional, Tuple, Union
 
 from pandas._config import get_option
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
 
 
-def _put_str(s, space):
+def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
