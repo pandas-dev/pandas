@@ -846,7 +846,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        rng2._data.freq = BDay()  # TODO: shouldn't this already be set?
+        assert rng2._data.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -905,7 +905,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        rng2._data.freq = CDay()  # TODO: shouldn't this already be set?
+        assert rng2._data.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -987,8 +987,8 @@ class TestCustomDateRange:
         )
 
         bad_freq = freq + "FOO"
-        msg = "invalid custom frequency string: {freq}"
-        with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
+        msg = f"invalid custom frequency string: {bad_freq}"
+        with pytest.raises(ValueError, match=msg):
             bdate_range(START, END, freq=bad_freq)
 
     @pytest.mark.parametrize(

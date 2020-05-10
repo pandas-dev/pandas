@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
@@ -365,10 +365,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.hasnans
 
-        hash(key)
         return contains(self, key, container=self._engine)
 
     @doc(Index.astype)
