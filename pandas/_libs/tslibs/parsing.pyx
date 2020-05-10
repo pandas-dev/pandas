@@ -33,7 +33,10 @@ from dateutil.parser import parse as du_parse
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.nattype cimport (
+    c_nat_strings as nat_strings,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_offset_object,
