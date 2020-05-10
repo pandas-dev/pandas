@@ -10,7 +10,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import Period, PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 
@@ -80,6 +80,41 @@ class SharedTests:
         # test the index classes while we're at it, GH#23078
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
+
+    @pytest.mark.parametrize("reverse", [True, False])
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_compare_categorical_dtype(self, arr1d, as_index, reverse, ordered):
+        other = pd.Categorical(arr1d, ordered=ordered)
+        if as_index:
+            other = pd.CategoricalIndex(other)
+
+        left, right = arr1d, other
+        if reverse:
+            left, right = right, left
+
+        ones = np.ones(arr1d.shape, dtype=bool)
+        zeros = ~ones
+
+        result = left == right
+        tm.assert_numpy_array_equal(result, ones)
+
+        result = left != right
+        tm.assert_numpy_array_equal(result, zeros)
+
+        if not reverse and not as_index:
+            # Otherwise Categorical raises TypeError bc it is not ordered
+            # TODO: we should probably get the same behavior regardless?
+            result = left < right
+            tm.assert_numpy_array_equal(result, zeros)
+
+            result = left <= right
+            tm.assert_numpy_array_equal(result, ones)
+
+            result = left > right
+            tm.assert_numpy_array_equal(result, zeros)
+
+            result = left >= right
+            tm.assert_numpy_array_equal(result, ones)
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -222,6 +257,11 @@ class SharedTests:
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
+        # Scalar lookup
+        result = arr2d[-1, 0]
+        expected = arr1d[-1]
+        assert result == expected
+
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
@@ -236,6 +276,30 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
+    def test_setitem_str_array(self, arr1d):
+        if isinstance(arr1d, DatetimeArray) and arr1d.tz is not None:
+            pytest.xfail(reason="timezone comparisons inconsistent")
+        expected = arr1d.copy()
+        expected[[0, 1]] = arr1d[-2:]
+
+        arr1d[:2] = [str(x) for x in arr1d[-2:]]
+
+        tm.assert_equal(arr1d, expected)
+
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_setitem_categorical(self, arr1d, as_index):
+        expected = arr1d.copy()[::-1]
+        if not isinstance(expected, PeriodArray):
+            expected = expected._with_freq(None)
+
+        cat = pd.Categorical(arr1d)
+        if as_index:
+            cat = pd.CategoricalIndex(cat)
+
+        arr1d[:] = cat[::-1]
+
+        tm.assert_equal(arr1d, expected)
+
     def test_setitem_raises(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
@@ -246,6 +310,17 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+    def test_setitem_numeric_raises(self, arr1d, box):
+        # We dont case e.g. int64 to our own dtype for setitem
+
+        msg = "requires compatible dtype"
+        with pytest.raises(TypeError, match=msg):
+            arr1d[:2] = box([0, 1])
+
+        with pytest.raises(TypeError, match=msg):
+            arr1d[:2] = box([0.0, 1.0])
 
     def test_inplace_arithmetic(self):
         # GH#24115 check that iadd and isub are actually in-place
@@ -297,7 +372,13 @@ class TestDatetimeArray(SharedTests):
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)
+        expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
+
+        dta = dti._data
+        result = dta.round(freq="2T")
+        expected = expected._data._with_freq(None)
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
         arr = DatetimeArray(datetime_index)
@@ -503,6 +584,12 @@ class TestDatetimeArray(SharedTests):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
+        value = np.timedelta64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones
         dti = datetime_index
@@ -664,6 +751,12 @@ class TestTimedeltaArray(SharedTests):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
+        value = np.datetime64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
 
 class TestPeriodArray(SharedTests):
     index_cls = pd.PeriodIndex
@@ -691,6 +784,22 @@ class TestPeriodArray(SharedTests):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == "O"
         assert list(asobj) == list(pi)
+
+    def test_take_fill_valid(self, period_index):
+        pi = period_index
+        arr = PeriodArray(pi)
+
+        value = pd.NaT.value
+        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+        with pytest.raises(ValueError, match=msg):
+            # require NaT, not iNaT, as it could be confused with an integer
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+        value = np.timedelta64("NaT", "ns")
+        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+        with pytest.raises(ValueError, match=msg):
+            # require appropriate-dtype if we have a NA value
+            arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     @pytest.mark.parametrize("how", ["S", "E"])
     def test_to_timestamp(self, how, period_index):
@@ -864,6 +973,7 @@ def test_to_numpy_extra(array):
     tm.assert_equal(array, original)
 
 
+@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "values",
     [
@@ -872,9 +982,23 @@ def test_to_numpy_extra(array):
         pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
-@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
-def test_searchsorted_datetimelike_with_listlike(values, klass):
+@pytest.mark.parametrize(
+    "klass",
+    [
+        list,
+        np.array,
+        pd.array,
+        pd.Series,
+        pd.Index,
+        pd.Categorical,
+        pd.CategoricalIndex,
+    ],
+)
+def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     # https://github.com/pandas-dev/pandas/issues/32762
+    if not as_index:
+        values = values._data
+
     result = values.searchsorted(klass(values))
     expected = np.array([0, 1], dtype=result.dtype)
 
@@ -897,3 +1021,13 @@ def test_searchsorted_datetimelike_with_listlike_invalid_dtype(values, arg):
     msg = "[Unexpected type|Cannot compare]"
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)
+
+
+@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
+def test_period_index_construction_from_strings(klass):
+    # https://github.com/pandas-dev/pandas/issues/26109
+    strings = ["2020Q1", "2020Q2"] * 2
+    data = klass(strings)
+    result = PeriodIndex(data, freq="Q")
+    expected = PeriodIndex([Period(s) for s in strings])
+    tm.assert_index_equal(result, expected)

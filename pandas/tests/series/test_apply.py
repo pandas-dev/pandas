@@ -4,10 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
 import pandas as pd
-from pandas import DataFrame, Index, Series, isna
+from pandas import DataFrame, Index, MultiIndex, Series, isna
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -248,18 +246,21 @@ class TestSeriesAggregate:
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
-        with pytest.raises(ValueError):
+        msg = "transforms cannot produce aggregated results"
+        with pytest.raises(ValueError, match=msg):
             string_series.transform(["min", "max"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot combine transform and aggregation"
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.agg(["sqrt", "max"])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.transform(["sqrt", "max"])
 
-        with pytest.raises(ValueError):
+        msg = "cannot perform both aggregation and transformation"
+        with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.agg({"foo": np.sqrt, "bar": "sum"})
 
@@ -516,7 +517,7 @@ class TestSeriesMap:
         tm.assert_series_equal(a.map(c), exp)
 
     def test_map_empty(self, indices):
-        if isinstance(indices, ABCMultiIndex):
+        if isinstance(indices, MultiIndex):
             pytest.skip("Initializing a Series from a MultiIndex is not supported")
 
         s = Series(indices)
