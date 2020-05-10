@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 import pandas as pd
 from pandas import (
@@ -744,6 +744,7 @@ class TestSeriesMissingData:
 
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()
+        ts.index = ts.index._with_freq(None)
         ts[::2] = np.NaN
 
         result = ts.dropna()

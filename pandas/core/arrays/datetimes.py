@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
     conversion,
     fields,
     iNaT,
-    normalize_date,
     resolution as libresolution,
     timezones,
     tzconversion,
@@ -302,11 +301,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype=None,
         copy=False,
         tz=None,
-        freq=None,
+        freq=lib.no_default,
         dayfirst=False,
         yearfirst=False,
         ambiguous="raise",
     ):
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -321,6 +322,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         )
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         dtype = tz_to_dtype(tz)
         result = cls._simple_new(subarr, freq=freq, dtype=dtype)
@@ -1111,7 +1114,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies._base_and_stride(freq)
+                base, stride = libfrequencies.base_and_stride(freq)
                 res = f"{stride}{base}"
 
             freq = res
@@ -2284,19 +2287,21 @@ def _infer_tz_from_endpoints(start, end, tz):
     return tz
 
 
-def _maybe_normalize_endpoints(start, end, normalize):
+def _maybe_normalize_endpoints(
+    start: Optional[Timestamp], end: Optional[Timestamp], normalize: bool
+):
     _normalized = True
 
     if start is not None:
         if normalize:
-            start = normalize_date(start)
+            start = start.normalize()
             _normalized = True
         else:
             _normalized = _normalized and start.time() == _midnight
 
     if end is not None:
         if normalize:
-            end = normalize_date(end)
+            end = end.normalize()
             _normalized = True
         else:
             _normalized = _normalized and end.time() == _midnight

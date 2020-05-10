@@ -60,8 +60,9 @@ class TestToTimestamp:
         pindex = PeriodIndex(year=years, quarter=quarters)
 
         stamps = pindex.to_timestamp("D", "end")
-        expected = DatetimeIndex([x.to_timestamp("D", "end") for x in pindex], freq="Q")
+        expected = DatetimeIndex([x.to_timestamp("D", "end") for x in pindex])
         tm.assert_index_equal(stamps, expected)
+        assert stamps.freq == expected.freq
 
     def test_to_timestamp_pi_mult(self):
         idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="2M", name="idx")
