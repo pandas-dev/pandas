@@ -36,6 +36,37 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+
+.. _whatsnew_110.groupby_key:
+
+Allow NA in groupby key
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+With :ref:`groupby <groupby.dropna>` , we've added a ``dropna`` keyword to :meth:`DataFrame.groupby` and :meth:`Series.groupby` in order to
+allow ``NA`` values in group keys. Users can define ``dropna`` to ``False`` if they want to include
+``NA`` values in groupby keys. The default is set to ``True`` for ``dropna`` to keep backwards
+compatibility (:issue:`3729`)
+
+.. ipython:: python
+
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
+
+    df_dropna
+
+.. ipython:: python
+
+    # Default `dropna` is set to True, which will exclude NaNs in keys
+    df_dropna.groupby(by=["b"], dropna=True).sum()
+
+    # In order to allow NaN in keys, set `dropna` to False
+    df_dropna.groupby(by=["b"], dropna=False).sum()
+
+The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
+
+.. versionadded:: 1.1.0
+
+
 .. _whatsnew_110.key_sorting:
 
 Sorting with keys
@@ -563,6 +594,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
 - Bug in :class:`DatetimeIndex` addition and subtraction with some types of :class:`DateOffset` objects incorrectly retaining an invalid ``freq`` attribute (:issue:`33779`)
 - Bug in :class:`DatetimeIndex` where setting the ``freq`` attribute on an index could silently change the ``freq`` attribute on another index viewing the same data (:issue:`33552`)
+- :meth:`DataFrame.min`/:meth:`DataFrame.max` not returning consistent result with :meth:`Series.min`/:meth:`Series.max` when called on objects initialized with empty :func:`pd.to_datetime`
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
 
@@ -574,6 +606,9 @@ Timedelta
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 - :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
 - Bug in comparing a :class:`Timedelta`` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
+- Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
+- Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
+- Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
 
 Timezones
 ^^^^^^^^^
@@ -717,6 +752,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 - Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+- Bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` where a large negative number would be returned when the number of non-null values was below ``min_count`` for nullable integer dtypes (:issue:`32861`)
 - Bug in :meth:`SeriesGroupBy.quantile` raising on nullable integers (:issue:`33136`)
 - Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)
 - Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
@@ -747,6 +783,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
+- Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 
 
 Sparse
@@ -763,6 +800,7 @@ ExtensionArray
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
+- Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
 
 
 Other
