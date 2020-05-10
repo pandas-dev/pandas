@@ -200,4 +200,3 @@ I2,1,3
     tm.assert_frame_equal(result, expected)
 
     result = parser.read_csv(StringIO(data), index_col="I11", header=0)
-
