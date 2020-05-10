@@ -542,7 +542,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, ngroup = self.grouper.group_info
 
         # in categorical case there may be unobserved categories in index
-        if any(is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings):
+        if not self.observed and any(
+            is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings
+        ):
             result = result.reindex(self.grouper.result_index)
 
         cast = self._transform_should_cast(func_nm)
@@ -1483,7 +1485,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroup = self.grouper.group_info
 
         # in categorical case there may be unobserved categories in index
-        if any(is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings):
+        if not self.observed and any(
+            is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings
+        ):
             result = result.reindex(self.grouper.result_index)
 
         output = []
