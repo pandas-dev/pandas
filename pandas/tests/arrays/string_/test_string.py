@@ -98,7 +98,7 @@ def test_add_2d():
         a + b
 
     s = pd.Series(a)
-    with pytest.raises(ValueError, match="3 != 1"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         s + b
 
 
