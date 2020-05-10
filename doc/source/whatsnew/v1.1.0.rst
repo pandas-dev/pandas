@@ -784,6 +784,7 @@ Reshaping
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
+- Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 
 
 Sparse
