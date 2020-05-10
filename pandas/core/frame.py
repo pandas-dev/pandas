@@ -1173,13 +1173,13 @@ class DataFrame(NDFrame):
                 np.dot(lvals, rvals), index=left.index, columns=other.columns
             )
         elif isinstance(other, Series):
-            return Series(np.dot(lvals, rvals), index=left.index)
+            return self._constructor_sliced(np.dot(lvals, rvals), index=left.index)
         elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
             if result.ndim == 2:
                 return self._constructor(result, index=left.index)
             else:
-                return Series(result, index=left.index)
+                return self._constructor_sliced(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
@@ -2533,14 +2533,14 @@ class DataFrame(NDFrame):
         >>> df['object'].astype('category').memory_usage(deep=True)
         5216
         """
-        result = Series(
+        result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
         )
         if index:
-            result = Series(self.index.memory_usage(deep=deep), index=["Index"]).append(
-                result
-            )
+            result = self._constructor_sliced(
+                self.index.memory_usage(deep=deep), index=["Index"]
+            ).append(result)
         return result
 
     def transpose(self, *args, copy: bool = False) -> "DataFrame":
@@ -5013,7 +5013,7 @@ class DataFrame(NDFrame):
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
-            return Series(dtype=bool)
+            return self._constructor_sliced(dtype=bool)
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -5045,7 +5045,7 @@ class DataFrame(NDFrame):
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return Series(duplicated_int64(ids, keep), index=self.index)
+        return self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
 
     # ----------------------------------------------------------------------
     # Sorting
@@ -8121,7 +8121,7 @@ NaN 12.3   33.0
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
-            correl = Series(
+            correl = self._constructor_sliced(
                 map(c, zip(left.values.T, right.values.T)), index=left.columns
             )
 
@@ -8234,7 +8234,7 @@ NaN 12.3   33.0
 
         # GH #423
         if len(frame._get_axis(axis)) == 0:
-            result = Series(0, index=frame._get_agg_axis(axis))
+            result = self._constructor_sliced(0, index=frame._get_agg_axis(axis))
         else:
             if frame._is_mixed_type or frame._mgr.any_extension_types:
                 # the or any_extension_types is really only hit for single-
@@ -8244,7 +8244,9 @@ NaN 12.3   33.0
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
                 counts = series_counts.values
-                result = Series(counts, index=frame._get_agg_axis(axis))
+                result = self._constructor_sliced(
+                    counts, index=frame._get_agg_axis(axis)
+                )
 
         return result.astype("int64")
 
@@ -8287,9 +8289,9 @@ NaN 12.3   33.0
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
-            result = DataFrame(counts, index=agg_axis, columns=level_index)
+            result = self._constructor(counts, index=agg_axis, columns=level_index)
         else:
-            result = DataFrame(counts, index=level_index, columns=agg_axis)
+            result = self._constructor(counts, index=level_index, columns=agg_axis)
 
         return result
 
@@ -8560,7 +8562,7 @@ NaN 12.3   33.0
 
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return Series(result, index=self._get_agg_axis(axis))
+        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True) -> Series:
         """
@@ -8633,7 +8635,7 @@ NaN 12.3   33.0
 
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return Series(result, index=self._get_agg_axis(axis))
+        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
@@ -8977,7 +8979,7 @@ NaN 12.3   33.0
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            return DataFrame(
+            return self._constructor(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
                 self.index,
                 self.columns,

@@ -709,6 +709,17 @@ def all_boolean_reductions(request):
     return request.param
 
 
+_all_reductions = _all_numeric_reductions + _all_boolean_reductions
+
+
+@pytest.fixture(params=_all_reductions)
+def all_reductions(request):
+    """
+    Fixture for all (boolean + numeric) reduction names.
+    """
+    return request.param
+
+
 @pytest.fixture(params=["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"])
 def all_compare_operators(request):
     """
