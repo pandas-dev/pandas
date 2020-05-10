@@ -66,10 +66,6 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        if is_list_like(other) and len(other) != len(self):
-            # TODO: Could this fail if the categories are listlike objects?
-            raise ValueError("Lengths must match.")
-
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
@@ -2015,7 +2011,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         # tuple of indexers (dataframe)
         elif isinstance(key, tuple):
             # only allow 1 dimensional slicing, but can
-            # in a 2-d case be passd (slice(None),....)
+            # in a 2-d case be passed (slice(None),....)
             if len(key) == 2:
                 if not com.is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim categorical")

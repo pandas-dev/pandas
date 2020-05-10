@@ -36,6 +36,37 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+
+.. _whatsnew_110.groupby_key:
+
+Allow NA in groupby key
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+With :ref:`groupby <groupby.dropna>` , we've added a ``dropna`` keyword to :meth:`DataFrame.groupby` and :meth:`Series.groupby` in order to
+allow ``NA`` values in group keys. Users can define ``dropna`` to ``False`` if they want to include
+``NA`` values in groupby keys. The default is set to ``True`` for ``dropna`` to keep backwards
+compatibility (:issue:`3729`)
+
+.. ipython:: python
+
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
+
+    df_dropna
+
+.. ipython:: python
+
+    # Default `dropna` is set to True, which will exclude NaNs in keys
+    df_dropna.groupby(by=["b"], dropna=True).sum()
+
+    # In order to allow NaN in keys, set `dropna` to False
+    df_dropna.groupby(by=["b"], dropna=False).sum()
+
+The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
+
+.. versionadded:: 1.1.0
+
+
 .. _whatsnew_110.key_sorting:
 
 Sorting with keys
@@ -121,6 +152,49 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
+.. _whatsnew_110.grouper_resample_origin:
+
+Grouper and resample now supports the arguments origin and offset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Grouper` and :class:`DataFrame.resample` now supports the arguments ``origin`` and ``offset``. It let the user control the timestamp on which to adjust the grouping. (:issue:`31809`)
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
+
+Two arguments are now deprecated (more information in the documentation of :class:`DataFrame.resample`):
+
+- ``base`` should be replaced by ``offset``.
+- ``loffset`` should be replaced by directly adding an offset to the index DataFrame after being resampled.
+
+Small example of the use of ``origin``:
+
+.. ipython:: python
+
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Resample with the default behavior ``'start_day'`` (origin is ``2000-10-01 00:00:00``):
+
+.. ipython:: python
+
+    ts.resample('17min').sum()
+    ts.resample('17min', origin='start_day').sum()
+
+Resample using a fixed origin:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='epoch').sum()
+    ts.resample('17min', origin='2000-01-01').sum()
+
+If needed you can adjust the bins with the argument ``offset`` (a Timedelta) that would be added to the default ``origin``.
+
+For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
+
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
@@ -150,6 +224,8 @@ Other enhancements
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
+- The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
+  method, similarly to :meth:`Series.equals` (:issue:`27081`).
 -
 
 .. ---------------------------------------------------------------------------
@@ -521,6 +597,7 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
+- Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 
 
@@ -560,6 +637,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection` losing ``freq`` and timezone in some cases (:issue:`33604`)
 - Bug in :class:`DatetimeIndex` addition and subtraction with some types of :class:`DateOffset` objects incorrectly retaining an invalid ``freq`` attribute (:issue:`33779`)
 - Bug in :class:`DatetimeIndex` where setting the ``freq`` attribute on an index could silently change the ``freq`` attribute on another index viewing the same data (:issue:`33552`)
+- :meth:`DataFrame.min`/:meth:`DataFrame.max` not returning consistent result with :meth:`Series.min`/:meth:`Series.max` when called on objects initialized with empty :func:`pd.to_datetime`
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
 
@@ -571,6 +649,9 @@ Timedelta
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 - :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
 - Bug in comparing a :class:`Timedelta`` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
+- Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
+- Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
+- Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
 
 Timezones
 ^^^^^^^^^
@@ -714,6 +795,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 - Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
+- Bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` where a large negative number would be returned when the number of non-null values was below ``min_count`` for nullable integer dtypes (:issue:`32861`)
 - Bug in :meth:`SeriesGroupBy.quantile` raising on nullable integers (:issue:`33136`)
 - Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)
 - Bug in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)
@@ -742,9 +824,13 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :meth:`DataFrame.corrwith()`, :meth:`DataFrame.memory_usage()`, :meth:`DataFrame.dot()`,
+  :meth:`DataFrame.idxmin()`, :meth:`DataFrame.idxmax()`, :meth:`DataFrame.duplicated()`, :meth:`DataFrame.isin()`,
+  :meth:`DataFrame.count()`, :meth:`Series.explode()`, :meth:`Series.asof()` and :meth:`DataFrame.asof()` not
+  returning subclassed types. (:issue:`31331`)
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
-
+- Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 
 Sparse
 ^^^^^^
@@ -760,6 +846,7 @@ ExtensionArray
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
+- Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
 
 
 Other

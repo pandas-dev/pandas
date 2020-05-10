@@ -1,5 +1,4 @@
 from datetime import date, datetime, timedelta
-import functools
 import operator
 from typing import Any, Optional
 
@@ -23,6 +22,7 @@ from pandas._libs.tslibs.offsets import (
     BusinessMixin,
     CustomMixin,
     apply_index_wraps,
+    apply_wraps,
     as_datetime,
     is_normalized,
     roll_yearday,
@@ -72,52 +72,6 @@ __all__ = [
     "Nano",
     "DateOffset",
 ]
-
-
-def apply_wraps(func):
-    @functools.wraps(func)
-    def wrapper(self, other):
-        if other is NaT:
-            return NaT
-        elif isinstance(other, (timedelta, DateOffset)):
-            # timedelta path
-            return func(self, other)
-        elif isinstance(other, (np.datetime64, datetime, date)):
-            other = Timestamp(other)
-        else:
-            raise TypeError(other)
-
-        tz = other.tzinfo
-        nano = other.nanosecond
-
-        if self._adjust_dst:
-            other = other.tz_localize(None)
-
-        result = func(self, other)
-
-        result = Timestamp(result)
-        if self._adjust_dst:
-            result = result.tz_localize(tz)
-
-        if self.normalize:
-            result = result.normalize()
-
-        # nanosecond may be deleted depending on offset process
-        if not self.normalize and nano != 0:
-            if not isinstance(self, Nano) and result.nanosecond != nano:
-                if result.tz is not None:
-                    # convert to UTC
-                    value = result.tz_localize(None).value
-                else:
-                    value = result.value
-                result = Timestamp(value + nano)
-
-        if tz is not None and result.tzinfo is None:
-            result = result.tz_localize(tz)
-
-        return result
-
-    return wrapper
 
 
 # ---------------------------------------------------------------------
@@ -221,13 +175,7 @@ class DateOffset(BaseOffset):
 
     _params = cache_readonly(BaseOffset._params.fget)
     freqstr = cache_readonly(BaseOffset.freqstr.fget)
-    _use_relativedelta = False
-    _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
-    _deprecations = frozenset(["isAnchored", "onOffset"])
-
-    # default for prior pickles
-    normalize = False
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
@@ -269,7 +217,7 @@ class DateOffset(BaseOffset):
     def apply_index(self, i):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplentedError for offsets without a
+        raises NotImplementedError for offsets without a
         vectorized implementation.
 
         Parameters
@@ -356,39 +304,11 @@ class DateOffset(BaseOffset):
             out += ": " + ", ".join(attrs)
         return out
 
-    def rollback(self, dt):
-        """
-        Roll provided date backward to next offset only if not on offset.
-
-        Returns
-        -------
-        TimeStamp
-            Rolled timestamp if not on offset, otherwise unchanged timestamp.
-        """
-        dt = Timestamp(dt)
-        if not self.is_on_offset(dt):
-            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
-        return dt
-
-    def rollforward(self, dt):
-        """
-        Roll provided date forward to next offset only if not on offset.
-
-        Returns
-        -------
-        TimeStamp
-            Rolled timestamp if not on offset, otherwise unchanged timestamp.
-        """
-        dt = Timestamp(dt)
-        if not self.is_on_offset(dt):
-            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
-        return dt
-
     def is_on_offset(self, dt):
         if self.normalize and not is_normalized(dt):
             return False
         # TODO, see #1395
-        if type(self) == DateOffset or isinstance(self, Tick):
+        if type(self) is DateOffset:
             return True
 
         # Default (slow) method for determining if some date is a member of the
@@ -667,7 +587,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         Return business hours in a day by seconds.
         """
-        # create dummy datetime to calculate businesshours in a day
+        # create dummy datetime to calculate business hours in a day
         dtstart = datetime(2014, 4, 1, start.hour, start.minute)
         day = 1 if start < end else 2
         until = datetime(2014, 4, day, end.hour, end.minute)
@@ -2216,7 +2136,7 @@ class FY5253Quarter(DateOffset):
             # roll adjustment
             qtr_lens = self.get_weeks(norm)
 
-            # check thet qtr_lens is consistent with self._offset addition
+            # check that qtr_lens is consistent with self._offset addition
             end = liboffsets.shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.is_on_offset(end), (start, end, qtr_lens)
 
@@ -2484,9 +2404,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
-
-    def is_anchored(self) -> bool:
-        return False
 
 
 def delta_to_tick(delta: timedelta) -> Tick:

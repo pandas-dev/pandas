@@ -85,9 +85,6 @@ def _datetimelike_array_cmp(cls, op):
         elif not is_list_like(other):
             raise InvalidComparison(other)
 
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
         else:
             try:
                 other = self._validate_listlike(other, opname, allow_object=True)
@@ -198,7 +195,7 @@ class AttributesMixin:
         ----------
         other
         setitem : bool, default False
-            For __setitem__ we may have stricter compatibility resrictions than
+            For __setitem__ we may have stricter compatibility restrictions than
             for comparisons.
 
         Raises
@@ -1229,9 +1226,6 @@ class DatetimeLikeArrayMixin(
         Same type as self
         """
         # overridden by PeriodArray
-
-        if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op

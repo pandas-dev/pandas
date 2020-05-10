@@ -946,58 +946,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    @pytest.mark.parametrize(
-        "window,min_periods,center", list(_rolling_consistency_cases())
-    )
-    def test_rolling_apply_consistency(
-        self, consistency_data, window, min_periods, center
-    ):
-        x, is_constant, no_nans = consistency_data
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*(empty slice|0 for slice).*",
-                category=RuntimeWarning,
-            )
-            # test consistency between rolling_xyz() and either (a)
-            # rolling_apply of Series.xyz(), or (b) rolling_apply of
-            # np.nanxyz()
-            functions = self.base_functions
-
-            # GH 8269
-            if no_nans:
-                functions = self.base_functions + self.no_nan_functions
-            for (f, require_min_periods, name) in functions:
-                rolling_f = getattr(
-                    x.rolling(window=window, center=center, min_periods=min_periods),
-                    name,
-                )
-
-                if (
-                    require_min_periods
-                    and (min_periods is not None)
-                    and (min_periods < require_min_periods)
-                ):
-                    continue
-
-                if name == "count":
-                    rolling_f_result = rolling_f()
-                    rolling_apply_f_result = x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).apply(func=f, raw=True)
-                else:
-                    if name in ["cov", "corr"]:
-                        rolling_f_result = rolling_f(pairwise=False)
-                    else:
-                        rolling_f_result = rolling_f()
-                    rolling_apply_f_result = x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).apply(func=f, raw=True)
-
-                # GH 9422
-                if name in ["sum", "prod"]:
-                    tm.assert_equal(rolling_f_result, rolling_apply_f_result)
-
     # binary moments
     def test_rolling_cov(self):
         A = self.series
@@ -1050,6 +998,58 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             }
         )
         tm.assert_frame_equal(res3, exp)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_apply_consistency(
+    consistency_data, base_functions, no_nan_functions, window, min_periods, center
+):
+    x, is_constant, no_nans = consistency_data
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+        )
+        # test consistency between rolling_xyz() and either (a)
+        # rolling_apply of Series.xyz(), or (b) rolling_apply of
+        # np.nanxyz()
+        functions = base_functions
+
+        # GH 8269
+        if no_nans:
+            functions = no_nan_functions + base_functions
+        for (f, require_min_periods, name) in functions:
+            rolling_f = getattr(
+                x.rolling(window=window, center=center, min_periods=min_periods), name,
+            )
+
+            if (
+                require_min_periods
+                and (min_periods is not None)
+                and (min_periods < require_min_periods)
+            ):
+                continue
+
+            if name == "count":
+                rolling_f_result = rolling_f()
+                rolling_apply_f_result = x.rolling(
+                    window=window, min_periods=min_periods, center=center
+                ).apply(func=f, raw=True)
+            else:
+                if name in ["cov", "corr"]:
+                    rolling_f_result = rolling_f(pairwise=False)
+                else:
+                    rolling_f_result = rolling_f()
+                rolling_apply_f_result = x.rolling(
+                    window=window, min_periods=min_periods, center=center
+                ).apply(func=f, raw=True)
+
+            # GH 9422
+            if name in ["sum", "prod"]:
+                tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
 
 @pytest.mark.parametrize("window", range(7))
@@ -1431,6 +1431,7 @@ def test_moment_functions_zero_length_pairwise():
         tm.assert_frame_equal(df2_result, df2_expected)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
@@ -1455,6 +1456,7 @@ def test_rolling_consistency_var(consistency_data, window, min_periods, center):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
@@ -1477,6 +1479,7 @@ def test_rolling_consistency_std(consistency_data, window, min_periods, center):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )

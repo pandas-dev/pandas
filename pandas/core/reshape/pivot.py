@@ -210,7 +210,7 @@ def _add_margins(
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
     if table.ndim == 2:
-        # i.e. DataFramae
+        # i.e. DataFrame
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
