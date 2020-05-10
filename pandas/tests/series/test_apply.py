@@ -814,10 +814,10 @@ class TestSeriesMap:
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
 
-    def test_apply_to_numpy_func(self):
+    def test_apply_to_numpy_func_with_force_mapping(self):
         s = pd.Series([np.array([0.1, 0.2], dtype=float)])
         expected = pd.Series(
             [np.array([0.09983341664682815, 0.19866933079506122], dtype=float)]
         )
-        result = s.apply(np.sin)
+        result = s.apply(np.sin, force_mapping=True)
         tm.assert_series_equal(result, expected)

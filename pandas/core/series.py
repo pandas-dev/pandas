@@ -3872,7 +3872,7 @@ Name: Max Speed, dtype: float64
         self._get_axis_number(axis)
         return super().transform(func, *args, **kwargs)
 
-    def apply(self, func, convert_dtype=True, args=(), **kwds):
+    def apply(self, func, convert_dtype=True, force_mapping=False, args=(), **kwds):
         """
         Invoke function on values of Series.
 
@@ -3886,6 +3886,9 @@ Name: Max Speed, dtype: float64
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object.
+        force_mapping : bool, default False
+            If set to True, forces func to be called on each element separately. 
+            Useful when using numpy functions.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwds
@@ -3992,6 +3995,8 @@ Name: Max Speed, dtype: float64
             f = func
 
         with np.errstate(all="ignore"):
+            if not force_mapping and isinstance(f, np.ufunc):
+                return f(self)
             # row-wise access
             if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
                 # GH#23179 some EAs do not have `map`
