@@ -263,12 +263,12 @@ def test_agg_multiple_functions_same_name(df):
         columns=["A", "B", "C"],
     )
     result = df.resample("3T").agg(
-        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.90)]}
+        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
     expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
     expected_values = expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.9]]
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
@@ -277,7 +277,7 @@ def test_agg_multiple_functions_same_name(df):
 
     # check what happens if ohlc (which expands dimensions) is present
     result = df.resample("3T").agg(
-        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.90)]}
+        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
     expected_columns = pd.MultiIndex.from_tuples(
         [
