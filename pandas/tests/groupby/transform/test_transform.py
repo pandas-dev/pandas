@@ -1228,4 +1228,4 @@ def test_categorical_and_not_categorical_key(observed):
     expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
     expected_explicit = pd.Series([4, 2, 4], name="B")
-    tm.assert_frame_equal(result, expected_explicit)
+    tm.assert_series_equal(result, expected_explicit)
