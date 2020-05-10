@@ -5,7 +5,12 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
 
-from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take
