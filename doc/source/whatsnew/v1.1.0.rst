@@ -152,6 +152,49 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
+.. _whatsnew_110.grouper_resample_origin:
+
+Grouper and resample now supports the arguments origin and offset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Grouper` and :class:`DataFrame.resample` now supports the arguments ``origin`` and ``offset``. It let the user control the timestamp on which to adjust the grouping. (:issue:`31809`)
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
+
+Two arguments are now deprecated (more information in the documentation of :class:`DataFrame.resample`):
+
+- ``base`` should be replaced by ``offset``.
+- ``loffset`` should be replaced by directly adding an offset to the index DataFrame after being resampled.
+
+Small example of the use of ``origin``:
+
+.. ipython:: python
+
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Resample with the default behavior ``'start_day'`` (origin is ``2000-10-01 00:00:00``):
+
+.. ipython:: python
+
+    ts.resample('17min').sum()
+    ts.resample('17min', origin='start_day').sum()
+
+Resample using a fixed origin:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='epoch').sum()
+    ts.resample('17min', origin='2000-01-01').sum()
+
+If needed you can adjust the bins with the argument ``offset`` (a Timedelta) that would be added to the default ``origin``.
+
+For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
+
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
@@ -781,10 +824,13 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :meth:`DataFrame.corrwith()`, :meth:`DataFrame.memory_usage()`, :meth:`DataFrame.dot()`,
+  :meth:`DataFrame.idxmin()`, :meth:`DataFrame.idxmax()`, :meth:`DataFrame.duplicated()`, :meth:`DataFrame.isin()`,
+  :meth:`DataFrame.count()`, :meth:`Series.explode()`, :meth:`Series.asof()` and :meth:`DataFrame.asof()` not
+  returning subclassed types. (:issue:`31331`)
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
-
 
 Sparse
 ^^^^^^

@@ -652,9 +652,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     def _sub_datetime_arraylike(self, other):
         """subtract DatetimeArray/Index or ndarray[datetime64]"""
-        if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
-
         if isinstance(other, np.ndarray):
             assert is_datetime64_dtype(other)
             other = type(self)(other)

@@ -39,6 +39,8 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
 )
 from pandas.compat import set_function_name
@@ -7067,9 +7069,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if where < start:
                 if not is_series:
-                    from pandas import Series
-
-                    return Series(index=self.columns, name=where, dtype=np.float64)
+                    return self._constructor_sliced(
+                        index=self.columns, name=where, dtype=np.float64
+                    )
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -7096,13 +7098,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_series:
                 return self._constructor(np.nan, index=where, name=self.name)
             elif is_list:
-                from pandas import DataFrame
-
-                return DataFrame(np.nan, index=where, columns=self.columns)
+                return self._constructor(np.nan, index=where, columns=self.columns)
             else:
-                from pandas import Series
-
-                return Series(np.nan, index=self.columns, name=where[0])
+                return self._constructor_sliced(
+                    np.nan, index=self.columns, name=where[0]
+                )
 
         locs = self.index.asof_locs(where, ~(nulls._values))
 
@@ -7760,9 +7760,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convention: str = "start",
         kind: Optional[str] = None,
         loffset=None,
-        base: int = 0,
+        base: Optional[int] = None,
         on=None,
         level=None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> "Resampler":
         """
         Resample time-series data.
@@ -7797,17 +7799,40 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
+
+            .. deprecated:: 1.1.0
+                You should add the loffset to the `df.index` after the resample.
+                See below.
+
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0.
+
+            .. deprecated:: 1.1.0
+                The new arguments that you should use are 'offset' or 'origin'.
+
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
+        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. The timezone of origin
+            must match the timezone of the index.
+            If a timestamp is not used, these values are also supported:
+
+            - 'epoch': `origin` is 1970-01-01
+            - 'start': `origin` is the first value of the timeseries
+            - 'start_day': `origin` is the first day at midnight of the timeseries
+
+            .. versionadded:: 1.1.0
+
+        offset : Timedelta or str, default is None
+            An offset timedelta added to the origin.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -8025,6 +8050,88 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-02     22     140
         2000-01-03     32     150
         2000-01-04     36      90
+
+        If you want to adjust the start of the bins based on a fixed timestamp:
+
+        >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+        >>> rng = pd.date_range(start, end, freq='7min')
+        >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+        >>> ts
+        2000-10-01 23:30:00     0
+        2000-10-01 23:37:00     3
+        2000-10-01 23:44:00     6
+        2000-10-01 23:51:00     9
+        2000-10-01 23:58:00    12
+        2000-10-02 00:05:00    15
+        2000-10-02 00:12:00    18
+        2000-10-02 00:19:00    21
+        2000-10-02 00:26:00    24
+        Freq: 7T, dtype: int64
+
+        >>> ts.resample('17min').sum()
+        2000-10-01 23:14:00     0
+        2000-10-01 23:31:00     9
+        2000-10-01 23:48:00    21
+        2000-10-02 00:05:00    54
+        2000-10-02 00:22:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', origin='epoch').sum()
+        2000-10-01 23:18:00     0
+        2000-10-01 23:35:00    18
+        2000-10-01 23:52:00    27
+        2000-10-02 00:09:00    39
+        2000-10-02 00:26:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', origin='2000-01-01').sum()
+        2000-10-01 23:24:00     3
+        2000-10-01 23:41:00    15
+        2000-10-01 23:58:00    45
+        2000-10-02 00:15:00    45
+        Freq: 17T, dtype: int64
+
+        If you want to adjust the start of the bins with an `offset` Timedelta, the two
+        following lines are equivalent:
+
+        >>> ts.resample('17min', origin='start').sum()
+        2000-10-01 23:30:00     9
+        2000-10-01 23:47:00    21
+        2000-10-02 00:04:00    54
+        2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', offset='23h30min').sum()
+        2000-10-01 23:30:00     9
+        2000-10-01 23:47:00    21
+        2000-10-02 00:04:00    54
+        2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        To replace the use of the deprecated `base` argument, you can now use `offset`,
+        in this example it is equivalent to have `base=2`:
+
+        >>> ts.resample('17min', offset='2min').sum()
+        2000-10-01 23:16:00     0
+        2000-10-01 23:33:00     9
+        2000-10-01 23:50:00    36
+        2000-10-02 00:07:00    39
+        2000-10-02 00:24:00    24
+        Freq: 17T, dtype: int64
+
+        To replace the use of the deprecated `loffset` argument:
+
+        >>> from pandas.tseries.frequencies import to_offset
+        >>> loffset = '19min'
+        >>> ts_out = ts.resample('17min').sum()
+        >>> ts_out.index = ts_out.index + to_offset(loffset)
+        >>> ts_out
+        2000-10-01 23:33:00     0
+        2000-10-01 23:50:00     9
+        2000-10-02 00:07:00    21
+        2000-10-02 00:24:00    54
+        2000-10-02 00:41:00    24
+        Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
 
@@ -8041,6 +8148,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             base=base,
             key=on,
             level=level,
+            origin=origin,
+            offset=offset,
         )
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:

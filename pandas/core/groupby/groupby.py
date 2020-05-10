@@ -1646,15 +1646,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         0   2000-01-01 00:00:00  0  1
             2000-01-01 00:03:00  0  2
         5   2000-01-01 00:03:00  5  1
-
-        Add an offset of twenty seconds.
-
-        >>> df.groupby('a').resample('3T', loffset='20s').sum()
-                               a  b
-        a
-        0   2000-01-01 00:00:20  0  2
-            2000-01-01 00:03:20  0  1
-        5   2000-01-01 00:00:20  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 

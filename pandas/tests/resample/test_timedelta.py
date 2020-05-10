@@ -80,13 +80,12 @@ def test_resample_timedelta_idempotency():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_base_with_timedeltaindex():
-
-    # GH 10530
+def test_resample_offset_with_timedeltaindex():
+    # GH 10530 & 31809
     rng = timedelta_range(start="0s", periods=25, freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    with_base = ts.resample("2s", base=5).mean()
+    with_base = ts.resample("2s", offset="5s").mean()
     without_base = ts.resample("2s").mean()
 
     exp_without_base = timedelta_range(start="0s", end="25s", freq="2s")
