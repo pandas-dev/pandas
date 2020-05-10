@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import NaT, NaTType, Period, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas._typing import DatetimeLikeScalar
 from pandas.compat import set_function_name
@@ -50,6 +50,8 @@ from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
+
+DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
 
 def _datetimelike_array_cmp(cls, op):
@@ -121,12 +123,7 @@ def _datetimelike_array_cmp(cls, op):
                 result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
             return result
 
-        if isinstance(other, self._scalar_type) or other is NaT:
-            other_i8 = self._unbox_scalar(other)
-        else:
-            # Then type(other) == type(self)
-            other_i8 = other.asi8
-
+        other_i8 = self._unbox(other)
         result = op(self.asi8, other_i8)
 
         o_mask = isna(other)
@@ -156,9 +153,7 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
-    def _scalar_from_string(
-        self, value: str
-    ) -> Union[Period, Timestamp, Timedelta, NaTType]:
+    def _scalar_from_string(self, value: str) -> DTScalarOrNaT:
         """
         Construct a scalar type from a string.
 
@@ -178,13 +173,14 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
-    def _unbox_scalar(self, value: Union[Period, Timestamp, Timedelta, NaTType]) -> int:
+    def _unbox_scalar(self, value: DTScalarOrNaT) -> int:
         """
         Unbox the integer value of a scalar `value`.
 
         Parameters
         ----------
-        value : Union[Period, Timestamp, Timedelta]
+        value : Period, Timestamp, Timedelta, or NaT
+            Depending on subclass.
 
         Returns
         -------
@@ -198,7 +194,7 @@ class AttributesMixin:
         raise AbstractMethodError(self)
 
     def _check_compatible_with(
-        self, other: Union[Period, Timestamp, Timedelta, NaTType], setitem: bool = False
+        self, other: DTScalarOrNaT, setitem: bool = False
     ) -> None:
         """
         Verify that `self` and `other` are compatible.
@@ -698,8 +694,6 @@ class DatetimeLikeArrayMixin(
 
     @Appender(ExtensionArray.shift.__doc__)
     def shift(self, periods=1, fill_value=None, axis=0):
-        if not self.size or periods == 0:
-            return self.copy()
 
         fill_value = self._validate_shift_value(fill_value)
         new_values = shift(self._data, periods, axis, fill_value)
@@ -728,23 +722,24 @@ class DatetimeLikeArrayMixin(
         ValueError
         """
         if is_valid_nat_for_dtype(fill_value, self.dtype):
-            fill_value = iNaT
+            fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            self._check_compatible_with(fill_value)
             fill_value = self._scalar_type(fill_value)
-            fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
                 f"'fill_value' should be a {self._scalar_type}. "
                 f"Got '{str(fill_value)}'."
             )
-        return fill_value
+
+        return self._unbox(fill_value)
 
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, used _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
-        elif not isinstance(fill_value, self._recognized_scalars):
+        elif isinstance(fill_value, self._recognized_scalars):
+            fill_value = self._scalar_type(fill_value)
+        else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
@@ -763,8 +758,7 @@ class DatetimeLikeArrayMixin(
             )
             fill_value = new_fill
 
-        fill_value = self._unbox_scalar(fill_value)
-        return fill_value
+        return self._unbox(fill_value)
 
     def _validate_searchsorted_value(self, value):
         if isinstance(value, str):
@@ -781,6 +775,9 @@ class DatetimeLikeArrayMixin(
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
+        elif isinstance(value, type(self)):
+            pass
+
         elif is_list_like(value) and not isinstance(value, type(self)):
             value = array(value)
 
@@ -790,30 +787,34 @@ class DatetimeLikeArrayMixin(
                     f"not {type(value).__name__}"
                 )
 
-        if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
+        else:
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
 
-        if isinstance(value, type(self)):
-            self._check_compatible_with(value)
-            value = value.asi8
-        else:
-            value = self._unbox_scalar(value)
-
-        return value
+        return self._unbox(value)
 
     def _validate_setitem_value(self, value):
-        if lib.is_scalar(value) and not isna(value):
-            value = com.maybe_box_datetimelike(value)
 
         if is_list_like(value):
-            value = type(self)._from_sequence(value, dtype=self.dtype)
-            self._check_compatible_with(value, setitem=True)
-            value = value.asi8
-        elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value, setitem=True)
-            value = self._unbox_scalar(value)
+            value = array(value)
+            if is_dtype_equal(value.dtype, "string"):
+                # We got a StringArray
+                try:
+                    # TODO: Could use from_sequence_of_strings if implemented
+                    # Note: passing dtype is necessary for PeriodArray tests
+                    value = type(self)._from_sequence(value, dtype=self.dtype)
+                except ValueError:
+                    pass
+
+            if not type(self)._is_recognized_dtype(value):
+                raise TypeError(
+                    "setitem requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+
+        elif isinstance(value, self._recognized_scalars):
+            value = self._scalar_type(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
-            value = iNaT
+            value = NaT
         else:
             msg = (
                 f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
@@ -821,14 +822,12 @@ class DatetimeLikeArrayMixin(
             )
             raise TypeError(msg)
 
-        return value
+        self._check_compatible_with(value, setitem=True)
+        return self._unbox(value)
 
     def _validate_insert_value(self, value):
         if isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
-            self._check_compatible_with(value, setitem=True)
-            # TODO: if we dont have compat, should we raise or astype(object)?
-            #  PeriodIndex does astype(object)
         elif is_valid_nat_for_dtype(value, self.dtype):
             # GH#18295
             value = NaT
@@ -837,6 +836,9 @@ class DatetimeLikeArrayMixin(
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
 
+        self._check_compatible_with(value, setitem=True)
+        # TODO: if we dont have compat, should we raise or astype(object)?
+        #  PeriodIndex does astype(object)
         return value
 
     def _validate_where_value(self, other):
@@ -844,7 +846,6 @@ class DatetimeLikeArrayMixin(
             other = NaT
         elif isinstance(other, self._recognized_scalars):
             other = self._scalar_type(other)
-            self._check_compatible_with(other, setitem=True)
         elif not is_list_like(other):
             raise TypeError(f"Where requires matching dtype, not {type(other)}")
 
@@ -861,13 +862,20 @@ class DatetimeLikeArrayMixin(
 
             if not type(self)._is_recognized_dtype(other.dtype):
                 raise TypeError(f"Where requires matching dtype, not {other.dtype}")
-            self._check_compatible_with(other, setitem=True)
 
+        self._check_compatible_with(other, setitem=True)
+        return self._unbox(other)
+
+    def _unbox(self, other) -> Union[np.int64, np.ndarray]:
+        """
+        Unbox either a scalar with _unbox_scalar or an instance of our own type.
+        """
         if lib.is_scalar(other):
             other = self._unbox_scalar(other)
         else:
+            # same type as self
+            self._check_compatible_with(other)
             other = other.view("i8")
-
         return other
 
     # ------------------------------------------------------------------
@@ -1065,7 +1073,7 @@ class DatetimeLikeArrayMixin(
     @property  # NB: override with cache_readonly in immutable subclasses
     def inferred_freq(self):
         """
-        Tryies to return a string representing a frequency guess,
+        Tries to return a string representing a frequency guess,
         generated by infer_freq.  Returns None if it can't autodetect the
         frequency.
         """
@@ -1472,13 +1480,9 @@ class DatetimeLikeArrayMixin(
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif is_timedelta64_dtype(self.dtype):
-            if lib.is_integer(other) or is_integer_dtype(other):
-                # need to subtract before negating, since that flips freq
-                # -self flips self.freq, messing up results
-                return -(self - other)
-
             return (-self) + other
 
+        # We get here with e.g. datetime objects
         return -(self - other)
 
     def __iadd__(self, other):
