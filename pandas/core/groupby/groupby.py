@@ -474,6 +474,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
+        dropna: bool = True,
     ):
 
         self._selection = selection
@@ -496,6 +497,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
+        self.dropna = dropna
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -508,6 +510,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
                 sort=sort,
                 observed=observed,
                 mutated=self.mutated,
+                dropna=self.dropna,
             )
 
         self.obj = obj
@@ -2736,6 +2739,7 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
+    dropna: bool = True,
 ) -> GroupBy:
 
     klass: Type[GroupBy]
@@ -2764,4 +2768,5 @@ def get_groupby(
         squeeze=squeeze,
         observed=observed,
         mutated=mutated,
+        dropna=dropna,
     )
