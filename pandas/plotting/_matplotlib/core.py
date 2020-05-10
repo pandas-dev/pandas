@@ -38,6 +38,13 @@ from pandas.plotting._matplotlib.tools import (
     table,
 )
 
+def _color_in_style(style: str) -> bool:
+    """
+    Check if there is a color letter in the style string.
+    """
+    from matplotlib.colors import BASE_COLORS
+
+    return not set(BASE_COLORS).isdisjoint(style)
 
 class MPLPlot:
     """
@@ -224,21 +231,12 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                if self._color_in_style(s):
+                if _color_in_style(s):
                     raise ValueError(
                         "Cannot pass 'style' string with a color symbol and "
                         "'color' keyword argument. Please use one or the "
                         "other or pass 'style' without a color symbol"
                     )
-
-    @staticmethod
-    def _color_in_style(style: str) -> bool:
-        """
-        Check if there is a color letter in the style string.
-        """
-        from matplotlib.colors import BASE_COLORS
-
-        return not set(BASE_COLORS).isdisjoint(style)
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -729,7 +727,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = style is None or not self._color_in_style(style)
+        nocolor_style = style is None or not _color_in_style(style)
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]
