@@ -2151,7 +2151,8 @@ class CParserWrapper(ParserBase):
 
             # columns as list
             alldata = [x[1] for x in data]
-            _check_unexpected_data(names, data)
+            if self.usecols is None:
+                _check_unexpected_data(names, data, self.index_col)
 
             data = {k: v for k, (i, v) in zip(names, data)}
 
@@ -2188,10 +2189,13 @@ class CParserWrapper(ParserBase):
         return values
 
 
-def _check_unexpected_data(columns, data):
-    if len(columns) != len(data) and notna(data[len(columns) :]).any():
+def _check_unexpected_data(columns, data, index_col):
+    if index_col is None or index_col is False: 
+        index_col = []
+    expected_columns = len(columns) + len(index_col)
+    if expected_columns != len(data) and notna(data[expected_columns :]).any():
         warnings.warn(
-            "Expected {} columns instead of {}".format(len(columns), len(data)),
+            "Expected {} columns instead of {}".format(expected_columns, len(data)),
             ParserWarning,
             stacklevel=2,
         )
@@ -2518,7 +2522,8 @@ class PythonParser(ParserBase):
 
         alldata = self._rows_to_cols(content)
 
-        _check_unexpected_data(columns, alldata)
+        if self.usecols is None:
+            _check_unexpected_data(columns, alldata, self.index_col)
 
         data = self._exclude_implicit_index(alldata)
 

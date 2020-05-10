@@ -1070,8 +1070,8 @@ def test_trailing_delimiters(all_parsers):
 4,5,6,
 7,8,9,"""
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), index_col=False)
-
+    with tm.assert_produces_warning(ParserWarning):
+        result = parser.read_csv(StringIO(data), index_col=False)
     expected = DataFrame({"A": [1, 4, 7], "B": [2, 5, 8], "C": [3, 6, 9]})
     tm.assert_frame_equal(result, expected)
 
@@ -2135,7 +2135,7 @@ def test_no_header_two_extra_columns(all_parsers):
     parser = all_parsers
     with tm.assert_produces_warning(ParserWarning):
         df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
-        tm.assert_frame_equal(df, ref)
+    tm.assert_frame_equal(df, ref)
 
 
 def test_first_row_length(all_parsers):
