@@ -2654,11 +2654,8 @@ def _convert_to_list_like(list_like):
         return list_like
     if is_sequence(list_like) or isinstance(list_like, tuple) or is_iterator(list_like):
         return list(list_like)
-    elif is_scalar(list_like):
-        return [list_like]
-    else:
-        # TODO: is this reached?
-        return [list_like]
+
+    return [list_like]
 
 
 def factorize_from_iterable(values):
