@@ -184,3 +184,17 @@ def test_no_multi_index_level_names_empty(all_parsers):
         expected.to_csv(path)
         result = parser.read_csv(path, index_col=[0, 1, 2])
     tm.assert_frame_equal(result, expected)
+
+
+def test_header_empty_cells(all_parsers):
+    parser = all_parsers
+    data = """
+I11,A,A
+I12,B,B
+I2,1,3
+"""
+    midx = MultiIndex.from_tuples([("A", "B"), ("A", "B.1")], names=["I11", "I12"])
+    idx = Index(["I2"])
+    expected = DataFrame([[1, 3]], index=idx, columns=midx)
+    result = parser.read_csv(StringIO(data), index_col=0, header=[0, 1])
+    tm.assert_frame_equal(result, expected)

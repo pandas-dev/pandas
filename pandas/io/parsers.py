@@ -10,7 +10,7 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 import warnings
 
 import numpy as np
@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -1168,7 +1168,9 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
-def _is_potential_multi_index(columns, index_col=None):
+def _is_potential_multi_index(
+    columns, index_col: Optional[Union[bool, Sequence[int]]] = None
+):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
