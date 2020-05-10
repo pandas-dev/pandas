@@ -3887,7 +3887,7 @@ Name: Max Speed, dtype: float64
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object.
         force_mapping : bool, default False
-            If set to True, forces func to be called on each element separately. 
+            If set to True, forces func to be called on each element separately.
             Useful when using numpy functions.
         args : tuple
             Positional arguments passed to func after the series value.
