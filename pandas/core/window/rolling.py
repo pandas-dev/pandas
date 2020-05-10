@@ -1300,6 +1300,7 @@ class _Rolling_and_Expanding(_Rolling):
             use_numba_cache=engine == "numba",
             raw=raw,
             original_func=func,
+            args=args,
             kwargs=kwargs,
         )
 

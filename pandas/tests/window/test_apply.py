@@ -3,7 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -141,10 +141,15 @@ def test_invalid_kwargs_nopython():
 
 
 def test_apply_kwargs():
+    # GH 33433
     def foo(x, par):
         return np.sum(x + par)
 
+    midx = MultiIndex.from_tuples([(1,0),(1,1)], names=["gr", None])
+    expected = Series([11.0, 12.0], index=midx, name="a")
+
     df = DataFrame({"gr": [1, 1], "a": [1, 2]})
     result = df.groupby("gr")["a"].rolling(1).apply(foo, kwargs={"par": 10})
-    expected = np.array([11.0, 12.0])
-    tm.assert_numpy_array_equal(result.values, expected)
+    tm.assert_series_equal(result, expected)
+    result = df.groupby("gr")["a"].rolling(1).apply(foo, args=(10,))
+    tm.assert_series_equal(result, expected)
