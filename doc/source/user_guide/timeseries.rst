@@ -2316,11 +2316,22 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
+    Be aware that for times in the future, correct conversion between time zones
+    (and UTC) cannot be guaranteed by any time zone library. Sometimes the rules
+    governing a timezone's offset from UTC are changed. Authorities usually
+    announce such changes many months in advance but there have been examples of
+    much shorter lead times such as when Morocco announced just two days before
+    the planned switch from summer time to winter time in 2018 that the country
+    would stay on summer time permanently. Furthermore, the databases that
+    Pandas relies on may need some time to record planned changes to timezone
+    offsets.
+
+.. warning::
+
     If you are using dates beyond 2038-01-18, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
-    the DST transitions will be applied. It should be noted though, that time zone data for far future time zones
-    are likely to be inaccurate, as they are simple extrapolations of the current set of (regularly revised) rules.
+    the DST transitions will be applied.
 
     For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
 
