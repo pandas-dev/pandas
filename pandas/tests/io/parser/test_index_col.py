@@ -186,7 +186,7 @@ def test_no_multi_index_level_names_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_header_empty_cells(all_parsers):
+def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """
 I11,A,A
@@ -198,3 +198,6 @@ I2,1,3
     expected = DataFrame([[1, 3]], index=idx, columns=midx)
     result = parser.read_csv(StringIO(data), index_col=0, header=[0, 1])
     tm.assert_frame_equal(result, expected)
+
+    result = parser.read_csv(StringIO(data), index_col="I11", header=0)
+
