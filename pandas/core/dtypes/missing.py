@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
+    is_categorical_dtype,
     is_complex_dtype,
     is_datetimelike_v_numeric,
     is_dtype_equal,
@@ -209,8 +210,8 @@ def _isna_ndarraylike(obj, inf_as_na: bool = False):
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
-        if inf_as_na:
-            result = values.isna() | (values == -np.inf) | (values == np.inf)
+        if inf_as_na and is_categorical_dtype(dtype):
+            result = libmissing.isnaobj_old(values.to_numpy())
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
