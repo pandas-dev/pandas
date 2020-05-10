@@ -74,11 +74,11 @@ def cat_core(list_of_columns: List, sep: str):
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        arr_of_cols = np.asarray(list_of_columns, dtype=object)
+        arr_of_cols = np.asarray(list_of_columns, dtype=np.dtype(object))
         return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    arr_with_sep = np.asarray(list_with_sep, dtype=object)
+    arr_with_sep = np.asarray(list_with_sep, dtype=np.dtype(object))
     return np.sum(arr_with_sep, axis=0)
 
 
@@ -118,7 +118,7 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=None, dtype=object):
+def _na_map(f, arr, na_result=None, dtype=np.dtype(object)):
     if is_extension_array_dtype(arr.dtype):
         if na_result is None:
             na_result = libmissing.NA
@@ -200,14 +200,14 @@ def _map_stringarray(
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 
-def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=np.dtype(object)):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
     if isinstance(arr, ABCSeries):
         arr = arr._values  # TODO: extract_array?
     if not isinstance(arr, np.ndarray):
-        arr = np.asarray(arr, dtype=object)
+        arr = np.asarray(arr, dtype=np.dtype(object))
     if na_mask:
         mask = isna(arr)
         convert = not np.all(mask)
@@ -454,8 +454,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
             upper_pat = pat.upper()
             f = lambda x: upper_pat in x
             uppered = _na_map(lambda x: x.upper(), arr)
-            return _na_map(f, uppered, na, dtype=bool)
-    return _na_map(f, arr, na, dtype=bool)
+            return _na_map(f, uppered, na, dtype=np.dtype(bool))
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -510,7 +510,7 @@ def str_startswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.startswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_endswith(arr, pat, na=np.nan):
@@ -565,7 +565,7 @@ def str_endswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.endswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
@@ -782,7 +782,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return str.__mul__(x, r)
 
-        repeats = np.asarray(repeats, dtype=object)
+        repeats = np.asarray(repeats, dtype=np.dtype(object))
         result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
@@ -824,10 +824,9 @@ def str_match(
 
     regex = re.compile(pat, flags=flags)
 
-    dtype = bool
     f = lambda x: regex.match(x) is not None
 
-    return _na_map(f, arr, na, dtype=dtype)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_fullmatch(
@@ -868,10 +867,9 @@ def str_fullmatch(
 
     regex = re.compile(pat, flags=flags)
 
-    dtype = bool
     f = lambda x: regex.fullmatch(x) is not None
 
-    return _na_map(f, arr, na, dtype=dtype)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def _get_single_group_name(rx):
@@ -923,7 +921,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     groups_or_na = _groups_or_na_fun(regex)
 
     if regex.groups == 1:
-        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
+        result = np.array([groups_or_na(val)[0] for val in arr], dtype=np.dtype(object))
         name = _get_single_group_name(regex)
     else:
         if isinstance(arr, ABCIndexClass):
@@ -932,7 +930,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.empty:
-            result = DataFrame(columns=columns, dtype=object)
+            result = DataFrame(columns=columns, dtype=np.dtype(object))
         else:
             dtype = _result_dtype(arr)
             result = DataFrame(
@@ -959,7 +957,7 @@ def _str_extract_frame(arr, pat, flags=0):
     columns = [names.get(1 + i, i) for i in range(regex.groups)]
 
     if len(arr) == 0:
-        return DataFrame(columns=columns, dtype=object)
+        return DataFrame(columns=columns, dtype=np.dtype(object))
     try:
         result_index = arr.index
     except AttributeError:
@@ -1422,7 +1420,7 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype="int64")
+    return _na_map(f, arr, dtype=np.dtype("int64"))
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
@@ -1442,7 +1440,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype="int64")
+    return _na_map(f, arr, dtype=np.dtype("int64"))
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -2515,7 +2513,7 @@ class StringMethods(NoNewAttributesMixin):
         if na_rep is None and union_mask.any():
             # no na_rep means NaNs for all rows where any column has a NaN
             # only necessary if there are actually any NaNs
-            result = np.empty(len(data), dtype=object)
+            result = np.empty(len(data), dtype=np.dtype(object))
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
@@ -2532,7 +2530,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
-            result = Index(result, dtype=object, name=self._orig.name)
+            result = Index(result, dtype=np.dtype(object), name=self._orig.name)
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
@@ -3284,7 +3282,7 @@ class StringMethods(NoNewAttributesMixin):
         len,
         docstring=_shared_docs["len"],
         forbidden_types=None,
-        dtype="int64",
+        dtype=np.dtype("int64"),
         returns_string=False,
     )
 
@@ -3559,69 +3557,69 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["istitle"] = dict(type="titlecase", method="istitle")
     _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
     _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
-    # force _noarg_wrapper return type with dtype=bool (GH 29624)
+    # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
     isalnum = _noarg_wrapper(
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
 
     @classmethod
