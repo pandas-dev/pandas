@@ -3,7 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -140,16 +140,29 @@ def test_invalid_kwargs_nopython():
         )
 
 
-def test_apply_kwargs():
+def test_rolling_apply_args_kwargs():
     # GH 33433
     def foo(x, par):
         return np.sum(x + par)
 
-    midx = MultiIndex.from_tuples([(1,0),(1,1)], names=["gr", None])
+    df = DataFrame({"gr": [1, 1], "a": [1, 2]})
+
+    idx = Index(["gr", "a"])
+    expected = DataFrame([[11.0, 11.0], [11.0, 12.0]], columns=idx)
+
+    result = df.rolling(1).apply(foo, kwargs={"par": 10})
+    tm.assert_frame_equal(result, expected)
+
+    result = df.rolling(1).apply(foo, args=(10,))
+    tm.assert_frame_equal(result, expected)
+
+    midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
     expected = Series([11.0, 12.0], index=midx, name="a")
 
-    df = DataFrame({"gr": [1, 1], "a": [1, 2]})
-    result = df.groupby("gr")["a"].rolling(1).apply(foo, kwargs={"par": 10})
+    gb_rolling = df.groupby("gr")["a"].rolling(1)
+
+    result = gb_rolling.apply(foo, kwargs={"par": 10})
     tm.assert_series_equal(result, expected)
-    result = df.groupby("gr")["a"].rolling(1).apply(foo, args=(10,))
+
+    result = gb_rolling.apply(foo, args=(10,))
     tm.assert_series_equal(result, expected)
