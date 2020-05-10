@@ -105,10 +105,10 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel(order="K")
+    ivalues = arr.view(np.int64).ravel("K")
 
     result = np.empty(shape, dtype=DT64NS_DTYPE)
-    iresult = result.ravel(order="K").view(np.int64)
+    iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
         result = arr.view(DT64NS_DTYPE)

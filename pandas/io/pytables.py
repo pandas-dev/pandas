@@ -2925,7 +2925,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel(order="K"), skipna=False)
+            inferred_type = lib.infer_dtype(value, skipna=False)
             if empty_array:
                 pass
             elif inferred_type == "string":
@@ -4769,7 +4769,7 @@ def _maybe_convert_for_string_atom(
     data = block.values
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data.ravel(order="K"), skipna=False)
+    inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
 
         # we cannot serialize this data, so report an exception on a column
@@ -4777,7 +4777,7 @@ def _maybe_convert_for_string_atom(
         for i in range(len(block.shape[0])):
 
             col = block.iget(i)
-            inferred_type = lib.infer_dtype(col.ravel(order="K"), skipna=False)
+            inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 iloc = block.mgr_locs.indexer[i]
                 raise TypeError(

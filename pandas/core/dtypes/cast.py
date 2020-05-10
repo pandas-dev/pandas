@@ -126,7 +126,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel(order="K")), skipna=False)
+            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
@@ -218,7 +218,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             return trans(result).astype(dtype)
 
         # do a test on the first element, if it fails then we are done
-        r = result.ravel(order="K")
+        r = result.ravel()
         arr = np.array([r[0]])
 
         if isna(arr).any():
@@ -1217,8 +1217,8 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
         return value
 
     shape = v.shape
-    if v.ndim != 1:
-        v = v.ravel(order="K")
+    if not v.ndim == 1:
+        v = v.ravel()
 
     if not len(v):
         return value
