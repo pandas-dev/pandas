@@ -523,7 +523,11 @@ def _factorize_array(
     ),
 )
 def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
+    values,
+    sort: bool = False,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+    dropna: bool = True,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -648,6 +652,14 @@ def factorize(
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
+
+    code_is_na = codes == na_sentinel
+    if not dropna and code_is_na.any():
+        # na_value is set based on the dtype of uniques, and compat set to False is
+        # because we do not want na_value to be 0 for integers
+        na_value = na_value_for_dtype(uniques.dtype, compat=False)
+        uniques = np.append(uniques, [na_value])
+        codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 

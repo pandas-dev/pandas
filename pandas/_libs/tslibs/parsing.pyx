@@ -34,7 +34,11 @@ from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
+from pandas._libs.tslibs.util cimport (
+    is_array,
+    is_offset_object,
+    get_c_string_buf_and_size,
+)
 from pandas._libs.tslibs.frequencies cimport get_rule_month
 
 cdef extern from "../src/headers/portable.h":
@@ -262,7 +266,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, str):
         raise TypeError("parse_time_string argument must be str")
 
-    if getattr(freq, "_typ", None) == "dateoffset":
+    if is_offset_object(freq):
         freq = freq.rule_code
 
     if dayfirst is None or yearfirst is None:
