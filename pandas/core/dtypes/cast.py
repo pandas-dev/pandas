@@ -73,8 +73,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas as pd
-
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray  # noqa: F401
@@ -314,10 +312,13 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
+    from pandas.core.arrays.boolean import BooleanDtype
+    from pandas.core.arrays.integer import Int64Dtype
+
     if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
         return np.dtype(np.int64)
-    if how in ["add", "cumsum", "sum"] and isinstance(dtype, pd.BooleanDtype):
-        return pd.Int64Dtype()
+    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
+        return Int64Dtype()
     return dtype
 
 
