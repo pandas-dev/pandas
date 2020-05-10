@@ -199,8 +199,8 @@ def info(
 
     # groupby dtype.name to collect e.g. Categorical columns
     counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
-    dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-    lines.append(f"dtypes: {', '.join(dtypes)}")
+    collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
+    lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
     if memory_usage is None:
         memory_usage = get_option("display.memory_usage")
