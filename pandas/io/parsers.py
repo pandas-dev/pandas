@@ -2190,10 +2190,10 @@ class CParserWrapper(ParserBase):
 
 
 def _check_unexpected_data(columns, data, index_col):
-    if index_col is None or index_col is False: 
+    if index_col is None or index_col is False:
         index_col = []
     expected_columns = len(columns) + len(index_col)
-    if expected_columns != len(data) and notna(data[expected_columns :]).any():
+    if expected_columns != len(data) and notna(data[expected_columns:]).any():
         warnings.warn(
             "Expected {} columns instead of {}".format(expected_columns, len(data)),
             ParserWarning,
