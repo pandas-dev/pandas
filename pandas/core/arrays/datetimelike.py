@@ -757,6 +757,21 @@ class DatetimeLikeArrayMixin(
         return self._unbox(fill_value)
 
     def _validate_scalar(self, value, msg: str, cast_str: bool = False):
+        """
+        Validate that the input value can be cast to our scalar_type.
+
+        Parameters
+        ----------
+        value : object
+        msg : str
+            Message to raise in TypeError on invalid input.
+        cast_str : bool, default False
+            Whether to try to parse string input to scalar_type.
+
+        Returns
+        -------
+        self._scalar_type or NaT
+        """
         if cast_str and isinstance(value, str):
             # NB: Careful about tzawareness
             try:
