@@ -85,7 +85,8 @@ def apply_wraps(func):
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = Timestamp(other)
         else:
-            raise TypeError(other)
+            # This will end up returning NotImplemented back in __add__
+            raise ApplyTypeError
 
         tz = other.tzinfo
         nano = other.nanosecond
