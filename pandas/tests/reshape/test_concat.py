@@ -610,11 +610,11 @@ class TestConcatAppendCommon:
         s2 = pd.Series([2, 1, 2], dtype="category")
         s3 = pd.Series([1, 2, 1, 2, np.nan])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype="object")
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype="float")
         tm.assert_series_equal(pd.concat([s1, s2, s3], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s3], ignore_index=True), exp)
 
-        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype="object")
+        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype="float")
         tm.assert_series_equal(pd.concat([s3, s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s3.append([s1, s2], ignore_index=True), exp)
 
@@ -698,7 +698,7 @@ class TestConcatAppendCommon:
         s1 = pd.Series([1, np.nan], dtype="category")
         s2 = pd.Series([np.nan, np.nan])
 
-        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype="object")
+        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype="float")
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
@@ -1869,12 +1869,13 @@ class TestConcatenate:
 
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
-        msg = (
-            "cannot concatenate object of type '{}'; "
-            "only Series and DataFrame objs are valid"
-        )
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            with pytest.raises(TypeError, match=msg.format(type(obj))):
+
+            msg = (
+                f"cannot concatenate object of type '{type(obj)}'; "
+                "only Series and DataFrame objs are valid"
+            )
+            with pytest.raises(TypeError, match=msg):
                 concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
