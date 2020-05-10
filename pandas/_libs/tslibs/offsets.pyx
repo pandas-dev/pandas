@@ -575,7 +575,7 @@ class _BaseOffset:
 
         Parameters
         ----------
-        index: DatetimeIndex
+        index : DatetimeIndex
 
         Returns
         -------
