@@ -257,50 +257,6 @@ def test_agg_multiple_functions_maintain_order(df):
 
 def test_agg_multiple_functions_same_name(df):
     # GH 30880
-    df = tm.makeTimeDataFrame()
-    result = df.resample("3D").agg(
-        {"A": [functools.partial(np.std, ddof=0), functools.partial(np.std, ddof=1)]}
-    )
-    expected_index = pd.date_range("2000-01-03", "2000-02-11", freq="3D")
-    expected_columns = pd.MultiIndex.from_tuples([("A", "std"), ("A", "std")])
-    expected_values = np.array(
-        [df.resample("3D").A.std(ddof=i).values for i in range(2)]
-    ).T
-    expected = pd.DataFrame(
-        expected_values, columns=expected_columns, index=expected_index
-    )
-    tm.assert_frame_equal(result, expected)
-
-    # check what happens if ohlc (which expands dimensions) is present
-    result = df.resample("3D").agg(
-        {
-            "A": [
-                "ohlc",
-                functools.partial(np.std, ddof=0),
-                functools.partial(np.std, ddof=1),
-            ]
-        }
-    )
-    expected_columns = pd.MultiIndex.from_tuples(
-        [
-            ("A", "ohlc", "open"),
-            ("A", "ohlc", "high"),
-            ("A", "ohlc", "low"),
-            ("A", "ohlc", "close"),
-            ("A", "std", "A"),
-            ("A", "std", "A"),
-        ]
-    )
-    expected_values = np.hstack([df.resample("3D").A.ohlc(), expected_values])
-    expected = pd.DataFrame(
-        expected_values, columns=expected_columns, index=expected_index
-    )
-    with tm.assert_produces_warning(PerformanceWarning):
-        tm.assert_frame_equal(result, expected)
-
-
-def test_named_aggregation_with_resample():
-    # GH 30092
     df = pd.DataFrame(
         np.random.randn(1000, 3),
         index=pd.date_range("1/1/2012", freq="S", periods=1000),
@@ -318,6 +274,27 @@ def test_named_aggregation_with_resample():
         expected_values, columns=expected_columns, index=expected_index
     )
     tm.assert_frame_equal(result, expected)
+
+    # check what happens if ohlc (which expands dimensions) is present
+    result = df.resample("3T").agg(
+        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.90)]}
+    )
+    expected_columns = pd.MultiIndex.from_tuples(
+        [
+            ("A", "ohlc", "open"),
+            ("A", "ohlc", "high"),
+            ("A", "ohlc", "low"),
+            ("A", "ohlc", "close"),
+            ("A", "quantile", "A"),
+            ("A", "quantile", "A"),
+        ]
+    )
+    expected_values = np.hstack([df.resample("3T").A.ohlc(), expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    with tm.assert_produces_warning(PerformanceWarning):
+        tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):
