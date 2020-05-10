@@ -9,6 +9,7 @@ from pandas import DataFrame, MultiIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("n", 10 ** np.arange(2, 6))
 @pytest.mark.parametrize("m", [10, 100, 1000])
 @pytest.mark.parametrize("sort", [False, True])
