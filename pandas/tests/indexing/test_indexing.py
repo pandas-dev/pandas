@@ -620,6 +620,15 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
+    def test_32bit_assignment(self):
+        df = DataFrame(
+            [[1, 2, 3]], columns=list("ABC")
+        )
+
+        expected = df.copy()
+        df.iloc[:, :] = df._values
+        tm.assert_frame_equal(df, expected)
+
     def test_index_type_coercion(self):
 
         # GH 11836

@@ -664,7 +664,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         if self.name == "iloc" and isinstance(value, (ABCSeries, ABCDataFrame)):
             # Strip labels so as to not align with RHS
-            value = value._values.copy()
+            # value = value._values.copy()
+            pass
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value)
