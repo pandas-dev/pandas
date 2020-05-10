@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import CategoricalDtype, DataFrame, NaT, Series, Timestamp
 import pandas._testing as tm
 
 
@@ -92,6 +92,16 @@ class TestUpdate:
                 Series([True, None], dtype="boolean"),
                 Series([None, False], dtype="boolean"),
                 Series([True, False], dtype="boolean"),
+            ),
+            (
+                Series(["a", None], dtype=CategoricalDtype(categories=["a", "b"])),
+                Series([None, "b"], dtype=CategoricalDtype(categories=["a", "b"])),
+                Series(["a", "b"], dtype=CategoricalDtype(categories=["a", "b"])),
+            ),
+            (
+                Series([Timestamp(year=2020, month=1, day=1, tz="Europe/London"), NaT]),
+                Series([NaT, Timestamp(year=2020, month=1, day=1, tz="Europe/London")]),
+                Series([Timestamp(year=2020, month=1, day=1, tz="Europe/London")] * 2),
             ),
         ],
     )
