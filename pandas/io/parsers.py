@@ -2190,6 +2190,19 @@ class CParserWrapper(ParserBase):
 
 
 def _check_unexpected_data(columns, data, index_col):
+    """
+    Checks whether or not ammount of columns in data matches expected number of columns.
+    Raises a warning if those numbers don't match.
+
+    Parameters
+    ----------
+    columns : list
+        List that contains columns names.
+    data : array-like
+        Object that contains column data.
+    index_col : list or False, optional
+        Columns to use as the index.
+    """
     if index_col is None or index_col is False:
         index_col = []
     expected_columns = len(columns) + len(index_col)
