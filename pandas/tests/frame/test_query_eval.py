@@ -1190,8 +1190,8 @@ class TestDataFrameQueryBacktickQuoting:
 
         df.eval("@func()")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Only named functions are supported"):
             df.eval("@funcs[0]()")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Only named functions are supported"):
             df.eval("@funcs[0].__call__()")
