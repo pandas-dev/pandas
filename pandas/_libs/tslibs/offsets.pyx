@@ -575,11 +575,11 @@ class _BaseOffset:
 
         Parameters
         ----------
-        DatetimeIndex or DatetimeArray
+        index: DatetimeIndex
 
         Returns
         -------
-        DatetimeIndex or DatetimeArray
+        DatetimeIndex
         """
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
