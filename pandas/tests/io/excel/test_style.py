@@ -23,7 +23,7 @@ from pandas.io.formats.excel import ExcelFormatter
 )
 def test_styler_to_excel(engine):
     def style(df):
-        # XXX: RGB colors not supported in xlwt
+        # TODO: RGB colors not supported in xlwt
         return DataFrame(
             [
                 ["font-weight: bold", "", ""],
@@ -47,7 +47,7 @@ def test_styler_to_excel(engine):
             pytest.xfail(
                 reason=(f"GH25351: failing on some attribute comparisons in {engine}")
             )
-        # XXX: should find a better way to check equality
+        # TODO: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__
         assert cell1.border.__dict__ == cell2.border.__dict__
         assert cell1.fill.__dict__ == cell2.fill.__dict__
@@ -98,7 +98,7 @@ def test_styler_to_excel(engine):
 
         # (2) check styling with default converter
 
-        # XXX: openpyxl (as at 2.4) prefixes colors with 00, xlsxwriter with FF
+        # TODO: openpyxl (as at 2.4) prefixes colors with 00, xlsxwriter with FF
         alpha = "00" if engine == "openpyxl" else "FF"
 
         n_cells = 0
@@ -106,7 +106,7 @@ def test_styler_to_excel(engine):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
                 ref = f"{cell2.column}{cell2.row:d}"
-                # XXX: this isn't as strong a test as ideal; we should
+                # TODO: this isn't as strong a test as ideal; we should
                 #      confirm that differences are exclusive
                 if ref == "B2":
                     assert not cell1.font.bold

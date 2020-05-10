@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
     conversion,
     fields,
     iNaT,
-    normalize_date,
     resolution as libresolution,
     timezones,
     tzconversion,
@@ -22,8 +21,8 @@ import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
     DT64NS_DTYPE,
+    INT64_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -49,7 +48,7 @@ from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Day, Tick
+from pandas.tseries.offsets import Day, Tick, generate_range
 
 _midnight = time(0, 0)
 
@@ -302,11 +301,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype=None,
         copy=False,
         tz=None,
-        freq=None,
+        freq=lib.no_default,
         dayfirst=False,
         yearfirst=False,
         ambiguous="raise",
     ):
+        explicit_none = freq is None
+        freq = freq if freq is not lib.no_default else None
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -321,6 +322,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         )
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if explicit_none:
+            freq = None
 
         dtype = tz_to_dtype(tz)
         result = cls._simple_new(subarr, freq=freq, dtype=dtype)
@@ -367,33 +370,22 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if end is not None:
             end = Timestamp(end)
 
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError(
-                    "Closed has to be None if not both of start and end are defined"
-                )
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
-
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
-
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
             # Localize the start and end arguments
+            start_tz = None if start is None else start.tz
+            end_tz = None if end is None else end.tz
             start = _maybe_localize_point(
-                start,
-                getattr(start, "tz", None),
-                start,
-                freq,
-                tz,
-                ambiguous,
-                nonexistent,
+                start, start_tz, start, freq, tz, ambiguous, nonexistent
             )
             end = _maybe_localize_point(
-                end, getattr(end, "tz", None), end, freq, tz, ambiguous, nonexistent
+                end, end_tz, end, freq, tz, ambiguous, nonexistent
             )
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -404,8 +396,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                     start = start.tz_localize(None)
                 if end is not None:
                     end = end.tz_localize(None)
-            # TODO: consider re-implementing _cached_range; GH#17914
-            values, _tz = generate_regular_range(start, end, periods, freq)
+
+            if isinstance(freq, Tick):
+                values = generate_regular_range(start, end, periods, freq)
+            else:
+                xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
+                values = np.array([x.value for x in xdr], dtype=np.int64)
+
+            _tz = start.tz if start is not None else end.tz
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
@@ -698,7 +696,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return type(self)._from_sequence(result).tz_localize(self.tz)
 
-        return type(self)._from_sequence(result)._with_freq("infer")
+        return type(self)._from_sequence(result)
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -886,7 +884,7 @@ default 'raise'
         DatetimeIndex(['2018-03-01 09:00:00-05:00',
                        '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq='D')
+                      dtype='datetime64[ns, US/Eastern]', freq=None)
 
         With the ``tz=None``, we can remove the time zone information
         while keeping the local time (not converted to UTC):
@@ -894,7 +892,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[ns]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -973,7 +971,16 @@ default 'raise'
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
         dtype = tz_to_dtype(tz)
-        return self._simple_new(new_dates, dtype=dtype, freq=self.freq)
+
+        freq = None
+        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            freq = self.freq
+        elif tz is None and self.tz is None:
+            # no-op
+            freq = self.freq
+        return self._simple_new(new_dates, dtype=dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1102,7 +1109,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies._base_and_stride(freq)
+                base, stride = libfrequencies.base_and_stride(freq)
                 res = f"{stride}{base}"
 
             freq = res
@@ -1954,7 +1961,7 @@ def sequence_to_dt64ns(
         if tz:
             tz = timezones.maybe_get_tz(tz)
 
-        if data.dtype != _INT64_DTYPE:
+        if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         result = data.view(DT64NS_DTYPE)
 
@@ -2275,19 +2282,21 @@ def _infer_tz_from_endpoints(start, end, tz):
     return tz
 
 
-def _maybe_normalize_endpoints(start, end, normalize):
+def _maybe_normalize_endpoints(
+    start: Optional[Timestamp], end: Optional[Timestamp], normalize: bool
+):
     _normalized = True
 
     if start is not None:
         if normalize:
-            start = normalize_date(start)
+            start = start.normalize()
             _normalized = True
         else:
             _normalized = _normalized and start.time() == _midnight
 
     if end is not None:
         if normalize:
-            end = normalize_date(end)
+            end = end.normalize()
             _normalized = True
         else:
             _normalized = _normalized and end.time() == _midnight

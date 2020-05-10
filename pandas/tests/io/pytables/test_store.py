@@ -1231,6 +1231,8 @@ class TestHDFStore:
 
             # column oriented
             df = tm.makeTimeDataFrame()
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
+
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
             store.append("df1", df.iloc[:, 2:])
@@ -1550,12 +1552,16 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
         with ensure_clean_store(setup_path) as store:
             # doc example
@@ -1575,11 +1581,16 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
+            # FIXME: 2020-05-07 freq check randomly fails in the CI
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -4776,3 +4787,14 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
+
+    def test_unsuppored_hdf_file_error(self, datapath):
+        # GH 9539
+        data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
+        message = (
+            r"Dataset\(s\) incompatible with Pandas data types, "
+            "not table, or no datasets found in HDF5 file."
+        )
+
+        with pytest.raises(ValueError, match=message):
+            pd.read_hdf(data_path)

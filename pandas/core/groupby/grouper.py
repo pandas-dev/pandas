@@ -11,7 +11,6 @@ from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_list_like,
@@ -135,7 +134,9 @@ class Grouper:
             cls = TimeGrouper
         return super().__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
+    def __init__(
+        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+    ):
         self.key = key
         self.level = level
         self.freq = freq
@@ -147,6 +148,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self.dropna = dropna
 
     @property
     def ax(self):
@@ -172,6 +174,7 @@ class Grouper:
             level=self.level,
             sort=self.sort,
             validate=validate,
+            dropna=self.dropna,
         )
         return self.binner, self.grouper, self.obj
 
@@ -258,7 +261,7 @@ class Grouping:
     index : Index
     grouper :
     obj Union[DataFrame, Series]:
-    name :
+    name : Label
     level :
     observed : bool, default False
         If we are a Categorical, use the observed values
@@ -284,6 +287,7 @@ class Grouping:
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
+        dropna: bool = True,
     ):
         self.name = name
         self.level = level
@@ -294,13 +298,14 @@ class Grouping:
         self.obj = obj
         self.observed = observed
         self.in_axis = in_axis
+        self.dropna = dropna
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
 
         if isinstance(grouper, MultiIndex):
-            self.grouper = grouper.values
+            self.grouper = grouper._values
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -418,7 +423,7 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = ensure_categorical(self.grouper)
+        values = Categorical(self.grouper)
         return values._reverse_indexer()
 
     @property
@@ -447,7 +452,9 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
-                codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+                codes, uniques = algorithms.factorize(
+                    self.grouper, sort=self.sort, dropna=self.dropna
+                )
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
             self._group_index = uniques
@@ -466,6 +473,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
+    dropna: bool = True,
 ) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
@@ -656,6 +664,7 @@ def get_grouper(
                 sort=sort,
                 observed=observed,
                 in_axis=in_axis,
+                dropna=dropna,
             )
             if not isinstance(gpr, Grouping)
             else gpr
