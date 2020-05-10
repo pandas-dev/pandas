@@ -460,12 +460,12 @@ class BaseGrouper:
         # are not setup for dim transforming
         if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
+        elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
                     f"datetime64 type does not support {how} operations"
                 )
-        elif is_timedelta64_dtype(values):
+        elif is_timedelta64_dtype(values.dtype):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
                     f"timedelta64 type does not support {how} operations"

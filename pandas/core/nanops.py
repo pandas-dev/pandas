@@ -755,12 +755,12 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
-    if is_any_int_dtype(values):
+    if is_any_int_dtype(dtype):
         values = values.astype("f8")
         if mask is not None:
             values[mask] = np.nan
 
-    if is_float_dtype(values):
+    if is_float_dtype(values.dtype):
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)

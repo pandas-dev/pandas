@@ -5,7 +5,7 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
 
-from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
+from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype, pandas_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take
@@ -137,7 +137,9 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            dtype = np.dtype(object)
+        else:
+            dtype = pandas_dtype(dtype)
         if self._hasna:
             if (
                 not (is_object_dtype(dtype) or is_string_dtype(dtype))

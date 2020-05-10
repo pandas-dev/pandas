@@ -138,7 +138,7 @@ def _cat_compare_op(op):
                     "use 'np.asarray(cat) <op> other'."
                 )
 
-            if isinstance(other, ExtensionArray) and needs_i8_conversion(other):
+            if isinstance(other, ExtensionArray) and needs_i8_conversion(other.dtype):
                 # We would return NotImplemented here, but that messes up
                 #  ExtensionIndex's wrapped methods
                 return op(other, self)

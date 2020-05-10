@@ -1366,7 +1366,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
-                            is_dt_string = is_string_dtype(value)
+                            is_dt_string = is_string_dtype(value.dtype)
                             value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize

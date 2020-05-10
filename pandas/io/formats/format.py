@@ -1122,7 +1122,7 @@ def format_array(
     fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
