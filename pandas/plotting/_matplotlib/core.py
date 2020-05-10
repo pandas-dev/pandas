@@ -38,6 +38,7 @@ from pandas.plotting._matplotlib.tools import (
     table,
 )
 
+
 def _color_in_style(style: str) -> bool:
     """
     Check if there is a color letter in the style string.
@@ -45,6 +46,7 @@ def _color_in_style(style: str) -> bool:
     from matplotlib.colors import BASE_COLORS
 
     return not set(BASE_COLORS).isdisjoint(style)
+
 
 class MPLPlot:
     """

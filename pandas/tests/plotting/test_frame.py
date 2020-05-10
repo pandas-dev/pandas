@@ -221,7 +221,6 @@ class TestDataFramePlots(TestPlotBase):
         # which resulted in a ValueError when plt.draw() was called.
         assert [line.get_color() for line in ax.lines] == color_list
 
-
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
         ax = df.plot()
