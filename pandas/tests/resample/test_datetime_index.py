@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import partial
 from io import StringIO
 
@@ -18,7 +18,7 @@ from pandas.core.indexes.period import Period, period_range
 from pandas.core.resample import DatetimeIndex, _get_timestamp_range_edges
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import BDay, Minute
+from pandas.tseries.offsets import Minute
 
 
 @pytest.fixture()
@@ -412,70 +412,6 @@ def test_resample_frame_basic():
     df.resample("W-WED", kind="period").mean()
 
 
-@pytest.mark.parametrize(
-    "loffset", [timedelta(minutes=1), "1min", Minute(1), np.timedelta64(1, "m")]
-)
-def test_resample_loffset(loffset):
-    # GH 7687
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
-    s = Series(np.random.randn(14), index=rng)
-
-    result = s.resample("5min", closed="right", label="right", loffset=loffset).mean()
-    idx = date_range("1/1/2000", periods=4, freq="5min")
-    expected = Series(
-        [s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
-        index=idx + timedelta(minutes=1),
-    )
-    tm.assert_series_equal(result, expected)
-    assert result.index.freq == Minute(5)
-
-    # from daily
-    dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D")
-    ser = Series(np.random.rand(len(dti)), dti)
-
-    # to weekly
-    result = ser.resample("w-sun").last()
-    business_day_offset = BDay()
-    expected = ser.resample("w-sun", loffset=-business_day_offset).last()
-    assert result.index[0] - business_day_offset == expected.index[0]
-
-
-def test_resample_loffset_upsample():
-    # GH 20744
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
-    s = Series(np.random.randn(14), index=rng)
-
-    result = s.resample(
-        "5min", closed="right", label="right", loffset=timedelta(minutes=1)
-    ).ffill()
-    idx = date_range("1/1/2000", periods=4, freq="5min")
-    expected = Series([s[0], s[5], s[10], s[-1]], index=idx + timedelta(minutes=1))
-
-    tm.assert_series_equal(result, expected)
-
-
-def test_resample_loffset_count():
-    # GH 12725
-    start_time = "1/1/2000 00:00:00"
-    rng = date_range(start_time, periods=100, freq="S")
-    ts = Series(np.random.randn(len(rng)), index=rng)
-
-    result = ts.resample("10S", loffset="1s").count()
-
-    expected_index = date_range(start_time, periods=10, freq="10S") + timedelta(
-        seconds=1
-    )
-    expected = Series(10, index=expected_index)
-
-    tm.assert_series_equal(result, expected)
-
-    # Same issue should apply to .size() since it goes through
-    #   same code path
-    result = ts.resample("10S", loffset="1s").size()
-
-    tm.assert_series_equal(result, expected)
-
-
 def test_resample_upsample():
     # from daily
     dti = date_range(
@@ -791,27 +727,177 @@ def test_resample_single_group():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_base():
+def test_resample_offset():
+    # GH 31809
+
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    resampled = ts.resample("5min", base=2).mean()
+    resampled = ts.resample("5min", offset="2min").mean()
     exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
-def test_resample_float_base():
-    # GH25161
-    dt = pd.to_datetime(
-        ["2018-11-26 16:17:43.51", "2018-11-26 16:17:44.51", "2018-11-26 16:17:45.51"]
-    )
-    s = Series(np.arange(3), index=dt)
+def test_resample_origin():
+    # GH 31809
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
 
-    base = 17 + 43.51 / 60
-    result = s.resample("3min", base=base).size()
-    expected = Series(
-        3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"], freq="3min")
+    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min")
+
+    resampled = ts.resample("5min", origin="1999-12-31 23:57:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    offset_timestamp = pd.Timestamp(0) + pd.Timedelta("2min")
+    resampled = ts.resample("5min", origin=offset_timestamp).mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    # origin of '1999-31-12 12:02:00' should be equivalent for this case
+    resampled = ts.resample("5min", origin="1999-12-31 12:02:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", offset="-3m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+
+@pytest.mark.parametrize(
+    "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()],
+)
+def test_resample_bad_origin(origin):
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+    msg = (
+        "'origin' should be equal to 'epoch', 'start', 'start_day' or "
+        f"should be a Timestamp convertible type. Got '{origin}' instead."
     )
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("5min", origin=origin)
+
+
+@pytest.mark.parametrize(
+    "offset", ["invalid_value", "12dayys", "2000-30-30", object()],
+)
+def test_resample_bad_offset(offset):
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+    msg = f"'offset' should be a Timedelta convertible type. Got '{offset}' instead."
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("5min", offset=offset)
+
+
+def test_resample_origin_prime_freq():
+    # GH 31809
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+    rng = pd.date_range(start, end, freq="7min")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    exp_rng = date_range("2000-10-01 23:14:00", "2000-10-02 00:22:00", freq="17min")
+    resampled = ts.resample("17min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", origin="start_day").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:30:00", "2000-10-02 00:21:00", freq="17min")
+    resampled = ts.resample("17min", origin="start").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", offset="23h30min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+    resampled = ts.resample("17min", origin="start_day", offset="23h30min").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:18:00", "2000-10-02 00:26:00", freq="17min")
+    resampled = ts.resample("17min", origin="epoch").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    exp_rng = date_range("2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min")
+    resampled = ts.resample("17min", origin="2000-01-01").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+
+def test_resample_origin_with_tz():
+    # GH 31809
+    msg = "The origin must have the same timezone as the index."
+
+    tz = "Europe/Paris"
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s", tz=tz)
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    exp_rng = date_range("1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz)
+    resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    # origin of '1999-31-12 12:02:00+03:00' should be equivalent for this case
+    resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("5min", origin="12/31/1999 23:57:00").mean()
+
+    # if the series is not tz aware, origin should not be tz aware
+    rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("5min", origin="12/31/1999 23:57:00+03:00").mean()
+
+
+def test_resample_origin_with_day_freq_on_dst():
+    # GH 31809
+    tz = "America/Chicago"
+
+    def _create_series(values, timestamps, freq="D"):
+        return pd.Series(
+            values,
+            index=pd.DatetimeIndex(
+                [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
+            ),
+        )
+
+    # test classical behavior of origin in a DST context
+    start = pd.Timestamp("2013-11-02", tz=tz)
+    end = pd.Timestamp("2013-11-03 23:59", tz=tz)
+    rng = pd.date_range(start, end, freq="1h")
+    ts = pd.Series(np.ones(len(rng)), index=rng)
+
+    expected = _create_series([24.0, 25.0], ["2013-11-02", "2013-11-03"])
+    for origin in ["epoch", "start", "start_day", start, None]:
+        result = ts.resample("D", origin=origin).sum()
+        tm.assert_series_equal(result, expected)
+
+    # test complex behavior of origin/offset in a DST context
+    start = pd.Timestamp("2013-11-03", tz=tz)
+    end = pd.Timestamp("2013-11-03 23:59", tz=tz)
+    rng = pd.date_range(start, end, freq="1h")
+    ts = pd.Series(np.ones(len(rng)), index=rng)
+
+    expected_ts = ["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"]
+    expected = _create_series([23.0, 2.0], expected_ts)
+    result = ts.resample("D", origin="start", offset="-2H").sum()
+    tm.assert_series_equal(result, expected)
+
+    expected_ts = ["2013-11-02 22:00-05:00", "2013-11-03 21:00-06:00"]
+    expected = _create_series([22.0, 3.0], expected_ts, freq="24H")
+    result = ts.resample("24H", origin="start", offset="-2H").sum()
+    tm.assert_series_equal(result, expected)
+
+    expected_ts = ["2013-11-02 02:00-05:00", "2013-11-03 02:00-06:00"]
+    expected = _create_series([3.0, 22.0], expected_ts)
+    result = ts.resample("D", origin="start", offset="2H").sum()
+    tm.assert_series_equal(result, expected)
+
+    expected_ts = ["2013-11-02 23:00-05:00", "2013-11-03 23:00-06:00"]
+    expected = _create_series([24.0, 1.0], expected_ts)
+    result = ts.resample("D", origin="start", offset="-1H").sum()
+    tm.assert_series_equal(result, expected)
+
+    expected_ts = ["2013-11-02 01:00-05:00", "2013-11-03 01:00:00-0500"]
+    expected = _create_series([1.0, 24.0], expected_ts)
+    result = ts.resample("D", origin="start", offset="1H").sum()
     tm.assert_series_equal(result, expected)
 
 
@@ -1588,7 +1674,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
 
 
 @pytest.mark.parametrize(
-    "first,last,offset,exp_first,exp_last",
+    "first,last,freq,exp_first,exp_last",
     [
         ("19910905", "19920406", "D", "19910905", "19920407"),
         ("19910905 00:00", "19920406 06:00", "D", "19910905", "19920407"),
@@ -1598,17 +1684,17 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
         ("1991-08", "1992-04", "M", "19910831", "19920531"),
     ],
 )
-def test_get_timestamp_range_edges(first, last, offset, exp_first, exp_last):
+def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     first = pd.Period(first)
     first = first.to_timestamp(first.freq)
     last = pd.Period(last)
     last = last.to_timestamp(last.freq)
 
-    exp_first = pd.Timestamp(exp_first, freq=offset)
-    exp_last = pd.Timestamp(exp_last, freq=offset)
+    exp_first = pd.Timestamp(exp_first, freq=freq)
+    exp_last = pd.Timestamp(exp_last, freq=freq)
 
-    offset = pd.tseries.frequencies.to_offset(offset)
-    result = _get_timestamp_range_edges(first, last, offset)
+    freq = pd.tseries.frequencies.to_offset(freq)
+    result = _get_timestamp_range_edges(first, last, freq)
     expected = (exp_first, exp_last)
     assert result == expected
 
