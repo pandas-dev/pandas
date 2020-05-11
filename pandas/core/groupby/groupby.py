@@ -1182,6 +1182,16 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     more
     """
 
+    @property
+    def _constructor(self) -> Type["Series"]:
+        # GH28330 preserve subclassed Series/DataFrames
+        if isinstance(self.obj, DataFrame):
+            return self.obj._constructor_sliced
+        elif isinstance(self.obj, Series):
+            return self.obj._constructor
+        else:
+            return Series
+
     def _bool_agg(self, val_test, skipna):
         """
         Shared func to call any / all Cython GroupBy implementations.
@@ -1421,12 +1431,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         result = self.grouper.size()
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if self.obj._constructor is Series:
-            result.name = self.obj.name
-        elif isinstance(self.obj, Series):
-            result = self.obj._constructor(result, name=self.obj.name)
-        elif isinstance(self.obj, DataFrame):
-            result = self.obj._constructor_sliced(result)
+        if issubclass(self.obj._constructor, Series):
+            result = self._constructor(result, name=self.obj.name)
+        else:
+            result = self._constructor(result)
         return self._reindex_output(result, fill_value=0)
 
     @classmethod
@@ -2121,13 +2129,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         with _group_selection_context(self):
             index = self._selected_obj.index
-
-            # GH28330 preserve subclassed Series/DataFrames
-            if isinstance(self.obj, Series):
-                result = self.obj._constructor(self.grouper.group_info[0], index)
-            elif isinstance(self.obj, DataFrame):
-                result = self.obj._constructor_sliced(self.grouper.group_info[0], index)
-
+            result = self._constructor(self.grouper.group_info[0], index)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
@@ -2189,12 +2191,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
-
-            # GH28330 preserve subclassed Series/DataFrames
-            if isinstance(self.obj, Series):
-                return self.obj._constructor(cumcounts, index)
-            elif isinstance(self.obj, DataFrame):
-                return self.obj._constructor_sliced(cumcounts, index)
+            return self._constructor(cumcounts, index)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
