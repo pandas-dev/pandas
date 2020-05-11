@@ -107,6 +107,19 @@ class TestLoc(Base):
             "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
         )
 
+    def test_setitem_from_duplicate_axis(self):
+        # GH#34034
+        df = DataFrame(
+            [[20, "a"], [200, "a"], [200, "a"]],
+            columns=["col1", "col2"],
+            index=[10, 1, 1],
+        )
+        df.loc[1, "col1"] = np.arange(2)
+        expected = DataFrame(
+            [[20, "a"], [0, "a"], [1, "a"]], columns=["col1", "col2"], index=[10, 1, 1]
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
