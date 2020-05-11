@@ -126,7 +126,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()), skipna=False)
+            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
