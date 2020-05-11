@@ -33,9 +33,12 @@ from pandas._libs.tslibs.timezones cimport (
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT, checknull_with_nat, c_NaT as NaT)
+    NPY_NAT,
+    checknull_with_nat,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (

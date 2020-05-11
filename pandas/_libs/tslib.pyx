@@ -50,8 +50,11 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_datetime_to_tsobject,
     get_datetime64_nanos)
 
-from pandas._libs.tslibs.nattype import nat_strings
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 
 from pandas._libs.tslibs.offsets cimport to_offset
 

@@ -61,9 +61,13 @@ from pandas._libs.tslibs.frequencies cimport (
 )
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
+    _nat_scalar_rules,
+    NPY_NAT,
+    is_null_datetimelike,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 

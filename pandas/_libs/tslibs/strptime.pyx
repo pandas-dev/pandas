@@ -17,8 +17,11 @@ cimport cpython.datetime as datetime
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
 
-from pandas._libs.tslibs.nattype cimport checknull_with_nat, NPY_NAT
-from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    checknull_with_nat,
+    NPY_NAT,
+    c_nat_strings as nat_strings,
+)
 
 cdef dict _parse_code_table = {'y': 0,
                                'Y': 1,
