@@ -6,7 +6,7 @@ from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, ndarray
 cnp.import_array()
 
 from cpython.datetime cimport (timedelta,
@@ -31,7 +31,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
-from pandas._libs.tslibs.offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -579,20 +578,8 @@ def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
     def f(self, other):
-        if hasattr(other, '_typ'):
-            # Series, DataFrame, ...
-            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
-                # Tick offset
-                return op(self, other.delta)
-            return NotImplemented
-
-        elif other is NaT:
+        if other is NaT:
             return NaT
-
-        elif is_timedelta64_object(other):
-            # convert to Timedelta below; avoid catching this in
-            # has-dtype check before then
-            pass
 
         elif is_datetime64_object(other) or (
            PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)):
@@ -614,6 +601,7 @@ def _binary_op_method_timedeltalike(op, name):
                 return NotImplemented
 
         elif not _validate_ops_compat(other):
+            # Includes any of our non-cython classes
             return NotImplemented
 
         try:
@@ -1284,6 +1272,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
+        from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
@@ -1480,7 +1469,7 @@ cdef _rfloordiv(int64_t value, right):
 
 cdef _broadcast_floordiv_td64(
     int64_t value,
-    object other,
+    ndarray other,
     object (*operation)(int64_t value, object right)
 ):
     """
@@ -1498,13 +1487,11 @@ cdef _broadcast_floordiv_td64(
     result : varies based on `other`
     """
     # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
-    cdef:
-        int ndim = getattr(other, 'ndim', -1)
 
     # We need to watch out for np.timedelta64('NaT').
     mask = other.view('i8') == NPY_NAT
 
-    if ndim == 0:
+    if other.ndim == 0:
         if mask:
             return np.nan
 

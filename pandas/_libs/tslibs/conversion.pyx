@@ -13,7 +13,7 @@ from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp, is_period_object
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
@@ -37,10 +37,11 @@ from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT, checknull_with_nat, c_NaT as NaT)
 
-from pandas._libs.tslibs.tzconversion import (
-    tz_localize_to_utc, tz_convert_single)
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
-    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc)
+    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc,
+    tz_convert_single
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -104,10 +105,10 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel()
+    ivalues = arr.view(np.int64).ravel("K")
 
     result = np.empty(shape, dtype=DT64NS_DTYPE)
-    iresult = result.ravel().view(np.int64)
+    iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
         result = arr.view(DT64NS_DTYPE)
@@ -286,7 +287,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
-    elif getattr(ts, '_typ', None) == 'period':
+    elif is_period_object(ts):
         raise ValueError("Cannot convert Period to Timestamp "
                          "unambiguously. Use to_timestamp")
     else:
