@@ -1,7 +1,5 @@
 from datetime import date, datetime, timedelta
-from distutils.version import StrictVersion
 
-import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -994,7 +992,8 @@ class TestPeriodComparisons:
         assert not jan == 1
         assert jan != 1
 
-        msg = "Cannot compare type Period with type int"
+        int_or_per = "'(Period|int)'"
+        msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
 
             with pytest.raises(TypeError, match=msg):
@@ -1437,11 +1436,6 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(
-    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
-    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
-    strict=False,
-)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1

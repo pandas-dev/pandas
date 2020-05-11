@@ -40,12 +40,6 @@ def test_getitem_negative_out_of_bounds():
         s[-11] = "foo"
 
 
-def test_getitem_regression():
-    s = Series(range(5), index=list(range(5)))
-    result = s[list(range(5))]
-    tm.assert_series_equal(result, s)
-
-
 def test_getitem_setitem_slice_bug():
     s = Series(range(10), index=list(range(10)))
     result = s[-12:]

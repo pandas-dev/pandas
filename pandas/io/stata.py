@@ -356,10 +356,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 time_delta = dates - stata_epoch
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
-                # ignore since mypy reports that DatetimeIndex has no year/month
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year  # type: ignore
-                d["month"] = date_index.month  # type: ignore
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -628,7 +627,7 @@ class StataValueLabel:
 
     def generate_value_label(self, byteorder: str) -> bytes:
         """
-        Generate the binary representation of the value labals.
+        Generate the binary representation of the value labels.
 
         Parameters
         ----------
@@ -2133,7 +2132,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
         if not any(is_cat):
