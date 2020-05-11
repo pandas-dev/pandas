@@ -9,7 +9,8 @@ if TYPE_CHECKING:
 
 
 def operate_blockwise(left, right, array_op):
-    assert right._indexed_same(left)
+    # At this point we have already checked
+    #  assert right._indexed_same(left)
 
     res_blks: List["Block"] = []
     rmgr = right._mgr
@@ -72,6 +73,9 @@ def _get_same_shape_values(
     """
     lvals = lblk.values
     rvals = rblk.values
+
+    # Require that the indexing into lvals be slice-like
+    assert rblk.mgr_locs.is_slice_like, rblk.mgr_locs
 
     # TODO(EA2D): with 2D EAs pnly this first clause would be needed
     if not (left_ea or right_ea):

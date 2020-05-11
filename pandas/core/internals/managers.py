@@ -1247,6 +1247,7 @@ class BlockManager(PandasObject):
         fill_value : scalar, default lib.no_default
         only_slice : bool, default False
             If True, we always return views on existing arrays, never copies.
+            This is used when called from ops.blockwise.operate_blockwise.
 
         Returns
         -------
@@ -1271,14 +1272,24 @@ class BlockManager(PandasObject):
                 if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
 
-                return [
-                    blk.take_nd(
-                        slobj,
-                        axis=0,
-                        new_mgr_locs=slice(0, sllen),
-                        fill_value=fill_value,
-                    )
-                ]
+                if not allow_fill and only_slice:
+                    # GH#33597 slice instead of take, so we get
+                    #  views instead of copies
+                    blocks = []
+                    for i, ml in enumerate(slobj):
+                        nb = blk.getitem_block([ml], new_mgr_locs=i)
+                        print(nb.shape, np.values.shape)
+                        blocks.append(nb)
+                    return blocks
+                else:
+                    return [
+                        blk.take_nd(
+                            slobj,
+                            axis=0,
+                            new_mgr_locs=slice(0, sllen),
+                            fill_value=fill_value,
+                        )
+                    ]
 
         if sl_type in ("slice", "mask"):
             blknos = self.blknos[slobj]

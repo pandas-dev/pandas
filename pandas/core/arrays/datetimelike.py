@@ -95,6 +95,10 @@ def _datetimelike_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
+        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
+            # TODO: handle 2D-like listlikes
+            return op(self.ravel(), other.ravel()).reshape(self.shape)
+
         try:
             other = _validate_comparison_value(self, other)
         except InvalidComparison:
