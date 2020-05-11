@@ -85,9 +85,6 @@ def _datetimelike_array_cmp(cls, op):
         elif not is_list_like(other):
             raise InvalidComparison(other)
 
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
         else:
             try:
                 other = self._validate_listlike(other, opname, allow_object=True)
@@ -366,7 +363,7 @@ default 'raise'
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
-        if is_datetime64tz_dtype(self):
+        if is_datetime64tz_dtype(self.dtype):
             # operate on naive timestamps, then convert back to aware
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
@@ -1035,7 +1032,7 @@ class DatetimeLikeArrayMixin(
                     values = values.copy()
 
                 new_values = func(values, limit=limit, mask=mask)
-                if is_datetime64tz_dtype(self):
+                if is_datetime64tz_dtype(self.dtype):
                     # we need to pass int64 values to the constructor to avoid
                     #  re-localizing incorrectly
                     new_values = new_values.view("i8")
@@ -1230,9 +1227,6 @@ class DatetimeLikeArrayMixin(
         """
         # overridden by PeriodArray
 
-        if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
-
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
             from pandas.core.arrays import TimedeltaArray
@@ -1385,6 +1379,7 @@ class DatetimeLikeArrayMixin(
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
+        other_dtype = getattr(other, "dtype", None)
 
         # scalar others
         if other is NaT:
@@ -1404,16 +1399,16 @@ class DatetimeLikeArrayMixin(
             result = self._time_shift(other)
 
         # array-like others
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other_dtype):
             # TimedeltaIndex, ndarray[timedelta64]
             result = self._add_timedelta_arraylike(other)
-        elif is_object_dtype(other):
+        elif is_object_dtype(other_dtype):
             # e.g. Array/Index of DateOffset objects
             result = self._addsub_object_array(other, operator.add)
-        elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+        elif is_datetime64_dtype(other_dtype) or is_datetime64tz_dtype(other_dtype):
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
-        elif is_integer_dtype(other):
+        elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.add)
@@ -1425,7 +1420,7 @@ class DatetimeLikeArrayMixin(
             #  In remaining cases, this will end up raising TypeError.
             return NotImplemented
 
-        if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+        if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray(result)
@@ -1461,13 +1456,13 @@ class DatetimeLikeArrayMixin(
             result = self._sub_period(other)
 
         # array-like others
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other_dtype):
             # TimedeltaIndex, ndarray[timedelta64]
             result = self._add_timedelta_arraylike(-other)
-        elif is_object_dtype(other):
+        elif is_object_dtype(other_dtype):
             # e.g. Array/Index of DateOffset objects
             result = self._addsub_object_array(other, operator.sub)
-        elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+        elif is_datetime64_dtype(other_dtype) or is_datetime64tz_dtype(other_dtype):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
         elif is_period_dtype(other_dtype):
@@ -1481,14 +1476,16 @@ class DatetimeLikeArrayMixin(
             # Includes ExtensionArrays, float_dtype
             return NotImplemented
 
-        if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+        if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray(result)
         return result
 
     def __rsub__(self, other):
-        if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self.dtype):
+        other_dtype = getattr(other, "dtype", None)
+
+        if is_datetime64_any_dtype(other_dtype) and is_timedelta64_dtype(self.dtype):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
             if lib.is_scalar(other):
@@ -1510,7 +1507,7 @@ class DatetimeLikeArrayMixin(
             raise TypeError(
                 f"cannot subtract {type(self).__name__} from {type(other).__name__}"
             )
-        elif is_period_dtype(self.dtype) and is_timedelta64_dtype(other):
+        elif is_period_dtype(self.dtype) and is_timedelta64_dtype(other_dtype):
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif is_timedelta64_dtype(self.dtype):

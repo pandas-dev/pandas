@@ -3,6 +3,7 @@ __all__ = [
     "NaT",
     "NaTType",
     "iNaT",
+    "nat_strings",
     "is_null_datetimelike",
     "OutOfBoundsDatetime",
     "IncompatibleFrequency",
@@ -17,7 +18,7 @@ __all__ = [
 
 
 from .conversion import localize_pydatetime
-from .nattype import NaT, NaTType, iNaT, is_null_datetimelike
+from .nattype import NaT, NaTType, iNaT, is_null_datetimelike, nat_strings
 from .np_datetime import OutOfBoundsDatetime
 from .period import IncompatibleFrequency, Period
 from .timedeltas import Timedelta, delta_to_nanoseconds, ints_to_pytimedelta
