@@ -7,7 +7,6 @@ import pytest
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
 from pandas.tests.window.common import (
-    ConsistencyBase,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -18,7 +17,7 @@ from pandas.tests.window.common import (
 )
 
 
-class TestExpandingMomentsConsistency(ConsistencyBase):
+class TestExpandingMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 

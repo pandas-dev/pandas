@@ -7,7 +7,6 @@ from pandas import DataFrame, Series, concat
 import pandas._testing as tm
 from pandas.tests.window.common import (
     Base,
-    ConsistencyBase,
     check_binary_ew,
     check_binary_ew_min_periods,
     check_pairwise_moment,
@@ -275,7 +274,7 @@ class TestMoments(Base):
         assert result2.dtype == np.float_
 
 
-class TestEwmMomentsConsistency(ConsistencyBase):
+class TestEwmMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 

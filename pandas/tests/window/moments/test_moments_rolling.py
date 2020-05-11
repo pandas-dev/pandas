@@ -14,7 +14,6 @@ import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import (
     Base,
-    ConsistencyBase,
     check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
@@ -943,7 +942,7 @@ def _rolling_consistency_cases():
                 yield window, min_periods, center
 
 
-class TestRollingMomentsConsistency(ConsistencyBase):
+class TestRollingMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 

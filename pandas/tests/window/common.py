@@ -24,11 +24,6 @@ class Base:
         self.frame = DataFrame(randn(N, K), index=self.rng, columns=np.arange(K))
 
 
-class ConsistencyBase(Base):
-    def _create_data(self):
-        super()._create_data()
-
-
 def check_pairwise_moment(frame, dispatch, name, **kwargs):
     def get_result(obj, obj2=None):
         return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
