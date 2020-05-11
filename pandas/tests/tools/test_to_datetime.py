@@ -2402,3 +2402,8 @@ def test_na_to_datetime(nulls_fixture, klass):
     result = pd.to_datetime(klass([nulls_fixture]))
 
     assert result[0] is pd.NaT
+
+
+def test_none_to_datetime(nulls_fixture):
+    result = pd.to_datetime(nulls_fixture)
+    assert result is pd.NaT

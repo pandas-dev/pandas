@@ -7,7 +7,7 @@ from typing import List, Optional, TypeVar, Union
 import numpy as np
 
 from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs import Timestamp, conversion, parsing
+from pandas._libs.tslibs import Timestamp, conversion, parsing, NaT
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
@@ -716,7 +716,7 @@ def to_datetime(
 dtype='datetime64[ns]', freq=None)
     """
     if arg is None:
-        return None
+        return NaT
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)

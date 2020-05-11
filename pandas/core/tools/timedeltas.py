@@ -4,6 +4,7 @@ timedelta support tools
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
@@ -87,8 +88,8 @@ def to_timedelta(arg, unit="ns", errors="raise"):
             "represent unambiguous timedelta values durations."
         )
 
-    if arg is None:
-        return arg
+    if arg is None or arg is libmissing.NA:
+        return NaT
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)

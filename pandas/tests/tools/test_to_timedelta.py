@@ -155,3 +155,7 @@ class TestTimedeltas:
         result = pd.to_timedelta(arr, unit="s")
         expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
+
+    def test_none_to_timedelta(self, nulls_fixture):
+        result = pd.to_timedelta(nulls_fixture)
+        assert result is pd.NaT

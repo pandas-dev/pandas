@@ -687,6 +687,7 @@ Conversion
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 - Bug in :class:`Timedelta` construction with large nanoseconds keyword value (:issue:`32402`)
 - Bug in :class:`DataFrame` construction where sets would be duplicated rather than raising (:issue:`32582`)
+- Inconsistency in :func:`to_datetime` and :func:`to_timedelta` when converting null-like values (:issue:`23055`)
 
 Strings
 ^^^^^^^
