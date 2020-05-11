@@ -291,7 +291,9 @@ Returns
 
 See Also
 --------
-aggregate, transform
+%(klass)s.groupby.apply
+%(klass)s.groupby.aggregate
+%(klass)s.transform
 
 Notes
 -----
@@ -310,14 +312,17 @@ The current implementation imposes three requirements on f:
 * f must not mutate groups. Mutation is not supported and may
   produce unexpected results.
 
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+
 Examples
 --------
 
-# Same shape
 >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
 ...                           'foo', 'bar'],
 ...                    'B' : ['one', 'one', 'two', 'three',
-...                          'two', 'two'],
+...                           'two', 'two'],
 ...                    'C' : [1, 5, 5, 2, 5, 5],
 ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
 >>> grouped = df.groupby('A')
@@ -330,7 +335,8 @@ Examples
 4  0.577350 -0.577350
 5  0.577350  1.000000
 
-# Broadcastable
+Broadcast result of the transformation
+
 >>> grouped.transform(lambda x: x.max() - x.min())
    C    D
 0  4  6.0
@@ -339,6 +345,69 @@ Examples
 3  3  8.0
 4  4  6.0
 5  3  8.0
+"""
+
+_agg_template = """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list or dict
+    Function to use for aggregating the data. If a function, must either
+    work when passed a %(klass)s or when passed to %(klass)s.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - dict of axis labels -> functions, function names or list of such.
+
+    Can also accept a Numba JIT function with
+    ``engine='numba'`` specified.
+
+    If the ``'numba'`` engine is chosen, the function must be
+    a user defined function with ``values`` and ``index`` as the
+    first and second arguments respectively in the function signature.
+    Each group's index will be passed to the user defined function
+    and optionally available for use.
+
+    .. versionchanged:: 1.1.0
+*args
+    Positional arguments to pass to func
+engine : str, default 'cython'
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    Keyword arguments to be passed into func.
+
+Returns
+-------
+%(klass)s
+
+See Also
+--------
+%(klass)s.groupby.apply
+%(klass)s.groupby.transform
+%(klass)s.aggregate
+
+Notes
+-----
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+%(examples)s
 """
 
 
@@ -405,6 +474,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
+        dropna: bool = True,
     ):
 
         self._selection = selection
@@ -427,6 +497,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
+        self.dropna = dropna
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -439,6 +510,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
                 sort=sort,
                 observed=observed,
                 mutated=self.mutated,
+                dropna=self.dropna,
             )
 
         self.obj = obj
@@ -1574,15 +1646,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         0   2000-01-01 00:00:00  0  1
             2000-01-01 00:03:00  0  2
         5   2000-01-01 00:03:00  5  1
-
-        Add an offset of twenty seconds.
-
-        >>> df.groupby('a').resample('3T', loffset='20s').sum()
-                               a  b
-        a
-        0   2000-01-01 00:00:20  0  2
-            2000-01-01 00:03:20  0  1
-        5   2000-01-01 00:00:20  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
@@ -2580,6 +2643,7 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
+    dropna: bool = True,
 ) -> GroupBy:
 
     klass: Type[GroupBy]
@@ -2608,4 +2672,5 @@ def get_groupby(
         squeeze=squeeze,
         observed=observed,
         mutated=mutated,
+        dropna=dropna,
     )

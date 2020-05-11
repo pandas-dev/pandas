@@ -406,10 +406,8 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
             result = type_of_values(result)  # try to revert to original type otherwise
     except TypeError:
         raise TypeError(
-            "User-provided `key` function returned an invalid type {} \
-            which could not be converted to {}.".format(
-                type(result), type(values)
-            )
+            f"User-provided `key` function returned an invalid type {type(result)} \
+            which could not be converted to {type(values)}."
         )
 
     return result
