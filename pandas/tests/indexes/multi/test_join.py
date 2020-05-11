@@ -107,10 +107,9 @@ def test_join_multi_wrong_order():
 def test_join_multi_return_indexers():
     # GH 34074
 
+
     midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4], [5, 6]], names=["a", "b", "c"])
     midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
 
-    assert len(midx1.join(midx2,return_indexers=True)) == 3
-    assert len(midx1.join(midx2,return_indexers=False)) == 1
-    
-    
+    assert len(midx1.join(midx2, return_indexers=True)) == 3
+    assert len(midx1.join(midx2, return_indexers=False)) == 1
