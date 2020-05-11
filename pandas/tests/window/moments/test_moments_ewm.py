@@ -9,6 +9,7 @@ from pandas.tests.window.common import (
     Base,
     ConsistencyBase,
     check_binary_ew,
+    check_pairwise_moment,
     check_binary_ew_min_periods,
     ew_func,
     moments_consistency_cov_data,
@@ -279,10 +280,10 @@ class TestEwmMomentsConsistency(ConsistencyBase):
         self._create_data()
 
     def test_ewmcov_pairwise(self):
-        self._check_pairwise_moment("ewm", "cov", span=10, min_periods=5)
+        check_pairwise_moment(self.frame, "ewm", "cov", span=10, min_periods=5)
 
     def test_ewmcorr_pairwise(self):
-        self._check_pairwise_moment("ewm", "corr", span=10, min_periods=5)
+        check_pairwise_moment(self.frame, "ewm", "corr", span=10, min_periods=5)
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
