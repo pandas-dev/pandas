@@ -69,6 +69,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
 
+    @pytest.mark.xfail(reason="raises AssertionError")
+    def test_construct_empty_dataframe(self, dtype):
+        super().test_construct_empty_dataframe(dtype)
+
 
 class TestReduce(base.BaseNoReduceTests):
     def test_reduce_series_boolean(self):

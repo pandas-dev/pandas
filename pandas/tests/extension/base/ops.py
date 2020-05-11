@@ -139,10 +139,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
         if op_name == "__eq__":
-            assert getattr(data, op_name)(other) is NotImplemented
             assert not op(s, other).all()
         elif op_name == "__ne__":
-            assert getattr(data, op_name)(other) is NotImplemented
             assert op(s, other).all()
 
         else:
@@ -175,6 +173,12 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             assert result is NotImplemented
         else:
             raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+
+        if hasattr(data, "__ne__"):
+            result = data.__ne__(other)
+            assert result is NotImplemented
+        else:
+            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):
