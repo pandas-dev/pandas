@@ -6,7 +6,7 @@ from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, ndarray
 cnp.import_array()
 
 from cpython.datetime cimport (timedelta,
@@ -1469,7 +1469,7 @@ cdef _rfloordiv(int64_t value, right):
 
 cdef _broadcast_floordiv_td64(
     int64_t value,
-    object other,
+    ndarray other,
     object (*operation)(int64_t value, object right)
 ):
     """
@@ -1487,13 +1487,11 @@ cdef _broadcast_floordiv_td64(
     result : varies based on `other`
     """
     # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
-    cdef:
-        int ndim = getattr(other, 'ndim', -1)
 
     # We need to watch out for np.timedelta64('NaT').
     mask = other.view('i8') == NPY_NAT
 
-    if ndim == 0:
+    if other.ndim == 0:
         if mask:
             return np.nan
 
