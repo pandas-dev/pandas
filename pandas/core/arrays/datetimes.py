@@ -631,7 +631,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _assert_tzawareness_compat(self, other):
         # adapted from _Timestamp._assert_tzawareness_compat
         other_tz = getattr(other, "tzinfo", None)
-        if is_datetime64tz_dtype(other):
+        other_dtype = getattr(other, "dtype", None)
+
+        if is_datetime64tz_dtype(other_dtype):
             # Get tzinfo from Series dtype
             other_tz = other.dtype.tz
         if other is NaT:
@@ -1913,8 +1915,9 @@ def sequence_to_dt64ns(
 
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy)
+    data_dtype = getattr(data, "dtype", None)
 
-    if is_object_dtype(data) or is_string_dtype(data):
+    if is_object_dtype(data_dtype) or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
@@ -1927,15 +1930,16 @@ def sequence_to_dt64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
             tz = maybe_infer_tz(tz, inferred_tz)
+        data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
-    if is_datetime64tz_dtype(data):
+    if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
         tz = maybe_infer_tz(tz, data.tz)
         result = data._data
 
-    elif is_datetime64_dtype(data):
+    elif is_datetime64_dtype(data_dtype):
         # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_data", data)
         if data.dtype != DT64NS_DTYPE:
