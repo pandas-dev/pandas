@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
 from pandas.tests.window.common import (
+    Base,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
