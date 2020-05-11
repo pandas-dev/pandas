@@ -2714,7 +2714,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)

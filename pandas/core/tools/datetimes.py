@@ -290,8 +290,9 @@ def _convert_listlike_datetimes(
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
 
+    arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
-    if is_datetime64tz_dtype(arg):
+    if is_datetime64tz_dtype(arg_dtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
@@ -300,7 +301,7 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
         return arg
 
-    elif is_datetime64_ns_dtype(arg):
+    elif is_datetime64_ns_dtype(arg_dtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             try:
                 return DatetimeIndex(arg, tz=tz, name=name)

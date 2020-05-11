@@ -23,7 +23,7 @@ def test_unique(index_or_series_obj):
         tm.assert_index_equal(result, expected)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj):
+        if is_datetime64tz_dtype(obj.dtype):
             expected = expected.normalize()
         tm.assert_index_equal(result, expected)
     else:
@@ -61,7 +61,7 @@ def test_unique_null(null_obj, index_or_series_obj):
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj):
+        if is_datetime64tz_dtype(obj.dtype):
             result = result.normalize()
             expected = expected.normalize()
         elif isinstance(obj, pd.CategoricalIndex):
