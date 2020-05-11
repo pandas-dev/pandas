@@ -132,7 +132,7 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     """
     Return the result of evaluating op on the passed in values.
 
-    If native types are not compatible, try coersion to object dtype.
+    If native types are not compatible, try coercion to object dtype.
 
     Parameters
     ----------
@@ -185,7 +185,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
@@ -322,7 +322,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
     """
     fill_int = lambda x: x
 

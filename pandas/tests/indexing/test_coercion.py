@@ -31,8 +31,7 @@ def check_comprehensiveness(request):
 
     for combo in combos:
         if not has_test(combo):
-            msg = "test method is not defined: {0}, {1}"
-            raise AssertionError(msg.format(cls.__name__, combo))
+            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
 
     yield
 
@@ -102,14 +101,15 @@ class TestSetitemCoercion(CoercionBase):
         "val,exp_dtype",
         [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, np.object)],
     )
-    def test_setitem_series_int64(self, val, exp_dtype):
+    def test_setitem_series_int64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
         if exp_dtype is np.float64:
             exp = pd.Series([1, 1, 3, 4])
             self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
-            pytest.xfail("GH12747 The result must be float")
+            mark = pytest.mark.xfail(reason="GH12747 The result must be float")
+            request.node.add_marker(mark)
 
         exp = pd.Series([1, val, 3, 4])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
@@ -117,14 +117,17 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
     )
-    def test_setitem_series_int8(self, val, exp_dtype):
+    def test_setitem_series_int8(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
         assert obj.dtype == np.int8
 
         if exp_dtype is np.int16:
             exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
             self._assert_setitem_series_conversion(obj, val, exp, np.int8)
-            pytest.xfail("BUG: it must be Series([1, 1, 3, 4], dtype=np.int16")
+            mark = pytest.mark.xfail(
+                reason="BUG: it must be Series([1, 1, 3, 4], dtype=np.int16"
+            )
+            request.node.add_marker(mark)
 
         exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
@@ -171,22 +174,25 @@ class TestSetitemCoercion(CoercionBase):
             (True, np.bool),
         ],
     )
-    def test_setitem_series_bool(self, val, exp_dtype):
+    def test_setitem_series_bool(self, val, exp_dtype, request):
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool
 
+        mark = None
         if exp_dtype is np.int64:
             exp = pd.Series([True, True, True, False])
             self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be int")
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be int")
         elif exp_dtype is np.float64:
             exp = pd.Series([True, True, True, False])
             self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be float")
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
         elif exp_dtype is np.complex128:
             exp = pd.Series([True, True, True, False])
             self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be complex")
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be complex")
+        if mark is not None:
+            request.node.add_marker(mark)
 
         exp = pd.Series([True, val, True, False])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
@@ -318,7 +324,7 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype", [(5, IndexError), (5.1, np.float64), ("x", np.object)]
     )
-    def test_setitem_index_float64(self, val, exp_dtype):
+    def test_setitem_index_float64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
         assert obj.index.dtype == np.float64
 
@@ -327,31 +333,31 @@ class TestSetitemCoercion(CoercionBase):
             temp = obj.copy()
             with pytest.raises(exp_dtype):
                 temp[5] = 5
-            pytest.xfail("TODO_GH12747 The result must be float")
-
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
+            request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     def test_setitem_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_datetime64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_datetime64tz(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestInsertIndexCoercion(CoercionBase):
@@ -503,10 +509,10 @@ class TestInsertIndexCoercion(CoercionBase):
                 pd.Index(data, freq="M")
 
     def test_insert_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_insert_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestWhereCoercion(CoercionBase):
@@ -757,16 +763,16 @@ class TestWhereCoercion(CoercionBase):
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     def test_where_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_series_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     @pytest.mark.parametrize(
         "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
@@ -818,7 +824,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
     method = "fillna"
 
     def test_has_comprehensive_tests(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """ test coercion triggered by fillna """
@@ -943,28 +949,28 @@ class TestFillnaSeriesCoercion(CoercionBase):
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     def test_fillna_series_int64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_int64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
@@ -1121,4 +1127,4 @@ class TestReplaceSeriesCoercion(CoercionBase):
         tm.assert_series_equal(result, exp)
 
     def test_replace_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")

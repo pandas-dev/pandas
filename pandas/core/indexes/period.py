@@ -70,7 +70,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "freq", "freqstr", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -473,7 +473,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         Parameters
         ----------
         key : Period, NaT, str, or datetime
-            String or datetime key must be parseable as Period.
+            String or datetime key must be parsable as Period.
 
         Returns
         -------
@@ -668,10 +668,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
-            # TODO: fastpath for if we have a different PeriodDtype
-            this = self.astype("O")
-            other = other.astype("O")
+        elif is_object_dtype(other.dtype):
+            return self.astype("O").intersection(other, sort=sort)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            # We can infer that the intersection is empty.
+            # assert_can_do_setop ensures that this is not just a mismatched freq
+            this = self[:0].astype("O")
+            other = other[:0].astype("O")
             return this.intersection(other, sort=sort)
 
         return self._setop(other, sort, opname="intersection")

@@ -134,7 +134,7 @@ def _map_stringarray(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     """
-    Map a callable over valid elements of a StringArrray.
+    Map a callable over valid elements of a StringArray.
 
     Parameters
     ----------
@@ -2008,11 +2008,11 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs,
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
-        result = _na_map(f, self._parent, **kargs)
+        result = _na_map(f, self._parent, **kwargs)
         return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
@@ -2092,7 +2092,7 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data)
+        self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = data.dtype.name == "string"
 
         # ._values.categories works for both Series/Index
@@ -2321,7 +2321,7 @@ class StringMethods(NoNewAttributesMixin):
             elif all(not is_list_like(x) for x in others):
                 return [Series(others, index=idx)]
         raise TypeError(
-            "others must be Series, Index, DataFrame, np.ndarrary "
+            "others must be Series, Index, DataFrame, np.ndarray "
             "or list-like (either containing only strings or "
             "containing only objects of type Series/Index/"
             "np.ndarray[1-dim])"
