@@ -1,5 +1,5 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
