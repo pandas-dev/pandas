@@ -8,12 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_object_dtype,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import _factorize_array, take
@@ -161,9 +156,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = np.dtype(object)
-        else:
-            dtype = pandas_dtype(dtype)
+            dtype = object
         if self._hasna:
             if (
                 not (is_object_dtype(dtype) or is_string_dtype(dtype))

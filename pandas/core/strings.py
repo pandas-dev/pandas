@@ -74,11 +74,11 @@ def cat_core(list_of_columns: List, sep: str):
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        arr_of_cols = np.asarray(list_of_columns, dtype=np.dtype(object))
+        arr_of_cols = np.asarray(list_of_columns, dtype=object)
         return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    arr_with_sep = np.asarray(list_with_sep, dtype=np.dtype(object))
+    arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
 
 
@@ -207,7 +207,7 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=np.dtype(object)):
     if isinstance(arr, ABCSeries):
         arr = arr._values  # TODO: extract_array?
     if not isinstance(arr, np.ndarray):
-        arr = np.asarray(arr, dtype=np.dtype(object))
+        arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
         convert = not np.all(mask)
@@ -782,7 +782,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return str.__mul__(x, r)
 
-        repeats = np.asarray(repeats, dtype=np.dtype(object))
+        repeats = np.asarray(repeats, dtype=object)
         result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
@@ -921,7 +921,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     groups_or_na = _groups_or_na_fun(regex)
 
     if regex.groups == 1:
-        result = np.array([groups_or_na(val)[0] for val in arr], dtype=np.dtype(object))
+        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
     else:
         if isinstance(arr, ABCIndexClass):
@@ -930,7 +930,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.empty:
-            result = DataFrame(columns=columns, dtype=np.dtype(object))
+            result = DataFrame(columns=columns, dtype=object)
         else:
             dtype = _result_dtype(arr)
             result = DataFrame(
@@ -957,7 +957,7 @@ def _str_extract_frame(arr, pat, flags=0):
     columns = [names.get(1 + i, i) for i in range(regex.groups)]
 
     if len(arr) == 0:
-        return DataFrame(columns=columns, dtype=np.dtype(object))
+        return DataFrame(columns=columns, dtype=object)
     try:
         result_index = arr.index
     except AttributeError:
@@ -2513,7 +2513,7 @@ class StringMethods(NoNewAttributesMixin):
         if na_rep is None and union_mask.any():
             # no na_rep means NaNs for all rows where any column has a NaN
             # only necessary if there are actually any NaNs
-            result = np.empty(len(data), dtype=np.dtype(object))
+            result = np.empty(len(data), dtype=object)
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
@@ -2530,7 +2530,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
-            result = Index(result, dtype=np.dtype(object), name=self._orig.name)
+            result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
