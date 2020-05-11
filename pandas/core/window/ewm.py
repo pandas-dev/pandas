@@ -250,7 +250,7 @@ class EWM(_Rolling):
 
         return self._wrap_results(results, block_list, obj, exclude)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
@@ -264,7 +264,7 @@ class EWM(_Rolling):
         nv.validate_window_func("mean", args, kwargs)
         return self._apply("ewma", **kwargs)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="std")
     @Appender(_doc_template)
     @Appender(_bias_template)
     def std(self, bias=False, *args, **kwargs):
@@ -276,7 +276,7 @@ class EWM(_Rolling):
 
     vol = std
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)
     @Appender(_bias_template)
     def var(self, bias=False, *args, **kwargs):
@@ -298,7 +298,7 @@ class EWM(_Rolling):
 
         return self._apply(f, **kwargs)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
         """
@@ -345,7 +345,7 @@ class EWM(_Rolling):
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="corr")
     @Appender(_doc_template)
     def corr(self, other=None, pairwise=None, **kwargs):
         """

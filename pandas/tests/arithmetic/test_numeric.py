@@ -647,7 +647,7 @@ class TestMultiplicationDivision:
 
     def test_mul_size_mismatch_raises(self, numeric_idx):
         idx = numeric_idx
-        msg = "operands could not be broadcast together"
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             idx * idx[0:3]
         with pytest.raises(ValueError, match=msg):
@@ -919,6 +919,8 @@ class TestAdditionSubtraction:
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
+            if isinstance(other, Series) and not other.index.equals(series.index):
+                python.index = python.index._with_freq(None)
             tm.assert_series_equal(cython_or_numpy, python)
 
         def check(series, other):
