@@ -23,7 +23,7 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS
 
 from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
@@ -277,10 +277,10 @@ cpdef inline object precision_from_unit(str unit):
         m = 1000000000 * 2629746
         p = 9
     elif unit == 'W':
-        m = 1000000000 * DAY_SECONDS * 7
+        m = DAY_NANOS * 7
         p = 9
     elif unit == 'D' or unit == 'd':
-        m = 1000000000 * DAY_SECONDS
+        m = DAY_NANOS
         p = 9
     elif unit == 'h':
         m = 1000000000 * 3600

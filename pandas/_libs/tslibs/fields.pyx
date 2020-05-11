@@ -12,8 +12,10 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import (
-    get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS)
+    get_locale_names, MONTHS_FULL, DAYS_FULL,
+)
 from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
     get_day_of_year, get_iso_calendar, iso_calendar_t)
 from pandas._libs.tslibs.np_datetime cimport (
@@ -38,7 +40,7 @@ def get_time_micros(const int64_t[:] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, DAY_SECONDS * 1_000_000_000, dtype=np.int64)
+    micros = np.mod(dtindex, DAY_NANOS, dtype=np.int64)
     micros //= 1000
     return micros
 
