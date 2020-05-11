@@ -180,9 +180,7 @@ class GroupbyRollingIndexer(BaseIndexer):
         index_array: Optional[np.ndarray] = None,
         window_size: int = 0,
         groupby_indicies: Optional[Dict] = None,
-        rolling_indexer: Optional[
-            Union[FixedWindowIndexer, VariableWindowIndexer]
-        ] = None,
+        rolling_indexer=None,
         **kwargs,
     ):
         """

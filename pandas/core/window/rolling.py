@@ -2087,19 +2087,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     Provide a rolling groupby implementation.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.is_freq_type:
-            rolling_indexer = VariableWindowIndexer
-        else:
-            rolling_indexer = FixedWindowIndexer
-        window = GroupbyRollingIndexer(
-            window_size=self.window,
-            groupby_indicies=self._groupby.indices,
-            rolling_indexer=rolling_indexer,
-        )
-        self.window = window
-
     def _apply(
         self,
         func: Callable,
@@ -2144,6 +2131,21 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     @property
     def _constructor(self):
         return Rolling
+
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        if self.is_freq_type:
+            rolling_indexer = VariableWindowIndexer
+        else:
+            rolling_indexer = FixedWindowIndexer
+        window_indexer = GroupbyRollingIndexer(
+            window_size=window,
+            groupby_indicies=self._groupby.indices,
+            rolling_indexer=rolling_indexer,
+        )
+        return window_indexer
 
     def _gotitem(self, key, ndim, subset=None):
 
