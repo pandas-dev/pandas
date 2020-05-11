@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
 
@@ -43,7 +43,7 @@ def test_unique_null(null_obj, index_or_series_obj):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values
-    if needs_i8_conversion(obj):
+    if needs_i8_conversion(obj.dtype):
         values[0:2] = iNaT
     else:
         values[0:2] = null_obj
@@ -89,7 +89,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values
-    if needs_i8_conversion(obj):
+    if needs_i8_conversion(obj.dtype):
         values[0:2] = iNaT
     else:
         values[0:2] = null_obj

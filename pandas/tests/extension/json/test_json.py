@@ -150,6 +150,21 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # construct from our dtype & string dtype
         pass
 
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
+        super().test_series_constructor_scalar_with_index(data, dtype)
+
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.skip(reason="Different definitions of NA")
@@ -246,6 +261,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_equals(self, data, na_value, as_series):
+        pass
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

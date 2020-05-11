@@ -232,8 +232,9 @@ class TestArithmeticOps(BaseOpsUtil):
         result = opa(pd.DataFrame({"A": s}))
         assert result is NotImplemented
 
-        msg = r"can only perform ops with 1-d structures"
-        with pytest.raises(NotImplementedError, match=msg):
+        # msg = r"can only perform ops with 1-d structures"
+        msg = "Lengths must match"
+        with pytest.raises(ValueError, match=msg):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
     @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])

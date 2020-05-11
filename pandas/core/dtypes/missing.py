@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
+    is_categorical_dtype,
     is_complex_dtype,
     is_datetimelike_v_numeric,
     is_dtype_equal,
@@ -209,8 +210,8 @@ def _isna_ndarraylike(obj, inf_as_na: bool = False):
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
-        if inf_as_na:
-            result = values.isna() | (values == -np.inf) | (values == np.inf)
+        if inf_as_na and is_categorical_dtype(dtype):
+            result = libmissing.isnaobj_old(values.to_numpy())
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
@@ -424,7 +425,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
         return True
 
     # NaNs can occur in float and complex arrays.
-    if is_float_dtype(left) or is_complex_dtype(left):
+    if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
 
         # empty
         if not (np.prod(left.shape) and np.prod(right.shape)):
@@ -435,7 +436,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
         # GH#29553 avoid numpy deprecation warning
         return False
 
-    elif needs_i8_conversion(left) or needs_i8_conversion(right):
+    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # datetime64, timedelta64, Period
         if not is_dtype_equal(left.dtype, right.dtype):
             return False
@@ -460,7 +461,7 @@ def _infer_fill_value(val):
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
-    if needs_i8_conversion(val):
+    if needs_i8_conversion(val.dtype):
         return np.array("NaT", dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
