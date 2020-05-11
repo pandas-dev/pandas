@@ -2072,8 +2072,9 @@ class MultiIndex(Index):
             except KeyError:
                 if errors != "ignore":
                     raise
-
-        return self.delete(inds)
+        inds = self.delete(inds)
+        dropped = inds.remove_unused_levels()
+        return dropped
 
     def _drop_from_level(self, codes, level, errors="raise"):
         codes = com.index_labels_to_array(codes)
