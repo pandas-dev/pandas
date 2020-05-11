@@ -216,10 +216,9 @@ by some other columns. A box plot is a method for graphically depicting
 groups of numerical data through their quartiles.
 The box extends from the Q1 to Q3 quartile values of the data,
 with a line at the median (Q2). The whiskers extend from the edges
-of box to show the range of the data. By default, they extend up to
-`1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, or to the farthest
-data point if it lies within this interval.
-Outlier points are those past the end of the whiskers.
+of box to show the range of the data. By default, they extend no more than
+`1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
+data point within that interval. Outliers are plotted as separate dots.
 
 For further details see
 Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
