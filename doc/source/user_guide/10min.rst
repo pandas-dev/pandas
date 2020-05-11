@@ -664,7 +664,7 @@ Convert the raw grades to a categorical data type.
     df["grade"]
 
 Rename the categories to more meaningful names (assigning to
-:meth:`Series.cat.categories` is inplace!).
+:meth:`Series.cat.categories` is in place!).
 
 .. ipython:: python
 

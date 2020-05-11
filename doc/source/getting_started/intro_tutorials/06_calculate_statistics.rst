@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -72,7 +72,7 @@ Aggregating statistics
     <ul class="task-bullet">
         <li>
 
-What is the average age of the titanic passengers?
+What is the average age of the Titanic passengers?
 
 .. ipython:: python
 
@@ -95,7 +95,7 @@ across rows by default.
     <ul class="task-bullet">
         <li>
 
-What is the median age and ticket fare price of the titanic passengers?
+What is the median age and ticket fare price of the Titanic passengers?
 
 .. ipython:: python
 
@@ -148,7 +148,7 @@ Aggregating statistics grouped by category
     <ul class="task-bullet">
         <li>
 
-What is the average age for male versus female titanic passengers?
+What is the average age for male versus female Titanic passengers?
 
 .. ipython:: python
 

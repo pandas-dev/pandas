@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -102,7 +102,7 @@ Create a new column ``Surname`` that contains the surname of the Passengers by e
 
 Using the :meth:`Series.str.split` method, each of the values is returned as a list of
 2 elements. The first element is the part before the comma and the
-second element the part after the comma.
+second element is the part after the comma.
 
 .. ipython:: python
 
@@ -135,7 +135,7 @@ More information on extracting parts of strings is available in the user guide s
     <ul class="task-bullet">
         <li>
 
-Extract the passenger data about the Countess on board of the Titanic.
+Extract the passenger data about the Countesses on board of the Titanic.
 
 .. ipython:: python
 
@@ -145,15 +145,15 @@ Extract the passenger data about the Countess on board of the Titanic.
 
     titanic[titanic["Name"].str.contains("Countess")]
 
-(*Interested in her story? See*\ `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
+(*Interested in her story? See *\ `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
 
 The string method :meth:`Series.str.contains` checks for each of the values in the
 column ``Name`` if the string contains the word ``Countess`` and returns
 for each of the values ``True`` (``Countess`` is part of the name) of
-``False`` (``Countess`` is notpart of the name). This output can be used
+``False`` (``Countess`` is not part of the name). This output can be used
 to subselect the data using conditional (boolean) indexing introduced in
 the :ref:`subsetting of data tutorial <10min_tut_03_subset>`. As there was
-only 1 Countess on the Titanic, we get one row as a result.
+only one Countess on the Titanic, we get one row as a result.
 
 .. raw:: html
 
@@ -161,8 +161,8 @@ only 1 Countess on the Titanic, we get one row as a result.
     </ul>
 
 .. note::
-    More powerful extractions on strings is supported, as the
-    :meth:`Series.str.contains` and :meth:`Series.str.extract` methods accepts `regular
+    More powerful extractions on strings are supported, as the
+    :meth:`Series.str.contains` and :meth:`Series.str.extract` methods accept `regular
     expressions <https://docs.python.org/3/library/re.html>`__, but out of
     scope of this tutorial.
 
@@ -182,7 +182,7 @@ More information on extracting parts of strings is available in the user guide s
     <ul class="task-bullet">
         <li>
 
-Which passenger of the titanic has the longest name?
+Which passenger of the Titanic has the longest name?
 
 .. ipython:: python
 
@@ -220,7 +220,7 @@ we can do a selection using the ``loc`` operator, introduced in the
     <ul class="task-bullet">
         <li>
 
-In the ‘Sex’ columns, replace values of ‘male’ by ‘M’ and all ‘female’ values by ‘F’
+In the "Sex" column, replace values of "male" by "M" and values of "female" by "F"
 
 .. ipython:: python
 

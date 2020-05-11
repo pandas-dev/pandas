@@ -330,7 +330,7 @@ When using the column names, row labels or a condition expression, use
 the ``loc`` operator in front of the selection brackets ``[]``. For both
 the part before and after the comma, you can use a single label, a list
 of labels, a slice of labels, a conditional expression or a colon. Using
-a colon specificies you want to select all rows or columns.
+a colon specifies you want to select all rows or columns.
 
 .. raw:: html
 
