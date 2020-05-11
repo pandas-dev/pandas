@@ -18,6 +18,7 @@ from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -405,8 +406,8 @@ class BaseGrouper:
 
         Parameters
         ----------
-        kind : sttr
-        how : srt
+        kind : str
+        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -460,12 +461,12 @@ class BaseGrouper:
         # are not setup for dim transforming
         if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
+        elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
                     f"datetime64 type does not support {how} operations"
                 )
-        elif is_timedelta64_dtype(values):
+        elif is_timedelta64_dtype(values.dtype):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
                     f"timedelta64 type does not support {how} operations"
@@ -548,17 +549,6 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -581,6 +571,9 @@ class BaseGrouper:
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
+
+        if is_extension_array_dtype(orig_values.dtype):
+            result = maybe_cast_result(result=result, obj=orig_values, how=how)
 
         return result, names
 
@@ -643,7 +636,7 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
@@ -895,7 +888,7 @@ class BinGrouper(BaseGrouper):
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
+            # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]
