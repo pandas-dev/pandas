@@ -14,10 +14,47 @@ if TYPE_CHECKING:
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
+    """
+    Make string of specified length, padding to the right if necessary.
+
+    Parameters
+    ----------
+    s : Union[str, Dtype]
+        String to be formatted.
+    space : int
+        Length to force string to be of.
+
+    Returns
+    -------
+    str
+        String coerced to given length.
+
+    Examples
+    --------
+    >>> pd.io.formats.info._put_str("panda", 6)
+    'panda '
+    >>> pd.io.formats.info._put_str("panda", 4)
+    'pand'
+    """
     return str(s)[:space].ljust(space)
 
 
 def _get_ids_and_dtypes(data: FrameOrSeries) -> Tuple["Index", "Series"]:
+    """
+    Get DataFrame's columns and dtypes.
+
+    Parameters
+    ----------
+    data : DataFrame
+        Object that `info` was called on.
+
+    Returns
+    -------
+    ids : Index
+        DataFrame's columns.
+    dtypes : Series
+        Dtype of each of the DataFrame's columns.
+    """
     ids = data.columns
     dtypes = data.dtypes
     return ids, dtypes
