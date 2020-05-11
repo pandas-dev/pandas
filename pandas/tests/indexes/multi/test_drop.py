@@ -140,16 +140,19 @@ def test_drop_not_lexsorted():
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
 
+
 def test_drop_index_update_level():
     # GH 34097
 
     # create df with multiindex
-    df = pd.DataFrame(np.arange(16).reshape(4, 4),
-                      index=pd.MultiIndex.from_arrays([list("AABB"), list("XYXY")]),
-                      columns=list("abcd"))
+    df = pd.DataFrame(
+        np.arange(16).reshape(4, 4),
+        index=pd.MultiIndex.from_arrays([list("AABB"), list("XYXY")]),
+        columns=list("abcd"),
+    )
     # drop one of the level-0 indices
     result = df.drop(index="A").index
-    expected = pd.MultiIndex.from_arrays([list('BB'), list('XY')])
+    expected = pd.MultiIndex.from_arrays([list("BB"), list("XY")])
 
     # check whether dropped level-0 index is found in levels and codes
     tm.assert_index_equal(result, expected)
