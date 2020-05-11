@@ -1079,10 +1079,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     deleted_items.append(locs)
                     continue
                 else:
-                    # Ensure result is DataFrame-like type
-                    if not isinstance(result, DataFrame):
-                        result = cast(DataFrame, result)
-
+                    result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
                     if len(result._mgr.blocks) != 1:
                         # We've split an object block! Everything we've assumed
