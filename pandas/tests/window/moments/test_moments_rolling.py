@@ -954,9 +954,6 @@ class TestRollingMomentsConsistency(Base):
         result = A.rolling(window=50, min_periods=25).cov(B)
         tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
-    def test_rolling_cov_pairwise(self):
-        check_pairwise_moment(self.frame, "rolling", "cov", window=10, min_periods=5)
-
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
@@ -973,8 +970,9 @@ class TestRollingMomentsConsistency(Base):
         result = a.rolling(window=len(a), min_periods=1).corr(b)
         tm.assert_almost_equal(result[-1], a.corr(b))
 
-    def test_rolling_corr_pairwise(self):
-        check_pairwise_moment(self.frame, "rolling", "corr", window=10, min_periods=5)
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_rolling_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "rolling", func, window=10, min_periods=5)
 
     @pytest.mark.parametrize("method", ["corr", "cov"])
     def test_flex_binary_frame(self, method):

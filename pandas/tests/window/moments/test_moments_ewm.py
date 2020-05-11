@@ -278,11 +278,9 @@ class TestEwmMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 
-    def test_ewmcov_pairwise(self):
-        check_pairwise_moment(self.frame, "ewm", "cov", span=10, min_periods=5)
-
-    def test_ewmcorr_pairwise(self):
-        check_pairwise_moment(self.frame, "ewm", "corr", span=10, min_periods=5)
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_ewm_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "ewm", func, span=10, min_periods=5)
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
