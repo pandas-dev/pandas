@@ -485,7 +485,7 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
+            values = ensure_int_or_float(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition

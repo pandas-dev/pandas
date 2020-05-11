@@ -312,12 +312,14 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
-    d = {
-        (np.dtype(np.bool), "add"): np.dtype(np.int64),
-        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
-        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-    }
-    return d.get((dtype, how), dtype)
+    from pandas.core.arrays.boolean import BooleanDtype
+    from pandas.core.arrays.integer import Int64Dtype
+
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+        return np.dtype(np.int64)
+    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
+        return Int64Dtype()
+    return dtype
 
 
 def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
