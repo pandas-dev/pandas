@@ -20,6 +20,7 @@ from pandas.core.frame import DataFrame, Series
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
+    CategoricalConversionWarning,
     InvalidColumnName,
     PossiblePrecisionLoss,
     StataMissingValue,
@@ -1923,3 +1924,34 @@ def test_compression_dict(method, file_ext):
             fp = path
         reread = read_stata(fp, index_col="index")
         tm.assert_frame_equal(reread, df)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+def test_chunked_categorical(version):
+    df = DataFrame({"cats": Series(["a", "b", "a", "b", "c"], dtype="category")})
+    df.index.name = "index"
+    with tm.ensure_clean() as path:
+        df.to_stata(path, version=version)
+        reader = StataReader(path, chunksize=2, order_categoricals=False)
+        for i, block in enumerate(reader):
+            block = block.set_index("index")
+            assert "cats" in block
+            tm.assert_series_equal(block.cats, df.cats.iloc[2 * i : 2 * (i + 1)])
+
+
+def test_chunked_categorical_partial(dirpath):
+    dta_file = os.path.join(dirpath, "stata-dta-partially-labeled.dta")
+    reader = StataReader(dta_file, chunksize=2)
+    values = ["a", "b", "a", "b", 3.0]
+    with pytest.warns(CategoricalConversionWarning, match="One or more series"):
+        for i, block in enumerate(reader):
+            assert list(block.cats) == values[2 * i : 2 * (i + 1)]
+            if i < 2:
+                idx = pd.Index(["a", "b"])
+            else:
+                idx = pd.Float64Index([3.0])
+            tm.assert_index_equal(block.cats.cat.categories, idx)
+    reader = StataReader(dta_file, chunksize=5)
+    large_chunk = reader.__next__()
+    direct = read_stata(dta_file)
+    tm.assert_frame_equal(direct, large_chunk)

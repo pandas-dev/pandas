@@ -497,6 +497,21 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
+class CategoricalConversionWarning(Warning):
+    pass
+
+
+categorical_conversion_warning = """
+One or more series with value labels are not fully labeled. Reading this
+dataset with an iterator results in categorical variable with different
+categories. This occurs since it is not possible to know all possible values
+until the entire dataset has been read. To avoid this warning, you can either
+read dataset without an interator, or manually convert categorical data by
+``convert_categoricals`` to False and then accessing the variable labels
+through the value_labels method of the reader.
+"""
+
+
 def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     """
     Checks the dtypes of the columns of a pandas DataFrame for
@@ -1753,8 +1768,8 @@ the string values returned are correct."""
 
         return data[columns]
 
-    @staticmethod
     def _do_convert_categoricals(
+        self,
         data: DataFrame,
         value_label_dict: Dict[str, Dict[Union[float, int], str]],
         lbllist: Sequence[str],
@@ -1768,14 +1783,36 @@ the string values returned are correct."""
         for col, label in zip(data, lbllist):
             if label in value_labels:
                 # Explicit call with ordered=True
-                cat_data = Categorical(data[col], ordered=order_categoricals)
-                categories = []
-                for category in cat_data.categories:
-                    if category in value_label_dict[label]:
-                        categories.append(value_label_dict[label][category])
-                    else:
-                        categories.append(category)  # Partially labeled
+                vl = value_label_dict[label]
+                keys = np.array([k for k in vl.keys()])
+                column = data[col]
+                if column.isin(keys).all() and self._chunksize:
+                    # If all categories are in the keys and we are iterating,
+                    # use the same keys for all chunks. If some are missing
+                    # value labels, then we will fall back to the categories
+                    # varying across chunks.
+                    initial_categories = keys
+                    warnings.warn(
+                        categorical_conversion_warning, CategoricalConversionWarning
+                    )
+                else:
+                    initial_categories = None
+                cat_data = Categorical(
+                    column, categories=initial_categories, ordered=order_categoricals
+                )
+                if initial_categories is None:
+                    # If None here, then we need to match the cats in the Categorical
+                    categories = []
+                    for category in cat_data.categories:
+                        if category in vl:
+                            categories.append(vl[category])
+                        else:
+                            categories.append(category)
+                else:
+                    # If all cats are matched, we can use the values
+                    categories = [v for v in vl.values()]
                 try:
+                    # Try to catch duplicate categories
                     cat_data.categories = categories
                 except ValueError as err:
                     vc = Series(categories).value_counts()
