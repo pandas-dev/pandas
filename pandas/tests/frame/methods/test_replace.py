@@ -1364,17 +1364,6 @@ class TestDataFrameReplace:
         expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_invalid_to_replace(self):
-        # GH 18634
-        # API: replace() should raise an exception if invalid argument is given
-        df = pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]})
-        msg = (
-            r"Expecting 'to_replace' to be either a scalar, array-like, "
-            r"dict or None, got invalid type.*"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df.replace(lambda x: x.strip())
-
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
     def test_replace_no_replacement_dtypes(self, dtype, value):
