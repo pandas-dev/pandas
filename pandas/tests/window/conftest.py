@@ -226,7 +226,7 @@ def _create_consistency_data():
         ] + [DataFrame(s) for s in create_series()]
 
     def is_constant(x):
-        values = x.values.ravel()
+        values = x.values.ravel("K")
         return len(set(values[notna(values)])) == 1
 
     def no_nans(x):
