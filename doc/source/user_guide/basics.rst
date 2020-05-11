@@ -2386,7 +2386,7 @@ For example, to select ``bool`` columns:
    df.select_dtypes(include=[bool])
 
 You can also pass the name of a dtype in the `NumPy dtype hierarchy
-<https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
+<https://numpy.org/doc/stable/reference/arrays.scalars.html>`__:
 
 .. ipython:: python
 
