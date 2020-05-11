@@ -103,3 +103,14 @@ def test_join_multi_wrong_order():
     tm.assert_index_equal(midx1, join_idx)
     assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+def test_join_multi_return_indexers():
+    # GH 34074
+
+    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4], [5, 6]], names=["a", "b", "c"])
+    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+
+    assert len(midx1.join(midx2,return_indexers=True)) == 3
+    assert len(midx1.join(midx2,return_indexers=False)) == 1
+    
+    
