@@ -7,10 +7,11 @@ environment to use pandas. Other installation options can be found in
 the [advanced installation page]({{ base_url}}/docs/getting_started/install.html).
 
 1. Download [Anaconda](https://www.anaconda.com/distribution/) for your operating system and
-   the latest Python version, run the installer, and follow the steps.
+   the latest Python version, run the installer, and follow the steps. Please note:
 
-    When asked if you wish to initialize Anaconda3, answer yes.
-    Restart the terminal after completing the installation.
+    - It is not needed (and discouraged) to install Anaconda as root or administrator.
+    - When asked if you wish to initialize Anaconda3, answer yes.
+    - Restart the terminal after completing the installation.
 
     Detailed instructions on how to install Anaconda can be found in the
     [Anaconda documentation](https://docs.anaconda.com/anaconda/install/).
