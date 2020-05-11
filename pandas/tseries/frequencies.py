@@ -124,7 +124,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -272,12 +272,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_dtype(index):
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index):
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()

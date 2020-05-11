@@ -153,9 +153,11 @@ class TestPeriodIndexComparisons:
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
-        msg = (
-            r"(:?Invalid comparison between dtype=period\[D\] and .*)"
-            r"|(:?Cannot compare type Period with type .*)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'Period' and 'int'",
+                r"Invalid comparison between dtype=period\[D\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             idx < other
