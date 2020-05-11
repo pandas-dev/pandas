@@ -746,7 +746,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
--
+- Bug when joining 2 Multi-indexes, without specifying level with different columns. Return-indexers parameter is ignored. (:issue:`34074`)
 
 I/O
 ^^^
