@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import (
     Base,
-    ConsistencyBase,
+    check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -942,7 +942,7 @@ def _rolling_consistency_cases():
                 yield window, min_periods, center
 
 
-class TestRollingMomentsConsistency(ConsistencyBase):
+class TestRollingMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 
@@ -953,9 +953,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
         result = A.rolling(window=50, min_periods=25).cov(B)
         tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
-
-    def test_rolling_cov_pairwise(self):
-        self._check_pairwise_moment("rolling", "cov", window=10, min_periods=5)
 
     def test_rolling_corr(self):
         A = self.series
@@ -973,8 +970,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         result = a.rolling(window=len(a), min_periods=1).corr(b)
         tm.assert_almost_equal(result[-1], a.corr(b))
 
-    def test_rolling_corr_pairwise(self):
-        self._check_pairwise_moment("rolling", "corr", window=10, min_periods=5)
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_rolling_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "rolling", func, window=10, min_periods=5)
 
     @pytest.mark.parametrize("method", ["corr", "cov"])
     def test_flex_binary_frame(self, method):
