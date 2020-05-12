@@ -33,9 +33,12 @@ from pandas._libs.tslibs.timezones cimport (
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT, checknull_with_nat, c_NaT as NaT)
+    NPY_NAT,
+    checknull_with_nat,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
@@ -105,10 +108,10 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel()
+    ivalues = arr.view(np.int64).ravel("K")
 
     result = np.empty(shape, dtype=DT64NS_DTYPE)
-    iresult = result.ravel().view(np.int64)
+    iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
         result = arr.view(DT64NS_DTYPE)

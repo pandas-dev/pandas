@@ -226,7 +226,13 @@ Other enhancements
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
--
+- The minimum suppported dta version has increased to 105 in :meth:`~pandas.io.stata.read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
+- :meth:`~pandas.core.frame.DataFrame.to_stata` supports compression using the ``compression``
+  keyword argument. Compression can either be inferred or explicitly set using a string or a
+  dictionary containing both the method and any additional arguments that are passed to the
+  compression library. Compression was also added to the low-level Stata-file writers
+  :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
+  and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 
 .. ---------------------------------------------------------------------------
 
@@ -746,7 +752,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
--
+- Bug when joining 2 Multi-indexes, without specifying level with different columns. Return-indexers parameter is ignored. (:issue:`34074`)
 
 I/O
 ^^^
@@ -847,6 +853,7 @@ ExtensionArray
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
+- Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
 
 Other
@@ -865,6 +872,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------
 
