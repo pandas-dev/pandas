@@ -483,7 +483,8 @@ def convert_to_list_like(
     values: Union[Scalar, Iterable, AnyArrayLike]
 ) -> Union[List, AnyArrayLike]:
     """
-    Convert scalar or list-like input to np.array, pd.array, or list.
+    Convert list-like or scalar input to list-like. List, numpy and pandas array-like
+    inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
         return values

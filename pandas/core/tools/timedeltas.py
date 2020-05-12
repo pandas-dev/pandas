@@ -8,6 +8,7 @@ from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.common import convert_to_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
@@ -126,12 +127,11 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
 
 def _convert_listlike(arg, unit="ns", errors="raise", name=None):
     """Convert a list of objects to a timedelta index object."""
-    if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
-        # This is needed only to ensure that in the case where we end up
-        #  returning arg (errors == "ignore"), and where the input is a
-        #  generator, we return a useful list-like instead of a
-        #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+    # This is needed only to ensure that in the case where we end up
+    #  returning arg (errors == "ignore"), and where the input is a
+    #  generator, we return a useful list-like instead of a
+    #  used-up generator
+    arg = convert_to_list_like(arg)
 
     try:
         value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
