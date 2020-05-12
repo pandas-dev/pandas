@@ -1,10 +1,10 @@
-# TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
+from typing import List
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, tslibs
+from pandas._libs import NaT, internals as libinternals
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -23,9 +23,68 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
+from pandas.core.internals.blocks import make_block
+from pandas.core.internals.managers import BlockManager
 
 
-def get_mgr_concatenation_plan(mgr, indexers):
+def concatenate_block_managers(
+    mgrs_indexers, axes, concat_axis: int, copy: bool
+) -> BlockManager:
+    """
+    Concatenate block managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    BlockManager
+    """
+    concat_plans = [
+        _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
+    ]
+    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    blocks = []
+
+    for placement, join_units in concat_plan:
+
+        if len(join_units) == 1 and not join_units[0].indexers:
+            b = join_units[0].block
+            values = b.values
+            if copy:
+                values = values.copy()
+            else:
+                values = values.view()
+            b = b.make_block_same_class(values, placement=placement)
+        elif _is_uniform_join_units(join_units):
+            blk = join_units[0].block
+            vals = [ju.block.values for ju in join_units]
+
+            if not blk.is_extension:
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
+                values = concat_compat(vals)
+                if not isinstance(values, ExtensionArray):
+                    values = values.reshape(1, len(values))
+
+            b = make_block(values, placement=placement, ndim=blk.ndim)
+        else:
+            b = make_block(
+                _concatenate_join_units(join_units, concat_axis, copy=copy),
+                placement=placement,
+            )
+        blocks.append(b)
+
+    return BlockManager(blocks, axes)
+
+
+def _get_mgr_concatenation_plan(mgr, indexers):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -159,6 +218,7 @@ class JoinUnit:
         elif is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
+            # TODO(EA2D): no need for special case with 2D EAs
             values_flat = values
         else:
             values_flat = values.ravel(order="K")
@@ -192,6 +252,7 @@ class JoinUnit:
                 ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
+                        # TODO(EA2D): special case unneeded with 2D EAs
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
@@ -232,7 +293,7 @@ class JoinUnit:
         return values
 
 
-def concatenate_join_units(join_units, concat_axis, copy):
+def _concatenate_join_units(join_units, concat_axis, copy):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -278,7 +339,7 @@ def _get_empty_dtype_and_na(join_units):
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
-            return np.float64, np.nan
+            return np.dtype(np.float64), np.nan
 
     if _is_uniform_reindex(join_units):
         # FIXME: integrate property
@@ -347,7 +408,7 @@ def _get_empty_dtype_and_na(join_units):
         # GH-25014. We use NaT instead of iNaT, since this eventually
         # ends up in DatetimeArray.take, which does not allow iNaT.
         dtype = upcast_classes["datetimetz"]
-        return dtype[0], tslibs.NaT
+        return dtype[0], NaT
     elif "datetime" in upcast_classes:
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
@@ -363,7 +424,7 @@ def _get_empty_dtype_and_na(join_units):
                 return g, g.type(np.nan)
             elif is_numeric_dtype(g):
                 if has_none_blocks:
-                    return np.float64, np.nan
+                    return np.dtype(np.float64), np.nan
                 else:
                     return g, None
 
@@ -371,13 +432,15 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def is_uniform_join_units(join_units) -> bool:
+def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
-    concatenate_join_units (which uses `concat_compat`).
+    _concatenate_join_units (which uses `concat_compat`).
 
     """
+    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
+    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)
@@ -429,7 +492,7 @@ def _trim_join_unit(join_unit, length):
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def combine_concat_plans(plans, concat_axis):
+def _combine_concat_plans(plans, concat_axis):
     """
     Combine multiple concatenation plans into one.
 
