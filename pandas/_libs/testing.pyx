@@ -40,8 +40,7 @@ cdef bint is_dictlike(obj):
 
 cdef bint decimal_almost_equal(double desired, double actual, int decimal):
     # Code from
-    # http://docs.scipy.org/doc/numpy/reference/generated
-    # /numpy.testing.assert_almost_equal.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.testing.assert_almost_equal.html
     return abs(desired - actual) < (0.5 * 10.0 ** -decimal)
 
 

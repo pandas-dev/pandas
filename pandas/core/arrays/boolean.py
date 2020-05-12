@@ -93,6 +93,10 @@ class BooleanDtype(BaseMaskedDtype):
     def _is_boolean(self) -> bool:
         return True
 
+    @property
+    def _is_numeric(self) -> bool:
+        return True
+
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
     ) -> "BooleanArray":

@@ -27,8 +27,8 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.base cimport ABCTimestamp, is_tick_object
 
-cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
+from pandas._libs.tslibs cimport ccalendar
+
 from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_to_tsobject,
@@ -1504,7 +1504,7 @@ default 'raise'
         Normalize Timestamp to midnight, preserving tz information.
         """
         if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1_000_000_000
+            DAY_NS = ccalendar.DAY_NANOS
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(

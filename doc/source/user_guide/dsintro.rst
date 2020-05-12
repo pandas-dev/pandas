@@ -273,7 +273,7 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
 * Dict of 1D ndarrays, lists, dicts, or Series
 * 2-D numpy.ndarray
 * `Structured or record
-  <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+  <https://numpy.org/doc/stable/user/basics.rec.html>`__ ndarray
 * A ``Series``
 * Another ``DataFrame``
 
@@ -632,7 +632,7 @@ union of the column and row labels.
 
 When doing an operation between DataFrame and Series, the default behavior is
 to align the Series **index** on the DataFrame **columns**, thus `broadcasting
-<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
+<https://numpy.org/doc/stable/user/basics.broadcasting.html>`__
 row-wise. For example:
 
 .. ipython:: python
@@ -718,7 +718,7 @@ indexing semantics and data model are quite different in places from an n-dimens
 array.
 
 :class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
-`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_.
+`universal functions <https://numpy.org/doc/stable/reference/ufuncs.html>`_.
 
 The ufunc is applied to the underlying array in a Series.
 
