@@ -1853,3 +1853,13 @@ the string values returned are correct."""
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="You must use version 119"):
                 StataWriterUTF8(path, df, version=118)
+
+
+@pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
+def test_backward_compat(version, datapath):
+    data_base = datapath("io", "data", "stata")
+    ref = os.path.join(data_base, f"stata-compat-118.dta")
+    old = os.path.join(data_base, f"stata-compat-{version}.dta")
+    expected = pd.read_stata(ref)
+    old_dta = pd.read_stata(old)
+    tm.assert_frame_equal(old_dta, expected, check_dtype=False)
