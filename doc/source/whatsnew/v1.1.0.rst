@@ -152,6 +152,49 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
+.. _whatsnew_110.grouper_resample_origin:
+
+Grouper and resample now supports the arguments origin and offset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Grouper` and :class:`DataFrame.resample` now supports the arguments ``origin`` and ``offset``. It let the user control the timestamp on which to adjust the grouping. (:issue:`31809`)
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
+
+Two arguments are now deprecated (more information in the documentation of :class:`DataFrame.resample`):
+
+- ``base`` should be replaced by ``offset``.
+- ``loffset`` should be replaced by directly adding an offset to the index DataFrame after being resampled.
+
+Small example of the use of ``origin``:
+
+.. ipython:: python
+
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Resample with the default behavior ``'start_day'`` (origin is ``2000-10-01 00:00:00``):
+
+.. ipython:: python
+
+    ts.resample('17min').sum()
+    ts.resample('17min', origin='start_day').sum()
+
+Resample using a fixed origin:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='epoch').sum()
+    ts.resample('17min', origin='2000-01-01').sum()
+
+If needed you can adjust the bins with the argument ``offset`` (a Timedelta) that would be added to the default ``origin``.
+
+For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
+
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
@@ -184,7 +227,13 @@ Other enhancements
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
--
+- The minimum suppported dta version has increased to 105 in :meth:`~pandas.io.stata.read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
+- :meth:`~pandas.core.frame.DataFrame.to_stata` supports compression using the ``compression``
+  keyword argument. Compression can either be inferred or explicitly set using a string or a
+  dictionary containing both the method and any additional arguments that are passed to the
+  compression library. Compression was also added to the low-level Stata-file writers
+  :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
+  and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 
 .. ---------------------------------------------------------------------------
 
@@ -704,7 +753,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
--
+- Bug when joining 2 Multi-indexes, without specifying level with different columns. Return-indexers parameter is ignored. (:issue:`34074`)
 
 I/O
 ^^^
@@ -782,10 +831,13 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Bug in :meth:`DataFrame.corrwith()`, :meth:`DataFrame.memory_usage()`, :meth:`DataFrame.dot()`,
+  :meth:`DataFrame.idxmin()`, :meth:`DataFrame.idxmax()`, :meth:`DataFrame.duplicated()`, :meth:`DataFrame.isin()`,
+  :meth:`DataFrame.count()`, :meth:`Series.explode()`, :meth:`Series.asof()` and :meth:`DataFrame.asof()` not
+  returning subclassed types. (:issue:`31331`)
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
-
 
 Sparse
 ^^^^^^
@@ -797,12 +849,13 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
+- Fixed bug where :meth:`StringArray.isna` would return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33655`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
+- Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
-
 
 Other
 ^^^^^
@@ -820,6 +873,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------
 
