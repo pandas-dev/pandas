@@ -285,10 +285,14 @@ class TestDataFrameInterpolate:
         expected.interpolate(axis=0, method="time", inplace=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_interp_string_axis(self):
-        # GH 25190
+    @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
+    def test_interp_string_axis(self, axis_name, axis_number):
+        # https://github.com/pandas-dev/pandas/issues/25190
         x = np.linspace(0, 100, 1000)
         y = np.sin(x)
-        df = DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
-        df.reindex(columns=x * 1.005).interpolate(method="linear", axis="columns")
-        df.reindex(columns=x * 1.005).interpolate(method="linear", axis="index")
+        df = DataFrame(
+            data=np.tile(y, (10, 1)), index=np.arange(10), columns=x
+        ).reindex(columns=x * 1.005)
+        result = df.interpolate(method="linear", axis=axis_name)
+        expected = df.interpolate(method="linear", axis=axis_number)
+        tm.assert_frame_equal(result, expected)
