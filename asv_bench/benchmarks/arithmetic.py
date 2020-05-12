@@ -106,19 +106,10 @@ class FrameWithFrameWide:
 
     params = [
         [
+            # GH#32779 has discussion of which operators are included here
             operator.add,
-            operator.sub,
-            operator.mul,
-            operator.truediv,
             operator.floordiv,
-            operator.pow,
-            operator.mod,
-            operator.eq,
-            operator.ne,
             operator.gt,
-            operator.ge,
-            operator.lt,
-            operator.le,
         ]
     ]
     param_names = ["op"]
@@ -127,13 +118,20 @@ class FrameWithFrameWide:
         # we choose dtypes so as to make the blocks
         #  a) not perfectly match between right and left
         #  b) appreciably bigger than single columns
-        arr = np.random.randn(10 ** 6).reshape(500, 2000).astype(np.float64)
-        df = pd.DataFrame(arr)
-        df[1000] = df[1000].astype(np.float32)
-        df.iloc[:, 1000:] = df.iloc[:, 1000:].astype(np.float32)
+        n_cols = 2000
+        n_rows = 500
+
+        # construct dataframe with 2 blocks
+        arr1 = np.random.randn(n_rows, int(n_cols / 2)).astype("f8")
+        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("f4")
+        df = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True,
+        )
+        # should already be the case, but just to be sure
         df._consolidate_inplace()
 
         # TODO: GH#33198 the setting here shoudlnt need two steps
+        arr = np.random.randn(10 ** 6).reshape(n_rows, n_cols).astype(np.float64)
         df2 = pd.DataFrame(arr)
         df2[1000] = df2[1000].astype(np.int64)
         df2.iloc[:, 500:1500] = df2.iloc[:, 500:1500].astype(np.int64)
