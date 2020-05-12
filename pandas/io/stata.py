@@ -51,7 +51,7 @@ from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 104, 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -888,8 +888,8 @@ class StataParser:
             98: 251,  # byte
             105: 252,  # int
             108: 253,  # long
-            102: 254  # float
-            # don't know old code for double
+            102: 254,  # float
+            100: 255,  # double
         }
 
         # These missing values are the generic '.' in Stata, and are used
