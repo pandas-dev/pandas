@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from pandas import Series, Timedelta, date_range, period_range, to_datetime
 import pandas._testing as tm
+import pytest
+import numpy as np
 
 
 class TestToTimestamp:
@@ -52,3 +54,12 @@ class TestToTimestamp:
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == "foo"
+
+        # invalid type , #34067 test
+        with pytest.raises(TypeError):
+            Series([0]).to_timestamp()
+
+        with pytest.raises(TypeError):
+            rng = date_range("1/1/2012", periods=5, freq="M")
+            ts = Series(np.random.randn(len(rng)), index=rng)
+            ts.to_timestamp()

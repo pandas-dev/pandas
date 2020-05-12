@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -45,3 +46,7 @@ class TestToPeriod:
         expected = df.copy()
         expected.columns = exp_idx
         tm.assert_frame_equal(df.to_period(axis=1), expected)
+
+        # invalid type , #34067 test
+        with pytest.raises(TypeError):
+            Series([0]).to_period()
