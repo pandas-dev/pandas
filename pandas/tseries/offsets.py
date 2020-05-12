@@ -2284,17 +2284,12 @@ class Easter(DateOffset):
 
 
 def _tick_comp(op):
-    assert op not in [operator.eq, operator.ne]
+    """
+    Tick comparisons should behave identically to Timedelta comparisons.
+    """
 
     def f(self, other):
-        try:
-            return op(self.delta, other.delta)
-        except AttributeError as err:
-            # comparing with a non-Tick object
-            raise TypeError(
-                f"Invalid comparison between {type(self).__name__} "
-                f"and {type(other).__name__}"
-            ) from err
+        return op(self.delta, other)
 
     f.__name__ = f"__{op.__name__}__"
     return f
@@ -2346,10 +2341,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return False
 
-        if isinstance(other, Tick):
-            return self.delta == other.delta
-        else:
-            return False
+        return _tick_comp(operator.eq)(self, other)
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2368,10 +2360,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return True
 
-        if isinstance(other, Tick):
-            return self.delta != other.delta
-        else:
-            return True
+        return _tick_comp(operator.ne)(self, other)
 
     @property
     def delta(self) -> Timedelta:
