@@ -1246,3 +1246,16 @@ class TestDataFrameReductions:
         res = df.max()
         exp = pd.Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "initial",
+        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
+    )
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_preserve_timezone(self, initial: str, method):
+        # GH 28552
+        initial_dt = pd.to_datetime(initial)
+        expected = Series([initial_dt])
+        df = DataFrame([expected])
+        result = getattr(df, method)(axis=1)
+        tm.assert_series_equal(result, expected)

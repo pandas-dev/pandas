@@ -166,19 +166,3 @@ class TestDataFrameTimezones:
         result = DataFrame({"d": [pd.Timestamp("2019", tz=tz)]}, dtype="datetime64[ns]")
         expected = DataFrame({"d": [pd.Timestamp("2019")]})
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "initial",
-        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
-    )
-    @pytest.mark.parametrize("method", ["min", "max"])
-    def test_preserve_timezone(self, initial: str, method):
-        # GH 28552
-        # Given
-        initial_dt = pd.to_datetime(initial)
-        expected = pd.Series([initial_dt])
-        df = DataFrame([expected])
-        # When
-        result: pd.Series = getattr(df, method)(axis=1)
-        # Then
-        tm.assert_series_equal(result, expected)
