@@ -1507,7 +1507,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
 
-        return type(self.obj)._from_arrays(
+        return self.obj._constructor._from_arrays(
             output, columns=result.columns, index=obj.index
         )
 
