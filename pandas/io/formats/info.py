@@ -185,7 +185,7 @@ def info(
         if isinstance(data, ABCDataFrame):
             header += _put_str(column_head, space)
         if show_counts:
-            if len(ids) != len(counts):  # pragma: no cover
+            if col_count != len(counts):  # pragma: no cover
                 raise AssertionError(
                     f"Columns must equal counts ({col_count} != {len(counts)})"
                 )
