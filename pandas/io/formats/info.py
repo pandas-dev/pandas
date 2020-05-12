@@ -134,29 +134,27 @@ def info(
     lines.append(str(type(data)))
     lines.append(data.index._summary())
 
-    max_rows = get_option("display.max_info_rows", len(data) + 1)
     ids, dtypes = _get_ids_and_dtypes(data)
     col_count = len(ids)
 
-    if isinstance(data, ABCDataFrame):
-        if col_count == 0:
-            lines.append(f"Empty {type(data).__name__}")
-            fmt.buffer_put_lines(buf, lines)
-            return
+    if col_count == 0 and isinstance(data, ABCDataFrame):
+        lines.append(f"Empty {type(data).__name__}")
+        fmt.buffer_put_lines(buf, lines)
+        return
 
-        # hack
-        if max_cols is None:
-            max_cols = get_option("display.max_info_columns", col_count + 1)
+    # hack
+    if max_cols is None and isinstance(data, ABCDataFrame):
+        max_cols = get_option("display.max_info_columns", col_count + 1)
 
-        if null_counts is None:
-            show_counts = (col_count <= max_cols) and (len(data) < max_rows)
-        else:
-            show_counts = null_counts
-        exceeds_info_cols = col_count > max_cols
+    max_rows = get_option("display.max_info_rows", len(data) + 1)
 
+    if null_counts is None and isinstance(data, ABCDataFrame):
+        show_counts = (col_count <= max_cols) and (len(data) < max_rows)
+    elif isinstance(data, ABCDataFrame):
+        show_counts = null_counts
     else:
-        exceeds_info_cols = False
         show_counts = True
+    exceeds_info_cols = isinstance(data, ABCDataFrame) and col_count > max_cols
 
     def _verbose_repr():
 
