@@ -1792,18 +1792,21 @@ the string values returned are correct."""
             if label in value_labels:
                 # Explicit call with ordered=True
                 vl = value_label_dict[label]
-                keys = np.array([k for k in vl.keys()])
+                keys = np.array(list(vl.keys()))
                 column = data[col]
-                if self._chunksize is not None and column.isin(keys).all():
+                key_matches = column.isin(keys)
+                if self._chunksize is not None and key_matches.all():
+                    initial_categories = keys
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
                     # value labels, then we will fall back to the categories
                     # varying across chunks.
-                    initial_categories = keys
-                    warnings.warn(
-                        categorical_conversion_warning, CategoricalConversionWarning
-                    )
                 else:
+                    if self._chunksize is not None:
+                        # warn is using an iterator
+                        warnings.warn(
+                            categorical_conversion_warning, CategoricalConversionWarning
+                        )
                     initial_categories = None
                 cat_data = Categorical(
                     column, categories=initial_categories, ordered=order_categoricals
@@ -1818,7 +1821,7 @@ the string values returned are correct."""
                             categories.append(category)
                 else:
                     # If all cats are matched, we can use the values
-                    categories = [v for v in vl.values()]
+                    categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
                     cat_data.categories = categories

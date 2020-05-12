@@ -1941,18 +1941,19 @@ def test_chunked_categorical(version):
 
 def test_chunked_categorical_partial(dirpath):
     dta_file = os.path.join(dirpath, "stata-dta-partially-labeled.dta")
-    reader = StataReader(dta_file, chunksize=2)
     values = ["a", "b", "a", "b", 3.0]
-    with pytest.warns(CategoricalConversionWarning, match="One or more series"):
-        for i, block in enumerate(reader):
-            assert list(block.cats) == values[2 * i : 2 * (i + 1)]
-            if i < 2:
-                idx = pd.Index(["a", "b"])
-            else:
-                idx = pd.Float64Index([3.0])
-            tm.assert_index_equal(block.cats.cat.categories, idx)
-    reader = StataReader(dta_file, chunksize=5)
-    large_chunk = reader.__next__()
+    with StataReader(dta_file, chunksize=2) as reader:
+        with tm.assert_produces_warning(CategoricalConversionWarning):
+            for i, block in enumerate(reader):
+                assert list(block.cats) == values[2 * i : 2 * (i + 1)]
+                if i < 2:
+                    idx = pd.Index(["a", "b"])
+                else:
+                    idx = pd.Float64Index([3.0])
+                tm.assert_index_equal(block.cats.cat.categories, idx)
+    with tm.assert_produces_warning(CategoricalConversionWarning):
+        with StataReader(dta_file, chunksize=5) as reader:
+            large_chunk = reader.__next__()
     direct = read_stata(dta_file)
     tm.assert_frame_equal(direct, large_chunk)
 
@@ -1966,4 +1967,5 @@ def test_iterator_errors(dirpath):
     with pytest.raises(ValueError, match="chunksize must be a positive"):
         StataReader(dta_file, chunksize="apple")
     with pytest.raises(ValueError, match="chunksize must be set to a positive"):
-        StataReader(dta_file).__next__()
+        with StataReader(dta_file) as reader:
+            reader.__next__()
