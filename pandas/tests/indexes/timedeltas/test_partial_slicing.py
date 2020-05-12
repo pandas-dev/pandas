@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Series, Timedelta, timedelta_range
+from pandas import Series, timedelta_range
 import pandas._testing as tm
 
 
@@ -46,42 +45,3 @@ class TestSlicing:
 
         result = s["1 days, 10:11:12.001001"]
         assert result == s.iloc[1001]
-
-    def test_slice_with_negative_step(self):
-        ts = Series(np.arange(20), timedelta_range("0", periods=20, freq="H"))
-        SLC = pd.IndexSlice
-
-        def assert_slices_equivalent(l_slc, i_slc):
-            expected = ts.iloc[i_slc]
-
-            tm.assert_series_equal(ts[l_slc], expected)
-            tm.assert_series_equal(ts.loc[l_slc], expected)
-            tm.assert_series_equal(ts.loc[l_slc], expected)
-
-        assert_slices_equivalent(SLC[Timedelta(hours=7) :: -1], SLC[7::-1])
-        assert_slices_equivalent(SLC["7 hours"::-1], SLC[7::-1])
-
-        assert_slices_equivalent(SLC[: Timedelta(hours=7) : -1], SLC[:6:-1])
-        assert_slices_equivalent(SLC[:"7 hours":-1], SLC[:6:-1])
-
-        assert_slices_equivalent(SLC["15 hours":"7 hours":-1], SLC[15:6:-1])
-        assert_slices_equivalent(
-            SLC[Timedelta(hours=15) : Timedelta(hours=7) : -1], SLC[15:6:-1]
-        )
-        assert_slices_equivalent(
-            SLC["15 hours" : Timedelta(hours=7) : -1], SLC[15:6:-1]
-        )
-        assert_slices_equivalent(
-            SLC[Timedelta(hours=15) : "7 hours" : -1], SLC[15:6:-1]
-        )
-
-        assert_slices_equivalent(SLC["7 hours":"15 hours":-1], SLC[0:0:-1])
-
-    def test_slice_with_zero_step_raises(self):
-        ts = Series(np.arange(20), timedelta_range("0", periods=20, freq="H"))
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            ts.loc[::0]

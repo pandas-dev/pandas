@@ -1,5 +1,5 @@
 import sys
-from typing import IO, Optional, Union
+from typing import IO, TYPE_CHECKING, Optional, Tuple, Union
 
 from pandas._config import get_option
 
@@ -12,9 +12,59 @@ from pandas.core.indexes.api import Index
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
+if TYPE_CHECKING:
+    from pandas.core.series import Series  # noqa: F401
+
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
+    """
+    Make string of specified length, padding to the right if necessary.
+
+    Parameters
+    ----------
+    s : Union[str, Dtype]
+        String to be formatted.
+    space : int
+        Length to force string to be of.
+
+    Returns
+    -------
+    str
+        String coerced to given length.
+
+    Examples
+    --------
+    >>> pd.io.formats.info._put_str("panda", 6)
+    'panda '
+    >>> pd.io.formats.info._put_str("panda", 4)
+    'pand'
+    """
     return str(s)[:space].ljust(space)
+
+
+def _get_ids_and_dtypes(data: FrameOrSeries) -> Tuple["Index", "Series"]:
+    """
+    Get DataFrame's columns and dtypes.
+
+    Parameters
+    ----------
+    data : DataFrame
+        Object that `info` was called on.
+
+    Returns
+    -------
+    ids : Index
+        DataFrame's columns.
+    dtypes : Series
+        Dtype of each of the DataFrame's columns.
+    """
+    if isinstance(data, ABCDataFrame):
+        ids = data.columns
+        dtypes = data.dtypes
+    else:
+        ids = Index([data.name])
+        dtypes = Index([data.dtypes])
+    return ids, dtypes
 
 
 def info(
@@ -85,12 +135,10 @@ def info(
     lines.append(data.index._summary())
 
     max_rows = get_option("display.max_info_rows", len(data) + 1)
+    ids, dtypes = _get_ids_and_dtypes(data)
+    col_count = len(ids)
 
     if isinstance(data, ABCDataFrame):
-        ids = data.columns
-        col_count = len(ids)
-        dtypes = data.dtypes
-
         if col_count == 0:
             lines.append(f"Empty {type(data).__name__}")
             fmt.buffer_put_lines(buf, lines)
@@ -107,8 +155,6 @@ def info(
         exceeds_info_cols = col_count > max_cols
 
     else:
-        ids = Index([data.name])
-        dtypes = Index([data.dtypes])
         exceeds_info_cols = False
         show_counts = True
 
@@ -116,6 +162,7 @@ def info(
 
         id_head = " # "
         id_space = 2
+
         len_id = len(pprint_thing(id_head))
 
         if isinstance(data, ABCDataFrame):
@@ -205,7 +252,7 @@ def info(
 
     if verbose:
         _verbose_repr()
-    elif verbose is False:  # specifically set to False, not nesc None
+    elif verbose is False:  # specifically set to False, not necessarily None
         _non_verbose_repr()
     else:
         if exceeds_info_cols:
@@ -218,8 +265,8 @@ def info(
         counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
     else:
         counts = {data.dtype.name: 1}
-    dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-    lines.append(f"dtypes: {', '.join(dtypes)}")
+    collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
+    lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
     if memory_usage is None:
         memory_usage = get_option("display.memory_usage")
