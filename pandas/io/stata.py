@@ -106,6 +106,14 @@ _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
 
+_reader_notes = """\
+Notes
+-----
+Categorical variables read through an iterator may not have the same
+categories and dtype. This occurs when  a variable stored in a DTA
+file is associated to an incomplete set of value labels that only
+label a strict subset of the values."""
+
 _read_stata_doc = f"""
 Read Stata file into DataFrame.
 
@@ -134,6 +142,8 @@ See Also
 --------
 io.stata.StataReader : Low-level reader for Stata data files.
 DataFrame.to_stata: Export Stata data files.
+
+{_reader_notes}
 
 Examples
 --------
@@ -176,6 +186,8 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
+
+{_reader_notes}
 """
 
 

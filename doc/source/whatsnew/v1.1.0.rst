@@ -905,10 +905,7 @@ I/O
 - Bug in :meth:`~DataFrame.read_feather` was raising an `ArrowIOError` when reading an s3 or http file path (:issue:`29055`)
 - Bug in :meth:`~DataFrame.to_excel` could not handle the column name `render` and was raising an ``KeyError`` (:issue:`34331`)
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
-- Bug in :meth:`read_parquet` was raising a ``FileNotFoundError`` when passed an s3 directory path. (:issue:`26388`)
-- Bug in :meth:`~DataFrame.to_parquet` was throwing an ``AttributeError`` when writing a partitioned parquet file to s3 (:issue:`27596`)
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
-
 
 Plotting
 ^^^^^^^^
