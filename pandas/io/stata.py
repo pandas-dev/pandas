@@ -1038,6 +1038,10 @@ class StataReader(StataParser, abc.Iterator):
         self._order_categoricals = order_categoricals
         self._encoding = ""
         self._chunksize = chunksize
+        if self._chunksize is not None and (
+            not isinstance(chunksize, int) or chunksize <= 0
+        ):
+            raise ValueError("chunksize must be a positive integer when set.")
 
         # State variables for the file
         self._has_string_data = False
@@ -1503,6 +1507,10 @@ the string values returned are correct."""
             self.GSO[str(v_o)] = decoded_va
 
     def __next__(self) -> DataFrame:
+        if self._chunksize is None:
+            raise ValueError(
+                "chunksize must be set to a positive integer to use as an iterator."
+            )
         return self.read(nrows=self._chunksize or 1)
 
     def get_chunk(self, size: Optional[int] = None) -> DataFrame:
@@ -1786,7 +1794,7 @@ the string values returned are correct."""
                 vl = value_label_dict[label]
                 keys = np.array([k for k in vl.keys()])
                 column = data[col]
-                if column.isin(keys).all() and self._chunksize:
+                if self._chunksize is not None and column.isin(keys).all():
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
                     # value labels, then we will fall back to the categories

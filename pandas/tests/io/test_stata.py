@@ -1955,3 +1955,15 @@ def test_chunked_categorical_partial(dirpath):
     large_chunk = reader.__next__()
     direct = read_stata(dta_file)
     tm.assert_frame_equal(direct, large_chunk)
+
+
+def test_iterator_errors(dirpath):
+    dta_file = os.path.join(dirpath, "stata-dta-partially-labeled.dta")
+    with pytest.raises(ValueError, match="chunksize must be a positive"):
+        StataReader(dta_file, chunksize=-1)
+    with pytest.raises(ValueError, match="chunksize must be a positive"):
+        StataReader(dta_file, chunksize=0)
+    with pytest.raises(ValueError, match="chunksize must be a positive"):
+        StataReader(dta_file, chunksize="apple")
+    with pytest.raises(ValueError, match="chunksize must be set to a positive"):
+        StataReader(dta_file).__next__()
