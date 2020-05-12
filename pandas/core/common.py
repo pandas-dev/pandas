@@ -23,6 +23,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
+    is_iterator,
+    is_sequence,
 )
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
@@ -473,3 +475,14 @@ def get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def convert_to_list_like(values):
+    if hasattr(values, "dtype"):
+        return values
+    if isinstance(values, list):
+        return values
+    if is_sequence(values) or isinstance(values, tuple) or is_iterator(values):
+        return list(values)
+
+    return [values]
