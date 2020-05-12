@@ -460,7 +460,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other):
+        if len(other) != len(self) and not is_timedelta64_dtype(other.dtype):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
