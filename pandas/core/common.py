@@ -482,6 +482,9 @@ def get_rename_function(mapper):
 def convert_to_list_like(
     values: Union[Scalar, Iterable, AnyArrayLike]
 ) -> Union[List, AnyArrayLike]:
+    """
+    Convert scalar or list-like input to np.array, pd.array, or list.
+    """
     if isinstance(values, list):
         return values
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
