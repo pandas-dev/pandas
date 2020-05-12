@@ -485,11 +485,9 @@ def convert_to_list_like(
     """
     Convert scalar or list-like input to np.array, pd.array, or list.
     """
-    if isinstance(values, list):
+    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
         return values
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
-    elif isinstance(values, (np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        return values
 
     return [values]
