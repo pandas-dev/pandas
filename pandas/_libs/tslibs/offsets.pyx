@@ -19,7 +19,7 @@ cnp.import_array()
 
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
 from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp
 
@@ -165,7 +165,7 @@ def apply_wraps(func):
         elif isinstance(other, (timedelta, BaseOffset)):
             # timedelta path
             return func(self, other)
-        elif isinstance(other, (np.datetime64, datetime, date)):
+        elif isinstance(other, (datetime, date)) or is_datetime64_object(other):
             other = Timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
