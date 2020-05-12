@@ -1913,9 +1913,9 @@ class TestTimedeltaArraylikeMulDivOps:
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box_with_array)
         msg = (
-                "cannot use operands with types dtype|"
-                "Cannot multiply with unequal lengths|"
-                "Unable to coerce to Series"
+            "cannot use operands with types dtype|"
+            "Cannot multiply with unequal lengths|"
+            "Unable to coerce to Series"
         )
         with pytest.raises(TypeError, match=msg):
             # length check before dtype check
