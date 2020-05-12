@@ -2697,16 +2697,16 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         from pandas.core.reshape.concat import concat
 
         if weights is not None:
-            weights = Series(weights, index=self._selected_obj.index)
+            weights = Series(weights)
             ws = [weights[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
         samples = [
-            self._selected_obj.loc[idx].sample(
+            self.get_group(k).sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for idx, w in zip(self.indices.values(), ws)
+            for k, w in zip(self.groups.keys(), ws)
         ]
 
         return concat(samples, axis=self.axis)
