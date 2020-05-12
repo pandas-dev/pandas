@@ -33,11 +33,11 @@ def test_apply_ticks():
 def test_delta_to_tick():
     delta = timedelta(3)
 
-    tick = offsets._delta_to_tick(delta)
+    tick = offsets.delta_to_tick(delta)
     assert tick == offsets.Day(3)
 
     td = Timedelta(nanoseconds=5)
-    tick = offsets._delta_to_tick(td)
+    tick = offsets.delta_to_tick(td)
     assert tick == Nano(5)
 
 
@@ -320,3 +320,22 @@ def test_compare_ticks_to_strs(cls):
             left > right
         with pytest.raises(TypeError):
             left >= right
+
+
+@pytest.mark.parametrize("cls", tick_classes)
+def test_compare_ticks_to_timedeltalike(cls):
+    off = cls(19)
+
+    td = off.delta
+
+    others = [td, td.to_timedelta64()]
+    if cls is not Nano:
+        others.append(td.to_pytimedelta())
+
+    for other in others:
+        assert off == other
+        assert not off != other
+        assert not off < other
+        assert not off > other
+        assert off <= other
+        assert off >= other

@@ -51,7 +51,7 @@ from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 104, 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -356,10 +356,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 time_delta = dates - stata_epoch
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
-                # ignore since mypy reports that DatetimeIndex has no year/month
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year  # type: ignore
-                d["month"] = date_index.month  # type: ignore
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -628,7 +627,7 @@ class StataValueLabel:
 
     def generate_value_label(self, byteorder: str) -> bytes:
         """
-        Generate the binary representation of the value labals.
+        Generate the binary representation of the value labels.
 
         Parameters
         ----------
@@ -889,8 +888,8 @@ class StataParser:
             98: 251,  # byte
             105: 252,  # int
             108: 253,  # long
-            102: 254  # float
-            # don't know old code for double
+            102: 254,  # float
+            100: 255,  # double
         }
 
         # These missing values are the generic '.' in Stata, and are used
@@ -2133,7 +2132,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
         if not any(is_cat):

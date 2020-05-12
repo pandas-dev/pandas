@@ -10,6 +10,9 @@ from pandas.core.dtypes.common import ensure_platform_int
 def shift(values: np.ndarray, periods: int, axis: int, fill_value) -> np.ndarray:
     new_values = values
 
+    if periods == 0 or values.size == 0:
+        return new_values.copy()
+
     # make sure array sent to np.roll is c_contiguous
     f_ordered = values.flags.f_contiguous
     if f_ordered:

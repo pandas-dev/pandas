@@ -1,14 +1,17 @@
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.algorithms import take
+from pandas.core.algorithms import _factorize_array, take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
@@ -17,6 +20,18 @@ if TYPE_CHECKING:
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BasedMaskedArray subclasses.
+    """
+
+    na_value = libmissing.NA
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        raise AbstractMethodError
 
 
 class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
@@ -30,12 +45,27 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     _internal_fill_value: Scalar
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+        # values is supposed to already be validated in the subclass
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+            raise TypeError(
+                "mask should be boolean numpy array. Use "
+                "the 'pd.array' function instead"
+            )
+        if not values.ndim == 1:
+            raise ValueError("values must be a 1D array")
+        if not mask.ndim == 1:
+            raise ValueError("mask must be a 1D array")
+
         if copy:
             values = values.copy()
             mask = mask.copy()
 
         self._data = values
         self._mask = mask
+
+    @property
+    def dtype(self) -> BaseMaskedDtype:
+        raise AbstractMethodError(self)
 
     def __getitem__(self, item):
         if is_integer(item):
@@ -216,6 +246,18 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         data = data.copy()
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
+
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        arr = self._data
+        mask = self._mask
+
+        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+
+        # the hashtables don't handle all different types of bits
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques
 
     def value_counts(self, dropna: bool = True) -> "Series":
         """
