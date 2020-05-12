@@ -37,7 +37,7 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.tslibs.base cimport ABCPeriod, is_period_object
+from pandas._libs.tslibs.base cimport ABCPeriod, is_period_object, is_tick_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -68,7 +68,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
