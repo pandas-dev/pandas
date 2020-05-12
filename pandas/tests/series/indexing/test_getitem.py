@@ -78,6 +78,18 @@ class TestSeriesGetitemSlices:
 
 
 class TestSeriesGetitemListLike:
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+    def test_getitem_no_matches(self, box):
+        # GH#33462 we expect the same behavior for list/ndarray/Index/Series
+        ser = Series(["A", "B"])
+
+        key = Series(["C"], dtype=object)
+        key = box(key)
+
+        msg = r"None of \[Index\(\['C'\], dtype='object'\)\] are in the \[index\]"
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
+
     def test_getitem_intlist_intindex_periodvalues(self):
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 
@@ -101,6 +113,19 @@ class TestSeriesGetitemListLike:
         key = box([0])
         result = ser[key]
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.uint64])
+    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):
+        # GH#33404 do _not_ fall back to positional since ints are ambiguous
+        idx = pd.Index(range(4)).astype(dtype)
+        dti = date_range("2000-01-03", periods=3)
+        mi = pd.MultiIndex.from_product([idx, dti])
+        ser = Series(range(len(mi))[::-1], index=mi)
+
+        key = box([5])
+        with pytest.raises(KeyError, match="5"):
+            ser[key]
 
 
 def test_getitem_generator(string_series):

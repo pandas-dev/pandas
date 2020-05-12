@@ -441,7 +441,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     """
     from pandas.core.construction import array as pd_array
 
-    # whathever is not an array-like is returned as-is (possible valid array
+    # whatever is not an array-like is returned as-is (possible valid array
     # indexers that are not array-like: integer, slice, Ellipsis, None)
     # In this context, tuples are not considered as array-like, as they have
     # a specific meaning in indexing (multi-dimensional indexing)

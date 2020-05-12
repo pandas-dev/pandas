@@ -383,6 +383,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [pd.Index, pd.TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
         index = pd.timedelta_range("1 days", periods=5)
+        index = index._with_freq(None)  # wont be preserved by constructors
         dtype = index.dtype
 
         values = getattr(index, attr)
@@ -1696,9 +1697,11 @@ class TestIndex(Base):
 
         with pytest.raises(AttributeError, match="has no attribute '_values'"):
             # Index.get_value requires a Series, not an ndarray
-            indices.get_value(values, value)
+            with tm.assert_produces_warning(FutureWarning):
+                indices.get_value(values, value)
 
-        result = indices.get_value(Series(values, index=values), value)
+        with tm.assert_produces_warning(FutureWarning):
+            result = indices.get_value(Series(values, index=values), value)
         tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
