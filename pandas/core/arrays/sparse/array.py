@@ -1517,7 +1517,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
         mask = notna(arr)
     else:
         # cast to object comparison to be safe
-        if is_string_dtype(arr):
+        if is_string_dtype(arr.dtype):
             arr = arr.astype(object)
 
         if is_object_dtype(arr.dtype):
