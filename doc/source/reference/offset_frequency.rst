@@ -1056,6 +1056,7 @@ Methods
     Tick.is_anchored
     Tick.is_on_offset
     Tick.__call__
+    Tick.apply
 
 Day
 ---
@@ -1088,6 +1089,7 @@ Methods
     Day.is_anchored
     Day.is_on_offset
     Day.__call__
+    Day.apply
 
 Hour
 ----
@@ -1120,6 +1122,7 @@ Methods
     Hour.is_anchored
     Hour.is_on_offset
     Hour.__call__
+    Hour.apply
 
 Minute
 ------
@@ -1152,6 +1155,7 @@ Methods
     Minute.is_anchored
     Minute.is_on_offset
     Minute.__call__
+    Minute.apply
 
 Second
 ------
@@ -1184,6 +1188,7 @@ Methods
     Second.is_anchored
     Second.is_on_offset
     Second.__call__
+    Second.apply
 
 Milli
 -----
@@ -1216,6 +1221,7 @@ Methods
     Milli.is_anchored
     Milli.is_on_offset
     Milli.__call__
+    Milli.apply
 
 Micro
 -----
@@ -1248,6 +1254,7 @@ Methods
     Micro.is_anchored
     Micro.is_on_offset
     Micro.__call__
+    Micro.apply
 
 Nano
 ----
@@ -1280,6 +1287,7 @@ Methods
     Nano.is_anchored
     Nano.is_on_offset
     Nano.__call__
+    Nano.apply
 
 BDay
 ----
