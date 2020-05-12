@@ -22,8 +22,10 @@ _doc_template = """
 
         See Also
         --------
-        Series.%(name)s : Series %(name)s.
-        DataFrame.%(name)s : DataFrame %(name)s.
+        pandas.Series.%(name)s : Calling object with Series data.
+        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
+        pandas.Series.%(func_name)s : Similar method for Series.
+        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
 """
 
 
@@ -324,25 +326,3 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
         return cfunc(arg, window, min_periods)
 
     return func
-
-
-def validate_baseindexer_support(func_name: Optional[str]) -> None:
-    # GH 32865: These functions work correctly with a BaseIndexer subclass
-    BASEINDEXER_WHITELIST = {
-        "count",
-        "min",
-        "max",
-        "mean",
-        "sum",
-        "median",
-        "std",
-        "var",
-        "skew",
-        "kurt",
-        "quantile",
-    }
-    if isinstance(func_name, str) and func_name not in BASEINDEXER_WHITELIST:
-        raise NotImplementedError(
-            f"{func_name} is not supported with using a BaseIndexer "
-            f"subclasses. You can use .apply() with {func_name}."
-        )

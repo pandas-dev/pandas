@@ -200,14 +200,6 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except TypeError:
-        return listed
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):

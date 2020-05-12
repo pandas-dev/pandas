@@ -2213,19 +2213,20 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize
+        itemsize = dtype.itemsize  # type: ignore
 
         shape = values.shape
         if values.ndim == 1:
             # EA, use block shape pretending it is 2D
+            # TODO(EA2D): not necessary with 2D EAs
             shape = (1, values.size)
 
-        if is_categorical_dtype(dtype):
+        if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
@@ -2625,7 +2626,7 @@ class GenericFixed(Fixed):
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes: List[str] = []
 
-    # indexer helpders
+    # indexer helpers
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
@@ -2818,7 +2819,7 @@ class GenericFixed(Fixed):
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
-        # have written a sentinel. Here we relace it with the original.
+        # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
             data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
@@ -2887,7 +2888,7 @@ class GenericFixed(Fixed):
         empty_array = value.size == 0
         transposed = False
 
-        if is_categorical_dtype(value):
+        if is_categorical_dtype(value.dtype):
             raise NotImplementedError(
                 "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
@@ -2924,7 +2925,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(value, skipna=False)
             if empty_array:
                 pass
             elif inferred_type == "string":
@@ -3591,7 +3592,7 @@ class Table(Fixed):
             )
 
         # evaluate the passed data_columns, True == use all columns
-        # take only valide axis labels
+        # take only valid axis labels
         if data_columns is True:
             data_columns = list(axis_labels)
         elif data_columns is None:
@@ -3795,7 +3796,7 @@ class Table(Fixed):
             tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
 
             meta = metadata = ordered = None
-            if is_categorical_dtype(data_converted):
+            if is_categorical_dtype(data_converted.dtype):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
@@ -4768,7 +4769,7 @@ def _maybe_convert_for_string_atom(
     data = block.values
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
 
         # we cannot serialize this data, so report an exception on a column
@@ -4776,7 +4777,7 @@ def _maybe_convert_for_string_atom(
         for i in range(len(block.shape[0])):
 
             col = block.iget(i)
-            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 iloc = block.mgr_locs.indexer[i]
                 raise TypeError(

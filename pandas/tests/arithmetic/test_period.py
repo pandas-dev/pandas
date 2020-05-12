@@ -153,9 +153,11 @@ class TestPeriodIndexComparisons:
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
-        msg = (
-            r"(:?Invalid comparison between dtype=period\[D\] and .*)"
-            r"|(:?Cannot compare type Period with type .*)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'Period' and 'int'",
+                r"Invalid comparison between dtype=period\[D\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             idx < other
@@ -906,9 +908,8 @@ class TestPeriodIndexArithmetic:
         pi = pd.PeriodIndex(["2016-01"], freq="2M")
         expected = pd.PeriodIndex(["2016-04"], freq="2M")
 
-        # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        pi = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = pi + to_offset("3M")
         tm.assert_equal(result, expected)

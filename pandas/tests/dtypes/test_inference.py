@@ -123,6 +123,17 @@ def test_is_list_like_disallow_sets(maybe_list_like):
     assert inference.is_list_like(obj, allow_sets=False) == expected
 
 
+def test_is_list_like_recursion():
+    # GH 33721
+    # interpreter would crash with with SIGABRT
+    def foo():
+        inference.is_list_like([])
+        foo()
+
+    with pytest.raises(RecursionError):
+        foo()
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))

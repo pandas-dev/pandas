@@ -518,6 +518,21 @@ class TestContains:
         ix = DatetimeIndex([d, d])
         assert d in ix
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["2015", "2015", "2016"],
+            ["2015", "2015", "2014"],
+        ],
+    )
+    def test_contains_nonunique(self, vals):
+        # GH#9512
+        idx = DatetimeIndex(vals)
+        assert idx[0] in idx
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
@@ -625,13 +640,17 @@ class TestDatetimeIndex:
         key = dti[1]
 
         with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            dti.get_value(arr, key)
+            with tm.assert_produces_warning(FutureWarning):
+                dti.get_value(arr, key)
 
-        result = dti.get_value(ser, key)
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key)
         assert result == 7
 
-        result = dti.get_value(ser, key.to_pydatetime())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_pydatetime())
         assert result == 7
 
-        result = dti.get_value(ser, key.to_datetime64())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
