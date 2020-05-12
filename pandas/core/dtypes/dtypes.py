@@ -825,6 +825,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
+            if other.startswith("M8["):
+                other = "datetime64[" + other[3:]
             return other == self.name
 
         return (
