@@ -14,6 +14,8 @@ cache:
 
 env:
   global:
+    # Variable for test workers
+    - PYTEST_WORKERS="auto"
     # create a github personal access token
     # cd pandas-dev/pandas
     # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
@@ -38,6 +40,10 @@ matrix:
     - env:
         - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
 
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
+
     - env:
         - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
       services:
@@ -59,9 +65,12 @@ matrix:
         - mysql
         - postgresql
   allow_failures:
-  - dist: bionic
-    python: 3.9-dev
-    env:
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
+    - dist: bionic
+      python: 3.9-dev
+      env:
         - JOB="3.9-dev" PATTERN="(not slow and not network)"
 
 before_install:
