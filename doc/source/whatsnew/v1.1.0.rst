@@ -226,7 +226,13 @@ Other enhancements
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
--
+- The minimum suppported dta version has increased to 105 in :meth:`~pandas.io.stata.read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
+- :meth:`~pandas.core.frame.DataFrame.to_stata` supports compression using the ``compression``
+  keyword argument. Compression can either be inferred or explicitly set using a string or a
+  dictionary containing both the method and any additional arguments that are passed to the
+  compression library. Compression was also added to the low-level Stata-file writers
+  :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
+  and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 
 .. ---------------------------------------------------------------------------
 
@@ -866,6 +872,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------
 
