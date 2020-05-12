@@ -690,7 +690,7 @@ class SeriesGroupBy(GroupBy[Series]):
             lab = lev.take(lab.cat.codes)
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
-        if is_interval_dtype(lab):
+        if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
             sorter = np.lexsort((lab.left, lab.right, ids))
         else:
@@ -1555,7 +1555,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        f : function
+        func : function
             Function to apply to each subframe. Should return True or False.
         dropna : Drop groups that do not pass the filter. True by default;
             If False, groups that evaluate False are filled with NaNs.

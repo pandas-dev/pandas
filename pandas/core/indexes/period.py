@@ -472,7 +472,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         Parameters
         ----------
         key : Period, NaT, str, or datetime
-            String or datetime key must be parseable as Period.
+            String or datetime key must be parsable as Period.
 
         Returns
         -------
