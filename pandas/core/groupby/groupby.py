@@ -1187,10 +1187,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
-        elif isinstance(self.obj, Series):
-            return self.obj._constructor
-        else:
-            return Series
+        assert isinstance(self.obj, Series)
+        return self.obj._constructor
 
     def _bool_agg(self, val_test, skipna):
         """
