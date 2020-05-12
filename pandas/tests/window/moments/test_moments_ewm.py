@@ -7,9 +7,9 @@ from pandas import DataFrame, Series, concat
 import pandas._testing as tm
 from pandas.tests.window.common import (
     Base,
-    ConsistencyBase,
     check_binary_ew,
     check_binary_ew_min_periods,
+    check_pairwise_moment,
     ew_func,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
@@ -274,31 +274,31 @@ class TestMoments(Base):
         assert result2.dtype == np.float_
 
 
-class TestEwmMomentsConsistency(ConsistencyBase):
+class TestEwmMomentsConsistency(Base):
     def setup_method(self, method):
         self._create_data()
 
-    def test_ewmcov_pairwise(self):
-        self._check_pairwise_moment("ewm", "cov", span=10, min_periods=5)
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_ewm_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "ewm", func, span=10, min_periods=5)
 
-    @pytest.mark.parametrize("name", ["cov", "corr"])
-    def test_ewm_corr_cov(self, name, min_periods, binary_ew_data):
-        A, B = binary_ew_data
 
-        check_binary_ew(name="corr", A=A, B=B)
-        check_binary_ew_min_periods("corr", min_periods, A, B)
+@pytest.mark.parametrize("name", ["cov", "corr"])
+def test_ewm_corr_cov(name, min_periods, binary_ew_data):
+    A, B = binary_ew_data
 
-    def test_ewmcorr_pairwise(self):
-        self._check_pairwise_moment("ewm", "corr", span=10, min_periods=5)
+    check_binary_ew(name="corr", A=A, B=B)
+    check_binary_ew_min_periods("corr", min_periods, A, B)
 
-    @pytest.mark.parametrize("name", ["cov", "corr"])
-    def test_different_input_array_raise_exception(self, name, binary_ew_data):
 
-        A, _ = binary_ew_data
-        msg = "Input arrays must be of the same type!"
-        # exception raised is Exception
-        with pytest.raises(Exception, match=msg):
-            ew_func(A, randn(50), 20, name=name, min_periods=5)
+@pytest.mark.parametrize("name", ["cov", "corr"])
+def test_different_input_array_raise_exception(name, binary_ew_data):
+
+    A, _ = binary_ew_data
+    msg = "Input arrays must be of the same type!"
+    # exception raised is Exception
+    with pytest.raises(Exception, match=msg):
+        ew_func(A, randn(50), 20, name=name, min_periods=5)
 
 
 @pytest.mark.slow

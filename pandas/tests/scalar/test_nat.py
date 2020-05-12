@@ -395,7 +395,8 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
             and "times" in op_name
             and isinstance(value, Timedelta)
         ):
-            msg = "Cannot multiply"
+            typs = "(Timedelta|NaTType)"
+            msg = rf"unsupported operand type\(s\) for \*: '{typs}' and '{typs}'"
         elif val_type == "str":
             # un-specific check here because the message comes from str
             #  and varies by method

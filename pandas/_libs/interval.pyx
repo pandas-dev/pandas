@@ -355,25 +355,12 @@ cdef class Interval(IntervalMixin):
                 (key < self.right if self.open_right else key <= self.right))
 
     def __richcmp__(self, other, op: int):
-        if hasattr(other, 'ndim'):
-            # let numpy (or IntervalIndex) handle vectorization
-            return NotImplemented
-
-        if _interval_like(other):
+        if isinstance(other, Interval):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
 
-        # nb. could just return NotImplemented now, but handling this
-        # explicitly allows us to opt into the Python 3 behavior, even on
-        # Python 2.
-        if op == Py_EQ or op == Py_NE:
-            return NotImplemented
-        else:
-            name = type(self).__name__
-            other = type(other).__name__
-            op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError(f"unorderable types: {name}() {op_str} {other}()")
+        return NotImplemented
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)

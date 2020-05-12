@@ -1,4 +1,3 @@
-# TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
 from typing import List
@@ -24,6 +23,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -65,13 +65,13 @@ def concatenate_block_managers(
             blk = join_units[0].block
             vals = [ju.block.values for ju in join_units]
 
-            if not blk.is_extension or blk.is_datetimetz or blk.is_categorical:
-                # datetimetz and categorical can have the same type but multiple
-                #  dtypes, concatting does not necessarily preserve dtype
+            if not blk.is_extension:
                 values = concat_compat(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
+                if not isinstance(values, ExtensionArray):
+                    values = values.reshape(1, len(values))
 
             b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
@@ -339,7 +339,7 @@ def _get_empty_dtype_and_na(join_units):
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
-            return np.float64, np.nan
+            return np.dtype(np.float64), np.nan
 
     if _is_uniform_reindex(join_units):
         # FIXME: integrate property
@@ -424,7 +424,7 @@ def _get_empty_dtype_and_na(join_units):
                 return g, g.type(np.nan)
             elif is_numeric_dtype(g):
                 if has_none_blocks:
-                    return np.float64, np.nan
+                    return np.dtype(np.float64), np.nan
                 else:
                     return g, None
 
