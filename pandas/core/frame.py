@@ -25,6 +25,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -2015,6 +2016,7 @@ class DataFrame(NDFrame):
         variable_labels: Optional[Dict[Label, str]] = None,
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2078,6 +2080,19 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output dta. If string, specifies
+            compression mode. If dict, value at key 'method' specifies
+            compression mode. Compression mode must be one of {'infer', 'gzip',
+            'bz2', 'zip', 'xz', None}. If compression mode is 'infer' and
+            `fname` is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+            compression). If dict and compression mode is one of {'zip',
+            'gzip', 'bz2'}, or inferred as one of the above, other entries
+            passed as additional compression options.
+
+            .. versionadded:: 1.1.0
+
         Raises
         ------
         NotImplementedError
@@ -2133,6 +2148,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
+            compression=compression,
             **kwargs,
         )
         writer.write_file()
