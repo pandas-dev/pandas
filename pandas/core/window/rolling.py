@@ -2110,18 +2110,18 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         )
         # _wrap_outputs does not know about what the result index should be
         index_names = [self._selected_obj.index.name]
-        if not is_list_like(self._groupby.keys):
-            index_names = [self._groupby.keys] + index_names
+        if not is_list_like(self._groupby_parent.keys):
+            index_names = [self._groupby_parent.keys] + index_names
             index_data = [
                 (key, val)
                 for key, values in self._groupby.grouper.indices.items()
                 for val in values
             ]
         else:
-            index_names = [*self._groupby.keys] + index_names
+            index_names = [*self._groupby_parent.keys] + index_names
             index_data = [
                 (*key, val)
-                for key, values in self._groupby.grouper.indices.items()
+                for key, values in self._groupby_parent.grouper.indices.items()
                 for val in values
             ]
         result_index = MultiIndex.from_tuples(index_data, names=index_names)
