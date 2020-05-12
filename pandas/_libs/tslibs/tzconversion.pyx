@@ -16,7 +16,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
@@ -71,7 +71,7 @@ timedelta-like}
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         int64_t first_delta
-        int64_t HOURS_NS = HOUR_SECONDS * 1000000000, shift_delta = 0
+        int64_t shift_delta = 0
         ndarray[int64_t] trans, result, result_a, result_b, dst_hours, delta
         ndarray trans_idx, grp, a_idx, b_idx, one_diff
         npy_datetimestruct dts
@@ -142,10 +142,10 @@ timedelta-like}
     result_b[:] = NPY_NAT
 
     idx_shifted_left = (np.maximum(0, trans.searchsorted(
-        vals - DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
+        vals - DAY_NANOS, side='right') - 1)).astype(np.int64)
 
     idx_shifted_right = (np.maximum(0, trans.searchsorted(
-        vals + DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
+        vals + DAY_NANOS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         val = vals[i]
@@ -240,18 +240,18 @@ timedelta-like}
             # Handle nonexistent times
             if shift_forward or shift_backward or shift_delta != 0:
                 # Shift the nonexistent time to the closest existing time
-                remaining_mins = val % HOURS_NS
+                remaining_mins = val % HOUR_NANOS
                 if shift_delta != 0:
                     # Validate that we don't relocalize on another nonexistent
                     # time
-                    if -1 < shift_delta + remaining_mins < HOURS_NS:
+                    if -1 < shift_delta + remaining_mins < HOUR_NANOS:
                         raise ValueError(
                             f"The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
                     new_local = val + shift_delta
                 elif shift_forward:
-                    new_local = val + (HOURS_NS - remaining_mins)
+                    new_local = val + (HOUR_NANOS - remaining_mins)
                 else:
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
@@ -444,6 +444,51 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz, bint to_utc):
     return converted
 
 
+cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
+                                                   bint to_utc,
+                                                   bint *fold=NULL):
+    """
+    Calculate offset in nanoseconds needed to convert the i8 representation of
+    a datetime from a tzlocal timezone to UTC, or vice-versa.
+
+    Parameters
+    ----------
+    val : int64_t
+    tz : tzinfo
+    to_utc : bint
+        True if converting tzlocal _to_ UTC, False if going the other direction
+    fold : bint*, default NULL
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
+
+    Returns
+    -------
+    delta : int64_t
+
+    Notes
+    -----
+    Sets fold by pointer
+    """
+    cdef:
+        npy_datetimestruct dts
+        datetime dt
+        int64_t delta
+
+    dt64_to_dtstruct(val, &dts)
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us)
+    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # is _wall time_, so if val is a UTC timestamp convert to wall time
+    if not to_utc:
+        dt = dt.replace(tzinfo=tzutc())
+        dt = dt.astimezone(tz)
+
+    if fold is not NULL:
+        fold[0] = dt.fold
+
+    return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+
+
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
@@ -462,30 +507,51 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     -------
     result : int64_t
     """
-    cdef:
-        npy_datetimestruct dts
-        int64_t delta
-        datetime dt
+    cdef int64_t delta
 
-    dt64_to_dtstruct(val, &dts)
-    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us)
-    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
-    # is _wall time_, so if val is a UTC timestamp convert to wall time
-    if not to_utc:
-        dt = dt.replace(tzinfo=tzutc())
-        dt = dt.astimezone(tz)
-    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
 
-    if not to_utc:
+    if to_utc:
+        return val - delta
+    else:
         return val + delta
-    return val - delta
+
+
+cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
+    """
+    Convert the i8 representation of a datetime from UTC to local timezone,
+    set fold by pointer
+
+    Private, not intended for use outside of tslibs.conversion
+
+    Parameters
+    ----------
+    val : int64_t
+    tz : tzinfo
+    fold : bint*
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
+
+    Returns
+    -------
+    result : int64_t
+
+    Notes
+    -----
+    Sets fold by pointer
+    """
+    cdef int64_t delta
+
+    delta = _tzlocal_get_offset_components(val, tz, False, fold)
+
+    return val + delta
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
-                                bint to_utc=True):
+cdef int64_t[:] _tz_convert_dst(
+    const int64_t[:] values, tzinfo tz, bint to_utc=True,
+):
     """
     tz_convert for non-UTC non-tzlocal cases where we have to check
     DST transitions pointwise.

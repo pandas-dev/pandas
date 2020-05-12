@@ -7,13 +7,12 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.frame import DataFrame, _shared_docs
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -33,7 +32,7 @@ def melt(
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
-    if isinstance(frame.columns, ABCMultiIndex):
+    if isinstance(frame.columns, MultiIndex):
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
@@ -41,7 +40,7 @@ def melt(
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(id_vars, list):
             raise ValueError(
                 "id_vars must be a list of tuples when columns are a MultiIndex"
             )
@@ -60,9 +59,7 @@ def melt(
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(
-            value_vars, list
-        ):
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(value_vars, list):
             raise ValueError(
                 "value_vars must be a list of tuples when columns are a MultiIndex"
             )
@@ -84,7 +81,7 @@ def melt(
         frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
-        if isinstance(frame.columns, ABCMultiIndex):
+        if isinstance(frame.columns, MultiIndex):
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
@@ -105,12 +102,12 @@ def melt(
         if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
-            id_data = np.tile(id_data.values, K)
+            id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame.values.ravel("F")
+    mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
@@ -170,13 +167,13 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     pivot_cols = []
 
     for target, names in zip(keys, values):
-        to_concat = [data[col].values for col in names]
+        to_concat = [data[col]._values for col in names]
 
         mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:
-        mdata[col] = np.tile(data[col].values, K)
+        mdata[col] = np.tile(data[col]._values, K)
 
     if dropna:
         mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)

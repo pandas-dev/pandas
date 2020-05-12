@@ -11,7 +11,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -266,7 +266,6 @@ class JSONTableWriter(FrameWriter):
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
         """
-
         super().__init__(
             obj,
             orient,
@@ -307,7 +306,7 @@ class JSONTableWriter(FrameWriter):
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
         # Convert PeriodIndex to datetimes before serializing
-        if is_period_dtype(obj.index):
+        if is_period_dtype(obj.index.dtype):
             obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
@@ -346,6 +345,9 @@ class JSONTableWriter(FrameWriter):
 
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
+@deprecate_nonkeyword_arguments(
+    version="2.0", allowed_args=["path_or_buf"], stacklevel=3
+)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -491,17 +493,12 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-
-        .. versionadded:: 0.21.0
-
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -526,7 +523,6 @@ def read_json(
 
     Examples
     --------
-
     >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
@@ -572,7 +568,6 @@ def read_json(
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
-
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
@@ -872,12 +867,15 @@ class Parser:
         """
         Try to convert axes.
         """
-        for axis in self.obj._AXIS_NUMBERS.keys():
+        for axis_name in self.obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
-                axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True
+                name=axis_name,
+                data=self.obj._get_axis(axis_name),
+                use_dtypes=False,
+                convert_dates=True,
             )
             if result:
-                setattr(self.obj, axis, new_axis)
+                setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self):
         raise AbstractMethodError(self)
@@ -886,7 +884,6 @@ class Parser:
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """
-
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -963,7 +960,6 @@ class Parser:
         Try to coerce object in epoch/iso formats and integer/float in epoch
         formats. Return a boolean if parsing was successful.
         """
-
         # no conversion on empty
         if not len(data):
             return data, False
@@ -978,9 +974,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False
@@ -989,7 +985,7 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
         return data, False
@@ -1117,7 +1113,6 @@ class FrameParser(Parser):
         """
         Take a conversion function and possibly recreate the frame.
         """
-
         if filt is None:
             filt = lambda col, c: True
 

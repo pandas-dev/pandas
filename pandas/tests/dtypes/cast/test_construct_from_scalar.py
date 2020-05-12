@@ -15,6 +15,4 @@ def test_cast_1d_array_like_from_scalar_categorical():
     expected = Categorical(["a", "a"], categories=cats)
 
     result = construct_1d_arraylike_from_scalar("a", len(expected), cat_type)
-    tm.assert_categorical_equal(
-        result, expected, check_category_order=True, check_dtype=True
-    )
+    tm.assert_categorical_equal(result, expected)

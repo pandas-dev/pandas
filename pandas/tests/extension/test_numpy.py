@@ -151,6 +151,11 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_array_from_scalars(data)
 
+    @skip_nested
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # ValueError: Length of passed values is 1, index implies 3.
+        super().test_series_constructor_scalar_with_index(data, dtype)
+
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     @pytest.mark.skip(reason="Incorrect expected.")
@@ -170,15 +175,30 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_take_series(data)
 
-    @pytest.mark.xfail(reason="astype doesn't recognize data.dtype")
-    def test_loc_iloc_frame_single_dtype(self, data):
+    def test_loc_iloc_frame_single_dtype(self, data, request):
+        npdtype = data.dtype.numpy_dtype
+        if npdtype == object or npdtype == np.float64:
+            # GH#33125
+            mark = pytest.mark.xfail(
+                reason="GH#33125 astype doesn't recognize data.dtype"
+            )
+            request.node.add_marker(mark)
         super().test_loc_iloc_frame_single_dtype(data)
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     @skip_nested
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+    def test_groupby_extension_apply(
+        self, data_for_grouping, groupby_apply_op, request
+    ):
         # ValueError: Names should be list-like for a MultiIndex
+        a = "a"
+        is_identity = groupby_apply_op(a) is a
+        if data_for_grouping.dtype.numpy_dtype == np.float64 and is_identity:
+            mark = pytest.mark.xfail(
+                reason="GH#33125 astype doesn't recognize data.dtype"
+            )
+            request.node.add_marker(mark)
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
@@ -193,6 +213,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     @pytest.mark.skip(reason="TODO: remove?")
     def test_value_counts(self, all_data, dropna):
         pass
+
+    @pytest.mark.xfail(reason="not working. will be covered by #32028")
+    def test_value_counts_with_normalize(self, data):
+        return super().test_value_counts_with_normalize(data)
 
     @pytest.mark.skip(reason="Incorrect expected")
     # We have a bool dtype, so the result is an ExtensionArray
@@ -252,6 +276,12 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
+    @skip_nested
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        # Fails creating with _from_sequence
+        super().test_equals(data, na_value, as_series, box)
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
@@ -276,7 +306,11 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
-    pass
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_series_repr(self, data):
+        super().test_series_repr(data)
 
 
 @skip_nested
@@ -320,6 +354,18 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     # not actually a mixed concat, since we concat int and int.
     def test_concat_mixed_dtypes(self, data):
         super().test_concat_mixed_dtypes(data)
+
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
+
+    @pytest.mark.xfail(
+        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
+    )
+    def test_concat_all_na_block(self, data_missing, in_frame):
+        super().test_concat_all_na_block(data_missing, in_frame)
 
     @skip_nested
     def test_merge(self, data, na_value):
@@ -395,6 +441,56 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_scalar_key_sequence_raise(self, data):
         # Failed: DID NOT RAISE <class 'ValueError'>
         super().test_setitem_scalar_key_sequence_raise(data)
+
+    # TODO: there is some issue with PandasArray, therefore,
+    #   skip the setitem test for now, and fix it later (GH 31446)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series):
+        super().test_setitem_mask(data, mask, box_in_series)
+
+    @skip_nested
+    def test_setitem_mask_raises(self, data, box_in_series):
+        super().test_setitem_mask_raises(data, box_in_series)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array(self, data, idx, box_in_series):
+        super().test_setitem_integer_array(data, idx, box_in_series)
+
+    @skip_nested
+    @pytest.mark.parametrize(
+        "idx, box_in_series",
+        [
+            ([0, 1, 2, pd.NA], False),
+            pytest.param([0, 1, 2, pd.NA], True, marks=pytest.mark.xfail),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+        ],
+        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
+    )
+    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
+        super().test_setitem_integer_with_missing_raises(data, idx, box_in_series)
+
+    @skip_nested
+    def test_setitem_slice(self, data, box_in_series):
+        super().test_setitem_slice(data, box_in_series)
+
+    @skip_nested
+    def test_setitem_loc_iloc_slice(self, data):
+        super().test_setitem_loc_iloc_slice(data)
 
 
 @skip_nested

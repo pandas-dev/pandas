@@ -27,10 +27,9 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
     Examples
     --------
-    >>> is_multi_agg_with_relabel(a='max')
+    >>> is_multi_agg_with_relabel(a="max")
     False
-    >>> is_multi_agg_with_relabel(a_max=('a', 'max'),
-    ...                            a_min=('a', 'min'))
+    >>> is_multi_agg_with_relabel(a_max=("a", "max"), a_min=("a", "min"))
     True
     >>> is_multi_agg_with_relabel()
     False
@@ -61,8 +60,8 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
     Examples
     --------
-    >>> normalize_keyword_aggregation({'output': ('input', 'sum')})
-    ({'input': ['sum']}, ('output',), [('input', 'sum')])
+    >>> normalize_keyword_aggregation({"output": ("input", "sum")})
+    (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
@@ -90,7 +89,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     ]
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
-    # get the new indice of columns by comparison
+    # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
@@ -98,7 +97,8 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 def _make_unique_kwarg_list(
     seq: Sequence[Tuple[Any, Any]]
 ) -> Sequence[Tuple[Any, Any]]:
-    """Uniquify aggfunc name of the pairs in the order list
+    """
+    Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------
@@ -182,7 +182,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     is_dict = is_dict_like(agg_spec)
     if not (is_dict or is_list_like(agg_spec)):
         return agg_spec
-    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
+    mangled_aggspec = type(agg_spec)()  # dict or OrderedDict
 
     if is_dict:
         for key, aggfuncs in agg_spec.items():

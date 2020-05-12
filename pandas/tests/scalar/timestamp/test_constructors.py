@@ -165,20 +165,25 @@ class TestTimestampConstructors:
         assert result == eval(repr(result))
 
     def test_constructor_invalid(self):
-        with pytest.raises(TypeError, match="Cannot convert input"):
+        msg = "Cannot convert input"
+        with pytest.raises(TypeError, match=msg):
             Timestamp(slice(2))
-        with pytest.raises(ValueError, match="Cannot convert Period"):
+        msg = "Cannot convert Period"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(Period("1000-01-01"))
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        with pytest.raises(TypeError, match="must be a datetime.tzinfo"):
+        msg = "must be a datetime.tzinfo"
+        with pytest.raises(TypeError, match=msg):
             Timestamp("2017-10-22", tzinfo="US/Eastern")
 
-        with pytest.raises(ValueError, match="at most one of"):
+        msg = "at most one of"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
-        with pytest.raises(ValueError, match="Invalid frequency:"):
+        msg = "Invalid frequency:"
+        with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
@@ -189,7 +194,8 @@ class TestTimestampConstructors:
         # Test support for Timestamp.strptime
         fmt = "%Y%m%d-%H%M%S-%f%z"
         ts = "20190129-235348-000001+0000"
-        with pytest.raises(NotImplementedError):
+        msg = r"Timestamp.strptime\(\) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             Timestamp.strptime(ts, fmt)
 
     def test_constructor_tz_or_tzinfo(self):
@@ -206,15 +212,20 @@ class TestTimestampConstructors:
 
     def test_constructor_positional(self):
         # see gh-10758
-        with pytest.raises(TypeError):
+        msg = "an integer is required"
+        with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
-        with pytest.raises(ValueError):
+
+        msg = "month must be in 1..12"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 0, 1)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 13, 1)
-        with pytest.raises(ValueError):
+
+        msg = "day is out of range for month"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1, 0)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1, 32)
 
         # see gh-11630
@@ -225,15 +236,20 @@ class TestTimestampConstructors:
 
     def test_constructor_keyword(self):
         # GH 10758
-        with pytest.raises(TypeError):
+        msg = "function missing required argument 'day'|Required argument 'day'"
+        with pytest.raises(TypeError, match=msg):
             Timestamp(year=2000, month=1)
-        with pytest.raises(ValueError):
+
+        msg = "month must be in 1..12"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=0, day=1)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=13, day=1)
-        with pytest.raises(ValueError):
+
+        msg = "day is out of range for month"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=1, day=0)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=1, day=32)
 
         assert repr(Timestamp(year=2015, month=11, day=12)) == repr(
@@ -313,8 +329,9 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("z", ["Z0", "Z00"])
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
-        with pytest.raises(ValueError):
-            Timestamp("2014-11-02 01:00{}".format(z))
+        msg = "could not convert string to Timestamp"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(f"2014-11-02 01:00{z}")
 
     @pytest.mark.parametrize(
         "arg",
@@ -331,14 +348,17 @@ class TestTimestampConstructors:
     )
     def test_invalid_date_kwarg_with_string_input(self, arg):
         kwarg = {arg: 1}
-        with pytest.raises(ValueError):
+        msg = "Cannot pass a date attribute keyword argument"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2010-10-10 12:59:59.999999999", **kwarg)
 
     def test_out_of_bounds_integer_value(self):
         # GH#26651 check that we raise OutOfBoundsDatetime, not OverflowError
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = str(Timestamp.max.value * 2)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(Timestamp.max.value * 2)
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = str(Timestamp.min.value * 2)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(Timestamp.min.value * 2)
 
     def test_out_of_bounds_value(self):
@@ -353,25 +373,28 @@ class TestTimestampConstructors:
         Timestamp(min_ts_us)
         Timestamp(max_ts_us)
 
+        msg = "Out of bounds"
         # One us less than the minimum is an error
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(min_ts_us - one_us)
 
         # One us more than the maximum is an error
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(max_ts_us + one_us)
 
     def test_out_of_bounds_string(self):
-        with pytest.raises(ValueError):
+        msg = "Out of bounds"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("1676-01-01")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2263-01-01")
 
     def test_barely_out_of_bounds(self):
         # GH#19529
         # GH#19382 close enough to bounds that dropping nanos would result
         # in an in-bounds datetime
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp: 2262-04-11 23:47:16"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
     def test_bounds_with_different_units(self):
@@ -382,7 +405,8 @@ class TestTimestampConstructors:
         for date_string in out_of_bounds_dates:
             for unit in time_units:
                 dt64 = np.datetime64(date_string, unit)
-                with pytest.raises(ValueError):
+                msg = "Out of bounds"
+                with pytest.raises(OutOfBoundsDatetime, match=msg):
                     Timestamp(dt64)
 
         in_bounds_dates = ("1677-09-23", "2262-04-11")
@@ -449,15 +473,14 @@ class TestTimestampConstructors:
     def test_disallow_setting_tz(self, tz):
         # GH 3746
         ts = Timestamp("2010")
-        with pytest.raises(AttributeError):
+        msg = "Cannot directly set timezone"
+        with pytest.raises(AttributeError, match=msg):
             ts.tz = tz
 
     @pytest.mark.parametrize("offset", ["+0300", "+0200"])
     def test_construct_timestamp_near_dst(self, offset):
         # GH 20854
-        expected = Timestamp(
-            "2016-10-30 03:00:00{}".format(offset), tz="Europe/Helsinki"
-        )
+        expected = Timestamp(f"2016-10-30 03:00:00{offset}", tz="Europe/Helsinki")
         result = Timestamp(expected).tz_convert("Europe/Helsinki")
         assert result == expected
 
@@ -478,16 +501,19 @@ class TestTimestampConstructors:
 
     def test_constructor_invalid_frequency(self):
         # GH 22311
-        with pytest.raises(ValueError, match="Invalid frequency:"):
+        msg = "Invalid frequency:"
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
         kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": pytz.utc}
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+        msg = "Cannot pass a datetime or Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tz="US/Pacific")
-        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+        msg = "Cannot pass a datetime or Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
 
     def test_dont_convert_dateutil_utc_to_pytz_utc(self):
@@ -550,3 +576,16 @@ def test_timestamp_constructor_identity():
     expected = Timestamp("2017-01-01T12")
     result = Timestamp(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
+def test_constructor_missing_keyword(kwargs):
+    # GH 31200
+
+    # The exact error message of datetime() depends on its version
+    msg1 = r"function missing required argument '(year|month|day)' \(pos [123]\)"
+    msg2 = r"Required argument '(year|month|day)' \(pos [123]\) not found"
+    msg = "|".join([msg1, msg2])
+
+    with pytest.raises(TypeError, match=msg):
+        Timestamp(**kwargs)

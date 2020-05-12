@@ -99,7 +99,6 @@ def validate_argmin_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmin(args, kwargs)
     return skipna
@@ -113,7 +112,6 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmax(args, kwargs)
     return skipna
@@ -151,7 +149,6 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     either integer type or is None, since 'ascending' itself should
     be a boolean
     """
-
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
         ascending = True
@@ -160,7 +157,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS = dict(out=None)  # type Dict[str, Any]
+CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -173,7 +170,6 @@ def validate_clip_with_axis(axis, args, kwargs):
     so check if the 'axis' parameter is an instance of ndarray, since
     'axis' itself should either be an integer or None
     """
-
     if isinstance(axis, ndarray):
         args = (axis,) + args
         axis = None
@@ -222,7 +218,7 @@ validate_any = CompatValidator(
 LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(out=None, keepdims=False)
+MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -255,9 +251,15 @@ STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
-PROD_DEFAULTS = SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS["axis"] = None
 SUM_DEFAULTS["keepdims"] = False
 SUM_DEFAULTS["initial"] = None
+
+PROD_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+PROD_DEFAULTS["axis"] = None
+PROD_DEFAULTS["keepdims"] = False
+PROD_DEFAULTS["initial"] = None
 
 MEDIAN_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
 MEDIAN_DEFAULTS["overwrite_input"] = False
@@ -298,7 +300,6 @@ def validate_take_with_convert(convert, args, kwargs):
     ndarray or 'None', so check if the 'convert' parameter is either
     an instance of ndarray or is None
     """
-
     if isinstance(convert, ndarray) or convert is None:
         args = (convert,) + args
         convert = True

@@ -1,7 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Period, Series, Timestamp, date_range, to_datetime
+from pandas._libs.tslibs import IncompatibleFrequency
+
+from pandas import (
+    DataFrame,
+    Period,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
@@ -21,7 +31,7 @@ class TestFrameAsof:
     def test_basic(self, date_range_frame):
         df = date_range_frame
         N = 50
-        df.loc[15:30, "A"] = np.nan
+        df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = df.asof(dates)
@@ -41,7 +51,7 @@ class TestFrameAsof:
     def test_subset(self, date_range_frame):
         N = 10
         df = date_range_frame.iloc[:N].copy()
-        df.loc[4:8, "A"] = np.nan
+        df.loc[df.index[4:8], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         # with a subset of A should be the same
@@ -149,10 +159,20 @@ class TestFrameAsof:
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
         df = date_range_frame
         N = 50
-        df.loc[15:30, "A"] = np.nan
+        df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = df.asof(dates)
 
         with tm.assert_produces_warning(None):
             result["C"] = 1
+
+    def test_asof_periodindex_mismatched_freq(self):
+        N = 50
+        rng = period_range("1/1/1990", periods=N, freq="H")
+        df = DataFrame(np.random.randn(N), index=rng)
+
+        # Mismatched freq
+        msg = "Input has different freq"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            df.asof(rng.asfreq("D"))

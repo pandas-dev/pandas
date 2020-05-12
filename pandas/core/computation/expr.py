@@ -599,7 +599,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         might or might not exist in the resolvers
 
         """
-
         if len(node.targets) != 1:
             raise SyntaxError("can only assign a single expression")
         if not isinstance(node.targets[0], ast.Name):
@@ -636,8 +635,9 @@ class BaseExprVisitor(ast.NodeVisitor):
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
+                raise
 
-        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
+        raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 

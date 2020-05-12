@@ -26,6 +26,7 @@ import pandas as pd
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
+from pandas.io.sas.sasreader import ReaderBase
 
 
 class _subheader_pointer:
@@ -37,7 +38,7 @@ class _column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(abc.Iterator):
+class SAS7BDATReader(ReaderBase, abc.Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
@@ -120,8 +121,10 @@ class SAS7BDATReader(abc.Iterator):
         return np.asarray(self._column_data_offsets, dtype=np.int64)
 
     def column_types(self):
-        """Returns a numpy character array of the column types:
-           s (string) or d (double)"""
+        """
+        Returns a numpy character array of the column types:
+           s (string) or d (double)
+        """
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):

@@ -243,14 +243,12 @@ def pandas_validate(func_name: str):
                     "EX03",
                     error_code=err.error_code,
                     error_message=err.message,
-                    times_happening=" ({} times)".format(err.count)
-                    if err.count > 1
-                    else "",
+                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
-            if "import {}".format(wrong_import) in examples_source_code:
+            if f"import {wrong_import}" in examples_source_code:
                 result["errors"].append(
                     pandas_error("EX04", imported_library=wrong_import)
                 )
@@ -345,9 +343,7 @@ def print_validate_one_results(func_name: str):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
-        title_line = "{side} {title}{adj} {side}".format(
-            side=char * side_len, title=title, adj=adj
-        )
+        title_line = f"{char * side_len} {title}{adj} {char * side_len}"
 
         return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 

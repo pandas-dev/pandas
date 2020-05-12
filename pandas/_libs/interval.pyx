@@ -1,8 +1,18 @@
 import numbers
 from operator import le, lt
 
-from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
-                             PyObject_RichCompare)
+from cpython.datetime cimport PyDelta_Check, PyDateTime_IMPORT
+PyDateTime_IMPORT
+
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+)
 
 import cython
 from cython import Py_ssize_t
@@ -10,16 +20,27 @@ from cython import Py_ssize_t
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    NPY_QUICKSORT,
+    PyArray_ArgSort,
+    PyArray_Take,
+    float32_t,
+    float64_t,
+    int32_t,
+    int64_t,
     ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+    uint64_t,
+)
 cnp.import_array()
 
 
 cimport pandas._libs.util as util
 
 from pandas._libs.hashtable cimport Int64Vector
-from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
+from pandas._libs.tslibs.util cimport (
+    is_integer_object,
+    is_float_object,
+    is_timedelta64_object,
+)
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -179,7 +200,7 @@ cdef class IntervalMixin:
                              f"expected {repr(self.closed)}.")
 
 
-cdef _interval_like(other):
+cdef bint _interval_like(other):
     return (hasattr(other, 'left')
             and hasattr(other, 'right')
             and hasattr(other, 'closed'))
@@ -279,6 +300,7 @@ cdef class Interval(IntervalMixin):
     True
     """
     _typ = "interval"
+    __array_priority__ = 1000
 
     cdef readonly object left
     """
@@ -333,25 +355,12 @@ cdef class Interval(IntervalMixin):
                 (key < self.right if self.open_right else key <= self.right))
 
     def __richcmp__(self, other, op: int):
-        if hasattr(other, 'ndim'):
-            # let numpy (or IntervalIndex) handle vectorization
-            return NotImplemented
-
-        if _interval_like(other):
+        if isinstance(other, Interval):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
 
-        # nb. could just return NotImplemented now, but handling this
-        # explicitly allows us to opt into the Python 3 behavior, even on
-        # Python 2.
-        if op == Py_EQ or op == Py_NE:
-            return NotImplemented
-        else:
-            name = type(self).__name__
-            other = type(other).__name__
-            op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError(f"unorderable types: {name}() {op_str} {other}()")
+        return NotImplemented
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
@@ -383,14 +392,29 @@ cdef class Interval(IntervalMixin):
         return f'{start_symbol}{left}, {right}{end_symbol}'
 
     def __add__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+        elif (
+            isinstance(y, Interval)
+            and (
+                isinstance(self, numbers.Number)
+                or PyDelta_Check(self)
+                or is_timedelta64_object(self)
+            )
+        ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
@@ -481,8 +505,7 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def intervals_to_interval_bounds(ndarray intervals,
-                                 bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     """
     Parameters
     ----------
@@ -502,14 +525,14 @@ def intervals_to_interval_bounds(ndarray intervals,
     """
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan

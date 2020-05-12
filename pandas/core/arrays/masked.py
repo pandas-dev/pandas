@@ -1,18 +1,37 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.algorithms import take
+from pandas.core.algorithms import _factorize_array, take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
-    from pandas._typing import Scalar
+    from pandas import Series
+
+
+BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BasedMaskedArray subclasses.
+    """
+
+    na_value = libmissing.NA
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        raise AbstractMethodError
 
 
 class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
@@ -22,11 +41,31 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     numpy based
     """
 
-    _data: np.ndarray
-    _mask: np.ndarray
-
     # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value: "Scalar"
+    _internal_fill_value: Scalar
+
+    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+        # values is supposed to already be validated in the subclass
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+            raise TypeError(
+                "mask should be boolean numpy array. Use "
+                "the 'pd.array' function instead"
+            )
+        if not values.ndim == 1:
+            raise ValueError("values must be a 1D array")
+        if not mask.ndim == 1:
+            raise ValueError("mask must be a 1D array")
+
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
+
+        self._data = values
+        self._mask = mask
+
+    @property
+    def dtype(self) -> BaseMaskedDtype:
+        raise AbstractMethodError(self)
 
     def __getitem__(self, item):
         if is_integer(item):
@@ -48,12 +87,12 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self) -> int:
         return len(self._data)
 
-    def __invert__(self):
+    def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
-    ):
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+    ) -> np.ndarray:
         """
         Convert to a NumPy Array.
 
@@ -85,7 +124,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         >>> a = pd.array([True, False, pd.NA], dtype="boolean")
         >>> a.to_numpy()
-        array([True, False, NA], dtype=object)
+        array([True, False, <NA>], dtype=object)
 
         When no missing values are present, an equivalent dtype can be used.
 
@@ -101,7 +140,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         >>> a = pd.array([True, False, pd.NA], dtype="boolean")
         >>> a
         <BooleanArray>
-        [True, False, NA]
+        [True, False, <NA>]
         Length: 3, dtype: boolean
 
         >>> a.to_numpy(dtype="bool")
@@ -159,7 +198,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         # source code using it..
         return self._mask.any()
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         return self._mask
 
     @property
@@ -167,16 +206,21 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return self.dtype.na_value
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._data.nbytes + self._mask.nbytes
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(cls: Type[BaseMaskedArrayT], to_concat) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask)
 
-    def take(self, indexer, allow_fill=False, fill_value=None):
+    def take(
+        self: BaseMaskedArrayT,
+        indexer,
+        allow_fill: bool = False,
+        fill_value: Optional[Scalar] = None,
+    ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
@@ -197,13 +241,25 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, mask, copy=False)
 
-    def copy(self):
+    def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
         data = data.copy()
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
-    def value_counts(self, dropna=True):
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        arr = self._data
+        mask = self._mask
+
+        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+
+        # the hashtables don't handle all different types of bits
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques
+
+    def value_counts(self, dropna: bool = True) -> "Series":
         """
         Returns a Series containing counts of each unique value.
 
@@ -230,11 +286,11 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         # TODO(extension)
         # if we have allow Index to hold an ExtensionArray
         # this is easier
-        index = value_counts.index.values.astype(object)
+        index = value_counts.index._values.astype(object)
 
         # if we want nans, count the mask
         if dropna:
-            counts = value_counts.values
+            counts = value_counts._values
         else:
             counts = np.empty(len(value_counts) + 1, dtype="int64")
             counts[:-1] = value_counts

@@ -1,4 +1,5 @@
-"""Rudimentary Apache Arrow-backed ExtensionArray.
+"""
+Rudimentary Apache Arrow-backed ExtensionArray.
 
 At the moment, just a boolean array / type is implemented.
 Eventually, we'll want to parametrize the type and support
@@ -147,8 +148,8 @@ class ArrowExtensionArray(ExtensionArray):
 
         try:
             op = getattr(arr, method)
-        except AttributeError:
-            raise TypeError
+        except AttributeError as err:
+            raise TypeError from err
         return op(**kwargs)
 
     def any(self, axis=0, out=None):

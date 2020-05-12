@@ -150,7 +150,9 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+        _table = table.fillna(fill_value, downcast="infer")
+        assert _table is not None  # needed for mypy
+        table = _table
 
     if margins:
         if dropna:
@@ -208,7 +210,7 @@ def _add_margins(
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
     if table.ndim == 2:
-        # i.e. DataFramae
+        # i.e. DataFrame
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
@@ -454,10 +456,10 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             indexed = data._constructor(
-                data[values].values, index=index, columns=values
+                data[values]._values, index=index, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values].values, index=index)
+            indexed = data._constructor_sliced(data[values]._values, index=index)
     return indexed.unstack(columns)
 
 
@@ -498,9 +500,6 @@ def crosstab(
     margins_name : str, default 'All'
         Name of the row/column that will contain the totals
         when margins is True.
-
-        .. versionadded:: 0.21.0
-
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
     normalize : bool, {'all', 'index', 'columns'}, or {0,1}, default False
@@ -567,7 +566,6 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-
     index = com.maybe_make_list(index)
     columns = com.maybe_make_list(columns)
 
@@ -632,8 +630,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         axis_subs = {0: "index", 1: "columns"}
         try:
             normalize = axis_subs[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
 
@@ -648,8 +646,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         try:
             f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
         table = f(table)
         table = table.fillna(0)

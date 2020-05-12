@@ -108,8 +108,9 @@ def test_fast_apply():
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
+    sdata = splitter._get_sorted_data()
 
-    values, mutated = splitter.fast_apply(f, group_keys)
+    values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
     assert not mutated
 
@@ -490,6 +491,26 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
         tm.assert_frame_equal(result, expected)
 
 
+def test_apply_reindex_values():
+    # GH: 26209
+    # reindexing from a single column of a groupby object with duplicate indices caused
+    # a ValueError (cannot reindex from duplicate axis) in 0.24.2, the problem was
+    # solved in #30679
+    values = [1, 2, 3, 4]
+    indices = [1, 1, 2, 2]
+    df = pd.DataFrame(
+        {"group": ["Group1", "Group2"] * 2, "value": values}, index=indices
+    )
+    expected = pd.Series(values, index=indices, name="value")
+
+    def reindex_helper(x):
+        return x.reindex(np.arange(x.index.min(), x.index.max() + 1))
+
+    # the following group by raised a ValueError
+    result = df.groupby("group").value.apply(reindex_helper)
+    tm.assert_series_equal(expected, result)
+
+
 def test_apply_corner_cases():
     # #535, can't use sliding iterator
 
@@ -863,5 +884,40 @@ def test_apply_function_returns_numpy_array():
     result = df.groupby("A").apply(fct)
     expected = pd.Series(
         [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
+)
+def test_apply_function_index_return(function):
+    # GH: 22541
+    df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
+    result = df.groupby("id").apply(function)
+    expected = pd.Series(
+        [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
+        index=pd.Index([1, 2, 3], name="id"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_with_indexing():
+    # GH: 33058
+    df = pd.DataFrame(
+        {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
+    )
+
+    def fn(x):
+        x.col2[x.index[-1]] = 0
+        return x.col2
+
+    result = df.groupby(["col1"], as_index=False).apply(fn)
+    expected = pd.Series(
+        [1, 2, 0, 4, 5, 0],
+        index=pd.MultiIndex.from_tuples(
+            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
+        ),
+        name="col2",
     )
     tm.assert_series_equal(result, expected)
