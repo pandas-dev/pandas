@@ -185,8 +185,9 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
+    # FIXME: restore these as cache_readonly
+    #  _params = cache_readonly(BaseOffset._params.__get__)
+    #  freqstr = cache_readonly(BaseOffset.freqstr.__get__)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -297,8 +298,9 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
 
 
 class SingleConstructorOffset(BaseOffset):
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
+    # FIXME: restore these as cache_readonly
+    #  _params = cache_readonly(BaseOffset._params.__get__)
+    #  freqstr = cache_readonly(BaseOffset.freqstr.__get__)
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -315,6 +317,10 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.offset)
+        return type(self), tup
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -717,6 +723,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
     _attributes = frozenset(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
+
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
 
     def __init__(
         self,
@@ -2150,13 +2162,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
     _prefix = "undefined"
     _attributes = frozenset(["n", "normalize"])
-
-    def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n, normalize)
-        if normalize:
-            raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
-            )  # GH#21427
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)

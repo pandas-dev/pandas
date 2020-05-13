@@ -25,7 +25,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
@@ -40,7 +40,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,

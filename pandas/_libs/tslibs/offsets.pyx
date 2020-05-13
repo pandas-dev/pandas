@@ -21,7 +21,7 @@ cnp.import_array()
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object
 
-from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
@@ -35,11 +35,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
-from pandas._libs.tslibs.timestamps import Timestamp
-
 # ---------------------------------------------------------------------
 # Constants
-
 
 _offset_to_period_map = {
     'WEEKDAY': 'D',
@@ -91,6 +88,10 @@ for _d in DAYS:
 
 cdef bint is_offset_object(object obj):
     return isinstance(obj, _BaseOffset)
+
+
+cdef bint is_tick_object(object obj):
+    return isinstance(obj, _Tick)
 
 
 cdef to_offset(object obj):
@@ -156,6 +157,8 @@ def apply_wraps(func):
     # not play nicely with cython class methods
 
     def wrapper(self, other):
+        # TODO: try to avoid runtime/circular import
+        from pandas import Timestamp
         if other is NaT:
             return NaT
         elif isinstance(other, (timedelta, BaseOffset)):
@@ -395,7 +398,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset:
+cdef class _BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -406,16 +409,17 @@ class _BaseOffset:
     _use_relativedelta = False
     _adjust_dst = True
     _deprecations = frozenset(["isAnchored", "onOffset"])
-    normalize = False  # default for prior pickles
+
+    cdef readonly:
+        int64_t n
+        bint normalize
+        dict _cache
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
-        object.__setattr__(self, "n", n)
-        object.__setattr__(self, "normalize", normalize)
-        object.__setattr__(self, "_cache", {})
-
-    def __setattr__(self, name, value):
-        raise AttributeError("DateOffset objects are immutable.")
+        self.n = n
+        self.normalize = normalize
+        self._cache = {}
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
@@ -446,6 +450,8 @@ class _BaseOffset:
         """
         # NB: non-cython subclasses override property with cache_readonly
         all_paras = self.__dict__.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'calendar']
@@ -606,6 +612,8 @@ class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
+        # TODO: try to avoid runtime/circular import
+        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
@@ -620,6 +628,8 @@ class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
+        # TODO: try to avoid runtime/circular import
+        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
@@ -643,7 +653,8 @@ class _BaseOffset:
 
     # ------------------------------------------------------------------
 
-    def _validate_n(self, n):
+    @staticmethod
+    def _validate_n(n):
         """
         Require that `n` be an integer.
 
@@ -686,9 +697,9 @@ class _BaseOffset:
             kwds = {key: odict[key] for key in odict if odict[key]}
             state.update(kwds)
 
-        if '_cache' not in state:
-            state['_cache'] = {}
-
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
         self.__dict__.update(state)
 
         if 'weekmask' in state and 'holidays' in state:
@@ -701,6 +712,8 @@ class _BaseOffset:
     def __getstate__(self):
         """Return a pickleable state"""
         state = self.__dict__.copy()
+        state["n"] = self.n
+        state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
         # as its a np.busyday; we recreate on deserialization
@@ -751,7 +764,7 @@ class BaseOffset(_BaseOffset):
         return (-self).__add__(other)
 
 
-cdef class _Tick(ABCTick):
+cdef class _Tick(_BaseOffset):
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
@@ -760,6 +773,18 @@ cdef class _Tick(ABCTick):
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False
+
+    def __init__(self, n=1, normalize=False):
+        n = _BaseOffset._validate_n(n)
+        self.n = n
+        self.normalize = normalize
+        self._cache = {}
+
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Tick offset with `normalize=True` are not allowed."
+            )
 
     def is_on_offset(self, dt) -> bool:
         return True
@@ -779,7 +804,8 @@ cdef class _Tick(ABCTick):
         return (type(self), (self.n,))
 
     def __setstate__(self, state):
-        object.__setattr__(self, "n", state["n"])
+        self.n = state["n"]
+        self.normalize = False
 
 
 class BusinessMixin:
