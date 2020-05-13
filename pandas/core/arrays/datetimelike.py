@@ -1190,6 +1190,10 @@ class DatetimeLikeArrayMixin(
         # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
+    def _add_period(self, other: Period):
+        # Overriden by TimedeltaArray
+        raise TypeError(f"cannot add Period to a {type(self).__name__}")
+
     def _add_offset(self, offset):
         raise AbstractMethodError(self)
 
@@ -1364,6 +1368,8 @@ class DatetimeLikeArrayMixin(
             result = self._add_offset(other)
         elif isinstance(other, (datetime, np.datetime64)):
             result = self._add_datetimelike_scalar(other)
+        elif isinstance(other, Period) and is_timedelta64_dtype(self.dtype):
+            result = self._add_period(other)
         elif lib.is_integer(other):
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
