@@ -7,7 +7,7 @@ from typing import List, Optional, TypeVar, Union
 import numpy as np
 
 from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs import Timestamp, conversion, parsing, NaT
+from pandas._libs.tslibs import NaT, Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
