@@ -1861,7 +1861,7 @@ the string values returned are correct."""
 @pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
 def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
-    ref = os.path.join(data_base, f"stata-compat-118.dta")
+    ref = os.path.join(data_base, "stata-compat-118.dta")
     old = os.path.join(data_base, f"stata-compat-{version}.dta")
     expected = pd.read_stata(ref)
     old_dta = pd.read_stata(old)

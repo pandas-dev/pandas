@@ -502,9 +502,9 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            f"Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
-            + "Result:\n{result}"
+            "Labels and aggregation results not consistently sorted\n"
+            f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            f"Result:\n{result}"
         )
         assert False, msg
 
