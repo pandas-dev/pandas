@@ -183,15 +183,6 @@ def round_nsint64(values, mode, freq):
 
 # ----------------------------------------------------------------------
 
-class NullFrequencyError(ValueError):
-    """
-    Error raised when a null `freq` attribute is used in an operation
-    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
-    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
-    """
-    pass
-
-
 def integer_op_not_supported(obj):
     # GH#22535 add/sub of integers and int-arrays is no longer allowed
     # Note we return rather than raise the exception so we can raise in

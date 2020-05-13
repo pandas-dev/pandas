@@ -6,7 +6,17 @@ Expose public exceptions & warnings
 
 from pandas._config.config import OptionError
 
-from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+
+    pass
 
 
 class PerformanceWarning(Warning):
