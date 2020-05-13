@@ -718,7 +718,9 @@ class TestDataFrameApply:
 
     def test_apply_noreduction_tzaware_object(self):
         # https://github.com/pandas-dev/pandas/issues/31505
-        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        df = pd.DataFrame(
+            {"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+        )
         result = df.apply(lambda x: x)
         tm.assert_frame_equal(result, df)
         result = df.apply(lambda x: x.copy())

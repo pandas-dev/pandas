@@ -18,6 +18,9 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
+from pandas.core.series import Series
+from pandas import DataFrame
+
 if TYPE_CHECKING:
     from pandas import DataFrame, Series, Index
 
@@ -220,14 +223,13 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        try:
-            result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except ValueError as err:
-            if "Function does not reduce" not in str(err):
-                # catch only ValueError raised intentionally in libreduction
-                raise
-            # We expect np.apply_along_axis to give a two-dimensional result, or
-            #  also raise.
+        result, partial_result = libreduction.compute_reduction(
+            self.values, self.f, axis=self.axis
+        )
+
+        # A non None partial_result means that the reduction was unsuccessful
+        # We expect np.apply_along_axis to give a two-dimensional result, or raise.
+        if partial_result is not None:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -265,6 +267,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_standard(self):
 
+        partial_result = None
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
@@ -292,13 +295,9 @@ class FrameApply(metaclass=abc.ABCMeta):
             )
 
             try:
-                result = libreduction.compute_reduction(
+                result, partial_result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-            except ValueError as err:
-                if "Function does not reduce" not in str(err):
-                    # catch only ValueError raised intentionally in libreduction
-                    raise
             except TypeError:
                 # e.g. test_apply_ignore_failures we just ignore
                 if not self.ignore_failures:
@@ -307,23 +306,36 @@ class FrameApply(metaclass=abc.ABCMeta):
                 # reached via numexpr; fall back to python implementation
                 pass
             else:
-                return self.obj._constructor_sliced(result, index=labels)
+                # this means that the reduction was successful
+                if partial_result is None:
+                    return self.obj._constructor_sliced(result, index=labels)
+                else:
+                    if isinstance(partial_result, Series):
+                        partial_result = DataFrame.infer_objects(partial_result)
 
         # compute the result using the series generator
-        results, res_index = self.apply_series_generator()
+        results, res_index = self.apply_series_generator(partial_result)
 
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
+    def apply_series_generator(self, partial_result=None) -> Tuple[ResType, "Index"]:
         series_gen = self.series_generator
         res_index = self.result_index
 
         keys = []
         results = {}
+
+        # If a partial result was already computed, use it instead of running on the first element again
+        series_gen_enumeration = enumerate(series_gen)
+        if partial_result is not None:
+            i, v = next(series_gen_enumeration)
+            results[i] = partial_result
+            keys.append(v.name)
+
         if self.ignore_failures:
             successes = []
-            for i, v in enumerate(series_gen):
+            for i, v in series_gen_enumeration:
                 try:
                     results[i] = self.f(v)
                 except Exception:
@@ -337,7 +349,8 @@ class FrameApply(metaclass=abc.ABCMeta):
                 res_index = res_index.take(successes)
 
         else:
-            for i, v in enumerate(series_gen):
+            for i, v in series_gen_enumeration:
+
                 results[i] = self.f(v)
                 keys.append(v.name)
 
