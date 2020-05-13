@@ -365,7 +365,7 @@ class TestDataFrameMisc:
         df = pd.DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
-        assert df.to_numpy(copy=True).base is None
+        assert df.to_numpy(copy=True).base is not arr
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
