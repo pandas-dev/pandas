@@ -2395,7 +2395,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
 
 prefix_mapping = {
-    offset._prefix: offset
+    offset._prefix: offset  # type: ignore
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'
