@@ -110,7 +110,7 @@ version control to allow many people to work together on the project.
 Some great resources for learning Git:
 
 * the `GitHub help pages <https://help.github.com/>`_.
-* the `NumPy's documentation <https://docs.scipy.org/doc/numpy/dev/index.html>`_.
+* the `NumPy's documentation <https://numpy.org/doc/stable/dev/index.html>`_.
 * Matthew Brett's `Pydagogue <https://matthew-brett.github.com/pydagogue/>`_.
 
 Getting started with Git
@@ -974,7 +974,7 @@ it is worth getting in the habit of writing tests ahead of time so this is never
 Like many packages, pandas uses `pytest
 <https://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
-<https://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
+<https://numpy.org/doc/stable/reference/routines.testing.html>`_.
 
 .. note::
 

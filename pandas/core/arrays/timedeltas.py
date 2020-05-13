@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -255,16 +256,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end)
 
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError(
-                    "Closed has to be None if not both of start and end are defined"
-                )
-
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
         if freq is not None:
-            index = _generate_regular_range(start, end, periods, freq)
+            index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
             if len(index) >= 2:
@@ -409,6 +404,17 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
+    def _add_period(self, other: Period):
+        """
+        Add a Period object.
+        """
+        # We will wrap in a PeriodArray and defer to the reversed operation
+        from .period import PeriodArray
+
+        i8vals = np.broadcast_to(other.ordinal, self.shape)
+        oth = PeriodArray(i8vals, freq=other.freq)
+        return oth + self
+
     def _add_datetime_arraylike(self, other):
         """
         Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
@@ -465,10 +471,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other):
-            # Exclude timedelta64 here so we correctly raise TypeError
-            #  for that instead of ValueError
-            raise ValueError("Cannot multiply with unequal lengths")
 
         if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
@@ -512,10 +514,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
@@ -565,10 +564,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
@@ -617,10 +613,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -671,10 +665,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -1048,24 +1040,3 @@ def _validate_td64_dtype(dtype):
         raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype
-
-
-def _generate_regular_range(start, end, periods, offset):
-    stride = offset.nanos
-    if periods is None:
-        b = Timedelta(start).value
-        e = Timedelta(end).value
-        e += stride - e % stride
-    elif start is not None:
-        b = Timedelta(start).value
-        e = b + periods * stride
-    elif end is not None:
-        e = Timedelta(end).value + stride
-        b = e - periods * stride
-    else:
-        raise ValueError(
-            "at least 'start' or 'end' should be specified if a 'period' is given."
-        )
-
-    data = np.arange(b, e, stride, dtype=np.int64)
-    return data

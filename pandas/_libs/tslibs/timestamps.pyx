@@ -27,8 +27,8 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.base cimport ABCTimestamp, is_tick_object
 
-cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
+from pandas._libs.tslibs cimport ccalendar
+
 from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_to_tsobject,
@@ -37,7 +37,7 @@ from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
-    reverse_ops, cmp_scalar,
+    cmp_scalar,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset
@@ -228,8 +228,8 @@ cdef class _Timestamp(ABCTimestamp):
             ots = other
         elif other is NaT:
             return op == Py_NE
-        elif PyDateTime_Check(other):
-            if self.nanosecond == 0:
+        elif PyDateTime_Check(other) or is_datetime64_object(other):
+            if self.nanosecond == 0 and PyDateTime_Check(other):
                 val = self.to_pydatetime()
                 return PyObject_RichCompareBool(val, other, op)
 
@@ -237,44 +237,31 @@ cdef class _Timestamp(ABCTimestamp):
                 ots = type(self)(other)
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
+
+        elif is_array(other):
+            # avoid recursion error GH#15183
+            if other.dtype.kind == "M":
+                if self.tz is None:
+                    return PyObject_RichCompare(self.asm8, other, op)
+                raise TypeError(
+                    "Cannot compare tz-naive and tz-aware timestamps"
+                )
+            elif other.dtype.kind == "O":
+                # Operate element-wise
+                return np.array(
+                    [PyObject_RichCompare(self, x, op) for x in other],
+                    dtype=bool,
+                )
+            elif op == Py_NE:
+                return np.ones(other.shape, dtype=np.bool_)
+            elif op == Py_EQ:
+                return np.zeros(other.shape, dtype=np.bool_)
+            return NotImplemented
+
         else:
-            ndim = getattr(other, "ndim", -1)
+            return NotImplemented
 
-            if ndim != -1:
-                if ndim == 0:
-                    if is_datetime64_object(other):
-                        other = type(self)(other)
-                    elif is_array(other):
-                        # zero-dim array, occurs if try comparison with
-                        #  datetime64 scalar on the left hand side
-                        # Unfortunately, for datetime64 values, other.item()
-                        #  incorrectly returns an integer, so we need to use
-                        #  the numpy C api to extract it.
-                        other = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other),
-                                                     other)
-                        other = type(self)(other)
-                    else:
-                        return NotImplemented
-                elif is_array(other):
-                    # avoid recursion error GH#15183
-                    if other.dtype.kind == "M":
-                        if self.tz is None:
-                            return PyObject_RichCompare(self.asm8, other, op)
-                        raise TypeError(
-                            "Cannot compare tz-naive and tz-aware timestamps"
-                        )
-                    if other.dtype.kind == "O":
-                        # Operate element-wise
-                        return np.array(
-                            [PyObject_RichCompare(self, x, op) for x in other],
-                            dtype=bool,
-                        )
-                    return PyObject_RichCompare(np.array([self]), other, op)
-                return PyObject_RichCompare(other, self, reverse_ops[op])
-            else:
-                return NotImplemented
-
-        self._assert_tzawareness_compat(other)
+        self._assert_tzawareness_compat(ots)
         return cmp_scalar(self.value, ots.value, op)
 
     def __reduce_ex__(self, protocol):
@@ -314,22 +301,7 @@ cdef class _Timestamp(ABCTimestamp):
             datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
-
-        if self.nanosecond == 0:
-            return PyObject_RichCompareBool(dtval, other, op)
-        else:
-            if op == Py_EQ:
-                return False
-            elif op == Py_NE:
-                return True
-            elif op == Py_LT:
-                return dtval < other
-            elif op == Py_LE:
-                return dtval < other
-            elif op == Py_GT:
-                return dtval >= other
-            elif op == Py_GE:
-                return dtval >= other
+        return PyObject_RichCompareBool(dtval, other, op)
 
     cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
@@ -406,10 +378,10 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_tick_object(other):
             try:
                 nanos = other.nanos
-            except OverflowError:
+            except OverflowError as err:
                 raise OverflowError(
                     f"the add operation between {other} and {self} will overflow"
-                )
+                ) from err
             result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
             return result
 
@@ -1504,7 +1476,7 @@ default 'raise'
         Normalize Timestamp to midnight, preserving tz information.
         """
         if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1_000_000_000
+            DAY_NS = ccalendar.DAY_NANOS
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
