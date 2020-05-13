@@ -8,7 +8,7 @@ asv
 cython>=0.29.16
 black==19.10b0
 cpplint
-flake8
+flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort
