@@ -6881,30 +6881,34 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
+        index = self._get_axis(axis)
 
-        if axis == 0:
-            df = self
-        else:
-            df = self.T
-
-        if isinstance(df.index, MultiIndex) and method != "linear":
+        if isinstance(self.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if df.ndim == 2 and np.all(df.dtypes == np.dtype(object)):
+        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
+
+        if method in ['backfill', 'bfill', 'pad', 'ffill']:
+            return self.fillna(method=method, axis=axis, inplace=inplace, limit=limit, downcast=downcast)
         # create/use the index
+
+        if axis==0:
+            df = self
+        else:
+            df = self.T
+
         if method == "linear":
             # prior default
             index = np.arange(len(df.index))
         else:
-            index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index)

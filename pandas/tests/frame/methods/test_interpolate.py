@@ -202,7 +202,8 @@ class TestDataFrameInterpolate:
             result = df.interpolate(method="polynomial", order=1)
             tm.assert_frame_equal(result, expected)
 
-    def test_interp_raise_on_only_mixed(self):
+    @pytest.mark.parametrize('axis', [0, 1])
+    def test_interp_raise_on_only_mixed(self, axis):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -213,7 +214,7 @@ class TestDataFrameInterpolate:
             }
         )
         with pytest.raises(TypeError):
-            df.interpolate(axis=1)
+            df.astype('object').interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
@@ -284,3 +285,4 @@ class TestDataFrameInterpolate:
         result = expected.interpolate(axis=0, method="time")
         expected.interpolate(axis=0, method="time", inplace=True)
         tm.assert_frame_equal(result, expected)
+
