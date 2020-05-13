@@ -21,7 +21,7 @@ cnp.import_array()
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object
 
-from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
@@ -91,10 +91,6 @@ for _d in DAYS:
 
 cdef bint is_offset_object(object obj):
     return isinstance(obj, _BaseOffset)
-
-
-cdef bint is_tick_object(object obj):
-    return isinstance(obj, _Tick)
 
 
 cdef to_offset(object obj):
@@ -335,7 +331,7 @@ def to_dt64D(dt):
 # Validation
 
 
-def validate_business_time(t_input):
+def _validate_business_time(t_input):
     if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
@@ -526,6 +522,21 @@ class _BaseOffset:
             n_str = f"{self.n} * "
 
         out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
+        return out
+
+    def _repr_attrs(self) -> str:
+        exclude = {"n", "inc", "normalize"}
+        attrs = []
+        for attr in sorted(self.__dict__):
+            if attr.startswith("_") or attr == "kwds":
+                continue
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append(f"{attr}={value}")
+
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
         return out
 
     @property
@@ -722,6 +733,11 @@ class _BaseOffset:
         )
         return self.is_anchored()
 
+    def is_anchored(self) -> bool:
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what is_anchored means.
+        return self.n == 1
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
@@ -790,6 +806,97 @@ class BusinessMixin:
         return out
 
 
+class BusinessHourMixin(BusinessMixin):
+    _adjust_dst = False
+
+    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
+        # must be validated here to equality check
+        if np.ndim(start) == 0:
+            # i.e. not is_list_like
+            start = [start]
+        if not len(start):
+            raise ValueError("Must include at least 1 start time")
+
+        if np.ndim(end) == 0:
+            # i.e. not is_list_like
+            end = [end]
+        if not len(end):
+            raise ValueError("Must include at least 1 end time")
+
+        start = np.array([_validate_business_time(x) for x in start])
+        end = np.array([_validate_business_time(x) for x in end])
+
+        # Validation of input
+        if len(start) != len(end):
+            raise ValueError("number of starting time and ending time must be the same")
+        num_openings = len(start)
+
+        # sort starting and ending time by starting time
+        index = np.argsort(start)
+
+        # convert to tuple so that start and end are hashable
+        start = tuple(start[index])
+        end = tuple(end[index])
+
+        total_secs = 0
+        for i in range(num_openings):
+            total_secs += self._get_business_hours_by_sec(start[i], end[i])
+            total_secs += self._get_business_hours_by_sec(
+                end[i], start[(i + 1) % num_openings]
+            )
+        if total_secs != 24 * 60 * 60:
+            raise ValueError(
+                "invalid starting and ending time(s): "
+                "opening hours should not touch or overlap with "
+                "one another"
+            )
+
+        object.__setattr__(self, "start", start)
+        object.__setattr__(self, "end", end)
+        object.__setattr__(self, "_offset", offset)
+
+    def _repr_attrs(self) -> str:
+        out = super()._repr_attrs()
+        hours = ",".join(
+            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
+            for st, en in zip(self.start, self.end)
+        )
+        attrs = [f"{self._prefix}={hours}"]
+        out += ": " + ", ".join(attrs)
+        return out
+
+    def _get_business_hours_by_sec(self, start, end):
+        """
+        Return business hours in a day by seconds.
+        """
+        # create dummy datetime to calculate business hours in a day
+        dtstart = datetime(2014, 4, 1, start.hour, start.minute)
+        day = 1 if start < end else 2
+        until = datetime(2014, 4, day, end.hour, end.minute)
+        return int((until - dtstart).total_seconds())
+
+    def _get_closing_time(self, dt):
+        """
+        Get the closing time of a business hour interval by its opening time.
+
+        Parameters
+        ----------
+        dt : datetime
+            Opening time of a business hour interval.
+
+        Returns
+        -------
+        result : datetime
+            Corresponding closing time.
+        """
+        for i, st in enumerate(self.start):
+            if st.hour == dt.hour and st.minute == dt.minute:
+                return dt + timedelta(
+                    seconds=self._get_business_hours_by_sec(st, self.end[i])
+                )
+        assert False
+
+
 class CustomMixin:
     """
     Mixin for classes that define and validate calendar, holidays,
@@ -807,6 +914,31 @@ class CustomMixin:
         object.__setattr__(self, "weekmask", weekmask)
         object.__setattr__(self, "holidays", holidays)
         object.__setattr__(self, "calendar", calendar)
+
+
+class WeekOfMonthMixin:
+    """
+    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
+    """
+
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, "start")
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
 
 
 # ----------------------------------------------------------------------
