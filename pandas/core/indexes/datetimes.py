@@ -804,7 +804,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
-DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 
 

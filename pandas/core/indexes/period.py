@@ -720,7 +720,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return result
 
 
-PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 
 
