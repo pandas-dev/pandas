@@ -2427,8 +2427,7 @@ class TestMixedIntIndex(Base):
         # GH34123
         # TODO: the result seems wrong to me, should be [False, False, True]
         # TODO: also this op right now produces FutureWarning from numpy
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Index([("a", "b"), ("b", "c"), ("c", "a")]) == ("c", "a")
+        result = Index([("a", "b"), ("b", "c"), ("c", "a")]) == ("c", "a")
         expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
 
