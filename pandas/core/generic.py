@@ -6895,12 +6895,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "column to a numeric dtype."
             )
 
-
-        if method in ['backfill', 'bfill', 'pad', 'ffill']:
-            return self.fillna(method=method, axis=axis, inplace=inplace, limit=limit, downcast=downcast)
+        if method in ["backfill", "bfill", "pad", "ffill"]:
+            return self.fillna(
+                method=method,
+                axis=axis,
+                inplace=inplace,
+                limit=limit,
+                downcast=downcast,
+            )
         # create/use the index
 
-        if axis==0:
+        if axis == 0:
             df = self
         else:
             df = self.T
