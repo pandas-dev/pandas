@@ -2423,6 +2423,15 @@ class TestMixedIntIndex(Base):
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
 
+    def test_index_with_tuple_bool(self):
+        # GH34123
+        # TODO: the result seems wrong to me, should be [False, False, True]
+        # TODO: also this op right now produces FutureWarning from numpy
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Index([("a", "b"), ("b", "c"), ("c", "a")]) == ("c", "a")
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestIndexUtils:
     @pytest.mark.parametrize(
