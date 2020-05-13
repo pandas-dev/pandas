@@ -6,7 +6,6 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT,
     Period,
     Timedelta,
     Timestamp,
@@ -31,8 +30,6 @@ from pandas._libs.tslibs.offsets import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-
-from pandas.core.dtypes.inference import is_list_like
 
 __all__ = [
     "Day",
@@ -78,7 +75,22 @@ __all__ = [
 # DateOffset
 
 
-class DateOffset(BaseOffset):
+class OffsetMeta(type):
+    """
+    Metaclass that allows us to pretend that all BaseOffset subclasses
+    inherit from DateOffset (which is needed for backward-compatibility).
+    """
+
+    @classmethod
+    def __instancecheck__(cls, obj) -> bool:
+        return isinstance(obj, BaseOffset)
+
+    @classmethod
+    def __subclasscheck__(cls, obj) -> bool:
+        return issubclass(obj, BaseOffset)
+
+
+class DateOffset(BaseOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -277,29 +289,6 @@ class DateOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
-        return self.n == 1
-
-    # TODO: Combine this with BusinessMixin version by defining a whitelisted
-    # set of attributes on each object rather than the existing behavior of
-    # iterating over internal ``__dict__``
-    def _repr_attrs(self) -> str:
-        exclude = {"n", "inc", "normalize"}
-        attrs = []
-        for attr in sorted(self.__dict__):
-            if attr.startswith("_") or attr == "kwds":
-                continue
-            elif attr not in exclude:
-                value = getattr(self, attr)
-                attrs.append(f"{attr}={value}")
-
-        out = ""
-        if attrs:
-            out += ": " + ", ".join(attrs)
-        return out
-
     def is_on_offset(self, dt):
         if self.normalize and not is_normalized(dt):
             return False
@@ -307,13 +296,9 @@ class DateOffset(BaseOffset):
         return True
 
 
-class SingleConstructorOffset(DateOffset):
-    # All DateOffset subclasses (other than Tick) subclass SingleConstructorOffset
-    __init__ = BaseOffset.__init__
-    _attributes = BaseOffset._attributes
-    apply_index = BaseOffset.apply_index
-    is_on_offset = BaseOffset.is_on_offset
-    _adjust_dst = True
+class SingleConstructorOffset(BaseOffset):
+    _params = cache_readonly(BaseOffset._params.fget)
+    freqstr = cache_readonly(BaseOffset.freqstr.fget)
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -434,53 +419,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHourMixin(BusinessMixin):
-    _adjust_dst = False
-
-    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
-        # must be validated here to equality check
-        if not is_list_like(start):
-            start = [start]
-        if not len(start):
-            raise ValueError("Must include at least 1 start time")
-
-        if not is_list_like(end):
-            end = [end]
-        if not len(end):
-            raise ValueError("Must include at least 1 end time")
-
-        start = np.array([liboffsets.validate_business_time(x) for x in start])
-        end = np.array([liboffsets.validate_business_time(x) for x in end])
-
-        # Validation of input
-        if len(start) != len(end):
-            raise ValueError("number of starting time and ending time must be the same")
-        num_openings = len(start)
-
-        # sort starting and ending time by starting time
-        index = np.argsort(start)
-
-        # convert to tuple so that start and end are hashable
-        start = tuple(start[index])
-        end = tuple(end[index])
-
-        total_secs = 0
-        for i in range(num_openings):
-            total_secs += self._get_business_hours_by_sec(start[i], end[i])
-            total_secs += self._get_business_hours_by_sec(
-                end[i], start[(i + 1) % num_openings]
-            )
-        if total_secs != 24 * 60 * 60:
-            raise ValueError(
-                "invalid starting and ending time(s): "
-                "opening hours should not touch or overlap with "
-                "one another"
-            )
-
-        object.__setattr__(self, "start", start)
-        object.__setattr__(self, "end", end)
-        object.__setattr__(self, "_offset", offset)
-
+class BusinessHourMixin(liboffsets.BusinessHourMixin):
     @cache_readonly
     def next_bday(self):
         """
@@ -579,16 +518,6 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start, end):
-        """
-        Return business hours in a day by seconds.
-        """
-        # create dummy datetime to calculate business hours in a day
-        dtstart = datetime(2014, 4, 1, start.hour, start.minute)
-        day = 1 if start < end else 2
-        until = datetime(2014, 4, day, end.hour, end.minute)
-        return int((until - dtstart).total_seconds())
-
     @apply_wraps
     def rollback(self, dt):
         """
@@ -613,27 +542,6 @@ class BusinessHourMixin(BusinessMixin):
             else:
                 return self._prev_opening_time(dt)
         return dt
-
-    def _get_closing_time(self, dt):
-        """
-        Get the closing time of a business hour interval by its opening time.
-
-        Parameters
-        ----------
-        dt : datetime
-            Opening time of a business hour interval.
-
-        Returns
-        -------
-        result : datetime
-            Corresponding closing time.
-        """
-        for i, st in enumerate(self.start):
-            if st.hour == dt.hour and st.minute == dt.minute:
-                return dt + timedelta(
-                    seconds=self._get_business_hours_by_sec(st, self.end[i])
-                )
-        assert False
 
     @apply_wraps
     def apply(self, other):
@@ -769,16 +677,6 @@ class BusinessHourMixin(BusinessMixin):
             return True
         else:
             return False
-
-    def _repr_attrs(self):
-        out = super()._repr_attrs()
-        hours = ",".join(
-            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
-            for st, en in zip(self.start, self.end)
-        )
-        attrs = [f"{self._prefix}={hours}"]
-        out += ": " + ", ".join(attrs)
-        return out
 
 
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
@@ -1410,32 +1308,7 @@ class Week(SingleConstructorOffset):
         return cls(weekday=weekday)
 
 
-class _WeekOfMonthMixin:
-    """
-    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
-    """
-
-    @apply_wraps
-    def apply(self, other):
-        compare_day = self._get_offset_day(other)
-
-        months = self.n
-        if months > 0 and compare_day > other.day:
-            months -= 1
-        elif months <= 0 and compare_day < other.day:
-            months += 1
-
-        shifted = shift_month(other, months, "start")
-        to_day = self._get_offset_day(shifted)
-        return liboffsets.shift_day(shifted, to_day - shifted.day)
-
-    def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
-            return False
-        return dt.day == self._get_offset_day(dt)
-
-
-class WeekOfMonth(_WeekOfMonthMixin, SingleConstructorOffset):
+class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
@@ -1504,7 +1377,7 @@ class WeekOfMonth(_WeekOfMonthMixin, SingleConstructorOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(_WeekOfMonthMixin, SingleConstructorOffset):
+class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month".
@@ -2348,7 +2221,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def nanos(self):
         return delta_to_nanoseconds(self.delta)
 
-    # TODO: Should Tick have its own apply_index?
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, Timestamp):
@@ -2438,91 +2310,8 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
-# ---------------------------------------------------------------------
-
-
-def generate_range(start=None, end=None, periods=None, offset=BDay()):
-    """
-    Generates a sequence of dates corresponding to the specified time
-    offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments.
-
-    Parameters
-    ----------
-    start : datetime, (default None)
-    end : datetime, (default None)
-    periods : int, (default None)
-    offset : DateOffset, (default BDay())
-
-    Notes
-    -----
-    * This method is faster for generating weekdays than dateutil.rrule
-    * At least two of (start, end, periods) must be specified.
-    * If both start and end are specified, the returned dates will
-    satisfy start <= date <= end.
-
-    Returns
-    -------
-    dates : generator object
-    """
-    from pandas.tseries.frequencies import to_offset
-
-    offset = to_offset(offset)
-
-    start = Timestamp(start)
-    start = start if start is not NaT else None
-    end = Timestamp(end)
-    end = end if end is not NaT else None
-
-    if start and not offset.is_on_offset(start):
-        start = offset.rollforward(start)
-
-    elif end and not offset.is_on_offset(end):
-        end = offset.rollback(end)
-
-    if periods is None and end < start and offset.n >= 0:
-        end = None
-        periods = 0
-
-    if end is None:
-        end = start + (periods - 1) * offset
-
-    if start is None:
-        start = end - (periods - 1) * offset
-
-    cur = start
-    if offset.n >= 0:
-        while cur <= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date <= cur:
-                raise ValueError(f"Offset {offset} did not increment date")
-            cur = next_date
-    else:
-        while cur >= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date >= cur:
-                raise ValueError(f"Offset {offset} did not decrement date")
-            cur = next_date
-
-
 prefix_mapping = {
-    offset._prefix: offset
+    offset._prefix: offset  # type: ignore
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'

@@ -647,6 +647,7 @@ Datetimelike
 - :meth:`DataFrame.min`/:meth:`DataFrame.max` not returning consistent result with :meth:`Series.min`/:meth:`Series.max` when called on objects initialized with empty :func:`pd.to_datetime`
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
+- Bug in subtracting :class:`TimedeltaIndex` from :class:`Period` incorrectly raising ``TypeError`` in some cases where it should succeed and ``IncompatibleFrequency`` in some cases where it should raise ``TypeError`` (:issue:`33883`)
 
 Timedelta
 ^^^^^^^^^
@@ -810,6 +811,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
+- Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 
 Reshaping
 ^^^^^^^^^
@@ -838,6 +840,7 @@ Reshaping
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
+- Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 
 Sparse
 ^^^^^^
