@@ -51,15 +51,10 @@ class WindowGroupByMixin(GroupByMixin):
     """
 
     def __init__(self, obj, *args, **kwargs):
+        kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
             groupby, obj = obj, obj.obj
-        parent = kwargs.pop("parent", None)
-        if parent is not None:
-            # Needed to compose the correct resulting index for rolling.groupby.agg
-            self._groupby_parent = parent
-        else:
-            self._groupby_parent = groupby
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True

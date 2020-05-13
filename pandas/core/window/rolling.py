@@ -2109,21 +2109,17 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             **kwargs,
         )
         # _wrap_outputs does not know about what the result index should be
-        index_names = [self._selected_obj.index.name]
-        if not is_list_like(self._groupby_parent.keys):
-            index_names = [self._groupby_parent.keys] + index_names
-            index_data = [
-                (key, val)
-                for key, values in self._groupby.grouper.indices.items()
-                for val in values
-            ]
-        else:
-            index_names = [*self._groupby_parent.keys] + index_names
-            index_data = [
-                (*key, val)
-                for key, values in self._groupby_parent.grouper.indices.items()
-                for val in values
-            ]
+        index_name = [self._selected_obj.index.name]
+        groupby_names = [grouping.name for grouping in self._groupby.grouper._groupings]
+        index_names = groupby_names + index_name
+        index_data = []
+        for key, values in self._groupby.grouper.indices.items():
+            for value in values:
+                if not is_list_like(key):
+                    data = (key, value)
+                else:
+                    data = (*key, value)
+                index_data.append(data)
         result_index = MultiIndex.from_tuples(index_data, names=index_names)
         result.index = result_index
         return result
@@ -2148,7 +2144,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         return window_indexer
 
     def _gotitem(self, key, ndim, subset=None):
-
         # we are setting the index on the actual object
         # here so our index is carried thru to the selected obj
         # when we do the splitting for the groupby
