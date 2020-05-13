@@ -6,7 +6,6 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT,
     Period,
     Timedelta,
     Timestamp,
@@ -76,7 +75,22 @@ __all__ = [
 # DateOffset
 
 
-class DateOffset(BaseOffset):
+class OffsetMeta(type):
+    """
+    Metaclass that allows us to pretend that all BaseOffset subclasses
+    inherit from DateOffset (which is needed for backward-compatibility).
+    """
+
+    @classmethod
+    def __instancecheck__(cls, obj) -> bool:
+        return isinstance(obj, BaseOffset)
+
+    @classmethod
+    def __subclasscheck__(cls, obj) -> bool:
+        return issubclass(obj, BaseOffset)
+
+
+class DateOffset(BaseOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -275,11 +289,6 @@ class DateOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
-        return self.n == 1
-
     def is_on_offset(self, dt):
         if self.normalize and not is_normalized(dt):
             return False
@@ -287,13 +296,9 @@ class DateOffset(BaseOffset):
         return True
 
 
-class SingleConstructorOffset(DateOffset):
-    # All DateOffset subclasses (other than Tick) subclass SingleConstructorOffset
-    __init__ = BaseOffset.__init__
-    _attributes = BaseOffset._attributes
-    apply_index = BaseOffset.apply_index
-    is_on_offset = BaseOffset.is_on_offset
-    _adjust_dst = True
+class SingleConstructorOffset(BaseOffset):
+    _params = cache_readonly(BaseOffset._params.fget)
+    freqstr = cache_readonly(BaseOffset.freqstr.fget)
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2244,91 +2249,8 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
-# ---------------------------------------------------------------------
-
-
-def generate_range(start=None, end=None, periods=None, offset=BDay()):
-    """
-    Generates a sequence of dates corresponding to the specified time
-    offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments.
-
-    Parameters
-    ----------
-    start : datetime, (default None)
-    end : datetime, (default None)
-    periods : int, (default None)
-    offset : DateOffset, (default BDay())
-
-    Notes
-    -----
-    * This method is faster for generating weekdays than dateutil.rrule
-    * At least two of (start, end, periods) must be specified.
-    * If both start and end are specified, the returned dates will
-    satisfy start <= date <= end.
-
-    Returns
-    -------
-    dates : generator object
-    """
-    from pandas.tseries.frequencies import to_offset
-
-    offset = to_offset(offset)
-
-    start = Timestamp(start)
-    start = start if start is not NaT else None
-    end = Timestamp(end)
-    end = end if end is not NaT else None
-
-    if start and not offset.is_on_offset(start):
-        start = offset.rollforward(start)
-
-    elif end and not offset.is_on_offset(end):
-        end = offset.rollback(end)
-
-    if periods is None and end < start and offset.n >= 0:
-        end = None
-        periods = 0
-
-    if end is None:
-        end = start + (periods - 1) * offset
-
-    if start is None:
-        start = end - (periods - 1) * offset
-
-    cur = start
-    if offset.n >= 0:
-        while cur <= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date <= cur:
-                raise ValueError(f"Offset {offset} did not increment date")
-            cur = next_date
-    else:
-        while cur >= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date >= cur:
-                raise ValueError(f"Offset {offset} did not decrement date")
-            cur = next_date
-
-
 prefix_mapping = {
-    offset._prefix: offset
+    offset._prefix: offset  # type: ignore
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'
