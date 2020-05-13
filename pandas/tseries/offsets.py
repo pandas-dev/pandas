@@ -76,7 +76,22 @@ __all__ = [
 # DateOffset
 
 
-class DateOffset(BaseOffset):
+class OffsetMeta(type):
+    """
+    Metaclass that allows us to pretend that all BaseOffset subclasses
+    inherit from DateOffset (which is needed for backward-compatibility).
+    """
+
+    @classmethod
+    def __instancecheck__(cls, obj) -> bool:
+        return isinstance(obj, BaseOffset)
+
+    @classmethod
+    def __subclasscheck__(cls, obj) -> bool:
+        return issubclass(obj, BaseOffset)
+
+
+class DateOffset(BaseOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -275,11 +290,6 @@ class DateOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
-        return self.n == 1
-
     def is_on_offset(self, dt):
         if self.normalize and not is_normalized(dt):
             return False
@@ -287,13 +297,9 @@ class DateOffset(BaseOffset):
         return True
 
 
-class SingleConstructorOffset(DateOffset):
-    # All DateOffset subclasses (other than Tick) subclass SingleConstructorOffset
-    __init__ = BaseOffset.__init__
-    _attributes = BaseOffset._attributes
-    apply_index = BaseOffset.apply_index
-    is_on_offset = BaseOffset.is_on_offset
-    _adjust_dst = True
+class SingleConstructorOffset(BaseOffset):
+    _params = cache_readonly(BaseOffset._params.fget)
+    freqstr = cache_readonly(BaseOffset.freqstr.fget)
 
     @classmethod
     def _from_name(cls, suffix=None):

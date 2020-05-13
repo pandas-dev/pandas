@@ -733,6 +733,11 @@ class _BaseOffset:
         )
         return self.is_anchored()
 
+    def is_anchored(self) -> bool:
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what is_anchored means.
+        return self.n == 1
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
