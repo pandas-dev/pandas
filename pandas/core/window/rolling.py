@@ -2098,7 +2098,8 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         use_numba_cache: bool = False,
         **kwargs,
     ):
-        result = super()._apply(
+        result = Rolling._apply(
+            self,
             func,
             center,
             require_min_periods,
