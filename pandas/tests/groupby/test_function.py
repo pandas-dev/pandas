@@ -1000,7 +1000,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
-    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    idx = pd.Index([1, 2, 3], dtype="Int64", name="a")
     expected = pd.DataFrame({"b": arr}, index=idx)
 
     groups = pd.DataFrame(values, dtype="Int64").groupby("a")

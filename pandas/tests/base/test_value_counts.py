@@ -34,6 +34,8 @@ def test_value_counts(index_or_series_obj):
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
         expected.index = pd.Index(expected.index)
+    if isinstance(obj.dtype, pd.Int64Dtype):
+        expected = expected.astype("Int64")
 
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
     if obj.duplicated().any():
@@ -69,6 +71,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     counter = collections.Counter(obj.dropna())
     expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
+    if isinstance(obj.dtype, pd.Int64Dtype):
+        expected = expected.astype("Int64")
 
     result = obj.value_counts()
     if obj.duplicated().any():

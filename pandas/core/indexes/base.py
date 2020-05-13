@@ -346,11 +346,13 @@ class Index(IndexOpsMixin, PandasObject):
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
             else:
-                data = np.asarray(data, dtype=object)
+                # TODO clean-up with extract_array ?
+                if isinstance(data, Index):
+                    data = data._data
+                elif isinstance(data, ABCSeries):
+                    data = data.array
 
-            # coerce to the object dtype
-            data = data.astype(object)
-            return Index(data, dtype=object, copy=copy, name=name, **kwargs)
+            return cls._simple_new(data, name)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -458,7 +460,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        assert isinstance(values, np.ndarray), type(values)
+        assert isinstance(values, (np.ndarray, ExtensionArray)), type(values)
 
         result = object.__new__(cls)
         result._data = values
@@ -2126,6 +2128,8 @@ class Index(IndexOpsMixin, PandasObject):
         Series.fillna : Fill NaN Values of a Series.
         """
         self._assert_can_do_op(value)
+        if is_extension_array_dtype(self.dtype):
+            return self._shallow_copy(self._values.fillna(value))
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -2525,7 +2529,9 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
+                result = Index(
+                    result, dtype=self.dtype
+                )._values  # do type inference here
         else:
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
@@ -3797,7 +3803,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data.view(np.ndarray)
+        return self._data  # .view(np.ndarray)
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -3839,7 +3845,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Get the ndarray that we can pass to the IndexEngine constructor.
         """
-        return self._values
+        if isinstance(self._values, np.ndarray):
+            return self._values
+        else:
+            return np.asarray(self._values)
 
     @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
@@ -4232,9 +4241,17 @@ class Index(IndexOpsMixin, PandasObject):
             # d-level MultiIndex can equal d-tuple Index
             return other.equals(self)
 
-        if is_extension_array_dtype(other.dtype):
+        if is_extension_array_dtype(other.dtype) and type(other) != Index:
             # All EA-backed Index subclasses override equals
             return other.equals(self)
+
+        if is_extension_array_dtype(self.dtype):
+            if is_object_dtype(other.dtype):
+                try:
+                    other = other.astype(self.dtype)
+                except Exception:
+                    return False
+            return self._values.equals(other._values)
 
         return array_equivalent(self._values, other._values)
 
@@ -4759,6 +4776,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         attributes = self._get_attributes_dict()
 
+        if is_extension_array_dtype(self.dtype):
+            # try to coerce back to original dtype
+            # TODO this should use a strict version
+            try:
+                # TODO use existing helper method for this
+                new_values = self._values._from_sequence(new_values, dtype=self.dtype)
+            except Exception:
+                pass
+
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
             if isinstance(self, MultiIndex):
@@ -5193,7 +5219,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        return self._shallow_copy(np.delete(self._data, loc))
+        # this is currently overriden by EA-based Index subclasses
+        keep = np.ones(len(self), dtype=bool)
+        keep[loc] = False
+        return self._shallow_copy(self._data[keep])
 
     def insert(self, loc: int, item):
         """
@@ -5212,9 +5241,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
-        arr = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
-        idx = np.concatenate((arr[:loc], item, arr[loc:]))
+
+        if is_extension_array_dtype(self.dtype):
+            arr = self._values
+            idx = arr._concat_same_type([arr[:loc], item, arr[loc:]])
+        else:
+            arr = np.asarray(self)
+            idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return Index(idx, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise"):

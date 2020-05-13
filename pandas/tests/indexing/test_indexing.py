@@ -81,6 +81,7 @@ class TestFancy:
                 "Index data must be 1-dimensional",
                 "positional indexers are out-of-bounds",
                 "Indexing a MultiIndex with a multidimensional key is not implemented",
+                "values must be a 1D array",
             ]
         )
 

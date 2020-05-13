@@ -1766,7 +1766,6 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
-
                 indexer = maybe_convert_ix(*indexer)
 
             if isinstance(value, (ABCSeries, dict)):

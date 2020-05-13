@@ -916,6 +916,10 @@ class TestIndex(Base):
         else:
             expected = Index(np.arange(len(indices), 0, -1))
 
+        if isinstance(indices.dtype, pd.Int64Dtype):
+            # map tries to preserve the nullable dtype
+            expected = expected.astype("Int64")
+
         result = indices.map(mapper(expected, indices))
         tm.assert_index_equal(result, expected)
 

@@ -404,6 +404,7 @@ indices_dict = {
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
+    "nullable_int": Index(np.arange(100), dtype="Int64"),
 }
 
 

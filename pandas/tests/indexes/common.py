@@ -6,7 +6,7 @@ import pytest
 
 from pandas._libs import iNaT
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import is_datetime64tz_dtype, is_extension_array_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -277,6 +277,9 @@ class Base:
             tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
         elif isinstance(indices, IntervalIndex):
             # checked in test_interval.py
+            pass
+        elif is_extension_array_dtype(indices.dtype):
+            # TODO can we check this generally?
             pass
         else:
             result = index_type(indices.values, copy=False, **init_kwargs)
