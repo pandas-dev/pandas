@@ -70,7 +70,7 @@ def test_construct_index(all_data, dropna):
         other = all_data
 
     result = pd.Index(integer_array(other, dtype=all_data.dtype))
-    expected = pd.Index(other, dtype=object)
+    expected = pd.Index(other, dtype=all_data.dtype)
 
     tm.assert_index_equal(result, expected)
 

@@ -71,6 +71,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -345,13 +346,9 @@ class Index(IndexOpsMixin, PandasObject):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
-            else:
-                # TODO clean-up with extract_array ?
-                if isinstance(data, Index):
-                    data = data._data
-                elif isinstance(data, ABCSeries):
-                    data = data.array
 
+            # extract array from Series/Index + ensure have don't have PandasArray
+            data = extract_array(data, extract_numpy=True)
             return cls._simple_new(data, name)
 
         # index-like
