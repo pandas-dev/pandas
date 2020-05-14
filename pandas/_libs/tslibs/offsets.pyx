@@ -486,6 +486,12 @@ class _BaseOffset:
             return NotImplemented
 
     def __call__(self, other):
+        warnings.warn(
+            "DateOffset.__call__ is deprecated and will be removed in a future "
+            "version.  Use `offset + other` instead.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.apply(other)
 
     def __mul__(self, other):
