@@ -2114,6 +2114,9 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         groupby_names = [grouping.name for grouping in self._groupby.grouper._groupings]
         index_names = groupby_names + index_name
         index_data = []
+        # TODO
+        # Handle cases where "on" is used
+        # Dates in general are not handled correctly
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
                 if not is_list_like(key):
