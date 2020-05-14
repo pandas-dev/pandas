@@ -704,6 +704,15 @@ class TestPandasContainer:
         expected = Series([4] * 3)
         tm.assert_series_equal(result, expected)
 
+    def test_unhashable_dict(self):
+        df = pd.DataFrame(
+            [
+                {"last_status_change_at": {"a": "1"}},
+                {"last_status_change_at": {"a": "2"}},
+            ]
+        )
+        df.describe()
+
     @pytest.mark.parametrize(
         "dtype,expected",
         [
