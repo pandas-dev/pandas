@@ -217,7 +217,7 @@ cdef convert_to_timedelta64(object ts, object unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
+def array_to_timedelta64(object values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
