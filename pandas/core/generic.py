@@ -6898,7 +6898,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         # todo: change interpolation so that no transposing is necessary
-        # Currently we need this to call the axis correctly inside the various interpolation methods
+        # Currently we need this to call the axis correctly inside the various
+        # interpolation methods
         if axis == 0:
             df = self
         else:
