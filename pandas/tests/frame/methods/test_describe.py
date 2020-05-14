@@ -298,3 +298,13 @@ class TestDataFrameDescribe:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+
+def test__unhashable_dict():
+    result = pd.DataFrame(
+        [{"last_status_change_at": {"a": "1"}}, {"last_status_change_at": {"a": "2"}}]
+    )
+    expected = pd.DataFrame(
+        [{"last_status_change_at": {"a": "1"}}, {"last_status_change_at": {"a": "2"}}]
+    )
+    tm.assert_frame_equal(result, expected)
