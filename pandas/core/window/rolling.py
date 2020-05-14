@@ -2136,8 +2136,9 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         Return the cython function type.
 
-        RollingGroupby needs to always use "variable" algorithms since processing the data
-        in group order may not be monotonic with the data which "fixed" algorithms assume
+        RollingGroupby needs to always use "variable" algorithms since processing
+        the data in group order may not be monotonic with the data which
+        "fixed" algorithms assume
         """
         return self._get_roll_func(f"{func}_variable")
 
