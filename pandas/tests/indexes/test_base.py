@@ -4,6 +4,7 @@ from io import StringIO
 import math
 import operator
 import re
+from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
@@ -2423,6 +2424,7 @@ class TestMixedIntIndex(Base):
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
 
+    @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
         # GH34123
         # TODO: the result seems wrong to me, should be [False, False, True]
