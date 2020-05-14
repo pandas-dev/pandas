@@ -2894,7 +2894,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
     def testCall(self):
         with tm.assert_produces_warning(FutureWarning):
-            # DateOffset.__call__ is deprecated
+            # GH#34171 DateOffset.__call__ is deprecated
             assert self.offset2(self.d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
@@ -3045,7 +3045,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
     def testCall(self):
         with tm.assert_produces_warning(FutureWarning):
-            # DateOffset.__call__ is deprecated
+            # GH#34171 DateOffset.__call__ is deprecated
             assert self.offset2(self.d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
