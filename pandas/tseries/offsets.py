@@ -296,7 +296,7 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         return True
 
 
-class SingleConstructorOffset(BaseOffset):
+class SingleConstructorMixin:
     _params = cache_readonly(BaseOffset._params.fget)
     freqstr = cache_readonly(BaseOffset.freqstr.fget)
 
@@ -306,6 +306,10 @@ class SingleConstructorOffset(BaseOffset):
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+
+class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
+    pass
 
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
@@ -1308,7 +1312,7 @@ class Week(SingleConstructorOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
+class WeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
@@ -1334,12 +1338,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     _attributes = frozenset(["n", "normalize", "week", "weekday"])
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        liboffsets.WeekOfMonthMixin.__init__(self, n, normalize, weekday)
         object.__setattr__(self, "week", week)
 
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
@@ -1361,11 +1362,6 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         shift_days = (self.weekday - wday) % 7
         return 1 + shift_days + self.week * 7
 
-    @property
-    def rule_code(self) -> str:
-        weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return f"{self._prefix}-{self.week + 1}{weekday}"
-
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
@@ -1377,7 +1373,7 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
+class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month".
@@ -1399,16 +1395,13 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
 
     _prefix = "LWOM"
     _attributes = frozenset(["n", "normalize", "weekday"])
+    week = -1
 
     def __init__(self, n=1, normalize=False, weekday=0):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        liboffsets.WeekOfMonthMixin.__init__(self, n, normalize, weekday)
 
         if self.n == 0:
             raise ValueError("N cannot be 0")
-
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
     def _get_offset_day(self, other: datetime) -> int:
         """
@@ -1428,11 +1421,6 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         wday = mend.weekday()
         shift_days = (wday - self.weekday) % 7
         return dim - shift_days
-
-    @property
-    def rule_code(self) -> str:
-        weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return f"{self._prefix}-{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):

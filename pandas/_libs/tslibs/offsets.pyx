@@ -23,7 +23,7 @@ from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
 
-from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS, DAYS, weekday_to_int, int_to_weekday
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
@@ -922,10 +922,18 @@ class CustomMixin:
         object.__setattr__(self, "calendar", calendar)
 
 
-class WeekOfMonthMixin:
+class WeekOfMonthMixin(BaseOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+    week: int  # -1 for LastWeekOfMonth
+
+    def __init__(self, n=1, normalize=False, weekday=0):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "weekday", weekday)
+
+        if weekday < 0 or weekday > 6:
+            raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
 
     @apply_wraps
     def apply(self, other):
@@ -945,6 +953,14 @@ class WeekOfMonthMixin:
         if self.normalize and not is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
+
+    @property
+    def rule_code(self) -> str:
+        weekday = int_to_weekday.get(self.weekday, "")
+        if self.week == -1:
+            # LastWeekOfMonth
+            return f"{self._prefix}-{weekday}"
+        return f"{self._prefix}-{self.week + 1}{weekday}"
 
 
 # ----------------------------------------------------------------------
