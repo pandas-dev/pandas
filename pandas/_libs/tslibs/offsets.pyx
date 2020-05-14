@@ -486,6 +486,12 @@ class _BaseOffset:
             return NotImplemented
 
     def __call__(self, other):
+        warnings.warn(
+            "DateOffset.__call__ is deprecated and will be removed in a future "
+            "version.  Use `offset + other` instead.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.apply(other)
 
     def __mul__(self, other):
@@ -732,6 +738,11 @@ class _BaseOffset:
             stacklevel=1,
         )
         return self.is_anchored()
+
+    def is_anchored(self) -> bool:
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what is_anchored means.
+        return self.n == 1
 
 
 class BaseOffset(_BaseOffset):
