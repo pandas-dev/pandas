@@ -222,6 +222,18 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(result, expected)
 
     @td.skip_if_no_scipy
+    def test_csr_to_spmatrix_with_explicit_zero(self):
+        # similar to above, using exact methods in issue #28992
+        import scipy.sparse
+        randmat = scipy.sparse.random(5, 5, density=0.5)
+        mat = scipy.sparse.csr_matrix(randmat)
+
+        mat.data[0] = 0
+        dfmat = pd.DataFrame.sparse.from_spmatrix(mat)
+        densemat = mat.todense()
+        tm.assert_numpy_array_equal(np.array(dfmat), np.array(densemat))
+
+    @td.skip_if_no_scipy
     def test_from_spmatrix_raises(self):
         import scipy.sparse
 
