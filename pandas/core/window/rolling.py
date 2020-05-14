@@ -2129,6 +2129,15 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
+    def _get_cython_func_type(self, func: str) -> Callable:
+        """
+        Return the cython function type.
+
+        RollingGroupby needs to always use "variable" algorithms since processing the data
+        in group order may not be monotonic with the data which "fixed" algorithms assume
+        """
+        return self._get_roll_func(f"{func}_variable")
+
     def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
