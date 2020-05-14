@@ -141,6 +141,33 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def get_fs_for_path(filepath: str):
+    """
+    Get appropriate filesystem given a filepath.
+    Supports s3fs, gcs and local file system.
+
+    Parameters
+    ----------
+    filepath : str
+        File path. e.g s3://bucket/object, /local/path, gcs://pandas/obj
+
+    Returns
+    -------
+    s3fs.S3FileSystem, gcsfs.GCSFileSystem, None
+        Appropriate FileSystem to use. None for local filesystem.
+    """
+    if is_s3_url(filepath):
+        from pandas.io import s3
+
+        return s3.get_fs()
+    elif is_gcs_url(filepath):
+        from pandas.io import gcs
+
+        return gcs.get_fs()
+    else:
+        return None
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,

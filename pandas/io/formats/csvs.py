@@ -62,7 +62,7 @@ class CSVFormatter:
         # Extract compression mode as given, if dict
         compression, self.compression_args = get_compression_method(compression)
 
-        self.path_or_buf, _, _, _ = get_filepath_or_buffer(
+        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
             path_or_buf, encoding=encoding, compression=compression, mode=mode
         )
         self.sep = sep
@@ -224,6 +224,8 @@ class CSVFormatter:
                 f.close()
                 for _fh in handles:
                     _fh.close()
+            elif self.should_close:
+                f.close()
 
     def _save_header(self):
         writer = self.writer
