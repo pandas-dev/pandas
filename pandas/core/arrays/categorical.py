@@ -26,11 +26,9 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
-    is_iterator,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_sequence,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -324,7 +322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
-                values = _convert_to_list_like(values)
+                values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
                 sanitize_dtype = np.dtype("O") if len(values) == 0 else None
@@ -2645,17 +2643,6 @@ def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     )
     new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
     return new_codes
-
-
-def _convert_to_list_like(list_like):
-    if hasattr(list_like, "dtype"):
-        return list_like
-    if isinstance(list_like, list):
-        return list_like
-    if is_sequence(list_like) or isinstance(list_like, tuple) or is_iterator(list_like):
-        return list(list_like)
-
-    return [list_like]
 
 
 def factorize_from_iterable(values):
