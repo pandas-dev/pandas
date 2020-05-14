@@ -2683,6 +2683,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Examples
         --------
+
         >>> df = pd.DataFrame(
         ...     {"a": ["red"] * 2 + ["blue"] * 2 + ["black"] * 2, "b": range(6)}
         ... )
@@ -2714,10 +2715,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             ws = [None] * self.ngroups
 
         samples = [
-            self.get_group(k).sample(
+            obj.sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for k, w in zip(self.groups.keys(), ws)
+            for (_, obj), w in zip(self, ws)
         ]
 
         return concat(samples, axis=self.axis)
