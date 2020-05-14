@@ -6888,13 +6888,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
-            raise TypeError(
-                "Cannot interpolate with all object-dtype columns "
-                "in the DataFrame. Try setting at least one "
-                "column to a numeric dtype."
-            )
-
         if method in ["backfill", "bfill", "pad", "ffill"]:
             return self.fillna(
                 method=method,
@@ -6903,12 +6896,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 limit=limit,
                 downcast=downcast,
             )
-        # create/use the index
 
+        # todo: change interpolation so that no transposing is necessary
+        # Currently we need this to call the axis correctly inside the various interpolation methods
         if axis == 0:
             df = self
         else:
             df = self.T
+
+        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
+            raise TypeError(
+                "Cannot interpolate with all object-dtype columns "
+                "in the DataFrame. Try setting at least one "
+                "column to a numeric dtype."
+            )
 
         if method == "linear":
             # prior default
