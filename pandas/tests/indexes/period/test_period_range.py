@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from pandas import NaT, Period, PeriodIndex, date_range, period_range
 import pandas._testing as tm
 
