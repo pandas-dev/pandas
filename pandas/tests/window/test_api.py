@@ -207,7 +207,7 @@ def test_count_nonnumeric_types():
             "fl_inf": [1.0, 2.0, np.Inf],
             "fl_nan": [1.0, 2.0, np.NaN],
             "str_nan": ["aa", "bb", np.NaN],
-            "dt_nat": [Timestamp("20170101"), Timestamp("20170203"), Timestamp(None),],
+            "dt_nat": [Timestamp("20170101"), Timestamp("20170203"), Timestamp(None), ],
             "periods_nat": [
                 pd.Period("2012-01"),
                 pd.Period("2012-02"),
