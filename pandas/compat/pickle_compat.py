@@ -251,12 +251,20 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
         raise
 
 
-def loads(obj: bytes):
+def loads(
+    bytes_object: bytes,
+    *,
+    fix_imports: bool = True,
+    encoding: str = "ASCII",
+    errors: str = "strict",
+):
     """
     Analogous to pickle._loads.
     """
-    fd = io.BytesIO(obj)
-    return Unpickler(fd).load()
+    fd = io.BytesIO(bytes_object)
+    return Unpickler(
+        fd, fix_imports=fix_imports, encoding=encoding, errors=errors
+    ).load()
 
 
 @contextlib.contextmanager
