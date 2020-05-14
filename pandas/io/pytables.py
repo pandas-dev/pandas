@@ -1011,6 +1011,12 @@ class HDFStore:
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
+        track_times : bool, default True
+            Parameter is propagated to 'create_table' method of 'PyTables'.
+            If set to False it enables to have the same h5 files (same hashes)
+            independent on creation time.
+
+            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
