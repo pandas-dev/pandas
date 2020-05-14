@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_list_like,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
@@ -372,6 +373,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
 
