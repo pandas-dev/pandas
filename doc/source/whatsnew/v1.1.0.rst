@@ -234,6 +234,7 @@ Other enhancements
   compression library. Compression was also added to the low-level Stata-file writers
   :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
+- :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 
 .. ---------------------------------------------------------------------------
 
