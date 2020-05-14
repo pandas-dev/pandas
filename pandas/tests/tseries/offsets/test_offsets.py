@@ -2893,7 +2893,9 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert repr(self.offset2) == "<2 * CustomBusinessMonthEnds>"
 
     def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 2, 29)
+        with tm.assert_produces_warning(FutureWarning):
+            # DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -3042,7 +3044,9 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert repr(self.offset2) == "<2 * CustomBusinessMonthBegins>"
 
     def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 3, 3)
+        with tm.assert_produces_warning(FutureWarning):
+            # DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
