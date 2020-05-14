@@ -51,6 +51,7 @@ class TestPeriodRange:
         result = period_range(start=start, end=end, freq="Q", name="foo")
         tm.assert_index_equal(result, expected)
 
+        #test for issue #21793
         idx = period_range(start=start, end=end, freq="Q", name="foo")
         result = idx == idx.values
         assert result.all()
