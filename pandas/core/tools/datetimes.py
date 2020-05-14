@@ -3,6 +3,7 @@ from datetime import datetime
 from functools import partial
 from itertools import islice
 from typing import TYPE_CHECKING, Optional, TypeVar, Union
+import warnings
 
 import numpy as np
 
@@ -933,3 +934,16 @@ def _attempt_YYYYMMDD(arg, errors):
         pass
 
     return None
+
+
+def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+    # GH#34145
+    warnings.warn(
+        "`to_time` has been moved, should be imported from pandas.core.tools.times.  "
+        "This alias will be removed in a future version.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    from pandas.core.tools.times import to_time
+
+    return to_time(arg, format, infer_time_format, errors)
