@@ -175,20 +175,30 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_take_series(data)
 
-    def test_loc_iloc_frame_single_dtype(self, data):
+    def test_loc_iloc_frame_single_dtype(self, data, request):
         npdtype = data.dtype.numpy_dtype
         if npdtype == object or npdtype == np.float64:
             # GH#33125
-            pytest.xfail(reason="GH#33125 astype doesn't recognize data.dtype")
+            mark = pytest.mark.xfail(
+                reason="GH#33125 astype doesn't recognize data.dtype"
+            )
+            request.node.add_marker(mark)
         super().test_loc_iloc_frame_single_dtype(data)
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     @skip_nested
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+    def test_groupby_extension_apply(
+        self, data_for_grouping, groupby_apply_op, request
+    ):
         # ValueError: Names should be list-like for a MultiIndex
-        if data_for_grouping.dtype.numpy_dtype == np.float64:
-            pytest.xfail(reason="GH#33125 astype doesn't recognize data.dtype")
+        a = "a"
+        is_identity = groupby_apply_op(a) is a
+        if data_for_grouping.dtype.numpy_dtype == np.float64 and is_identity:
+            mark = pytest.mark.xfail(
+                reason="GH#33125 astype doesn't recognize data.dtype"
+            )
+            request.node.add_marker(mark)
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
@@ -265,6 +275,12 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
+
+    @skip_nested
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        # Fails creating with _from_sequence
+        super().test_equals(data, na_value, as_series, box)
 
 
 @skip_nested

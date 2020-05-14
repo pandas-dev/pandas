@@ -168,21 +168,6 @@ cdef inline bint is_array(object val):
     return PyArray_Check(val)
 
 
-cdef inline bint is_period_object(object val):
-    """
-    Cython equivalent of `isinstance(val, pd.Period)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_period : bool
-    """
-    return getattr(val, '_typ', '_typ') == 'period'
-
-
 cdef inline bint is_offset_object(object val):
     """
     Check if an object is a DateOffset object.

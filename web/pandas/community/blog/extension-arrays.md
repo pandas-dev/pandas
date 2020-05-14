@@ -207,7 +207,7 @@ partners][partners] involved in the pandas community.
 [IntegerArray]: http://pandas.pydata.org/pandas-docs/version/0.24/reference/api/pandas.arrays.IntegerArray.html
 [fletcher]: https://github.com/xhochy/fletcher
 [arrow]: https://arrow.apache.org
-[ufunc]: https://docs.scipy.org/doc/numpy-1.13.0/neps/ufunc-overrides.html
+[ufunc]: https://numpy.org/neps/nep-0013-ufunc-overrides.html
 [nep18]: https://www.numpy.org/neps/nep-0018-array-function-protocol.html
 [ml]: https://mail.python.org/mailman/listinfo/pandas-dev
 [twitter]: https://twitter.com/pandas_dev
