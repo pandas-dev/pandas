@@ -765,11 +765,6 @@ class Block(PandasObject):
             filtered_out = ~self.mgr_locs.isin(filter)
             mask[filtered_out.nonzero()[0]] = False
 
-        if not mask.any():
-            if inplace:
-                return [self]
-            return [self.copy()]
-
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
             # Note: it is _not_ the case that self._can_hold_element(value)
