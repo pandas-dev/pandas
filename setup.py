@@ -33,8 +33,8 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.13.3"
-min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
+min_numpy_ver = "1.15.4"
+min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -307,6 +307,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
+        "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/c_timestamp.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
         "pandas/_libs/tslibs/period.pyx",
@@ -454,6 +455,9 @@ if is_platform_mac():
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
 
+    if sys.version_info[:2] == (3, 8):  # GH 33239
+        extra_compile_args.append("-Wno-error=deprecated-declarations")
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
@@ -599,10 +603,7 @@ ext_data = {
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
+    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
@@ -744,7 +745,7 @@ extensions.append(ujson_ext)
 def setup_package():
     setuptools_kwargs = {
         "install_requires": [
-            "python-dateutil >= 2.6.1",
+            "python-dateutil >= 2.7.3",
             "pytz >= 2017.2",
             f"numpy >= {min_numpy_ver}",
         ],
@@ -757,7 +758,7 @@ def setup_package():
         maintainer=AUTHOR,
         version=versioneer.get_version(),
         packages=find_packages(include=["pandas", "pandas.*"]),
-        package_data={"": ["templates/*", "_libs/*.dll"]},
+        package_data={"": ["templates/*", "_libs/**/*.dll"]},
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
         maintainer_email=EMAIL,
         description=DESCRIPTION,

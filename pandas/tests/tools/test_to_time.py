@@ -46,7 +46,8 @@ class TestToTime:
         res = to_time(arg, format="%I:%M%p", errors="ignore")
         tm.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
 
-        with pytest.raises(ValueError):
+        msg = "Cannot convert.+to a time with given format"
+        with pytest.raises(ValueError, match=msg):
             to_time(arg, format="%I:%M%p", errors="raise")
 
         tm.assert_series_equal(

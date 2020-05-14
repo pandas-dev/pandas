@@ -51,7 +51,7 @@ def test_fancy_setitem():
 
 
 def test_dti_reset_index_round_trip():
-    dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")
+    dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")._with_freq(None)
     d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
     d2 = d1.reset_index()
     assert d2.dtypes[0] == np.dtype("M8[ns]")
@@ -128,18 +128,6 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
     result = df.loc["20010101 11":]
     tm.assert_frame_equal(result, expected)
-
-
-def test_frame_datetime64_duplicated():
-    dates = date_range("2010-07-01", end="2010-08-05")
-
-    tst = DataFrame({"symbol": "AAA", "date": dates})
-    result = tst.duplicated(["date", "symbol"])
-    assert (-result).all()
-
-    tst = DataFrame({"date": dates})
-    result = tst.duplicated()
-    assert (-result).all()
 
 
 def test_getitem_setitem_datetime_tz_pytz():
@@ -353,20 +341,6 @@ def test_getitem_setitem_periodindex():
     tm.assert_series_equal(result, ts)
 
 
-# FutureWarning from NumPy.
-@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
-def test_getitem_median_slice_bug():
-    index = date_range("20090415", "20090519", freq="2B")
-    s = Series(np.random.randn(13), index=index)
-
-    indexer = [slice(6, 7, None)]
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31299
-        result = s[indexer]
-    expected = s[indexer[0]]
-    tm.assert_series_equal(result, expected)
-
-
 def test_datetime_indexing():
 
     index = date_range("1/1/2000", "1/7/2000")
@@ -462,12 +436,6 @@ def test_index_unique(dups):
     tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
     assert idx.nunique() == 20
     assert idx.nunique(dropna=False) == 21
-
-
-def test_index_dupes_contains():
-    d = datetime(2011, 12, 5, 20, 30)
-    ix = DatetimeIndex([d, d])
-    assert d in ix
 
 
 def test_duplicate_dates_indexing(dups):
@@ -588,8 +556,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-        # TODO: unused?
-        s = str(t)  # noqa
 
         expected = ts[t]
         result = ts2[t]
@@ -600,6 +566,7 @@ def test_indexing_unordered():
         result = ts2[slobj].copy()
         result = result.sort_index()
         expected = ts[slobj]
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     compare(slice("2011-01-01", "2011-01-15"))
@@ -614,6 +581,7 @@ def test_indexing_unordered():
     # single values
     result = ts2["2011"].sort_index()
     expected = ts["2011"]
+    expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
 
     # diff freq
@@ -688,30 +656,6 @@ def test_indexing():
 """
 test NaT support
 """
-
-
-def test_set_none_nan():
-    series = Series(date_range("1/1/2000", periods=10))
-    series[3] = None
-    assert series[3] is NaT
-
-    series[3:5] = None
-    assert series[4] is NaT
-
-    series[5] = np.nan
-    assert series[5] is NaT
-
-    series[5:7] = np.nan
-    assert series[6] is NaT
-
-
-def test_nat_operations():
-    # GH 8617
-    s = Series([0, pd.NaT], dtype="m8[ns]")
-    exp = s[0]
-    assert s.median() == exp
-    assert s.min() == exp
-    assert s.max() == exp
 
 
 def test_setitem_tuple_with_datetimetz():

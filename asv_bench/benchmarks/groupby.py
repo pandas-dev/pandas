@@ -626,4 +626,96 @@ class TransformNaN:
         self.df_nans.groupby("key").transform("first")
 
 
+class TransformEngine:
+    def setup(self):
+        N = 10 ** 3
+        data = DataFrame(
+            {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
+            columns=[0, 1],
+        )
+        self.grouper = data.groupby(0)
+
+    def time_series_numba(self):
+        def function(values, index):
+            return values * 5
+
+        self.grouper[1].transform(function, engine="numba")
+
+    def time_series_cython(self):
+        def function(values):
+            return values * 5
+
+        self.grouper[1].transform(function, engine="cython")
+
+    def time_dataframe_numba(self):
+        def function(values, index):
+            return values * 5
+
+        self.grouper.transform(function, engine="numba")
+
+    def time_dataframe_cython(self):
+        def function(values):
+            return values * 5
+
+        self.grouper.transform(function, engine="cython")
+
+
+class AggEngine:
+    def setup(self):
+        N = 10 ** 3
+        data = DataFrame(
+            {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
+            columns=[0, 1],
+        )
+        self.grouper = data.groupby(0)
+
+    def time_series_numba(self):
+        def function(values, index):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper[1].agg(function, engine="numba")
+
+    def time_series_cython(self):
+        def function(values):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper[1].agg(function, engine="cython")
+
+    def time_dataframe_numba(self):
+        def function(values, index):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper.agg(function, engine="numba")
+
+    def time_dataframe_cython(self):
+        def function(values):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper.agg(function, engine="cython")
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
