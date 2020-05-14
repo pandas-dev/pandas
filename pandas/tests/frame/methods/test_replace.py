@@ -1363,3 +1363,11 @@ class TestDataFrameReplace:
         result = df.replace(1, 10)
         expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
+    @pytest.mark.parametrize("value", [np.nan, pd.NA])
+    def test_replace_no_replacement_dtypes(self, dtype, value):
+        # https://github.com/pandas-dev/pandas/issues/32988
+        df = pd.DataFrame(np.eye(2), dtype=dtype)
+        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
+        tm.assert_frame_equal(result, df)
