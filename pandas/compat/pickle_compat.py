@@ -2,7 +2,9 @@
 Support pre-0.12 series pickle compatibility.
 """
 
+import contextlib
 import copy
+import io
 import pickle as pkl
 from typing import TYPE_CHECKING, Optional
 import warnings
@@ -247,3 +249,24 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
         return up.load()
     except (ValueError, TypeError):
         raise
+
+
+def loads(obj: bytes):
+    """
+    Analogous to pickle._loads.
+    """
+    fd = io.BytesIO(obj)
+    return Unpickler(fd).load()
+
+
+@contextlib.contextmanager
+def patch_pickle():
+    """
+    Temporarily patch pickle to use our unpickler.
+    """
+    orig_loads = pkl.loads
+    try:
+        pkl.loads = loads
+        yield
+    finally:
+        pkl.loads = orig_loads
