@@ -1,8 +1,8 @@
 import pytest
-
+import numpy as np
 from pandas import NaT, Period, PeriodIndex, date_range, period_range
 import pandas._testing as tm
-import numpy as np
+
 
 class TestPeriodRange:
     @pytest.mark.parametrize("freq", ["D", "W", "M", "Q", "A"])
