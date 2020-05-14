@@ -813,16 +813,7 @@ cdef class _Tick(ABCTick):
         return self.delta == other
 
     def __ne__(self, other):
-        if isinstance(other, str):
-            try:
-                # GH#23524 if to_offset fails, we are dealing with an
-                #  incomparable type so == is False and != is True
-                other = to_offset(other)
-            except ValueError:
-                # e.g. "infer"
-                return True
-
-        return self.delta != other
+        return not (self == other)
 
     def __le__(self, other):
         return self.delta.__le__(other)
