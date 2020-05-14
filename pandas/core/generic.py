@@ -9333,8 +9333,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if ax.is_all_dates:
             from pandas.core.tools.datetimes import to_datetime
 
-            before = to_datetime(before)
-            after = to_datetime(after)
+            # We do not convert None to NaT
+            # since None means means absent bound
+            # in the context of slices
+            if before is not None:
+                before = to_datetime(before)
+            if after is not None:
+                after = to_datetime(after)
 
         if before is not None and after is not None:
             if before > after:
