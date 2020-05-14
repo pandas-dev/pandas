@@ -185,9 +185,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    # FIXME: restore these as cache_readonly
-    #  _params = cache_readonly(BaseOffset._params.__get__)
-    #  freqstr = cache_readonly(BaseOffset.freqstr.__get__)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -296,18 +293,34 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
+
 
 class SingleConstructorOffset(BaseOffset):
-    # FIXME: restore these as cache_readonly
-    #  _params = cache_readonly(BaseOffset._params.__get__)
-    #  freqstr = cache_readonly(BaseOffset.freqstr.__get__)
-
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
 
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
