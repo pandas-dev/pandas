@@ -106,7 +106,7 @@ class TestFrameComparisons:
             else:
                 msg = (
                     "'(<|>)=?' not supported between "
-                    "instances of 'Timestamp' and 'float'"
+                    "instances of 'numpy.ndarray' and 'Timestamp'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
