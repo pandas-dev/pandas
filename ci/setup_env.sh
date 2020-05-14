@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+if [ "$JOB" == "3.9-dev" ]; then
+    /bin/bash ci/build39.sh
+    exit 0
+fi
+
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -36,9 +41,17 @@ else
   exit 1
 fi
 
-wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
+if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
+  sudo apt-get -y install xvfb
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh"
+else
+  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
+fi
+wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
-./miniconda.sh -b
+
+# Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
+./miniconda.sh -b -p $MINICONDA_DIR
 
 export PATH=$MINICONDA_DIR/bin:$PATH
 

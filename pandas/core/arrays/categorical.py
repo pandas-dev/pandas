@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -26,18 +26,16 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
-    is_iterator,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_sequence,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -45,7 +43,12 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
+from pandas.core.base import (
+    ExtensionArray,
+    NoNewAttributesMixin,
+    PandasObject,
+    _shared_docs,
+)
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
@@ -61,10 +64,6 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        if is_list_like(other) and len(other) != len(self):
-            # TODO: Could this fail if the categories are listlike objects?
-            raise ValueError("Lengths must match.")
-
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
@@ -124,17 +123,20 @@ def _cat_compare_op(op):
                         "scalar, which is not a category."
                     )
         else:
-
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
-            if opname in ["__eq__", "__ne__"]:
-                return getattr(np.array(self), opname)(np.array(other))
+            if opname not in ["__eq__", "__ne__"]:
+                raise TypeError(
+                    f"Cannot compare a Categorical for op {opname} with "
+                    f"type {type(other)}.\nIf you want to compare values, "
+                    "use 'np.asarray(cat) <op> other'."
+                )
 
-            raise TypeError(
-                f"Cannot compare a Categorical for op {opname} with "
-                f"type {type(other)}.\nIf you want to compare values, "
-                "use 'np.asarray(cat) <op> other'."
-            )
+            if isinstance(other, ExtensionArray) and needs_i8_conversion(other.dtype):
+                # We would return NotImplemented here, but that messes up
+                #  ExtensionIndex's wrapped methods
+                return op(other, self)
+            return getattr(np.array(self), opname)(np.array(other))
 
     func.__name__ = opname
 
@@ -320,7 +322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
-                values = _convert_to_list_like(values)
+                values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
                 sanitize_dtype = np.dtype("O") if len(values) == 0 else None
@@ -344,7 +346,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     ) from err
             except ValueError as err:
 
-                # FIXME
+                # TODO(EA2D)
                 raise NotImplementedError(
                     "> 1 ndim Categorical are not supported at this time"
                 ) from err
@@ -1425,7 +1427,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=np.nan)
+            return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
@@ -1834,7 +1836,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
@@ -2007,7 +2009,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         # tuple of indexers (dataframe)
         elif isinstance(key, tuple):
             # only allow 1 dimensional slicing, but can
-            # in a 2-d case be passd (slice(None),....)
+            # in a 2-d case be passed (slice(None),....)
             if len(key) == 2:
                 if not com.is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim categorical")
@@ -2641,20 +2643,6 @@ def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     )
     new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
     return new_codes
-
-
-def _convert_to_list_like(list_like):
-    if hasattr(list_like, "dtype"):
-        return list_like
-    if isinstance(list_like, list):
-        return list_like
-    if is_sequence(list_like) or isinstance(list_like, tuple) or is_iterator(list_like):
-        return list(list_like)
-    elif is_scalar(list_like):
-        return [list_like]
-    else:
-        # TODO: is this reached?
-        return [list_like]
 
 
 def factorize_from_iterable(values):

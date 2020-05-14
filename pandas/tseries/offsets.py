@@ -1,5 +1,4 @@
 from datetime import date, datetime, timedelta
-import functools
 import operator
 from typing import Any, Optional
 
@@ -7,8 +6,6 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT,
-    OutOfBoundsDatetime,
     Period,
     Timedelta,
     Timestamp,
@@ -16,9 +13,7 @@ from pandas._libs.tslibs import (
     conversion,
     delta_to_nanoseconds,
     frequencies as libfrequencies,
-    normalize_date,
     offsets as liboffsets,
-    timezones,
 )
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
@@ -26,6 +21,7 @@ from pandas._libs.tslibs.offsets import (
     BusinessMixin,
     CustomMixin,
     apply_index_wraps,
+    apply_wraps,
     as_datetime,
     is_normalized,
     roll_yearday,
@@ -34,8 +30,6 @@ from pandas._libs.tslibs.offsets import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-
-from pandas.core.dtypes.inference import is_list_like
 
 __all__ = [
     "Day",
@@ -76,84 +70,27 @@ __all__ = [
     "DateOffset",
 ]
 
-# convert to/from datetime/timestamp to allow invalid Timestamp ranges to
-# pass thru
-
-
-def as_timestamp(obj):
-    if isinstance(obj, Timestamp):
-        return obj
-    try:
-        return Timestamp(obj)
-    except (OutOfBoundsDatetime):
-        pass
-    return obj
-
-
-def apply_wraps(func):
-    @functools.wraps(func)
-    def wrapper(self, other):
-        if other is NaT:
-            return NaT
-        elif isinstance(other, (timedelta, Tick, DateOffset)):
-            # timedelta path
-            return func(self, other)
-        elif isinstance(other, (np.datetime64, datetime, date)):
-            other = as_timestamp(other)
-
-        tz = getattr(other, "tzinfo", None)
-        nano = getattr(other, "nanosecond", 0)
-
-        try:
-            if self._adjust_dst and isinstance(other, Timestamp):
-                other = other.tz_localize(None)
-
-            result = func(self, other)
-
-            if self._adjust_dst:
-                result = conversion.localize_pydatetime(result, tz)
-
-            result = Timestamp(result)
-            if self.normalize:
-                result = result.normalize()
-
-            # nanosecond may be deleted depending on offset process
-            if not self.normalize and nano != 0:
-                if not isinstance(self, Nano) and result.nanosecond != nano:
-                    if result.tz is not None:
-                        # convert to UTC
-                        value = conversion.tz_convert_single(
-                            result.value, timezones.UTC, result.tz
-                        )
-                    else:
-                        value = result.value
-                    result = Timestamp(value + nano)
-
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-        except OutOfBoundsDatetime:
-            result = func(self, as_datetime(other))
-
-            if self.normalize:
-                # normalize_date returns normal datetime
-                result = normalize_date(result)
-
-            if tz is not None and result.tzinfo is None:
-                result = conversion.localize_pydatetime(result, tz)
-
-            result = Timestamp(result)
-
-        return result
-
-    return wrapper
-
 
 # ---------------------------------------------------------------------
 # DateOffset
 
 
-class DateOffset(BaseOffset):
+class OffsetMeta(type):
+    """
+    Metaclass that allows us to pretend that all BaseOffset subclasses
+    inherit from DateOffset (which is needed for backward-compatibility).
+    """
+
+    @classmethod
+    def __instancecheck__(cls, obj) -> bool:
+        return isinstance(obj, BaseOffset)
+
+    @classmethod
+    def __subclasscheck__(cls, obj) -> bool:
+        return issubclass(obj, BaseOffset)
+
+
+class DateOffset(BaseOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -250,13 +187,8 @@ class DateOffset(BaseOffset):
 
     _params = cache_readonly(BaseOffset._params.fget)
     freqstr = cache_readonly(BaseOffset.freqstr.fget)
-    _use_relativedelta = False
-    _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
-    _deprecations = frozenset(["isAnchored", "onOffset"])
-
-    # default for prior pickles
-    normalize = False
+    _adjust_dst = False
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
@@ -290,7 +222,7 @@ class DateOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = conversion.localize_pydatetime(other, tzinfo)
 
-            return as_timestamp(other)
+            return Timestamp(other)
         else:
             return other + timedelta(self.n)
 
@@ -298,7 +230,7 @@ class DateOffset(BaseOffset):
     def apply_index(self, i):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplentedError for offsets without a
+        raises NotImplementedError for offsets without a
         vectorized implementation.
 
         Parameters
@@ -309,11 +241,6 @@ class DateOffset(BaseOffset):
         -------
         y : DatetimeIndex
         """
-        if type(self) is not DateOffset:
-            raise NotImplementedError(
-                f"DateOffset subclass {type(self).__name__} "
-                "does not have a vectorized implementation"
-            )
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -362,73 +289,17 @@ class DateOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
-        return self.n == 1
-
-    # TODO: Combine this with BusinessMixin version by defining a whitelisted
-    # set of attributes on each object rather than the existing behavior of
-    # iterating over internal ``__dict__``
-    def _repr_attrs(self) -> str:
-        exclude = {"n", "inc", "normalize"}
-        attrs = []
-        for attr in sorted(self.__dict__):
-            if attr.startswith("_") or attr == "kwds":
-                continue
-            elif attr not in exclude:
-                value = getattr(self, attr)
-                attrs.append(f"{attr}={value}")
-
-        out = ""
-        if attrs:
-            out += ": " + ", ".join(attrs)
-        return out
-
-    def rollback(self, dt):
-        """
-        Roll provided date backward to next offset only if not on offset.
-
-        Returns
-        -------
-        TimeStamp
-            Rolled timestamp if not on offset, otherwise unchanged timestamp.
-        """
-        dt = as_timestamp(dt)
-        if not self.is_on_offset(dt):
-            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
-        return dt
-
-    def rollforward(self, dt):
-        """
-        Roll provided date forward to next offset only if not on offset.
-
-        Returns
-        -------
-        TimeStamp
-            Rolled timestamp if not on offset, otherwise unchanged timestamp.
-        """
-        dt = as_timestamp(dt)
-        if not self.is_on_offset(dt):
-            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
-        return dt
-
     def is_on_offset(self, dt):
         if self.normalize and not is_normalized(dt):
             return False
         # TODO, see #1395
-        if type(self) == DateOffset or isinstance(self, Tick):
-            return True
-
-        # Default (slow) method for determining if some date is a member of the
-        # date range generated by this offset. Subclasses may have this
-        # re-implemented in a nicer way.
-        a = dt
-        b = (dt + self) - self
-        return a == b
+        return True
 
 
-class SingleConstructorOffset(DateOffset):
+class SingleConstructorOffset(BaseOffset):
+    _params = cache_readonly(BaseOffset._params.fget)
+    freqstr = cache_readonly(BaseOffset.freqstr.fget)
+
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
@@ -443,7 +314,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
 
     _prefix = "B"
-    _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "offset"])
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
@@ -549,51 +419,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHourMixin(BusinessMixin):
-    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
-        # must be validated here to equality check
-        if not is_list_like(start):
-            start = [start]
-        if not len(start):
-            raise ValueError("Must include at least 1 start time")
-
-        if not is_list_like(end):
-            end = [end]
-        if not len(end):
-            raise ValueError("Must include at least 1 end time")
-
-        start = np.array([liboffsets.validate_business_time(x) for x in start])
-        end = np.array([liboffsets.validate_business_time(x) for x in end])
-
-        # Validation of input
-        if len(start) != len(end):
-            raise ValueError("number of starting time and ending time must be the same")
-        num_openings = len(start)
-
-        # sort starting and ending time by starting time
-        index = np.argsort(start)
-
-        # convert to tuple so that start and end are hashable
-        start = tuple(start[index])
-        end = tuple(end[index])
-
-        total_secs = 0
-        for i in range(num_openings):
-            total_secs += self._get_business_hours_by_sec(start[i], end[i])
-            total_secs += self._get_business_hours_by_sec(
-                end[i], start[(i + 1) % num_openings]
-            )
-        if total_secs != 24 * 60 * 60:
-            raise ValueError(
-                "invalid starting and ending time(s): "
-                "opening hours should not touch or overlap with "
-                "one another"
-            )
-
-        object.__setattr__(self, "start", start)
-        object.__setattr__(self, "end", end)
-        object.__setattr__(self, "_offset", offset)
-
+class BusinessHourMixin(liboffsets.BusinessHourMixin):
     @cache_readonly
     def next_bday(self):
         """
@@ -692,16 +518,6 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start, end):
-        """
-        Return business hours in a day by seconds.
-        """
-        # create dummy datetime to calculate businesshours in a day
-        dtstart = datetime(2014, 4, 1, start.hour, start.minute)
-        day = 1 if start < end else 2
-        until = datetime(2014, 4, day, end.hour, end.minute)
-        return int((until - dtstart).total_seconds())
-
     @apply_wraps
     def rollback(self, dt):
         """
@@ -726,27 +542,6 @@ class BusinessHourMixin(BusinessMixin):
             else:
                 return self._prev_opening_time(dt)
         return dt
-
-    def _get_closing_time(self, dt):
-        """
-        Get the closing time of a business hour interval by its opening time.
-
-        Parameters
-        ----------
-        dt : datetime
-            Opening time of a business hour interval.
-
-        Returns
-        -------
-        result : datetime
-            Corresponding closing time.
-        """
-        for i, st in enumerate(self.start):
-            if st.hour == dt.hour and st.minute == dt.minute:
-                return dt + timedelta(
-                    seconds=self._get_business_hours_by_sec(st, self.end[i])
-                )
-        assert False
 
     @apply_wraps
     def apply(self, other):
@@ -883,16 +678,6 @@ class BusinessHourMixin(BusinessMixin):
         else:
             return False
 
-    def _repr_attrs(self):
-        out = super()._repr_attrs()
-        hours = ",".join(
-            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
-            for st, en in zip(self.start, self.end)
-        )
-        attrs = [f"{self._prefix}={hours}"]
-        out += ": " + ", ".join(attrs)
-        return out
-
 
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
@@ -1021,11 +806,6 @@ class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset
 
 
 class MonthOffset(SingleConstructorOffset):
-    _adjust_dst = True
-    _attributes = frozenset(["n", "normalize"])
-
-    __init__ = BaseOffset.__init__
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not is_normalized(dt):
             return False
@@ -1106,8 +886,8 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
 
-    is_on_offset = DateOffset.is_on_offset  # override MonthOffset method
-    apply_index = DateOffset.apply_index  # override MonthOffset method
+    is_on_offset = BaseOffset.is_on_offset  # override MonthOffset method
+    apply_index = BaseOffset.apply_index  # override MonthOffset method
 
     def __init__(
         self,
@@ -1191,8 +971,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 # Semi-Month Based Offset Classes
 
 
-class SemiMonthOffset(DateOffset):
-    _adjust_dst = True
+class SemiMonthOffset(SingleConstructorOffset):
     _default_day_of_month = 15
     _min_day_of_month = 2
     _attributes = frozenset(["n", "normalize", "day_of_month"])
@@ -1413,7 +1192,7 @@ class SemiMonthBegin(SemiMonthOffset):
 # Week-Based Offset Classes
 
 
-class Week(DateOffset):
+class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
@@ -1423,7 +1202,6 @@ class Week(DateOffset):
         Always generate specific day of week. 0 for Monday.
     """
 
-    _adjust_dst = True
     _inc = timedelta(weeks=1)
     _prefix = "W"
     _attributes = frozenset(["n", "normalize", "weekday"])
@@ -1530,32 +1308,7 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
-class _WeekOfMonthMixin:
-    """
-    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
-    """
-
-    @apply_wraps
-    def apply(self, other):
-        compare_day = self._get_offset_day(other)
-
-        months = self.n
-        if months > 0 and compare_day > other.day:
-            months -= 1
-        elif months <= 0 and compare_day < other.day:
-            months += 1
-
-        shifted = shift_month(other, months, "start")
-        to_day = self._get_offset_day(shifted)
-        return liboffsets.shift_day(shifted, to_day - shifted.day)
-
-    def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
-            return False
-        return dt.day == self._get_offset_day(dt)
-
-
-class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
+class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
@@ -1578,7 +1331,6 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
 
     _prefix = "WOM"
-    _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "week", "weekday"])
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
@@ -1625,7 +1377,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
+class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month".
@@ -1646,7 +1398,6 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
 
     _prefix = "LWOM"
-    _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "weekday"])
 
     def __init__(self, n=1, normalize=False, weekday=0):
@@ -1696,14 +1447,13 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
 # Quarter-Based Offset Classes
 
 
-class QuarterOffset(DateOffset):
+class QuarterOffset(SingleConstructorOffset):
     """
     Quarter representation - doesn't call super.
     """
 
     _default_startingMonth: Optional[int] = None
     _from_name_startingMonth: Optional[int] = None
-    _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
@@ -1815,12 +1565,11 @@ class QuarterBegin(QuarterOffset):
 # Year-Based Offset Classes
 
 
-class YearOffset(DateOffset):
+class YearOffset(SingleConstructorOffset):
     """
     DateOffset that just needs a month.
     """
 
-    _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "month"])
 
     def _get_offset_day(self, other: datetime) -> int:
@@ -1916,7 +1665,7 @@ class YearBegin(YearOffset):
 # Special Offset Classes
 
 
-class FY5253(DateOffset):
+class FY5253(SingleConstructorOffset):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1965,7 +1714,6 @@ class FY5253(DateOffset):
     """
 
     _prefix = "RE"
-    _adjust_dst = True
     _attributes = frozenset(["weekday", "startingMonth", "variation"])
 
     def __init__(
@@ -2123,7 +1871,7 @@ class FY5253(DateOffset):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(DateOffset):
+class FY5253Quarter(SingleConstructorOffset):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -2180,7 +1928,6 @@ class FY5253Quarter(DateOffset):
     """
 
     _prefix = "REQ"
-    _adjust_dst = True
     _attributes = frozenset(
         ["weekday", "startingMonth", "qtr_with_extra_week", "variation"]
     )
@@ -2245,7 +1992,7 @@ class FY5253Quarter(DateOffset):
             # roll adjustment
             qtr_lens = self.get_weeks(norm)
 
-            # check thet qtr_lens is consistent with self._offset addition
+            # check that qtr_lens is consistent with self._offset addition
             end = liboffsets.shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.is_on_offset(end), (start, end, qtr_lens)
 
@@ -2341,17 +2088,12 @@ class FY5253Quarter(DateOffset):
         )
 
 
-class Easter(DateOffset):
+class Easter(SingleConstructorOffset):
     """
     DateOffset for the Easter holiday using logic defined in dateutil.
 
     Right now uses the revised method which is valid in years 1583-4099.
     """
-
-    _adjust_dst = True
-    _attributes = frozenset(["n", "normalize"])
-
-    __init__ = BaseOffset.__init__
 
     @apply_wraps
     def apply(self, other):
@@ -2393,17 +2135,12 @@ class Easter(DateOffset):
 
 
 def _tick_comp(op):
-    assert op not in [operator.eq, operator.ne]
+    """
+    Tick comparisons should behave identically to Timedelta comparisons.
+    """
 
     def f(self, other):
-        try:
-            return op(self.delta, other.delta)
-        except AttributeError as err:
-            # comparing with a non-Tick object
-            raise TypeError(
-                f"Invalid comparison between {type(self).__name__} "
-                f"and {type(other).__name__}"
-            ) from err
+        return op(self.delta, other)
 
     f.__name__ = f"__{op.__name__}__"
     return f
@@ -2455,10 +2192,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return False
 
-        if isinstance(other, Tick):
-            return self.delta == other.delta
-        else:
-            return False
+        return _tick_comp(operator.eq)(self, other)
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2477,10 +2211,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 # e.g. "infer"
                 return True
 
-        if isinstance(other, Tick):
-            return self.delta != other.delta
-        else:
-            return True
+        return _tick_comp(operator.ne)(self, other)
 
     @property
     def delta(self) -> Timedelta:
@@ -2490,7 +2221,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def nanos(self):
         return delta_to_nanoseconds(self.delta)
 
-    # TODO: Should Tick have its own apply_index?
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, Timestamp):
@@ -2505,7 +2235,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
-            return as_timestamp(other) + self
+            return Timestamp(other) + self
 
         if isinstance(other, timedelta):
             return other + self.delta
@@ -2513,9 +2243,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
-
-    def is_anchored(self) -> bool:
-        return False
 
 
 def delta_to_tick(delta: timedelta) -> Tick:
@@ -2583,91 +2310,8 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
-# ---------------------------------------------------------------------
-
-
-def generate_range(start=None, end=None, periods=None, offset=BDay()):
-    """
-    Generates a sequence of dates corresponding to the specified time
-    offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments.
-
-    Parameters
-    ----------
-    start : datetime, (default None)
-    end : datetime, (default None)
-    periods : int, (default None)
-    offset : DateOffset, (default BDay())
-
-    Notes
-    -----
-    * This method is faster for generating weekdays than dateutil.rrule
-    * At least two of (start, end, periods) must be specified.
-    * If both start and end are specified, the returned dates will
-    satisfy start <= date <= end.
-
-    Returns
-    -------
-    dates : generator object
-    """
-    from pandas.tseries.frequencies import to_offset
-
-    offset = to_offset(offset)
-
-    start = Timestamp(start)
-    start = start if start is not NaT else None
-    end = Timestamp(end)
-    end = end if end is not NaT else None
-
-    if start and not offset.is_on_offset(start):
-        start = offset.rollforward(start)
-
-    elif end and not offset.is_on_offset(end):
-        end = offset.rollback(end)
-
-    if periods is None and end < start and offset.n >= 0:
-        end = None
-        periods = 0
-
-    if end is None:
-        end = start + (periods - 1) * offset
-
-    if start is None:
-        start = end - (periods - 1) * offset
-
-    cur = start
-    if offset.n >= 0:
-        while cur <= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date <= cur:
-                raise ValueError(f"Offset {offset} did not increment date")
-            cur = next_date
-    else:
-        while cur >= end:
-            yield cur
-
-            if cur == end:
-                # GH#24252 avoid overflows by not performing the addition
-                # in offset.apply unless we have to
-                break
-
-            # faster than cur + offset
-            next_date = offset.apply(cur)
-            if next_date >= cur:
-                raise ValueError(f"Offset {offset} did not decrement date")
-            cur = next_date
-
-
 prefix_mapping = {
-    offset._prefix: offset
+    offset._prefix: offset  # type: ignore
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'
