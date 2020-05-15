@@ -29,7 +29,7 @@ def test_namespace():
         "NaTType",
         "iNaT",
         "is_null_datetimelike",
-        "NullFrequencyError",
+        "nat_strings",
         "OutOfBoundsDatetime",
         "Period",
         "IncompatibleFrequency",

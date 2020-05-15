@@ -1185,6 +1185,14 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     more
     """
 
+    @property
+    def _obj_1d_constructor(self) -> Type["Series"]:
+        # GH28330 preserve subclassed Series/DataFrames
+        if isinstance(self.obj, DataFrame):
+            return self.obj._constructor_sliced
+        assert isinstance(self.obj, Series)
+        return self.obj._constructor
+
     def _bool_agg(self, val_test, skipna):
         """
         Shared func to call any / all Cython GroupBy implementations.
@@ -1423,8 +1431,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         result = self.grouper.size()
 
-        if isinstance(self.obj, Series):
-            result.name = self.obj.name
+        # GH28330 preserve subclassed Series/DataFrames through calls
+        if issubclass(self.obj._constructor, Series):
+            result = self._obj_1d_constructor(result, name=self.obj.name)
+        else:
+            result = self._obj_1d_constructor(result)
         return self._reindex_output(result, fill_value=0)
 
     @classmethod
@@ -1493,32 +1504,33 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
             return func
 
-        def first_compat(x, axis=0):
-            def first(x):
-                x = x.to_numpy()
-
-                x = x[notna(x)]
+        def first_compat(obj: FrameOrSeries, axis: int = 0):
+            def first(x: Series):
+                x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
                 return x[0]
 
-            if isinstance(x, DataFrame):
-                return x.apply(first, axis=axis)
+            if isinstance(obj, DataFrame):
+                return obj.apply(first, axis=axis)
+            elif isinstance(obj, Series):
+                return first(obj)
             else:
-                return first(x)
+                raise TypeError(type(obj))
 
-        def last_compat(x, axis=0):
-            def last(x):
-                x = x.to_numpy()
-                x = x[notna(x)]
+        def last_compat(obj: FrameOrSeries, axis: int = 0):
+            def last(x: Series):
+                x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
                 return x[-1]
 
-            if isinstance(x, DataFrame):
-                return x.apply(last, axis=axis)
+            if isinstance(obj, DataFrame):
+                return obj.apply(last, axis=axis)
+            elif isinstance(obj, Series):
+                return last(obj)
             else:
-                return last(x)
+                raise TypeError(type(obj))
 
         cls.sum = groupby_function("sum", "add", np.sum, min_count=0)
         cls.prod = groupby_function("prod", "prod", np.prod, min_count=0)
@@ -2110,7 +2122,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         with _group_selection_context(self):
             index = self._selected_obj.index
-            result = Series(self.grouper.group_info[0], index)
+            result = self._obj_1d_constructor(self.grouper.group_info[0], index)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
@@ -2172,7 +2184,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
-            return Series(cumcounts, index)
+            return self._obj_1d_constructor(cumcounts, index)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
