@@ -12,6 +12,7 @@ import cython
 
 from cpython.datetime cimport (
     datetime,
+    tzinfo,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
@@ -962,23 +963,8 @@ def dt64arr_to_periodarr(const int64_t[:] dtarr, int freq, tz=None):
     """
     cdef:
         int64_t[:] out
-        Py_ssize_t i, l
-        npy_datetimestruct dts
 
-    l = len(dtarr)
-
-    out = np.empty(l, dtype='i8')
-
-    if tz is None:
-        with nogil:
-            for i in range(l):
-                if dtarr[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(dtarr[i], &dts)
-                out[i] = get_period_ordinal(&dts, freq)
-    else:
-        out = localize_dt64arr_to_period(dtarr, freq, tz)
+    out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out.base  # .base to access underlying np.ndarray
 
 
@@ -1470,7 +1456,8 @@ def extract_freq(ndarray[object] values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
-                                           int freq, object tz):
+                                           int freq, tzinfo tz):
+    # Note: the tzinfo type for tz does not preclude None
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)

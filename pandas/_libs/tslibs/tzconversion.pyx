@@ -617,8 +617,8 @@ cdef Localizer get_localizer(tz):
     else:
         trans, deltas, typ = get_dst_info(tz)
         if typ not in ["pytz", "dateutil"]:
-            return FixedOffsetLocalizer(tz)
-        return DSTLocalizer(tz)
+            return FixedOffsetLocalizer(tz, deltas)
+        return DSTLocalizer(tz, deltas, trans)
 
 
 cdef class Localizer:
@@ -637,7 +637,7 @@ cdef class Localizer:
 
 cdef class UTCLocalizer(Localizer):
 
-    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+    cdef inline int64_t localize(self, int64_t value, Py_ssize_t i):
         return value
 
 
@@ -651,14 +651,13 @@ cdef class FixedOffsetLocalizer(Localizer):
     cdef:
         int64_t delta_fixed
 
-    def __init__(self, tzinfo tz):
+    def __init__(self, tzinfo tz, int64_t[:] deltas):
         self.tz = tz
 
-        trans, deltas, typ = get_dst_info(tz)
         assert len(deltas) == 1
         self.delta_fixed = deltas[0]
 
-    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+    cdef inline int64_t localize(self, int64_t value, Py_ssize_t i):
         return value + self.delta_fixed
 
 
@@ -668,14 +667,13 @@ cdef class DSTLocalizer(Localizer):
         int64_t[:] deltas, pos
         ndarray trans
 
-    def __init__(self, tzinfo tz):
+    def __init__(self, tzinfo tz, int64_t[:] deltas, int64_t[:] trans):
         self.tz = tz
 
-        trans, deltas, typ = get_dst_info(tz)
         self.deltas = deltas
-        self.trans = trans
+        self.trans = np.asarray(trans)
 
-    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+    cdef inline int64_t localize(self, int64_t value, Py_ssize_t i):
         return value + self.deltas[self.pos[i]]
 
     cdef initialize(self, const int64_t[:] values):
