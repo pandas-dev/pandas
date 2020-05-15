@@ -247,8 +247,33 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
-        url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError(f"See issue #11704 {url}")
+        window = self._get_window(win_type=None)
+
+        blocks, obj = self._create_blocks()
+        block_list = list(blocks)
+        index = self._get_window_indexer(window=window)
+
+        # Choose the min between min_periods and window to determine the output size
+        if self.min_periods is None:
+            iter_threshold = window
+        else:
+            iter_threshold = min(window, self.min_periods)
+
+        for block in block_list:
+            start, end = index.get_window_bounds(
+                num_values=len(block),
+                min_periods=self.min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
+            # From get_window_bounds, those two should be equal in length of array
+            assert len(start) == len(end)
+
+            window_size = len(start)
+            for i in range(window_size):
+                result = block.iloc[slice(start[i], end[i])]
+                if result.count().min() >= iter_threshold:
+                    yield result
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
