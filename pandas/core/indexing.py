@@ -7,7 +7,9 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+from pandas.core.construction import array as pd_array
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_hashable,
     is_integer,
     is_iterator,
@@ -2164,11 +2166,14 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         result = result.astype(bool)._values
     elif is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
+ 
         result = np.asarray(result, dtype=bool)
         result = check_array_indexer(index, result)
     else:
+        if not is_array_like(result):
+            # GH 33924
+            result = pd_array(result, dtype=bool)
         result = check_array_indexer(index, result)
-
     return result
 
 
