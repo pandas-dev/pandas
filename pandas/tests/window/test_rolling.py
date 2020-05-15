@@ -7,7 +7,7 @@ from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.window import Rolling
 
@@ -472,6 +472,7 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
         (
             DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
+                ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
                 ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
             ],
@@ -516,8 +517,6 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     for (expected, actual) in zip(
         expected, df.rolling(window, min_periods=min_periods)
     ):
-        print(expected)
-        print(actual)
         tm.assert_frame_equal(actual, expected)
 
 
@@ -525,11 +524,11 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     "ser,expected,window, min_periods",
     [
         (Series([1, 2, 3]), [([1, 2, 3], [0, 1, 2])], 3, None),
-        (Series([1, 2, 3]), [([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 1),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 1),
         (Series([1, 2, 3]), [([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 3),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 0),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 2),
-        (Series([1, 2]), [([1, 2], [0, 1])], 2, 0),
+        (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2, 0),
         (Series([1, 2]), [([1, 2], [0, 1])], 2, 3),
         (Series([], dtype="int64"), [], 2, 1),
         (Series([], dtype="int64"), [], 2, 3),
@@ -542,58 +541,4 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     for (expected, actual) in zip(
         expected, ser.rolling(window, min_periods=min_periods)
     ):
-        tm.assert_series_equal(actual, expected)
-
-
-@pytest.mark.parametrize(
-    "expected,window,min_periods",
-    [
-        ([([0], [0]), ([1], [1]), ([2], [2]), ([3], [3]), ([4], [4])], "1s", None),
-        (
-            [
-                ([0], [0]),
-                ([0, 1], [0, 1]),
-                ([1, 2], [1, 2]),
-                ([2, 3], [2, 3]),
-                ([3, 4], [3, 4]),
-            ],
-            "2S",
-            1,
-        ),
-        (
-            [
-                ([0], [0]),
-                ([0, 1], [0, 1]),
-                ([0, 1, 2], [0, 1, 2]),
-                ([1, 2, 3], [1, 2, 3]),
-                ([2, 3, 4], [2, 3, 4]),
-            ],
-            "3S",
-            4,
-        ),
-        ([], "1s", 2),
-        (
-            [
-                ([0], [0]),
-                ([0, 1], [0, 1]),
-                ([0, 1, 2], [0, 1, 2]),
-                ([1, 2, 3], [1, 2, 3]),
-                ([2, 3, 4], [2, 3, 4]),
-            ],
-            "3S",
-            1,
-        ),
-    ],
-)
-def test_iter_rolling_series_time(expected, window, min_periods):
-    # GH 11704
-    series = Series(
-        range(5), index=date_range(start="2016-01-01 09:30:00", periods=5, freq="s")
-    )
-
-    expected = [
-        Series(values, index=series.index[index]) for (values, index) in expected
-    ]
-
-    for (expected, actual) in zip(expected, series.rolling(window)):
         tm.assert_series_equal(actual, expected)
