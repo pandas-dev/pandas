@@ -234,6 +234,7 @@ Other enhancements
   compression library. Compression was also added to the low-level Stata-file writers
   :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
+- :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 
 .. ---------------------------------------------------------------------------
 
@@ -584,6 +585,7 @@ Deprecations
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
+- :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
 
 .. ---------------------------------------------------------------------------
 
