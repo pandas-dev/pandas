@@ -1257,7 +1257,7 @@ class IndexOpsMixin:
     def unique(self):
         values = self._values
 
-        if not isinstance(self._values, np.ndarray):
+        if not isinstance(values, np.ndarray):
             result = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
