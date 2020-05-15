@@ -19,7 +19,7 @@ cnp.import_array()
 
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -170,7 +170,7 @@ def apply_wraps(func):
         elif isinstance(other, (timedelta, BaseOffset)):
             # timedelta path
             return func(self, other)
-        elif isinstance(other, (np.datetime64, datetime, date)):
+        elif isinstance(other, (datetime, date)) or is_datetime64_object(other):
             other = as_timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
@@ -661,6 +661,8 @@ cdef class _BaseOffset:
 
     # ------------------------------------------------------------------
 
+    # Staticmethod so we can call from _Tick.__init__, will be unnecessary
+    #  once BaseOffset is a cdef class and is inherited by _Tick
     @staticmethod
     def _validate_n(n):
         """
@@ -781,24 +783,62 @@ cdef class _Tick(_BaseOffset):
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False
+    _prefix = "undefined"
+    _attributes = frozenset(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
-        n = _BaseOffset._validate_n(n)
+        n = self._validate_n(n)
         self.n = n
-        self.normalize = normalize
+        self.normalize = False
         self._cache = {}
-
         if normalize:
             # GH#21427
             raise ValueError(
                 "Tick offset with `normalize=True` are not allowed."
             )
 
+    @property
+    def delta(self):
+        return self.n * self._inc
+
+    @property
+    def nanos(self) -> int64_t:
+        return self.delta.value
+
     def is_on_offset(self, dt) -> bool:
         return True
 
     def is_anchored(self) -> bool:
         return False
+
+    # --------------------------------------------------------------------
+    # Comparison and Arithmetic Methods
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
+        return self.delta == other
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __le__(self, other):
+        return self.delta.__le__(other)
+
+    def __lt__(self, other):
+        return self.delta.__lt__(other)
+
+    def __ge__(self, other):
+        return self.delta.__ge__(other)
+
+    def __gt__(self, other):
+        return self.delta.__gt__(other)
 
     def __truediv__(self, other):
         if not isinstance(self, _Tick):
@@ -807,6 +847,9 @@ cdef class _Tick(_BaseOffset):
         else:
             result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
+
+    # --------------------------------------------------------------------
+    # Pickle Methods
 
     def __reduce__(self):
         return (type(self), (self.n,))
