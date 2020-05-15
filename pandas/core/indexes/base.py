@@ -4039,7 +4039,7 @@ class Index(IndexOpsMixin, PandasObject):
         promote = self._shallow_copy
 
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
         if isinstance(key, slice):
