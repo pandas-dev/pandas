@@ -3041,7 +3041,9 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(side="left and right sides", method="strip", position=None)
+        % dict(
+            side="left and right sides", method="strip", position="leading and trailing"
+        )
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
