@@ -2075,15 +2075,27 @@ def test_merge_suffix_error(col1, col2, suffixes):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
-@pytest.mark.parametrize("col1, col2, suffixes", [("a", "a", None), (0, 0, None)])
-def test_merge_suffix_none_error(col1, col2, suffixes):
-    # issue: 24782
+@pytest.mark.parametrize(
+    "col1, col2, suffixes", [("a", "a", {"a", "b"}), ("a", "a", None), (0, 0, None)],
+)
+def test_merge_suffix_type_error(col1, col2, suffixes):
     a = pd.DataFrame({col1: [1, 2, 3]})
     b = pd.DataFrame({col2: [3, 4, 5]})
 
-    # TODO: might reconsider current raise behaviour, see GH24782
-    msg = "iterable"
+    msg = f"suffixes should be of type list/tuple. But got {type(suffixes)}"
     with pytest.raises(TypeError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, suffixes", [("a", "a", ("a", "b", "c"))],
+)
+def test_merge_suffix_length_error(col1, col2, suffixes):
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    msg = r"too many values to unpack \(expected 2\)"
+    with pytest.raises(ValueError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
