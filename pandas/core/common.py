@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from functools import partial
 import inspect
 from typing import Any, Collection, Iterable, List, Union
+import warnings
 
 import numpy as np
 
@@ -158,6 +159,12 @@ def cast_scalar_indexer(val):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
+        warnings.warn(
+            "Indexing with a float is deprecated, and will raise an IndexError "
+            "in pandas 2.0. You can manually convert to an integer key instead.",
+            FutureWarning,
+            stacklevel=3,
+        )
         return int(val)
     return val
 
