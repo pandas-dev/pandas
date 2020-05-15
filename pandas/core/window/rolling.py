@@ -1304,6 +1304,8 @@ class _Rolling_and_Expanding(_Rolling):
             name=func,
             use_numba_cache=engine == "numba",
             raw=raw,
+            args=args,
+            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
