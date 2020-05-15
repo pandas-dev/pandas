@@ -40,7 +40,6 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCPeriod, is_period_object, is_tick_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
-from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
@@ -69,7 +68,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.offsets cimport to_offset
-from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.tzconversion cimport Localizer, get_localizer
 
 
 cdef:
@@ -1480,45 +1479,18 @@ cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
+        Localizer localizer
 
-    if is_utc(tz) or tz is None:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
+    localizer = get_localizer(tz)
+    localizer.initialize(stamps)
 
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = get_period_ordinal(&dts, freq)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
+    for i in range(n):
+        if stamps[i] == NPY_NAT:
+            result[i] = NPY_NAT
+            continue
+        local_val = localizer.localize(stamps[i], i)
+        dt64_to_dtstruct(local_val, &dts)
+        result[i] = get_period_ordinal(&dts, freq)
 
     return result
 

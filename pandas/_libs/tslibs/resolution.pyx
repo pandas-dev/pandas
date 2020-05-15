@@ -1,15 +1,17 @@
+from cpython.datetime cimport tzinfo
+
 import numpy as np
-from numpy cimport ndarray, int64_t, int32_t
+from numpy cimport ndarray, int64_t, int32_t, intp_t
 
 from pandas._libs.tslibs.util cimport get_nat, is_offset_object
 
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.frequencies cimport get_freq_code
-from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
+from pandas._libs.tslibs.timezones cimport maybe_get_tz
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
-from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.tzconversion cimport Localizer, get_localizer
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -30,64 +32,28 @@ cdef:
 cpdef resolution(const int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        npy_datetimestruct dts
-        int reso = RESO_DAY, curr_reso
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-    return _reso_local(stamps, tz)
-
-
-cdef _reso_local(const int64_t[:] stamps, object tz):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans
         int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
+        Localizer localizer
 
-    if is_utc(tz) or tz is None:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
+    if tz is not None:
+        tz = maybe_get_tz(tz)
 
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            delta = deltas[0]
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
+    localizer = get_localizer(tz)
+    localizer.initialize(stamps)
+
+    for i in range(n):
+        if stamps[i] == NPY_NAT:
+            continue
+        local_val = localizer.localize(stamps[i], i)
+        dt64_to_dtstruct(local_val, &dts)
+        curr_reso = _reso_stamp(&dts)
+        if curr_reso < reso:
+            reso = curr_reso
 
     return reso
 

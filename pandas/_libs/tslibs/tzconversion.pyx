@@ -605,3 +605,78 @@ cdef int64_t[:] _tz_convert_dst(
             result[i] = v - deltas[pos[i]]
 
     return result
+
+
+# ------------------------------------------------------------------
+
+cdef Localizer get_localizer(tz):
+    if is_utc(tz) or tz is None:
+        return UTCLocalizer(tz)
+    elif is_tzlocal(tz):
+        return TzlocalLocalizer(tz)
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+        if typ not in ["pytz", "dateutil"]:
+            return FixedOffsetLocalizer(tz)
+        return DSTLocalizer(tz)
+
+
+cdef class Localizer:
+    # cdef readonly:
+    #     tzinfo tz
+
+    def __init__(self, tzinfo tz):
+        self.tz = tz
+
+    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+        raise NotImplementedError
+
+    cdef initialize(self, const int64_t[:] values):
+        pass
+
+
+cdef class UTCLocalizer(Localizer):
+
+    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+        return value
+
+
+cdef class TzlocalLocalizer(Localizer):
+
+    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+        return tz_convert_utc_to_tzlocal(value, self.tz)
+
+
+cdef class FixedOffsetLocalizer(Localizer):
+    cdef:
+        int64_t delta_fixed
+
+    def __init__(self, tzinfo tz):
+        self.tz = tz
+
+        trans, deltas, typ = get_dst_info(tz)
+        assert len(deltas) == 1
+        self.delta_fixed = deltas[0]
+
+    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+        return value + self.delta_fixed
+
+
+cdef class DSTLocalizer(Localizer):
+    cdef:
+        # TODO: Shoukd pos be intp_t?
+        int64_t[:] deltas, pos
+        ndarray trans
+
+    def __init__(self, tzinfo tz):
+        self.tz = tz
+
+        trans, deltas, typ = get_dst_info(tz)
+        self.deltas = deltas
+        self.trans = trans
+
+    cdef int64_t localize(self, int64_t value, Py_ssize_t i):
+        return value + self.deltas[self.pos[i]]
+
+    cdef initialize(self, const int64_t[:] values):
+        self.pos = self.trans.searchsorted(values, side='right') - 1

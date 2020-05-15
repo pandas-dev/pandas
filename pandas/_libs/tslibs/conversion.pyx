@@ -42,7 +42,10 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
-    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc,
+    Localizer,
+    get_localizer,
+    tz_convert_utc_to_tzlocal,
+    _tz_convert_tzlocal_fromutc,
     tz_convert_single
 )
 
@@ -733,42 +736,20 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
     cdef:
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        str typ
-        Py_ssize_t[:] pos
         npy_datetimestruct dts
-        int64_t delta, local_val
+        int64_t local_val
+        Localizer localizer
 
-    if is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = _normalized_stamp(&dts)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
+    localizer = get_localizer(tz)
+    localizer.initialize(stamps)
 
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            delta = deltas[0]
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                result[i] = _normalized_stamp(&dts)
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
+    for i in range(n):
+        if stamps[i] == NPY_NAT:
+            result[i] = NPY_NAT
+            continue
+        local_val = localizer.localize(stamps[i], i)
+        dt64_to_dtstruct(local_val, &dts)
+        result[i] = _normalized_stamp(&dts)
 
     return result
 
@@ -812,42 +793,17 @@ def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        intp_t[:] pos
         npy_datetimestruct dts
-        int64_t local_val, delta
-        str typ
+        int64_t local_val
+        Localizer localizer
 
-    if tz is None or is_utc(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-    elif is_tzlocal(tz):
-        for i in range(n):
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
-            dt64_to_dtstruct(local_val, &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-    else:
-        trans, deltas, typ = get_dst_info(tz)
+    localizer = get_localizer(tz)
+    localizer.initialize(stamps)
 
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            delta = deltas[0]
-            for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                    return False
-
-        else:
-            pos = trans.searchsorted(stamps) - 1
-            for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                    return False
+    for i in range(n):
+        local_val = localizer.localize(stamps[i], i)
+        dt64_to_dtstruct(local_val, &dts)
+        if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+            return False
 
     return True
