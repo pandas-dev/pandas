@@ -2,7 +2,7 @@ from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,7 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -75,7 +75,9 @@ from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -107,10 +109,8 @@ str_t = str
 
 
 def _make_comparison_op(op, cls):
+    @unpack_zerodim_and_defer(op.__name__)
     def cmp_method(self, other):
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if other.ndim > 0 and len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
 
         if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
@@ -150,7 +150,6 @@ def _make_arithmetic_op(op, cls):
         return Index(result)
 
     name = f"__{op.__name__}__"
-    # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
 
 
@@ -282,7 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
     ) -> "Index":
 
         from pandas.core.indexes.range import RangeIndex
@@ -631,6 +630,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
@@ -1944,7 +1946,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self, skipna=False)
+        return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
     def is_all_dates(self) -> bool:
@@ -4359,7 +4361,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def sort_values(self, return_indexer: bool = False, ascending: bool = True):
+    def sort_values(
+        self, return_indexer=False, ascending=True, key: Optional[Callable] = None
+    ):
         """
         Return a sorted copy of the index.
 
@@ -4372,6 +4376,14 @@ class Index(IndexOpsMixin, PandasObject):
             Should the indices that would sort the index be returned.
         ascending : bool, default True
             Should the index values be sorted in an ascending order.
+        key : callable, optional
+            If not None, apply the key function to the index values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect an
+            ``Index`` and return an ``Index`` of the same shape.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -4402,7 +4414,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        _as = self.argsort()
+        idx = ensure_key_mapped(self, key)
+
+        _as = idx.argsort()
         if not ascending:
             _as = _as[::-1]
 
@@ -4513,8 +4527,10 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
         result = self.asi8
+
         if result is None:
             result = np.array(self)
+
         return result.argsort(*args, **kwargs)
 
     def get_value(self, series: "Series", key):
@@ -4526,6 +4542,13 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
+        warnings.warn(
+            "get_value is deprecated and will be removed in a future version. "
+            "Use Series[key] instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         self._check_indexing_error(key)
 
         try:
@@ -4626,6 +4649,10 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
         if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
         else:
@@ -4651,15 +4678,32 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def _maybe_promote(self, other):
-        # A hack, but it works
+    def _maybe_promote(self, other: "Index"):
+        """
+        When dealing with an object-dtype Index and a non-object Index, see
+        if we can upcast the object-dtype one to improve performance.
+        """
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+            return type(other)(self), other
+        elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
+            # TODO: we dont have tests that get here
             return type(other)(self), other
         elif self.inferred_type == "boolean":
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
+
+        if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
+            # Reverse op so we dont need to re-implement on the subclasses
+            other, self = other._maybe_promote(self)
+
         return self, other
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        return True
 
     def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """

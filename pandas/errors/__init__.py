@@ -184,3 +184,9 @@ class AbstractMethodError(NotImplementedError):
         else:
             name = type(self.class_instance).__name__
         return f"This {self.methodtype} must be defined in the concrete class {name}"
+
+
+class NumbaUtilError(Exception):
+    """
+    Error raised for unsupported Numba engine routines.
+    """

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
@@ -134,7 +135,7 @@ def test_invalid_raw_numba():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
-    with pytest.raises(ValueError, match="numba does not support kwargs with"):
+    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )

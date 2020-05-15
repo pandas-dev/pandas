@@ -16,8 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p14
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -102,16 +100,15 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    implements = {"__sub__", "__rsub__"}
+
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
-            if op_name in ("__sub__", "__rsub__"):
-                # subtraction for bools raises TypeError (but not yet in 1.13)
-                if _np_version_under1p14:
-                    pytest.skip("__sub__ does not yet raise in numpy 1.13")
+            if op_name in self.implements:
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
@@ -150,6 +147,14 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         # other specific errors tested in the boolean array specific tests
         pass
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        if op_name not in self.implements:
+            mark = pytest.mark.xfail(reason="_reduce needs implementation")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
@@ -346,6 +351,5 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 
-# TODO parsing not yet supported
-# class TestParsing(base.BaseParsingTests):
-#     pass
+class TestParsing(base.BaseParsingTests):
+    pass

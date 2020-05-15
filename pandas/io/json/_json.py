@@ -306,7 +306,7 @@ class JSONTableWriter(FrameWriter):
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
         # Convert PeriodIndex to datetimes before serializing
-        if is_period_dtype(obj.index):
+        if is_period_dtype(obj.index.dtype):
             obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False

@@ -651,7 +651,7 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             vals = self._get_level_values(i)
-            if is_categorical_dtype(vals):
+            if is_categorical_dtype(vals.dtype):
                 vals = vals._internal_get_values()
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
@@ -2784,7 +2784,7 @@ class MultiIndex(Index):
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
-            # kludgearound
+            # kludge around
             orig_index = new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):
