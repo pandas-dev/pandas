@@ -1395,7 +1395,6 @@ class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
 
     _prefix = "LWOM"
     _attributes = frozenset(["n", "normalize", "weekday"])
-    week = -1
 
     def __init__(self, n=1, normalize=False, weekday=0):
         liboffsets.WeekOfMonthMixin.__init__(self, n, normalize, weekday)
