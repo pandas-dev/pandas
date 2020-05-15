@@ -205,7 +205,8 @@ class GroupbyRollingIndexer(BaseIndexer):
         end_arrays = []
         for key, indicies in self.groupby_indicies.items():
             indexer = self.rolling_indexer(
-                index_array=indicies, window_size=self.window_size
+                index_array=self.index_array.take(indicies),
+                window_size=self.window_size,
             )
             start, end = indexer.get_window_bounds(
                 len(indicies), min_periods, center, closed

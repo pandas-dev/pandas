@@ -2110,21 +2110,23 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             **kwargs,
         )
         # _wrap_outputs does not know about what the result index should be
-        index_name = [self._selected_obj.index.name]
-        groupby_names = [grouping.name for grouping in self._groupby.grouper._groupings]
-        index_names = groupby_names + index_name
-        index_data = []
-        # TODO
-        # Handle cases where "on" is used
-        # Dates in general are not handled correctly
+        grouped_object_index = self._groupby._selected_obj.index
+        grouped_index_name = [grouped_object_index.name]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
+
+        result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
                 if not is_list_like(key):
-                    data = (key, value)
+                    data = (key, grouped_object_index[value])
                 else:
-                    data = (*key, value)
-                index_data.append(data)
-        result_index = MultiIndex.from_tuples(index_data, names=index_names)
+                    data = (*key, grouped_object_index[value])
+                result_index_data.append(data)
+
+        result_index = MultiIndex.from_tuples(
+            result_index_data, names=result_index_names
+        )
         result.index = result_index
         return result
 
@@ -2151,6 +2153,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         else:
             rolling_indexer = FixedWindowIndexer
         window_indexer = GroupbyRollingIndexer(
+            index_array=self._groupby._selected_obj.index.asi8,
             window_size=window,
             groupby_indicies=self._groupby.indices,
             rolling_indexer=rolling_indexer,
