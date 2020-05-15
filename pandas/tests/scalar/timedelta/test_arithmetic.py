@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, offsets
+from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, compat, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -416,7 +416,20 @@ class TestTimedeltaMultiplicationDivision:
         assert result == Timedelta(days=2)
 
     @pytest.mark.parametrize(
-        "nan", [np.nan, np.float64("NaN"), float("nan")],
+        "nan",
+        [
+            np.nan,
+            pytest.param(
+                np.float64("NaN"),
+                marks=pytest.mark.xfail(
+                    # Works on numpy dev only in python 3.9
+                    _is_numpy_dev and not compat.PY39,
+                    raises=RuntimeWarning,
+                    reason="https://github.com/pandas-dev/pandas/issues/31992",
+                ),
+            ),
+            float("nan"),
+        ],
     )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
