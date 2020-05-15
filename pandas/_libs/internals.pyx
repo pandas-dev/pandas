@@ -1,5 +1,6 @@
-import cython
 from collections import defaultdict
+
+import cython
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx

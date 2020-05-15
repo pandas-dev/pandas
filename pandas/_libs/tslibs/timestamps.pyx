@@ -25,7 +25,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
 
 from pandas._libs.tslibs cimport ccalendar
 
@@ -355,10 +355,10 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif PyDelta_Check(other):
             # logic copied from delta_to_nanoseconds to prevent circular import
-            if hasattr(other, 'delta'):
+            if isinstance(other, ABCTimedelta):
                 # pd.Timedelta
                 nanos = other.value
-            elif PyDelta_Check(other):
+            else:
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
                          other.seconds * 1000000 +
                          other.microseconds) * 1000
