@@ -706,8 +706,7 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Py_ssize_t n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
+        int64_t[:] result
 
     result = _normalize_local(stamps, tz)
 

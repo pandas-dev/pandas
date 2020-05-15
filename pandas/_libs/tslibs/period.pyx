@@ -2194,7 +2194,7 @@ cdef class _Period(ABCPeriod):
         return (Period, object_state)
 
     def strftime(self, fmt: str) -> str:
-        """
+        r"""
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same
