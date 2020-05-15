@@ -4101,37 +4101,13 @@ class Index(IndexOpsMixin, PandasObject):
         return self._concat(to_concat, name)
 
     def _concat(self, to_concat, name):
-
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if len(typs) == 1:
-            return self._concat_same_dtype(to_concat, name=name)
-        return Index._concat_same_dtype(self, to_concat, name=name)
-
-    def _concat_same_dtype(self, to_concat, name):
         """
-        Concatenate to_concat which has the same class.
+        Concatenate multiple Index objects.
         """
-        # must be overridden in specific classes
-        klasses = (
-            ABCDatetimeIndex,
-            ABCTimedeltaIndex,
-            ABCPeriodIndex,
-            ExtensionArray,
-            ABCIntervalIndex,
-        )
-        to_concat = [
-            x.astype(object) if isinstance(x, klasses) else x for x in to_concat
-        ]
-
-        self = to_concat[0]
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
-
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        res_values = np.concatenate(to_concat)
-        return Index(res_values, name=name)
+        result = _concat.concat_compat(to_concat)
+        return Index(result, name=name)
 
     def putmask(self, mask, value):
         """
