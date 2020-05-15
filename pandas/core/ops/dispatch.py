@@ -65,14 +65,20 @@ def should_series_dispatch(left, right, op):
     ldtype = left.dtypes.iloc[0]
     rdtype = right.dtypes.iloc[0]
 
-    if (is_timedelta64_dtype(ldtype) and is_integer_dtype(rdtype)) or (
-        is_timedelta64_dtype(rdtype) and is_integer_dtype(ldtype)
+    if (
+        is_timedelta64_dtype(ldtype)
+        and (is_integer_dtype(rdtype) or is_object_dtype(rdtype))
+    ) or (
+        is_timedelta64_dtype(rdtype)
+        and (is_integer_dtype(ldtype) or is_object_dtype(ldtype))
     ):
         # numpy integer dtypes as timedelta64 dtypes in this scenario
         return True
 
-    if is_datetime64_dtype(ldtype) and is_object_dtype(rdtype):
-        # in particular case where right is an array of DateOffsets
+    if (is_datetime64_dtype(ldtype) and is_object_dtype(rdtype)) or (
+        is_datetime64_dtype(rdtype) and is_object_dtype(ldtype)
+    ):
+        # in particular case where one is an array of DateOffsets
         return True
 
     return False

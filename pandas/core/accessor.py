@@ -270,7 +270,7 @@ def _register_accessor(name, cls):
         if hasattr(cls, name):
             warnings.warn(
                 f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting"
+                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=2,

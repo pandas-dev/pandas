@@ -277,7 +277,7 @@ def _remove_labels_from_axis(axis):
         t.set_visible(False)
 
     # set_visible will not be effective if
-    # minor axis has NullLocator and NullFormattor (default)
+    # minor axis has NullLocator and NullFormatter (default)
     if isinstance(axis.get_minor_locator(), ticker.NullLocator):
         axis.set_minor_locator(ticker.AutoLocator())
     if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):

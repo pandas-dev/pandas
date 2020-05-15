@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion, Label
 
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas import DataFrame, Index, MultiIndex, Series
@@ -457,17 +458,20 @@ class _Concatenator:
             # stack blocks
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
-
-                mgr = self.objs[0]._mgr.concat(
-                    [x._mgr for x in self.objs], self.new_axes[0]
-                )
                 cons = self.objs[0]._constructor
-                return cons(mgr, name=name).__finalize__(self, method="concat")
+
+                arrs = [ser._values for ser in self.objs]
+
+                res = concat_compat(arrs, axis=0)
+                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = DataFrame
+
+                # GH28330 Preserves subclassed objects through concat
+                cons = self.objs[0]._constructor_expanddim
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
@@ -617,10 +621,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                try:
-                    i = level.get_loc(key)
-                except KeyError as err:
-                    raise ValueError(f"Key {key} not in level {level}") from err
+                mask = level == key
+                if not mask.any():
+                    raise ValueError(f"Key {key} not in level {level}")
+                i = np.nonzero(level == key)[0][0]
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))

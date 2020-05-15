@@ -4,8 +4,6 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
-import pandas.core.common as com
-
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
@@ -28,10 +26,7 @@ class HistPlot(LinePlot):
             values = values[~isna(values)]
 
             _, self.bins = np.histogram(
-                values,
-                bins=self.bins,
-                range=self.kwds.get("range", None),
-                weights=self.kwds.get("weights", None),
+                values, bins=self.bins, range=self.kwds.get("range", None)
             )
 
         if is_list_like(self.bottom):
@@ -77,6 +72,14 @@ class HistPlot(LinePlot):
                 kwds["style"] = style
 
             kwds = self._make_plot_keywords(kwds, y)
+
+            # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
+            # and each sub-array (10,) will be called in each iteration. If users only
+            # provide 1D array, we assume the same weights is used for all iterations
+            weights = kwds.get("weights", None)
+            if weights is not None and np.ndim(weights) != 1:
+                kwds["weights"] = weights[:, i]
+
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
             self._add_legend_handle(artists[0], label, index=i)
 
@@ -398,7 +401,7 @@ def hist_frame(
     )
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com.try_sort(data.columns)):
+    for i, col in enumerate(data.columns):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)

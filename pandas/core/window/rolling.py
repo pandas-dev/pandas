@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDateOffset,
     ABCDatetimeIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -37,7 +36,9 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -46,7 +47,6 @@ from pandas.core.window.common import (
     calculate_center_offset,
     calculate_min_periods,
     get_weighted_roll_func,
-    validate_baseindexer_support,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -55,6 +55,8 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+from pandas.tseries.offsets import DateOffset
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -93,7 +95,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-        self._numba_func_cache: Dict[Optional[str], Callable] = dict()
 
     @property
     def _constructor(self):
@@ -252,7 +253,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = getattr(self._selected_obj, "values", self._selected_obj)
+            values = extract_array(self._selected_obj, extract_numpy=True)
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -392,12 +393,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self, window: int, func_name: Optional[str]) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support(func_name)
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
@@ -443,7 +443,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        window_indexer = self._get_window_indexer(window, name)
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -471,13 +471,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, BaseIndexer):
+                    if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
                     else:
                         min_periods = calculate_min_periods(
-                            self.min_periods or 1,
+                            window_indexer.window_size,
                             self.min_periods,
                             len(x),
                             require_min_periods,
@@ -505,7 +505,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                self._numba_func_cache[name] = func
+                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -540,8 +540,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.sum : Reducing sum for Series.
-    DataFrame.sum : Reducing sum for DataFrame.
+    pandas.Series.sum : Reducing sum for Series.
+    pandas.DataFrame.sum : Reducing sum for DataFrame.
 
     Examples
     --------
@@ -618,10 +618,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.mean : Equivalent method for Series.
-    DataFrame.mean : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.mean : Equivalent method for Series.
+    pandas.DataFrame.mean : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -667,10 +667,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.var : Equivalent method for Series.
-    DataFrame.var : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.var : Equivalent method for Series.
+    pandas.DataFrame.var : Equivalent method for DataFrame.
     numpy.var : Equivalent method for Numpy array.
 
     Notes
@@ -727,10 +727,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.std : Equivalent method for Series.
-    DataFrame.std : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.std : Equivalent method for Series.
+    pandas.DataFrame.std : Equivalent method for DataFrame.
     numpy.std : Equivalent method for Numpy array.
 
     Notes
@@ -900,6 +900,17 @@ class Window(_Window):
     3  2.0
     4  4.0
 
+    Same as above, but with forward-looking windows
+
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+    >>> df.rolling(window=indexer, min_periods=1).sum()
+         B
+    0  1.0
+    1  3.0
+    2  2.0
+    3  4.0
+    4  4.0
+
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
@@ -1030,8 +1041,8 @@ class Window(_Window):
         """
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    pandas.DataFrame.aggregate : Similar DataFrame method.
+    pandas.Series.aggregate : Similar Series method.
     """
     )
 
@@ -1131,9 +1142,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    DataFrame.count : Count of the full DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -1160,8 +1171,9 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("count")
+        # GH 32865. Using count with custom BaseIndexer subclass
+        # implementations shouldn't end up here
+        assert not isinstance(self.window, BaseIndexer)
 
         blocks, obj = self._create_blocks()
         results = []
@@ -1228,8 +1240,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Series %(name)s.
-    DataFrame.%(name)s : DataFrame %(name)s.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrame data.
+    pandas.Series.apply : Similar method for Series.
+    pandas.DataFrame.apply : Similar method for DataFrame.
 
     Notes
     -----
@@ -1267,9 +1281,10 @@ class _Rolling_and_Expanding(_Rolling):
         elif engine == "numba":
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            if func in self._numba_func_cache:
+            cache_key = (func, "rolling_apply")
+            if cache_key in NUMBA_FUNC_CACHE:
                 # Return an already compiled version of roll_apply if available
-                apply_func = self._numba_func_cache[func]
+                apply_func = NUMBA_FUNC_CACHE[cache_key]
             else:
                 apply_func = generate_numba_apply_func(
                     args, kwargs, func, engine_kwargs
@@ -1286,6 +1301,9 @@ class _Rolling_and_Expanding(_Rolling):
             name=func,
             use_numba_cache=engine == "numba",
             raw=raw,
+            original_func=func,
+            args=args,
+            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1348,10 +1366,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with a Series.
-    DataFrame.%(name)s : Calling object with a DataFrame.
-    Series.min : Similar method for Series.
-    DataFrame.min : Similar method for DataFrame.
+    pandas.Series.%(name)s : Calling object with a Series.
+    pandas.DataFrame.%(name)s : Calling object with a DataFrame.
+    pandas.Series.min : Similar method for Series.
+    pandas.DataFrame.min : Similar method for DataFrame.
 
     Examples
     --------
@@ -1395,10 +1413,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.median : Equivalent method for Series.
-    DataFrame.median : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.median : Equivalent method for Series.
+    pandas.DataFrame.median : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -1417,7 +1435,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
-        window_func = partial(window_func, win=self._get_window())
+        # GH 32865. Move max window size calculation to
+        # the median function implementation
         return self._apply(window_func, center=self.center, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):
@@ -1493,10 +1512,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.kurt : Equivalent method for Series.
-    DataFrame.kurt : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.kurt : Equivalent method for Series.
+    pandas.DataFrame.kurt : Equivalent method for DataFrame.
     scipy.stats.skew : Third moment of a probability density.
     scipy.stats.kurtosis : Reference SciPy method.
 
@@ -1549,9 +1568,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.quantile : Computes value at the given quantile over all data
+    pandas.Series.quantile : Computes value at the given quantile over all data
         in Series.
-    DataFrame.quantile : Computes values at the given quantile over
+    pandas.DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1616,20 +1635,23 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("cov")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
-        # GH 16058: offset window
-        if self.is_freq_type:
-            window = self.win_freq
+        # GH 32865. We leverage rolling.mean, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
         else:
-            window = self._get_window(other)
+            # GH 16058: offset window
+            if self.is_freq_type:
+                window = self.win_freq
+            else:
+                window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1675,11 +1697,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.corr : Equivalent method for Series.
-    DataFrame.corr : Equivalent method for DataFrame.
-    %(name)s.cov : Similar method to calculate covariance.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.corr : Equivalent method for Series.
+    pandas.DataFrame.corr : Equivalent method for DataFrame.
+    cov : Similar method to calculate covariance.
     numpy.corrcoef : NumPy Pearson's correlation calculation.
 
     Notes
@@ -1762,15 +1784,19 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def corr(self, other=None, pairwise=None, **kwargs):
-        if isinstance(self.window, BaseIndexer):
-            validate_baseindexer_support("corr")
-
         if other is None:
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other) if not self.is_freq_type else self.win_freq
+
+        # GH 32865. We leverage rolling.cov and rolling.std here, so we pass
+        # to the rolling constructors the data used when constructing self:
+        # window width, frequency data, or a BaseIndexer subclass
+        if isinstance(self.window, BaseIndexer):
+            window = self.window
+        else:
+            window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -1817,7 +1843,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, ABCDateOffset, timedelta)
+            self.window, (str, DateOffset, timedelta)
         ):
 
             self._validate_monotonic()
@@ -1880,8 +1906,8 @@ class Rolling(_Rolling_and_Expanding):
         """
     See Also
     --------
-    Series.rolling
-    DataFrame.rolling
+    pandas.Series.rolling : Calling object with Series data.
+    pandas.DataFrame.rolling : Calling object with DataFrame data.
     """
     )
 
@@ -1928,7 +1954,9 @@ class Rolling(_Rolling_and_Expanding):
     def count(self):
 
         # different impl for freq counting
-        if self.is_freq_type:
+        # GH 32865. Use a custom count function implementation
+        # when using a BaseIndexer subclass as a window
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
             return self._apply(window_func, center=self.center, name="count")
 
@@ -1960,7 +1988,7 @@ class Rolling(_Rolling_and_Expanding):
         nv.validate_rolling_func("sum", args, kwargs)
         return super().sum(*args, **kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
     def max(self, *args, **kwargs):
@@ -1996,7 +2024,7 @@ class Rolling(_Rolling_and_Expanding):
         nv.validate_rolling_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="skew")
     @Appender(_doc_template)
     @Appender(_shared_docs["skew"])
     def skew(self, **kwargs):
@@ -2040,7 +2068,7 @@ class Rolling(_Rolling_and_Expanding):
             quantile=quantile, interpolation=interpolation, **kwargs
         )
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
