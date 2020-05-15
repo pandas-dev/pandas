@@ -1165,6 +1165,27 @@ b  2""",
 OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
 
 
+def get_loc_notna(obj: "Series", *, loc: int):
+    """Find the value in position ``loc`` after filtering ``obj`` for nan values.
+
+    if ``obj`` is empty or has only nan values, np.nan er returned.
+
+    Examples
+    --------
+    >>> ser = pd.Series([np.nan, np.nan, 1, 2, np.nan])
+    >>> get_loc_notna(ser, loc=0)  # get first non-na
+    1.0
+    >>> get_loc_notna(ser, loc=-1)  # get last non-na
+    2.0
+    """
+    x = obj.to_numpy()
+    x = x[notna(x)]
+
+    if len(x) == 0:
+        return np.nan
+    return x[loc]
+
+
 class GroupBy(_GroupBy[FrameOrSeries]):
     """
     Class for grouping and aggregating relational data.
@@ -1510,26 +1531,15 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
         )
 
-    @staticmethod
-    def _get_loc(x, axis: int = 0, *, loc: int):
-        """Helper function for first/last item that isn't NA.
-        """
-
-        def get_loc_notna(x, loc: int):
-            x = x.to_numpy()
-            x = x[notna(x)]
-            if len(x) == 0:
-                return np.nan
-            return x[loc]
-
-        if isinstance(x, DataFrame):
-            return x.apply(get_loc_notna, axis=axis, loc=loc)
-        else:
-            return get_loc_notna(x, loc=loc)
-
     @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
     def first(self, numeric_only: bool = False, min_count: int = -1):
-        first_compat = partial(self._get_loc, loc=0)
+        def first_compat(x, axis: int = 0):
+            """Helper function for first item that isn't NA.
+            """
+            if isinstance(x, DataFrame):
+                return x.apply(get_loc_notna, axis=axis, loc=0)
+            else:
+                return get_loc_notna(x, loc=0)
 
         return self._agg_general(
             numeric_only=numeric_only,
@@ -1540,7 +1550,13 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
     @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
     def last(self, numeric_only: bool = False, min_count: int = -1):
-        last_compat = partial(self._get_loc, loc=-1)
+        def last_compat(x, axis: int = 0):
+            """Helper function for last item that isn't NA.
+            """
+            if isinstance(x, DataFrame):
+                return x.apply(get_loc_notna, axis=axis, loc=-1)
+            else:
+                return get_loc_notna(x, loc=-1)
 
         return self._agg_general(
             numeric_only=numeric_only,
