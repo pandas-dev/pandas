@@ -54,9 +54,6 @@ class TestPeriodRange:
 
         # test for issue # 21793
         start, end = Period("2017Q1", freq="Q"), Period("2018Q1", freq="Q")
-        expected = date_range(
-            start="2017-03-31", end="2018-03-31", freq="M", name="foo"
-        ).to_period()
         idx = period_range(start=start, end=end, freq="Q", name="foo")
         result = idx == idx.values
         expected = np.array([True, True, True, True, True])
