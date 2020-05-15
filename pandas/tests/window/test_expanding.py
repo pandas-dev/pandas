@@ -158,7 +158,7 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
         ),
         (
             DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
-            [({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),],
+            [({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]), ],
             2,
         ),
         (
