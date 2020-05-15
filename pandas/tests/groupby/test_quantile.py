@@ -192,7 +192,7 @@ def test_quantile_missing_group_values_no_segfaults():
 def test_quantile_missing_group_values_correct_results(
     key, val, expected_key, expected_val
 ):
-    # GH 28662, GH 33200
+    # GH 28662, GH 33200, GH 33569
     df = pd.DataFrame({"key": key, "val": val})
 
     result = df.groupby("key").quantile(0.5)
