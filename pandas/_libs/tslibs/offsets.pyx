@@ -926,8 +926,6 @@ class WeekOfMonthMixin(BaseOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
-    week: int  # -1 for LastWeekOfMonth
-
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "weekday", weekday)

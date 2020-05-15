@@ -1402,6 +1402,7 @@ class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
 
         if self.n == 0:
             raise ValueError("N cannot be 0")
+        self.week = -1
 
     def _get_offset_day(self, other: datetime) -> int:
         """
