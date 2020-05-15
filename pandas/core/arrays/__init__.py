@@ -6,6 +6,7 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.boolean import BooleanArray
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.floating import FloatingArray
 from pandas.core.arrays.integer import IntegerArray, integer_array
 from pandas.core.arrays.interval import IntervalArray
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
@@ -21,6 +22,7 @@ __all__ = [
     "BooleanArray",
     "Categorical",
     "DatetimeArray",
+    "FloatingArray",
     "IntegerArray",
     "integer_array",
     "IntervalArray",

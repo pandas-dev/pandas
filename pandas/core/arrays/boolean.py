@@ -604,10 +604,11 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _create_comparison_method(cls, op):
         def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
+            from pandas.arrays import IntegerArray, FloatingArray
 
             if isinstance(
-                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
+                other,
+                (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray, FloatingArray),
             ):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented

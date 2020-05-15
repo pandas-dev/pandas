@@ -7,13 +7,9 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "to_concat_dtypes, result_dtype",
     [
-        (["Int64", "Int64"], "Int64"),
-        (["UInt64", "UInt64"], "UInt64"),
-        (["Int8", "Int8"], "Int8"),
-        (["Int8", "Int16"], "Int16"),
-        (["UInt8", "Int8"], "Int16"),
-        (["Int32", "UInt32"], "Int64"),
-        (["Int64", "UInt64"], "Float64"),
+        (["Float64", "Float64"], "Float64"),
+        (["Float32", "Float64"], "Float64"),
+        (["Float32", "Float32"], "Float32"),
     ],
 )
 def test_concat_series(to_concat_dtypes, result_dtype):

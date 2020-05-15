@@ -101,6 +101,7 @@ def array(
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
+        :class:`float`                 :class:`pandas.arrays.FloatingArray`
         :class:`str`                   :class:`pandas.arrays.StringArray`
         :class:`bool`                  :class:`pandas.arrays.BooleanArray`
         ============================== =====================================
@@ -112,6 +113,11 @@ def array(
            Pandas infers nullable-integer dtype for integer data,
            string dtype for string data, and nullable-boolean dtype
            for boolean data.
+
+        .. versionchanged:: 1.1.0
+
+            Pandas now also infers nullable-floating dtype for float-like
+            input data
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -257,6 +263,7 @@ def array(
     from pandas.core.arrays import (
         period_array,
         BooleanArray,
+        FloatingArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
@@ -318,6 +325,9 @@ def array(
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype == "floating":
+            return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
             return BooleanArray._from_sequence(data, copy=copy)
