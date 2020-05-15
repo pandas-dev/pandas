@@ -1858,7 +1858,7 @@ class ParserBase:
             )
 
             if not is_object_dtype(values) and not known_cats:
-                # XXX this is for consistency with
+                # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
                 values = astype_nansafe(values, str)
@@ -3271,7 +3271,7 @@ def _make_date_converter(
 ):
     def converter(*date_cols):
         if date_parser is None:
-            strs = parsing._concat_date_cols(date_cols)
+            strs = parsing.concat_date_cols(date_cols)
 
             try:
                 return tools.to_datetime(
@@ -3299,7 +3299,7 @@ def _make_date_converter(
                 try:
                     return tools.to_datetime(
                         parsing.try_parse_dates(
-                            parsing._concat_date_cols(date_cols),
+                            parsing.concat_date_cols(date_cols),
                             parser=date_parser,
                             dayfirst=dayfirst,
                         ),

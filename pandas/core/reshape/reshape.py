@@ -232,10 +232,10 @@ class _Unstacker:
         # we need to convert to a basic dtype
         # and possibly coerce an input to our output dtype
         # e.g. ints -> floats
-        if needs_i8_conversion(values):
+        if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values):
+        elif is_bool_dtype(values.dtype):
             sorted_values = sorted_values.astype("object")
             new_values = new_values.astype("object")
         else:
@@ -253,7 +253,7 @@ class _Unstacker:
         )
 
         # reconstruct dtype if needed
-        if needs_i8_conversion(values):
+        if needs_i8_conversion(values.dtype):
             new_values = new_values.view(values.dtype)
 
         return new_values, new_mask
