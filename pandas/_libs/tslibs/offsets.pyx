@@ -19,7 +19,7 @@ cnp.import_array()
 
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
 from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
 
@@ -35,6 +35,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
+from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # ---------------------------------------------------------------------
@@ -161,7 +162,7 @@ def apply_wraps(func):
         elif isinstance(other, (timedelta, BaseOffset)):
             # timedelta path
             return func(self, other)
-        elif isinstance(other, (np.datetime64, datetime, date)):
+        elif isinstance(other, (datetime, date)) or is_datetime64_object(other):
             other = Timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
@@ -649,7 +650,10 @@ class _BaseOffset:
 
     # ------------------------------------------------------------------
 
-    def _validate_n(self, n):
+    # Staticmethod so we can call from _Tick.__init__, will be unnecessary
+    #  once BaseOffset is a cdef class and is inherited by _Tick
+    @staticmethod
+    def _validate_n(n):
         """
         Require that `n` be an integer.
 
@@ -766,12 +770,68 @@ cdef class _Tick(ABCTick):
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False
+    _inc = Timedelta(microseconds=1000)
+    _prefix = "undefined"
+    _attributes = frozenset(["n", "normalize"])
+
+    cdef readonly:
+        int64_t n
+        bint normalize
+        dict _cache
+
+    def __init__(self, n=1, normalize=False):
+        n = _BaseOffset._validate_n(n)
+        self.n = n
+        self.normalize = False
+        self._cache = {}
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Tick offset with `normalize=True` are not allowed."
+            )
+
+    @property
+    def delta(self) -> Timedelta:
+        return self.n * self._inc
+
+    @property
+    def nanos(self) -> int64_t:
+        return self.delta.value
 
     def is_on_offset(self, dt) -> bool:
         return True
 
     def is_anchored(self) -> bool:
         return False
+
+    # --------------------------------------------------------------------
+    # Comparison and Arithmetic Methods
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
+        return self.delta == other
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __le__(self, other):
+        return self.delta.__le__(other)
+
+    def __lt__(self, other):
+        return self.delta.__lt__(other)
+
+    def __ge__(self, other):
+        return self.delta.__ge__(other)
+
+    def __gt__(self, other):
+        return self.delta.__gt__(other)
 
     def __truediv__(self, other):
         if not isinstance(self, _Tick):
@@ -781,11 +841,15 @@ cdef class _Tick(ABCTick):
             result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
+    # --------------------------------------------------------------------
+    # Pickle Methods
+
     def __reduce__(self):
         return (type(self), (self.n,))
 
     def __setstate__(self, state):
-        object.__setattr__(self, "n", state["n"])
+        self.n = state["n"]
+        self.normalize = False
 
 
 class BusinessMixin:
