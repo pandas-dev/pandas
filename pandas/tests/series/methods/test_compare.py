@@ -7,6 +7,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("align_axis", [0, 1, "index", "columns"])
 def test_compare_axis(align_axis):
+    # GH#30429
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
@@ -97,3 +98,17 @@ def test_compare_multi_index():
     )
     expected = pd.Series(["a", "x", "c", "z"], index=indices)
     tm.assert_series_equal(result, expected)
+
+
+def test_compare_unaligned_objects():
+    # test Series with different indices
+    with pytest.raises(ValueError, match='Can only compare identically-labeled Series objects'):
+        ser1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+        ser2 = pd.Series([1, 2, 3], index=['a', 'b', 'd'])
+        ser1.compare(ser2)
+
+    # test Series with different lengths
+    with pytest.raises(ValueError, match='Can only compare identically-labeled Series objects'):
+        ser1 = pd.Series([1, 2, 3])
+        ser2 = pd.Series([1, 2, 3, 4])
+        ser1.compare(ser2)

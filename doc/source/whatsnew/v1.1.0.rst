@@ -67,6 +67,8 @@ We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing t
 
    df.compare(df2)
 
+See :ref:`User Guide <merging.compare>` for more details.
+
 
 .. _whatsnew_110.groupby_key:
 

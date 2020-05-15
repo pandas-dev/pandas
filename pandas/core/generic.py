@@ -8410,6 +8410,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         "compare"
     ] = """
         Compare to another %(klass)s and show the differences.
+        
+        .. versionadded:: 1.1.0
 
         Parameters
         ----------

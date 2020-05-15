@@ -7,6 +7,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("align_axis", [0, 1, "index", "columns"])
 def test_compare_axis(align_axis):
+    # GH#30429
     df = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
         columns=["col1", "col2", "col3"],
@@ -163,3 +164,17 @@ def test_compare_multi_index(align_axis):
 
     expected = pd.DataFrame(data=data, index=indices, columns=columns)
     tm.assert_frame_equal(result, expected)
+
+
+def test_compare_unaligned_objects():
+    # test DataFrames with different indices
+    with pytest.raises(ValueError, match='Can only compare identically-labeled DataFrame objects'):
+        df1 = pd.DataFrame([1, 2, 3], index=['a', 'b', 'c'])
+        df2 = pd.DataFrame([1, 2, 3], index=['a', 'b', 'd'])
+        df1.compare(df2)
+
+    # test DataFrames with different shapes
+    with pytest.raises(ValueError, match='Can only compare identically-labeled DataFrame objects'):
+        df1 = pd.DataFrame(np.ones((3, 3)))
+        df2 = pd.DataFrame(np.zeros((2, 1)))
+        df1.compare(df2)
