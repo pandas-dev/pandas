@@ -18,8 +18,8 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
+from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas import DataFrame
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series, Index
@@ -326,7 +326,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         keys = []
         results = {}
 
-        # If a partial result was already computed, use it instead of running on the first element again
+        # If a partial result was already computed,
+        # use it instead of running on the first element again
         series_gen_enumeration = enumerate(series_gen)
         if partial_result is not None:
             i, v = next(series_gen_enumeration)

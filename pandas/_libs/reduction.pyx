@@ -139,8 +139,10 @@ cdef class Reducer:
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
-                    #  if it does not, return the computed value to be used by the pure python implementation,
-                    #  so the function won't be called twice on the same object (and side effects would occur twice)
+                    #  If it does not, return the computed value to be used by the
+                    #  pure python implementation,
+                    #  so the function won't be called twice on the same object,
+                    #  and side effects would occur twice
                     try:
                         _check_result_array(extracted_res, len(self.dummy))
                     except ValueError as err:
@@ -150,7 +152,6 @@ cdef class Reducer:
 
                         partial_result = copy(res)
                         break
-
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), extracted_res)
                 chunk.data = chunk.data + self.increment
