@@ -42,8 +42,9 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
-    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc,
-    tz_convert_single
+    tz_convert_utc_to_tzlocal,
+    _tz_convert_tzlocal_fromutc,
+    tz_convert_single,
 )
 
 # ----------------------------------------------------------------------
@@ -745,7 +746,7 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
             dt64_to_dtstruct(local_val, &dts)
             result[i] = _normalized_stamp(&dts)
     else:
@@ -826,7 +827,7 @@ def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
                 return False
     elif is_tzlocal(tz):
         for i in range(n):
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
             dt64_to_dtstruct(local_val, &dts)
             if (dts.hour + dts.min + dts.sec + dts.us) > 0:
                 return False
