@@ -1,10 +1,13 @@
+import bz2
 import datetime as dt
 from datetime import datetime
 import gzip
 import io
+import lzma
 import os
 import struct
 import warnings
+import zipfile
 
 import numpy as np
 import pytest
@@ -1853,3 +1856,70 @@ the string values returned are correct."""
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="You must use version 119"):
                 StataWriterUTF8(path, df, version=118)
+
+
+@pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
+def test_backward_compat(version, datapath):
+    data_base = datapath("io", "data", "stata")
+    ref = os.path.join(data_base, "stata-compat-118.dta")
+    old = os.path.join(data_base, f"stata-compat-{version}.dta")
+    expected = pd.read_stata(ref)
+    old_dta = pd.read_stata(old)
+    tm.assert_frame_equal(old_dta, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+@pytest.mark.parametrize("use_dict", [True, False])
+@pytest.mark.parametrize("infer", [True, False])
+def test_compression(compression, version, use_dict, infer):
+    file_name = "dta_inferred_compression.dta"
+    if compression:
+        file_ext = "gz" if compression == "gzip" and not use_dict else compression
+        file_name += f".{file_ext}"
+    compression_arg = compression
+    if infer:
+        compression_arg = "infer"
+    if use_dict:
+        compression_arg = {"method": compression}
+
+    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df.index.name = "index"
+    with tm.ensure_clean(file_name) as path:
+        df.to_stata(path, version=version, compression=compression_arg)
+        if compression == "gzip":
+            with gzip.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
+        elif compression == "zip":
+            with zipfile.ZipFile(path, "r") as comp:
+                fp = io.BytesIO(comp.read(comp.filelist[0]))
+        elif compression == "bz2":
+            with bz2.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
+        elif compression == "xz":
+            with lzma.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
+        elif compression is None:
+            fp = path
+        reread = read_stata(fp, index_col="index")
+        tm.assert_frame_equal(reread, df)
+
+
+@pytest.mark.parametrize("method", ["zip", "infer"])
+@pytest.mark.parametrize("file_ext", [None, "dta", "zip"])
+def test_compression_dict(method, file_ext):
+    file_name = f"test.{file_ext}"
+    archive_name = "test.dta"
+    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df.index.name = "index"
+    with tm.ensure_clean(file_name) as path:
+        compression = {"method": method, "archive_name": archive_name}
+        df.to_stata(path, compression=compression)
+        if method == "zip" or file_ext == "zip":
+            zp = zipfile.ZipFile(path, "r")
+            assert len(zp.filelist) == 1
+            assert zp.filelist[0].filename == archive_name
+            fp = io.BytesIO(zp.read(zp.filelist[0]))
+        else:
+            fp = path
+        reread = read_stata(fp, index_col="index")
+        tm.assert_frame_equal(reread, df)
