@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 import operator
-from typing import Any, Optional
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -2134,35 +2134,7 @@ class Easter(SingleConstructorOffset):
 # Ticks
 
 
-def _tick_comp(op):
-    """
-    Tick comparisons should behave identically to Timedelta comparisons.
-    """
-
-    def f(self, other):
-        return op(self.delta, other)
-
-    f.__name__ = f"__{op.__name__}__"
-    return f
-
-
 class Tick(liboffsets._Tick, SingleConstructorOffset):
-    _inc = Timedelta(microseconds=1000)
-    _prefix = "undefined"
-    _attributes = frozenset(["n", "normalize"])
-
-    def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n, normalize)
-        if normalize:
-            raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
-            )  # GH#21427
-
-    __gt__ = _tick_comp(operator.gt)
-    __ge__ = _tick_comp(operator.ge)
-    __lt__ = _tick_comp(operator.lt)
-    __le__ = _tick_comp(operator.le)
-
     def __add__(self, other):
         if isinstance(other, Tick):
             if type(self) == type(other):
@@ -2180,46 +2152,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 f"the add operation between {self} and {other} will overflow"
             ) from err
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
-
-            try:
-                # GH#23524 if to_offset fails, we are dealing with an
-                #  incomparable type so == is False and != is True
-                other = to_offset(other)
-            except ValueError:
-                # e.g. "infer"
-                return False
-
-        return _tick_comp(operator.eq)(self, other)
-
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self) -> int:
         return hash(self._params)
-
-    def __ne__(self, other):
-        if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
-
-            try:
-                # GH#23524 if to_offset fails, we are dealing with an
-                #  incomparable type so == is False and != is True
-                other = to_offset(other)
-            except ValueError:
-                # e.g. "infer"
-                return True
-
-        return _tick_comp(operator.ne)(self, other)
-
-    @property
-    def delta(self) -> Timedelta:
-        return self.n * self._inc
-
-    @property
-    def nanos(self):
-        return delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
@@ -2240,6 +2176,9 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         if isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
+            # TODO: this is reached in tests that specifically call apply,
+            #  but should not be reached "naturally" because __add__ should
+            #  catch this case first.
             return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
