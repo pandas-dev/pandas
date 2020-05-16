@@ -44,19 +44,19 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
 
 def _get_ids_and_dtypes(data: FrameOrSeries) -> Tuple["Index", "Series"]:
     """
-    Get DataFrame's columns and dtypes.
+    Get DataFrame's columns (or Series' name) and dtypes.
 
     Parameters
     ----------
-    data : DataFrame
+    data : DataFrame or Series
         Object that `info` was called on.
 
     Returns
     -------
     ids : Index
-        DataFrame's columns.
+        DataFrame's columns or Series' name.
     dtypes : Series
-        Dtype of each of the DataFrame's columns.
+        Dtype of each of the DataFrame's columns or the Series' dtype.
     """
     if isinstance(data, ABCDataFrame):
         ids = data.columns
