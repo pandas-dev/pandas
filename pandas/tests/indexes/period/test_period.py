@@ -35,7 +35,7 @@ class TestPeriodIndex(DatetimeLike):
     def indices(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> PeriodIndex:
         return period_range("20130101", periods=5, freq="D")
 
     def test_pickle_compat_construction(self):
@@ -67,35 +67,6 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(result, expected)
         assert result.freqstr == index.freqstr
 
-    def test_fillna_period(self):
-        # GH 11343
-        idx = PeriodIndex(["2011-01-01 09:00", NaT, "2011-01-01 11:00"], freq="H")
-
-        exp = PeriodIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"], freq="H"
-        )
-        tm.assert_index_equal(idx.fillna(Period("2011-01-01 10:00", freq="H")), exp)
-
-        exp = Index(
-            [
-                Period("2011-01-01 09:00", freq="H"),
-                "x",
-                Period("2011-01-01 11:00", freq="H"),
-            ],
-            dtype=object,
-        )
-        tm.assert_index_equal(idx.fillna("x"), exp)
-
-        exp = Index(
-            [
-                Period("2011-01-01 09:00", freq="H"),
-                Period("2011-01-01", freq="D"),
-                Period("2011-01-01 11:00", freq="H"),
-            ],
-            dtype=object,
-        )
-        tm.assert_index_equal(idx.fillna(Period("2011-01-01", freq="D")), exp)
-
     def test_no_millisecond_field(self):
         msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
@@ -104,12 +75,6 @@ class TestPeriodIndex(DatetimeLike):
         msg = "'DatetimeIndex' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
-
-    def test_hash_error(self):
-        index = period_range("20010101", periods=10)
-        msg = f"unhashable type: '{type(index).__name__}'"
-        with pytest.raises(TypeError, match=msg):
-            hash(index)
 
     def test_make_time_series(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
@@ -161,7 +126,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
         exp = np.array([], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
         idx = PeriodIndex(["2011-01", NaT], freq="M")
 
@@ -169,7 +134,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
         idx = PeriodIndex(["2011-01-01", NaT], freq="D")
 
@@ -177,7 +142,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_period_index_length(self):
         pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
@@ -353,37 +318,6 @@ class TestPeriodIndex(DatetimeLike):
         expected = pd.Series(expected_values, index=object_index)
         tm.assert_series_equal(result, expected)
 
-    def test_factorize(self):
-        idx1 = PeriodIndex(
-            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
-        )
-
-        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.intp)
-        exp_idx = PeriodIndex(["2014-01", "2014-02", "2014-03"], freq="M")
-
-        arr, idx = idx1.factorize()
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        tm.assert_index_equal(idx, exp_idx)
-
-        arr, idx = idx1.factorize(sort=True)
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        tm.assert_index_equal(idx, exp_idx)
-
-        idx2 = PeriodIndex(
-            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
-        )
-
-        exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
-        arr, idx = idx2.factorize(sort=True)
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        tm.assert_index_equal(idx, exp_idx)
-
-        exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
-        exp_idx = PeriodIndex(["2014-03", "2014-02", "2014-01"], freq="M")
-        arr, idx = idx2.factorize()
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        tm.assert_index_equal(idx, exp_idx)
-
     def test_is_(self):
         create_index = lambda: period_range(freq="A", start="1/1/2001", end="12/1/2009")
         index = create_index()
@@ -401,27 +335,6 @@ class TestPeriodIndex(DatetimeLike):
 
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
-
-    def test_contains(self):
-        rng = period_range("2007-01", freq="M", periods=10)
-
-        assert Period("2007-01", freq="M") in rng
-        assert not Period("2007-01", freq="D") in rng
-        assert not Period("2007-01", freq="2M") in rng
-
-    def test_contains_nat(self):
-        # see gh-13582
-        idx = period_range("2007-01", freq="M", periods=10)
-        assert NaT not in idx
-        assert None not in idx
-        assert float("nan") not in idx
-        assert np.nan not in idx
-
-        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
-        assert NaT in idx
-        assert None in idx
-        assert float("nan") in idx
-        assert np.nan in idx
 
     def test_periods_number_check(self):
         msg = (
@@ -681,3 +594,32 @@ def test_is_monotonic_with_nat():
         assert not obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
+
+
+@pytest.mark.parametrize("array", [True, False])
+def test_dunder_array(array):
+    obj = PeriodIndex(["2000-01-01", "2001-01-01"], freq="D")
+    if array:
+        obj = obj._data
+
+    expected = np.array([obj[0], obj[1]], dtype=object)
+    result = np.array(obj)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.asarray(obj)
+    tm.assert_numpy_array_equal(result, expected)
+
+    expected = obj.asi8
+    for dtype in ["i8", "int64", np.int64]:
+        result = np.array(obj, dtype=dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(obj, dtype=dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+    for dtype in ["float64", "int32", "uint64"]:
+        msg = "argument must be"
+        with pytest.raises(TypeError, match=msg):
+            np.array(obj, dtype=dtype)
+        with pytest.raises(TypeError, match=msg):
+            np.array(obj, dtype=getattr(np, dtype))

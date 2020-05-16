@@ -222,6 +222,8 @@ cet = pytz.timezone("CET")
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2])),
         ([1, None], IntegerArray._from_sequence([1, None])),
+        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
+        ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
         # string
         (["a", "b"], StringArray._from_sequence(["a", "b"])),
         (["a", None], StringArray._from_sequence(["a", None])),

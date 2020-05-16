@@ -105,6 +105,12 @@ class JSONArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self.data)
 
+    def __eq__(self, other):
+        return NotImplemented
+
+    def __ne__(self, other):
+        return NotImplemented
+
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object

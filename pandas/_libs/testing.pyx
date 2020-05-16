@@ -1,4 +1,8 @@
 import numpy as np
+from numpy cimport import_array
+import_array()
+
+from pandas._libs.util cimport is_array
 
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
@@ -40,8 +44,7 @@ cdef bint is_dictlike(obj):
 
 cdef bint decimal_almost_equal(double desired, double actual, int decimal):
     # Code from
-    # http://docs.scipy.org/doc/numpy/reference/generated
-    # /numpy.testing.assert_almost_equal.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.testing.assert_almost_equal.html
     return abs(desired - actual) < (0.5 * 10.0 ** -decimal)
 
 
@@ -65,7 +68,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 cpdef assert_almost_equal(a, b,
                           check_less_precise=False,
                           bint check_dtype=True,
-                          obj=None, lobj=None, robj=None):
+                          obj=None, lobj=None, robj=None, index_values=None):
     """
     Check that left and right objects are almost equal.
 
@@ -89,6 +92,12 @@ cpdef assert_almost_equal(a, b,
     robj : str, default None
         Specify right object name being compared, internally used to show
         appropriate assertion message
+    index_values : ndarray, default None
+        Specify shared index values of objects being compared, internally used
+        to show appropriate assertion message
+
+        .. versionadded:: 1.1.0
+
     """
     cdef:
         int decimal
@@ -111,8 +120,8 @@ cpdef assert_almost_equal(a, b,
         assert a == b, f"{a} != {b}"
         return True
 
-    a_is_ndarray = isinstance(a, np.ndarray)
-    b_is_ndarray = isinstance(b, np.ndarray)
+    a_is_ndarray = is_array(a)
+    b_is_ndarray = is_array(b)
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
@@ -171,7 +180,7 @@ cpdef assert_almost_equal(a, b,
             from pandas._testing import raise_assert_detail
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
-            raise_assert_detail(obj, msg, lobj, robj)
+            raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
 
         return True
 

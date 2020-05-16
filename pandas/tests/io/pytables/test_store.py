@@ -1,10 +1,12 @@
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+import hashlib
 from io import BytesIO
 import os
 from pathlib import Path
 import re
+import time
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -12,8 +14,6 @@ import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 from pandas import (
@@ -298,6 +298,49 @@ class TestHDFStore:
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    def test_no_track_times(self, setup_path):
+
+        # GH 32682
+        # enables to set track_times (see `pytables` `create_table` documentation)
+
+        def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
+            h = hash_factory()
+            with open(filename, "rb") as f:
+                for chunk in iter(lambda: f.read(chunk_num_blocks * h.block_size), b""):
+                    h.update(chunk)
+            return h.digest()
+
+        def create_h5_and_return_checksum(track_times):
+            with ensure_clean_path(setup_path) as path:
+                df = pd.DataFrame({"a": [1]})
+
+                with pd.HDFStore(path, mode="w") as hdf:
+                    hdf.put(
+                        "table",
+                        df,
+                        format="table",
+                        data_columns=True,
+                        index=None,
+                        track_times=track_times,
+                    )
+
+                return checksum(path)
+
+        checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
+
+        # sleep is necessary to create h5 with different creation time
+        time.sleep(1)
+
+        checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
+
+        # checksums are the same if track_time = False
+        assert checksum_0_tt_false == checksum_1_tt_false
+
+        # checksums are NOT same if track_time = True
+        assert checksum_0_tt_true != checksum_1_tt_true
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523
@@ -342,7 +385,7 @@ class TestHDFStore:
             df["timestamp2"] = Timestamp("20010103")
             df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
             df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-            df.loc[3:6, ["obj1"]] = np.nan
+            df.loc[df.index[3:6], ["obj1"]] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
             with catch_warnings(record=True):
@@ -846,7 +889,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -1057,18 +1100,7 @@ class TestHDFStore:
 
         s_nan = ser.replace(nan_rep, np.nan)
 
-        if is_categorical_dtype(s_nan):
-            assert is_categorical_dtype(retr)
-            tm.assert_series_equal(
-                s_nan, retr, check_dtype=False, check_categorical=False
-            )
-        else:
-            tm.assert_series_equal(s_nan, retr)
-
-        # FIXME: don't leave commented-out
-        # fails:
-        # for x in examples:
-        #     roundtrip(s, nan_rep=b'\xf8\xfc')
+        tm.assert_series_equal(s_nan, retr)
 
     def test_append_some_nans(self, setup_path):
 
@@ -1230,20 +1262,22 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
 
             # column oriented
             df = tm.makeTimeDataFrame()
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
+
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
             store.append("df1", df.iloc[:, 2:])
@@ -1372,11 +1406,11 @@ class TestHDFStore:
                 _maybe_remove(store, "df")
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[1:4, "string"] = np.nan
+                df.loc[df.index[1:4], "string"] = np.nan
                 df["string2"] = "bar"
-                df.loc[4:8, "string2"] = np.nan
+                df.loc[df.index[4:8], "string2"] = np.nan
                 df["string3"] = "bah"
-                df.loc[1:, "string3"] = np.nan
+                df.loc[df.index[1:], "string3"] = np.nan
                 store.append("df", df)
                 result = store.select("df")
                 tm.assert_frame_equal(result, df)
@@ -1492,8 +1526,8 @@ class TestHDFStore:
             # data column selection with a string data_column
             df_new = df.copy()
             df_new["string"] = "foo"
-            df_new.loc[1:4, "string"] = np.nan
-            df_new.loc[5:6, "string"] = "bar"
+            df_new.loc[df_new.index[1:4], "string"] = np.nan
+            df_new.loc[df_new.index[5:6], "string"] = "bar"
             _maybe_remove(store, "df")
             store.append("df", df_new, data_columns=["string"])
             result = store.select("df", "string='foo'")
@@ -1563,23 +1597,27 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
         with ensure_clean_store(setup_path) as store:
             # doc example
             df_dc = df.copy()
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc["string2"] = "cool"
             df_dc["datetime"] = Timestamp("20010102")
             df_dc = df_dc._convert(datetime=True)
-            df_dc.loc[3:5, ["A", "B", "datetime"]] = np.nan
+            df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
             _maybe_remove(store, "df_dc")
             store.append(
@@ -1588,11 +1626,16 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
+            # FIXME: 2020-05-07 freq check randomly fails in the CI
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -1602,8 +1645,8 @@ class TestHDFStore:
                 np.random.randn(8, 3), index=index, columns=["A", "B", "C"]
             )
             df_dc["string"] = "foo"
-            df_dc.loc[4:6, "string"] = np.nan
-            df_dc.loc[7:9, "string"] = "bar"
+            df_dc.loc[df_dc.index[4:6], "string"] = np.nan
+            df_dc.loc[df_dc.index[7:9], "string"] = "bar"
             df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
             df_dc["string2"] = "cool"
 
@@ -2024,7 +2067,7 @@ class TestHDFStore:
         df["timestamp2"] = Timestamp("20010103")
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.loc[3:6, ["obj1"]] = np.nan
+        df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(setup_path) as store:
@@ -2200,7 +2243,7 @@ class TestHDFStore:
 
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
-                df.loc[0:4, "string"] = "bar"
+                df.loc[df.index[0:4], "string"] = "bar"
 
                 store.put("df", df, format="table")
 
@@ -2311,9 +2354,7 @@ class TestHDFStore:
         with catch_warnings(record=True):
             values = np.random.randn(2)
 
-            func = lambda l, r: tm.assert_series_equal(
-                l, r, check_dtype=True, check_index_type=True, check_series_type=True
-            )
+            func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
 
         with catch_warnings(record=True):
             ser = Series(values, [0, "y"])
@@ -2397,7 +2438,7 @@ class TestHDFStore:
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
             recons = store["df"]
-            assert recons._data.is_consolidated()
+            assert recons._mgr.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
@@ -3343,7 +3384,7 @@ class TestHDFStore:
 
             # test string ==/!=
             df["x"] = "none"
-            df.loc[2:7, "x"] = ""
+            df.loc[df.index[2:7], "x"] = ""
 
             store.append("df", df, data_columns=["x"])
 
@@ -3365,7 +3406,7 @@ class TestHDFStore:
 
             # int ==/!=
             df["int"] = 1
-            df.loc[2:7, "int"] = 2
+            df.loc[df.index[2:7], "int"] = 2
 
             store.append("df3", df, data_columns=["int"])
 
@@ -3419,7 +3460,7 @@ class TestHDFStore:
             # a data column with NaNs, result excludes the NaNs
             df3 = df.copy()
             df3["string"] = "foo"
-            df3.loc[4:6, "string"] = np.nan
+            df3.loc[df3.index[4:6], "string"] = np.nan
             store.append("df3", df3, data_columns=["string"])
             result = store.select_column("df3", "string")
             tm.assert_almost_equal(result.values, df3["string"].values)
@@ -4791,3 +4832,14 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
+
+    def test_unsuppored_hdf_file_error(self, datapath):
+        # GH 9539
+        data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
+        message = (
+            r"Dataset\(s\) incompatible with Pandas data types, "
+            "not table, or no datasets found in HDF5 file."
+        )
+
+        with pytest.raises(ValueError, match=message):
+            pd.read_hdf(data_path)

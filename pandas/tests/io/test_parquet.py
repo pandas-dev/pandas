@@ -34,6 +34,7 @@ try:
 except ImportError:
     _HAVE_FASTPARQUET = False
 
+
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
 )
@@ -129,6 +130,7 @@ def check_round_trip(
     read_kwargs=None,
     expected=None,
     check_names=True,
+    check_like=False,
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -148,6 +150,8 @@ def check_round_trip(
         Expected deserialization result, otherwise will be equal to `df`
     check_names: list of str, optional
         Closed set of column names to be compared
+    check_like: bool, optional
+        If True, ignore the order of index & columns.
     repeat: int, optional
         How many times to repeat the test
     """
@@ -167,7 +171,9 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(
+                expected, actual, check_names=check_names, check_like=check_like
+            )
 
     if path is None:
         with tm.ensure_clean() as path:
@@ -220,6 +226,49 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
         assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+
+
+def test_get_engine_auto_error_message():
+    # Expect different error messages from get_engine(engine="auto")
+    # if engines aren't installed vs. are installed but bad version
+    from pandas.compat._optional import VERSIONS
+
+    # Do we have engines installed, but a bad version of them?
+    pa_min_ver = VERSIONS.get("pyarrow")
+    fp_min_ver = VERSIONS.get("fastparquet")
+    have_pa_bad_version = (
+        False
+        if not _HAVE_PYARROW
+        else LooseVersion(pyarrow.__version__) < LooseVersion(pa_min_ver)
+    )
+    have_fp_bad_version = (
+        False
+        if not _HAVE_FASTPARQUET
+        else LooseVersion(fastparquet.__version__) < LooseVersion(fp_min_ver)
+    )
+    # Do we have usable engines installed?
+    have_usable_pa = _HAVE_PYARROW and not have_pa_bad_version
+    have_usable_fp = _HAVE_FASTPARQUET and not have_fp_bad_version
+
+    if not have_usable_pa and not have_usable_fp:
+        # No usable engines found.
+        if have_pa_bad_version:
+            match = f"Pandas requires version .{pa_min_ver}. or newer of .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+
+        if have_fp_bad_version:
+            match = f"Pandas requires version .{fp_min_ver}. or newer of .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
 
 
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
@@ -340,6 +389,8 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
+            if isinstance(index, pd.DatetimeIndex):
+                df.index = df.index._with_freq(None)  # freq doesnt round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -417,7 +468,9 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
         check_round_trip(df, pa)
@@ -486,6 +539,33 @@ class TestParquetPyArrow(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
+
+    @td.skip_if_no("s3fs")
+    @pytest.mark.parametrize("partition_col", [["A"], []])
+    def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
+        from pandas.io.s3 import get_fs as get_s3_fs
+
+        # GH #26388
+        # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
+        # As per pyarrow partitioned columns become 'categorical' dtypes
+        # and are added to back of dataframe on read
+
+        expected_df = df_compat.copy()
+        if partition_col:
+            expected_df[partition_col] = expected_df[partition_col].astype("category")
+        check_round_trip(
+            df_compat,
+            pa,
+            expected=expected_df,
+            path="s3://pandas-test/parquet_dir",
+            write_kwargs={
+                "partition_cols": partition_col,
+                "compression": None,
+                "filesystem": get_s3_fs(),
+            },
+            check_like=True,
+            repeat=1,
+        )
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
@@ -579,7 +659,9 @@ class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
         df = df_full
 
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 

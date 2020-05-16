@@ -1,4 +1,13 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
+trigger:
+- master
+
+pr:
+- master
+
+variables:
+  PYTEST_WORKERS: auto
+
 jobs:
 # Mac and Linux use the same template
 - template: ci/azure/posix.yml

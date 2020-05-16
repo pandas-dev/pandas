@@ -75,7 +75,11 @@ def df(request):
         )
     elif data_type == "mixed":
         return DataFrame(
-            {"a": np.arange(1.0, 6.0) + 0.01, "b": np.arange(1, 6), "c": list("abcde")}
+            {
+                "a": np.arange(1.0, 6.0) + 0.01,
+                "b": np.arange(1, 6).astype(np.int64),
+                "c": list("abcde"),
+            }
         )
     elif data_type == "float":
         return tm.makeCustomDataframe(
@@ -146,7 +150,7 @@ class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
         result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
-        tm.assert_frame_equal(data, result, check_dtype=False)
+        tm.assert_frame_equal(data, result)
 
     # Test that default arguments copy as tab delimited
     def test_round_trip_frame(self, df):

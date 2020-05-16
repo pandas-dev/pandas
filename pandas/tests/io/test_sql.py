@@ -1130,8 +1130,6 @@ class _EngineToConnMixin:
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        # XXX:
-        # super().teardown_method(method)
 
 
 @pytest.mark.single
@@ -1480,10 +1478,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             result["A"] = to_datetime(result["A"])
         tm.assert_frame_equal(result, expected)
 
+    def test_out_of_bounds_datetime(self):
+        # GH 26761
+        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data.to_sql("test_datetime_obb", self.conn, index=False)
+        result = sql.read_sql_table("test_datetime_obb", self.conn)
+        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        tm.assert_frame_equal(result, expected)
+
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
-        dates = date_range("2018-01-01", periods=5, freq="6H")
+        dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
         expected.to_sql("foo_table", self.conn, index_label="info_date")
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")
@@ -2633,6 +2639,8 @@ class TestXMySQL(MySQLMixIn):
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
         tm.assert_frame_equal(result, frame, check_less_precise=True)
+        # GH#32571 result comes back rounded to 6 digits in some builds;
+        #  no obvious pattern
 
     def test_chunksize_read_type(self):
         frame = tm.makeTimeDataFrame()

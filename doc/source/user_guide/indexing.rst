@@ -374,7 +374,7 @@ For getting values with a boolean array:
    df1.loc['a'] > 0
    df1.loc[:, df1.loc['a'] > 0]
 
-NA values in a boolean array propogate as ``False``:
+NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 
@@ -881,7 +881,7 @@ The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
-``(df['A > 2) & (df['B'] < 3)``.
+``(df['A'] > 2) & (df['B'] < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 

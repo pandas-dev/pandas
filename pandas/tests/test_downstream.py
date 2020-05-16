@@ -8,6 +8,8 @@ import sys
 import numpy as np  # noqa
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -47,6 +49,19 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
+def test_xarray_cftimeindex_nearest():
+    # https://github.com/pydata/xarray/issues/3751
+    import cftime
+    import xarray
+
+    times = xarray.cftime_range("0001", periods=2)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
+
+
 def test_oo_optimizable():
     # GH 21071
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
@@ -54,6 +69,7 @@ def test_oo_optimizable():
 
 @tm.network
 # Cython import warning
+@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
@@ -97,7 +113,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
 @tm.network
 def test_pandas_datareader():
 
@@ -107,7 +123,6 @@ def test_pandas_datareader():
 
 # importing from pandas, Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.skip(reason="Anaconda installation issue - GH32144")
 def test_geopandas():
 
     geopandas = import_module("geopandas")  # noqa
@@ -126,19 +141,19 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
 def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags
     # -S : disable site-packages
     # -s : disable user site-packages
     # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # And, that's apparently not enough, so we give up.
     # https://github.com/MacPython/pandas-wheels/pull/50
-    call = ["python", "-sSE", "-c", "import pandas"]
+
+    pyexe = sys.executable.replace("\\", "/")
+    call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (
-        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
         "returned non-zero exit status 1."
     )
 

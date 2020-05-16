@@ -22,8 +22,10 @@ _doc_template = """
 
         See Also
         --------
-        Series.%(name)s : Series %(name)s.
-        DataFrame.%(name)s : DataFrame %(name)s.
+        pandas.Series.%(name)s : Calling object with Series data.
+        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
+        pandas.Series.%(func_name)s : Similar method for Series.
+        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
 """
 
 
@@ -78,6 +80,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -296,7 +299,7 @@ def zsqrt(x):
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():

@@ -34,18 +34,21 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to the indices.
+    check_integrity : bool, default=True
+        Check integrity of the input.
     """
 
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, Py_ssize_t length, indices):
+    def __init__(self, Py_ssize_t length, indices, bint check_integrity=True):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
-        self.check_integrity()
+        if check_integrity:
+            self.check_integrity()
 
     def __reduce__(self):
         args = (self.length, self.indices)
