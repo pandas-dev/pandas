@@ -7,7 +7,7 @@ from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 from pandas.core.window import Rolling
 
@@ -521,6 +521,50 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
 
 
 @pytest.mark.parametrize(
+    "expected,window",
+    [
+        (
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
+            ],
+            "2D",
+        ),
+        (
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
+            "3D",
+        ),
+        (
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            "1D",
+        ),
+    ],
+)
+def test_iter_rolling_on_dataframe(expected, window):
+    # GH 11704
+    df = DataFrame(
+        {
+            "A": [1, 2, 3, 4, 5],
+            "B": [4, 5, 6, 7, 8],
+            "C": date_range(start="2016-01-01", periods=5, freq="D"),
+        }
+    )
+
+    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    for (expected, actual) in zip(expected, df.rolling(window, on="C")):
+        tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
     "ser,expected,window, min_periods",
     [
         (Series([1, 2, 3]), [([1, 2, 3], [0, 1, 2])], 3, None),
@@ -541,4 +585,54 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     for (expected, actual) in zip(
         expected, ser.rolling(window, min_periods=min_periods)
     ):
+        tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "expected,expected_index,window",
+    [
+        (
+            [[0], [1], [2], [3], [4]],
+            [
+                date_range("2020-01-01", periods=1, freq="D"),
+                date_range("2020-01-02", periods=1, freq="D"),
+                date_range("2020-01-03", periods=1, freq="D"),
+                date_range("2020-01-04", periods=1, freq="D"),
+                date_range("2020-01-05", periods=1, freq="D"),
+            ],
+            "1D",
+        ),
+        (
+            [[0], [0, 1], [1, 2], [2, 3], [3, 4]],
+            [
+                date_range("2020-01-01", periods=1, freq="D"),
+                date_range("2020-01-01", periods=2, freq="D"),
+                date_range("2020-01-02", periods=2, freq="D"),
+                date_range("2020-01-03", periods=2, freq="D"),
+                date_range("2020-01-04", periods=2, freq="D"),
+            ],
+            "2D",
+        ),
+        (
+            [[0], [0, 1], [0, 1, 2], [1, 2, 3], [2, 3, 4]],
+            [
+                date_range("2020-01-01", periods=1, freq="D"),
+                date_range("2020-01-01", periods=2, freq="D"),
+                date_range("2020-01-01", periods=3, freq="D"),
+                date_range("2020-01-02", periods=3, freq="D"),
+                date_range("2020-01-03", periods=3, freq="D"),
+            ],
+            "3D",
+        ),
+    ],
+)
+def test_iter_rolling_datetime(expected, expected_index, window):
+    # GH 11704
+    ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
+
+    expected = [
+        Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
+    ]
+
+    for (expected, actual) in zip(expected, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
