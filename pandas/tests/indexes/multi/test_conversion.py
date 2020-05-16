@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_tolist(idx):
@@ -140,17 +140,6 @@ def test_roundtrip_pickle_with_tz():
     )
     unpickled = tm.round_trip_pickle(index)
     assert index.equal_levels(unpickled)
-
-
-def test_pickle(indices):
-    return  # FIXME: this can't be right?
-
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    original_name, indices.name = indices.name, "foo"
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    indices.name = original_name
 
 
 def test_to_series(idx):

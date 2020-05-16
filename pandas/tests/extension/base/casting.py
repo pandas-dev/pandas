@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 from pandas.core.internals import ObjectBlock
 
@@ -21,3 +23,12 @@ class BaseCastingTests(BaseExtensionTests):
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series(data[:5].astype(str))
         self.assert_series_equal(result, expected)
+
+    def test_to_numpy(self, data):
+        expected = np.asarray(data)
+
+        result = data.to_numpy()
+        self.assert_equal(result, expected)
+
+        result = pd.Series(data).to_numpy()
+        self.assert_equal(result, expected)

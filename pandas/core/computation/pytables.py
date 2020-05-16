@@ -533,7 +533,7 @@ class PyTablesExpr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict = DeepChainMap()
+        local_dict: DeepChainMap[Any, Any] = DeepChainMap()
 
         if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope

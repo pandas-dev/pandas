@@ -3,8 +3,8 @@ import warnings
 import pytest
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
-import pandas.util.testing as tm
 
 
 class TestPairwise:

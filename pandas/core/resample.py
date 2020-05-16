@@ -96,7 +96,7 @@ class Resampler(_GroupBy, ShallowMixin):
         )
         return f"{type(self).__name__} [{', '.join(attrs)}]"
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self._attributes:
@@ -131,7 +131,7 @@ class Resampler(_GroupBy, ShallowMixin):
         return self.groupby.ax
 
     @property
-    def _typ(self):
+    def _typ(self) -> str:
         """
         Masquerade for compat as a Series or a DataFrame.
         """
@@ -140,7 +140,7 @@ class Resampler(_GroupBy, ShallowMixin):
         return "dataframe"
 
     @property
-    def _from_selection(self):
+    def _from_selection(self) -> bool:
         """
         Is the resampling from a DataFrame column or MultiIndex level.
         """
@@ -316,7 +316,7 @@ class Resampler(_GroupBy, ShallowMixin):
     def _upsample(self, f, limit=None, fill_value=None):
         raise AbstractMethodError(self)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         Sub-classes to define. Return a sliced object.
 
@@ -1025,8 +1025,7 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            # TODO: find a less code-smelly way to set this
-            obj.index._data._freq = self.freq
+            obj.index._set_freq(self.freq)
             return obj
 
         # do we have a regular frequency
@@ -1077,10 +1076,9 @@ class DatetimeIndexResampler(Resampler):
             raise AssertionError("axis must be 0")
         if self._from_selection:
             raise ValueError(
-                "Upsampling from level= or on= selection"
-                " is not supported, use .set_index(...)"
-                " to explicitly set index to"
-                " datetime-like"
+                "Upsampling from level= or on= selection "
+                "is not supported, use .set_index(...) "
+                "to explicitly set index to datetime-like"
             )
 
         ax = self.ax
@@ -1136,9 +1134,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self._from_selection:
             # see GH 14008, GH 12871
             msg = (
-                "Resampling from level= or on= selection"
-                " with a PeriodIndex is not currently supported,"
-                " use .set_index(...) to explicitly set index"
+                "Resampling from level= or on= selection "
+                "with a PeriodIndex is not currently supported, "
+                "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
 
@@ -1264,7 +1262,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def resample(obj, kind=None, **kwds):
+def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1272,7 +1270,7 @@ def resample(obj, kind=None, **kwds):
     return tg._get_resampler(obj, kind=kind)
 
 
-resample.__doc__ = Resampler.__doc__
+get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
@@ -1408,7 +1406,7 @@ class TimeGrouper(Grouper):
             f"but got an instance of '{type(ax).__name__}'"
         )
 
-    def _get_grouper(self, obj, validate=True):
+    def _get_grouper(self, obj, validate: bool = True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         r._set_binner()
@@ -1588,7 +1586,10 @@ class TimeGrouper(Grouper):
         rng += freq_mult
         # adjust bin edge indexes to account for base
         rng -= bin_shift
-        bins = memb.searchsorted(rng, side="left")
+
+        # Wrap in PeriodArray for PeriodArray.searchsorted
+        prng = type(memb._data)(rng, dtype=memb.dtype)
+        bins = memb.searchsorted(prng, side="left")
 
         if nat_count > 0:
             # NaT handling as in pandas._lib.lib.generate_bins_dt64()
@@ -1700,8 +1701,8 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
     # GH 23882
     first = first.to_timestamp()
     last = last.to_timestamp()
-    adjust_first = not offset.onOffset(first)
-    adjust_last = offset.onOffset(last)
+    adjust_first = not offset.is_on_offset(first)
+    adjust_last = offset.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
         first, last, offset, closed=closed, base=base

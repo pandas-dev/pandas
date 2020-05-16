@@ -1,10 +1,11 @@
 import abc
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type, Union
 
 import numpy as np
 
 from pandas._libs import reduction as libreduction
+from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -13,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
@@ -26,9 +27,9 @@ ResType = Dict[int, Any]
 def frame_apply(
     obj: "DataFrame",
     func,
-    axis=0,
+    axis: Axis = 0,
     raw: bool = False,
-    result_type=None,
+    result_type: Optional[str] = None,
     ignore_failures: bool = False,
     args=None,
     kwds=None,
@@ -87,7 +88,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         obj: "DataFrame",
         func,
         raw: bool,
-        result_type,
+        result_type: Optional[str],
         ignore_failures: bool,
         args,
         kwds,
@@ -277,9 +278,11 @@ class FrameApply(metaclass=abc.ABCMeta):
         if (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow complex_internals since libreduction shortcut
-            #  cannot handle MultiIndex
-            and not isinstance(self.agg_axis, ABCMultiIndex)
+            # Disallow dtypes where setting _index_data will break
+            #  ExtensionArray values, see GH#31182
+            and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
+            # Disallow complex_internals since libreduction shortcut raises a TypeError
+            and not self.agg_axis._has_complex_internals
         ):
 
             values = self.values

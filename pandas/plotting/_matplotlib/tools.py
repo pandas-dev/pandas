@@ -190,8 +190,7 @@ def _subplots(
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified "
-                    "when creating axes",
+                    "are ignored. These settings must be specified when creating axes",
                     UserWarning,
                     stacklevel=4,
                 )

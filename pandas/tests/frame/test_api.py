@@ -5,9 +5,12 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas.compat import PY37
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameMisc:
@@ -261,8 +264,27 @@ class TestDataFrameMisc:
         df3 = DataFrame({"f" + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
-        assert not hasattr(tup3, "_fields")
         assert isinstance(tup3, tuple)
+        if PY37:
+            assert hasattr(tup3, "_fields")
+        else:
+            assert not hasattr(tup3, "_fields")
+
+        # GH 28282
+        df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
+        result_254_columns = next(df_254_columns.itertuples(index=False))
+        assert isinstance(result_254_columns, tuple)
+        assert hasattr(result_254_columns, "_fields")
+
+        df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
+        result_255_columns = next(df_255_columns.itertuples(index=False))
+        assert isinstance(result_255_columns, tuple)
+
+        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
+        if PY37:
+            assert hasattr(result_255_columns, "_fields")
+        else:
+            assert not hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 
@@ -360,8 +382,8 @@ class TestDataFrameMisc:
         tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
         tm.assert_frame_equal(df, df.swapaxes(0, 0))
         msg = (
-            "No axis named 2 for object type"
-            r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
+            "No axis named 2 for object type "
+            r"<class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
         )
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
@@ -518,13 +540,22 @@ class TestDataFrameMisc:
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; df = pd.DataFrame()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
+
+    def test_attrs(self):
+        df = pd.DataFrame({"A": [2, 3]})
+        assert df.attrs == {}
+        df.attrs["version"] = 1
+
+        result = df.rename(columns=str)
+        assert result.attrs == {"version": 1}

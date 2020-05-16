@@ -4,9 +4,10 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import SparseArray, SparseDtype
+from pandas import SparseDtype
+import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):
@@ -132,6 +133,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_concat_columns(data, na_value)
 
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
+        self._check_unsupported(data)
+        super().test_concat_extension_arrays_copy_false(data, na_value)
+
     def test_align(self, data, na_value):
         self._check_unsupported(data)
         super().test_align(data, na_value)
@@ -231,7 +236,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray(
+            SparseArray(
                 [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
                 fill_value=False,
             )
@@ -241,7 +246,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
+            SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
         )
         self.assert_series_equal(result, expected)
 
@@ -346,7 +351,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
         with np.errstate(all="ignore"):
             expected = pd.Series(
-                pd.SparseArray(
+                SparseArray(
                     op(np.asarray(data), np.asarray(other)),
                     fill_value=result.values.fill_value,
                 )

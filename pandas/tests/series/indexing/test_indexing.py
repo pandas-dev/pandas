@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -294,8 +294,8 @@ def test_getitem_dataframe():
     s = pd.Series(10, index=rng)
     df = pd.DataFrame(rng, index=rng)
     msg = (
-        "Indexing a Series with DataFrame is not supported,"
-        " use the appropriate DataFrame column"
+        "Indexing a Series with DataFrame is not supported, "
+        "use the appropriate DataFrame column"
     )
     with pytest.raises(TypeError, match=msg):
         s[df > 5]
@@ -393,8 +393,8 @@ def test_2d_to_1d_assignment_raises():
     y = pd.Series(range(2))
 
     msg = (
-        r"shape mismatch: value array of shape \(2,2\) could not be"
-        r" broadcast to indexing result of shape \(2,\)"
+        r"shape mismatch: value array of shape \(2,2\) could not be "
+        r"broadcast to indexing result of shape \(2,\)"
     )
     with pytest.raises(ValueError, match=msg):
         y.loc[range(2)] = x
@@ -894,7 +894,7 @@ def test_take():
     expected = Series([4, 2, 4], index=[4, 3, 4])
     tm.assert_series_equal(actual, expected)
 
-    msg = "index {} is out of bounds for size 5"
+    msg = "index {} is out of bounds for( axis 0 with)? size 5"
     with pytest.raises(IndexError, match=msg.format(10)):
         s.take([1, 10])
     with pytest.raises(IndexError, match=msg.format(5)):
@@ -925,3 +925,13 @@ def test_uint_drop(any_int_dtype):
     series.loc[0] = 4
     expected = pd.Series([4, 2, 3], dtype=any_int_dtype)
     tm.assert_series_equal(series, expected)
+
+
+def test_getitem_2d_no_warning():
+    # https://github.com/pandas-dev/pandas/issues/30867
+    # Don't want to support this long-term, but
+    # for now ensure that the warning from Index
+    # doesn't comes through via Series.__getitem__.
+    series = pd.Series([1, 2, 3], index=[1, 2, 3])
+    with tm.assert_produces_warning(None):
+        series[:, None]

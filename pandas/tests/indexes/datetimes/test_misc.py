@@ -1,4 +1,5 @@
 import calendar
+from datetime import datetime
 import locale
 import unicodedata
 
@@ -6,8 +7,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, datetime, offsets
-import pandas.util.testing as tm
+from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
+import pandas._testing as tm
 
 
 class TestTimeSeries:

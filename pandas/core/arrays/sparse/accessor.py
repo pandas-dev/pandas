@@ -7,9 +7,8 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.accessor import PandasDelegate, delegate_names
-
-from .array import SparseArray
-from .dtype import SparseDtype
+from pandas.core.arrays.sparse.array import SparseArray
+from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 class BaseAccessor:
@@ -163,7 +162,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> series = pd.Series(pd.SparseArray([0, 1, 0]))
+        >>> series = pd.Series(pd.arrays.SparseArray([0, 1, 0]))
         >>> series
         0    0
         1    1
@@ -216,7 +215,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         -------
         DataFrame
             Each column of the DataFrame is stored as a
-            :class:`SparseArray`.
+            :class:`arrays.SparseArray`.
 
         Examples
         --------
@@ -251,7 +250,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": pd.SparseArray([0, 1, 0])})
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
         >>> df.sparse.to_dense()
            A
         0  0

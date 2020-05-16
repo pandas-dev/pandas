@@ -12,8 +12,8 @@ import pytest
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 
 def adjust_negative_zero(zero, expected):
@@ -65,13 +65,16 @@ class TestNumericComparisons:
         # GH#8932, GH#22163
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
-        with pytest.raises(TypeError):
+
+        msg = "Invalid comparison between dtype=int64 and Timestamp"
+
+        with pytest.raises(TypeError, match=msg):
             df > ts
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df < ts
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts < df
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts > df
 
         assert not (df == ts).any().any()
@@ -132,10 +135,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "Cannot divide"
+        with pytest.raises(TypeError, match=msg):
             left / right
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left // right
 
     # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
@@ -184,7 +188,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = three_days / index
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "cannot use operands with types dtype"
+        with pytest.raises(TypeError, match=msg):
             index / three_days
 
     @pytest.mark.parametrize(
@@ -202,13 +207,19 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     )
     def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
         left = tm.box_expected(numeric_idx, box)
-        with pytest.raises(TypeError):
+        msg = (
+            "unsupported operand type|"
+            "Addition/subtraction of integers and integer-arrays|"
+            "Instead of adding/subtracting|"
+            "cannot use operands with types dtype"
+        )
+        with pytest.raises(TypeError, match=msg):
             left + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + left
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left - other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other - left
 
     @pytest.mark.parametrize(
@@ -226,13 +237,18 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         #  NullFrequencyError instead of TypeError so is excluded.
         left = tm.box_expected(numeric_idx, box)
 
-        with pytest.raises(TypeError):
+        msg = (
+            "unsupported operand type|"
+            "Cannot (add|subtract) NaT (to|from) ndarray|"
+            "Addition/subtraction of integers and integer-arrays"
+        )
+        with pytest.raises(TypeError, match=msg):
             left + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + left
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left - other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other - left
 
 
@@ -604,14 +620,16 @@ class TestMultiplicationDivision:
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
-        with pytest.raises(TypeError):
+        msg = "cannot perform __rmul__ with this index type"
+        with pytest.raises(TypeError, match=msg):
             idx * pd.date_range("20130101", periods=5)
 
     def test_mul_size_mismatch_raises(self, numeric_idx):
         idx = numeric_idx
-        with pytest.raises(ValueError):
+        msg = "operands could not be broadcast together"
+        with pytest.raises(ValueError, match=msg):
             idx * idx[0:3]
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             idx * np.array([1, 2])
 
     @pytest.mark.parametrize("op", [operator.pow, ops.rpow])
@@ -789,10 +807,11 @@ class TestAdditionSubtraction:
 
         # really raise this time
         now = pd.Timestamp.now().to_pydatetime()
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             now + ts
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ts + now
 
     # TODO: This came from series.test.test_operators, needs cleanup
@@ -813,7 +832,8 @@ class TestAdditionSubtraction:
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "cannot subtract period"
+        with pytest.raises(TypeError, match=msg):
             # GH#18850
             result = ser - ser.index.to_period()
 

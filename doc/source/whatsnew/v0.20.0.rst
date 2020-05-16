@@ -1360,7 +1360,7 @@ provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`
 
 .. code-block:: ipython
 
-    In [133]: import pandas.util.testing as tm
+    In [133]: import pandas._testing as tm
 
     In [134]: p = tm.makePanel()
 

@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_first_last_nth(df):
@@ -87,6 +87,25 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert s.dtype == "int64"
     f = s.groupby(level=0).first()
     assert f.dtype == "int64"
+
+
+def test_first_strings_timestamps():
+    # GH 11244
+    test = pd.DataFrame(
+        {
+            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            "name": ["e", "e"],
+            "aaaa": ["f", "g"],
+        }
+    )
+    result = test.groupby("name").first()
+    expected = DataFrame(
+        [["a", "c", "f"]],
+        columns=Index([Timestamp("2012-01-01"), Timestamp("2012-01-02"), "aaaa"]),
+        index=Index(["e"], name="name"),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_nth():

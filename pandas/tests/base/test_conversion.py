@@ -6,8 +6,15 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import CategoricalIndex, Series, Timedelta, Timestamp
-from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.arrays import (
+    DatetimeArray,
+    IntervalArray,
+    PandasArray,
+    PeriodArray,
+    SparseArray,
+    TimedeltaArray,
+)
 
 
 class TestToIterable:
@@ -177,14 +184,10 @@ class TestToIterable:
         ),
         (
             pd.PeriodIndex([2018, 2019], freq="A"),
-            pd.core.arrays.PeriodArray,
+            PeriodArray,
             pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
         ),
-        (
-            pd.IntervalIndex.from_breaks([0, 1, 2]),
-            pd.core.arrays.IntervalArray,
-            "interval",
-        ),
+        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval",),
         # This test is currently failing for datetime64[ns] and timedelta64[ns].
         # The NumPy type system is sufficient for representing these types, so
         # we just use NumPy for Series / DataFrame columns of these types (so
@@ -270,8 +273,8 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
         (pd.core.arrays.integer_array([0, np.nan]), "_data"),
-        (pd.core.arrays.IntervalArray.from_breaks([0, 1]), "_left"),
-        (pd.SparseArray([0, 1]), "_sparse_values"),
+        (IntervalArray.from_breaks([0, 1]), "_left"),
+        (SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
         # tz-aware Datetime
         (
@@ -288,7 +291,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
 def test_array(array, attr, index_or_series):
     box = index_or_series
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip("No index type for {}".format(array.dtype))
+        pytest.skip(f"No index type for {array.dtype}")
     result = box(array, copy=False).array
 
     if attr:
@@ -300,7 +303,8 @@ def test_array(array, attr, index_or_series):
 
 def test_array_multiindex_raises():
     idx = pd.MultiIndex.from_product([["A"], ["a", "b"]])
-    with pytest.raises(ValueError, match="MultiIndex"):
+    msg = "MultiIndex has no single backing array"
+    with pytest.raises(ValueError, match=msg):
         idx.array
 
 
@@ -315,13 +319,13 @@ def test_array_multiindex_raises():
         ),
         (
             pd.core.arrays.integer_array([0, np.nan]),
-            np.array([0, np.nan], dtype=object),
+            np.array([0, pd.NA], dtype=object),
         ),
         (
-            pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
+            IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
         ),
-        (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+        (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
             DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
@@ -354,7 +358,7 @@ def test_to_numpy(array, expected, index_or_series):
     thing = box(array)
 
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip("No index type for {}".format(array.dtype))
+        pytest.skip(f"No index type for {array.dtype}")
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)
@@ -401,3 +405,36 @@ def test_to_numpy_dtype(as_series):
     result = obj.to_numpy(dtype="M8[ns]")
     expected = np.array(["2000-01-01T05", "2001-01-01T05"], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype, na_value, expected",
+    [
+        ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
+        (
+            [pd.Timestamp("2000"), pd.Timestamp("2000"), pd.NaT],
+            None,
+            pd.Timestamp("2000"),
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+        ),
+    ],
+)
+@pytest.mark.parametrize("container", [pd.Series, pd.Index])  # type: ignore
+def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expected):
+    s = container(values)
+    result = s.to_numpy(dtype=dtype, na_value=na_value)
+    expected = np.array(expected)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_kwargs_raises():
+    # numpy
+    s = pd.Series([1, 2, 3])
+    msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg):
+        s.to_numpy(foo=True)
+
+    # extension
+    s = pd.Series([1, 2, 3], dtype="Int64")
+    with pytest.raises(TypeError, match=msg):
+        s.to_numpy(foo=True)

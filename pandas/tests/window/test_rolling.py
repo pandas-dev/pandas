@@ -8,9 +8,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
+import pandas._testing as tm
 from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
-import pandas.util.testing as tm
 
 
 class TestRolling(Base):
@@ -32,23 +32,34 @@ class TestRolling(Base):
         c = o.rolling
 
         # valid
+        c(0)
         c(window=2)
         c(window=2, min_periods=1)
         c(window=2, min_periods=1, center=True)
         c(window=2, min_periods=1, center=False)
 
         # GH 13383
-        with pytest.raises(ValueError):
-            c(0)
+
+        msg = "window must be non-negative"
+
+        with pytest.raises(ValueError, match=msg):
             c(-1)
 
         # not valid
         for w in [2.0, "foo", np.array([2])]:
-            with pytest.raises(ValueError):
+            msg = (
+                "window must be an integer|"
+                "passed window foo is not compatible with a datetimelike index"
+            )
+            with pytest.raises(ValueError, match=msg):
                 c(window=w)
-            with pytest.raises(ValueError):
+
+            msg = "min_periods must be an integer"
+            with pytest.raises(ValueError, match=msg):
                 c(window=2, min_periods=w)
-            with pytest.raises(ValueError):
+
+            msg = "center must be a boolean"
+            with pytest.raises(ValueError, match=msg):
                 c(window=2, min_periods=1, center=w)
 
     @td.skip_if_no_scipy
@@ -57,7 +68,10 @@ class TestRolling(Base):
         # GH 13383
         o = getattr(self, which)
         c = o.rolling
-        with pytest.raises(ValueError):
+
+        msg = "window must be > 0"
+
+        with pytest.raises(ValueError, match=msg):
             c(-1, win_type="boxcar")
 
     @pytest.mark.parametrize("window", [timedelta(days=3), pd.Timedelta(days=3)])
@@ -113,7 +127,10 @@ class TestRolling(Base):
     def test_closed(self):
         df = DataFrame({"A": [0, 1, 2, 3, 4]})
         # closed only allowed for datetimelike
-        with pytest.raises(ValueError):
+
+        msg = "closed only implemented for datetimelike and offset based windows"
+
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window=3, closed="neither")
 
     @pytest.mark.parametrize("closed", ["neither", "left"])
@@ -296,7 +313,10 @@ class TestRolling(Base):
         # https://github.com/pandas-dev/pandas/issues/11704
         # Iteration over a Window
         obj = klass([1, 2, 3, 4])
-        with pytest.raises(NotImplementedError):
+
+        msg = "See issue #11704 https://github.com/pandas-dev/pandas/issues/11704"
+
+        with pytest.raises(NotImplementedError, match=msg):
             iter(obj.rolling(2))
 
     def test_rolling_axis_sum(self, axis_frame):
@@ -324,7 +344,7 @@ class TestRolling(Base):
         else:
             expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
-        result = df.rolling(2, axis=axis_frame).count()
+        result = df.rolling(2, axis=axis_frame, min_periods=0).count()
         tm.assert_frame_equal(result, expected)
 
     def test_readonly_array(self):
@@ -426,3 +446,22 @@ def test_min_periods1():
     result = df["a"].rolling(3, center=True, min_periods=1).max()
     expected = pd.Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_count_with_min_periods(constructor):
+    # GH 26996
+    result = constructor(range(5)).rolling(3, min_periods=3).count()
+    expected = constructor([np.nan, np.nan, 3.0, 3.0, 3.0])
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_count_default_min_periods_with_null_values(constructor):
+    # GH 26996
+    values = [1, 2, 3, np.nan, 4, 5, 6]
+    expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
+
+    result = constructor(values).rolling(3).count()
+    expected = constructor(expected_counts)
+    tm.assert_equal(result, expected)

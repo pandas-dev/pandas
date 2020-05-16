@@ -20,9 +20,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(
@@ -823,6 +823,16 @@ class TestDataFrameAnalytics:
         bools.sum(1)
         bools.sum(0)
 
+    def test_sum_mixed_datetime(self):
+        # GH#30886
+        df = pd.DataFrame(
+            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
+        ).reindex([2, 3, 4])
+        result = df.sum()
+
+        expected = pd.Series({"B": 7.0})
+        tm.assert_series_equal(result, expected)
+
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
         the_mean = float_string_frame.mean(axis=0)
@@ -892,24 +902,6 @@ class TestDataFrameAnalytics:
         df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
-
-    # ---------------------------------------------------------------------
-    # Miscellanea
-
-    def test_pct_change(self):
-        # GH#11150
-        pnl = DataFrame(
-            [np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]
-        ).astype(np.float64)
-        pnl.iat[1, 0] = np.nan
-        pnl.iat[1, 1] = np.nan
-        pnl.iat[2, 3] = 60
-
-        for axis in range(2):
-            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(axis=axis) - 1
-            result = pnl.pct_change(axis=axis, fill_method="pad")
-
-            tm.assert_frame_equal(result, expected)
 
     # ----------------------------------------------------------------------
     # Index of max / min
@@ -1265,15 +1257,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Unsorted
-
-    def test_series_nat_conversion(self):
-        # GH 18521
-        # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.randn(10, 3), dtype="float64")
-        expected = df.copy()
-        df.rank()
-        result = df
-        tm.assert_frame_equal(result, expected)
 
     def test_series_broadcasting(self):
         # smoke test for numpy warnings

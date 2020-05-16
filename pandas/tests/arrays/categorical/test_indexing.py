@@ -3,9 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
+import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):
@@ -157,8 +157,8 @@ class TestCategoricalIndexing:
     def test_categories_assigments_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
-            "new categories need to have the same number of items"
-            " as the old categories!"
+            "new categories need to have the same number of items "
+            "as the old categories!"
         )
         with pytest.raises(ValueError, match=msg):
             cat.categories = new_categories

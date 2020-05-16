@@ -7,8 +7,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

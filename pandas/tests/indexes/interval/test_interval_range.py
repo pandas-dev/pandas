@@ -15,7 +15,7 @@ from pandas import (
     interval_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day
 
@@ -84,7 +84,7 @@ class TestIntervalRange:
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        if not breaks.freq.isAnchored() and tz is None:
+        if not breaks.freq.is_anchored() and tz is None:
             # matches expected only for non-anchored offsets and tz naive
             # (anchored/DST transitions cause unequal spacing in expected)
             result = interval_range(

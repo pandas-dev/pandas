@@ -11,8 +11,8 @@ import pytz
 from pandas._libs.tslibs import conversion, timezones
 
 from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 
 class TestSeriesTimezones:

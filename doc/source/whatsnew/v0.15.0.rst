@@ -852,7 +852,7 @@ Other notable API changes:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
 
-     See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument (:issue:`7737`).

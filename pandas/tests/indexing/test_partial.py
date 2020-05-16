@@ -9,7 +9,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestPartialSetting:
@@ -205,8 +205,8 @@ class TestPartialSetting:
 
         # raises as nothing in in the index
         msg = (
-            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]
@@ -286,8 +286,8 @@ class TestPartialSetting:
 
         # raises as nothing in in the index
         msg = (
-            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64',"
-            r" name='idx'\)\] are in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
+            r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]

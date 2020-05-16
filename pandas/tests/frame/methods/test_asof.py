@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
-import pandas.util.testing as tm
+from pandas import DataFrame, Period, Series, Timestamp, date_range, to_datetime
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -30,6 +30,7 @@ class TestFrameAsof:
         ub = df.index[30]
 
         dates = list(dates)
+
         result = df.asof(dates)
         assert result.notna().all(1).all()
 
@@ -65,6 +66,7 @@ class TestFrameAsof:
         # no match found - `where` value before earliest date in index
         N = 10
         df = date_range_frame.iloc[:N].copy()
+
         result = df.asof("1989-12-31")
 
         expected = Series(
@@ -77,6 +79,12 @@ class TestFrameAsof:
             index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
         )
         tm.assert_frame_equal(result, expected)
+
+        # Check that we handle PeriodIndex correctly, dont end up with
+        #  period.ordinal for series name
+        df = df.to_period("D")
+        result = df.asof("1989-12-31")
+        assert isinstance(result.name, Period)
 
     def test_all_nans(self, date_range_frame):
         # GH 15713
@@ -132,5 +140,19 @@ class TestFrameAsof:
                 Timestamp("2018-01-01 22:35:10.550+00:00"),
             ],
         )
+
         result = df.asof(stamp)
         tm.assert_series_equal(result, expected)
+
+    def test_is_copy(self, date_range_frame):
+        # GH-27357, GH-30784: ensure the result of asof is an actual copy and
+        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
+        df = date_range_frame
+        N = 50
+        df.loc[15:30, "A"] = np.nan
+        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
+
+        result = df.asof(dates)
+
+        with tm.assert_produces_warning(None):
+            result["C"] = 1

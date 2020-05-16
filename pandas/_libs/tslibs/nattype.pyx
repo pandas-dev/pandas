@@ -5,6 +5,9 @@ from cpython.object cimport (
 from cpython.datetime cimport (datetime,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
+
+from cpython.version cimport PY_MINOR_VERSION
+
 PyDateTime_IMPORT
 
 import numpy as np
@@ -18,6 +21,7 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
     is_timedelta64_object)
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -274,7 +278,7 @@ cdef class _NaT(datetime):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision).
+        Total duration of timedelta in seconds (to microsecond precision).
         """
         # GH#10939
         return np.nan
@@ -322,7 +326,7 @@ class NaTType(_NaT):
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
-        # http://bugs.python.org/issue28730
+        # https://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
@@ -426,6 +430,10 @@ class NaTType(_NaT):
     toordinal = _make_error_func('toordinal', datetime)
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
+
+    # "fromisocalendar" was introduced in 3.8
+    if PY_MINOR_VERSION >= 8:
+        fromisocalendar = _make_error_func('fromisocalendar', datetime)
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous

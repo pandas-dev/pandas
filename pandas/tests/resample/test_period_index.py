@@ -10,11 +10,11 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -82,9 +82,9 @@ class TestPeriodIndex:
             index=pd.MultiIndex.from_arrays([rng, index], names=["v", "d"]),
         )
         msg = (
-            "Resampling from level= or on= selection with a PeriodIndex is"
-            r" not currently supported, use \.set_index\(\.\.\.\) to"
-            " explicitly set index"
+            "Resampling from level= or on= selection with a PeriodIndex is "
+            r"not currently supported, use \.set_index\(\.\.\.\) to "
+            "explicitly set index"
         )
         with pytest.raises(NotImplementedError, match=msg):
             df.resample(freq, kind=kind, **kwargs)
@@ -130,8 +130,8 @@ class TestPeriodIndex:
         # These are incompatible period rules for resampling
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
         msg = (
-            "Frequency <Week: weekday=2> cannot be resampled to {}, as they"
-            " are not sub or super periods"
+            "Frequency <Week: weekday=2> cannot be resampled to {}, as they "
+            "are not sub or super periods"
         ).format(expected_error_msg)
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts.resample(rule).mean()
@@ -236,8 +236,8 @@ class TestPeriodIndex:
 
     def test_resample_incompat_freq(self):
         msg = (
-            "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>,"
-            " as they are not sub or super periods"
+            "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>, "
+            "as they are not sub or super periods"
         )
         with pytest.raises(IncompatibleFrequency, match=msg):
             Series(
@@ -870,3 +870,15 @@ class TestPeriodIndex:
         result = _get_period_range_edges(first, last, offset)
         expected = (exp_first, exp_last)
         assert result == expected
+
+    def test_sum_min_count(self):
+        # GH 19974
+        index = pd.date_range(start="2018", freq="M", periods=6)
+        data = np.ones(6)
+        data[3:6] = np.nan
+        s = pd.Series(data, index).to_period()
+        result = s.resample("Q").sum(min_count=1)
+        expected = pd.Series(
+            [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
+        )
+        tm.assert_series_equal(result, expected)

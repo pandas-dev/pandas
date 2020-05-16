@@ -7,7 +7,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_constructor_single_level():
@@ -65,8 +65,8 @@ def test_constructor_mismatched_codes_levels(idx):
         MultiIndex(levels=levels, codes=codes)
 
     length_error = (
-        r"On level 0, code max \(3\) >= length of level \(1\)\."
-        " NOTE: this index is in an inconsistent state"
+        r"On level 0, code max \(3\) >= length of level \(1\)\. "
+        "NOTE: this index is in an inconsistent state"
     )
     label_error = r"Unequal code lengths: \[4, 2\]"
     code_value_error = r"On level 0, code value \(-2\) < -1"

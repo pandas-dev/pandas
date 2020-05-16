@@ -9,9 +9,9 @@ import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-import pandas.util.testing as tm
 
 
 class TestGroupBy:

@@ -19,6 +19,7 @@ import pytest
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,
@@ -34,7 +35,7 @@ from pandas.tests.extension import base
 
 
 def make_data():
-    return list(range(1, 9)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100]
+    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
 
 
 @pytest.fixture(
@@ -65,7 +66,7 @@ def data_for_twos(dtype):
 
 @pytest.fixture
 def data_missing(dtype):
-    return integer_array([np.nan, 1], dtype=dtype)
+    return integer_array([pd.NA, 1], dtype=dtype)
 
 
 @pytest.fixture
@@ -75,18 +76,18 @@ def data_for_sorting(dtype):
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return integer_array([1, np.nan, 0], dtype=dtype)
+    return integer_array([1, pd.NA, 0], dtype=dtype)
 
 
 @pytest.fixture
 def na_cmp():
-    # we are np.nan
-    return lambda x, y: np.isnan(x) and np.isnan(y)
+    # we are pd.NA
+    return lambda x, y: x is pd.NA and y is pd.NA
 
 
 @pytest.fixture
 def na_value():
-    return np.nan
+    return pd.NA
 
 
 @pytest.fixture
@@ -94,7 +95,7 @@ def data_for_grouping(dtype):
     b = 1
     a = 0
     c = 2
-    na = np.nan
+    na = pd.NA
     return integer_array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
@@ -129,7 +130,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = s.combine(other, op)
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                expected = expected.astype(float)
+                expected = expected.fillna(np.nan).astype(float)
                 if op_name == "__rtruediv__":
                     # TODO reverse operators result in object dtype
                     result = result.astype(float)
@@ -142,6 +143,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(s.dtype)
                 pass
+
             if (op_name == "__rpow__") and isinstance(other, pd.Series):
                 # TODO pow on Int arrays gives different result with NA
                 # see https://github.com/pandas-dev/pandas/issues/22022
@@ -162,6 +164,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+        if exc is None:
+            result = op(s, other)
+            # Override to do the astype to boolean
+            expected = s.combine(other, op).astype("boolean")
+            self.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(exc):
+                op(s, other)
+
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
@@ -198,7 +210,7 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.parametrize("dropna", [True, False])
+    @pytest.mark.skip(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -222,7 +234,14 @@ class TestGroupby(base.BaseGroupbyTests):
 
 
 class TestNumericReduce(base.BaseNumericReduceTests):
-    pass
+    def check_reduce(self, s, op_name, skipna):
+        # overwrite to ensure pd.NA is tested instead of np.nan
+        # https://github.com/pandas-dev/pandas/issues/30958
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        if np.isnan(expected):
+            expected = pd.NA
+        tm.assert_almost_equal(result, expected)
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):

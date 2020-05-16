@@ -10,7 +10,7 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.frequencies import to_offset
 

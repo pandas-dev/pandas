@@ -59,3 +59,16 @@ objects.
       api.extensions.ExtensionArray.nbytes
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
+
+Additionally, we have some utility methods for ensuring your object
+behaves correctly.
+
+.. autosummary::
+  :toctree: api/
+
+  api.indexers.check_array_indexer
+
+
+The sentinel ``pandas.api.extensions.no_default`` is used as the default
+value in some methods. Use an ``is`` comparison to check if the user
+provides a non-default value.

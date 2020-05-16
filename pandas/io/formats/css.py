@@ -1,4 +1,5 @@
-"""Utilities for interpreting CSS from Stylers for formatting non-HTML outputs
+"""
+Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
@@ -6,13 +7,15 @@ import warnings
 
 
 class CSSWarning(UserWarning):
-    """This CSS syntax cannot currently be parsed"""
+    """
+    This CSS syntax cannot currently be parsed.
+    """
 
     pass
 
 
 def _side_expander(prop_fmt: str):
-    def expand(self, prop, value):
+    def expand(self, prop, value: str):
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
@@ -28,12 +31,13 @@ def _side_expander(prop_fmt: str):
 
 
 class CSSResolver:
-    """A callable for parsing and resolving CSS to atomic properties
-
+    """
+    A callable for parsing and resolving CSS to atomic properties.
     """
 
     def __call__(self, declarations_str, inherited=None):
-        """ the given declarations to atomic properties
+        """
+        The given declarations to atomic properties.
 
         Parameters
         ----------
@@ -46,8 +50,8 @@ class CSSResolver:
 
         Returns
         -------
-        props : dict
-            Atomic CSS 2.2 properties
+        dict
+            Atomic CSS 2.2 properties.
 
         Examples
         --------
@@ -69,7 +73,6 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
-
         props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
             inherited = {}
@@ -235,10 +238,15 @@ class CSSResolver:
     expand_margin = _side_expander("margin-{:s}")
     expand_padding = _side_expander("padding-{:s}")
 
-    def parse(self, declarations_str):
-        """Generates (prop, value) pairs from declarations
+    def parse(self, declarations_str: str):
+        """
+        Generates (prop, value) pairs from declarations.
 
         In a future version may generate parsed tokens from tinycss/tinycss2
+
+        Parameters
+        ----------
+        declarations_str : str
         """
         for decl in declarations_str.split(";"):
             if not decl.strip():

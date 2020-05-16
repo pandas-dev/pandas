@@ -84,7 +84,8 @@ def get_op(tup):
                 'ge': '{0} >= {1}',
 
                 'and': '{0} & {1}',     # logical op
-                'or': '{0} | {1}'}
+                'or': '{0} | {1}',
+                'xor': '{0} ^ {1}'}
 
     return ops_dict[opname].format(lval, rval)
 
@@ -94,7 +95,7 @@ def get_dispatch(dtypes):
     ops_list = ['add', 'sub', 'mul', 'div', 'mod', 'truediv',
                 'floordiv', 'pow',
                 'eq', 'ne', 'lt', 'gt', 'le', 'ge',
-                'and', 'or']
+                'and', 'or', 'xor']
 
     for opname in ops_list:
         for dtype, arith_comp_group, logical_group in dtypes:
@@ -104,13 +105,13 @@ def get_dispatch(dtypes):
             elif opname in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
                 # comparison op
                 rdtype = 'uint8'
-            elif opname in ('and', 'or'):
+            elif opname in ('and', 'or', 'xor'):
                 # logical op
                 rdtype = 'uint8'
             else:
                 rdtype = dtype
 
-            if opname in ('and', 'or'):
+            if opname in ('and', 'or', 'xor'):
                 if logical_group:
                     yield opname, dtype, rdtype
             else:

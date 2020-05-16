@@ -15,10 +15,10 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

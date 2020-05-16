@@ -7,12 +7,12 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
 )
-import pandas.util.testing as tm
 
 
 def _compare_with_tz(a, b):

@@ -26,7 +26,7 @@ Assuming you want or need the expressiveness and power of pandas, let's carry on
 .. ipython:: python
    :suppress:
 
-   from pandas.util.testing import _make_timeseries
+   from pandas._testing import _make_timeseries
 
    # Make a random in-memory dataset
    ts = _make_timeseries(freq="30S", seed=0)

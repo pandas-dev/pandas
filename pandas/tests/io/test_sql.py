@@ -41,7 +41,7 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table
@@ -240,9 +240,7 @@ class MixInBase:
 class MySQLMixIn(MixInBase):
     def drop_table(self, table_name):
         cur = self.conn.cursor()
-        cur.execute(
-            "DROP TABLE IF EXISTS {}".format(sql._get_valid_mysql_name(table_name))
-        )
+        cur.execute(f"DROP TABLE IF EXISTS {sql._get_valid_mysql_name(table_name)}")
         self.conn.commit()
 
     def _get_all_tables(self):
@@ -262,7 +260,7 @@ class MySQLMixIn(MixInBase):
 class SQLiteMixIn(MixInBase):
     def drop_table(self, table_name):
         self.conn.execute(
-            "DROP TABLE IF EXISTS {}".format(sql._get_valid_sqlite_name(table_name))
+            f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}"
         )
         self.conn.commit()
 
@@ -443,11 +441,7 @@ class PandasSQLTest:
     def _count_rows(self, table_name):
         result = (
             self._get_exec()
-            .execute(
-                "SELECT count(*) AS count_1 FROM {table_name}".format(
-                    table_name=table_name
-                )
-            )
+            .execute(f"SELECT count(*) AS count_1 FROM {table_name}")
             .fetchone()
         )
         return result[0]
@@ -576,6 +570,8 @@ class PandasSQLTest:
         assert data_from_db == expected
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
+        # Clean up
+        self.drop_table("pkey_table")
 
     def _to_sql_upsert_overwrite(self):
         """
@@ -612,6 +608,8 @@ class PandasSQLTest:
             ]
         ).sort()
         assert data_from_db == data_from_df
+        # Clean up
+        self.drop_table("pkey_table")
 
     def _roundtrip(self):
         self.drop_table("test_frame_roundtrip")
@@ -1312,7 +1310,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         for col in schema.split("\n"):
             if col.split()[0].strip('""') == column:
                 return col.split()[1]
-        raise ValueError("Column {column} not found".format(column=column))
+        raise ValueError(f"Column {column} not found")
 
     def test_sqlite_type_mapping(self):
 
@@ -1378,7 +1376,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # to test if connection can be made:
             self.conn.connect()
         except sqlalchemy.exc.OperationalError:
-            pytest.skip("Can't connect to {0} server".format(self.flavor))
+            pytest.skip(f"Can't connect to {self.flavor} server")
 
     def test_read_sql(self):
         self._read_sql_iris()
@@ -1526,7 +1524,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
             else:
                 raise AssertionError(
-                    "DateCol loaded with incorrect type -> {0}".format(col.dtype)
+                    f"DateCol loaded with incorrect type -> {col.dtype}"
                 )
 
         # GH11216
@@ -2163,15 +2161,13 @@ class _TestPostgreSQLAlchemy:
                 writer.writerows(data_iter)
                 s_buf.seek(0)
 
-                columns = ", ".join('"{}"'.format(k) for k in keys)
+                columns = ", ".join(f'"{k}"' for k in keys)
                 if table.schema:
-                    table_name = "{}.{}".format(table.schema, table.name)
+                    table_name = f"{table.schema}.{table.name}"
                 else:
                     table_name = table.name
 
-                sql_query = "COPY {} ({}) FROM STDIN WITH CSV".format(
-                    table_name, columns
-                )
+                sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
                 cur.copy_expert(sql=sql_query, file=s_buf)
 
         expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
@@ -2182,10 +2178,12 @@ class _TestPostgreSQLAlchemy:
         tm.assert_frame_equal(result, expected)
 
 
+"""
 @pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
+"""
 
 
 @pytest.mark.single
@@ -2311,14 +2309,12 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + "AND tbl_name = '{tbl_name}'".format(tbl_name=tbl_name),
+            + f"AND tbl_name = '{tbl_name}'",
             self.conn,
         )
         ix_cols = []
         for ix_name in ixs.name:
-            ix_info = sql.read_sql_query(
-                "PRAGMA index_info({ix_name})".format(ix_name=ix_name), self.conn
-            )
+            ix_info = sql.read_sql_query(f"PRAGMA index_info({ix_name})", self.conn)
             ix_cols.append(ix_info.name.tolist())
         return ix_cols
 
@@ -2329,15 +2325,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._transaction_test()
 
     def _get_sqlite_column_type(self, table, column):
-        recs = self.conn.execute("PRAGMA table_info({table})".format(table=table))
+        recs = self.conn.execute(f"PRAGMA table_info({table})")
         for cid, name, ctype, not_null, default, pk in recs:
             if name == column:
                 return ctype
-        raise ValueError(
-            "Table {table}, column {column} not found".format(
-                table=table, column=column
-            )
-        )
+        raise ValueError(f"Table {table}, column {column} not found")
 
     def test_dtype(self):
         if self.flavor == "mysql":
@@ -2407,7 +2399,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
-            c_tbl = "test_weird_col_name{ndx:d}".format(ndx=ndx)
+            c_tbl = f"test_weird_col_name{ndx:d}"
             df2.to_sql(c_tbl, self.conn)
             sql.table_exists(c_tbl, self.conn)
 
@@ -2612,7 +2604,7 @@ class TestXSQLite(SQLiteMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
+        sql_select = f"SELECT * FROM {table_name}"
 
         def clean_up(test_table_to_drop):
             """
@@ -2900,7 +2892,7 @@ class TestXMySQL(MySQLMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
+        sql_select = f"SELECT * FROM {table_name}"
 
         def clean_up(test_table_to_drop):
             """

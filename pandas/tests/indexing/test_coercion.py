@@ -7,7 +7,7 @@ import pytest
 import pandas.compat as compat
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -432,13 +432,19 @@ class TestInsertIndexCoercion(CoercionBase):
         )
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
-        msg = "Passed item and index have different timezone"
         if fill_val.tz:
-            with pytest.raises(ValueError, match=msg):
+            msg = "Cannot compare tz-naive and tz-aware"
+            with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01"))
 
-        with pytest.raises(ValueError, match=msg):
-            obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
+            msg = "Timezones don't match"
+            with pytest.raises(ValueError, match=msg):
+                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
+
+        else:
+            msg = "Cannot compare tz-naive and tz-aware"
+            with pytest.raises(TypeError, match=msg):
+                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
         msg = "cannot insert DatetimeIndex with incompatible label"
         with pytest.raises(TypeError, match=msg):

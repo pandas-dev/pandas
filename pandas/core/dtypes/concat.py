@@ -220,7 +220,7 @@ def union_categoricals(
     -----
 
     To learn more about categories, see `link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------

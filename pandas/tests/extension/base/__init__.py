@@ -49,7 +49,12 @@ from .interface import BaseInterfaceTests  # noqa
 from .io import BaseParsingTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
-from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil  # noqa
+from .ops import (  # noqa
+    BaseArithmeticOpsTests,
+    BaseComparisonOpsTests,
+    BaseOpsUtil,
+    BaseUnaryOpsTests,
+)
 from .printing import BasePrintingTests  # noqa
 from .reduce import (  # noqa
     BaseBooleanReduceTests,

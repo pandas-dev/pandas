@@ -172,7 +172,7 @@ Other enhancements:
      4   True   True   True  True
 
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
-- Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <http://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
+- Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <https://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
 - ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
 - ``Timedelta`` now supports arithmetic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
 - Added ``Timedelta.to_timedelta64()`` method to the public API (:issue:`8884`).

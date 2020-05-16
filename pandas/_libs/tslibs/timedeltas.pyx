@@ -861,9 +861,11 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision).
+        Total duration of timedelta in seconds (to microsecond precision).
         """
-        return self.value / 1e9
+        # GH 31043
+        # Microseconds precision to avoid confusing tzinfo.utcoffset
+        return (self.value - self.value % 1000) / 1e9
 
     def view(self, dtype):
         """
@@ -1208,7 +1210,12 @@ class Timedelta(_Timedelta):
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(value, Timedelta):
+        # GH 30543 if pd.Timedelta already passed, return it
+        # check that only value is passed
+        if (isinstance(value, Timedelta) and unit is None and
+                len(kwargs) == 0):
+            return value
+        elif isinstance(value, Timedelta):
             value = value.value
         elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':

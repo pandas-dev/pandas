@@ -46,7 +46,7 @@ class _DeprecatedModule:
 
     __str__ = __repr__
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         if name in self.self_dir:
             return object.__getattribute__(self, name)
 

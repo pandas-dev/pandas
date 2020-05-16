@@ -914,8 +914,7 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                         ranks[argsorted[j]] = i + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
-                        raise ValueError('first not supported for '
-                                         'non-numeric data')
+                        raise ValueError('first not supported for non-numeric data')
                     else:
                         for j in range(i - dups + 1, i + 1):
                             ranks[argsorted[j]] = j + 1
@@ -971,8 +970,7 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                             ranks[argsorted[j]] = i + 1
                     elif tiebreak == TIEBREAK_FIRST:
                         if rank_t is object:
-                            raise ValueError('first not supported for '
-                                             'non-numeric data')
+                            raise ValueError('first not supported for non-numeric data')
                         else:
                             for j in range(i - dups + 1, i + 1):
                                 ranks[argsorted[j]] = j + 1
@@ -1137,8 +1135,7 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
                         ranks[i, argsorted[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
-                        raise ValueError('first not supported '
-                                         'for non-numeric data')
+                        raise ValueError('first not supported for non-numeric data')
                     else:
                         for z in range(j - dups + 1, j + 1):
                             ranks[i, argsorted[i, z]] = z + 1

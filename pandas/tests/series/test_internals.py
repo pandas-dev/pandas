@@ -5,8 +5,8 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 
 class TestSeriesInternals:

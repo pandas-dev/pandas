@@ -12,7 +12,7 @@ import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader, read_csv
 
@@ -179,7 +179,7 @@ class TestTextReader:
         assert_array_dicts_equal(recs, expected)
 
     def test_escapechar(self):
-        data = '\\"hello world"\n' '\\"hello world"\n' '\\"hello world"'
+        data = '\\"hello world"\n\\"hello world"\n\\"hello world"'
 
         reader = TextReader(StringIO(data), delimiter=",", header=None, escapechar="\\")
         result = reader.read()

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_numeric_compat(idx):
@@ -110,10 +110,6 @@ def test_ndarray_compat_properties(idx, compat_props):
     # test for validity
     idx.nbytes
     idx.values.nbytes
-
-
-def test_compat(indices):
-    assert indices.tolist() == list(indices)
 
 
 def test_pickle_compat_construction(holder):

@@ -214,7 +214,7 @@ These were announced changes in 0.12 or prior that are taking effect as of 0.13.
 - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
   These are available as functions in the main pandas namespace (e.g. ``pd.read_clipboard``)
 - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
-- default for `display.max_seq_len` is now 100 rather then `None`. This activates
+- default for `display.max_seq_len` is now 100 rather than `None`. This activates
   truncated display ("...") of long sequences in various places. (:issue:`3391`)
 
 Deprecations

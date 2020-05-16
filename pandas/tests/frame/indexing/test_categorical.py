@@ -5,7 +5,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameIndexingCategorical:
@@ -353,6 +353,16 @@ class TestDataFrameIndexingCategorical:
             df["group"] = pd.cut(
                 df.value, range(0, 105, 10), right=False, labels=labels
             )
+
+    def test_setitem_single_row_categorical(self):
+        # GH 25495
+        df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
+        categories = pd.Categorical(df["Alpha"], categories=["a", "b", "c"])
+        df.loc[:, "Alpha"] = categories
+
+        result = df["Alpha"]
+        expected = Series(categories, index=df.index, name="Alpha")
+        tm.assert_series_equal(result, expected)
 
     def test_loc_indexing_preserves_index_category_dtype(self):
         # GH 15166

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index
@@ -249,4 +249,14 @@ def test_frame_mi_access_returns_frame(dataframe_with_duplicate_index):
         columns=["h1", "h3", "h5"],
     ).T
     result = df["A"]["B2"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_mi_empty_slice():
+    # GH 15454
+    df = DataFrame(0, index=range(2), columns=MultiIndex.from_product([[1], [2]]))
+    result = df[[]]
+    expected = DataFrame(
+        index=[0, 1], columns=MultiIndex(levels=[[1], [2]], codes=[[], []])
+    )
     tm.assert_frame_equal(result, expected)

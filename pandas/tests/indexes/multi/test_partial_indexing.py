@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_partial_string_timestamp_multiindex():

@@ -3,8 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
-import pandas.util.testing as tm
 
 
 class TestGrouperGrouping:
