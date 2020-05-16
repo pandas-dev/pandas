@@ -907,6 +907,19 @@ class TestDataFrameAnalytics:
         expected = pd.DataFrame(arr).mean()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False, None])
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_minmax_extensionarray(self, method, numeric_only):
+        # https://github.com/pandas-dev/pandas/issues/32651
+        int64_info = np.iinfo("int64")
+        ser = Series([int64_info.max, None, int64_info.min], dtype=pd.Int64Dtype())
+        df = DataFrame({"Int64": ser})
+        result = getattr(df, method)(numeric_only=numeric_only)
+        expected = Series(
+            [getattr(int64_info, method)], index=pd.Index(["Int64"], dtype="object")
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
         float_string_frame.std(1)

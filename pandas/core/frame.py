@@ -8419,7 +8419,9 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        if numeric_only is not None and axis in [0, 1]:
+        if (
+            self._is_homogeneous_type and self._mgr.any_extension_types and axis == 0
+        ) or (numeric_only is not None and axis in [0, 1]):
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
