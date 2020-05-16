@@ -35,6 +35,7 @@ from pandas._libs.tslibs.base cimport is_period_object
 # ----------------------------------------------------------------------
 # Constants
 nat_strings = {"NaT", "nat", "NAT", "nan", "NaN", "NAN"}
+cdef set c_nat_strings = nat_strings
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT  # python-visible constant

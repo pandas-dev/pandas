@@ -224,9 +224,17 @@ Other enhancements
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
+- :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
--
+- The minimum suppported dta version has increased to 105 in :meth:`~pandas.io.stata.read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
+- :meth:`~pandas.core.frame.DataFrame.to_stata` supports compression using the ``compression``
+  keyword argument. Compression can either be inferred or explicitly set using a string or a
+  dictionary containing both the method and any additional arguments that are passed to the
+  compression library. Compression was also added to the low-level Stata-file writers
+  :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
+  and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
+- :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 
 .. ---------------------------------------------------------------------------
 
@@ -577,6 +585,7 @@ Deprecations
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
+- :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
 
 .. ---------------------------------------------------------------------------
 
@@ -597,6 +606,8 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
+- Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
+  and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 
@@ -640,6 +651,7 @@ Datetimelike
 - :meth:`DataFrame.min`/:meth:`DataFrame.max` not returning consistent result with :meth:`Series.min`/:meth:`Series.max` when called on objects initialized with empty :func:`pd.to_datetime`
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
+- Bug in subtracting :class:`TimedeltaIndex` from :class:`Period` incorrectly raising ``TypeError`` in some cases where it should succeed and ``IncompatibleFrequency`` in some cases where it should raise ``TypeError`` (:issue:`33883`)
 
 Timedelta
 ^^^^^^^^^
@@ -746,7 +758,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
--
+- Bug when joining 2 Multi-indexes, without specifying level with different columns. Return-indexers parameter is ignored. (:issue:`34074`)
 
 I/O
 ^^^
@@ -803,6 +815,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
+- Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
+- Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
 - Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
 
 Reshaping
@@ -832,6 +846,7 @@ Reshaping
 - Bug in :func:`concat` was not allowing for concatenation of ``DataFrame`` and ``Series`` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
+- Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 
 Sparse
 ^^^^^^
@@ -843,12 +858,13 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
+- Fixed bug where :meth:`StringArray.isna` would return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33655`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
+- Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
-
 
 Other
 ^^^^^
@@ -866,6 +882,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------
 

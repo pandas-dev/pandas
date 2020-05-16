@@ -1181,3 +1181,24 @@ class TestDataFrameQueryBacktickQuoting:
     def test_failing_hashtag(self, df):
         with pytest.raises(SyntaxError):
             df.query("`foo#bar` > 4")
+
+    def test_call_non_named_expression(self, df):
+        """
+        Only attributes and variables ('named functions') can be called.
+        .__call__() is not an allowed attribute because that would allow
+        calling anything.
+        https://github.com/pandas-dev/pandas/pull/32460
+        """
+
+        def func(*_):
+            return 1
+
+        funcs = [func]  # noqa
+
+        df.eval("@func()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0]()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0].__call__()")
