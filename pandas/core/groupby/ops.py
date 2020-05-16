@@ -167,7 +167,7 @@ class BaseGrouper:
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
 
-        elif False and (
+        elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
