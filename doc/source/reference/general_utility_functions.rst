@@ -40,6 +40,7 @@ Exceptions and warnings
    errors.EmptyDataError
    errors.OutOfBoundsDatetime
    errors.MergeError
+   errors.NullFrequencyError
    errors.NumbaUtilError
    errors.ParserError
    errors.ParserWarning

@@ -78,7 +78,7 @@ provide any datetime operations (e.g. extract the year, day of the
 week,…). By applying the ``to_datetime`` function, pandas interprets the
 strings and convert these to datetime (i.e. ``datetime64[ns, UTC]``)
 objects. In pandas we call these datetime objects similar to
-``datetime.datetime`` from the standard library a :class:`pandas.Timestamp`.
+``datetime.datetime`` from the standard library as :class:`pandas.Timestamp`.
 
 .. raw:: html
 
@@ -99,7 +99,7 @@ objects. In pandas we call these datetime objects similar to
 Why are these :class:`pandas.Timestamp` objects useful? Let’s illustrate the added
 value with some example cases.
 
-   What is the start and end date of the time series data set working
+   What is the start and end date of the time series data set we are working
    with?
 
 .. ipython:: python
@@ -214,7 +214,7 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
 
 Similar to the previous case, we want to calculate a given statistic
 (e.g. mean :math:`NO_2`) **for each hour of the day** and we can use the
-split-apply-combine approach again. For this case, the datetime property ``hour``
+split-apply-combine approach again. For this case, we use the datetime property ``hour``
 of pandas ``Timestamp``, which is also accessible by the ``dt`` accessor.
 
 .. raw:: html
