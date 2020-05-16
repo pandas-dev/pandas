@@ -248,7 +248,7 @@ class TestCategoricalIndexing:
 
         # Modify case
         cat1.loc[0] = "b"
-        tm.assert_index_equal(cat1.cat.categories, exp_cats)        
+        tm.assert_index_equal(cat1.cat.categories, exp_cats)
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean(index):
