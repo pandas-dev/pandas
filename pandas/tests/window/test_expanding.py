@@ -129,12 +129,17 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
     [
         (
             DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2])],
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
             3,
         ),
         (
             DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
+                ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
                 ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
             ],
@@ -153,17 +158,26 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
         (DataFrame(), [({}, [])], 1),
         (
             DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
-            [({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2])],
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
             3,
         ),
         (
             DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
-            [({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2])],
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
             2,
         ),
         (
             DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
             [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
                 ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
             ],
@@ -182,11 +196,11 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
 @pytest.mark.parametrize(
     "ser,expected,min_periods",
     [
-        (Series([1, 2, 3]), [([1, 2, 3], [0, 1, 2])], 3),
-        (Series([1, 2, 3]), [([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 2),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 3),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 2),
         (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 1),
-        (Series([1, 2]), [([1, 2], [0, 1])], 2),
-        (Series([np.nan, 2]), [([np.nan, 2], [0, np.nan])], 2),
+        (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2),
+        (Series([np.nan, 2]), [([np.nan], [0]), ([np.nan, 2], [0, 1])], 2),
         (Series([], dtype="int64"), [], 2),
     ],
 )
