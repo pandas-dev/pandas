@@ -2091,7 +2091,7 @@ def test_merge_suffix_type_error(col1, col2, suffixes):
     "col1, col2, suffixes, msg",
     [
         ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
-        ("a", "a", ("a"), r"not enough values to unpack \(expected 2, got 1\)"),
+        ("a", "a", ["a"], r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )
 def test_merge_suffix_length_error(col1, col2, suffixes, msg):
