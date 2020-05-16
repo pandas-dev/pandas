@@ -147,6 +147,7 @@ def info(
         max_cols = get_option("display.max_info_columns", col_count + 1)
 
     max_rows = get_option("display.max_info_rows", len(data) + 1)
+    assert max_cols is not None  # help mypy
 
     if null_counts is None and isinstance(data, ABCDataFrame):
         show_counts = (col_count <= max_cols) and (len(data) < max_rows)
