@@ -1,16 +1,63 @@
 import sys
-from typing import IO, Optional, Union
+from typing import IO, TYPE_CHECKING, Optional, Tuple, Union
 
 from pandas._config import get_option
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
+if TYPE_CHECKING:
+    from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
-def _put_str(s, space):
+
+def _put_str(s: Union[str, Dtype], space: int) -> str:
+    """
+    Make string of specified length, padding to the right if necessary.
+
+    Parameters
+    ----------
+    s : Union[str, Dtype]
+        String to be formatted.
+    space : int
+        Length to force string to be of.
+
+    Returns
+    -------
+    str
+        String coerced to given length.
+
+    Examples
+    --------
+    >>> pd.io.formats.info._put_str("panda", 6)
+    'panda '
+    >>> pd.io.formats.info._put_str("panda", 4)
+    'pand'
+    """
     return str(s)[:space].ljust(space)
+
+
+def _get_ids_and_dtypes(data: FrameOrSeries) -> Tuple["Index", "Series"]:
+    """
+    Get DataFrame's columns and dtypes.
+
+    Parameters
+    ----------
+    data : DataFrame
+        Object that `info` was called on.
+
+    Returns
+    -------
+    ids : Index
+        DataFrame's columns.
+    dtypes : Series
+        Dtype of each of the DataFrame's columns.
+    """
+    ids = data.columns
+    dtypes = data.dtypes
+    return ids, dtypes
 
 
 def info(
@@ -80,9 +127,8 @@ def info(
     lines.append(str(type(data)))
     lines.append(data.index._summary())
 
-    cols = data.columns
-    col_count = len(cols)
-    dtypes = data.dtypes
+    ids, dtypes = _get_ids_and_dtypes(data)
+    col_count = len(ids)
 
     if col_count == 0:
         lines.append(f"Empty {type(data).__name__}")
@@ -108,7 +154,7 @@ def info(
         column_head = "Column"
         col_space = 2
 
-        max_col = max(len(pprint_thing(k)) for k in cols)
+        max_col = max(len(pprint_thing(k)) for k in ids)
         len_column = len(pprint_thing(column_head))
         space = max(max_col, len_column) + col_space
 
@@ -151,7 +197,7 @@ def info(
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        for i, col in enumerate(cols):
+        for i, col in enumerate(ids):
             dtype = dtypes[i]
             col = pprint_thing(col)
 
@@ -168,7 +214,7 @@ def info(
             )
 
     def _non_verbose_repr():
-        lines.append(cols._summary(name="Columns"))
+        lines.append(ids._summary(name="Columns"))
 
     def _sizeof_fmt(num, size_qualifier):
         # returns size in human readable format
@@ -180,7 +226,7 @@ def info(
 
     if verbose:
         _verbose_repr()
-    elif verbose is False:  # specifically set to False, not nesc None
+    elif verbose is False:  # specifically set to False, not necessarily None
         _non_verbose_repr()
     else:
         if exceeds_info_cols:
@@ -190,8 +236,8 @@ def info(
 
     # groupby dtype.name to collect e.g. Categorical columns
     counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
-    dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-    lines.append(f"dtypes: {', '.join(dtypes)}")
+    collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
+    lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
     if memory_usage is None:
         memory_usage = get_option("display.memory_usage")

@@ -784,7 +784,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
@@ -1517,7 +1517,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
         mask = notna(arr)
     else:
         # cast to object comparison to be safe
-        if is_string_dtype(arr):
+        if is_string_dtype(arr.dtype):
             arr = arr.astype(object)
 
         if is_object_dtype(arr.dtype):

@@ -6,7 +6,7 @@ from pandas._libs import tslibs
 def test_namespace():
 
     submodules = [
-        "c_timestamp",
+        "base",
         "ccalendar",
         "conversion",
         "fields",
@@ -29,7 +29,7 @@ def test_namespace():
         "NaTType",
         "iNaT",
         "is_null_datetimelike",
-        "NullFrequencyError",
+        "nat_strings",
         "OutOfBoundsDatetime",
         "Period",
         "IncompatibleFrequency",
