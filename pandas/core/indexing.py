@@ -7,7 +7,6 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
-from pandas.core.construction import array as pd_array
 from pandas.core.dtypes.common import (
     is_array_like,
     is_hashable,
@@ -24,6 +23,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
+from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     is_list_like_indexer,
