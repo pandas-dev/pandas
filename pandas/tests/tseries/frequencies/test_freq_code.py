@@ -1,12 +1,15 @@
 import pytest
 
-from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
+    _attrname_to_abbrevs,
     _period_code_map,
     get_freq,
     get_freq_code,
+    get_freq_group,
+    get_to_timestamp_base,
 )
+from pandas._libs.tslibs.resolution import Resolution as _reso
 
 import pandas.tseries.offsets as offsets
 
@@ -65,14 +68,14 @@ def test_freq_code_match(period_code_item):
     ],
 )
 def test_freq_group(freqstr, expected):
-    assert resolution.get_freq_group(freqstr) == expected
+    assert get_freq_group(freqstr) == expected
 
 
 def test_freq_group_match(period_code_item):
     freqstr, code = period_code_item
 
-    str_group = resolution.get_freq_group(freqstr)
-    code_group = resolution.get_freq_group(code)
+    str_group = get_freq_group(freqstr)
+    code_group = get_freq_group(code)
 
     assert str_group == code_group == code // 1000 * 1000
 
@@ -82,12 +85,9 @@ def test_freq_group_match(period_code_item):
     [("D", "D"), ("W", "D"), ("M", "D"), ("S", "S"), ("T", "S"), ("H", "S")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
-    tsb = libfrequencies.get_to_timestamp_base
+    tsb = get_to_timestamp_base
 
     assert tsb(get_freq_code(freqstr)[0]) == get_freq_code(exp_freqstr)[0]
-
-
-_reso = resolution.Resolution
 
 
 @pytest.mark.parametrize(
@@ -111,13 +111,13 @@ def test_get_str_from_freq(freqstr, expected):
 
 @pytest.mark.parametrize("freq", ["A", "Q", "M", "D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip(freq):
-    result = _reso.get_freq(_reso.get_str_from_freq(freq))
+    result = _attrname_to_abbrevs[_reso.get_str_from_freq(freq)]
     assert freq == result
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U"])
 def test_get_freq_roundtrip2(freq):
-    result = _reso.get_freq(_reso.get_str(_reso.get_reso_from_freq(freq)))
+    result = _attrname_to_abbrevs[_reso.get_str(_reso.get_reso_from_freq(freq))]
     assert freq == result
 
 

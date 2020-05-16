@@ -5,7 +5,8 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import Period, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import Period, frequencies as libfrequencies
+from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -505,8 +506,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            grp = resolution.Resolution.get_freq_group(reso)
-            freqn = resolution.get_freq_group(self.freq)
+            grp = get_freq_group(reso)
+            freqn = get_freq_group(self.freq)
 
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
@@ -577,13 +578,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
             raise KeyError(reso)
 
-        grp = resolution.Resolution.get_freq_group(reso)
+        grp = get_freq_group(reso)
         iv = Period(parsed, freq=(grp, 1))
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _validate_partial_date_slice(self, reso: str):
-        grp = resolution.Resolution.get_freq_group(reso)
-        freqn = resolution.get_freq_group(self.freq)
+        grp = get_freq_group(reso)
+        freqn = get_freq_group(self.freq)
 
         if not grp < freqn:
             # TODO: we used to also check for

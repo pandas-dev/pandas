@@ -11,8 +11,7 @@ import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import resolution
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq, get_freq_group
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -550,7 +549,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif resolution.get_freq_group(freq) == FreqGroup.FR_WK:
+    elif get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -888,7 +887,7 @@ def _annual_finder(vmin, vmax, freq):
 def get_finder(freq):
     if isinstance(freq, str):
         freq = get_freq(freq)
-    fgroup = resolution.get_freq_group(freq)
+    fgroup = get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
