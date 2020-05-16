@@ -670,7 +670,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 )
 
             return res(*new_args)
-        elif isinstance(res, np.ufunc):
+        elif isinstance(res, np.floor()):
             new_args = [self.visit(arg) for arg in node.args]
             new_args = str(*new_args)
             new_args = [eval(new_args)]
