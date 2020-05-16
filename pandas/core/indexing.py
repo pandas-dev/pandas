@@ -662,10 +662,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        # Reverted for testing path on master
-        # if self.name == "iloc" and isinstance(value, (ABCSeries, ABCDataFrame)):
-        #     # Strip labels so as to not align with RHS
-        #     value = value._values.copy()
+        if self.name == "iloc" and isinstance(value, (ABCSeries, ABCDataFrame)):
+            # Strip labels so as to not align with RHS
+            value = value._values.copy()
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value)
@@ -1710,10 +1709,12 @@ class _iLocIndexer(_LocationIndexer):
                 # But we may be relying on the ndarray coercion to check ndim.
                 # Why not just convert to an ndarray earlier on if needed?
                 elif np.ndim(value) == 2:
+                    from pandas import DataFrame
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
-                    value = np.array(value, dtype=object)
+                    # value = np.array(value, dtype=object)
+                    value = DataFrame(value)
                     if len(ilocs) != value.shape[1]:
                         raise ValueError(
                             "Must have equal len keys and value "
@@ -1722,7 +1723,8 @@ class _iLocIndexer(_LocationIndexer):
 
                     for i, loc in enumerate(ilocs):
                         # setting with a list, re-coerces
-                        isetter(loc, value[:, i].tolist())
+                        # isetter(loc, value[:, i].tolist())
+                        isetter(loc, value.iloc[:, i])
 
                 elif (
                     len(labels) == 1
