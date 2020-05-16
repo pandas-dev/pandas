@@ -2088,13 +2088,16 @@ def test_merge_suffix_type_error(col1, col2, suffixes):
 
 
 @pytest.mark.parametrize(
-    "col1, col2, suffixes", [("a", "a", ("a", "b", "c"))],
+    "col1, col2, suffixes, msg",
+    [
+        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        ("a", "a", ("a"), r"not enough values to unpack \(expected 2, got 1\)"),
+    ],
 )
-def test_merge_suffix_length_error(col1, col2, suffixes):
+def test_merge_suffix_length_error(col1, col2, suffixes, msg):
     a = pd.DataFrame({col1: [1, 2, 3]})
     b = pd.DataFrame({col2: [3, 4, 5]})
 
-    msg = r"too many values to unpack \(expected 2\)"
     with pytest.raises(ValueError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
