@@ -386,6 +386,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
     if not key:
         return values
+
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
 
@@ -403,7 +404,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         else:
             type_of_values = type(values)
             result = type_of_values(result)  # try to revert to original type otherwise
-    except TypeError:opy()
+    except TypeError:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \
             which could not be converted to {type(values)}."
