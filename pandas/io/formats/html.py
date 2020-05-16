@@ -9,9 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas import option_context
+from pandas import MultiIndex, option_context
 
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
@@ -233,7 +231,7 @@ class HTMLFormatter(TableFormatter):
 
     def _write_col_header(self, indent: int) -> None:
         truncate_h = self.fmt.truncate_h
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
@@ -376,7 +374,7 @@ class HTMLFormatter(TableFormatter):
         fmt_values = self._get_formatted_values()
 
         # write values
-        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
             self._write_hierarchical_rows(fmt_values, indent + self.indent_delta)
         else:
             self._write_regular_rows(fmt_values, indent + self.indent_delta)
@@ -585,7 +583,7 @@ class NotebookFormatter(HTMLFormatter):
             ("tbody tr th:only-of-type", "vertical-align", "middle"),
             ("tbody tr th", "vertical-align", "top"),
         ]
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             element_props.append(("thead tr th", "text-align", "left"))
             if self.show_row_idx_names:
                 element_props.append(

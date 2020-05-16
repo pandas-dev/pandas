@@ -50,9 +50,11 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_datetime_to_tsobject,
     get_datetime64_nanos)
 
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, NPY_NAT, c_NaT as NaT)
+    NPY_NAT,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -63,6 +65,9 @@ from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_single,
     tz_convert_utc_to_tzlocal,
 )
+
+# Note: this is the only non-tslibs intra-pandas dependency here
+from pandas._libs.missing cimport checknull_with_nat_and_na
 
 
 cdef inline object create_datetime_from_ts(
@@ -438,7 +443,7 @@ def array_with_unit_to_datetime(
         for i in range(n):
             val = values[i]
 
-            if checknull_with_nat(val):
+            if checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
 
             elif is_integer_object(val) or is_float_object(val):
@@ -505,7 +510,7 @@ def array_with_unit_to_datetime(
     for i in range(n):
         val = values[i]
 
-        if checknull_with_nat(val):
+        if checknull_with_nat_and_na(val):
             oresult[i] = <object>NaT
         elif is_integer_object(val) or is_float_object(val):
 
@@ -602,7 +607,7 @@ cpdef array_to_datetime(
             val = values[i]
 
             try:
-                if checknull_with_nat(val):
+                if checknull_with_nat_and_na(val):
                     iresult[i] = NPY_NAT
 
                 elif PyDateTime_Check(val):
@@ -812,7 +817,7 @@ cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
         val = values[i]
 
         # set as nan except if its a NaT
-        if checknull_with_nat(val):
+        if checknull_with_nat_and_na(val):
             if isinstance(val, float):
                 oresult[i] = np.nan
             else:
@@ -874,7 +879,7 @@ cdef array_to_datetime_object(
     # 2) datetime strings, which we return as datetime.datetime
     for i in range(n):
         val = values[i]
-        if checknull_with_nat(val) or PyDateTime_Check(val):
+        if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
             # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
         elif isinstance(val, str):
