@@ -620,13 +620,18 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    def test_32bit_assignment(self):
-        df = DataFrame(
-            [[1, 2, 3]], columns=list("ABC")
+    def test_astype_assignment_nolabel(self):
+
+        # GH4312 (iloc)
+        df_orig = DataFrame(
+            [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
 
-        expected = df.copy()
-        df.iloc[:, :] = df._values
+        df = df_orig.copy()
+        df.iloc[:, 0:2] = df.iloc[:, 0:2].values.astype(np.int64)
+        expected = DataFrame(
+            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_index_type_coercion(self):

@@ -25,10 +25,7 @@ def test_series_groupby_nunique(n, m, sort, dropna):
         if not as_index:
             right = right.reset_index(drop=True)
 
-        if not as_index:
-            tm.assert_frame_equal(left, right, check_names=False)
-        else:
-            tm.assert_series_equal(left, right, check_names=False)
+        tm.assert_series_equal(left, right, check_names=False)
         tm.assert_frame_equal(df, original_df)
 
     days = date_range("2015-08-23", periods=10)
@@ -59,12 +56,11 @@ def test_series_groupby_nunique(n, m, sort, dropna):
 def test_nunique():
     df = DataFrame({"A": list("abbacc"), "B": list("abxacc"), "C": list("abbacx")})
 
-    expected = DataFrame({"A": list("abc"), "B": [1, 2, 1], "C": [1, 1, 2]})
+    expected = DataFrame({"A": [1] * 3, "B": [1, 2, 1], "C": [1, 1, 2]})
     result = df.groupby("A", as_index=False).nunique()
     tm.assert_frame_equal(result, expected)
 
     # as_index
-    expected = expected.drop(columns="A")
     expected.index = list("abc")
     expected.index.name = "A"
     result = df.groupby("A").nunique()
@@ -75,7 +71,7 @@ def test_nunique():
     tm.assert_frame_equal(result, expected)
 
     # dropna
-    expected = DataFrame({"B": [1] * 3, "C": [1] * 3}, index=list("abc"))
+    expected = DataFrame({"A": [1] * 3, "B": [1] * 3, "C": [1] * 3}, index=list("abc"))
     expected.index.name = "A"
     result = df.replace({"x": None}).groupby("A").nunique()
     tm.assert_frame_equal(result, expected)

@@ -662,10 +662,10 @@ class _LocationIndexer(_NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        if self.name == "iloc" and isinstance(value, (ABCSeries, ABCDataFrame)):
-            # Strip labels so as to not align with RHS
-            # value = value._values.copy()
-            pass
+        # Reverted for testing path on master
+        # if self.name == "iloc" and isinstance(value, (ABCSeries, ABCDataFrame)):
+        #     # Strip labels so as to not align with RHS
+        #     value = value._values.copy()
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value)
