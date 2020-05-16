@@ -105,6 +105,26 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=re.escape(msg)):
             method(cat)
 
+    @pytest.mark.parametrize("kwarg", ["axis", "out", "keepdims"])
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_unsupported_kwargs_raises(self, method, kwarg):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        msg = (
+            f"the '{kwarg}' parameter is not supported in the pandas implementation of"
+            f" {method}"
+        )
+        kwargs = {kwarg: 42}
+        method = getattr(np, method)
+        with pytest.raises(ValueError, match=msg):
+            method(cat, **kwargs)
+
+    @pytest.mark.parametrize("method, expected", [("min", "a"), ("max", "c")])
+    def test_numpy_min_max_axis_equals_none(self, method, expected):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        method = getattr(np, method)
+        result = method(cat, axis=None)
+        assert result == expected
+
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
         [

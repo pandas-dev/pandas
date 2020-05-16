@@ -9,6 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -2092,7 +2093,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
-        # TODO: validate kwargs
+        nv.validate_min((), kwargs)
         self.check_for_ordered("min")
 
         if not len(self._codes):
@@ -2128,7 +2129,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
-        # TODO: validate kwargs
+        nv.validate_max((), kwargs)
         self.check_for_ordered("max")
 
         if not len(self._codes):
