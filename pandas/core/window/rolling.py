@@ -251,11 +251,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         blocks, obj = self._create_blocks()
         index = self._get_window_indexer(window=window)
 
-        # Choose the min between min_periods and window to determine the output size
-        if self.min_periods is None:
-            iter_threshold = window
-        else:
-            iter_threshold = min(window, self.min_periods)
+        # min_periods cannot be larger than window
+        if self.min_periods is not None and self.min_periods > window:
+            raise ValueError(
+                f"min_periods {self.min_periods} must be <= window {window}"
+            )
 
         start, end = index.get_window_bounds(
             num_values=len(obj),
@@ -268,8 +268,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
-            if result.count().min() >= iter_threshold:
-                yield result
+            yield result
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
