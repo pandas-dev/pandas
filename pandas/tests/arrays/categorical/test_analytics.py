@@ -110,8 +110,8 @@ class TestCategoricalAnalytics:
     def test_numpy_min_max_unsupported_kwargs_raises(self, method, kwarg):
         cat = Categorical(["a", "b", "c", "b"], ordered=True)
         msg = (
-            f"the '{kwarg}' parameter is not supported in the pandas implementation of"
-            f" {method}"
+            f"the '{kwarg}' parameter is not supported in the pandas implementation "
+            f"of {method}"
         )
         kwargs = {kwarg: 42}
         method = getattr(np, method)
