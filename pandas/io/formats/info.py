@@ -147,15 +147,20 @@ def info(
         max_cols = get_option("display.max_info_columns", col_count + 1)
 
     max_rows = get_option("display.max_info_rows", len(data) + 1)
-    assert max_cols is not None  # help mypy
 
     if null_counts is None and isinstance(data, ABCDataFrame):
+        assert max_cols is not None  # help mypy
         show_counts = (col_count <= max_cols) and (len(data) < max_rows)
     elif isinstance(data, ABCDataFrame):
         show_counts = null_counts
     else:
         show_counts = True
-    exceeds_info_cols = isinstance(data, ABCDataFrame) and col_count > max_cols
+
+    if isinstance(data, ABCDataFrame):
+        assert max_cols is not None  # help mypy
+        exceeds_info_cols = col_count > max_cols
+    else:
+        exceeds_info_cols = False
 
     def _verbose_repr():
 
