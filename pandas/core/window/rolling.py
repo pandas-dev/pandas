@@ -248,7 +248,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-
         blocks, obj = self._create_blocks()
         index = self._get_window_indexer(window=window)
 
@@ -267,9 +266,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         # From get_window_bounds, those two should be equal in length of array
         assert len(start) == len(end)
 
-        window_size = len(start)
-        for i in range(window_size):
-            result = obj.iloc[slice(start[i], end[i])]
+        for s, e in zip(start, end):
+            result = obj.iloc[slice(s, e)]
             if result.count().min() >= iter_threshold:
                 yield result
 
