@@ -251,12 +251,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         blocks, obj = self._create_blocks()
         index = self._get_window_indexer(window=window)
 
-        # min_periods cannot be larger than window
-        if self.min_periods is not None and self.min_periods > window:
-            raise ValueError(
-                f"min_periods {self.min_periods} must be <= window {window}"
-            )
-
         start, end = index.get_window_bounds(
             num_values=len(obj),
             min_periods=self.min_periods,

@@ -465,7 +465,11 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     [
         (
             DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2])],
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
             3,
             None,
         ),
@@ -482,6 +486,7 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
         (
             DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
+                ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
                 ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
             ],
@@ -498,13 +503,26 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
             1,
             1,
         ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            1,
+            2,
+        ),
         (DataFrame({"A": [1], "B": [4]}), [], 2, None),
         (DataFrame({"A": [1], "B": [4]}), [], 2, 1),
         (DataFrame(), [({}, [])], 2, None),
-        (DataFrame(), [({}, [])], 1, 2),
         (
             DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
-            [({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2])],
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
             3,
             2,
         ),
@@ -567,15 +585,24 @@ def test_iter_rolling_on_dataframe(expected, window):
 @pytest.mark.parametrize(
     "ser,expected,window, min_periods",
     [
-        (Series([1, 2, 3]), [([1, 2, 3], [0, 1, 2])], 3, None),
+        (
+            Series([1, 2, 3]),
+            [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+            3,
+            None,
+        ),
+        (
+            Series([1, 2, 3]),
+            [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+            3,
+            1,
+        ),
         (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 1),
-        (Series([1, 2, 3]), [([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 3),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 3),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 0),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 2),
         (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2, 0),
-        (Series([1, 2]), [([1, 2], [0, 1])], 2, 3),
         (Series([], dtype="int64"), [], 2, 1),
-        (Series([], dtype="int64"), [], 2, 3),
     ],
 )
 def test_iter_rolling_series(ser, expected, window, min_periods):
