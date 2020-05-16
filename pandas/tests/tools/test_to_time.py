@@ -64,6 +64,6 @@ def test_to_time_alias():
     expected = time(14, 15)
 
     with tm.assert_produces_warning(FutureWarning):
-        result = to_time_alias("2:15pm")
+        result = to_time_alias(expected)
 
     assert result == expected
