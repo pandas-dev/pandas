@@ -140,9 +140,10 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    if is_numeric_dtype(values):
+    values_dtype = getattr(values, "dtype", None)
+    if is_numeric_dtype(values_dtype):
         pass
-    elif is_datetime_or_timedelta_dtype(values):
+    elif is_datetime_or_timedelta_dtype(values_dtype):
         values = values.astype(np.int64)
     else:
         values = ensure_object(values)
@@ -157,7 +158,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
-    if downcast is not None and is_numeric_dtype(values):
+    if downcast is not None and is_numeric_dtype(values.dtype):
         typecodes = None
 
         if downcast in ("integer", "signed"):
