@@ -131,14 +131,19 @@ class FrameWithFrameWide:
         df._consolidate_inplace()
 
         # TODO: GH#33198 the setting here shoudlnt need two steps
-        arr = np.random.randn(10 ** 6).reshape(n_rows, n_cols).astype(np.float64)
-        df2 = pd.DataFrame(arr)
-        df2[1000] = df2[1000].astype(np.int64)
-        df2.iloc[:, 500:1500] = df2.iloc[:, 500:1500].astype(np.int64)
+        arr1 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
+        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("i8")
+        arr3 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
+        df2 = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2), pd.DataFrame(arr3)],
+            axis=1,
+            ignore_index=True,
+        )
+        # should already be the case, but just to be sure
         df2._consolidate_inplace()
 
         self.left = df
-        self.right = df
+        self.right = df2
 
     def time_op_different_blocks(self, op):
         # blocks (and dtypes) are not aligned
