@@ -8367,7 +8367,7 @@ NaN 12.3   33.0
         return result
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self, op, name, axis=0, dropna=True, numeric_only=None, filter_type=None, **kwds
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
@@ -8400,7 +8400,7 @@ NaN 12.3   33.0
             constructor = self._constructor
 
         def f(x):
-            return op(x, axis=axis, skipna=skipna, **kwds)
+            return op(x, axis=axis, dropna=dropna, **kwds)
 
         def _get_data(axis_matters):
             if filter_type is None:
@@ -8431,9 +8431,9 @@ NaN 12.3   33.0
 
             def blk_func(values):
                 if isinstance(values, ExtensionArray):
-                    return values._reduce(name, skipna=skipna, **kwds)
+                    return values._reduce(name, dropna=dropna, **kwds)
                 else:
-                    return op(values, axis=1, skipna=skipna, **kwds)
+                    return op(values, axis=1, dropna=dropna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
@@ -8562,7 +8562,7 @@ NaN 12.3   33.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True) -> Series:
+    def idxmin(self, axis=0, dropna=True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -8572,7 +8572,7 @@ NaN 12.3   33.0
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        skipna : bool, default True
+        dropna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
@@ -8624,7 +8624,7 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        indices = nanops.nanargmin(self.values, axis=axis, dropna=dropna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -8635,7 +8635,7 @@ NaN 12.3   33.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True) -> Series:
+    def idxmax(self, axis=0, dropna=True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -8645,7 +8645,7 @@ NaN 12.3   33.0
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        skipna : bool, default True
+        dropna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
@@ -8697,7 +8697,7 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        indices = nanops.nanargmax(self.values, axis=axis, dropna=dropna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
