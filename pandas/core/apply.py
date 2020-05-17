@@ -17,12 +17,11 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
-
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series, Index
+    from pandas import Index
 
 ResType = Dict[int, Any]
 
