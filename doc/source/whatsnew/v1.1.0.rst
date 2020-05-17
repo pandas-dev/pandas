@@ -337,6 +337,7 @@ Backwards incompatible API changes
 - Combining a ``Categorical`` with integer categories and which contains missing values
   with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
   will now result in a float column instead of an object dtyped column (:issue:`33607`)
+- :meth:`DataFrame.interpolate` uses the correct axis convention. Previously interpolating along columns lead to interpolation along indices and vice versa.
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
