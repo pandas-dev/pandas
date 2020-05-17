@@ -90,7 +90,7 @@ class IndexingError(Exception):
 
 class IndexingMixin:
     """
-    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    Mixin for adding .loc/.iloc/.at/.iat to Dataframes and Series.
     """
 
     @property
@@ -1498,7 +1498,7 @@ class _iLocIndexer(_LocationIndexer):
         return key
 
     def _get_setitem_indexer(self, key):
-        # GH#32257 Fall through to let numnpy do validation
+        # GH#32257 Fall through to let numpy do validation
         return key
 
     # -------------------------------------------------------------------
@@ -2257,9 +2257,9 @@ def need_slice(obj) -> bool:
 
 def _non_reducing_slice(slice_):
     """
-    Ensurse that a slice doesn't reduce to a Series or Scalar.
+    Ensure that a slice doesn't reduce to a Series or Scalar.
 
-    Any user-paseed `subset` should have this called on it
+    Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
     # default to column slice, like DataFrame

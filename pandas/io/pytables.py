@@ -984,6 +984,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         """
         Store object in HDFStore.
@@ -1010,6 +1011,12 @@ class HDFStore:
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
+        track_times : bool, default True
+            Parameter is propagated to 'create_table' method of 'PyTables'.
+            If set to False it enables to have the same h5 files (same hashes)
+            independent on creation time.
+
+            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1027,6 +1034,7 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
+            track_times=track_times,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1626,6 +1634,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         group = self.get_node(key)
 
@@ -1688,6 +1697,7 @@ class HDFStore:
             dropna=dropna,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            track_times=track_times,
         )
 
         if isinstance(s, Table) and index:
@@ -2626,7 +2636,7 @@ class GenericFixed(Fixed):
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes: List[str] = []
 
-    # indexer helpders
+    # indexer helpers
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
@@ -2819,7 +2829,7 @@ class GenericFixed(Fixed):
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
-        # have written a sentinel. Here we relace it with the original.
+        # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
             data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
@@ -2925,7 +2935,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(value, skipna=False)
             if empty_array:
                 pass
             elif inferred_type == "string":
@@ -3592,7 +3602,7 @@ class Table(Fixed):
             )
 
         # evaluate the passed data_columns, True == use all columns
-        # take only valide axis labels
+        # take only valid axis labels
         if data_columns is True:
             data_columns = list(axis_labels)
         elif data_columns is None:
@@ -4106,8 +4116,8 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
+        track_times=True,
     ):
-
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4136,6 +4146,8 @@ class AppendableTable(Table):
 
             # set the table attributes
             table.set_attrs()
+
+            options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)
@@ -4769,7 +4781,7 @@ def _maybe_convert_for_string_atom(
     data = block.values
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
 
         # we cannot serialize this data, so report an exception on a column
@@ -4777,7 +4789,7 @@ def _maybe_convert_for_string_atom(
         for i in range(len(block.shape[0])):
 
             col = block.iget(i)
-            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 iloc = block.mgr_locs.indexer[i]
                 raise TypeError(

@@ -1,10 +1,13 @@
 """
 Boilerplate functions used in defining binary operations.
 """
+from collections import UserDict
 from functools import wraps
 from typing import Callable
 
-from pandas._libs.lib import item_from_zerodim
+import numpy as np
+
+from pandas._libs.lib import is_list_like, item_from_zerodim
 from pandas._typing import F
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -61,6 +64,25 @@ def _unpack_zerodim_and_defer(method, name: str):
                     return NotImplemented
 
         other = item_from_zerodim(other)
+
+        if isinstance(self, (ABCSeries, ABCDataFrame)) and isinstance(
+            other, (ABCSeries, ABCDataFrame)
+        ):
+            # we dont require length matches
+            pass
+        elif is_list_like(other, allow_sets=False) and not isinstance(
+            other, (dict, UserDict)
+        ):
+            if len(other) != len(self):
+                if len(other) == 1 and not hasattr(other, "dtype"):
+                    # i.e. unpack scalar list, but leave e.g. Categorical,
+                    #  for which the scalar behavior doesnt match the
+                    #  array behavior
+                    other = other[0]
+                else:
+                    raise ValueError(
+                        "Lengths must match", self.shape, np.shape(other), type(other)
+                    )
 
         return method(self, other)
 

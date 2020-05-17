@@ -8,7 +8,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
 
 from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
@@ -90,11 +90,6 @@ cpdef bint checknull_old(object val):
     return False
 
 
-cdef inline bint _check_none_nan_inf_neginf(object val):
-    return val is None or (isinstance(val, float) and
-                           (val != val or val == INF or val == NEGINF))
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[uint8_t] isnaobj(ndarray arr):
@@ -141,6 +136,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - INF
      - NEGINF
      - NaT
+     - NA
 
     Parameters
     ----------
@@ -161,7 +157,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = checknull(val) or val == INF or val == NEGINF
     return result.view(np.bool_)
 
 
@@ -277,6 +273,11 @@ cdef inline bint is_null_timedelta64(v):
     elif util.is_timedelta64_object(v):
         return get_timedelta64_value(v) == NPY_NAT
     return False
+
+
+cdef bint checknull_with_nat_and_na(object obj):
+    # See GH#32214
+    return checknull_with_nat(obj) or obj is C_NA
 
 
 # -----------------------------------------------------------------------------

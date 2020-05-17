@@ -1104,6 +1104,7 @@ def assert_series_equal(
     check_datetimelike_compat=False,
     check_categorical=True,
     check_category_order=True,
+    check_freq=True,
     obj="Series",
 ):
     """
@@ -1142,6 +1143,10 @@ def assert_series_equal(
         Whether to compare category order of internal Categoricals.
 
         .. versionadded:: 1.0.2
+    check_freq : bool, default True
+        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1171,7 +1176,7 @@ def assert_series_equal(
         check_categorical=check_categorical,
         obj=f"{obj}.index",
     )
-    if isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+    if check_freq and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         lidx = left.index
         ridx = right.index
         assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
@@ -1274,6 +1279,7 @@ def assert_frame_equal(
     check_datetimelike_compat=False,
     check_categorical=True,
     check_like=False,
+    check_freq=True,
     obj="DataFrame",
 ):
     """
@@ -1327,6 +1333,10 @@ def assert_frame_equal(
         If True, ignore the order of index & columns.
         Note: index labels must match their respective rows
         (same as in columns) - same labels must be with the same data.
+    check_freq : bool, default True
+        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1433,6 +1443,7 @@ def assert_frame_equal(
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
+                check_freq=check_freq,
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
             )
 
@@ -1490,7 +1501,9 @@ def box_expected(expected, box_cls, transpose=True):
     -------
     subclass of box_cls
     """
-    if box_cls is pd.Index:
+    if box_cls is pd.array:
+        expected = pd.array(expected)
+    elif box_cls is pd.Index:
         expected = pd.Index(expected)
     elif box_cls is pd.Series:
         expected = pd.Series(expected)
