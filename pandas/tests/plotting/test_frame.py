@@ -3398,13 +3398,13 @@ class TestDataFramePlots(TestPlotBase):
 
         # default is the ylabel is not shown and xlabel is index name
         axes = df.plot(kind=kind, subplots=True)
-        assert all([ax.get_ylabel() == old_ylabel for ax in axes])
-        assert all([ax.get_xlabel() == old_xlabel for ax in axes])
+        assert all(ax.get_ylabel() == old_ylabel for ax in axes)
+        assert all(ax.get_xlabel() == old_xlabel for ax in axes)
 
         # old xlabel will be overriden and assigned ylabel will be used as ylabel
         axes = df.plot(kind=kind, ylabel=new_ylabel, xlabel=new_xlabel, subplots=True)
-        assert all([ax.get_ylabel() == new_ylabel for ax in axes])
-        assert all([ax.get_xlabel() == new_xlabel for ax in axes])
+        assert all(ax.get_ylabel() == new_ylabel for ax in axes)
+        assert all(ax.get_xlabel() == new_xlabel for ax in axes)
 
 
 def _generate_4_axes_via_gridspec():
