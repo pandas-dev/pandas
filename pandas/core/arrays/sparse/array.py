@@ -1220,7 +1220,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis=0, min_count=0, *args, **kwargs):
         """
         Sum of non-NA/null values
 
