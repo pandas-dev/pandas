@@ -2138,6 +2138,7 @@ c  10  11  12  13  14\
         assert str(df) == exp
 
     def test_to_string_ending_header(self):
+        # GH 32296
         tm.reset_display_options()
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
         df_s = df.to_string(ending_header=True)
