@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import Period, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import Period, resolution
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -43,7 +43,6 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
-from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -277,15 +276,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             of self.freq.  Note IncompatibleFrequency subclasses ValueError.
         """
         if isinstance(other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, Tick):
+            if isinstance(self.freq, Tick):
                 # _check_timedeltalike_freq_compat will raise if incompatible
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta
         elif isinstance(other, DateOffset):
-            freqstr = other.rule_code
-            base = libfrequencies.get_base_alias(freqstr)
-            if base == self.freq.rule_code:
+            if other.base == self.freq.base:
                 return other.n
 
             raise raise_on_incompatible(self, other)
