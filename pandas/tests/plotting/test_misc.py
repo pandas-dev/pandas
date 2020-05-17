@@ -54,7 +54,7 @@ def test_get_accessor_args():
     assert x is None
     assert y is None
     assert kind == "line"
-    assert len(kwargs) == 22
+    assert len(kwargs) == 24
 
 
 @td.skip_if_no_mpl

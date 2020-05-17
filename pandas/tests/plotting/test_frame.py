@@ -3351,34 +3351,32 @@ class TestDataFramePlots(TestPlotBase):
             assert legend.get_color() == line.get_color()
 
     @pytest.mark.parametrize(
-        "index_name, xlabel", [(None, ""), ("new_name", "new_name")]
+        "index_name, old_xlabel, new_xlabel, old_ylabel, new_ylabel",
+        [
+            (None, "", "new_x", "", ""),
+            ("old_x", "old_x", "new_x", "", ""),
+            (None, "", "", "", ""),
+            (None, "", "new_x", "", "new_y"),
+            ("old_x", "old_x", "new_x", "", "new_y"),
+        ],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
-    def test_xlabel_single_plot(self, kind, index_name, xlabel):
+    def test_xlabel_ylabel_single_plot(
+        self, kind, index_name, old_xlabel, old_ylabel, new_xlabel, new_ylabel
+    ):
         # GH 9093
         df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
-        # default is the index name is being used if not None, otherwise no xlabel is shown
+        # default is the ylabel is not shown and xlabel is index name
         ax = df.plot(kind=kind)
-        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == old_ylabel
+        assert ax.get_xlabel() == old_xlabel
 
-        ax = df.plot(kind=kind, xlabel="new label")
-        assert ax.get_xlabel() == "new label"
-
-    @pytest.mark.parametrize("index_name, ylabel", [(None, ""), ("new_name", "")])
-    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
-    def test_ylabel_single_plot(self, kind, index_name, ylabel):
-        # GH 9093
-        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
-        df.index.name = index_name
-
-        # default is the ylabel is not shown
-        ax = df.plot(kind=kind)
-        assert ax.get_ylabel() == ylabel
-
-        ax = df.plot(kind=kind, ylabel="new label")
-        assert ax.get_ylabel() == "new label"
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = df.plot(kind=kind, ylabel=new_ylabel, xlabel=new_xlabel)
+        assert ax.get_ylabel() == new_ylabel
+        assert ax.get_xlabel() == new_xlabel
 
 
 def _generate_4_axes_via_gridspec():
