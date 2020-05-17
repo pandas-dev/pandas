@@ -1,0 +1,1584 @@
+_ TestIntervalIndexRendering.test_repr_missing[Series-(0.0, 1.0]    a\nNaN           b\n(2.0, 3.0]    c\ndtype: object] _
+[gw0] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.indexes.interval.test_formats.TestIntervalIndexRendering object at 0x7fc72f387070>
+constructor = <class 'pandas.core.series.Series'>
+expected = '(0.0, 1.0]    a\nNaN           b\n(2.0, 3.0]    c\ndtype: object'
+
+    @pytest.mark.parametrize(
+        "constructor,expected",
+        [
+            (
+                Series,
+                (
+                    "(0.0, 1.0]    a\n"
+                    "NaN           b\n"
+                    "(2.0, 3.0]    c\n"
+                    "dtype: object"
+                ),
+            ),
+            (DataFrame, ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c")),
+        ],
+    )
+    def test_repr_missing(self, constructor, expected):
+        # GH 25984
+        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
+        obj = constructor(list("abc"), index=index)
+        result = repr(obj)
+>       assert result == expected
+E       AssertionError: assert '(0.0, 1.0]  ...dtype: object' == '(0.0, 1.0]  ...dtype: object'
+E         - (0.0, 1.0]    a
+E         ?              ^
+E         + (0.0, 1.0]   'a'
+E         ?              ^ +
+E         - NaN           b
+E         ?              ^
+E         + NaN          'b'...
+E         
+E         ...Full output truncated (7 lines hidden), use '-vv' to show
+
+pandas/tests/indexes/interval/test_formats.py:38: AssertionError
+_ TestIntervalIndexRendering.test_repr_missing[DataFrame-            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c] _
+[gw0] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.indexes.interval.test_formats.TestIntervalIndexRendering object at 0x7fc72f3a82b0>
+constructor = <class 'pandas.core.frame.DataFrame'>
+expected = '            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c'
+
+    @pytest.mark.parametrize(
+        "constructor,expected",
+        [
+            (
+                Series,
+                (
+                    "(0.0, 1.0]    a\n"
+                    "NaN           b\n"
+                    "(2.0, 3.0]    c\n"
+                    "dtype: object"
+                ),
+            ),
+            (DataFrame, ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c")),
+        ],
+    )
+    def test_repr_missing(self, constructor, expected):
+        # GH 25984
+        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
+        obj = constructor(list("abc"), index=index)
+        result = repr(obj)
+>       assert result == expected
+E       assert "            ...2.0, 3.0] 'c'" == '            ...(2.0, 3.0]  c'
+E         -             0
+E         +              0
+E         ? +
+E         - (0.0, 1.0]  a
+E         ?            ^
+E         + (0.0, 1.0] 'a'
+E         ?            ^ +...
+E         
+E         ...Full output truncated (9 lines hidden), use '-vv' to show
+
+pandas/tests/indexes/interval/test_formats.py:38: AssertionError
+_________________ TestReadHtml.test_multiple_header_rows[bs4] __________________
+[gw2] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.test_html.TestReadHtml object at 0x7f86acd13df0>
+
+    def test_multiple_header_rows(self):
+        # Issue #13434
+        expected_df = DataFrame(
+            data=[("Hillary", 68, "D"), ("Bernie", 74, "D"), ("Donald", 69, "R")]
+        )
+        expected_df.columns = [
+            ["Unnamed: 0_level_0", "Age", "Party"],
+            ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
+        ]
+        html = expected_df.to_html(index=False)
+        html_df = self.read_html(html)[0]
+>       tm.assert_frame_equal(expected_df, html_df)
+
+pandas/tests/io/test_html.py:1079: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pandas/_libs/testing.pyx:68: in pandas._libs.testing.assert_almost_equal
+    cpdef assert_almost_equal(a, b,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+E   AssertionError: DataFrame.iloc[:, 0] (column name="('Unnamed: 0_level_0', 'Name')") are different
+E   
+E   DataFrame.iloc[:, 0] (column name="('Unnamed: 0_level_0', 'Name')") values are different (100.0 %)
+E   [index]: [0, 1, 2]
+E   [left]:  [Hillary, Bernie, Donald]
+E   [right]: ['Hillary', 'Bernie', 'Donald']
+
+pandas/_libs/testing.pyx:183: AssertionError
+_________________ TestReadHtml.test_multiple_header_rows[lxml] _________________
+[gw2] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.test_html.TestReadHtml object at 0x7f86acc927c0>
+
+    def test_multiple_header_rows(self):
+        # Issue #13434
+        expected_df = DataFrame(
+            data=[("Hillary", 68, "D"), ("Bernie", 74, "D"), ("Donald", 69, "R")]
+        )
+        expected_df.columns = [
+            ["Unnamed: 0_level_0", "Age", "Party"],
+            ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
+        ]
+        html = expected_df.to_html(index=False)
+        html_df = self.read_html(html)[0]
+>       tm.assert_frame_equal(expected_df, html_df)
+
+pandas/tests/io/test_html.py:1079: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pandas/_libs/testing.pyx:68: in pandas._libs.testing.assert_almost_equal
+    cpdef assert_almost_equal(a, b,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+E   AssertionError: DataFrame.iloc[:, 0] (column name="('Unnamed: 0_level_0', 'Name')") are different
+E   
+E   DataFrame.iloc[:, 0] (column name="('Unnamed: 0_level_0', 'Name')") values are different (100.0 %)
+E   [index]: [0, 1, 2]
+E   [left]:  [Hillary, Bernie, Donald]
+E   [right]: ['Hillary', 'Bernie', 'Donald']
+
+pandas/_libs/testing.pyx:183: AssertionError
+_________________ TestDataFrameFormatting.test_repr_truncation _________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3af11e20>
+
+    def test_repr_truncation(self):
+        max_len = 20
+        with option_context("display.max_colwidth", max_len):
+            df = DataFrame(
+                {
+                    "A": np.random.randn(10),
+                    "B": [
+                        tm.rands(np.random.randint(max_len - 1, max_len + 1))
+                        for i in range(10)
+                    ],
+                }
+            )
+            r = repr(df)
+            r = r[r.find("\n") + 1 :]
+    
+            adj = fmt._get_adjustment()
+    
+            for line, value in zip(r.split("\n"), df["B"]):
+                if adj.len(value) + 1 > max_len:
+                    assert "..." in line
+                else:
+>                   assert "..." not in line
+E                   AssertionError: assert '...' not in '0 -0.426290...7OEA0dVWe...'
+E                     '...' is contained here:
+E                       0 -0.426290 '2fAo1sX7OEA0dVWe...
+E                     ?                              +++
+
+pandas/tests/io/formats/test_format.py:234: AssertionError
+________________ TestDataFrameFormatting.test_str_max_colwidth _________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3b765100>
+
+    def test_str_max_colwidth(self):
+        # GH 7856
+        df = pd.DataFrame(
+            [
+                {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "uncomfortably long line with lots of stuff",
+                    "d": 1,
+                },
+                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
+            ]
+        )
+        df.set_index(["a", "b", "c"])
+>       assert str(df) == (
+            "     a    b                                           c  d\n"
+            "0  foo  bar  uncomfortably long line with lots of stuff  1\n"
+            "1  foo  bar                                       stuff  1"
+        )
+E       assert "      a     ...   'stuff'  1" == '     a    b ...     stuff  1'
+E         -      a    b                                           c  d
+E         +       a     b                                            c  d
+E         ? +          +                                            +
+E         - 0  foo  bar  uncomfortably long line with lots of stuff  1
+E         ?   ^   ^^   ^^
+E         + 0 'foo' 'bar' 'uncomfortably long line with lots of stuff'  1
+E         ?   ^   ^^^   ^^^                                          +...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:524: AssertionError
+_______________ TestDataFrameFormatting.test_to_string_truncate ________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3a27fc70>
+
+    def test_to_string_truncate(self):
+        # GH 9784 - dont truncate when calling DataFrame.to_string
+        df = pd.DataFrame(
+            [
+                {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "let's make this a very VERY long line that is longer "
+                    "than the default 50 character limit",
+                    "d": 1,
+                },
+                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
+            ]
+        )
+        df.set_index(["a", "b", "c"])
+>       assert df.to_string() == (
+            "     a    b                                         "
+            "                                                c  d\n"
+            "0  foo  bar  let's make this a very VERY long line t"
+            "hat is longer than the default 50 character limit  1\n"
+            "1  foo  bar                                         "
+            "                                            stuff  1"
+        )
+E       assert "      a     ...   'stuff'  1" == '     a    b ...     stuff  1'
+E         -      a    b                                                                                         c  d
+E         +       a     b                                                                                          c  d
+E         ? +          +                                                                                          +
+E         - 0  foo  bar  let's make this a very VERY long line that is longer than the default 50 character limit  1
+E         ?   ^   ^^   ^^
+E         + 0 'foo' 'bar' 'let's make this a very VERY long line that is longer than the default 50 character limit'  1
+E         ?   ^   ^^^   ^^^         ...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:551: AssertionError
+____________ TestDataFrameFormatting.test_east_asian_unicode_false _____________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3b0aae80>
+
+    def test_east_asian_unicode_false(self):
+        # not aligned properly because of east asian width
+    
+        # mid col
+        df = DataFrame(
+            {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
+            index=["a", "bb", "c", "ddd"],
+        )
+        expected = (
+            "          a      b\na         あ      1\n"
+            "bb      いいい    222\nc         う  33333\n"
+            "ddd  ええええええ      4"
+        )
+>       assert repr(df) == expected
+E       assert "           a...えええええ'      4" == '          a ...ええええええ      4'
+E         -           a      b
+E         +            a      b
+E         ? +
+E         - a         あ      1
+E         ?          ^
+E         + a        'あ'      1
+E         ?          ^ +...
+E         
+E         ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:737: AssertionError
+_____________ TestDataFrameFormatting.test_east_asian_unicode_true _____________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3a77de20>
+
+    def test_east_asian_unicode_true(self):
+        # Enable Unicode option -----------------------------------------
+        with option_context("display.unicode.east_asian_width", True):
+    
+            # mid col
+            df = DataFrame(
+                {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
+                index=["a", "bb", "c", "ddd"],
+            )
+            expected = (
+                "                a      b\na              あ      1\n"
+                "bb         いいい    222\nc              う  33333\n"
+                "ddd  ええええええ      4"
+            )
+>           assert repr(df) == expected
+E           assert "            ...えええええ'      4" == '            ...ええええええ      4'
+E             -                 a      b
+E             +                  a      b
+E             ? +
+E             - a              あ      1
+E             ?               ^
+E             + a             'あ'      1
+E             ?               ^ +...
+E             
+E             ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:875: AssertionError
+_________________ TestDataFrameFormatting.test_index_with_nan __________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3a38c8e0>
+
+    def test_index_with_nan(self):
+        #  GH 2850
+        df = DataFrame(
+            {
+                "id1": {0: "1a3", 1: "9h4"},
+                "id2": {0: np.nan, 1: "d67"},
+                "id3": {0: "78d", 1: "79d"},
+                "value": {0: 123, 1: 64},
+            }
+        )
+    
+        # multi-index
+        y = df.set_index(["id1", "id2", "id3"])
+        result = y.to_string()
+        expected = (
+            "             value\nid1 id2 id3       \n"
+            "1a3 NaN 78d    123\n9h4 d67 79d     64"
+        )
+        assert result == expected
+    
+        # index
+        y = df.set_index("id2")
+        result = y.to_string()
+        expected = (
+            "     id1  id3  value\nid2                 \n"
+            "NaN  1a3  78d    123\nd67  9h4  79d     64"
+        )
+>       assert result == expected
+E       assert "      id1   ... '79d'     64" == '     id1  id...4  79d     64'
+E         -      id1  id3  value
+E         +       id1   id3  value
+E         ? +          +
+E         - id2                 
+E         + id2                   
+E         ?                     ++
+E         - NaN  1a3  78d    123...
+E         
+E         ...Full output truncated (8 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:1398: AssertionError
+____________________ TestDataFrameFormatting.test_to_string ____________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3af6e1f0>
+
+    def test_to_string(self):
+    
+        # big mixed
+        biggie = DataFrame(
+            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
+            index=np.arange(200),
+        )
+    
+        biggie.loc[:20, "A"] = np.nan
+        biggie.loc[:20, "B"] = np.nan
+        s = biggie.to_string()
+    
+        buf = StringIO()
+        retval = biggie.to_string(buf=buf)
+        assert retval is None
+        assert buf.getvalue() == s
+    
+        assert isinstance(s, str)
+    
+        # print in right order
+        result = biggie.to_string(
+            columns=["B", "A"], col_space=17, float_format="%.5f".__mod__
+        )
+        lines = result.split("\n")
+        header = lines[0].strip().split()
+        joined = "\n".join(re.sub(r"\s+", " ", x).strip() for x in lines[1:])
+        recons = read_csv(StringIO(joined), names=header, header=None, sep=" ")
+>       tm.assert_series_equal(recons["B"], biggie["B"])
+
+pandas/tests/io/formats/test_format.py:1475: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pandas/_libs/testing.pyx:68: in pandas._libs.testing.assert_almost_equal
+    cpdef assert_almost_equal(a, b,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+E   AssertionError: Series are different
+E   
+E   Series values are different (89.5 %)
+E   [index]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, ...]
+E   [left]:  [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, 'ReUMMYOzRc', 'm8JaaoOinz', 'sObNzAa9Sb', 'HRKG2ackB4', '0azcKU0pMp', '2mIvVr5itT', 'rGUpLDHyCl', '82UUP3PsXe', '05Wgq2rheA', 'E5jcBVizmI', 's2BXU0YHCQ', 'frVcLBb65o', 'wAMPDhKWPK', 'ASORqAK5Jk', 'YeJ7LtATFI', 'IzEShI7kI1', 'OABJwASxEY', 'Jr8okkyRpq', 'Rxj4uDCiyu', 'gmf0SkUai3', 'HpgiaSbjR2', 'xtZWYDfYEO', 'VUzBhy7urU', 'uLUGvTFnqx', 'FZx3FplLeC', 'U9hpEhF5ss', 'TpJdnJ7Nzd', '1phREHhRsM', 'NssXhnFpKV', 'hEqW5irrLk', 'Twuj74zdTH', '7ltutV1O47', '2Ipsj424K8', 'G3dbMMYkgz', 'rxAsSNQ8qn', 'RqrQj2Ozfo', 'A07eRJDOxX', 'x0Y1kwZMv2', 'k6jyXkGdWb', 'Yl5NkpyVKl', 'C03IGiW6zr', 'mVbiXcVTtM', 'VOmlVUmdh0', '481dbvfltM', 'lwNNDPVPSI', 'rha2YAX39o', 'zJzMvKWl7A', 'cWoM5F49zZ', 'zMqfkqXpdR', '7pvDnY8NR5', 'J8XExS3CMA', '5WNzD0xErD', 'cy9DDrahxY', 'IEgi5viuyF', 'hs8VgWm3C6', 'KP458GphgF', 'TO8oGkA5NL', 'dDuScWreSw', 'kyIHeh9Vwl', 'BZuhU8x2S9', 'f7p4PNZ8Vr', 'U1EiHy397b', 'OIvNL6oxOH', 'CuaVgCNtzX', 'vsFWaKUFbS', 'byfE947n2S', 'LctPcyhLuE', 't8JOJggu2o', 'nGJhNJvSSp', 'QmYVoLdp4Y', '1lr9fM7yVS', 'kNzzRNrcrm', '6uFClL9u62', 'gaTYFoh9zk', 'GoC88dpzsj', 'OLp31oEzCo', 'hdM3S6VYVH', 'jmBW6pvJbd', 'UpU6XuGjCP', ...]
+E   [right]: [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, ReUMMYOzRc, m8JaaoOinz, sObNzAa9Sb, HRKG2ackB4, 0azcKU0pMp, 2mIvVr5itT, rGUpLDHyCl, 82UUP3PsXe, 05Wgq2rheA, E5jcBVizmI, s2BXU0YHCQ, frVcLBb65o, wAMPDhKWPK, ASORqAK5Jk, YeJ7LtATFI, IzEShI7kI1, OABJwASxEY, Jr8okkyRpq, Rxj4uDCiyu, gmf0SkUai3, HpgiaSbjR2, xtZWYDfYEO, VUzBhy7urU, uLUGvTFnqx, FZx3FplLeC, U9hpEhF5ss, TpJdnJ7Nzd, 1phREHhRsM, NssXhnFpKV, hEqW5irrLk, Twuj74zdTH, 7ltutV1O47, 2Ipsj424K8, G3dbMMYkgz, rxAsSNQ8qn, RqrQj2Ozfo, A07eRJDOxX, x0Y1kwZMv2, k6jyXkGdWb, Yl5NkpyVKl, C03IGiW6zr, mVbiXcVTtM, VOmlVUmdh0, 481dbvfltM, lwNNDPVPSI, rha2YAX39o, zJzMvKWl7A, cWoM5F49zZ, zMqfkqXpdR, 7pvDnY8NR5, J8XExS3CMA, 5WNzD0xErD, cy9DDrahxY, IEgi5viuyF, hs8VgWm3C6, KP458GphgF, TO8oGkA5NL, dDuScWreSw, kyIHeh9Vwl, BZuhU8x2S9, f7p4PNZ8Vr, U1EiHy397b, OIvNL6oxOH, CuaVgCNtzX, vsFWaKUFbS, byfE947n2S, LctPcyhLuE, t8JOJggu2o, nGJhNJvSSp, QmYVoLdp4Y, 1lr9fM7yVS, kNzzRNrcrm, 6uFClL9u62, gaTYFoh9zk, GoC88dpzsj, OLp31oEzCo, hdM3S6VYVH, jmBW6pvJbd, UpU6XuGjCP, ...]
+
+pandas/_libs/testing.pyx:183: AssertionError
+_______________ TestDataFrameFormatting.test_to_string_no_index ________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3b6e5ac0>
+
+    def test_to_string_no_index(self):
+        # GH 16839, GH 13032
+        df = DataFrame({"x": [11, 22], "y": [33, -44], "z": ["AAA", "   "]})
+    
+        df_s = df.to_string(index=False)
+        # Leading space is expected for positive numbers.
+        expected = "  x   y    z\n 11  33  AAA\n 22 -44     "
+>       assert df_s == expected
+E       assert "  x   y     ... 22 -44 '   '" == '  x   y    z...n 22 -44     '
+E         -   x   y    z
+E         +   x   y     z
+E         ?        +
+E         -  11  33  AAA
+E         ?         ^
+E         +  11  33 'AAA'
+E         ?         ^   +...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:1522: AssertionError
+_______________ TestDataFrameFormatting.test_to_string_format_na _______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3b97d2b0>
+
+    def test_to_string_format_na(self):
+        tm.reset_display_options()
+        df = DataFrame(
+            {
+                "A": [np.nan, -1, -2.1234, 3, 4],
+                "B": [np.nan, "foo", "foooo", "fooooo", "bar"],
+            }
+        )
+        result = df.to_string()
+    
+        expected = (
+            "        A       B\n"
+            "0     NaN     NaN\n"
+            "1 -1.0000     foo\n"
+            "2 -2.1234   foooo\n"
+            "3  3.0000  fooooo\n"
+            "4  4.0000     bar"
+        )
+>       assert result == expected
+E       assert "        A   ...0000    'bar'" == '        A   ....0000     bar'
+E         -         A       B
+E         +         A        B
+E         ?          +
+E         - 0     NaN     NaN
+E         + 0     NaN      NaN
+E         ?          +
+E         - 1 -1.0000     foo...
+E         
+E         ...Full output truncated (16 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:1731: AssertionError
+_____________________ TestDataFrameFormatting.test_period ______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestDataFrameFormatting object at 0x7f3c3acf5880>
+
+    def test_period(self):
+        # GH 12615
+        df = pd.DataFrame(
+            {
+                "A": pd.period_range("2013-01", periods=4, freq="M"),
+                "B": [
+                    pd.Period("2011-01", freq="M"),
+                    pd.Period("2011-02-01", freq="D"),
+                    pd.Period("2011-03-01 09:00", freq="H"),
+                    pd.Period("2011-04", freq="M"),
+                ],
+                "C": list("abcd"),
+            }
+        )
+        exp = (
+            "         A                 B  C\n"
+            "0  2013-01           2011-01  a\n"
+            "1  2013-02        2011-02-01  b\n"
+            "2  2013-03  2011-03-01 09:00  c\n"
+            "3  2013-04           2011-04  d"
+        )
+>       assert str(df) == exp
+E       assert "         A  ...  2011-04 'd'" == '         A  ...   2011-04  d'
+E         -          A                 B  C
+E         +          A                 B   C
+E         ?                             +
+E         - 0  2013-01           2011-01  a
+E         ?                              ^
+E         + 0  2013-01           2011-01 'a'
+E         ?                              ^ +...
+E         
+E         ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:2138: AssertionError
+__________________ TestSeriesFormatting.test_to_string_mixed ___________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestSeriesFormatting object at 0x7f3c3a91f760>
+
+    def test_to_string_mixed(self):
+        s = Series(["foo", np.nan, -1.23, 4.56])
+        result = s.to_string()
+        expected = "0     foo\n" + "1     NaN\n" + "2   -1.23\n" + "3    4.56"
+        assert result == expected
+    
+        # but don't count NAs as floats
+        s = Series(["foo", np.nan, "bar", "baz"])
+        result = s.to_string()
+        expected = "0    foo\n" + "1    NaN\n" + "2    bar\n" + "3    baz"
+>       assert result == expected
+E       assert "0   'foo'\n1...r'\n3   'baz'" == '0    foo\n1 ...bar\n3    baz'
+E         - 0    foo
+E         ?     ^
+E         + 0   'foo'
+E         ?     ^   +
+E         - 1    NaN
+E         + 1     NaN
+E         ?  +...
+E         
+E         ...Full output truncated (9 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:2210: AssertionError
+_____________ TestSeriesFormatting.test_east_asian_unicode_series ______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestSeriesFormatting object at 0x7f3c3ace6970>
+
+    def test_east_asian_unicode_series(self):
+        # not aligned properly because of east asian width
+    
+        # unicode index
+        s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
+        expected = "あ         a\nいい       bb\nううう     CCC\nええええ      D\ndtype: object"
+>       assert repr(s) == expected
+E       assert "あ        'a'...dtype: object" == 'あ         a\...dtype: object'
+E         - あ         a
+E         ?          ^
+E         + あ        'a'
+E         ?          ^ +
+E         - いい       bb
+E         ?         ^
+E         + いい      'bb'...
+E         
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:2249: AssertionError
+__________________ TestSeriesFormatting.test_format_explicit ___________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_format.TestSeriesFormatting object at 0x7f3c3b6d1430>
+
+    def test_format_explicit(self):
+        test_sers = gen_series_formatting()
+        with option_context("display.max_rows", 4, "display.show_dimensions", False):
+            res = repr(test_sers["onel"])
+            exp = "0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object"
+>           assert exp == res
+E           assert '0     a\n1  ...dtype: object' == "0    'a'\n1 ...dtype: object"
+E             - 0    'a'
+E             ?      ^ -
+E             + 0     a
+E             ?      ^
+E             - 1    'a'
+E             ?      ^ -
+E             + 1     a...
+E             
+E             ...Full output truncated (14 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_format.py:2666: AssertionError
+_____________________ test_to_html_unicode[df1-unicode_2] ______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+df =     A
+0 'σ'
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>σ</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c3989a1f0>
+
+    @pytest.mark.parametrize(
+        "df,expected",
+        [
+            (DataFrame({"\u03c3": np.arange(10.0)}), "unicode_1"),
+            (DataFrame({"A": ["\u03c3"]}), "unicode_2"),
+        ],
+    )
+    def test_to_html_unicode(df, expected, datapath):
+        expected = expected_html(datapath, expected)
+        result = df.to_html()
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 173 identical leading characters in diff, use -v to show
+E         -       <td>σ</td>
+E         +       <td>'σ'</td>
+E         ?           + +
+E               </tr>
+E             </tbody>
+E           </table>
+
+pandas/tests/io/formats/test_to_html.py:99: AssertionError
+______________ test_to_html_escaped[kwargs0-<type 'str'>-escaped] ______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+kwargs = {}, string = "<type 'str'>"
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>co&l...p;amp;</th>\n      <td>&lt;type \'str\'&gt;</td>\n      <td>&lt;type \'str\'&gt;</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33ab65e0>
+
+    @pytest.mark.parametrize(
+        "kwargs,string,expected",
+        [
+            (dict(), "<type 'str'>", "escaped"),
+            (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+        ],
+    )
+    def test_to_html_escaped(kwargs, string, expected, datapath):
+        a = "str<ing1 &amp;"
+        b = "stri>ng2 &amp;"
+    
+        test_dict = {"co<l1": {a: string, b: string}, "co>l2": {a: string, b: string}}
+        result = DataFrame(test_dict).to_html(**kwargs)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 224 identical leading characters in diff, use -v to show
+E         -       <td>&lt;type 'str'&gt;</td>
+E         +       <td>'&lt;type 'str'&gt;'</td>
+E         ?           +                  +
+E         -       <td>&lt;type 'str'&gt;</td>
+E         +       <td>'&lt;type 'str'&gt;'</td>
+E         ?           +                  +...
+E         
+E         ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:132: AssertionError
+__________ test_to_html_escaped[kwargs1-<b>bold</b>-escape_disabled] ___________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+kwargs = {'escape': False}, string = '<b>bold</b>'
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>co<l...      <th>stri>ng2 &amp;</th>\n      <td><b>bold</b></td>\n      <td><b>bold</b></td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33ab6160>
+
+    @pytest.mark.parametrize(
+        "kwargs,string,expected",
+        [
+            (dict(), "<type 'str'>", "escaped"),
+            (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+        ],
+    )
+    def test_to_html_escaped(kwargs, string, expected, datapath):
+        a = "str<ing1 &amp;"
+        b = "stri>ng2 &amp;"
+    
+        test_dict = {"co<l1": {a: string, b: string}, "co>l2": {a: string, b: string}}
+        result = DataFrame(test_dict).to_html(**kwargs)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 211 identical leading characters in diff, use -v to show
+E         -       <td><b>bold</b></td>
+E         +       <td>'<b>bold</b>'</td>
+E         ?           +           +
+E         -       <td><b>bold</b></td>
+E         +       <td>'<b>bold</b>'</td>
+E         ?           +           +...
+E         
+E         ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:132: AssertionError
+_____________ test_to_html_multiindex[columns0-left-multiindex_1] ______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+columns = MultiIndex([(0, 0),
+            (0, 1),
+            (1, 0),
+            (1, 1)],
+           names=['CL0', 'CL1'])
+justify = 'left'
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr>\n      <th>CL0</th>\n      <th colspan="2" halign="left">0<...   <th>1</th>\n      <td>e</td>\n      <td>f</td>\n      <td>g</td>\n      <td>h</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33ab6820>
+
+    @pytest.mark.parametrize(
+        "columns,justify,expected",
+        [
+            (
+                MultiIndex.from_tuples(
+                    list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+                    names=["CL0", "CL1"],
+                ),
+                "left",
+                "multiindex_1",
+            ),
+            (
+                MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+                "right",
+                "multiindex_2",
+            ),
+        ],
+    )
+    def test_to_html_multiindex(columns, justify, expected, datapath):
+        df = DataFrame([list("abcd"), list("efgh")], columns=columns)
+        result = df.to_html(justify=justify)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 324 identical leading characters in diff, use -v to show
+E         -       <td>a</td>
+E         +       <td>'a'</td>
+E         ?           + +
+E         -       <td>b</td>
+E         +       <td>'b'</td>
+E         ?           + +...
+E         
+E         ...Full output truncated (25 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:376: AssertionError
+_____________ test_to_html_multiindex[columns1-right-multiindex_2] _____________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+columns = MultiIndex([(0, 0),
+            (1, 1),
+            (2, 0),
+            (3, 1)],
+           )
+justify = 'right'
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr>\n      <th></th>\n      <th>0</th>\n      <th>1</th>\n     ...   <th>1</th>\n      <td>e</td>\n      <td>f</td>\n      <td>g</td>\n      <td>h</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33ab6790>
+
+    @pytest.mark.parametrize(
+        "columns,justify,expected",
+        [
+            (
+                MultiIndex.from_tuples(
+                    list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+                    names=["CL0", "CL1"],
+                ),
+                "left",
+                "multiindex_1",
+            ),
+            (
+                MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+                "right",
+                "multiindex_2",
+            ),
+        ],
+    )
+    def test_to_html_multiindex(columns, justify, expected, datapath):
+        df = DataFrame([list("abcd"), list("efgh")], columns=columns)
+        result = df.to_html(justify=justify)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 300 identical leading characters in diff, use -v to show
+E         -       <td>a</td>
+E         +       <td>'a'</td>
+E         ?           + +
+E         -       <td>b</td>
+E         +       <td>'b'</td>
+E         ?           + +...
+E         
+E         ...Full output truncated (25 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:376: AssertionError
+______________________________ test_to_html_index ______________________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+datapath = <function datapath.<locals>.deco at 0x7f3c33ab6a60>
+
+    def test_to_html_index(datapath):
+        # TODO: split this test
+        index = ["foo", "bar", "baz"]
+        df = DataFrame(
+            {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
+            columns=["A", "B", "C"],
+            index=index,
+        )
+        expected_with_index = expected_html(datapath, "index_1")
+>       assert df.to_html() == expected_with_index
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 245 identical leading characters in diff, use -v to show
+E         -       <td>one</td>
+E         +       <td>'one'</td>
+E         ?           +   +
+E               </tr>
+E               <tr>
+E                 <th>bar</th>...
+E         
+E         ...Full output truncated (15 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:410: AssertionError
+______________ test_to_html_render_links[True-render_links_true] _______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+render_links = True
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>foo<...th>1</th>\n      <td>0</td>\n      <td>www.pydata.org</td>\n      <td>pydata.org</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33a40ca0>
+
+    @pytest.mark.parametrize(
+        "render_links,expected",
+        [(True, "render_links_true"), (False, "render_links_false")],
+    )
+    def test_to_html_render_links(render_links, expected, datapath):
+        # GH 2679
+        data = [
+            [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+            [0, "www.pydata.org", "pydata.org"],
+        ]
+        df = DataFrame(data, columns=["foo", "bar", None])
+    
+        result = df.to_html(render_links=render_links)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 231 identical leading characters in diff, use -v to show
+E         -       <td><a href="https://pandas.pydata.org/?q1=a&q2=b" target="_blank">https://pandas.pydata.org/?q1=a&amp;q2=b</a></td>
+E         +       <td>'https://pandas.pydata.org/?q1=a&amp;q2=b'</td>
+E         -       <td>pydata.org</td>
+E         +       <td>'pydata.org'</td>
+E         ?           +          +
+E               </tr>...
+E         
+E         ...Full output truncated (13 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:698: AssertionError
+_____________ test_to_html_render_links[False-render_links_false] ______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+render_links = False
+expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>foo<...th>1</th>\n      <td>0</td>\n      <td>www.pydata.org</td>\n      <td>pydata.org</td>\n    </tr>\n  </tbody>\n</table>'
+datapath = <function datapath.<locals>.deco at 0x7f3c33a40b80>
+
+    @pytest.mark.parametrize(
+        "render_links,expected",
+        [(True, "render_links_true"), (False, "render_links_false")],
+    )
+    def test_to_html_render_links(render_links, expected, datapath):
+        # GH 2679
+        data = [
+            [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+            [0, "www.pydata.org", "pydata.org"],
+        ]
+        df = DataFrame(data, columns=["foo", "bar", None])
+    
+        result = df.to_html(render_links=render_links)
+        expected = expected_html(datapath, expected)
+>       assert result == expected
+E       AssertionError: assert '<table borde...dy>\n</table>' == '<table borde...dy>\n</table>'
+E         Skipping 231 identical leading characters in diff, use -v to show
+E         -       <td>https://pandas.pydata.org/?q1=a&amp;q2=b</td>
+E         +       <td>'https://pandas.pydata.org/?q1=a&amp;q2=b'</td>
+E         ?           +                                        +
+E         -       <td>pydata.org</td>
+E         +       <td>'pydata.org'</td>
+E         ?           +          +...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_html.py:698: AssertionError
+__________________________ TestToLatex.test_to_latex ___________________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c39e82640>
+float_frame =                    A         B         C         D
+uj3aupNrPB  0.764807 -0.195406  0.356168 -0.179633
+RKPro2v73m -2.46....453160 -0.238971
+1etvcSah90  0.276267  1.277534  0.532934 -0.552912
+R2nHvbi4bL -0.744058 -0.476803 -0.115628 -0.261460
+
+        def test_to_latex(self, float_frame):
+            # it works!
+            float_frame.to_latex()
+    
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex()
+            withindex_expected = r"""\begin{tabular}{lrl}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{lrl}
+E               \toprule
+E             - {} &  a &   b \\
+E             + {} &  a &    b \\
+E             ?             +
+E               \midrule
+E             - 0 &  1 &  b1 \\...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:48: AssertionError
+_______________________ TestToLatex.test_to_latex_format _______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3ac78790>
+float_frame =                    A         B         C         D
+Wtc0ZRSd9n  0.818695 -0.157144 -0.145023  0.203286
+bkVL7MON9p  0.09....145206 -0.713457
+CAq6YHmEYL  0.443476  1.554402  1.031790  0.715314
+gRKxa8k8At -1.380405  0.488245  1.099418 -1.594554
+
+        def test_to_latex_format(self, float_frame):
+            # GH Bug #9402
+            float_frame.to_latex(column_format="ccc")
+    
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex(column_format="ccc")
+            withindex_expected = r"""\begin{tabular}{ccc}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{ccc}
+E               \toprule
+E             - {} &  a &   b \\
+E             + {} &  a &    b \\
+E             ?             +
+E               \midrule
+E             - 0 &  1 &  b1 \\...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:79: AssertionError
+_____________________ TestToLatex.test_to_latex_multiindex _____________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3aab7ca0>
+
+        def test_to_latex_multiindex(self):
+            df = DataFrame({("x", "y"): ["a"]})
+            result = df.to_latex()
+            expected = r"""\begin{tabular}{ll}
+    \toprule
+    {} &  x \\
+    {} &  y \\
+    \midrule
+    0 &  a \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert result == expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{ll}
+E               \toprule
+E             - {} &  x \\
+E             + {} &   x \\
+E             ?       +
+E             - {} &  y \\
+E             + {} &   y \\...
+E             
+E             ...Full output truncated (9 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:152: AssertionError
+_______________________ TestToLatex.test_to_latex_escape _______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a852fa0>
+
+        def test_to_latex_escape(self):
+            a = "a"
+            b = "b"
+    
+            test_dict = {"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}}
+    
+            unescaped_result = DataFrame(test_dict).to_latex(escape=False)
+            escaped_result = DataFrame(test_dict).to_latex()  # default: escape=True
+    
+            unescaped_expected = r"""\begin{tabular}{lll}
+    \toprule
+    {} & co$e^x$ & co^l1 \\
+    \midrule
+    a &       a &     a \\
+    b &       b &     b \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+            escaped_expected = r"""\begin{tabular}{lll}
+    \toprule
+    {} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
+    \midrule
+    a &       a &     a \\
+    b &       b &     b \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert unescaped_result == unescaped_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E             Skipping 61 identical leading characters in diff, use -v to show
+E               e
+E             - a &       a &     a \\
+E             ?         ^^      ^^
+E             + a &     'a' &   'a' \\
+E             ?         ^ +     ^ +
+E             - b &       b &     b \\...
+E             
+E             ...Full output truncated (6 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:372: AssertionError
+___________________ TestToLatex.test_to_latex_special_escape ___________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a5e3a30>
+
+        def test_to_latex_special_escape(self):
+            df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
+    
+            escaped_result = df.to_latex()
+            escaped_expected = r"""\begin{tabular}{ll}
+    \toprule
+    {} &       0 \\
+    \midrule
+    0 &   a\textbackslash b\textbackslash c \\
+    1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
+    2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+    \bottomrule
+    \end{tabular}
+    """
+>           assert escaped_result == escaped_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{ll}
+E               \toprule
+E             - {} &       0 \\
+E             + {} &        0 \\
+E             ?            +
+E               \midrule
+E             - 0 &   a\textbackslash b\textbackslash c \\...
+E             
+E             ...Full output truncated (14 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:389: AssertionError
+_____________________ TestToLatex.test_to_latex_longtable ______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a3f0a90>
+
+        def test_to_latex_longtable(self):
+    
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex(longtable=True)
+            withindex_expected = r"""\begin{longtable}{lrl}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{3}{r}{{Continued on next page}} \\
+    \midrule
+    \endfoot
+    
+    \bottomrule
+    \endlastfoot
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \end{longtable}
+    """
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{long...{longtable}\n' == '\\begin{long...{longtable}\n'
+E             Skipping 34 identical leading characters in diff, use -v to show
+E             -  &  a &   b \\
+E             +  &  a &    b \\
+E             ?           +
+E               \midrule
+E               \endhead
+E               \midrule...
+E             
+E             ...Full output truncated (16 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:411: AssertionError
+___________________ TestToLatex.test_to_latex_caption_label ____________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3b436670>
+
+        def test_to_latex_caption_label(self):
+            # GH 25436
+            the_caption = "a table in a \\texttt{table/tabular} environment"
+            the_label = "tab:table_tabular"
+    
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    
+            # test when only the caption is provided
+            result_c = df.to_latex(caption=the_caption)
+    
+            expected_c = r"""\begin{table}
+    \centering
+    \caption{a table in a \texttt{table/tabular} environment}
+    \begin{tabular}{lrl}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    \end{table}
+    """
+>           assert result_c == expected_c
+E           AssertionError: assert '\\begin{tabl...\end{table}\n' == '\\begin{tabl...\end{table}\n'
+E             Skipping 115 identical leading characters in diff, use -v to show
+E             -  &  a &   b \\
+E             +  &  a &    b \\
+E             ?           +
+E               \midrule
+E             - 0 &  1 &  b1 \\
+E             ?          ^...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:464: AssertionError
+______________ TestToLatex.test_to_latex_longtable_caption_label _______________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a850d90>
+
+        def test_to_latex_longtable_caption_label(self):
+            # GH 25436
+            the_caption = "a table in a \\texttt{longtable} environment"
+            the_label = "tab:longtable"
+    
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    
+            # test when only the caption is provided
+            result_c = df.to_latex(longtable=True, caption=the_caption)
+    
+            expected_c = r"""\begin{longtable}{lrl}
+    \caption{a table in a \texttt{longtable} environment}\\
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{3}{r}{{Continued on next page}} \\
+    \midrule
+    \endfoot
+    
+    \bottomrule
+    \endlastfoot
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \end{longtable}
+    """
+>           assert result_c == expected_c
+E           AssertionError: assert '\\begin{long...{longtable}\n' == '\\begin{long...{longtable}\n'
+E             Skipping 90 identical leading characters in diff, use -v to show
+E             -  &  a &   b \\
+E             +  &  a &    b \\
+E             ?           +
+E               \midrule
+E               \endhead
+E               \midrule...
+E             
+E             ...Full output truncated (16 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:530: AssertionError
+________________ TestToLatex.test_to_latex_escape_special_chars ________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3b22f370>
+
+        def test_to_latex_escape_special_chars(self):
+            special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
+            df = DataFrame(data=special_characters)
+            observed = df.to_latex()
+            expected = r"""\begin{tabular}{ll}
+    \toprule
+    {} &  0 \\
+    \midrule
+    0 &  \& \\
+    1 &  \% \\
+    2 &  \$ \\
+    3 &  \# \\
+    4 &  \_ \\
+    5 &  \{ \\
+    6 &  \} \\
+    7 &  \textasciitilde  \\
+    8 &  \textasciicircum  \\
+    9 &  \textbackslash  \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert observed == expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{ll}
+E               \toprule
+E             - {} &  0 \\
+E             + {} &   0 \\
+E             ?       +
+E               \midrule
+E             - 0 &  \& \\...
+E             
+E             ...Full output truncated (42 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:598: AssertionError
+_____________________ TestToLatex.test_to_latex_no_header ______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c39d6fb20>
+
+        def test_to_latex_no_header(self):
+            # GH 7124
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex(header=False)
+            withindex_expected = r"""\begin{tabular}{lrl}
+    \toprule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{lrl}
+E               \toprule
+E             - 0 &  1 &  b1 \\
+E             ?          ^
+E             + 0 &  1 & 'b1' \\
+E             ?          ^  +
+E             - 1 &  2 &  b2 \\...
+E             
+E             ...Full output truncated (6 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:612: AssertionError
+__________________ TestToLatex.test_to_latex_specified_header __________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a891640>
+
+        def test_to_latex_specified_header(self):
+            # GH 7124
+            df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex(header=["AA", "BB"])
+            withindex_expected = r"""\begin{tabular}{lrl}
+    \toprule
+    {} & AA &  BB \\
+    \midrule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{lrl}
+E               \toprule
+E             - {} & AA &  BB \\
+E             + {} & AA &   BB \\
+E             ?          +
+E               \midrule
+E             - 0 &  1 &  b1 \\...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:639: AssertionError
+______________________ TestToLatex.test_to_latex_decimal _______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3b224d60>
+float_frame =                    A         B         C         D
+2gSI2RndbR  0.423719 -1.539780 -0.691211 -0.112028
+BnGEeeJ54Q -1.45....071262 -0.213009
+vgARWWzFsz  0.958321  0.239552 -0.934697 -0.215599
+9vVX63NXHQ  0.843613  2.314023 -0.550290 -0.708401
+
+        def test_to_latex_decimal(self, float_frame):
+            # GH 12031
+            float_frame.to_latex()
+    
+            df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
+            withindex_result = df.to_latex(decimal=",")
+    
+            withindex_expected = r"""\begin{tabular}{lrl}
+    \toprule
+    {} &    a &   b \\
+    \midrule
+    0 &  1,0 &  b1 \\
+    1 &  2,1 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+    
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E             Skipping 34 identical leading characters in diff, use -v to show
+E             -     a &   b \\
+E             +     a &    b \\
+E             ?           +
+E               \midrule
+E             - 0 &  1,0 &  b1 \\
+E             ?            ^...
+E             
+E             ...Full output truncated (9 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:688: AssertionError
+_______________________ TestToLatex.test_to_latex_series _______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3b0a7c40>
+
+        def test_to_latex_series(self):
+            s = Series(["a", "b", "c"])
+            withindex_result = s.to_latex()
+            withindex_expected = r"""\begin{tabular}{ll}
+    \toprule
+    {} &  0 \\
+    \midrule
+    0 &  a \\
+    1 &  b \\
+    2 &  c \\
+    \bottomrule
+    \end{tabular}
+    """
+>           assert withindex_result == withindex_expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{ll}
+E               \toprule
+E             - {} &  0 \\
+E             + {} &   0 \\
+E             ?       +
+E               \midrule
+E             - 0 &  a \\...
+E             
+E             ...Full output truncated (14 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:703: AssertionError
+_____________________ TestToLatex.test_to_latex_bold_rows ______________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3a0dc8e0>
+
+        def test_to_latex_bold_rows(self):
+            # GH 16707
+            df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            observed = df.to_latex(bold_rows=True)
+            expected = r"""\begin{tabular}{lrl}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    \textbf{0} &  1 &  b1 \\
+    \textbf{1} &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+>           assert observed == expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{lrl}
+E               \toprule
+E             - {} &  a &   b \\
+E             + {} &  a &    b \\
+E             ?             +
+E               \midrule
+E             - \textbf{0} &  1 &  b1 \\...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:718: AssertionError
+____________________ TestToLatex.test_to_latex_no_bold_rows ____________________
+[gw1] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.io.formats.test_to_latex.TestToLatex object at 0x7f3c3b0f6490>
+
+        def test_to_latex_no_bold_rows(self):
+            # GH 16707
+            df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+            observed = df.to_latex(bold_rows=False)
+            expected = r"""\begin{tabular}{lrl}
+    \toprule
+    {} &  a &   b \\
+    \midrule
+    0 &  1 &  b1 \\
+    1 &  2 &  b2 \\
+    \bottomrule
+    \end{tabular}
+    """
+>           assert observed == expected
+E           AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E               \begin{tabular}{lrl}
+E               \toprule
+E             - {} &  a &   b \\
+E             + {} &  a &    b \\
+E             ?             +
+E               \midrule
+E             - 0 &  1 &  b1 \\...
+E             
+E             ...Full output truncated (10 lines hidden), use '-vv' to show
+
+pandas/tests/io/formats/test_to_latex.py:733: AssertionError
+___________________________ TestSeriesRepr.test_repr ___________________________
+[gw0] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.series.test_repr.TestSeriesRepr object at 0x7fc72c4a1670>
+datetime_series = 2000-01-03    0.254242
+2000-01-04   -0.951122
+2000-01-05   -0.567236
+2000-01-06    0.653409
+2000-01-07    1.750258
+200...2-08    1.424223
+2000-02-09    0.800410
+2000-02-10    0.542263
+2000-02-11    0.676446
+Freq: B, Name: ts, dtype: float64
+string_series = viK3MdxVn7    0.742605
+scvE0uHTYw   -1.052345
+Bv933O5t9b    0.384895
+AH9RcVYr6i    0.779294
+zpAzWStAW1    0.822783
+Eh0...wcFrd58   -1.094470
+pQfdyl6mPL    0.548832
+MXmCRYkSNF   -0.467209
+daZyob0osC   -0.113301
+Name: (α, bar), dtype: float64
+object_series = mYai0pomyX   'jMRkmUlN9P'
+dQlypkXvbe   'TA150g5Yr3'
+bcRrHo5Yoe   'FynxFVZt5v'
+VU4HUw7Cyj   'zp7XBvYrE8'
+yK9fmCi27h   '...'585znXWXuS'
+mL7428VEve   'jUPPIg5T1J'
+r2uMk60SBz   'Ks2lEcpjSW'
+lGX1GOuEGg   'ji0H1UTC0r'
+Name: objects, dtype: object
+
+    def test_repr(self, datetime_series, string_series, object_series):
+        str(datetime_series)
+        str(string_series)
+        str(string_series.astype(int))
+        str(object_series)
+    
+        str(Series(tm.randn(1000), index=np.arange(1000)))
+        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
+    
+        # empty
+        str(Series(dtype=object))
+    
+        # with NaNs
+        string_series[5:7] = np.NaN
+        str(string_series)
+    
+        # with Nones
+        ots = datetime_series.astype("O")
+        ots[::2] = None
+        repr(ots)
+    
+        # various names
+        for name in [
+            "",
+            1,
+            1.2,
+            "foo",
+            "\u03B1\u03B2\u03B3",
+            "loooooooooooooooooooooooooooooooooooooooooooooooooooong",
+            ("foo", "bar", "baz"),
+            (1, 2),
+            ("foo", 1, 2.3),
+            ("\u03B1", "\u03B2", "\u03B3"),
+            ("\u03B1", "bar"),
+        ]:
+            string_series.name = name
+            repr(string_series)
+    
+        biggie = Series(
+            tm.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+        )
+        repr(biggie)
+    
+        # 0 as name
+        ser = Series(np.random.randn(100), name=0)
+        rep_str = repr(ser)
+        assert "Name: 0" in rep_str
+    
+        # tidy repr
+        ser = Series(np.random.randn(1001), name=0)
+        rep_str = repr(ser)
+        assert "Name: 0" in rep_str
+    
+        ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
+>       assert "\t" not in repr(ser)
+E       assert '\t' not in "a\\n\\r\\tf...type: object"
+E         '\t' is contained here:
+E           a\n\r\tf   'a
+E           
+E           	b'
+E         ? +
+E           Name: a\n\r\td, dtype: object
+
+pandas/tests/series/test_repr.py:122: AssertionError
+________________________ TestSeriesRepr.test_latex_repr ________________________
+[gw0] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.series.test_repr.TestSeriesRepr object at 0x7fc7163a2790>
+
+        def test_latex_repr(self):
+            result = r"""\begin{tabular}{ll}
+    \toprule
+    {} &         0 \\
+    \midrule
+    0 &  $\alpha$ \\
+    1 &         b \\
+    2 &         c \\
+    \bottomrule
+    \end{tabular}
+    """
+            with option_context("display.latex.escape", False, "display.latex.repr", True):
+                s = Series([r"$\alpha$", "b", "c"])
+>               assert result == s._repr_latex_()
+E               AssertionError: assert '\\begin{tabu...nd{tabular}\n' == '\\begin{tabu...nd{tabular}\n'
+E                   \begin{tabular}{ll}
+E                   \toprule
+E                 - {} &          0 \\
+E                 ?              -
+E                 + {} &         0 \\
+E                   \midrule
+E                 - 0 & '$\alpha$' \\...
+E                 
+E                 ...Full output truncated (14 lines hidden), use '-vv' to show
+
+pandas/tests/series/test_repr.py:209: AssertionError
+__________________ TestCategoricalRepr.test_categorical_repr ___________________
+[gw0] linux -- Python 3.8.2 /home/marco/.conda/envs/pandas-dev/bin/python
+
+self = <pandas.tests.series.test_repr.TestCategoricalRepr object at 0x7fc7163aceb0>
+
+    def test_categorical_repr(self):
+        a = Series(Categorical([1, 2, 3, 4]))
+        exp = (
+            "0    1\n1    2\n2    3\n3    4\n"
+            + "dtype: category\nCategories (4, int64): [1, 2, 3, 4]"
+        )
+    
+        assert exp == a.__str__()
+    
+        a = Series(Categorical(["a", "b"] * 25))
+        exp = (
+            "0     a\n1     b\n"
+            + "     ..\n"
+            + "48    a\n49    b\n"
+            + "Length: 50, dtype: category\nCategories (2, object): [a, b]"
+        )
+        with option_context("display.max_rows", 5):
+>           assert exp == repr(a)
+E           assert '0     a\n1  ...ject): [a, b]' == "0    'a'\n1 ...): ['a', 'b']"
+E             - 0    'a'
+E             ?      ^ -
+E             + 0     a
+E             ?      ^
+E             - 1    'b'
+E             ?      ^ -
+E             + 1     b...
+E             
+E             ...Full output truncated (17 lines hidden), use '-vv' to show
+
+pandas/tests/series/test_repr.py:276: AssertionError
