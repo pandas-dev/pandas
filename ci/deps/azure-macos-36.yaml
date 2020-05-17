@@ -19,11 +19,11 @@ dependencies:
   - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.14
+  - numpy=1.15.4
   - openpyxl
   - pyarrow>=0.13.0
   - pytables
-  - python-dateutil==2.6.1
+  - python-dateutil==2.7.3
   - pytz
   - xarray
   - xlrd

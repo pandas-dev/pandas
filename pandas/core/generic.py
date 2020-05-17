@@ -39,6 +39,9 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
+    ValueKeyFunc,
 )
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
@@ -67,7 +70,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_float,
-    is_integer,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -105,6 +107,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -213,13 +216,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
 
     @classmethod
-    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(
-                    axe, axis=cls._get_block_manager_axis(a), copy=False
-                )
+                axe = ensure_index(axe)
+                bm_axis = cls._get_block_manager_axis(a)
+                mgr = mgr.reindex_axis(axe, axis=bm_axis, copy=False)
 
         # make a copy if explicitly requested
         if copy:
@@ -302,18 +305,31 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Axis
-    _AXIS_ALIASES = {"rows": 0}
-    _AXIS_IALIASES = {0: "rows"}
     _stat_axis_number = 0
     _stat_axis_name = "index"
     _ix = None
     _AXIS_ORDERS: List[str]
-    _AXIS_NUMBERS: Dict[str, int]
-    _AXIS_NAMES: Dict[int, str]
+    _AXIS_TO_AXIS_NUMBER: Dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
     _AXIS_REVERSED: bool
     _info_axis_number: int
     _info_axis_name: str
     _AXIS_LEN: int
+
+    @property
+    def _AXIS_NUMBERS(self) -> Dict[str, int]:
+        """.. deprecated:: 1.1.0"""
+        warnings.warn(
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
+        )
+        return {"index": 0}
+
+    @property
+    def _AXIS_NAMES(self) -> Dict[int, str]:
+        """.. deprecated:: 1.1.0"""
+        warnings.warn(
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
+        )
+        return {0: "index"}
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -353,37 +369,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return axes, kwargs
 
     @classmethod
-    def _get_axis_number(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
-        if is_integer(axis):
-            if axis in cls._AXIS_NAMES:
-                return axis
-        else:
-            try:
-                return cls._AXIS_NUMBERS[axis]
-            except KeyError:
-                pass
-        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+    def _get_axis_number(cls, axis: Axis) -> int:
+        try:
+            return cls._AXIS_TO_AXIS_NUMBER[axis]
+        except KeyError:
+            raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
     @classmethod
-    def _get_axis_name(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, str):
-            if axis in cls._AXIS_NUMBERS:
-                return axis
-        else:
-            try:
-                return cls._AXIS_NAMES[axis]
-            except KeyError:
-                pass
-        raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+    def _get_axis_name(cls, axis: Axis) -> str:
+        axis_number = cls._get_axis_number(axis)
+        return cls._AXIS_ORDERS[axis_number]
 
-    def _get_axis(self, axis):
-        name = self._get_axis_name(axis)
-        return getattr(self, name)
+    def _get_axis(self, axis: Axis) -> Index:
+        axis_number = self._get_axis_number(axis)
+        assert axis_number in {0, 1}
+        return self.index if axis_number == 0 else self.columns
 
     @classmethod
-    def _get_block_manager_axis(cls, axis):
+    def _get_block_manager_axis(cls, axis: Axis) -> int:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         if cls._AXIS_REVERSED:
@@ -448,11 +451,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         }
 
     @property
-    def _info_axis(self):
+    def _info_axis(self) -> Index:
         return getattr(self, self._info_axis_name)
 
     @property
-    def _stat_axis(self):
+    def _stat_axis(self) -> Index:
         return getattr(self, self._stat_axis_name)
 
     @property
@@ -590,7 +593,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        return self._constructor(new_values, *new_axes).__finalize__(
+        # ignore needed because of NDFrame constructor is different than
+        # DataFrame/Series constructors.
+        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
             self, method="swapaxes"
         )
 
@@ -701,10 +706,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = self[item]
         del self[item]
-        try:
+        if self.ndim == 2:
             result._reset_cacher()
-        except AttributeError:
-            pass
 
         return result
 
@@ -811,7 +814,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df_0a.squeeze()
         1
         """
-        axis = self._AXIS_NAMES if axis is None else (self._get_axis_number(axis),)
+        axis = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         return self.iloc[
             tuple(
                 0 if i in axis and len(a) == 1 else slice(None)
@@ -1154,7 +1157,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result = self if inplace else self.copy(deep=copy)
 
             for axis in range(self._AXIS_LEN):
-                v = axes.get(self._AXIS_NAMES[axis])
+                v = axes.get(self._get_axis_name(axis))
                 if v is lib.no_default:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not is_dict_like(v))
@@ -2360,7 +2363,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         dropna: Optional[bool_t] = None,
-        data_columns: Optional[List[str]] = None,
+        data_columns: Optional[Union[bool_t, List[str]]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
@@ -3096,7 +3099,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression mode is 'infer' and `path_or_buf` is path-like, then
             detect compression mode from the following extensions: '.gz',
             '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
-            and mode is 'zip' or inferred as 'zip', other entries passed as
+            and mode is one of {'zip', 'gzip', 'bz2'}, or inferred as
+            one of the above, other entries passed as
             additional compression options.
 
             .. versionchanged:: 1.0.0
@@ -3104,6 +3108,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                May now be a dict with key 'method' as compression mode
                and other entries as additional compression options if
                compression mode is 'zip'.
+
+            .. versionchanged:: 1.1.0
+
+               Passing compression options as keys in dict is
+               supported for compression modes 'gzip' and 'bz2'
+               as well as 'zip'.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3210,7 +3220,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        self._mgr.set(item, value)
+        loc = self._info_axis.get_loc(item)
+        self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
@@ -3247,14 +3258,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if ref is None:
                 del self._cacher
             else:
-                # Note: we need to call ref._maybe_cache_changed even in the
-                #  case where it will raise.  (Uh, not clear why)
-                try:
+                if len(self) == len(ref):
+                    # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
-                except AssertionError:
-                    # ref._mgr.setitem can raise
-                    #  AssertionError because of shape mismatch
-                    pass
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
@@ -3483,6 +3489,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
+            if not isinstance(labels, MultiIndex):
+                raise TypeError("Index must be a MultiIndex")
             loc, new_ax = labels.get_loc_level(key, level=level, drop_level=drop_level)
 
             # create the tuple of the indexer
@@ -3541,8 +3549,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs: Callable = xs
-
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
@@ -3551,17 +3557,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._mgr.get(item)
-            res = self._box_item_values(item, values)
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc)
+
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
 
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
@@ -3585,8 +3593,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
-        self._mgr.set(key, value)
-        self._clear_item_cache()
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+            return
+
+        NDFrame._iset_item(self, loc, value)
 
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
@@ -4098,6 +4112,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         kind: str = "quicksort",
         na_position: str = "last",
         ignore_index: bool_t = False,
+        key: ValueKeyFunc = None,
     ):
         """
         Sort by the values along either axis.
@@ -4125,10 +4140,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
              .. versionadded:: 1.0.0
 
+        key : callable, optional
+            Apply the key function to the values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect a
+            ``Series`` and return a Series with the same shape as the input.
+            It will be applied to each column in `by` independently.
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
-        sorted_obj : DataFrame or None
+        DataFrame or None
             DataFrame with sorted values if inplace=False, None otherwise.
+
+        See Also
+        --------
+        DataFrame.sort_index : Sort a DataFrame by the index.
+        Series.sort_values : Similar method for a Series.
 
         Examples
         --------
@@ -4136,59 +4166,71 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
         ...     'col2': [2, 1, 9, 8, 7, 4],
         ...     'col3': [0, 1, 9, 4, 2, 3],
+        ...     'col4': ['a', 'B', 'c', 'D', 'e', 'F']
         ... })
         >>> df
-            col1 col2 col3
-        0   A    2    0
-        1   A    1    1
-        2   B    9    9
-        3   NaN  8    4
-        4   D    7    2
-        5   C    4    3
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
 
         Sort by col1
 
         >>> df.sort_values(by=['col1'])
-            col1 col2 col3
-        0   A    2    0
-        1   A    1    1
-        2   B    9    9
-        5   C    4    3
-        4   D    7    2
-        3   NaN  8    4
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
 
         Sort by multiple columns
 
         >>> df.sort_values(by=['col1', 'col2'])
-            col1 col2 col3
-        1   A    1    1
-        0   A    2    0
-        2   B    9    9
-        5   C    4    3
-        4   D    7    2
-        3   NaN  8    4
+          col1  col2  col3 col4
+        1    A     1     1    B
+        0    A     2     0    a
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
 
         Sort Descending
 
         >>> df.sort_values(by='col1', ascending=False)
-            col1 col2 col3
-        4   D    7    2
-        5   C    4    3
-        2   B    9    9
-        0   A    2    0
-        1   A    1    1
-        3   NaN  8    4
+          col1  col2  col3 col4
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+        3  NaN     8     4    D
 
         Putting NAs first
 
         >>> df.sort_values(by='col1', ascending=False, na_position='first')
-            col1 col2 col3
-        3   NaN  8    4
-        4   D    7    2
-        5   C    4    3
-        2   B    9    9
-        0   A    2    0
-        1   A    1    1
+          col1  col2  col3 col4
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+
+        Sorting with a key function
+
+        >>> df.sort_values(by='col4', key=lambda col: col.str.lower())
+           col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
         """
         raise AbstractMethodError(self)
 
@@ -5305,10 +5347,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return True
 
     def _get_numeric_data(self):
-        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     def _get_bool_data(self):
-        return self._constructor(self._mgr.get_bool_data()).__finalize__(self,)
+        return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -5538,6 +5580,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         0    10
         1     2
         dtype: int64
+
+        Create a series of dates:
+
+        >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
+        >>> ser_date
+        0   2020-01-01
+        1   2020-01-02
+        2   2020-01-03
+        dtype: datetime64[ns]
+
+        Datetimes are localized to UTC first before
+        converting to the specified timezone:
+
+        >>> ser_date.astype('datetime64[ns, US/Eastern]')
+        0   2019-12-31 19:00:00-05:00
+        1   2020-01-01 19:00:00-05:00
+        2   2020-01-02 19:00:00-05:00
+        dtype: datetime64[ns, US/Eastern]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -5709,7 +5769,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric: bool_t = False,
         timedelta: bool_t = False,
         coerce: bool_t = False,
-        copy: bool_t = True,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -5726,10 +5785,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         coerce : bool, default False
             If True, force conversion with unconvertible values converted to
             nulls (NaN or NaT).
-        copy : bool, default True
-            If True, return a copy even if no copy is necessary (e.g. no
-            conversion was done). Note: This is meant for internal use, and
-            should not be confused with inplace.
 
         Returns
         -------
@@ -5739,14 +5794,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
         validate_bool_kwarg(coerce, "coerce")
-        validate_bool_kwarg(copy, "copy")
         return self._constructor(
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
                 coerce=coerce,
-                copy=copy,
+                copy=True,
             )
         ).__finalize__(self)
 
@@ -6162,12 +6216,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
-    _shared_docs[
-        "replace"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        inplace=False,
+        limit=None,
+        regex=False,
+        method="pad",
+    ):
+        """
         Replace values given in `to_replace` with `value`.
 
-        Values of the %(klass)s are replaced with other values dynamically.
+        Values of the {klass} are replaced with other values dynamically.
         This differs from updating with ``.loc`` or ``.iloc``, which require
         you to specify a location to update with some value.
 
@@ -6199,19 +6261,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 - Dicts can be used to specify different replacement values
                   for different existing values. For example,
-                  ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
+                  ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
                   'y' with 'z'. To use a dict in this way the `value`
                   parameter should be `None`.
                 - For a DataFrame a dict can specify that different values
                   should be replaced in different columns. For example,
-                  ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
+                  ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
                   and the value 'z' in column 'b' and replaces these values
                   with whatever is specified in `value`. The `value` parameter
                   should not be ``None`` in this case. You can treat this as a
                   special case of passing two lists except that you are
                   specifying the column to search in.
                 - For a DataFrame nested dictionaries, e.g.,
-                  ``{'a': {'b': np.nan}}``, are read as follows: look in column
+                  ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
                   'a' for the value 'b' and replace it with NaN. The `value`
                   parameter should be ``None`` to use a nested dict in this
                   way. You can nest regular expressions as well. Note that
@@ -6244,7 +6306,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             string. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
             `to_replace` must be ``None``.
-        method : {'pad', 'ffill', 'bfill', `None`}
+        method : {{'pad', 'ffill', 'bfill', `None`}}
             The method to use when for replacement, when `to_replace` is a
             scalar, list or tuple and `value` is ``None``.
 
@@ -6253,7 +6315,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
+        {klass}
             Object after replacement.
 
         Raises
@@ -6279,8 +6341,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        %(klass)s.fillna : Fill NA values.
-        %(klass)s.where : Replace values based on boolean condition.
+        {klass}.fillna : Fill NA values.
+        {klass}.where : Replace values based on boolean condition.
         Series.str.replace : Simple string replacement.
 
         Notes
@@ -6312,9 +6374,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
+        >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
         ...                    'B': [5, 6, 7, 8, 9],
-        ...                    'C': ['a', 'b', 'c', 'd', 'e']})
+        ...                    'C': ['a', 'b', 'c', 'd', 'e']}})
         >>> df.replace(0, 5)
            A  B  C
         0  5  5  a
@@ -6351,7 +6413,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         **dict-like `to_replace`**
 
-        >>> df.replace({0: 10, 1: 100})
+        >>> df.replace({{0: 10, 1: 100}})
              A  B  C
         0   10  5  a
         1  100  6  b
@@ -6359,7 +6421,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    3  8  d
         4    4  9  e
 
-        >>> df.replace({'A': 0, 'B': 5}, 100)
+        >>> df.replace({{'A': 0, 'B': 5}}, 100)
              A    B  C
         0  100  100  a
         1    1    6  b
@@ -6367,7 +6429,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    3    8  d
         4    4    9  e
 
-        >>> df.replace({'A': {0: 100, 4: 400}})
+        >>> df.replace({{'A': {{0: 100, 4: 400}}}})
              A  B  C
         0  100  5  a
         1    1  6  b
@@ -6377,15 +6439,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         **Regular expression `to_replace`**
 
-        >>> df = pd.DataFrame({'A': ['bat', 'foo', 'bait'],
-        ...                    'B': ['abc', 'bar', 'xyz']})
+        >>> df = pd.DataFrame({{'A': ['bat', 'foo', 'bait'],
+        ...                    'B': ['abc', 'bar', 'xyz']}})
         >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
               A    B
         0   new  abc
         1   foo  new
         2  bait  xyz
 
-        >>> df.replace({'A': r'^ba.$'}, {'A': 'new'}, regex=True)
+        >>> df.replace({{'A': r'^ba.$'}}, {{'A': 'new'}}, regex=True)
               A    B
         0   new  abc
         1   foo  bar
@@ -6397,7 +6459,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   foo  new
         2  bait  xyz
 
-        >>> df.replace(regex={r'^ba.$': 'new', 'foo': 'xyz'})
+        >>> df.replace(regex={{r'^ba.$': 'new', 'foo': 'xyz'}})
               A    B
         0   new  abc
         1   xyz  new
@@ -6413,9 +6475,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         the data types in the `to_replace` parameter must match the data
         type of the value being replaced:
 
-        >>> df = pd.DataFrame({'A': [True, False, True],
-        ...                    'B': [False, True, False]})
-        >>> df.replace({'a string': 'new value', True: False})  # raises
+        >>> df = pd.DataFrame({{'A': [True, False, True],
+        ...                    'B': [False, True, False]}})
+        >>> df.replace({{'a string': 'new value', True: False}})  # raises
         Traceback (most recent call last):
             ...
         TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
@@ -6423,7 +6485,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
 
-        Compare the behavior of ``s.replace({'a': None})`` and
+        Compare the behavior of ``s.replace({{'a': None}})`` and
         ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
 
@@ -6431,10 +6493,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         When one uses a dict as the `to_replace` value, it is like the
         value(s) in the dict are equal to the `value` parameter.
-        ``s.replace({'a': None})`` is equivalent to
-        ``s.replace(to_replace={'a': None}, value=None, method=None)``:
+        ``s.replace({{'a': None}})`` is equivalent to
+        ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
 
-        >>> s.replace({'a': None})
+        >>> s.replace({{'a': None}})
         0      10
         1    None
         2    None
@@ -6457,17 +6519,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4     b
         dtype: object
     """
-
-    @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
-    def replace(
-        self,
-        to_replace=None,
-        value=None,
-        inplace=False,
-        limit=None,
-        regex=False,
-        method="pad",
-    ):
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -6542,21 +6593,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not self.size:
                 return self
 
-            new_data = self._mgr
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
-                    res = self if inplace else self.copy()
-                    for c, src in to_replace.items():
-                        if c in value and c in self:
-                            # object conversion is handled in
-                            # series.replace which is called recursively
-                            res[c] = res[c].replace(
-                                to_replace=src,
-                                value=value[c],
-                                inplace=False,
-                                regex=regex,
-                            )
-                    return None if inplace else res
+                    # Note: Checking below for `in foo.keys()` instead of
+                    #  `in foo`is needed for when we have a Series and not dict
+                    mapping = {
+                        col: (to_replace[col], value[col])
+                        for col in to_replace.keys()
+                        if col in value.keys() and col in self
+                    }
+                    return self._replace_columnwise(mapping, inplace, regex)
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
@@ -6657,9 +6703,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the SciPy interpolation methods of similar
-              names. See `Notes`.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+              'cubicspline': Wrappers around the SciPy interpolation methods of
+              similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
@@ -6861,9 +6907,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
-                is_numeric_dtype(index)
-                or is_datetime64_any_dtype(index)
-                or is_timedelta64_dtype(index)
+                is_numeric_dtype(index.dtype)
+                or is_datetime64_any_dtype(index.dtype)
+                or is_timedelta64_dtype(index.dtype)
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
@@ -7023,9 +7069,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if where < start:
                 if not is_series:
-                    from pandas import Series
-
-                    return Series(index=self.columns, name=where, dtype=np.float64)
+                    return self._constructor_sliced(
+                        index=self.columns, name=where, dtype=np.float64
+                    )
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -7052,13 +7098,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_series:
                 return self._constructor(np.nan, index=where, name=self.name)
             elif is_list:
-                from pandas import DataFrame
-
-                return DataFrame(np.nan, index=where, columns=self.columns)
+                return self._constructor(np.nan, index=where, columns=self.columns)
             else:
-                from pandas import Series
-
-                return Series(np.nan, index=self.columns, name=where[0])
+                return self._constructor_sliced(
+                    np.nan, index=self.columns, name=where[0]
+                )
 
         locs = self.index.asof_locs(where, ~(nulls._values))
 
@@ -7431,6 +7475,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -7610,11 +7660,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
 
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
+
+        indexer = index.indexer_at_time(time, asof=asof)
         return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
@@ -7693,16 +7743,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
-        try:
-            indexer = index.indexer_between_time(
-                start_time,
-                end_time,
-                include_start=include_start,
-                include_end=include_end,
-            )
-        except AttributeError as err:
-            raise TypeError("Index must be DatetimeIndex") from err
+        if not isinstance(index, DatetimeIndex):
+            raise TypeError("Index must be DatetimeIndex")
 
+        indexer = index.indexer_between_time(
+            start_time, end_time, include_start=include_start, include_end=include_end,
+        )
         return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
@@ -7714,9 +7760,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convention: str = "start",
         kind: Optional[str] = None,
         loffset=None,
-        base: int = 0,
+        base: Optional[int] = None,
         on=None,
         level=None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> "Resampler":
         """
         Resample time-series data.
@@ -7751,17 +7799,40 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
+
+            .. deprecated:: 1.1.0
+                You should add the loffset to the `df.index` after the resample.
+                See below.
+
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0.
+
+            .. deprecated:: 1.1.0
+                The new arguments that you should use are 'offset' or 'origin'.
+
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
+        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. The timezone of origin
+            must match the timezone of the index.
+            If a timestamp is not used, these values are also supported:
+
+            - 'epoch': `origin` is 1970-01-01
+            - 'start': `origin` is the first value of the timeseries
+            - 'start_day': `origin` is the first day at midnight of the timeseries
+
+            .. versionadded:: 1.1.0
+
+        offset : Timedelta or str, default is None
+            An offset timedelta added to the origin.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -7979,6 +8050,88 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-02     22     140
         2000-01-03     32     150
         2000-01-04     36      90
+
+        If you want to adjust the start of the bins based on a fixed timestamp:
+
+        >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+        >>> rng = pd.date_range(start, end, freq='7min')
+        >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+        >>> ts
+        2000-10-01 23:30:00     0
+        2000-10-01 23:37:00     3
+        2000-10-01 23:44:00     6
+        2000-10-01 23:51:00     9
+        2000-10-01 23:58:00    12
+        2000-10-02 00:05:00    15
+        2000-10-02 00:12:00    18
+        2000-10-02 00:19:00    21
+        2000-10-02 00:26:00    24
+        Freq: 7T, dtype: int64
+
+        >>> ts.resample('17min').sum()
+        2000-10-01 23:14:00     0
+        2000-10-01 23:31:00     9
+        2000-10-01 23:48:00    21
+        2000-10-02 00:05:00    54
+        2000-10-02 00:22:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', origin='epoch').sum()
+        2000-10-01 23:18:00     0
+        2000-10-01 23:35:00    18
+        2000-10-01 23:52:00    27
+        2000-10-02 00:09:00    39
+        2000-10-02 00:26:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', origin='2000-01-01').sum()
+        2000-10-01 23:24:00     3
+        2000-10-01 23:41:00    15
+        2000-10-01 23:58:00    45
+        2000-10-02 00:15:00    45
+        Freq: 17T, dtype: int64
+
+        If you want to adjust the start of the bins with an `offset` Timedelta, the two
+        following lines are equivalent:
+
+        >>> ts.resample('17min', origin='start').sum()
+        2000-10-01 23:30:00     9
+        2000-10-01 23:47:00    21
+        2000-10-02 00:04:00    54
+        2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        >>> ts.resample('17min', offset='23h30min').sum()
+        2000-10-01 23:30:00     9
+        2000-10-01 23:47:00    21
+        2000-10-02 00:04:00    54
+        2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        To replace the use of the deprecated `base` argument, you can now use `offset`,
+        in this example it is equivalent to have `base=2`:
+
+        >>> ts.resample('17min', offset='2min').sum()
+        2000-10-01 23:16:00     0
+        2000-10-01 23:33:00     9
+        2000-10-01 23:50:00    36
+        2000-10-02 00:07:00    39
+        2000-10-02 00:24:00    24
+        Freq: 17T, dtype: int64
+
+        To replace the use of the deprecated `loffset` argument:
+
+        >>> from pandas.tseries.frequencies import to_offset
+        >>> loffset = '19min'
+        >>> ts_out = ts.resample('17min').sum()
+        >>> ts_out.index = ts_out.index + to_offset(loffset)
+        >>> ts_out
+        2000-10-01 23:33:00     0
+        2000-10-01 23:50:00     9
+        2000-10-02 00:07:00    21
+        2000-10-02 00:24:00    54
+        2000-10-02 00:41:00    24
+        Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
 
@@ -7995,6 +8148,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             base=base,
             key=on,
             level=level,
+            origin=origin,
+            offset=offset,
         )
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
@@ -8058,7 +8213,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.is_anchored() and hasattr(offset, "_inc"):
+        if isinstance(offset, Tick):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
@@ -8251,54 +8406,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    _shared_docs[
-        "align"
-    ] = """
-        Align two objects on their axes with the specified join method.
-
-        Join method is specified for each axis Index.
-
-        Parameters
-        ----------
-        other : DataFrame or Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-        axis : allowed axis of the other object, default None
-            Align on index (0), columns (1), or both (None).
-        level : int or level name, default None
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
-        copy : bool, default True
-            Always returns new objects. If copy=False and no reindexing is
-            required then original objects are returned.
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series:
-
-            - pad / ffill: propagate last valid observation forward to next valid.
-            - backfill / bfill: use NEXT valid observation to fill gap.
-
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
-        fill_axis : %(axes_single_arg)s, default 0
-            Filling axis, method and limit.
-        broadcast_axis : %(axes_single_arg)s, default None
-            Broadcast values along this axis, if aligning two objects of
-            different dimensions.
-
-        Returns
-        -------
-        (left, right) : (%(klass)s, type of other)
-            Aligned objects.
-        """
-
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @doc(**_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -8312,6 +8420,51 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_axis=0,
         broadcast_axis=None,
     ):
+        """
+        Align two objects on their axes with the specified join method.
+
+        Join method is specified for each axis Index.
+
+        Parameters
+        ----------
+        other : DataFrame or Series
+        join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+        axis : allowed axis of the other object, default None
+            Align on index (0), columns (1), or both (None).
+        level : int or level name, default None
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        copy : bool, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
+            Method to use for filling holes in reindexed Series:
+
+            - pad / ffill: propagate last valid observation forward to next valid.
+            - backfill / bfill: use NEXT valid observation to fill gap.
+
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
+        fill_axis : {axes_single_arg}, default 0
+            Filling axis, method and limit.
+        broadcast_axis : {axes_single_arg}, default None
+            Broadcast values along this axis, if aligning two objects of
+            different dimensions.
+
+        Returns
+        -------
+        (left, right) : ({klass}, type of other)
+            Aligned objects.
+        """
+
         method = missing.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
@@ -8435,7 +8588,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if is_datetime64tz_dtype(left.index):
+        if is_datetime64tz_dtype(left.index.dtype):
             if left.index.tz != right.index.tz:
                 if join_index is not None:
                     left.index = join_index
@@ -8522,7 +8675,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_series or (not is_series and axis == 0):
-            if is_datetime64tz_dtype(left.index):
+            if is_datetime64tz_dtype(left.index.dtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
                         left.index = join_index
@@ -8648,6 +8801,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             align = True
         else:
             align = self._get_axis_number(axis) == 1
+
+        if align and isinstance(other, NDFrame):
+            other = other.reindex(self._info_axis, axis=self._info_axis_number)
+        if isinstance(cond, NDFrame):
+            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
         block_axis = self._get_block_manager_axis(axis)
 
@@ -8855,9 +9013,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
         )
 
-    _shared_docs[
-        "shift"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def shift(
+        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
+    ) -> FrameOrSeries:
+        """
         Shift index by desired number of periods with an optional time `freq`.
 
         When `freq` is not passed, shift the index without realigning the data.
@@ -8874,7 +9034,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
-        axis : {0 or 'index', 1 or 'columns', None}, default None
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
@@ -8887,7 +9047,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
+        {klass}
             Copy of input object, shifted.
 
         See Also
@@ -8900,9 +9060,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        >>> df = pd.DataFrame({{'Col1': [10, 20, 15, 30, 45],
         ...                    'Col2': [13, 23, 18, 33, 48],
-        ...                    'Col3': [17, 27, 22, 37, 52]})
+        ...                    'Col3': [17, 27, 22, 37, 52]}})
 
         >>> df.shift(periods=3)
            Col1  Col2  Col3
@@ -8927,12 +9087,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2     0     0     0
         3    10    13    17
         4    20    23    27
-    """
-
-    @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
-    def shift(
-        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
-    ) -> FrameOrSeries:
+        """
         if periods == 0:
             return self.copy()
 
@@ -9184,6 +9339,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if before is not None and after is not None:
             if before > after:
                 raise ValueError(f"Truncate: {after} must be after {before}")
+
+        if ax.is_monotonic_decreasing:
+            before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
@@ -9799,13 +9957,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return pd.Series(d, index=stat_index, name=data.name)
 
         def describe_1d(data):
-            if is_bool_dtype(data):
+            if is_bool_dtype(data.dtype):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data):
+            elif is_datetime64_any_dtype(data.dtype):
                 return describe_timestamp_1d(data)
-            elif is_timedelta64_dtype(data):
+            elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
             else:
                 return describe_categorical_1d(data)
@@ -11198,9 +11356,7 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
-        return self._constructor(result, **d).__finalize__(self, method=name)
+        return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
 
