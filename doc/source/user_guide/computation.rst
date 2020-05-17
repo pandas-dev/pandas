@@ -655,21 +655,12 @@ Iteration over window:
 
 .. versionadded:: 1.1.0
 
-It is allowed to iterate over the Series and DataFrame with the ``rolling`` and ``expanding`` window are
-support.
-
-Be noted that for ``rolling``, even if ``min_periods`` is greater than ``window`` size , we can still iterate
-all the result out, although it will raise an error during aggregation.
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
 
 .. ipython:: python
-    ser = pd.Series([1, 2, 3]).rolling(2)
-    for i in ser:
-        i
-
-.. ipython:: python
-    df = pd.DataFrame({ "A": [1, 2, 3], "B": [4, 5, 6]}).rolling(2)
-    for i in df:
-        i
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    for i in df.rolling(2):
+        print(i)
 
 
 .. _stats.moments.ts-versus-resampling:
