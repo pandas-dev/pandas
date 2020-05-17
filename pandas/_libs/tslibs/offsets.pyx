@@ -859,10 +859,13 @@ cdef class _Tick(_BaseOffset):
         self.normalize = False
 
 
-class BusinessMixin:
+class BusinessMixin(BaseOffset):
     """
     Mixin to business types to provide related functions.
     """
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "_offset", offset)
 
     @property
     def offset(self):
@@ -886,7 +889,11 @@ class BusinessMixin:
 class BusinessHourMixin(BusinessMixin):
     _adjust_dst = False
 
-    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
+    def __init__(
+            self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
+        ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+
         # must be validated here to equality check
         if np.ndim(start) == 0:
             # i.e. not is_list_like
@@ -930,7 +937,6 @@ class BusinessHourMixin(BusinessMixin):
 
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
-        object.__setattr__(self, "_offset", offset)
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
