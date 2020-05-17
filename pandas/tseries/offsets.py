@@ -320,10 +320,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
 
-    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
     def _offset_str(self) -> str:
         def get_str(td):
             off_str = ""
@@ -423,7 +419,15 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHourMixin(liboffsets.BusinessHourMixin):
+class BusinessHour(SingleConstructorMixin, liboffsets.BusinessHourMixin):
+    """
+    DateOffset subclass representing possibly n business hours.
+    """
+
+    _prefix = "BH"
+    _anchor = 0
+    _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
+
     @cache_readonly
     def next_bday(self):
         """
@@ -683,22 +687,6 @@ class BusinessHourMixin(liboffsets.BusinessHourMixin):
             return False
 
 
-class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
-    """
-    DateOffset subclass representing possibly n business hours.
-    """
-
-    _prefix = "BH"
-    _anchor = 0
-    _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
-
-    def __init__(
-        self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-    ):
-        BaseOffset.__init__(self, n, normalize)
-        super().__init__(start=start, end=end, offset=offset)
-
-
 class CustomBusinessDay(CustomMixin, BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
@@ -731,9 +719,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         calendar=None,
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessDay.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
@@ -776,7 +762,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset):
+class CustomBusinessHour(CustomMixin, BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -798,11 +784,8 @@ class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset
         end="17:00",
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
-        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
 
 # ---------------------------------------------------------------------
@@ -902,9 +885,7 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         calendar=None,
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessMixin.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
@@ -984,9 +965,9 @@ class SemiMonthOffset(SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
 
         if day_of_month is None:
-            object.__setattr__(self, "day_of_month", self._default_day_of_month)
-        else:
-            object.__setattr__(self, "day_of_month", int(day_of_month))
+            day_of_month = self._default_day_of_month
+
+        object.__setattr__(self, "day_of_month", int(day_of_month))
         if not self._min_day_of_month <= self.day_of_month <= 27:
             raise ValueError(
                 "day_of_month must be "
