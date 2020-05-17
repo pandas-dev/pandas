@@ -30,7 +30,7 @@ substantial projects that you feel should be on this list, please let us know.
 Data cleaning and validation
 ----------------------------
 
-`pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
+`Pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
@@ -115,7 +115,7 @@ It is very similar to the matplotlib plotting backend, but provides interactive
 web-based charts and maps.
 
 
-`seaborn <https://seaborn.pydata.org>`__
+`Seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Seaborn is a Python visualization library based on
@@ -136,7 +136,7 @@ provides a powerful, declarative and extremely general way to generate bespoke p
 Various implementations to other languages are available.
 A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
 
-`IPython Vega <https://github.com/vega/ipyvega>`__
+`IPython vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
@@ -147,7 +147,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
-`QtPandas <https://github.com/draperjames/qtpandas>`__
+`Qtpandas <https://github.com/draperjames/qtpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
@@ -187,7 +187,7 @@ See :ref:`Options and Settings <options>` and
 :ref:`Available Options <options.available>`
 for pandas ``display.`` settings.
 
-`quantopian/qgrid <https://github.com/quantopian/qgrid>`__
+`Quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 qgrid is "an interactive grid for sorting and filtering
@@ -249,12 +249,12 @@ The following data feeds are available:
  * Stooq Index Data
  * MOEX Data
 
-`quandl/Python <https://github.com/quandl/Python>`__
+`Quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
 Pandas DataFrames with timeseries indexes.
 
-`pydatastream <https://github.com/vfilimonov/pydatastream>`__
+`Pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
@@ -384,7 +384,7 @@ Pandas provides an interface for defining
 system. The following libraries implement that interface to provide types not
 found in NumPy or pandas, which work well with pandas' data containers.
 
-`cyberpandas`_
+`Cyberpandas`_
 ~~~~~~~~~~~~~~
 
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
