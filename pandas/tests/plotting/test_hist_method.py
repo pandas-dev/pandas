@@ -129,6 +129,23 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize("by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))])
+    @pytest.mark.parametrize("label, expected_label", [(None, "a"), ("c", "c")])
+    def test_hist_with_legend(self, by, expected_axes_num, expected_layout, label, expected_label):
+        index = 15 * [1] + 15 * [2]
+        s = Series(np.random.randn(30), index=index, name="a")
+        s.index.name = "b"
+
+        kwargs = {"legend": True, "by": by}
+        if label is not None:
+            # Behavior differs if kwargs contains "label": None
+            kwargs["label"] = label
+
+        axes = _check_plot_works(s.hist, **kwargs)
+        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        self._check_legend_labels(axes, expected_label)
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
@@ -294,26 +311,30 @@ class TestDataFramePlots(TestPlotBase):
         assert result == expected
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("by", [None, "b"])
-    @pytest.mark.parametrize("label", [None, "c"])
-    def test_hist_with_legend(self, by, label):
-        expected_labels = label or "a"
-        expected_axes_num = 1 if by is None else 2
-        expected_layout = (1, 1) if by is None else (1, 2)
+    @pytest.mark.parametrize("by", [None, "c"])
+    @pytest.mark.parametrize("column", [None, "b"])
+    @pytest.mark.parametrize("label", [None, "d"])
+    def test_hist_with_legend(self, by, column, label):
+        expected_axes_num = 1 if by is None and column is not None else 2
+        expected_layout = (1, expected_axes_num)
+        expected_labels = label or column or ["a", "b"]
+        if by is not None:
+            expected_labels = [expected_labels] * 2
 
-        index = 15 * [1] + 15 * [2]
-        s = Series(np.random.randn(30), index=index, name="a")
-        s.index.name = "b"
+        index = Index(15 * [1] + 15 * [2], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
-        kwargs = {"legend": True, "by": by}
+        kwargs = {"legend": True, "by": by, "column": column}
         if label is not None:
             # Behavior differs if kwargs contains "label": None
             kwargs["label"] = label
 
-        _check_plot_works(s.hist, **kwargs)
-        axes = s.hist(**kwargs)
+        axes = _check_plot_works(df.hist, **kwargs)
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-        self._check_legend_labels(axes, expected_labels)
+        if by is None and column is None and label is None:
+            axes = axes[0]
+        for expected_label, ax in zip(expected_labels, axes):
+            self._check_legend_labels(ax, expected_label)
 
 
 @td.skip_if_no_mpl
@@ -506,30 +527,3 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         assert ax1._shared_y_axes.joined(ax1, ax2)
         assert ax2._shared_y_axes.joined(ax1, ax2)
-
-    @pytest.mark.slow
-    @pytest.mark.parametrize("by", [None, "c"])
-    @pytest.mark.parametrize("column", [None, "b"])
-    @pytest.mark.parametrize("label", [None, "d"])
-    def test_hist_with_legend(self, by, column, label):
-        expected_axes_num = 1 if by is None and column is not None else 2
-        expected_layout = (1, expected_axes_num)
-        expected_labels = label or column or ["a", "b"]
-        if by is not None:
-            expected_labels = [expected_labels] * 2
-
-        index = Index(15 * [1] + 15 * [2], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
-
-        kwargs = {"legend": True, "by": by, "column": column}
-        if label is not None:
-            # Behavior differs if kwargs contains "label": None
-            kwargs["label"] = label
-
-        _check_plot_works(df.hist, **kwargs)
-        axes = df.hist(**kwargs)
-        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-        if by is None:
-            axes = axes[0]
-        for expected_label, ax in zip(expected_labels, axes):
-            self._check_legend_labels(ax, expected_label)

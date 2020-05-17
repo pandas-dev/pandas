@@ -303,7 +303,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    legend=False,
+    legend: bool = False,
     **kwds,
 ):
     import matplotlib.pyplot as plt
@@ -376,7 +376,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    legend=False,
+    legend: bool = False,
     **kwds,
 ):
     if by is not None:

@@ -8,7 +8,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_no_mpl
@@ -67,17 +67,40 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby("z").plot.scatter(x="x", y="y")
         assert len(res["a"].collections) == 1
 
+    @pytest.mark.parametrize("column, expected_axes_num", [(None, 2), ("b", 1)])
+    @pytest.mark.parametrize("label", [None, "d"])
+    def test_groupby_hist_with_legend(self, column, expected_axes_num, label):
+        expected_layout = (1, expected_axes_num)
+        expected_labels = label or column or [["a"], ["b"]]
 
-@td.skip_if_no_mpl
-@pytest.mark.parametrize("column", [None, "b"])
-@pytest.mark.parametrize("label", [None, "d"])
-def test_hist_with_legend(column, label):
-    index = Index(15 * [1] + 15 * [2], name="c")
-    df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
-    g = df.groupby("c")
+        index = Index(15 * [1] + 15 * [2], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
 
-    g.hist(column=column, label=label, legend=True)
-    tm.close()
-    if column != "b":
-        g["a"].hist(label=label, legend=True)
+        kwargs = {"legend": True, "column": column}
+        # Don't add "label": None, causes different behavior than no label kwarg
+        if label is not None:
+            kwargs["label"] = label
+
+        ret = g.hist(**kwargs)
+        for (_, axes) in ret.iteritems():
+            self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+            for ax, expected_label in zip(axes[0], expected_labels):
+                self._check_legend_labels(ax, expected_label)
         tm.close()
+
+    @pytest.mark.parametrize("label, expected_label", [(None, ['1', '2']), ("d", ["d", "d"])])
+    def test_groupby_hist_series_with_legend(self, label, expected_label):
+        index = Index(15 * [1] + 15 * [2], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        kwargs = {"legend": True}
+        # Don't add "label": None, causes different behavior than no label kwarg
+        if label is not None:
+            kwargs["label"] = label
+
+        axes = g["a"].hist(**kwargs)
+        for (_, ax) in axes.iteritems():
+            self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
+            self._check_legend_labels(ax, expected_label)

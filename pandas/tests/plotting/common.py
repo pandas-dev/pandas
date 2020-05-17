@@ -246,6 +246,7 @@ class TestPlotBase:
             assert texts.get_text() == expected
         else:
             labels = [t.get_text() for t in texts]
+            print(labels, expected)
             assert len(labels) == len(expected)
             for label, e in zip(labels, expected):
                 assert label == e
