@@ -1220,7 +1220,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis=0, min_count=0, *args, **kwargs):
         """
         Sum of non-NA/null values
 
@@ -1230,11 +1230,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
+        count = len(valid_vals)
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
+            if count < min_count:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
+            count += nsparse
+            if count < min_count:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, *args, **kwargs):
