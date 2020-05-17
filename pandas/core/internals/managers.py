@@ -1311,11 +1311,10 @@ class BlockManager(PandasObject):
                 if not allow_fill and only_slice:
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
-                    blocks = []
-                    for i, ml in enumerate(slobj):
-                        nb = blk.getitem_block([ml], new_mgr_locs=i)
-                        print(nb.shape, np.values.shape)
-                        blocks.append(nb)
+                    blocks = [
+                        blk.getitem_block([ml], new_mgr_locs=i)
+                        for i, ml in enumerate(slobj)
+                    ]
                     return blocks
                 else:
                     return [

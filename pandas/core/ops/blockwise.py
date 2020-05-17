@@ -44,13 +44,7 @@ def operate_blockwise(left, right, array_op):
             # else:
             #    assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
 
-            for nb in nbs:
-                # Reset mgr_locs to correspond to our original DataFrame
-                nblocs = locs.as_array[nb.mgr_locs.indexer]
-                nb.mgr_locs = nblocs
-                # Assertions are disabled for performance, but should hold:
-                #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
-                #  assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
+            _reset_block_mgr_locs(nbs, locs)
 
             res_blks.extend(nbs)
 
@@ -63,6 +57,18 @@ def operate_blockwise(left, right, array_op):
 
     new_mgr = type(rmgr)(res_blks, axes=rmgr.axes, do_integrity_check=False)
     return new_mgr
+
+
+def _reset_block_mgr_locs(nbs: List["Block"], locs):
+    """
+    Reset mgr_locs to correspond to our original DataFrame.
+    """
+    for nb in nbs:
+        nblocs = locs.as_array[nb.mgr_locs.indexer]
+        nb.mgr_locs = nblocs
+        # Assertions are disabled for performance, but should hold:
+        #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
+        #  assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
 
 
 def _get_same_shape_values(
