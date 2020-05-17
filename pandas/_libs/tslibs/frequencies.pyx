@@ -5,7 +5,7 @@ cnp.import_array()
 
 from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
 # ----------------------------------------------------------------------
 # Constants
@@ -306,25 +306,6 @@ cpdef int get_to_timestamp_base(int base):
     return base
 
 
-cpdef object get_freq(object freq):
-    """
-    Return frequency code of given frequency str.
-    If input is not string, return input as it is.
-
-    Examples
-    --------
-    >>> get_freq('A')
-    1000
-
-    >>> get_freq('3A')
-    1000
-    """
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    return freq
-
-
 # ----------------------------------------------------------------------
 # Frequency comparison
 
@@ -458,8 +439,8 @@ cdef str _maybe_coerce_freq(code):
 
 
 cdef bint _quarter_months_conform(str source, str target):
-    snum = MONTH_NUMBERS[source]
-    tnum = MONTH_NUMBERS[target]
+    snum = c_MONTH_NUMBERS[source]
+    tnum = c_MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 

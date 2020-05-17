@@ -108,7 +108,7 @@ typedef uint32_t JSUINT32;
 
 #define FASTCALL_MSVC
 
-#if !defined __x86_64__
+#if !defined __x86_64__ && !defined __aarch64__
 #define FASTCALL_ATTR __attribute__((fastcall))
 #else
 #define FASTCALL_ATTR
