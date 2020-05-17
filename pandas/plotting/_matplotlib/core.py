@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import List, Optional
 import warnings
 
 import numpy as np
@@ -95,8 +95,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: str = None,
-        ylabel: str = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -157,8 +157,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
+        self.legend_handles: List = []
+        self.legend_labels: List = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
