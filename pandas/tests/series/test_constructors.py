@@ -5,8 +5,7 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas._libs import lib
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -377,12 +376,12 @@ class TestSeriesConstructors:
         result = pd.Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
-        assert is_categorical_dtype(result) is True
+        assert is_categorical_dtype(result.dtype) is True
         tm.assert_index_equal(result.cat.categories, pd.Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = pd.Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
-        assert is_categorical_dtype(result)
+        assert is_categorical_dtype(result.dtype)
         tm.assert_index_equal(result.cat.categories, pd.Index(["b", "a"]))
         assert result.cat.ordered is False
 
@@ -1444,3 +1443,9 @@ class TestSeriesConstructors:
 
         series = Series(dates)
         assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
+
+    def test_constructor_datetimelike_scalar_to_string_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/33846
+        result = Series("M", index=[1, 2, 3], dtype="string")
+        expected = pd.Series(["M", "M", "M"], index=[1, 2, 3], dtype="string")
+        tm.assert_series_equal(result, expected)

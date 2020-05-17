@@ -19,11 +19,10 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
-from pandas._libs.tslibs import Period, Timedelta
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp, ABCTimedelta, ABCPeriod
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -378,7 +377,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
-        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
+        if not (isinstance(scalar, ABCTimestamp) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
@@ -470,7 +469,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
         return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
-        if not (isinstance(scalar, Timedelta) or scalar is NaT):
+        if not (isinstance(scalar, ABCTimedelta) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
@@ -480,7 +479,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, Period):
+        if isinstance(scalar, ABCPeriod):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)

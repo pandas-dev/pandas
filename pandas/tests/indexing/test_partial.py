@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, date_range
+from pandas import DataFrame, Index, Period, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 
 
@@ -128,7 +128,7 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
 
-        exp_other = DataFrame({0: 7}, index=[dates[-1] + dates.freq])
+        exp_other = DataFrame({0: 7}, index=dates[-1:] + dates.freq)
         expected = pd.concat([df_orig, exp_other], axis=1)
 
         df = df_orig.copy()
@@ -535,3 +535,118 @@ class TestPartialSetting:
         df.loc[0, "x"] = 1
         expected = DataFrame(dict(x=[1], y=[np.nan]))
         tm.assert_frame_equal(df, expected, check_dtype=False)
+
+    @pytest.mark.parametrize(
+        "idx,labels,expected_idx",
+        [
+            (
+                period_range(start="2000", periods=20, freq="D"),
+                ["2000-01-04", "2000-01-08", "2000-01-12"],
+                [
+                    Period("2000-01-04", freq="D"),
+                    Period("2000-01-08", freq="D"),
+                    Period("2000-01-12", freq="D"),
+                ],
+            ),
+            (
+                date_range(start="2000", periods=20, freq="D"),
+                ["2000-01-04", "2000-01-08", "2000-01-12"],
+                [
+                    Timestamp("2000-01-04", freq="D"),
+                    Timestamp("2000-01-08", freq="D"),
+                    Timestamp("2000-01-12", freq="D"),
+                ],
+            ),
+            (
+                pd.timedelta_range(start="1 day", periods=20),
+                ["4D", "8D", "12D"],
+                [pd.Timedelta("4 day"), pd.Timedelta("8 day"), pd.Timedelta("12 day")],
+            ),
+        ],
+    )
+    def test_loc_with_list_of_strings_representing_datetimes(
+        self, idx, labels, expected_idx
+    ):
+        # GH 11278
+        s = Series(range(20), index=idx)
+        df = DataFrame(range(20), index=idx)
+
+        expected_value = [3, 7, 11]
+        expected_s = Series(expected_value, expected_idx)
+        expected_df = DataFrame(expected_value, expected_idx)
+
+        tm.assert_series_equal(expected_s, s.loc[labels])
+        tm.assert_series_equal(expected_s, s[labels])
+        tm.assert_frame_equal(expected_df, df.loc[labels])
+
+    @pytest.mark.parametrize(
+        "idx,labels",
+        [
+            (
+                period_range(start="2000", periods=20, freq="D"),
+                ["2000-01-04", "2000-01-30"],
+            ),
+            (
+                date_range(start="2000", periods=20, freq="D"),
+                ["2000-01-04", "2000-01-30"],
+            ),
+            (pd.timedelta_range(start="1 day", periods=20), ["3 day", "30 day"]),
+        ],
+    )
+    def test_loc_with_list_of_strings_representing_datetimes_missing_value(
+        self, idx, labels
+    ):
+        # GH 11278
+        s = Series(range(20), index=idx)
+        df = DataFrame(range(20), index=idx)
+        msg = r"with any missing labels"
+
+        with pytest.raises(KeyError, match=msg):
+            s.loc[labels]
+        with pytest.raises(KeyError, match=msg):
+            s[labels]
+        with pytest.raises(KeyError, match=msg):
+            df.loc[labels]
+
+    @pytest.mark.parametrize(
+        "idx,labels,msg",
+        [
+            (
+                period_range(start="2000", periods=20, freq="D"),
+                ["4D", "8D"],
+                (
+                    r"None of \[Index\(\['4D', '8D'\], dtype='object'\)\] "
+                    r"are in the \[index\]"
+                ),
+            ),
+            (
+                date_range(start="2000", periods=20, freq="D"),
+                ["4D", "8D"],
+                (
+                    r"None of \[Index\(\['4D', '8D'\], dtype='object'\)\] "
+                    r"are in the \[index\]"
+                ),
+            ),
+            (
+                pd.timedelta_range(start="1 day", periods=20),
+                ["2000-01-04", "2000-01-08"],
+                (
+                    r"None of \[Index\(\['2000-01-04', '2000-01-08'\], "
+                    r"dtype='object'\)\] are in the \[index\]"
+                ),
+            ),
+        ],
+    )
+    def test_loc_with_list_of_strings_representing_datetimes_not_matched_type(
+        self, idx, labels, msg
+    ):
+        # GH 11278
+        s = Series(range(20), index=idx)
+        df = DataFrame(range(20), index=idx)
+
+        with pytest.raises(KeyError, match=msg):
+            s.loc[labels]
+        with pytest.raises(KeyError, match=msg):
+            s[labels]
+        with pytest.raises(KeyError, match=msg):
+            df.loc[labels]

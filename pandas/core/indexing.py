@@ -90,7 +90,7 @@ class IndexingError(Exception):
 
 class IndexingMixin:
     """
-    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    Mixin for adding .loc/.iloc/.at/.iat to Dataframes and Series.
     """
 
     @property
@@ -1228,11 +1228,13 @@ class _LocIndexer(_LocationIndexer):
         indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
+            self._validate_read_indexer(
+                keyarr, indexer, axis, raise_missing=raise_missing
+            )
             return ax[indexer], indexer
 
         if ax.is_unique and not getattr(ax, "is_overlapping", False):
-            indexer = ax.get_indexer_for(key)
+            indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
@@ -1496,7 +1498,7 @@ class _iLocIndexer(_LocationIndexer):
         return key
 
     def _get_setitem_indexer(self, key):
-        # GH#32257 Fall through to let numnpy do validation
+        # GH#32257 Fall through to let numpy do validation
         return key
 
     # -------------------------------------------------------------------
@@ -2255,9 +2257,9 @@ def need_slice(obj) -> bool:
 
 def _non_reducing_slice(slice_):
     """
-    Ensurse that a slice doesn't reduce to a Series or Scalar.
+    Ensure that a slice doesn't reduce to a Series or Scalar.
 
-    Any user-paseed `subset` should have this called on it
+    Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
     # default to column slice, like DataFrame

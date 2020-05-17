@@ -535,10 +535,13 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         # may need to convert to categorical
         if is_categorical_dtype(dtype):
 
-            if is_categorical_dtype(self.values):
+            if is_categorical_dtype(self.values.dtype):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
 
@@ -725,11 +728,6 @@ class Block(PandasObject):
 
         mask = missing.mask_missing(values, to_replace)
 
-        if not mask.any():
-            if inplace:
-                return [self]
-            return [self.copy()]
-
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
             # Note: it is _not_ the case that self._can_hold_element(value)
@@ -822,7 +820,7 @@ class Block(PandasObject):
 
             return self.astype(dtype).setitem(indexer, value)
 
-        # value must be storeable at this moment
+        # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
@@ -1327,7 +1325,7 @@ class Block(PandasObject):
             fastres = expressions.where(cond, values, other)
             return fastres
 
-        if cond.ravel().all():
+        if cond.ravel("K").all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
@@ -1596,7 +1594,7 @@ class ExtensionBlock(Block):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if isinstance(new, np.ndarray) and len(new) == len(mask):
+        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)
@@ -1860,6 +1858,9 @@ class ExtensionBlock(Block):
             )
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
+
+    def equals(self, other) -> bool:
+        return self.values.equals(other.values)
 
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
@@ -2381,7 +2382,7 @@ class ObjectBlock(Block):
         we can be a bool if we have only bool values but are of type
         object
         """
-        return lib.is_bool_array(self.values.ravel())
+        return lib.is_bool_array(self.values.ravel("K"))
 
     def convert(
         self,
@@ -2673,13 +2674,13 @@ def get_block_type(values, dtype=None):
     elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values)
+        assert not is_datetime64tz_dtype(values.dtype)
         cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
@@ -2713,7 +2714,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)

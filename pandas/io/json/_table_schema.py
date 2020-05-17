@@ -105,22 +105,16 @@ def convert_pandas_type_to_json_field(arr):
         name = arr.name
     field = {"name": name, "type": as_json_table_type(dtype)}
 
-    if is_categorical_dtype(arr):
-        if hasattr(arr, "categories"):
-            cats = arr.categories
-            ordered = arr.ordered
-        else:
-            cats = arr.cat.categories
-            ordered = arr.cat.ordered
+    if is_categorical_dtype(dtype):
+        cats = dtype.categories
+        ordered = dtype.ordered
+
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
-    elif is_period_dtype(arr):
-        field["freq"] = arr.freqstr
-    elif is_datetime64tz_dtype(arr):
-        if hasattr(arr, "dt"):
-            field["tz"] = arr.dt.tz.zone
-        else:
-            field["tz"] = arr.tz.zone
+    elif is_period_dtype(dtype):
+        field["freq"] = dtype.freq.freqstr
+    elif is_datetime64tz_dtype(dtype):
+        field["tz"] = dtype.tz.zone
     return field
 
 
