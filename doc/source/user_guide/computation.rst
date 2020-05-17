@@ -648,7 +648,7 @@ from present information back to past information. This allows the rolling windo
 Currently, this feature is only implemented for time-based windows.
 For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
-.. _stats.rolling_window.iter:
+.. _stats.iter_rolling_window:
 
 Iteration over window:
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -658,7 +658,9 @@ Iteration over window:
 ``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
 
 .. ipython:: python
+
     df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
     for i in df.rolling(2):
         print(i)
 
