@@ -6888,6 +6888,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
+        # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
+        # are being ignored, see #26796 for more information
         if method in ["backfill", "bfill", "pad", "ffill"]:
             return self.fillna(
                 method=method,

@@ -298,8 +298,9 @@ class TestDataFrameInterpolate:
         expected = df.interpolate(method="linear", axis=axis_number)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
     @pytest.mark.parametrize("axis", [0, 1])
-    def test_interp_ffill(self, axis):
+    def test_interp_fillna_methods(self, axis, method):
         # GH 33956
         df = DataFrame(
             {
@@ -308,34 +309,6 @@ class TestDataFrameInterpolate:
                 "C": [3.0, 6.0, 9.0, np.nan, np.nan, 30.0],
             }
         )
-        expected = df.ffill(axis=axis)
-        result = df.interpolate(method="ffill", axis=axis)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("axis", [0, 1])
-    def test_interp_bfill(self, axis):
-        # GH 33956
-        df = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
-                "B": [2.0, 4.0, 6.0, np.nan, 8.0, 10.0],
-                "C": [3.0, 6.0, 9.0, np.nan, np.nan, 30.0],
-            }
-        )
-        expected = df.bfill(axis=axis)
-        result = df.interpolate(method="bfill", axis=axis)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("axis", [0, 1])
-    def test_interp_pad(self, axis):
-        # GH 33956
-        df = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
-                "B": [2.0, 4.0, 6.0, np.nan, 8.0, 10.0],
-                "C": [3.0, 6.0, 9.0, np.nan, np.nan, 30.0],
-            }
-        )
-        expected = df.fillna(method="pad", axis=axis)
-        result = df.interpolate(method="pad", axis=axis)
+        expected = df.fillna(axis=axis, method=method)
+        result = df.interpolate(method=method, axis=axis)
         tm.assert_frame_equal(result, expected)
