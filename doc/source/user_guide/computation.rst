@@ -657,12 +657,13 @@ Iteration over window:
 
 ``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
 
-.. ipython:: python
+.. ipython::
 
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
-    for i in df.rolling(2):
-        print(i)
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
 
 
 .. _stats.moments.ts-versus-resampling:
