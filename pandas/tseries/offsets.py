@@ -2140,7 +2140,7 @@ CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
 prefix_mapping = {
-    offset._prefix: offset  # type: ignore
+    offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'
