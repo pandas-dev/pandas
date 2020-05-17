@@ -934,3 +934,31 @@ class TestSeriesPlots(TestPlotBase):
         s = pd.Series([1, 2])
         ax = s.plot(style="s", color="C3")
         assert ax.lines[0].get_color() == ["C3"]
+
+    @pytest.mark.parametrize(
+        "index_name, old_xlabel, new_xlabel, old_ylabel, new_ylabel",
+        [
+            (None, "", "new_x", "", ""),
+            ("old_x", "old_x", "new_x", "", ""),
+            (None, "", "", "", ""),
+            (None, "", "new_x", "", "new_y"),
+            ("old_x", "old_x", "new_x", "", "new_y"),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_series(
+        self, kind, index_name, old_xlabel, old_ylabel, new_xlabel, new_ylabel
+    ):
+        # GH 9093
+        ser = pd.Series([1, 2, 3, 4])
+        ser.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = ser.plot(kind=kind)
+        assert ax.get_ylabel() == old_ylabel
+        assert ax.get_xlabel() == old_xlabel
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = ser.plot(kind=kind, ylabel=new_ylabel, xlabel=new_xlabel)
+        assert ax.get_ylabel() == new_ylabel
+        assert ax.get_xlabel() == new_xlabel

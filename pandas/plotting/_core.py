@@ -653,14 +653,16 @@ class PlotAccessor(PandasObject):
         Set the x limits of the current axes.
     ylim : 2-tuple/list
         Set the y limits of the current axes.
-    xlabel: string, default will use the index name.
-        Name to use for the xlabel on x-axis.
+    xlabel : str, default None
+        Name to use for the xlabel on x-axis. Default uses index name as xlabel.
 
         .. versionadded:: 1.1.0
-    ylabel: string, default is None which is not showing ylabel now.
-        Name to use for the ylabel on y-axis.
+
+    ylabel : str, default None
+        Name to use for the ylabel on y-axis. Default will show no ylabel.
 
         .. versionadded:: 1.1.0
+
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
