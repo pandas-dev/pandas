@@ -124,7 +124,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -219,7 +219,7 @@ def _get_offset(name: str) -> DateOffset:
             klass = prefix_mapping[split[0]]
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
-            offset = klass._from_name(*split[1:])
+            offset = klass._from_name(*split[1:])  # type: ignore
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
@@ -272,12 +272,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_dtype(index):
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index):
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()

@@ -89,7 +89,7 @@ def _handle_date_column(col, utc=None, format=None):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col.dtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -108,7 +108,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -692,37 +692,25 @@ class SQLTable(PandasObject):
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
-        blocks = temp._mgr.blocks
 
-        for b in blocks:
-            if b.is_datetime:
-                # return datetime.datetime objects
-                if b.is_datetimetz:
-                    # GH 9086: Ensure we return datetimes with timezone info
-                    # Need to return 2-D data; DatetimeIndex is 1D
-                    d = b.values.to_pydatetime()
-                    d = np.atleast_2d(d)
-                else:
-                    # convert to microsecond resolution for datetime.datetime
-                    d = b.values.astype("M8[us]").astype(object)
-            elif b.is_timedelta:
-                # numpy converts this to an object array of integers,
-                #  whereas b.astype(object).values would convert to
-                #  object array of Timedeltas
-                d = b.values.astype(object)
+        for i, (_, ser) in enumerate(temp.items()):
+            vals = ser._values
+            if vals.dtype.kind == "M":
+                d = vals.to_pydatetime()
+            elif vals.dtype.kind == "m":
+                # store as integers, see GH#6921, GH#7076
+                d = vals.view("i8").astype(object)
             else:
-                # TODO(2DEA): astype-first can be avoided with 2D EAs
-                # astype on the block instead of values to ensure we
-                #  get the right shape
-                d = b.astype(object).values
+                d = vals.astype(object)
 
-            # replace NaN with None
-            if b._can_hold_na:
+            assert isinstance(d, np.ndarray), type(d)
+
+            if ser._can_hold_na:
+                # Note: this will miss timedeltas since they are converted to int
                 mask = isna(d)
                 d[mask] = None
 
-            for col_loc, col in zip(b.mgr_locs, d):
-                data_list[col_loc] = col
+            data_list[i] = d
 
         return column_names, data_list
 

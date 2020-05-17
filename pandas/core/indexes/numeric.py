@@ -376,7 +376,7 @@ class Float64Index(NumericIndex):
     # Indexing Methods
 
     @doc(Index._should_fallback_to_positional)
-    def _should_fallback_to_positional(self):
+    def _should_fallback_to_positional(self) -> bool:
         return False
 
     @doc(Index._convert_slice_indexer)

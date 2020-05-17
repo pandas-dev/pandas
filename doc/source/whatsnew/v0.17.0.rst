@@ -1,7 +1,7 @@
 .. _whatsnew_0170:
 
-v0.17.0 (October 9, 2015)
--------------------------
+Version 0.17.0 (October 9, 2015)
+--------------------------------
 
 {{ header }}
 
@@ -181,8 +181,8 @@ Each method signature only includes relevant arguments. Currently, these are lim
 Additional methods for ``dt`` accessor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-strftime
-""""""""
+Series.dt.strftime
+""""""""""""""""""
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
@@ -202,8 +202,8 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
-total_seconds
-"""""""""""""
+Series.dt.total_seconds
+"""""""""""""""""""""""
 
 ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
 

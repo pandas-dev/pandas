@@ -53,40 +53,36 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize("aggregation", ["min", "max"])
     def test_min_max_ordered_empty(self, categories, expected, aggregation):
         # GH 30227
-        cat = Categorical([], categories=list("ABC"), ordered=True)
+        cat = Categorical([], categories=categories, ordered=True)
 
         agg_func = getattr(cat, aggregation)
         result = agg_func()
         assert result is expected
 
+    @pytest.mark.parametrize(
+        "values, categories",
+        [(["a", "b", "c", np.nan], list("cba")), ([1, 2, 3, np.nan], [3, 2, 1])],
+    )
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_min_max_with_nan(self, skipna):
+    @pytest.mark.parametrize("function", ["min", "max"])
+    def test_min_max_with_nan(self, values, categories, function, skipna):
         # GH 25303
-        cat = Categorical(
-            [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
-        )
-        _min = cat.min(skipna=skipna)
-        _max = cat.max(skipna=skipna)
+        cat = Categorical(values, categories=categories, ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
 
         if skipna is False:
-            assert np.isnan(_min)
-            assert np.isnan(_max)
+            assert result is np.nan
         else:
-            assert _min == "c"
-            assert _max == "b"
+            expected = categories[0] if function == "min" else categories[2]
+            assert result == expected
 
-        cat = Categorical(
-            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
-        )
-        _min = cat.min(skipna=skipna)
-        _max = cat.max(skipna=skipna)
-
-        if skipna is False:
-            assert np.isnan(_min)
-            assert np.isnan(_max)
-        else:
-            assert _min == 2
-            assert _max == 1
+    @pytest.mark.parametrize("function", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_only_nan(self, function, skipna):
+        # https://github.com/pandas-dev/pandas/issues/33450
+        cat = Categorical([np.nan], categories=[1, 2], ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
+        assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_deprecate_numeric_only_min_max(self, method):

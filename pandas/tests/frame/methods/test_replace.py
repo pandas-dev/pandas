@@ -1303,9 +1303,15 @@ class TestDataFrameReplace:
     def test_categorical_replace_with_dict(self, replace_dict, final_data):
         # GH 26988
         df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
-        expected = DataFrame(final_data, columns=["a", "b"], dtype="category")
-        expected["a"] = expected["a"].cat.set_categories([1, 2, 3])
-        expected["b"] = expected["b"].cat.set_categories([1, 2, 3])
+
+        final_data = np.array(final_data)
+
+        a = pd.Categorical(final_data[:, 0], categories=[3, 2])
+
+        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=excat)
+
+        expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
         tm.assert_frame_equal(result, expected)
         with pytest.raises(AssertionError):
@@ -1374,3 +1380,11 @@ class TestDataFrameReplace:
         )
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
+
+    @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
+    @pytest.mark.parametrize("value", [np.nan, pd.NA])
+    def test_replace_no_replacement_dtypes(self, dtype, value):
+        # https://github.com/pandas-dev/pandas/issues/32988
+        df = pd.DataFrame(np.eye(2), dtype=dtype)
+        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
+        tm.assert_frame_equal(result, df)
