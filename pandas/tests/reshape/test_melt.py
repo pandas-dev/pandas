@@ -367,7 +367,10 @@ class TestMelt:
         result = melt(df, ignore_index=False)
 
         expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
-        expected = DataFrame({"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]}, index=expected_index)
+        expected = DataFrame(
+            {"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]},
+            index=expected_index,
+        )
 
         tm.assert_frame_equal(result, expected)
 
