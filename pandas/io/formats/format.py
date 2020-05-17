@@ -1237,6 +1237,8 @@ class GenericArrayFormatter:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
+            elif isinstance(v, str):
+                fmt_values.append(f"'{v}'")
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
