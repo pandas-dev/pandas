@@ -3350,6 +3350,36 @@ class TestDataFramePlots(TestPlotBase):
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
 
+    @pytest.mark.parametrize(
+        "index_name, xlabel", [(None, ""), ("new_name", "new_name")]
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_single_plot(self, kind, index_name, xlabel):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the index name is being used if not None, otherwise no xlabel is shown
+        ax = df.plot(kind=kind)
+        assert ax.get_xlabel() == xlabel
+
+        ax = df.plot(kind=kind, xlabel="new label")
+        assert ax.get_xlabel() == "new label"
+
+    @pytest.mark.parametrize("index_name, ylabel", [(None, ""), ("new_name", "")])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_ylabel_single_plot(self, kind, index_name, ylabel):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the ylabel is not shown
+        ax = df.plot(kind=kind)
+        assert ax.get_ylabel() == ylabel
+
+        ax = df.plot(kind=kind, ylabel="new label")
+        assert ax.get_ylabel() == "new label"
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt

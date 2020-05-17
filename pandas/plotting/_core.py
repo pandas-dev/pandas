@@ -653,6 +653,14 @@ class PlotAccessor(PandasObject):
         Set the x limits of the current axes.
     ylim : 2-tuple/list
         Set the y limits of the current axes.
+    xlabel: string, default will use the index name.
+        Name to use for the xlabel on x-axis.
+
+        .. versionadded:: 1.1.0
+    ylabel: string, default is None which is not showing ylabel now.
+        Name to use for the ylabel on y-axis.
+
+        .. versionadded:: 1.1.0
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
@@ -759,6 +767,8 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("label", None),
                 ("secondary_y", False),
+                ("xlabel", None),
+                ("ylabel", None),
             ]
         elif isinstance(data, ABCDataFrame):
             arg_def = [
@@ -791,6 +801,8 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("secondary_y", False),
                 ("sort_columns", False),
+                ("xlabel", None),
+                ("ylabel", None),
             ]
         else:
             raise TypeError(
