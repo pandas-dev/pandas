@@ -746,8 +746,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         IncompatibleFrequency
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
-        own_offset = frequencies.to_offset(self.freq.rule_code)
-        base_nanos = delta_to_nanoseconds(own_offset)
+        base_nanos = self.freq.base.nanos
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             nanos = delta_to_nanoseconds(other)
