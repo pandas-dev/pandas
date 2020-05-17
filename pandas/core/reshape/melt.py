@@ -28,7 +28,7 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
-    keep_index=False,
+    ignore_index=True,
 ) -> DataFrame:
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -114,7 +114,7 @@ def melt(
 
     result = frame._constructor(mdata, columns=mcolumns)
 
-    if keep_index:
+    if not ignore_index:
         new_index = np.tile(frame.index, K)
 
         if isinstance(frame.index, MultiIndex):
@@ -122,7 +122,7 @@ def melt(
         else:
             new_index = Index(new_index, dtype=frame.index.dtype, name=frame.index.name)
 
-        result = result.set_index(new_index)
+        result.index = new_index
 
     return result
 

@@ -333,22 +333,22 @@ class TestMelt:
         expected = DataFrame({"variable": [0, "a"], "value": ["foo", "bar"]})
         tm.assert_frame_equal(result, expected)
 
-    def test_keep_index(self):
+    def test_ignore_index(self):
         # GH 17440
         df = DataFrame({"foo": [0], "bar": [1]}, index=["first"])
-        result = melt(df, keep_index=True)
+        result = melt(df, ignore_index=False)
         expected = DataFrame(
             {"variable": ["foo", "bar"], "value": [0, 1]}, index=["first", "first"]
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_keep_multiindex(self):
+    def test_ignore_multiindex(self):
         # GH 17440
         index = pd.MultiIndex.from_tuples(
             [("first", "second"), ("first", "third")], names=["baz", "foobar"]
         )
         df = DataFrame({"foo": [0, 1], "bar": [2, 3]}, index=index)
-        result = melt(df, keep_index=True)
+        result = melt(df, ignore_index=False)
 
         expected_index = pd.MultiIndex.from_tuples(
             [("first", "second"), ("first", "third")] * 2, names=["baz", "foobar"]
@@ -360,11 +360,11 @@ class TestMelt:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_keep_index_name_and_type(self):
+    def test_ignore_index_name_and_type(self):
         # GH 17440
         index = pd.Index(["foo", "bar"], dtype="category", name="baz")
         df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
-        result = melt(df, keep_index=True)
+        result = melt(df, ignore_index=False)
 
         expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
         tm.assert_index_equal(result.index, expected_index)
