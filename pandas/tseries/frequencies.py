@@ -164,7 +164,7 @@ def to_offset(freq) -> Optional[DateOffset]:
                     )
                 stride = int(stride)
                 offset = _get_offset(name)
-                offset = offset * int(np.fabs(stride) * stride_sign)
+                offset = offset * int(np.fabs(stride) * stride_sign)  # type: ignore
                 if delta is None:
                     delta = offset
                 else:
