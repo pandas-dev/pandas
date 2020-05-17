@@ -730,6 +730,8 @@ class HDFStore:
             Same type as object stored in file.
         """
         with patch_pickle():
+            # GH#31167 Without this patch, pickle doesn't know how to unpickle
+            #  old DateOffset objects now that they are cdef classes.
             group = self.get_node(key)
             if group is None:
                 raise KeyError(f"No object named {key} in the file")
