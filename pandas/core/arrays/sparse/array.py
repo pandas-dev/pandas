@@ -13,6 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
+from pandas._typing import Scalar
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -1220,13 +1221,24 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, min_count=0, *args, **kwargs):
+    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
         """
         Sum of non-NA/null values
 
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        min_count : int, default 0
+            The required number of valid values to perform the summation. If fewer
+            than ``min_count`` valid values are present, the result will be the missing
+            value indicator for subarray type.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
         Returns
         -------
-        sum : float
+        scalar
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
