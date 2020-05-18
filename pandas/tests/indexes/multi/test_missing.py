@@ -1,55 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
-
 import pandas as pd
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+from pandas import MultiIndex
 import pandas._testing as tm
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 def test_fillna(idx):
     # GH 11343
-
-    # TODO: Remove or Refactor.  Not Implemented for MultiIndex
-    for name, index in [("idx", idx)]:
-        if len(index) == 0:
-            pass
-        elif isinstance(index, MultiIndex):
-            idx = index.copy()
-            msg = "isna is not defined for MultiIndex"
-            with pytest.raises(NotImplementedError, match=msg):
-                idx.fillna(idx[0])
-        else:
-            idx = index.copy()
-            result = idx.fillna(idx[0])
-            tm.assert_index_equal(result, idx)
-            assert result is not idx
-
-            msg = "'value' must be a scalar, passed: "
-            with pytest.raises(TypeError, match=msg):
-                idx.fillna([idx[0]])
-
-            idx = index.copy()
-            values = idx.values
-
-            if isinstance(index, DatetimeIndexOpsMixin):
-                values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index)):
-                continue
-            else:
-                values[1] = np.nan
-
-            if isinstance(index, PeriodIndex):
-                idx = type(index)(values, freq=index.freq)
-            else:
-                idx = type(index)(values)
-
-            expected = np.array([False] * len(idx), dtype=bool)
-            expected[1] = True
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans is True
+    msg = "isna is not defined for MultiIndex"
+    with pytest.raises(NotImplementedError, match=msg):
+        idx.fillna(idx[0])
 
 
 def test_dropna():
@@ -141,3 +102,13 @@ def test_nan_stays_float():
     assert pd.isna(df0.index.get_level_values(1)).all()
     # the following failed in 0.14.1
     assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+
+def test_tuples_have_na():
+    index = MultiIndex(
+        levels=[[1, 0], [0, 1, 2, 3]],
+        codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
+    )
+
+    assert pd.isna(index[4][0])
+    assert pd.isna(index.values[4][0])

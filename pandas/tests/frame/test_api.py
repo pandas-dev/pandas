@@ -1,12 +1,13 @@
 from copy import deepcopy
 import datetime
+import inspect
 import pydoc
 
 import numpy as np
 import pytest
 
 from pandas.compat import PY37
-from pandas.util._test_decorators import async_mark
+from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
@@ -126,6 +127,14 @@ class TestDataFrameMisc:
             hash(df)
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
+
+    def test_column_name_contains_unicode_surrogate(self):
+        # GH 25509
+        colname = "\ud83d"
+        df = DataFrame({colname: []})
+        # this should not crash
+        assert colname not in dir(df)
+        assert df.columns[0] == colname
 
     def test_new_empty_index(self):
         df1 = DataFrame(np.random.randn(0, 3))
@@ -356,17 +365,14 @@ class TestDataFrameMisc:
         df = pd.DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
-        assert df.to_numpy(copy=True).base is None
+        assert df.to_numpy(copy=True).base is not arr
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
         tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
         tm.assert_frame_equal(df, df.swapaxes(0, 0))
-        msg = (
-            "No axis named 2 for object type "
-            r"<class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
-        )
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
 
@@ -524,7 +530,18 @@ class TestDataFrameMisc:
 
         code = "import pandas as pd; df = pd.DataFrame()"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # TODO: remove it when Ipython updates
+        # GH 33567, jedi version raises Deprecation warning in Ipython
+        import jedi
+
+        if jedi.__version__ < "0.17.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
 
@@ -535,3 +552,32 @@ class TestDataFrameMisc:
 
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
+
+    def test_cache_on_copy(self):
+        # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
+        df = DataFrame({"a": [1]})
+
+        df["x"] = [0]
+        df["a"]
+
+        df.copy()
+
+        df["a"].values[0] = -1
+
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
+
+        df["y"] = [0]
+
+        assert df["a"].values[0] == -1
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
+
+    @skip_if_no("jinja2")
+    def test_constructor_expanddim_lookup(self):
+        # GH#33628 accessing _constructor_expanddim should not
+        #  raise NotImplementedError
+        df = DataFrame()
+
+        inspect.getmembers(df)
+
+        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+            df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))

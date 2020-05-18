@@ -372,12 +372,12 @@ class BinOp(Op):
 
         try:
             self.func = _binary_ops_dict[op]
-        except KeyError:
+        except KeyError as err:
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
                 f"Invalid binary operator {repr(op)}, valid operators are {keys}"
-            )
+            ) from err
 
     def __call__(self, env):
         """
@@ -550,11 +550,11 @@ class UnaryOp(Op):
 
         try:
             self.func = _unary_ops_dict[op]
-        except KeyError:
+        except KeyError as err:
             raise ValueError(
                 f"Invalid unary operator {repr(op)}, "
                 f"valid operators are {_unary_ops_syms}"
-            )
+            ) from err
 
     def __call__(self, env):
         operand = self.operand(env)

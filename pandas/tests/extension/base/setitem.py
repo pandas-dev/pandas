@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -60,7 +58,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
         setter = getattr(arr, setter)
-        operator.setitem(setter, 0, data[1])
+        setter[0] = data[1]
         assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
@@ -98,8 +96,9 @@ class BaseSetitemTests(BaseExtensionTests):
         [
             np.array([True, True, True, False, False]),
             pd.array([True, True, True, False, False], dtype="boolean"),
+            pd.array([True, True, True, pd.NA, pd.NA], dtype="boolean"),
         ],
-        ids=["numpy-array", "boolean-array"],
+        ids=["numpy-array", "boolean-array", "boolean-array-na"],
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         arr = data[:5].copy()
@@ -124,20 +123,17 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
-    def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
-        # missing values in mask
+    def test_setitem_mask_boolean_array_with_na(self, data, box_in_series):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
-        mask[:2] = pd.NA
+        mask[:3] = True
+        mask[3:5] = pd.NA
 
         if box_in_series:
             data = pd.Series(data)
 
-        msg = (
-            "Cannot mask with a boolean indexer containing NA values|"
-            "cannot mask with array containing NA / NaN values"
-        )
-        with pytest.raises(ValueError, match=msg):
-            data[mask] = data[0]
+        data[mask] = data[0]
+
+        assert (data[:3] == data[0]).all()
 
     @pytest.mark.parametrize(
         "idx",
@@ -198,7 +194,7 @@ class BaseSetitemTests(BaseExtensionTests):
             # Series.__setitem__
             target = ser
 
-        operator.setitem(target, mask2, data[5:7])
+        target[mask2] = data[5:7]
 
         ser[mask2] = data[5:7]
         assert ser[0] == data[5]
@@ -215,7 +211,7 @@ class BaseSetitemTests(BaseExtensionTests):
         else:  # __setitem__
             target = ser
 
-        operator.setitem(target, mask, data[10])
+        target[mask] = data[10]
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 

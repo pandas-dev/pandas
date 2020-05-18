@@ -89,7 +89,7 @@ def _handle_date_column(col, utc=None, format=None):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col.dtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -108,7 +108,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -238,8 +238,8 @@ def read_sql_table(
     meta = MetaData(con, schema=schema)
     try:
         meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError(f"Table {table_name} not found")
+    except sqlalchemy.exc.InvalidRequestError as err:
+        raise ValueError(f"Table {table_name} not found") from err
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -313,7 +313,7 @@ def read_sql_query(
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
@@ -807,7 +807,7 @@ class SQLTable(PandasObject):
             try:
                 temp.reset_index(inplace=True)
             except ValueError as err:
-                raise ValueError(f"duplicate name in index/columns: {err}")
+                raise ValueError(f"duplicate name in index/columns: {err}") from err
 
         return temp
 
@@ -816,29 +816,24 @@ class SQLTable(PandasObject):
         column_names = list(map(str, data.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
-        blocks = data._data.blocks
-
-        for b in blocks:
-            if b.is_datetime:
-                # return datetime.datetime objects
-                if b.is_datetimetz:
-                    # GH 9086: Ensure we return datetimes with timezone info
-                    # Need to return 2-D data; DatetimeIndex is 1D
-                    d = b.values.to_pydatetime()
-                    d = np.atleast_2d(d)
-                else:
-                    # convert to microsecond resolution for datetime.datetime
-                    d = b.values.astype("M8[us]").astype(object)
+        for i, (_, ser) in enumerate(data.items()):
+            vals = ser._values
+            if vals.dtype.kind == "M":
+                d = vals.to_pydatetime()
+            elif vals.dtype.kind == "m":
+                # store as integers, see GH#6921, GH#7076
+                d = vals.view("i8").astype(object)
             else:
-                d = np.array(b.get_values(), dtype=object)
+                d = vals.astype(object)
 
-            # replace NaN with None
-            if b._can_hold_na:
+            assert isinstance(d, np.ndarray), type(d)
+
+            if ser._can_hold_na:
+                # Note: this will miss timedeltas since they are converted to int
                 mask = isna(d)
                 d[mask] = None
 
-            for col_loc, col in zip(b.mgr_locs, d):
-                data_list[col_loc] = col
+            data_list[i] = d
 
         return column_names, data_list
 
@@ -846,18 +841,18 @@ class SQLTable(PandasObject):
         """
         Determines what data to pass to the underlying insert method.
         """
-        with self.pd_sql.run_transaction() as trans:
-            if self.if_exists == "upsert_keep":
-                data = self._upsert_keep_processing()
-                self._insert(data=data, chunksize=chunksize, method=method, conn=trans)
-            elif self.if_exists == "upsert_overwrite":
-                delete_statement = self._upsert_overwrite_processing()
-                trans.execute(delete_statement)
-                self._insert(chunksize=chunksize, method=method, conn=trans)
-            else:
-                self._insert(chunksize=chunksize, method=method, conn=trans)
+        if self.if_exists == "upsert_keep":
+            data = self._upsert_keep_processing()
+            self._insert(data=data, chunksize=chunksize, method=method)
+        elif self.if_exists == "upsert_overwrite":
+            delete_statement = self._upsert_overwrite_processing()
+            self._insert(
+                chunksize=chunksize, method=method, other_stmts=[delete_statement]
+            )
+        else:
+            self._insert(chunksize=chunksize, method=method)
 
-    def _insert(self, data=None, chunksize=None, method=None, conn=None):
+    def _insert(self, data=None, chunksize=None, method=None, other_stmts=[]):
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -885,14 +880,19 @@ class SQLTable(PandasObject):
 
         chunks = int(nrows / chunksize) + 1
 
-        for i in range(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, nrows)
-            if start_i >= end_i:
-                break
+        with self.pd_sql.run_transaction() as conn:
+            if len(other_stmts) > 0:
+                for stmt in other_stmts:
+                    conn.execute(stmt)
 
-            chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-            exec_insert(conn, keys, chunk_iter)
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, nrows)
+                if start_i >= end_i:
+                    break
+
+                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+                exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
         self, result, chunksize, columns, coerce_float=True, parse_dates=None
@@ -1110,7 +1110,8 @@ class SQLTable(PandasObject):
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
-                if col.tz is not None:
+                # GH 26761 or an Index with date-like data e.g. 9999-01-01
+                if getattr(col, "tz", None) is not None:
                     return TIMESTAMP(timezone=True)
             return DateTime
         if col_type == "timedelta64":
@@ -1532,8 +1533,8 @@ _SQL_TYPES = {
 def _get_unicode_name(name):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
-    except UnicodeError:
-        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'")
+    except UnicodeError as err:
+        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'") from err
     return uname
 
 

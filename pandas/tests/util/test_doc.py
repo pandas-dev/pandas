@@ -14,13 +14,15 @@ def cumsum(whatever):
 
 @doc(
     cumsum,
-    """
-    Examples
-    --------
+    dedent(
+        """
+        Examples
+        --------
 
-    >>> cumavg([1, 2, 3])
-    2
-    """,
+        >>> cumavg([1, 2, 3])
+        2
+        """
+    ),
     method="cumavg",
     operation="average",
 )

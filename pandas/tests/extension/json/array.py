@@ -105,6 +105,12 @@ class JSONArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self.data)
 
+    def __eq__(self, other):
+        return NotImplemented
+
+    def __ne__(self, other):
+        return NotImplemented
+
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object
@@ -137,13 +143,13 @@ class JSONArray(ExtensionArray):
                 output = [
                     self.data[loc] if loc != -1 else fill_value for loc in indexer
                 ]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
 
         return self._from_sequence(output)
 

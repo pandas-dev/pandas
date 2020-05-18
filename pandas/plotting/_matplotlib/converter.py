@@ -22,9 +22,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_nested_list_like,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import Index, get_option
+from pandas import Index, Series, get_option
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
@@ -218,13 +217,13 @@ class PeriodConverter(dates.DateConverter):
         if isinstance(values, valid_types) or is_integer(values) or is_float(values):
             return get_datevalue(values, axis.freq)
         elif isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._ndarray_values
+            return values.asfreq(axis.freq).asi8
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         elif lib.infer_dtype(values, skipna=False) == "period":
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
-            return PeriodIndex(values, freq=axis.freq)._ndarray_values
+            return PeriodIndex(values, freq=axis.freq).asi8
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -252,7 +251,7 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if isinstance(dt, (np.ndarray, Index, ABCSeries)) and is_datetime64_ns_dtype(dt):
+    if isinstance(dt, (np.ndarray, Index, Series)) and is_datetime64_ns_dtype(dt):
         base = dates.epoch2num(dt.asi8 / 1.0e9)
     else:
         base = dates.date2num(dt)
@@ -288,8 +287,8 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, str):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
-            if isinstance(values, ABCSeries):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, Series)):
+            if isinstance(values, Series):
                 # https://github.com/matplotlib/matplotlib/issues/11391
                 # Series was skipped. Convert to DatetimeIndex to get asi8
                 values = Index(values)
@@ -387,23 +386,6 @@ class MilliSecondLocator(dates.DateLocator):
             return []
 
         # We need to cap at the endpoints of valid datetime
-
-        # FIXME: dont leave commented-out
-        # TODO(wesm) unused?
-        # if dmin > dmax:
-        #     dmax, dmin = dmin, dmax
-        # delta = relativedelta(dmax, dmin)
-        # try:
-        #     start = dmin - delta
-        # except ValueError:
-        #     start = _from_ordinal(1.0)
-
-        # try:
-        #     stop = dmax + delta
-        # except ValueError:
-        #     # The magic number!
-        #     stop = _from_ordinal(3652059.9999999)
-
         nmax, nmin = dates.date2num((dmax, dmin))
 
         num = (nmax - nmin) * 86400 * 1000
@@ -449,27 +431,7 @@ class MilliSecondLocator(dates.DateLocator):
         """
         Set the view limits to include the data range.
         """
-        dmin, dmax = self.datalim_to_dt()
-        if dmin > dmax:
-            dmax, dmin = dmin, dmax
-
         # We need to cap at the endpoints of valid datetime
-
-        # FIXME: dont leave commented-out
-        # TODO(wesm): unused?
-
-        # delta = relativedelta(dmax, dmin)
-        # try:
-        #     start = dmin - delta
-        # except ValueError:
-        #     start = _from_ordinal(1.0)
-
-        # try:
-        #     stop = dmax + delta
-        # except ValueError:
-        #     # The magic number!
-        #     stop = _from_ordinal(3652059.9999999)
-
         dmin, dmax = self.datalim_to_dt()
 
         vmin = dates.date2num(dmin)
@@ -607,7 +569,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(
         span, dtype=[("val", np.int64), ("maj", bool), ("min", bool), ("fmt", "|S20")]
     )
-    info["val"][:] = dates_._ndarray_values
+    info["val"][:] = dates_.asi8
     info["fmt"][:] = ""
     info["maj"][[0, -1]] = True
     # .. and set some shortcuts

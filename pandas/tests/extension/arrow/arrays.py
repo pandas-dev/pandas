@@ -148,8 +148,8 @@ class ArrowExtensionArray(ExtensionArray):
 
         try:
             op = getattr(arr, method)
-        except AttributeError:
-            raise TypeError
+        except AttributeError as err:
+            raise TypeError from err
         return op(**kwargs)
 
     def any(self, axis=0, out=None):

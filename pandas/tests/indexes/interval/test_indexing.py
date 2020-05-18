@@ -158,6 +158,15 @@ class TestGetLoc:
         expected = 0
         assert result == expected
 
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_loc_non_scalar_errors(self, key):
+        # GH 31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_loc(key)
+
 
 class TestGetIndexer:
     @pytest.mark.parametrize(
@@ -240,10 +249,10 @@ class TestGetIndexer:
             ["foo", "foo", "bar", "baz"],
         ],
     )
-    def test_get_indexer_categorical(self, target, ordered_fixture):
+    def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
-        categorical_target = CategoricalIndex(target, ordered=ordered_fixture)
+        categorical_target = CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
         expected = index.get_indexer(target)
