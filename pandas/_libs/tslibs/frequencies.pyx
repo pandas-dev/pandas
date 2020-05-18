@@ -306,25 +306,6 @@ cpdef int get_to_timestamp_base(int base):
     return base
 
 
-cpdef object get_freq(object freq):
-    """
-    Return frequency code of given frequency str.
-    If input is not string, return input as it is.
-
-    Examples
-    --------
-    >>> get_freq('A')
-    1000
-
-    >>> get_freq('3A')
-    1000
-    """
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    return freq
-
-
 # ----------------------------------------------------------------------
 # Frequency comparison
 

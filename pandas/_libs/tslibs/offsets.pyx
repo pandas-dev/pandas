@@ -23,7 +23,7 @@ from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
 from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
 
-from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.ccalendar import MONTHS, DAYS, weekday_to_int, int_to_weekday
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
@@ -852,10 +852,13 @@ cdef class _Tick(ABCTick):
         self.normalize = False
 
 
-class BusinessMixin:
+class BusinessMixin(BaseOffset):
     """
     Mixin to business types to provide related functions.
     """
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "_offset", offset)
 
     @property
     def offset(self):
@@ -879,7 +882,11 @@ class BusinessMixin:
 class BusinessHourMixin(BusinessMixin):
     _adjust_dst = False
 
-    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
+    def __init__(
+            self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
+        ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+
         # must be validated here to equality check
         if np.ndim(start) == 0:
             # i.e. not is_list_like
@@ -923,7 +930,6 @@ class BusinessHourMixin(BusinessMixin):
 
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
-        object.__setattr__(self, "_offset", offset)
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
@@ -986,10 +992,16 @@ class CustomMixin:
         object.__setattr__(self, "calendar", calendar)
 
 
-class WeekOfMonthMixin:
+class WeekOfMonthMixin(BaseOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+    def __init__(self, n=1, normalize=False, weekday=0):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "weekday", weekday)
+
+        if weekday < 0 or weekday > 6:
+            raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
 
     @apply_wraps
     def apply(self, other):
@@ -1009,6 +1021,14 @@ class WeekOfMonthMixin:
         if self.normalize and not is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
+
+    @property
+    def rule_code(self) -> str:
+        weekday = int_to_weekday.get(self.weekday, "")
+        if self.week == -1:
+            # LastWeekOfMonth
+            return f"{self._prefix}-{weekday}"
+        return f"{self._prefix}-{self.week + 1}{weekday}"
 
 
 # ----------------------------------------------------------------------
