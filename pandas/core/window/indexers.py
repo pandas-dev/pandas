@@ -203,6 +203,7 @@ class GroupbyRollingIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
         start_arrays = []
         end_arrays = []
+        window_indicies_start = 0
         for key, indicies in self.groupby_indicies.items():
             indexer = self.rolling_indexer(
                 index_array=self.index_array.take(indicies),
@@ -211,9 +212,16 @@ class GroupbyRollingIndexer(BaseIndexer):
             start, end = indexer.get_window_bounds(
                 len(indicies), min_periods, center, closed
             )
-            indicies = np.append(indicies, [indicies[-1] + 1])  # Check this assumption
-            start_arrays.append(indicies.take(start))
-            end_arrays.append(indicies.take(end))
+            # Cannot use groupby_indicies as they might not be monotonic with the object
+            # we're rolling over
+            window_indicies = np.arange(
+                window_indicies_start, window_indicies_start + len(indicies)
+            )
+            window_indicies_start += len(indicies)
+            # Extend as we'll be slicing window like [start, end)
+            window_indicies = np.append(window_indicies, [window_indicies[-1] + 1])
+            start_arrays.append(window_indicies.take(start))
+            end_arrays.append(window_indicies.take(end))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         return start, end

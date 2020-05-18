@@ -2136,6 +2136,24 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
+    def _create_blocks(self):
+        """
+        Split data into blocks & return conformed data.
+        """
+        # Ensure the object we're rolling over is monotonically sorted relative
+        # to the groups
+        obj = self._selected_obj.take(
+            np.concatenate([idxs for idxs in self._groupby.grouper.indices.values()])
+        )
+
+        # filter out the on from the object
+        if self.on is not None and not isinstance(self.on, Index):
+            if obj.ndim == 2:
+                obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+        blocks = obj._to_dict_of_blocks(copy=False).values()
+
+        return blocks, obj
+
     def _get_cython_func_type(self, func: str) -> Callable:
         """
         Return the cython function type.
