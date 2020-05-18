@@ -1044,6 +1044,7 @@ Properties
     Tick.nanos
     Tick.normalize
     Tick.rule_code
+    Tick.n
 
 Methods
 ~~~~~~~
@@ -1056,6 +1057,7 @@ Methods
     Tick.is_anchored
     Tick.is_on_offset
     Tick.__call__
+    Tick.apply
 
 Day
 ---
@@ -1076,6 +1078,7 @@ Properties
     Day.nanos
     Day.normalize
     Day.rule_code
+    Day.n
 
 Methods
 ~~~~~~~
@@ -1088,6 +1091,7 @@ Methods
     Day.is_anchored
     Day.is_on_offset
     Day.__call__
+    Day.apply
 
 Hour
 ----
@@ -1108,6 +1112,7 @@ Properties
     Hour.nanos
     Hour.normalize
     Hour.rule_code
+    Hour.n
 
 Methods
 ~~~~~~~
@@ -1120,6 +1125,7 @@ Methods
     Hour.is_anchored
     Hour.is_on_offset
     Hour.__call__
+    Hour.apply
 
 Minute
 ------
@@ -1140,6 +1146,7 @@ Properties
     Minute.nanos
     Minute.normalize
     Minute.rule_code
+    Minute.n
 
 Methods
 ~~~~~~~
@@ -1152,6 +1159,7 @@ Methods
     Minute.is_anchored
     Minute.is_on_offset
     Minute.__call__
+    Minute.apply
 
 Second
 ------
@@ -1172,6 +1180,7 @@ Properties
     Second.nanos
     Second.normalize
     Second.rule_code
+    Second.n
 
 Methods
 ~~~~~~~
@@ -1184,6 +1193,7 @@ Methods
     Second.is_anchored
     Second.is_on_offset
     Second.__call__
+    Second.apply
 
 Milli
 -----
@@ -1204,6 +1214,7 @@ Properties
     Milli.nanos
     Milli.normalize
     Milli.rule_code
+    Milli.n
 
 Methods
 ~~~~~~~
@@ -1216,6 +1227,7 @@ Methods
     Milli.is_anchored
     Milli.is_on_offset
     Milli.__call__
+    Milli.apply
 
 Micro
 -----
@@ -1236,6 +1248,7 @@ Properties
     Micro.nanos
     Micro.normalize
     Micro.rule_code
+    Micro.n
 
 Methods
 ~~~~~~~
@@ -1248,6 +1261,7 @@ Methods
     Micro.is_anchored
     Micro.is_on_offset
     Micro.__call__
+    Micro.apply
 
 Nano
 ----
@@ -1268,6 +1282,7 @@ Properties
     Nano.nanos
     Nano.normalize
     Nano.rule_code
+    Nano.n
 
 Methods
 ~~~~~~~
@@ -1280,6 +1295,7 @@ Methods
     Nano.is_anchored
     Nano.is_on_offset
     Nano.__call__
+    Nano.apply
 
 BDay
 ----
