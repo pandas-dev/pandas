@@ -44,7 +44,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
-    is_categorical_dtype,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -540,13 +539,7 @@ class SeriesGroupBy(GroupBy[Series]):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
-
-        # in categorical case there may be unobserved categories in index
-        if not self.observed and any(
-            is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings
-        ):
-            result = result.reindex(self.grouper.result_index)
-
+        result = result.reindex(self.grouper.result_index, copy=False)
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
@@ -1483,13 +1476,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
-
-        # in categorical case there may be unobserved categories in index
-        if not self.observed and any(
-            is_categorical_dtype(ping.grouper) for ping in self.grouper.groupings
-        ):
-            result = result.reindex(self.grouper.result_index)
-
+        result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
