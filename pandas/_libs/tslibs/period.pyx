@@ -37,8 +37,6 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.tslibs.base cimport is_tick_object
-
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -53,6 +51,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.frequencies cimport (
+    attrname_to_abbrevs,
     get_base_alias,
     get_freq_code,
     get_freq_str,
@@ -60,7 +59,6 @@ from pandas._libs.tslibs.frequencies cimport (
     get_to_timestamp_base,
 )
 from pandas._libs.tslibs.parsing import parse_time_string
-from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
     NPY_NAT,
@@ -68,7 +66,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -708,6 +706,8 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # Conversion between date_info and npy_datetimestruct
 
 cdef inline int get_freq_group(int freq) nogil:
+    # Note: this is equivalent to libfrequencies.get_freq_group, specialized
+    #  to integer argument.
     return (freq // 1000) * 1000
 
 
@@ -2434,7 +2434,7 @@ class Period(_Period):
 
             if freq is None:
                 try:
-                    freq = Resolution.get_freq(reso)
+                    freq = attrname_to_abbrevs[reso]
                 except KeyError:
                     raise ValueError(f"Invalid frequency or could not "
                                      f"infer: {reso}")
