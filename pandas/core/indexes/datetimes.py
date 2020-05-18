@@ -5,8 +5,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
-from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
+from pandas._libs.tslibs import fields, parsing, resolution as libresolution, timezones
+from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
@@ -28,7 +29,7 @@ from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
-from pandas.tseries.frequencies import Resolution, to_offset
+from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import prefix_mapping
 
 
@@ -323,7 +324,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return libts.ints_to_pydatetime(self.asi8, self.tz)
+        return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -500,7 +501,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if reso not in valid_resos:
             raise KeyError
 
-        grp = Resolution.get_freq_group(reso)
+        grp = get_freq_group(reso)
         per = Period(parsed, freq=(grp, 1))
         start, end = per.start_time, per.end_time
 
@@ -525,7 +526,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             self.is_monotonic
             and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= Resolution.get_reso(reso)
+            and self._resolution >= libresolution.Resolution.get_reso(reso)
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
