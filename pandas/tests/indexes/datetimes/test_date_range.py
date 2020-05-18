@@ -16,15 +16,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
 import pandas._testing as tm
+from pandas.core.arrays.datetimes import generate_range
 
-from pandas.tseries.offsets import (
-    BDay,
-    CDay,
-    DateOffset,
-    MonthEnd,
-    generate_range,
-    prefix_mapping,
-)
+from pandas.tseries.offsets import BDay, CDay, DateOffset, MonthEnd, prefix_mapping
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -987,8 +981,8 @@ class TestCustomDateRange:
         )
 
         bad_freq = freq + "FOO"
-        msg = "invalid custom frequency string: {freq}"
-        with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
+        msg = f"invalid custom frequency string: {bad_freq}"
+        with pytest.raises(ValueError, match=msg):
             bdate_range(START, END, freq=bad_freq)
 
     @pytest.mark.parametrize(

@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq_code
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -22,9 +22,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_nested_list_like,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import Index, get_option
+from pandas import Index, Series, get_option
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
@@ -252,7 +251,7 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if isinstance(dt, (np.ndarray, Index, ABCSeries)) and is_datetime64_ns_dtype(dt):
+    if isinstance(dt, (np.ndarray, Index, Series)) and is_datetime64_ns_dtype(dt):
         base = dates.epoch2num(dt.asi8 / 1.0e9)
     else:
         base = dates.date2num(dt)
@@ -288,8 +287,8 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, str):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
-            if isinstance(values, ABCSeries):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, Series)):
+            if isinstance(values, Series):
                 # https://github.com/matplotlib/matplotlib/issues/11391
                 # Series was skipped. Convert to DatetimeIndex to get asi8
                 values = Index(values)
@@ -888,7 +887,7 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq):
     if isinstance(freq, str):
-        freq = get_freq(freq)
+        freq = get_freq_code(freq)[0]
     fgroup = resolution.get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
@@ -933,7 +932,7 @@ class TimeSeries_DateLocator(Locator):
         plot_obj=None,
     ):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1012,7 +1011,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.format = None
         self.freq = freq
         self.locs = []
