@@ -130,8 +130,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         return self.obj.index
 
     @cache_readonly
-    def values(self) -> np.ndarray:
-        return self.obj._values
+    def values(self):
+        return self.obj.values
 
     @cache_readonly
     def dtypes(self) -> "Series":
@@ -237,7 +237,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
     def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
-        result_values = np.empty_like(target._values)
+        result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
         result_compare = target.shape[0]
