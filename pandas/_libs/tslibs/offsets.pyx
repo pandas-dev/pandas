@@ -111,14 +111,6 @@ def as_datetime(obj: datetime) -> datetime:
     return obj
 
 
-cdef ABCTimestamp as_timestamp(obj):
-    if isinstance(obj, ABCTimestamp):
-        return obj
-
-    from pandas import Timestamp
-    return Timestamp(obj)
-
-
 cpdef bint is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -165,13 +157,15 @@ def apply_wraps(func):
     # not play nicely with cython class methods
 
     def wrapper(self, other):
+        from pandas import Timestamp
+
         if other is NaT:
             return NaT
         elif isinstance(other, (timedelta, BaseOffset)):
             # timedelta path
             return func(self, other)
         elif isinstance(other, (datetime, date)) or is_datetime64_object(other):
-            other = as_timestamp(other)
+            other = Timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
             raise ApplyTypeError
@@ -184,7 +178,7 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = as_timestamp(result)
+        result = Timestamp(result)
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
@@ -199,7 +193,7 @@ def apply_wraps(func):
                     value = result.tz_localize(None).value
                 else:
                     value = result.value
-                result = as_timestamp(value + nano)
+                result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
             result = result.tz_localize(tz)
@@ -624,7 +618,8 @@ cdef class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        from pandas import Timestamp
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -638,7 +633,8 @@ cdef class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        from pandas import Timestamp
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
