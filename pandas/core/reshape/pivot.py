@@ -460,7 +460,7 @@ def pivot(
         if index is None:
             idx_list = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
-            index = cast(Sequence[Label], index)
+            index = com.convert_to_list_like(index)
             idx_list = [data[idx] for idx in index]
         else:
             idx_list = [data[index]]
