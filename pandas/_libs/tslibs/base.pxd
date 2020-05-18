@@ -6,10 +6,3 @@ cdef class ABCTimedelta(timedelta):
 
 cdef class ABCTimestamp(datetime):
     pass
-
-
-cdef class ABCPeriod:
-    pass
-
-
-cdef bint is_period_object(object obj)
