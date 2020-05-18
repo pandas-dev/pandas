@@ -54,7 +54,6 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
     ABCDatetimeIndex,
-    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
