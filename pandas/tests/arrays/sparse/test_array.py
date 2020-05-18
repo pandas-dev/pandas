@@ -983,6 +983,25 @@ class TestSparseArrayAnalytics:
         out = SparseArray(data, fill_value=np.nan).sum()
         assert out == 40.0
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.array([0, 1, np.nan, 1]),
+            np.array([0, 1, 1]),
+            np.array([True, True, False]),
+        ],
+    )
+    @pytest.mark.parametrize("fill_value", [0, 1, np.nan, True, False])
+    @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
+    def test_sum_min_count(self, arr, fill_value, min_count, expected):
+        # https://github.com/pandas-dev/pandas/issues/25777
+        sparray = SparseArray(arr, fill_value=fill_value)
+        result = sparray.sum(min_count=min_count)
+        if np.isnan(expected):
+            assert np.isnan(result)
+        else:
+            assert result == expected
+
     def test_numpy_sum(self):
         data = np.arange(10).astype(float)
         out = np.sum(SparseArray(data))
