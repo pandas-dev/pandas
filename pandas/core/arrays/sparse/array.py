@@ -47,6 +47,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
+from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -1242,16 +1243,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
-        count = len(valid_vals)
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
-            if count < min_count:
+            if check_below_min_count(valid_vals.shape, None, min_count):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
-            count += nsparse
-            if count < min_count:
+            if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
