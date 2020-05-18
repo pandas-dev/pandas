@@ -25,6 +25,7 @@ Properties
     DateOffset.nanos
     DateOffset.normalize
     DateOffset.rule_code
+    DateOffset.n
 
 Methods
 ~~~~~~~
@@ -57,6 +58,7 @@ Properties
     BusinessDay.nanos
     BusinessDay.normalize
     BusinessDay.rule_code
+    BusinessDay.n
 
 Methods
 ~~~~~~~
@@ -90,6 +92,7 @@ Properties
     BusinessHour.nanos
     BusinessHour.normalize
     BusinessHour.rule_code
+    BusinessHour.n
 
 Methods
 ~~~~~~~
@@ -122,6 +125,7 @@ Properties
     CustomBusinessDay.nanos
     CustomBusinessDay.normalize
     CustomBusinessDay.rule_code
+    CustomBusinessDay.n
 
 Methods
 ~~~~~~~
@@ -154,6 +158,7 @@ Properties
     CustomBusinessHour.nanos
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
+    CustomBusinessHour.n
 
 Methods
 ~~~~~~~
@@ -186,6 +191,7 @@ Properties
     MonthOffset.nanos
     MonthOffset.normalize
     MonthOffset.rule_code
+    MonthOffset.n
 
 Methods
 ~~~~~~~
@@ -219,6 +225,7 @@ Properties
     MonthEnd.nanos
     MonthEnd.normalize
     MonthEnd.rule_code
+    MonthEnd.n
 
 Methods
 ~~~~~~~
@@ -252,6 +259,7 @@ Properties
     MonthBegin.nanos
     MonthBegin.normalize
     MonthBegin.rule_code
+    MonthBegin.n
 
 Methods
 ~~~~~~~
@@ -285,6 +293,7 @@ Properties
     BusinessMonthEnd.nanos
     BusinessMonthEnd.normalize
     BusinessMonthEnd.rule_code
+    BusinessMonthEnd.n
 
 Methods
 ~~~~~~~
@@ -318,6 +327,7 @@ Properties
     BusinessMonthBegin.nanos
     BusinessMonthBegin.normalize
     BusinessMonthBegin.rule_code
+    BusinessMonthBegin.n
 
 Methods
 ~~~~~~~
@@ -352,6 +362,7 @@ Properties
     CustomBusinessMonthEnd.nanos
     CustomBusinessMonthEnd.normalize
     CustomBusinessMonthEnd.rule_code
+    CustomBusinessMonthEnd.n
 
 Methods
 ~~~~~~~
@@ -385,6 +396,7 @@ Properties
     CustomBusinessMonthBegin.nanos
     CustomBusinessMonthBegin.normalize
     CustomBusinessMonthBegin.rule_code
+    CustomBusinessMonthBegin.n
 
 Methods
 ~~~~~~~
@@ -417,6 +429,7 @@ Properties
     SemiMonthOffset.nanos
     SemiMonthOffset.normalize
     SemiMonthOffset.rule_code
+    SemiMonthOffset.n
 
 Methods
 ~~~~~~~
@@ -450,6 +463,7 @@ Properties
     SemiMonthEnd.nanos
     SemiMonthEnd.normalize
     SemiMonthEnd.rule_code
+    SemiMonthEnd.n
 
 Methods
 ~~~~~~~
@@ -483,6 +497,7 @@ Properties
     SemiMonthBegin.nanos
     SemiMonthBegin.normalize
     SemiMonthBegin.rule_code
+    SemiMonthBegin.n
 
 Methods
 ~~~~~~~
@@ -516,6 +531,7 @@ Properties
     Week.nanos
     Week.normalize
     Week.rule_code
+    Week.n
 
 Methods
 ~~~~~~~
@@ -549,6 +565,7 @@ Properties
     WeekOfMonth.nanos
     WeekOfMonth.normalize
     WeekOfMonth.rule_code
+    WeekOfMonth.n
 
 Methods
 ~~~~~~~
@@ -581,6 +598,7 @@ Properties
     LastWeekOfMonth.nanos
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
+    LastWeekOfMonth.n
 
 Methods
 ~~~~~~~
@@ -613,6 +631,7 @@ Properties
     QuarterOffset.nanos
     QuarterOffset.normalize
     QuarterOffset.rule_code
+    QuarterOffset.n
 
 Methods
 ~~~~~~~
@@ -646,6 +665,7 @@ Properties
     BQuarterEnd.nanos
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
+    BQuarterEnd.n
 
 Methods
 ~~~~~~~
@@ -679,6 +699,7 @@ Properties
     BQuarterBegin.nanos
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
+    BQuarterBegin.n
 
 Methods
 ~~~~~~~
@@ -712,6 +733,7 @@ Properties
     QuarterEnd.nanos
     QuarterEnd.normalize
     QuarterEnd.rule_code
+    QuarterEnd.n
 
 Methods
 ~~~~~~~
@@ -745,6 +767,7 @@ Properties
     QuarterBegin.nanos
     QuarterBegin.normalize
     QuarterBegin.rule_code
+    QuarterBegin.n
 
 Methods
 ~~~~~~~
@@ -778,6 +801,7 @@ Properties
     YearOffset.nanos
     YearOffset.normalize
     YearOffset.rule_code
+    YearOffset.n
 
 Methods
 ~~~~~~~
@@ -811,6 +835,7 @@ Properties
     BYearEnd.nanos
     BYearEnd.normalize
     BYearEnd.rule_code
+    BYearEnd.n
 
 Methods
 ~~~~~~~
@@ -844,6 +869,7 @@ Properties
     BYearBegin.nanos
     BYearBegin.normalize
     BYearBegin.rule_code
+    BYearBegin.n
 
 Methods
 ~~~~~~~
@@ -877,6 +903,7 @@ Properties
     YearEnd.nanos
     YearEnd.normalize
     YearEnd.rule_code
+    YearEnd.n
 
 Methods
 ~~~~~~~
@@ -910,6 +937,7 @@ Properties
     YearBegin.nanos
     YearBegin.normalize
     YearBegin.rule_code
+    YearBegin.n
 
 Methods
 ~~~~~~~
@@ -943,6 +971,7 @@ Properties
     FY5253.nanos
     FY5253.normalize
     FY5253.rule_code
+    FY5253.n
 
 Methods
 ~~~~~~~
@@ -977,6 +1006,7 @@ Properties
     FY5253Quarter.nanos
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
+    FY5253Quarter.n
 
 Methods
 ~~~~~~~
@@ -1011,6 +1041,7 @@ Properties
     Easter.nanos
     Easter.normalize
     Easter.rule_code
+    Easter.n
 
 Methods
 ~~~~~~~
@@ -1317,6 +1348,7 @@ Properties
     BDay.normalize
     BDay.offset
     BDay.rule_code
+    BDay.n
 
 Methods
 ~~~~~~~
@@ -1353,6 +1385,7 @@ Properties
     BMonthEnd.nanos
     BMonthEnd.normalize
     BMonthEnd.rule_code
+    BMonthEnd.n
 
 Methods
 ~~~~~~~
@@ -1389,6 +1422,7 @@ Properties
     BMonthBegin.nanos
     BMonthBegin.normalize
     BMonthBegin.rule_code
+    BMonthBegin.n
 
 Methods
 ~~~~~~~
@@ -1429,6 +1463,7 @@ Properties
     CBMonthEnd.normalize
     CBMonthEnd.offset
     CBMonthEnd.rule_code
+    CBMonthEnd.n
 
 Methods
 ~~~~~~~
@@ -1469,6 +1504,7 @@ Properties
     CBMonthBegin.normalize
     CBMonthBegin.offset
     CBMonthBegin.rule_code
+    CBMonthBegin.n
 
 Methods
 ~~~~~~~
@@ -1506,6 +1542,7 @@ Properties
     CDay.normalize
     CDay.offset
     CDay.rule_code
+    CDay.n
 
 Methods
 ~~~~~~~
