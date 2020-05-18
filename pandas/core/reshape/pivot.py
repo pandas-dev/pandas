@@ -449,6 +449,8 @@ def pivot(
     if values is None:
         if index is not None:
             cols = com.convert_to_list_like(index)
+        else:
+            cols = []
         cols.extend(columns)
 
         append = index is None
