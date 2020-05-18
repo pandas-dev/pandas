@@ -55,22 +55,33 @@ cdef class Reducer:
         self.arr = arr
         self.labels = labels
 
-        self.typ, self.index = self._check_dummy(dummy=dummy)
+        self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
+            dummy=dummy)
 
     cdef _check_dummy(self, object dummy=None):
-        if dummy is not None:
+        cdef:
+            object index = None, typ = None, ityp = None
+
+        if dummy is None:
+            dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
+
+            # our ref is stolen later since we are creating this array
+            # in cython, so increment first
+            Py_INCREF(dummy)
+
+        else:
 
             # we passed a Series
             typ = type(dummy)
             index = dummy.index
+            dummy = dummy.values
 
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError(f'Dummy array must be length {self.chunksize}')
 
-            return typ, index
-
+        return dummy, typ, index, ityp
 
     def get_result(self):
         cdef:
