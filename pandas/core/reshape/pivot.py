@@ -457,23 +457,23 @@ def pivot(
         indexed = data.set_index(cols, append=append)
     else:
         if index is None:
-            idx_list = [Series(data.index, name=data.index.name)]
+            index = [Series(data.index, name=data.index.name)]
         else:
             index = com.convert_to_list_like(index)
-            idx_list = [data[idx] for idx in index]
+            index = [data[idx] for idx in index]
 
         data_columns = [data[col] for col in columns]
-        idx_list.extend(data_columns)
-        mi_index = MultiIndex.from_arrays(idx_list)
+        index.extend(data_columns)
+        index = MultiIndex.from_arrays(index)
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             values = cast(Sequence[Label], values)
             indexed = data._constructor(
-                data[values]._values, index=mi_index, columns=values
+                data[values]._values, index=index, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values]._values, index=mi_index)
+            indexed = data._constructor_sliced(data[values]._values, index=index)
     return indexed.unstack(columns)
 
 
