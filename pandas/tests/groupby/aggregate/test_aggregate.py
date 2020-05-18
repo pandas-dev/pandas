@@ -298,14 +298,10 @@ def test_agg_multiple_functions_same_name_with_ohlc_present(df):
             ("A", "quantile", "A"),
         ]
     )
-    expected_values = np.hstack(
-        [
-            df.resample("3T").A.ohlc(),
-            np.array(
-                [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
-            ).T,
-        ]
-    )
+    non_ohlc_expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
