@@ -101,6 +101,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # Histogram can have a legend
         index = Index(15 * [1] + 15 * [2], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        # older version of matplotlib fails if labels are not strings
+        df = df.astype(str)
         g = df.groupby("c")
 
         kwargs = {"legend": True}
