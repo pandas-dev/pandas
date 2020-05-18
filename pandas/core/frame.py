@@ -8449,7 +8449,7 @@ NaN 12.3   33.0
                 # DeprecationWarning: The default dtype for empty Series will be
                 #  'object' instead of 'float64' in a future version. Specify
                 # a dtype explicitly to silence this warning.
-                out_dtype = 'float64'
+                out_dtype = "float64"
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
             if axis == 0 and is_object_dtype(out.dtype):
