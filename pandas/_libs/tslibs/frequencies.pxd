@@ -1,3 +1,5 @@
+cdef dict attrname_to_abbrevs
+
 cpdef str get_rule_month(object source, str default=*)
 
 cpdef get_freq_code(freqstr)

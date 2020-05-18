@@ -168,6 +168,8 @@ def apply_wraps(func):
     # not play nicely with cython class methods
 
     def wrapper(self, other):
+        from pandas import Timestamp
+
         if other is NaT:
             return NaT
         elif isinstance(other, BaseOffset) or PyDelta_Check(other):
@@ -636,7 +638,8 @@ cdef class BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        from pandas import Timestamp
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -650,7 +653,8 @@ cdef class BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        dt = as_timestamp(dt)
+        from pandas import Timestamp
+        dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -775,7 +779,6 @@ cdef class BaseOffset:
 
 
 cdef class Tick(BaseOffset):
-
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False

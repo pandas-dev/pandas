@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -41,7 +42,6 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
-from pandas.core.tools.datetimes import DateParseError
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.offsets import DateOffset, Tick
