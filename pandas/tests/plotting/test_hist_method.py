@@ -129,17 +129,22 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize("by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))])
+    @pytest.mark.parametrize(
+        "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
+    )
     @pytest.mark.parametrize("label, expected_label", [(None, "a"), ("c", "c")])
-    def test_hist_with_legend(self, by, expected_axes_num, expected_layout, label, expected_label):
+    def test_hist_with_legend(
+        self, by, expected_axes_num, expected_layout, label, expected_label
+    ):
+        # GH 6279
+        # Histogram can have a legend
         index = 15 * [1] + 15 * [2]
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
         kwargs = {"legend": True, "by": by}
+        # We get warnings if kwargs contains "label": None
         if label is not None:
-            # Behavior differs if kwargs contains "label": None
             kwargs["label"] = label
 
         axes = _check_plot_works(s.hist, **kwargs)
@@ -310,11 +315,12 @@ class TestDataFramePlots(TestPlotBase):
 
         assert result == expected
 
-    @pytest.mark.slow
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
     @pytest.mark.parametrize("label", [None, "d"])
     def test_hist_with_legend(self, by, column, label):
+        # GH 6279
+        # Histogram can have a legend
         expected_axes_num = 1 if by is None and column is not None else 2
         expected_layout = (1, expected_axes_num)
         expected_labels = label or column or ["a", "b"]
@@ -325,8 +331,8 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
         kwargs = {"legend": True, "by": by, "column": column}
+        # We get warnings if kwargs contains "label": None
         if label is not None:
-            # Behavior differs if kwargs contains "label": None
             kwargs["label"] = label
 
         axes = _check_plot_works(df.hist, **kwargs)

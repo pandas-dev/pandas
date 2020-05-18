@@ -8,7 +8,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import TestPlotBase
 
 
 @td.skip_if_no_mpl
@@ -70,6 +70,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.parametrize("column, expected_axes_num", [(None, 2), ("b", 1)])
     @pytest.mark.parametrize("label", [None, "d"])
     def test_groupby_hist_with_legend(self, column, expected_axes_num, label):
+        # GH 6279
+        # Histogram can have a legend
         expected_layout = (1, expected_axes_num)
         expected_labels = label or column or [["a"], ["b"]]
 
@@ -84,13 +86,19 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         ret = g.hist(**kwargs)
         for (_, axes) in ret.iteritems():
-            self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+            self._check_axes_shape(
+                axes, axes_num=expected_axes_num, layout=expected_layout
+            )
             for ax, expected_label in zip(axes[0], expected_labels):
                 self._check_legend_labels(ax, expected_label)
         tm.close()
 
-    @pytest.mark.parametrize("label, expected_label", [(None, ['1', '2']), ("d", ["d", "d"])])
+    @pytest.mark.parametrize(
+        "label, expected_label", [(None, ["1", "2"]), ("d", ["d", "d"])]
+    )
     def test_groupby_hist_series_with_legend(self, label, expected_label):
+        # GH 6279
+        # Histogram can have a legend
         index = Index(15 * [1] + 15 * [2], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
         g = df.groupby("c")

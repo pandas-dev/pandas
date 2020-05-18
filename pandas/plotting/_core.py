@@ -1,4 +1,5 @@
 import importlib
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
@@ -9,20 +10,23 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 
+if TYPE_CHECKING:
+    from pandas import DataFrame
+
 
 def hist_series(
     self,
     by=None,
     ax=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
-    figsize=None,
-    bins=10,
-    legend=False,
-    backend=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    legend: bool = False,
+    backend: Optional[str] = None,
     **kwargs,
 ):
     """
@@ -53,6 +57,9 @@ def hist_series(
         bin. In this case, bins is returned unmodified.
     legend : bool, default False
         Whether to show the legend.
+
+        ..versionadded:: 1.1.0
+
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -91,22 +98,22 @@ def hist_series(
 
 
 def hist_frame(
-    data,
-    column=None,
+    data: "DataFrame",
+    column: Optional[Union[str, Sequence[str]]] = None,
     by=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
     ax=None,
-    sharex=False,
-    sharey=False,
-    figsize=None,
-    layout=None,
-    bins=10,
-    legend=False,
-    backend=None,
+    sharex: bool = False,
+    sharey: bool = False,
+    figsize: Optional[Tuple[int, int]] = None,
+    layout: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    legend: bool = False,
+    backend: Optional[str] = None,
     **kwargs,
 ):
     """
@@ -161,6 +168,9 @@ def hist_frame(
         bin. In this case, bins is returned unmodified.
     legend : bool, default False
         Whether to show the legend.
+
+        ..versionadded:: 1.1.0
+
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
