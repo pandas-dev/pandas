@@ -22,7 +22,8 @@ cnp.import_array()
 from pandas._libs cimport util
 
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.base cimport ABCTimestamp, ABCTimedelta, ABCPeriod
+from pandas._libs.tslibs.base cimport ABCTimestamp, ABCTimedelta
+from pandas._libs.tslibs.period cimport is_period_object
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -479,7 +480,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, ABCPeriod):
+        if is_period_object(scalar):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)

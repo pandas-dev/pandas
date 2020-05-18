@@ -74,7 +74,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
-from pandas._libs.tslibs.base cimport is_period_object
+from pandas._libs.tslibs.period cimport is_period_object
 
 from pandas._libs.missing cimport (
     checknull,
