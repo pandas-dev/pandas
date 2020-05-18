@@ -55,16 +55,21 @@ cdef class Reducer:
         self.arr = arr
         self.labels = labels
 
-        self.typ = self._check_dummy(dummy=dummy)
+        self.typ, self.index = self._check_dummy(dummy=dummy)
 
     cdef _check_dummy(self, object dummy=None):
         if dummy is not None:
+
+            # we passed a Series
+            typ = type(dummy)
+            index = dummy.index
+
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError(f'Dummy array must be length {self.chunksize}')
 
-            return type(dummy)
+            return typ, index
 
 
     def get_result(self):
