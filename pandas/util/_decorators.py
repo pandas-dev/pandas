@@ -289,9 +289,9 @@ def deprecate_nonkeyword_arguments(
                 num_allow_args = allow_args
             if len(args) > num_allow_args:
                 msg = (
-                    "Starting with Pandas version {version} all arguments of {funcname}"
-                    "{except_args} will be keyword-only"
-                ).format(version=version, funcname=func.__name__, except_args=arguments)
+                    f"Starting with Pandas version {version} all arguments of "
+                    f"{func.__name__}{arguments} will be keyword-only"
+                )
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
@@ -329,7 +329,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+def doc(*args: Union[str, Callable], **kwargs) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -345,8 +345,8 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     *args : str or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under function.
-    **kwargs : str
-        The string which would be used to format docstring template.
+    **kwargs
+        The objects which would be used to format docstring template.
     """
 
     def decorator(func: F) -> F:
