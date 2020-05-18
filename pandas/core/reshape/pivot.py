@@ -445,8 +445,7 @@ def pivot(
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
     if is_list_like(columns):
-        columns = cast(Sequence[Label], columns)
-        columns = columns
+        columns = com.convert_to_list_like(columns)
     else:
         columns = [columns]
 
