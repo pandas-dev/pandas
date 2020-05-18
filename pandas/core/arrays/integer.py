@@ -517,6 +517,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match to compare")
 
             if other is libmissing.NA:
                 # numpy does not handle pd.NA well as "other" scalar (it returns
@@ -620,6 +622,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
                 if not (is_float_dtype(other) or is_integer_dtype(other)):
                     raise TypeError("can only perform ops with numeric values")
 

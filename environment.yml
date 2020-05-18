@@ -17,7 +17,7 @@ dependencies:
   # code checks
   - black=19.10b0
   - cpplint
-  - flake8
+  - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
