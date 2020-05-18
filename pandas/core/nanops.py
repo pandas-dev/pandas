@@ -1283,7 +1283,7 @@ def _maybe_null_out(
 
 def check_below_min_count(
     shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
-):
+) -> bool:
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
     missing value should be returned from the reduction).
