@@ -267,7 +267,7 @@ def test_agg_multiple_functions_same_name(df):
     )
     expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
-    expected_values = expected_values = np.array(
+    expected_values = np.array(
         [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
     expected = pd.DataFrame(
@@ -275,10 +275,19 @@ def test_agg_multiple_functions_same_name(df):
     )
     tm.assert_frame_equal(result, expected)
 
-    # check what happens if ohlc (which expands dimensions) is present
+
+def test_agg_multiple_functions_same_name_with_ohlc_present(df):
+    # GH 30880
+    # ohlc expands dimensions, so different test to the above is required.
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
     result = df.resample("3T").agg(
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
     expected_columns = pd.MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
@@ -289,10 +298,18 @@ def test_agg_multiple_functions_same_name(df):
             ("A", "quantile", "A"),
         ]
     )
-    expected_values = np.hstack([df.resample("3T").A.ohlc(), expected_values])
+    expected_values = np.hstack(
+        [
+            df.resample("3T").A.ohlc(),
+            np.array(
+                [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+            ).T,
+        ]
+    )
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
+    # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_frame_equal(result, expected)
 
