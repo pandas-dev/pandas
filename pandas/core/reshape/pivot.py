@@ -447,10 +447,7 @@ def pivot(
     columns = com.convert_to_list_like(columns)
 
     if values is None:
-        cols: List[Label] = []
-        if index is None:
-            pass
-        else:
+        if index is not None:
             cols = com.convert_to_list_like(index)
         cols.extend(columns)
 
@@ -459,11 +456,9 @@ def pivot(
     else:
         if index is None:
             idx_list = [Series(data.index, name=data.index.name)]
-        elif is_list_like(index):
+        else:
             index = com.convert_to_list_like(index)
             idx_list = [data[idx] for idx in index]
-        else:
-            idx_list = [data[index]]
 
         data_columns = [data[col] for col in columns]
         idx_list.extend(data_columns)
