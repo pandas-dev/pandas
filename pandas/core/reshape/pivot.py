@@ -444,19 +444,14 @@ def pivot(
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
-    if is_list_like(columns):
-        columns = com.convert_to_list_like(columns)
-    else:
-        columns = [columns]
+    columns = com.convert_to_list_like(columns)
 
     if values is None:
         cols: List[Label] = []
         if index is None:
             pass
-        elif is_list_like(index):
-            cols = com.convert_to_list_like(index)
         else:
-            cols = [index]
+            cols = com.convert_to_list_like(index)
         cols.extend(columns)
 
         append = index is None
