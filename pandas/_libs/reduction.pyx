@@ -55,8 +55,7 @@ cdef class Reducer:
         self.arr = arr
         self.labels = labels
 
-        # TODO: do we still need this?
-        self._check_dummy(dummy=dummy)
+        self.typ = self._check_dummy(dummy=dummy)
 
     cdef _check_dummy(self, object dummy=None):
         if dummy is not None:
@@ -64,6 +63,8 @@ cdef class Reducer:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError(f'Dummy array must be length {self.chunksize}')
+
+            return type(dummy)
 
 
     def get_result(self):
