@@ -2584,10 +2584,7 @@ Name: Max Speed, dtype: float64
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = (
-                f"to_append should be a Series or list/tuple of Series, "
-                f"got DataFrame"
-            )
+            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
             raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
@@ -3655,7 +3652,9 @@ Name: Max Speed, dtype: float64
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = Series(values, index=self.index.repeat(counts), name=self.name)
+        result = self._constructor(
+            values, index=self.index.repeat(counts), name=self.name
+        )
         return result
 
     def unstack(self, level=-1, fill_value=None):

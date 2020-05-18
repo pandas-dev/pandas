@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
@@ -404,6 +404,17 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
+    def _add_period(self, other: Period):
+        """
+        Add a Period object.
+        """
+        # We will wrap in a PeriodArray and defer to the reversed operation
+        from .period import PeriodArray
+
+        i8vals = np.broadcast_to(other.ordinal, self.shape)
+        oth = PeriodArray(i8vals, freq=other.freq)
+        return oth + self
+
     def _add_datetime_arraylike(self, other):
         """
         Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
@@ -460,7 +471,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other):
+        if len(other) != len(self) and not is_timedelta64_dtype(other.dtype):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
@@ -666,6 +677,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 

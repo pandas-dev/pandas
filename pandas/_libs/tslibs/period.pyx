@@ -44,10 +44,16 @@ from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
-cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar cimport dayofweek, get_day_of_year, is_leapyear
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport (
+    dayofweek,
+    get_day_of_year,
+    is_leapyear,
+    get_week_of_year,
+    get_days_in_month,
+)
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.frequencies cimport (
+    attrname_to_abbrevs,
     get_base_alias,
     get_freq_code,
     get_freq_str,
@@ -55,10 +61,13 @@ from pandas._libs.tslibs.frequencies cimport (
     get_to_timestamp_base,
 )
 from pandas._libs.tslibs.parsing import parse_time_string
-from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
+    _nat_scalar_rules,
+    NPY_NAT,
+    is_null_datetimelike,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
@@ -699,6 +708,8 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # Conversion between date_info and npy_datetimestruct
 
 cdef inline int get_freq_group(int freq) nogil:
+    # Note: this is equivalent to libfrequencies.get_freq_group, specialized
+    #  to integer argument.
     return (freq // 1000) * 1000
 
 
@@ -1315,7 +1326,7 @@ cdef int pweek(int64_t ordinal, int freq):
     cdef:
         npy_datetimestruct dts
     get_date_info(ordinal, freq, &dts)
-    return ccalendar.get_week_of_year(dts.year, dts.month, dts.day)
+    return get_week_of_year(dts.year, dts.month, dts.day)
 
 
 cdef int phour(int64_t ordinal, int freq):
@@ -1343,7 +1354,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     cdef:
         npy_datetimestruct dts
     get_date_info(ordinal, freq, &dts)
-    return ccalendar.get_days_in_month(dts.year, dts.month)
+    return get_days_in_month(dts.year, dts.month)
 
 
 @cython.wraparound(False)
@@ -2422,7 +2433,7 @@ class Period(_Period):
 
             if freq is None:
                 try:
-                    freq = Resolution.get_freq(reso)
+                    freq = attrname_to_abbrevs[reso]
                 except KeyError:
                     raise ValueError(f"Invalid frequency or could not "
                                      f"infer: {reso}")
@@ -2486,7 +2497,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     if quarter <= 0 or quarter > 4:
         raise ValueError('Quarter must be 1 <= q <= 4')
 
-    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
+    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
     month = (mnum + (quarter - 1) * 3) % 12 + 1
     if month > mnum:
         year -= 1

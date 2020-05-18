@@ -2818,3 +2818,17 @@ def test_duplicate_keys(keys):
     )
     expected = DataFrame(expected_values, columns=expected_columns)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
+        tm.SubclassedSeries(np.arange(0, 10), name="A"),
+    ],
+)
+def test_concat_preserves_subclass(obj):
+    # GH28330 -- preserve subclass
+
+    result = concat([obj, obj])
+    assert isinstance(result, type(obj))
