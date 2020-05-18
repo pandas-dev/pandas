@@ -387,7 +387,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
         """
         Convert arrays to MultiIndex.
 
