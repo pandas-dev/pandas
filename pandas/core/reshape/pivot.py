@@ -455,8 +455,7 @@ def pivot(
         if index is None:
             pass
         elif is_list_like(index):
-            index = cast(Sequence[Label], index)
-            cols = list(index)
+            cols = com.convert_to_list_like(index)
         else:
             cols = [index]
         cols.extend(columns)
