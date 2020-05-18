@@ -12,6 +12,7 @@ from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import (
+    Base,
     check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
@@ -32,56 +33,60 @@ def _rolling_consistency_cases():
                 yield window, min_periods, center
 
 
-# binary moments
-def test_rolling_cov(series):
-    A = series
-    B = A + randn(len(A))
+class TestRollingMomentsConsistency(Base):
+    def setup_method(self, method):
+        self._create_data()
 
-    result = A.rolling(window=50, min_periods=25).cov(B)
-    tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
+    # binary moments
+    def test_rolling_cov(self):
+        A = self.series
+        B = A + randn(len(A))
 
+        result = A.rolling(window=50, min_periods=25).cov(B)
+        tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
-def test_rolling_corr(series):
-    A = series
-    B = A + randn(len(A))
+    def test_rolling_corr(self):
+        A = self.series
+        B = A + randn(len(A))
 
-    result = A.rolling(window=50, min_periods=25).corr(B)
-    tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+        result = A.rolling(window=50, min_periods=25).corr(B)
+        tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
-    # test for correct bias correction
-    a = tm.makeTimeSeries()
-    b = tm.makeTimeSeries()
-    a[:5] = np.nan
-    b[:10] = np.nan
+        # test for correct bias correction
+        a = tm.makeTimeSeries()
+        b = tm.makeTimeSeries()
+        a[:5] = np.nan
+        b[:10] = np.nan
 
-    result = a.rolling(window=len(a), min_periods=1).corr(b)
-    tm.assert_almost_equal(result[-1], a.corr(b))
+        result = a.rolling(window=len(a), min_periods=1).corr(b)
+        tm.assert_almost_equal(result[-1], a.corr(b))
 
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_rolling_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "rolling", func, window=10, min_periods=5)
 
-@pytest.mark.parametrize("func", ["cov", "corr"])
-def test_rolling_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "rolling", func, window=10, min_periods=5)
+    @pytest.mark.parametrize("method", ["corr", "cov"])
+    def test_flex_binary_frame(self, method):
+        series = self.frame[1]
 
+        res = getattr(series.rolling(window=10), method)(self.frame)
+        res2 = getattr(self.frame.rolling(window=10), method)(series)
+        exp = self.frame.apply(lambda x: getattr(series.rolling(window=10), method)(x))
 
-@pytest.mark.parametrize("method", ["corr", "cov"])
-def test_flex_binary_frame(method, frame):
-    series = frame[1]
+        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(res2, exp)
 
-    res = getattr(series.rolling(window=10), method)(frame)
-    res2 = getattr(frame.rolling(window=10), method)(series)
-    exp = frame.apply(lambda x: getattr(series.rolling(window=10), method)(x))
+        frame2 = self.frame.copy()
+        frame2.values[:] = np.random.randn(*frame2.shape)
 
-    tm.assert_frame_equal(res, exp)
-    tm.assert_frame_equal(res2, exp)
-
-    frame2 = frame.copy()
-    frame2.values[:] = np.random.randn(*frame2.shape)
-
-    res3 = getattr(frame.rolling(window=10), method)(frame2)
-    exp = DataFrame(
-        {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
-    )
-    tm.assert_frame_equal(res3, exp)
+        res3 = getattr(self.frame.rolling(window=10), method)(frame2)
+        exp = DataFrame(
+            {
+                k: getattr(self.frame[k].rolling(window=10), method)(frame2[k])
+                for k in self.frame
+            }
+        )
+        tm.assert_frame_equal(res3, exp)
 
 
 @pytest.mark.slow

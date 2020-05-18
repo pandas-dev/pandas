@@ -36,6 +36,7 @@ from pandas._config.config import option_context
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
 from pandas._typing import FrameOrSeries, Scalar
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -190,24 +191,6 @@ _apply_docs = dict(
     {examples}
     """,
 )
-
-_groupby_agg_method_template = """
-Compute {fname} of group values.
-
-Parameters
-----------
-numeric_only : bool, default {no}
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data.
-min_count : int, default {mc}
-    The required number of valid values to perform the operation. If fewer
-    than ``min_count`` non-NA values are present the result will be NA.
-
-Returns
--------
-Series or DataFrame
-    Computed {fname} of values within each group.
-"""
 
 _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
@@ -962,37 +945,6 @@ b  2""",
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    def _agg_general(
-        self,
-        numeric_only: bool = True,
-        min_count: int = -1,
-        *,
-        alias: str,
-        npfunc: Callable,
-    ):
-        self._set_group_selection()
-
-        # try a cython aggregation if we can
-        try:
-            return self._cython_agg_general(
-                how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count,
-            )
-        except DataError:
-            pass
-        except NotImplementedError as err:
-            if "function is not implemented for this dtype" in str(
-                err
-            ) or "category dtype not supported" in str(err):
-                # raised in _get_cython_function, in some cases can
-                #  be trimmed by implementing cython funcs for more dtypes
-                pass
-            else:
-                raise
-
-        # apply a non-cython aggregation
-        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-        return result
-
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
@@ -1486,79 +1438,105 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             result = self._obj_1d_constructor(result)
         return self._reindex_output(result, fill_value=0)
 
-    @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
-    def sum(self, numeric_only: bool = True, min_count: int = 0):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
-        )
+    @classmethod
+    def _add_numeric_operations(cls):
+        """
+        Add numeric operations to the GroupBy generically.
+        """
 
-    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(self, numeric_only: bool = True, min_count: int = 0):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
-        )
+        def groupby_function(
+            name: str,
+            alias: str,
+            npfunc,
+            numeric_only: bool = True,
+            min_count: int = -1,
+        ):
 
-    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
-    def min(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
-        )
+            _local_template = """
+            Compute %(f)s of group values.
 
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
-    def max(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
-        )
+            Parameters
+            ----------
+            numeric_only : bool, default %(no)s
+                Include only float, int, boolean columns. If None, will attempt to use
+                everything, then use only numeric data.
+            min_count : int, default %(mc)s
+                The required number of valid values to perform the operation. If fewer
+                than ``min_count`` non-NA values are present the result will be NA.
 
-    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
-    def first(self, numeric_only: bool = False, min_count: int = -1):
-        def first_compat(obj: FrameOrSeries, axis: int = 0):
-            def first(x: Series):
-                """Helper function for first item that isn't NA.
-                """
-                x = x.array[notna(x.array)]
+            Returns
+            -------
+            Series or DataFrame
+                Computed %(f)s of values within each group.
+            """
+
+            @Substitution(name="groupby", f=name, no=numeric_only, mc=min_count)
+            @Appender(_common_see_also)
+            @Appender(_local_template)
+            def func(self, numeric_only=numeric_only, min_count=min_count):
+                self._set_group_selection()
+
+                # try a cython aggregation if we can
+                try:
+                    return self._cython_agg_general(
+                        how=alias,
+                        alt=npfunc,
+                        numeric_only=numeric_only,
+                        min_count=min_count,
+                    )
+                except DataError:
+                    pass
+                except NotImplementedError as err:
+                    if "function is not implemented for this dtype" in str(
+                        err
+                    ) or "category dtype not supported" in str(err):
+                        # raised in _get_cython_function, in some cases can
+                        #  be trimmed by implementing cython funcs for more dtypes
+                        pass
+                    else:
+                        raise
+
+                # apply a non-cython aggregation
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+                return result
+
+            set_function_name(func, name, cls)
+
+            return func
+
+        def first_compat(x, axis=0):
+            def first(x):
+                x = x.to_numpy()
+
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[0]
 
-            if isinstance(obj, DataFrame):
-                return obj.apply(first, axis=axis)
-            elif isinstance(obj, Series):
-                return first(obj)
+            if isinstance(x, DataFrame):
+                return x.apply(first, axis=axis)
             else:
-                raise TypeError(type(obj))
+                return first(x)
 
-        return self._agg_general(
-            numeric_only=numeric_only,
-            min_count=min_count,
-            alias="first",
-            npfunc=first_compat,
-        )
-
-    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
-    def last(self, numeric_only: bool = False, min_count: int = -1):
-        def last_compat(obj: FrameOrSeries, axis: int = 0):
-            def last(x: Series):
-                """Helper function for last item that isn't NA.
-                """
-                x = x.array[notna(x.array)]
+        def last_compat(x, axis=0):
+            def last(x):
+                x = x.to_numpy()
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[-1]
 
-            if isinstance(obj, DataFrame):
-                return obj.apply(last, axis=axis)
-            elif isinstance(obj, Series):
-                return last(obj)
+            if isinstance(x, DataFrame):
+                return x.apply(last, axis=axis)
             else:
-                raise TypeError(type(obj))
+                return last(x)
 
-        return self._agg_general(
-            numeric_only=numeric_only,
-            min_count=min_count,
-            alias="last",
-            npfunc=last_compat,
-        )
+        cls.sum = groupby_function("sum", "add", np.sum, min_count=0)
+        cls.prod = groupby_function("prod", "prod", np.prod, min_count=0)
+        cls.min = groupby_function("min", "min", np.min, numeric_only=False)
+        cls.max = groupby_function("max", "max", np.max, numeric_only=False)
+        cls.first = groupby_function("first", "first", first_compat, numeric_only=False)
+        cls.last = groupby_function("last", "last", last_compat, numeric_only=False)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -2656,6 +2634,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         output = output.reset_index(level=g_nums)
 
         return output.reset_index(drop=True)
+
+
+GroupBy._add_numeric_operations()
 
 
 @doc(GroupBy)

@@ -8,9 +8,10 @@ from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint32_t, float64_t
-from numpy.math cimport NAN
 cnp.import_array()
 
+cdef extern from "numpy/npy_math.h":
+    float64_t NAN "NPY_NAN"
 
 from pandas._libs.khash cimport (
     khiter_t,
@@ -53,7 +54,7 @@ from pandas._libs.khash cimport (
 )
 
 
-from pandas._libs cimport util
+cimport pandas._libs.util as util
 
 from pandas._libs.missing cimport checknull
 

@@ -7,7 +7,7 @@ import numpy as np
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
     get_base_alias,
-    get_freq_code,
+    get_freq,
     is_subperiod,
     is_superperiod,
 )
@@ -209,9 +209,9 @@ def _use_dynamic_x(ax, data):
     if freq is None:
         return False
 
-    # FIXME: hack this for 0.10.1, creating more technical debt...sigh
+    # hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = get_freq_code(freq)[0]
+        base = get_freq(freq)
         x = data.index
         if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized

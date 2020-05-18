@@ -579,7 +579,7 @@ class TestIntervalIndex:
         with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
 
-        msg = "Lengths must match to compare"
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
 

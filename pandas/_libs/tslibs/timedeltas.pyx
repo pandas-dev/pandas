@@ -26,7 +26,7 @@ from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
 from pandas._libs.tslibs.ccalendar cimport DAY_NANOS
 
 from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, td64_to_tdstruct, pandas_timedeltastruct)
+    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,

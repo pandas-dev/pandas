@@ -4,6 +4,7 @@ import pytest
 
 from pandas import DataFrame, Series, concat
 from pandas.tests.window.common import (
+    Base,
     check_binary_ew,
     check_binary_ew_min_periods,
     check_pairwise_moment,
@@ -18,9 +19,13 @@ from pandas.tests.window.common import (
 )
 
 
-@pytest.mark.parametrize("func", ["cov", "corr"])
-def test_ewm_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "ewm", func, span=10, min_periods=5)
+class TestEwmMomentsConsistency(Base):
+    def setup_method(self, method):
+        self._create_data()
+
+    @pytest.mark.parametrize("func", ["cov", "corr"])
+    def test_ewm_pairwise_cov_corr(self, func):
+        check_pairwise_moment(self.frame, "ewm", func, span=10, min_periods=5)
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])

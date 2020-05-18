@@ -1044,7 +1044,6 @@ Properties
     Tick.nanos
     Tick.normalize
     Tick.rule_code
-    Tick.n
 
 Methods
 ~~~~~~~
@@ -1078,7 +1077,6 @@ Properties
     Day.nanos
     Day.normalize
     Day.rule_code
-    Day.n
 
 Methods
 ~~~~~~~
@@ -1112,7 +1110,6 @@ Properties
     Hour.nanos
     Hour.normalize
     Hour.rule_code
-    Hour.n
 
 Methods
 ~~~~~~~
@@ -1146,7 +1143,6 @@ Properties
     Minute.nanos
     Minute.normalize
     Minute.rule_code
-    Minute.n
 
 Methods
 ~~~~~~~
@@ -1180,7 +1176,6 @@ Properties
     Second.nanos
     Second.normalize
     Second.rule_code
-    Second.n
 
 Methods
 ~~~~~~~
@@ -1214,7 +1209,6 @@ Properties
     Milli.nanos
     Milli.normalize
     Milli.rule_code
-    Milli.n
 
 Methods
 ~~~~~~~
@@ -1248,7 +1242,6 @@ Properties
     Micro.nanos
     Micro.normalize
     Micro.rule_code
-    Micro.n
 
 Methods
 ~~~~~~~
@@ -1282,7 +1275,6 @@ Properties
     Nano.nanos
     Nano.normalize
     Nano.rule_code
-    Nano.n
 
 Methods
 ~~~~~~~

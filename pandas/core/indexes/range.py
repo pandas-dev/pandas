@@ -627,18 +627,14 @@ class RangeIndex(Int64Index):
 
         return super().join(other, how, level, return_indexers, sort)
 
-    def _concat(self, indexes, name):
+    def _concat_same_dtype(self, indexes, name):
         """
-        Overriding parent method for the case of all RangeIndex instances.
-
-        When all members of "indexes" are of type RangeIndex: result will be
-        RangeIndex if possible, Int64Index otherwise. E.g.:
+        Concatenates multiple RangeIndex instances. All members of "indexes" must
+        be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+        otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
         """
-        if not all(isinstance(x, RangeIndex) for x in indexes):
-            return super()._concat(indexes, name)
-
         start = step = next_ = None
 
         # Filter the empty indexes

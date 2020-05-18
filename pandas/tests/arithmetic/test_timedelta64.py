@@ -451,7 +451,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
         # unequal length
-        msg = "cannot add indices of unequal length"
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             tdi + dti[0:1]
         with pytest.raises(ValueError, match=msg):
@@ -1723,7 +1723,7 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Cannot divide vectors|Unable to coerce to Series"
+        msg = "Lengths must match|Unable to coerce to Series"
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), pd.Index(obj)]:
@@ -1905,12 +1905,14 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_too_short_raises(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box_with_array)
-        msg = (
-            "cannot use operands with types dtype|"
-            "Cannot multiply with unequal lengths|"
-            "Unable to coerce to Series"
+        msg = "|".join(
+            [
+                "Lengths must match",  # <- EA, Index, Series
+                "cannot use operands with types dtype",  # <- DataFrame
+                "Unable to coerce to Series",  # <- Series
+            ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises((ValueError, TypeError), match=msg):
             # length check before dtype check
             idx * idx[:3]
         with pytest.raises(ValueError, match=msg):

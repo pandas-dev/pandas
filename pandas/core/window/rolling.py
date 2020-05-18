@@ -247,22 +247,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
-        window = self._get_window(win_type=None)
-        blocks, obj = self._create_blocks()
-        index = self._get_window_indexer(window=window)
-
-        start, end = index.get_window_bounds(
-            num_values=len(obj),
-            min_periods=self.min_periods,
-            center=self.center,
-            closed=self.closed,
-        )
-        # From get_window_bounds, those two should be equal in length of array
-        assert len(start) == len(end)
-
-        for s, e in zip(start, end):
-            result = obj.iloc[slice(s, e)]
-            yield result
+        url = "https://github.com/pandas-dev/pandas/issues/11704"
+        raise NotImplementedError(f"See issue #11704 {url}")
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
@@ -1316,8 +1302,6 @@ class _Rolling_and_Expanding(_Rolling):
             use_numba_cache=engine == "numba",
             raw=raw,
             original_func=func,
-            args=args,
-            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):

@@ -649,7 +649,7 @@ class TestMultiplicationDivision:
 
     def test_mul_size_mismatch_raises(self, numeric_idx):
         idx = numeric_idx
-        msg = "operands could not be broadcast together"
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             idx * idx[0:3]
         with pytest.raises(ValueError, match=msg):

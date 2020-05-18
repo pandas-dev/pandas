@@ -2975,7 +2975,7 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_strip"
     ] = r"""
-    Remove %(position)s characters.
+    Remove leading and trailing characters.
 
     Strip whitespaces (including newlines) or a set of specified characters
     from each string in the Series/Index from %(side)s.
@@ -3038,29 +3038,20 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     @Appender(
-        _shared_docs["str_strip"]
-        % dict(
-            side="left and right sides", method="strip", position="leading and trailing"
-        )
+        _shared_docs["str_strip"] % dict(side="left and right sides", method="strip")
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="both")
         return self._wrap_result(result)
 
-    @Appender(
-        _shared_docs["str_strip"]
-        % dict(side="left side", method="lstrip", position="leading")
-    )
+    @Appender(_shared_docs["str_strip"] % dict(side="left side", method="lstrip"))
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="left")
         return self._wrap_result(result)
 
-    @Appender(
-        _shared_docs["str_strip"]
-        % dict(side="right side", method="rstrip", position="trailing")
-    )
+    @Appender(_shared_docs["str_strip"] % dict(side="right side", method="rstrip"))
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="right")
