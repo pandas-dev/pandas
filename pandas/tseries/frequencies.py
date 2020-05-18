@@ -164,7 +164,7 @@ def to_offset(freq) -> Optional[DateOffset]:
                     )
                 stride = int(stride)
                 offset = _get_offset(name)
-                offset = offset * int(np.fabs(stride) * stride_sign)  # type: ignore
+                offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
@@ -218,7 +218,7 @@ def _get_offset(name: str) -> DateOffset:
             klass = prefix_mapping[split[0]]
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
-            offset = klass._from_name(*split[1:])  # type: ignore
+            offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
