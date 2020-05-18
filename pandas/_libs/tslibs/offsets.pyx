@@ -114,14 +114,6 @@ def as_datetime(obj: datetime) -> datetime:
     return obj
 
 
-cdef ABCTimestamp as_timestamp(obj):
-    if isinstance(obj, ABCTimestamp):
-        return obj
-
-    from pandas import Timestamp
-    return Timestamp(obj)
-
-
 cpdef bint is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -177,7 +169,7 @@ def apply_wraps(func):
             return func(self, other)
         elif is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
-            other = as_timestamp(other)
+            other = Timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
             raise ApplyTypeError
@@ -190,7 +182,7 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = as_timestamp(result)
+        result = Timestamp(result)
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
@@ -205,7 +197,7 @@ def apply_wraps(func):
                     value = result.tz_localize(None).value
                 else:
                     value = result.value
-                result = as_timestamp(value + nano)
+                result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
             result = result.tz_localize(tz)
@@ -896,7 +888,8 @@ cdef class Tick(BaseOffset):
             return NaT
         elif is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
-            return as_timestamp(other) + self
+            from pandas import Timestamp
+            return Timestamp(other) + self
 
         if PyDelta_Check(other):
             return other + self.delta
