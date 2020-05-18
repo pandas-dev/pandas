@@ -2178,16 +2178,18 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         return self._get_roll_func(f"{func}_variable")
 
-    def _get_window_indexer(self, window: int) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
+            index_array = self._groupby._selected_obj.index.asi8
         else:
             rolling_indexer = FixedWindowIndexer
+            index_array = None
         window_indexer = GroupbyRollingIndexer(
-            index_array=self._groupby._selected_obj.index.asi8,
+            index_array=index_array,
             window_size=window,
             groupby_indicies=self._groupby.indices,
             rolling_indexer=rolling_indexer,

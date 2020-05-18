@@ -177,9 +177,9 @@ class GroupbyRollingIndexer(BaseIndexer):
 
     def __init__(
         self,
-        index_array: Optional[np.ndarray] = None,
-        window_size: int = 0,
-        groupby_indicies: Optional[Dict] = None,
+        index_array: Optional[np.ndarray],
+        window_size: int,
+        groupby_indicies: Dict,
         rolling_indexer=None,
         **kwargs,
     ):
@@ -205,9 +205,12 @@ class GroupbyRollingIndexer(BaseIndexer):
         end_arrays = []
         window_indicies_start = 0
         for key, indicies in self.groupby_indicies.items():
+            if self.index_array is not None:
+                index_array = self.index_array.take(indicies)
+            else:
+                index_array = self.index_array
             indexer = self.rolling_indexer(
-                index_array=self.index_array.take(indicies),
-                window_size=self.window_size,
+                index_array=index_array, window_size=self.window_size,
             )
             start, end = indexer.get_window_bounds(
                 len(indicies), min_periods, center, closed
@@ -215,7 +218,9 @@ class GroupbyRollingIndexer(BaseIndexer):
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(
-                window_indicies_start, window_indicies_start + len(indicies), dtype=np.int64
+                window_indicies_start,
+                window_indicies_start + len(indicies),
+                dtype=np.int64,
             )
             window_indicies_start += len(indicies)
             # Extend as we'll be slicing window like [start, end)
