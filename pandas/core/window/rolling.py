@@ -51,8 +51,8 @@ from pandas.core.window.common import (
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
-    GroupbyRollingIndexer,
     FixedWindowIndexer,
+    GroupbyRollingIndexer,
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
@@ -2157,7 +2157,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Ensure the object we're rolling over is monotonically sorted relative
         # to the groups
         obj = self._selected_obj.take(
-            np.concatenate([idxs for idxs in self._groupby.grouper.indices.values()])
+            np.concatenate(list(self._groupby.grouper.indices.values()))
         )
 
         # filter out the on from the object

@@ -215,7 +215,7 @@ class GroupbyRollingIndexer(BaseIndexer):
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(
-                window_indicies_start, window_indicies_start + len(indicies)
+                window_indicies_start, window_indicies_start + len(indicies), dtype=np.int64
             )
             window_indicies_start += len(indicies)
             # Extend as we'll be slicing window like [start, end)
