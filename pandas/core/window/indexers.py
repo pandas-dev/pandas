@@ -1,5 +1,5 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -180,7 +180,7 @@ class GroupbyRollingIndexer(BaseIndexer):
         index_array: Optional[np.ndarray],
         window_size: int,
         groupby_indicies: Dict,
-        rolling_indexer=None,
+        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]],
         **kwargs,
     ):
         """

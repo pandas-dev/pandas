@@ -6,7 +6,7 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 
@@ -2135,10 +2135,10 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
                 if not is_list_like(key):
-                    data = (key, grouped_object_index[value])
+                    data = [key, grouped_object_index[value]]
                 else:
-                    data = (*key, grouped_object_index[value])
-                result_index_data.append(data)
+                    data = [*key, grouped_object_index[value]]
+                result_index_data.append(tuple(data))
 
         result_index = MultiIndex.from_tuples(
             result_index_data, names=result_index_names
@@ -2182,6 +2182,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         Return an indexer class that will compute the window start and end bounds
         """
+        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]]
         if self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
             index_array = self._groupby._selected_obj.index.asi8
