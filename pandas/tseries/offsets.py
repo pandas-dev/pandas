@@ -185,8 +185,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -295,17 +293,34 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
+
 
 class SingleConstructorMixin:
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
-
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
 
 
 class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
@@ -319,6 +334,10 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.offset)
+        return type(self), tup
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -709,6 +728,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
     _attributes = frozenset(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
+
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
 
     def __init__(
         self,
@@ -2104,6 +2129,8 @@ class Easter(SingleConstructorOffset):
 
 
 class Tick(liboffsets._Tick, SingleConstructorOffset):
+    _inc = Timedelta(microseconds=1000)
+
     def __add__(self, other):
         if isinstance(other, Tick):
             if type(self) == type(other):
