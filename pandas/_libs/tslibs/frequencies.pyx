@@ -3,9 +3,9 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
 # ----------------------------------------------------------------------
 # Constants
@@ -153,7 +153,7 @@ cpdef get_freq_code(freqstr):
     >>> get_freq_code(('D', 3))
     (6000, 3)
     """
-    if getattr(freqstr, '_typ', None) == 'dateoffset':
+    if is_offset_object(freqstr):
         freqstr = (freqstr.rule_code, freqstr.n)
 
     if isinstance(freqstr, tuple):
@@ -175,13 +175,13 @@ cpdef get_freq_code(freqstr):
     if is_integer_object(freqstr):
         return freqstr, 1
 
-    base, stride = _base_and_stride(freqstr)
+    base, stride = base_and_stride(freqstr)
     code = _period_str_to_code(base)
 
     return code, stride
 
 
-cpdef _base_and_stride(str freqstr):
+cpdef base_and_stride(str freqstr):
     """
     Return base freq and stride info from string representation
 
@@ -267,7 +267,7 @@ cpdef str get_base_alias(freqstr):
     -------
     base_alias : str
     """
-    return _base_and_stride(freqstr)[0]
+    return base_and_stride(freqstr)[0]
 
 
 cpdef int get_to_timestamp_base(int base):
@@ -304,25 +304,6 @@ cpdef int get_to_timestamp_base(int base):
     elif FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
     return base
-
-
-cpdef object get_freq(object freq):
-    """
-    Return frequency code of given frequency str.
-    If input is not string, return input as it is.
-
-    Examples
-    --------
-    >>> get_freq('A')
-    1000
-
-    >>> get_freq('3A')
-    1000
-    """
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    return freq
 
 
 # ----------------------------------------------------------------------
@@ -451,15 +432,15 @@ cdef str _maybe_coerce_freq(code):
     code : string
     """
     assert code is not None
-    if getattr(code, '_typ', None) == 'dateoffset':
-        # i.e. isinstance(code, ABCDateOffset):
+    if is_offset_object(code):
+        # i.e. isinstance(code, DateOffset):
         code = code.rule_code
     return code.upper()
 
 
 cdef bint _quarter_months_conform(str source, str target):
-    snum = MONTH_NUMBERS[source]
-    tnum = MONTH_NUMBERS[target]
+    snum = c_MONTH_NUMBERS[source]
+    tnum = c_MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 

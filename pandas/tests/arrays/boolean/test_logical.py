@@ -38,6 +38,7 @@ class TestLogicalOps(BaseOpsUtil):
         result = getattr(a, op_name)(False)
         tm.assert_extension_array_equal(a, result)
 
+        # FIXME: dont leave commented-out
         # TODO: pd.NA
         # result = getattr(a, op_name)(pd.NA)
         # tm.assert_extension_array_equal(a, result)

@@ -318,8 +318,8 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
     :meth:`~Rolling.apply`, Generic apply
-    :meth:`~Rolling.cov`, Unbiased covariance (binary)
-    :meth:`~Rolling.corr`, Correlation (binary)
+    :meth:`~Rolling.cov`, Sample covariance (binary)
+    :meth:`~Rolling.corr`, Sample correlation (binary)
 
 .. _computation.window_variance.caveats:
 
@@ -340,6 +340,8 @@ We provide a number of common statistical functions:
    these methods to use population variance instead of sample variance. Using
    sample variance under the circumstances would result in a biased estimator
    of the variable we are trying to determine.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. _stats.rolling_apply:
 
@@ -380,8 +382,8 @@ and their default values are set to ``False``, ``True`` and ``False`` respective
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
-   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
    a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
@@ -646,6 +648,24 @@ from present information back to past information. This allows the rolling windo
 Currently, this feature is only implemented for time-based windows.
 For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
+.. _stats.iter_rolling_window:
+
+Iteration over window:
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
+
+.. ipython::
+
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
+
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware rolling vs. resampling
@@ -870,12 +890,12 @@ Method summary
     :meth:`~Expanding.max`, Maximum
     :meth:`~Expanding.std`, Sample standard deviation
     :meth:`~Expanding.var`, Sample variance
-    :meth:`~Expanding.skew`, Unbiased skewness (3rd moment)
-    :meth:`~Expanding.kurt`, Unbiased kurtosis (4th moment)
+    :meth:`~Expanding.skew`, Sample skewness (3rd moment)
+    :meth:`~Expanding.kurt`, Sample kurtosis (4th moment)
     :meth:`~Expanding.quantile`, Sample quantile (value at %)
     :meth:`~Expanding.apply`, Generic apply
-    :meth:`~Expanding.cov`, Unbiased covariance (binary)
-    :meth:`~Expanding.corr`, Correlation (binary)
+    :meth:`~Expanding.cov`, Sample covariance (binary)
+    :meth:`~Expanding.corr`, Sample correlation (binary)
 
 .. note::
 
@@ -883,6 +903,8 @@ Method summary
    :meth:`~Expanding.var` comes with the same caveats as using them with rolling
    windows. See :ref:`this section <computation.window_variance.caveats>` for more
    information.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. currentmodule:: pandas
 
