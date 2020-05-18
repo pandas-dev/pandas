@@ -236,6 +236,7 @@ Other enhancements
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 - :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 - :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts `xlabel` and `ylabel` parameters to present labels on x and y axis (:issue:`9093`).
+- Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
 
 .. ---------------------------------------------------------------------------
 
