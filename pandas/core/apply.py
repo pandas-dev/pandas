@@ -18,10 +18,9 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import Series, Index
 
 ResType = Dict[int, Any]
 
@@ -309,7 +308,7 @@ class FrameApply(metaclass=abc.ABCMeta):
                 if partial_result is None:
                     return self.obj._constructor_sliced(result, index=labels)
                 else:
-                    if isinstance(partial_result, Series):
+                    if isinstance(partial_result, ABCSeries):
                         partial_result = DataFrame.infer_objects(partial_result)
 
         # compute the result using the series generator

@@ -726,6 +726,38 @@ class TestDataFrameApply:
         result = df.apply(lambda x: x.copy())
         tm.assert_frame_equal(result, df)
 
+    def test_apply_function_runs_once(self):
+        # https://github.com/pandas-dev/pandas/issues/30815
+        def non_reducing_func_with_state(row):
+            non_reducing_func_with_state.call_count = getattr(non_reducing_func_with_state, 'call_count', 0) + 1
+            return row * non_reducing_func_with_state.call_count
+
+        def reducing_func_with_state(_):
+            reducing_func_with_state.call_count = getattr(reducing_func_with_state, 'call_count', 0) + 1
+            return reducing_func_with_state.call_count
+
+        df = pd.DataFrame({'a': [1, 2, 3]})
+
+        # no reduction
+        res0 = df.apply(non_reducing_func_with_state)
+        tm.assert_frame_equal(res0, df)
+
+        # reduction
+        res1 = df.apply(reducing_func_with_state)
+        tm.assert_series_equal(res1, Series(data=[1], index=['a']))
+
+    def test_applymap_function_runs_once(self):
+
+        # This function will create the same values as in the DataFrame
+        def func_with_state(_):
+            func_with_state.call_count = getattr(func_with_state, 'call_count', 0) + 1
+            return func_with_state.call_count
+
+        df = pd.DataFrame({'a': [1, 2, 3]})
+        result = df.applymap(func_with_state)
+        tm.assert_frame_equal(result, df)
+
+
 
 class TestInferOutputShape:
     # the user has supplied an opaque UDF where
