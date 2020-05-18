@@ -80,7 +80,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         kwargs = {"legend": True, "column": column}
-        # Don't add "label": None, causes different behavior than no label kwarg
+        # We get warnings if kwargs contains "label": None
         if label is not None:
             kwargs["label"] = label
 
@@ -104,7 +104,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         kwargs = {"legend": True}
-        # Don't add "label": None, causes different behavior than no label kwarg
+        # We get warnings if kwargs contains "label": None
         if label is not None:
             kwargs["label"] = label
 
