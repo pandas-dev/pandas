@@ -207,19 +207,19 @@ class TestDataFramePlots(TestPlotBase):
     def test_color_and_marker(self):
         # GH21003 - code sample from 2018-05-10 is equivalent to this test
         df = DataFrame(np.random.random((7, 4)))
-        # combining a color string and a marker letter should be allowed
-        df.plot(color="green", style="d")  # d for diamond
+        ax = df.plot(color="green", style="d")  # d for diamond
+        for line in ax.lines:
+            assert line.get_color() == "green"
+            assert line.get_marker() == "d"
 
     def test_color_list_and_marker(self):
         # GH21003 - code sample from 2020-04-23 is equivalent to this test
         df = DataFrame(np.random.random((7, 4)))
         color_list = ["yellow", "red", "green", "blue"]
-        ax = df.plot(color=color_list, style="d")
-        # Before this patch was introduced, the previous line of code resulted
-        # in a plot where each individual line was assigned a list of colors:
-        # ax.lines[i].get_color() == ['yellow', 'red', 'green', 'blue']
-        # which resulted in a ValueError when plt.draw() was called.
+        ax = df.plot(color=color_list, style="d")  # d for diamond
         assert [line.get_color() for line in ax.lines] == color_list
+        for line in ax.lines:
+            assert line.get_marker() == "d"
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
