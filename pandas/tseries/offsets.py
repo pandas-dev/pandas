@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 import operator
-from typing import Any, Optional
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -185,8 +185,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -295,17 +293,38 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
 
-class SingleConstructorOffset(BaseOffset):
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
 
+
+class SingleConstructorMixin:
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
+
+
+class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
+    pass
 
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
@@ -316,9 +335,9 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
 
-    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.offset)
+        return type(self), tup
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -419,7 +438,15 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHourMixin(liboffsets.BusinessHourMixin):
+class BusinessHour(SingleConstructorMixin, liboffsets.BusinessHourMixin):
+    """
+    DateOffset subclass representing possibly n business hours.
+    """
+
+    _prefix = "BH"
+    _anchor = 0
+    _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
+
     @cache_readonly
     def next_bday(self):
         """
@@ -679,22 +706,6 @@ class BusinessHourMixin(liboffsets.BusinessHourMixin):
             return False
 
 
-class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
-    """
-    DateOffset subclass representing possibly n business hours.
-    """
-
-    _prefix = "BH"
-    _anchor = 0
-    _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
-
-    def __init__(
-        self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-    ):
-        BaseOffset.__init__(self, n, normalize)
-        super().__init__(start=start, end=end, offset=offset)
-
-
 class CustomBusinessDay(CustomMixin, BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
@@ -718,6 +729,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
 
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
+
     def __init__(
         self,
         n=1,
@@ -727,9 +744,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         calendar=None,
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessDay.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
@@ -772,7 +787,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset):
+class CustomBusinessHour(CustomMixin, BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -794,11 +809,8 @@ class CustomBusinessHour(CustomMixin, BusinessHourMixin, SingleConstructorOffset
         end="17:00",
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
-        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
 
 # ---------------------------------------------------------------------
@@ -898,9 +910,7 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         calendar=None,
         offset=timedelta(0),
     ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
-
+        BusinessMixin.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
@@ -980,9 +990,9 @@ class SemiMonthOffset(SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
 
         if day_of_month is None:
-            object.__setattr__(self, "day_of_month", self._default_day_of_month)
-        else:
-            object.__setattr__(self, "day_of_month", int(day_of_month))
+            day_of_month = self._default_day_of_month
+
+        object.__setattr__(self, "day_of_month", int(day_of_month))
         if not self._min_day_of_month <= self.day_of_month <= 27:
             raise ValueError(
                 "day_of_month must be "
@@ -1308,7 +1318,7 @@ class Week(SingleConstructorOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
+class WeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
@@ -1334,12 +1344,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     _attributes = frozenset(["n", "normalize", "week", "weekday"])
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        liboffsets.WeekOfMonthMixin.__init__(self, n, normalize, weekday)
         object.__setattr__(self, "week", week)
 
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
@@ -1361,11 +1368,6 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         shift_days = (self.weekday - wday) % 7
         return 1 + shift_days + self.week * 7
 
-    @property
-    def rule_code(self) -> str:
-        weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return f"{self._prefix}-{self.week + 1}{weekday}"
-
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
@@ -1377,7 +1379,7 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
+class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month".
@@ -1401,14 +1403,11 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
     _attributes = frozenset(["n", "normalize", "weekday"])
 
     def __init__(self, n=1, normalize=False, weekday=0):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        liboffsets.WeekOfMonthMixin.__init__(self, n, normalize, weekday)
 
         if self.n == 0:
             raise ValueError("N cannot be 0")
-
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
+        object.__setattr__(self, "week", -1)
 
     def _get_offset_day(self, other: datetime) -> int:
         """
@@ -1428,11 +1427,6 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin, SingleConstructorOffset):
         wday = mend.weekday()
         shift_days = (wday - self.weekday) % 7
         return dim - shift_days
-
-    @property
-    def rule_code(self) -> str:
-        weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return f"{self._prefix}-{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2134,34 +2128,8 @@ class Easter(SingleConstructorOffset):
 # Ticks
 
 
-def _tick_comp(op):
-    """
-    Tick comparisons should behave identically to Timedelta comparisons.
-    """
-
-    def f(self, other):
-        return op(self.delta, other)
-
-    f.__name__ = f"__{op.__name__}__"
-    return f
-
-
 class Tick(liboffsets._Tick, SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
-    _prefix = "undefined"
-    _attributes = frozenset(["n", "normalize"])
-
-    def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n, normalize)
-        if normalize:
-            raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
-            )  # GH#21427
-
-    __gt__ = _tick_comp(operator.gt)
-    __ge__ = _tick_comp(operator.ge)
-    __lt__ = _tick_comp(operator.lt)
-    __le__ = _tick_comp(operator.le)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2180,46 +2148,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 f"the add operation between {self} and {other} will overflow"
             ) from err
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
-
-            try:
-                # GH#23524 if to_offset fails, we are dealing with an
-                #  incomparable type so == is False and != is True
-                other = to_offset(other)
-            except ValueError:
-                # e.g. "infer"
-                return False
-
-        return _tick_comp(operator.eq)(self, other)
-
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self) -> int:
         return hash(self._params)
-
-    def __ne__(self, other):
-        if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
-
-            try:
-                # GH#23524 if to_offset fails, we are dealing with an
-                #  incomparable type so == is False and != is True
-                other = to_offset(other)
-            except ValueError:
-                # e.g. "infer"
-                return True
-
-        return _tick_comp(operator.ne)(self, other)
-
-    @property
-    def delta(self) -> Timedelta:
-        return self.n * self._inc
-
-    @property
-    def nanos(self):
-        return delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
@@ -2240,6 +2172,9 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         if isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
+            # TODO: this is reached in tests that specifically call apply,
+            #  but should not be reached "naturally" because __add__ should
+            #  catch this case first.
             return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")

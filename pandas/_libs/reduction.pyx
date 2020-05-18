@@ -11,7 +11,7 @@ from numpy cimport ndarray, int64_t
 
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
@@ -565,7 +565,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
+def compute_reduction(arr: ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters
