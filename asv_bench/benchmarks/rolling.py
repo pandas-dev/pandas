@@ -186,4 +186,19 @@ class ForwardWindowMethods:
         getattr(self.roll, method)()
 
 
+class Groupby:
+
+    params = ["sum", "median", "mean", "max", "min", "kurt", "sum"]
+
+    def setup(self, method):
+        N = 1000
+        df = pd.DataFrame(
+            {"A": [str(i) for i in range(N)] * 10, "B": list(range(N)) * 10}
+        )
+        self.groupby_roll = df.groupby("A").rolling(window=2)
+
+    def time_method(self, method):
+        getattr(self.groupby_roll, method)()
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
