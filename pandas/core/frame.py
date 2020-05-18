@@ -8420,8 +8420,8 @@ NaN 12.3   33.0
             return data
 
         if (
-            self._is_homogeneous_type and self._mgr.any_extension_types and axis == 0
-        ) or (numeric_only is not None and axis in [0, 1]):
+            self._mgr.any_extension_types or numeric_only is not None
+        ) and axis is not None:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
