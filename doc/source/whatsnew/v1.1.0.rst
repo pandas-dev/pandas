@@ -183,7 +183,7 @@ Other enhancements
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
--
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`DataFrameGroupby.hist`, and :meth:`SeriesGroupby.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 
 .. ---------------------------------------------------------------------------
 
