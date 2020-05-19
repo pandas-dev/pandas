@@ -666,11 +666,11 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ):
             return
 
-        ax = self.obj._info_axis
         groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
+            ax = self.obj._info_axis
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
@@ -1416,8 +1416,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        # TODO: implement at Cython level?
-        return np.sqrt(self.var(ddof=ddof))
+        result = self.var(ddof=ddof)
+        if result.ndim == 1:
+            result = np.sqrt(result)
+        else:
+            cols = result.columns.get_indexer_for(
+                result.columns.difference(self.exclusions).unique()
+            )
+            # TODO(GH-22046) - setting with iloc broken if labels are not unique
+            # .values to remove labels
+            result.iloc[:, cols] = np.sqrt(result.iloc[:, cols]).values
+
+        return result
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1464,7 +1474,19 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        return self.std(ddof=ddof) / np.sqrt(self.count())
+        result = self.std(ddof=ddof)
+        if result.ndim == 1:
+            result /= np.sqrt(self.count())
+        else:
+            cols = result.columns.get_indexer_for(
+                result.columns.difference(self.exclusions).unique()
+            )
+            # TODO(GH-22046) - setting with iloc broken if labels are not unique
+            # .values to remove labels
+            result.iloc[:, cols] = (
+                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            )
+        return result
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
