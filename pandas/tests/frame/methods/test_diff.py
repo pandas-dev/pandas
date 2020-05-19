@@ -36,6 +36,14 @@ class TestDataFrameDiff:
         ).astype("float64")
         tm.assert_frame_equal(result, expected)
 
+        # Result should be the same for sparse df, see GH28813
+        arr = [[0, 1], [1, 0]]
+        normal = pd.DataFrame(arr)
+        sparse = pd.DataFrame(arr, dtype='Sparse[int]')
+        # we don't check dtype because one is sparse and the other isn't
+        tm.assert_frame_equal(normal.diff(), sparse.diff(), check_dtype=False)
+
+
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_axis0(self, tz):
         # GH#18578
