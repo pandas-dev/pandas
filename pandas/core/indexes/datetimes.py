@@ -27,7 +27,7 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
-import pandas.core.tools.datetimes as tools
+from pandas.core.tools.times import to_time
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import prefix_mapping
@@ -778,8 +778,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         indexer_at_time : Get index locations of values at particular time of day.
         DataFrame.between_time : Select values between particular times of day.
         """
-        start_time = tools.to_time(start_time)
-        end_time = tools.to_time(end_time)
+        start_time = to_time(start_time)
+        end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)

@@ -7,7 +7,7 @@ from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._libs.tslibs import Period
 from pandas._libs.tslibs.frequencies import get_freq_group
-from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -43,7 +43,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.datetimes import DateParseError
 
 from pandas.tseries.offsets import DateOffset, Tick
 
