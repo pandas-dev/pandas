@@ -1,6 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
+from typing import Optional
 
 import numpy as np
 
@@ -165,19 +166,14 @@ def _get_ax_freq(ax):
     return ax_freq
 
 
-def _get_base_alias(freqstr: str) -> str:
-    """
-    Returns the base frequency alias, e.g., '5D' -> 'D'
+def get_period_alias(freq) -> Optional[str]:
+    if isinstance(freq, DateOffset):
+        freq = freq.rule_code
+    else:
+        freq = base_and_stride(freq)[0]
 
-    Parameters
-    ----------
-    freqstr : str
-
-    Returns
-    -------
-    str
-    """
-    return base_and_stride(freqstr)[0]
+    freq = frequencies.get_period_alias(freq)
+    return freq
 
 
 def _get_freq(ax, series):
@@ -193,12 +189,7 @@ def _get_freq(ax, series):
         freq = ax_freq
 
     # get the period frequency
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = _get_base_alias(freq)
-
-    freq = frequencies.get_period_alias(freq)
+    freq = get_period_alias(freq)
     return freq, ax_freq
 
 
@@ -215,11 +206,7 @@ def _use_dynamic_x(ax, data):
     if freq is None:
         return False
 
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = _get_base_alias(freq)
-    freq = frequencies.get_period_alias(freq)
+    freq = get_period_alias(freq)
 
     if freq is None:
         return False
@@ -253,8 +240,6 @@ def _maybe_convert_index(ax, data):
 
         if freq is None:
             freq = getattr(data.index, "inferred_freq", None)
-        if isinstance(freq, DateOffset):
-            freq = freq.rule_code
 
         if freq is None:
             freq = _get_ax_freq(ax)
@@ -262,8 +247,7 @@ def _maybe_convert_index(ax, data):
         if freq is None:
             raise ValueError("Could not get frequency alias for plotting")
 
-        freq = _get_base_alias(freq)
-        freq = frequencies.get_period_alias(freq)
+        freq = get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
             data = data.tz_localize(None).to_period(freq=freq)
