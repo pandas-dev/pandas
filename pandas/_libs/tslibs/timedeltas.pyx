@@ -21,12 +21,12 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 
 from pandas._libs.tslibs.ccalendar cimport DAY_NANOS
 
 from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
+    cmp_scalar, td64_to_tdstruct, pandas_timedeltastruct)
 
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
@@ -34,6 +34,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.offsets cimport is_tick_object
 
 # ----------------------------------------------------------------------
 # Constants

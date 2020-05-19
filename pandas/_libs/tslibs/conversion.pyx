@@ -13,7 +13,7 @@ from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.base cimport ABCTimestamp, is_period_object
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
@@ -291,10 +291,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
-    elif is_period_object(ts):
-        raise ValueError("Cannot convert Period to Timestamp "
-                         "unambiguously. Use to_timestamp")
     else:
+        from .period import Period
+        if isinstance(ts, Period):
+            raise ValueError("Cannot convert Period to Timestamp "
+                             "unambiguously. Use to_timestamp")
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
