@@ -1599,7 +1599,7 @@ cdef class _Period:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
         elif util.is_offset_object(other):
-            if self.freq.base == other.base:
+            if other.base == self.freq.base:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
             msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
@@ -1610,58 +1610,57 @@ cdef class _Period:
             return NotImplemented
 
     def __add__(self, other):
-        if is_period_object(self):
-            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                    util.is_offset_object(other)):
-                return self._add_delta(other)
-            elif other is NaT:
+        if not is_period_object(self):
+            # cython semantics; this is analogous to a call to __radd__
+            if self is NaT:
                 return NaT
-            elif util.is_integer_object(other):
-                ordinal = self.ordinal + other * self.freq.n
-                return Period(ordinal=ordinal, freq=self.freq)
-            elif (PyDateTime_Check(other) or
-                  is_period_object(other) or util.is_datetime64_object(other)):
-                # can't add datetime-like
-                # GH#17983
-                sname = type(self).__name__
-                oname = type(other).__name__
-                raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
-                                f"and '{oname}'")
-            else:  # pragma: no cover
-                return NotImplemented
-        elif is_period_object(other):
-            # this can be reached via __radd__ because of cython rules
-            return other + self
-        else:
-            return NotImplemented
+            return other.__add__(self)
+
+        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                util.is_offset_object(other)):
+            return self._add_delta(other)
+        elif other is NaT:
+            return NaT
+        elif util.is_integer_object(other):
+            ordinal = self.ordinal + other * self.freq.n
+            return Period(ordinal=ordinal, freq=self.freq)
+        elif (PyDateTime_Check(other) or
+              is_period_object(other) or util.is_datetime64_object(other)):
+            # can't add datetime-like
+            # GH#17983
+            sname = type(self).__name__
+            oname = type(other).__name__
+            raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
+                            f"and '{oname}'")
+
+        return NotImplemented
 
     def __sub__(self, other):
-        if is_period_object(self):
-            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                    util.is_offset_object(other)):
-                neg_other = -other
-                return self + neg_other
-            elif util.is_integer_object(other):
-                ordinal = self.ordinal - other * self.freq.n
-                return Period(ordinal=ordinal, freq=self.freq)
-            elif is_period_object(other):
-                if other.freq != self.freq:
-                    msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                                own_freq=self.freqstr,
-                                                other_freq=other.freqstr)
-                    raise IncompatibleFrequency(msg)
-                # GH 23915 - mul by base freq since __add__ is agnostic of n
-                return (self.ordinal - other.ordinal) * self.freq.base
-            elif other is NaT:
-                return NaT
-            return NotImplemented
-        elif is_period_object(other):
-            # this can be reached via __rsub__ because of cython rules
+        if not is_period_object(self):
+            # cython semantics; this is like a call to __rsub__
             if self is NaT:
                 return NaT
             return NotImplemented
-        else:
-            return NotImplemented
+
+        elif (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                util.is_offset_object(other)):
+            neg_other = -other
+            return self + neg_other
+        elif util.is_integer_object(other):
+            ordinal = self.ordinal - other * self.freq.n
+            return Period(ordinal=ordinal, freq=self.freq)
+        elif is_period_object(other):
+            if other.freq != self.freq:
+                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                            own_freq=self.freqstr,
+                                            other_freq=other.freqstr)
+                raise IncompatibleFrequency(msg)
+            # GH 23915 - mul by base freq since __add__ is agnostic of n
+            return (self.ordinal - other.ordinal) * self.freq.base
+        elif other is NaT:
+            return NaT
+
+        return NotImplemented
 
     def asfreq(self, freq, how='E') -> "Period":
         """
