@@ -91,7 +91,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             )
             for ax, expected_label in zip(axes[0], expected_labels):
                 self._check_legend_labels(ax, expected_label)
-        tm.close()
 
     @pytest.mark.parametrize(
         "label, expected_label", [(None, ["1", "2"]), ("d", ["d", "d"])]
