@@ -783,40 +783,6 @@ Methods
     QuarterBegin.is_on_offset
     QuarterBegin.__call__
 
-YearOffset
-----------
-.. autosummary::
-   :toctree: api/
-
-    YearOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.freqstr
-    YearOffset.kwds
-    YearOffset.name
-    YearOffset.nanos
-    YearOffset.normalize
-    YearOffset.rule_code
-    YearOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.apply
-    YearOffset.apply_index
-    YearOffset.copy
-    YearOffset.isAnchored
-    YearOffset.onOffset
-    YearOffset.is_anchored
-    YearOffset.is_on_offset
-    YearOffset.__call__
-
 BYearEnd
 --------
 .. autosummary::
