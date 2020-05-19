@@ -155,7 +155,7 @@ def _maybe_match_name(a, b):
 # -----------------------------------------------------------------------------
 
 
-def _get_frame_op_default_axis(name):
+def _get_frame_op_default_axis(name: str) -> Optional[str]:
     """
     Only DataFrame cares about default_axis, specifically:
     special methods have default_axis=None and flex methods
@@ -392,6 +392,7 @@ def _arith_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    assert special  # non-special uses _flex_method_SERIES
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
@@ -416,6 +417,7 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    assert special  # non-special uses _flex_method_SERIES
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
@@ -443,6 +445,7 @@ def _bool_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    assert special  # non-special uses _flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -461,6 +464,7 @@ def _bool_method_SERIES(cls, op, special):
 
 
 def _flex_method_SERIES(cls, op, special):
+    assert not special  # "special" also means "not flex"
     name = _get_op_name(op, special)
     doc = _make_flex_doc(name, "series")
 
@@ -680,6 +684,7 @@ def _frame_arith_method_with_reindex(
 
 
 def _arith_method_FRAME(cls, op, special):
+    # This is the only function where `special` can be either True or False
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -701,18 +706,20 @@ def _arith_method_FRAME(cls, op, special):
         ):
             return _frame_arith_method_with_reindex(self, other, op)
 
+        # TODO: why are we passing flex=True instead of flex=not special?
+        #  15 tests fail if we pass flex=not special instead
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             pass_op = op if should_series_dispatch(self, other, op) else na_op
-            pass_op = pass_op if not is_logical else op
-
             new_data = self._combine_frame(other, pass_op, fill_value)
 
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
+            # TODO: the above comment is no longer accurate since we now
+            #  operate blockwise if other._values is an ndarray
             pass_op = op if axis in [0, "columns", None] else na_op
             pass_op = pass_op if not is_logical else op
 
@@ -738,9 +745,11 @@ def _arith_method_FRAME(cls, op, special):
 
 
 def _flex_comp_method_FRAME(cls, op, special):
+    assert not special  # "special" also means "not flex"
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
+    assert default_axis == "columns", default_axis  # because we are not "special"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
@@ -772,6 +781,7 @@ def _flex_comp_method_FRAME(cls, op, special):
 
 
 def _comp_method_FRAME(cls, op, special):
+    assert special  # "special" also means "not flex"
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
