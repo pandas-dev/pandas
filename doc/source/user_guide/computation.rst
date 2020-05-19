@@ -648,6 +648,24 @@ from present information back to past information. This allows the rolling windo
 Currently, this feature is only implemented for time-based windows.
 For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
+.. _stats.iter_rolling_window:
+
+Iteration over window:
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
+
+.. ipython::
+
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
+
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware rolling vs. resampling
