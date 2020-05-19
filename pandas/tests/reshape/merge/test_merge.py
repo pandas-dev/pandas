@@ -2056,11 +2056,7 @@ def test_merge_duplicate_suffix(how, expected):
 
 @pytest.mark.parametrize(
     "col1, col2, suffixes",
-    [
-        ("a", "a", (None, None)),
-        ("a", "a", ("", None)),
-        (0, 0, (None, "")),
-    ],
+    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, "")),],
 )
 def test_merge_suffix_error(col1, col2, suffixes):
     # issue: 24782
