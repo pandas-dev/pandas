@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
-    get_base_alias,
+    base_and_stride,
     get_freq_code,
     is_subperiod,
     is_superperiod,
@@ -165,6 +165,21 @@ def _get_ax_freq(ax):
     return ax_freq
 
 
+def _get_base_alias(freqstr: str) -> str:
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+
+    Parameters
+    ----------
+    freqstr : str
+
+    Returns
+    -------
+    str
+    """
+    return base_and_stride(freqstr)[0]
+
+
 def _get_freq(ax, series):
     # get frequency from data
     freq = getattr(series.index, "freq", None)
@@ -181,7 +196,7 @@ def _get_freq(ax, series):
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
     else:
-        freq = get_base_alias(freq)
+        freq = _get_base_alias(freq)
 
     freq = frequencies.get_period_alias(freq)
     return freq, ax_freq
@@ -203,7 +218,7 @@ def _use_dynamic_x(ax, data):
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
     else:
-        freq = get_base_alias(freq)
+        freq = _get_base_alias(freq)
     freq = frequencies.get_period_alias(freq)
 
     if freq is None:
@@ -247,7 +262,7 @@ def _maybe_convert_index(ax, data):
         if freq is None:
             raise ValueError("Could not get frequency alias for plotting")
 
-        freq = get_base_alias(freq)
+        freq = _get_base_alias(freq)
         freq = frequencies.get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):

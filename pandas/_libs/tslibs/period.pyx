@@ -52,7 +52,6 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
-    get_base_alias,
     get_freq_code,
     get_freq_str,
     get_rule_month,
@@ -1600,9 +1599,7 @@ cdef class _Period:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
         elif util.is_offset_object(other):
-            freqstr = other.rule_code
-            base = get_base_alias(freqstr)
-            if base == self.freq.rule_code:
+            if self.freq.base == other.base:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
             msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
