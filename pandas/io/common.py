@@ -134,20 +134,6 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def is_s3_url(url) -> bool:
-    """Check for an s3, s3n, or s3a url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-
-
-def is_gcs_url(url) -> bool:
-    """Check for a gcs url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["gcs", "gs"]
-
-
 def urlopen(*args, **kwargs):
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
@@ -158,19 +144,15 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
-def is_fsspec_url(url) -> bool:
+def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     """
-    Returns true if fsspec is installed and the URL references a known
-    fsspec filesystem.
+    Returns true if fsspec is installed and the given URL looks like
+    something fsspec can handle
     """
-
-    if not isinstance(url, str):
-        return False
-
     try:
-        from fsspec.registry import known_implementations
-        scheme = parse_url(url).scheme
-        return scheme != "file" and scheme in known_implementations
+        import fsspec  # noqa: F401
+
+        return isinstance(url, str) and ("::" in url or "://" in url)
     except ImportError:
         return False
 
@@ -180,6 +162,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+    **storage_options,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -192,6 +175,7 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
+    storage_options: passed on to fsspec, if using it
 
     Returns
     -------
@@ -202,6 +186,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -213,24 +198,12 @@ def get_filepath_or_buffer(
 
     if is_fsspec_url(filepath_or_buffer):
         import fsspec
-        scheme = parse_url(filepath_or_buffer).scheme
-        filesystem = fsspec.filesystem(scheme)
-        file_obj = filesystem.open(filepath_or_buffer, mode=mode or "rb")
+
+        file_obj = fsspec.open(
+            filepath_or_buffer, mode=mode or "rb", **storage_options
+        ).open()
+        # TODO: both fsspec and pandas handle compression and encoding
         return file_obj, encoding, compression, True
-
-    # if is_s3_url(filepath_or_buffer):
-    #     from pandas.io import s3
-
-    #     return s3.get_filepath_or_buffer(
-    #         filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-    #     )
-
-    # if is_gcs_url(filepath_or_buffer):
-    #     from pandas.io import gcs
-
-    #     return gcs.get_filepath_or_buffer(
-    #         filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-    #     )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False

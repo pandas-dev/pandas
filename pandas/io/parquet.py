@@ -8,7 +8,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
+from pandas.io.common import get_filepath_or_buffer, is_fsspec_url
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -157,13 +157,13 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
-        if is_s3_url(path) or is_gcs_url(path):
+        if is_fsspec_url(path):
+            import fsspec
+
             # if path is s3:// or gs:// we need to open the file in 'wb' mode.
             # TODO: Support 'ab'
 
-            path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
-            # And pass the opened file to the fastparquet internal impl.
-            kwargs["open_with"] = lambda path, _: path
+            kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
 
@@ -178,20 +178,8 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(self, path, columns=None, **kwargs):
-        if is_s3_url(path):
-            from pandas.io.s3 import get_file_and_filesystem
-
-            # When path is s3:// an S3File is returned.
-            # We need to retain the original path(str) while also
-            # pass the S3File().open function to fsatparquet impl.
-            s3, filesystem = get_file_and_filesystem(path)
-            try:
-                parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
-            finally:
-                s3.close()
-        else:
-            path, _, _, _ = get_filepath_or_buffer(path)
-            parquet_file = self.api.ParquetFile(path)
+        path, _, _, _ = get_filepath_or_buffer(path)
+        parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
