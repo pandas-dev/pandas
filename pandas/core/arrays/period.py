@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     period as libperiod,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
@@ -45,7 +46,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
+from pandas.tseries.offsets import DateOffset
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -746,8 +747,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         IncompatibleFrequency
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
-        own_offset = frequencies.to_offset(self.freq.rule_code)
-        base_nanos = delta_to_nanoseconds(own_offset)
+        base_nanos = self.freq.base.nanos
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             nanos = delta_to_nanoseconds(other)
