@@ -2125,7 +2125,7 @@ class Categorical(ExtensionArray, PandasObject):
         return func(**kwargs)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def min(self, skipna=True):
+    def min(self, skipna=True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2144,6 +2144,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
+        nv.validate_min((), kwargs)
         self.check_for_ordered("min")
 
         if not len(self._codes):
@@ -2160,7 +2161,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self.categories[pointer]
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def max(self, skipna=True):
+    def max(self, skipna=True, **kwargs):
         """
         The maximum value of the object.
 
@@ -2179,6 +2180,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
+        nv.validate_max((), kwargs)
         self.check_for_ordered("max")
 
         if not len(self._codes):
