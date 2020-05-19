@@ -133,7 +133,7 @@ common_docstring = """
             Display DataFrame dimensions (number of rows by number of columns).
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
-        ending_header : bool, optional
+        ending_header : bool, optional, default False
             Display header at the end of DataFrame.
     """
 
