@@ -1061,7 +1061,13 @@ class TestArithmetic:
         per1 = Period(freq="D", year=2008, month=1, day=1)
         per2 = Period(freq="D", year=2008, month=1, day=2)
 
-        msg = r"unsupported operand type\(s\)|can only concatenate str"
+        msg = "|".join(
+            [
+                r"unsupported operand type\(s\)",
+                "can only concatenate str",
+                "must be str, not Period",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             per1 + "str"
         with pytest.raises(TypeError, match=msg):
