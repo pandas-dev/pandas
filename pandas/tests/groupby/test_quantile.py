@@ -187,6 +187,8 @@ def test_quantile_missing_group_values_no_segfaults():
         ([1.0, np.nan, 3.0, np.nan], range(4), [1.0, 3.0], [0.0, 2.0]),
         ([1.0, np.nan, 2.0, 2.0], range(4), [1.0, 2.0], [0.0, 2.5]),
         (["a", "b", "b", np.nan], range(4), ["a", "b"], [0, 1.5]),
+        ([0], [42], [0], [42.0]),
+        ([], [], np.array([], dtype="float64"), np.array([], dtype="float64")),
     ],
 )
 def test_quantile_missing_group_values_correct_results(
