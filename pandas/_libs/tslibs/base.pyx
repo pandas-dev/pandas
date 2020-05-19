@@ -14,19 +14,3 @@ cdef class ABCTimedelta(timedelta):
 
 cdef class ABCTimestamp(datetime):
     pass
-
-
-cdef class ABCPeriod:
-    pass
-
-
-cdef class ABCTick:
-    pass
-
-
-cdef bint is_tick_object(object obj):
-    return isinstance(obj, ABCTick)
-
-
-cdef bint is_period_object(object obj):
-    return isinstance(obj, ABCPeriod)

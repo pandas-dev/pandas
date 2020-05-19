@@ -6,20 +6,26 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    Period,
     Timedelta,
     Timestamp,
     ccalendar,
     conversion,
-    delta_to_nanoseconds,
     frequencies as libfrequencies,
     offsets as liboffsets,
 )
-from pandas._libs.tslibs.offsets import (
+from pandas._libs.tslibs.offsets import (  # noqa:F401
     ApplyTypeError,
     BaseOffset,
     BusinessMixin,
     CustomMixin,
+    Day,
+    Hour,
+    Micro,
+    Milli,
+    Minute,
+    Nano,
+    Second,
+    Tick,
     apply_index_wraps,
     apply_wraps,
     as_datetime,
@@ -185,8 +191,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -295,17 +299,34 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
+
 
 class SingleConstructorMixin:
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
-
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
 
 
 class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
@@ -319,6 +340,10 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.offset)
+        return type(self), tup
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -709,6 +734,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
     _attributes = frozenset(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
+
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
 
     def __init__(
         self,
@@ -2100,116 +2131,6 @@ class Easter(SingleConstructorOffset):
 
 
 # ---------------------------------------------------------------------
-# Ticks
-
-
-class Tick(liboffsets._Tick, SingleConstructorOffset):
-    def __add__(self, other):
-        if isinstance(other, Tick):
-            if type(self) == type(other):
-                return type(self)(self.n + other.n)
-            else:
-                return delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, Period):
-            return other + self
-        try:
-            return self.apply(other)
-        except ApplyTypeError:
-            return NotImplemented
-        except OverflowError as err:
-            raise OverflowError(
-                f"the add operation between {self} and {other} will overflow"
-            ) from err
-
-    # This is identical to DateOffset.__hash__, but has to be redefined here
-    # for Python 3, because we've redefined __eq__.
-    def __hash__(self) -> int:
-        return hash(self._params)
-
-    def apply(self, other):
-        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if isinstance(other, Timestamp):
-
-            # GH 15126
-            # in order to avoid a recursive
-            # call of __add__ and __radd__ if there is
-            # an exception, when we call using the + operator,
-            # we directly call the known method
-            result = other.__add__(self)
-            if result is NotImplemented:
-                raise OverflowError
-            return result
-        elif isinstance(other, (datetime, np.datetime64, date)):
-            return Timestamp(other) + self
-
-        if isinstance(other, timedelta):
-            return other + self.delta
-        elif isinstance(other, type(self)):
-            # TODO: this is reached in tests that specifically call apply,
-            #  but should not be reached "naturally" because __add__ should
-            #  catch this case first.
-            return type(self)(self.n + other.n)
-
-        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
-
-
-def delta_to_tick(delta: timedelta) -> Tick:
-    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
-        # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
-        else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
-    else:
-        nanos = delta_to_nanoseconds(delta)
-        if nanos % 1_000_000 == 0:
-            return Milli(nanos // 1_000_000)
-        elif nanos % 1000 == 0:
-            return Micro(nanos // 1000)
-        else:  # pragma: no cover
-            return Nano(nanos)
-
-
-class Day(Tick):
-    _inc = Timedelta(days=1)
-    _prefix = "D"
-
-
-class Hour(Tick):
-    _inc = Timedelta(hours=1)
-    _prefix = "H"
-
-
-class Minute(Tick):
-    _inc = Timedelta(minutes=1)
-    _prefix = "T"
-
-
-class Second(Tick):
-    _inc = Timedelta(seconds=1)
-    _prefix = "S"
-
-
-class Milli(Tick):
-    _inc = Timedelta(milliseconds=1)
-    _prefix = "L"
-
-
-class Micro(Tick):
-    _inc = Timedelta(microseconds=1)
-    _prefix = "U"
-
-
-class Nano(Tick):
-    _inc = Timedelta(nanoseconds=1)
-    _prefix = "N"
-
 
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
@@ -2219,7 +2140,7 @@ CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
 prefix_mapping = {
-    offset._prefix: offset  # type: ignore
+    offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'

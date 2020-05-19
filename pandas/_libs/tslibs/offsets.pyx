@@ -5,6 +5,7 @@ from typing import Any
 import warnings
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
+                               PyDate_Check,
                                PyDelta_Check,
                                datetime, timedelta, date,
                                time as dt_time)
@@ -21,7 +22,7 @@ cnp.import_array()
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
-from pandas._libs.tslibs.base cimport ABCTick, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS, weekday_to_int, int_to_weekday
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
@@ -35,12 +36,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
-from pandas._libs.tslibs.timedeltas import Timedelta
-from pandas._libs.tslibs.timestamps import Timestamp
+from .timedeltas cimport delta_to_nanoseconds
 
 # ---------------------------------------------------------------------
 # Constants
-
 
 _offset_to_period_map = {
     'WEEKDAY': 'D',
@@ -91,7 +90,11 @@ for _d in DAYS:
 # Misc Helpers
 
 cdef bint is_offset_object(object obj):
-    return isinstance(obj, _BaseOffset)
+    return isinstance(obj, BaseOffset)
+
+
+cdef bint is_tick_object(object obj):
+    return isinstance(obj, Tick)
 
 
 cdef to_offset(object obj):
@@ -99,7 +102,7 @@ cdef to_offset(object obj):
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
-    if isinstance(obj, _BaseOffset):
+    if isinstance(obj, BaseOffset):
         return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
@@ -157,12 +160,15 @@ def apply_wraps(func):
     # not play nicely with cython class methods
 
     def wrapper(self, other):
+        from pandas import Timestamp
+
         if other is NaT:
             return NaT
-        elif isinstance(other, (timedelta, BaseOffset)):
+        elif isinstance(other, BaseOffset) or PyDelta_Check(other):
             # timedelta path
             return func(self, other)
-        elif isinstance(other, (datetime, date)) or is_datetime64_object(other):
+        elif is_datetime64_object(other) or PyDate_Check(other):
+            # PyDate_Check includes date, datetime
             other = Timestamp(other)
         else:
             # This will end up returning NotImplemented back in __add__
@@ -225,7 +231,6 @@ cdef _wrap_timedelta_result(result):
     """
     if PyDelta_Check(result):
         # convert Timedelta back to a Tick
-        from pandas.tseries.offsets import delta_to_tick
         return delta_to_tick(result)
 
     return result
@@ -396,7 +401,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset:
+cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -407,16 +412,17 @@ class _BaseOffset:
     _use_relativedelta = False
     _adjust_dst = True
     _deprecations = frozenset(["isAnchored", "onOffset"])
-    normalize = False  # default for prior pickles
+
+    cdef readonly:
+        int64_t n
+        bint normalize
+        dict _cache
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
-        object.__setattr__(self, "n", n)
-        object.__setattr__(self, "normalize", normalize)
-        object.__setattr__(self, "_cache", {})
-
-    def __setattr__(self, name, value):
-        raise AttributeError("DateOffset objects are immutable.")
+        self.n = n
+        self.normalize = normalize
+        self._cache = {}
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
@@ -447,6 +453,8 @@ class _BaseOffset:
         """
         # NB: non-cython subclasses override property with cache_readonly
         all_paras = self.__dict__.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'calendar']
@@ -472,6 +480,9 @@ class _BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
+        if not isinstance(self, BaseOffset):
+            # cython semantics; this is __radd__
+            return other.__add__(self)
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -483,6 +494,9 @@ class _BaseOffset:
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
+        elif not isinstance(self, BaseOffset):
+            # cython semantics, this is __rsub__
+            return (-other).__add__(self)
         else:  # pragma: no cover
             return NotImplemented
 
@@ -501,6 +515,9 @@ class _BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
+        elif not isinstance(self, BaseOffset):
+            # cython semantics, this is __rmul__
+            return other.__mul__(self)
         return NotImplemented
 
     def __neg__(self):
@@ -613,6 +630,7 @@ class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
+        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
@@ -627,6 +645,7 @@ class _BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
+        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
@@ -650,8 +669,8 @@ class _BaseOffset:
 
     # ------------------------------------------------------------------
 
-    # Staticmethod so we can call from _Tick.__init__, will be unnecessary
-    #  once BaseOffset is a cdef class and is inherited by _Tick
+    # Staticmethod so we can call from Tick.__init__, will be unnecessary
+    #  once BaseOffset is a cdef class and is inherited by Tick
     @staticmethod
     def _validate_n(n):
         """
@@ -696,9 +715,9 @@ class _BaseOffset:
             kwds = {key: odict[key] for key in odict if odict[key]}
             state.update(kwds)
 
-        if '_cache' not in state:
-            state['_cache'] = {}
-
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
         self.__dict__.update(state)
 
         if 'weekmask' in state and 'holidays' in state:
@@ -711,6 +730,8 @@ class _BaseOffset:
     def __getstate__(self):
         """Return a pickleable state"""
         state = self.__dict__.copy()
+        state["n"] = self.n
+        state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
         # as its a np.busyday; we recreate on deserialization
@@ -749,38 +770,15 @@ class _BaseOffset:
         return self.n == 1
 
 
-class BaseOffset(_BaseOffset):
-    # Here we add __rfoo__ methods that don't play well with cdef classes
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __radd__(self, other):
-        return self.__add__(other)
-
-    def __rsub__(self, other):
-        return (-self).__add__(other)
-
-
-cdef class _Tick(ABCTick):
-    """
-    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
-    can do isinstance checks on _Tick and avoid importing tseries.offsets
-    """
-
+cdef class Tick(BaseOffset):
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False
-    _inc = Timedelta(microseconds=1000)
     _prefix = "undefined"
     _attributes = frozenset(["n", "normalize"])
 
-    cdef readonly:
-        int64_t n
-        bint normalize
-        dict _cache
-
     def __init__(self, n=1, normalize=False):
-        n = _BaseOffset._validate_n(n)
+        n = self._validate_n(n)
         self.n = n
         self.normalize = False
         self._cache = {}
@@ -790,13 +788,25 @@ cdef class _Tick(ABCTick):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
+    @classmethod
+    def _from_name(cls, suffix=None):
+        # default _from_name calls cls with no args
+        if suffix:
+            raise ValueError(f"Bad freq suffix {suffix}")
+        return cls()
+
+    def _repr_attrs(self) -> str:
+        # Since cdef classes have no __dict__, we need to override
+        return ""
+
     @property
-    def delta(self) -> Timedelta:
-        return self.n * self._inc
+    def delta(self):
+        from .timedeltas import Timedelta
+        return self.n * Timedelta(self._nanos_inc)
 
     @property
     def nanos(self) -> int64_t:
-        return self.delta.value
+        return self.n * self._nanos_inc
 
     def is_on_offset(self, dt) -> bool:
         return True
@@ -834,12 +844,62 @@ cdef class _Tick(ABCTick):
         return self.delta.__gt__(other)
 
     def __truediv__(self, other):
-        if not isinstance(self, _Tick):
+        if not isinstance(self, Tick):
             # cython semantics mean the args are sometimes swapped
             result = other.delta.__rtruediv__(self)
         else:
             result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
+
+    def __add__(self, other):
+        if not isinstance(self, Tick):
+            # cython semantics; this is __radd__
+            return other.__add__(self)
+
+        if isinstance(other, Tick):
+            if type(self) == type(other):
+                return type(self)(self.n + other.n)
+            else:
+                return delta_to_tick(self.delta + other.delta)
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            # Includes pd.Period
+            return NotImplemented
+        except OverflowError as err:
+            raise OverflowError(
+                f"the add operation between {self} and {other} will overflow"
+            ) from err
+
+    def apply(self, other):
+        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
+        if isinstance(other, ABCTimestamp):
+
+            # GH#15126
+            # in order to avoid a recursive
+            # call of __add__ and __radd__ if there is
+            # an exception, when we call using the + operator,
+            # we directly call the known method
+            result = other.__add__(self)
+            if result is NotImplemented:
+                raise OverflowError
+            return result
+        elif other is NaT:
+            return NaT
+        elif is_datetime64_object(other) or PyDate_Check(other):
+            # PyDate_Check includes date, datetime
+            from pandas import Timestamp
+            return Timestamp(other) + self
+
+        if PyDelta_Check(other):
+            return other + self.delta
+        elif isinstance(other, type(self)):
+            # TODO: this is reached in tests that specifically call apply,
+            #  but should not be reached "naturally" because __add__ should
+            #  catch this case first.
+            return type(self)(self.n + other.n)
+
+        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -850,6 +910,67 @@ cdef class _Tick(ABCTick):
     def __setstate__(self, state):
         self.n = state["n"]
         self.normalize = False
+
+
+cdef class Day(Tick):
+    _nanos_inc = 24 * 3600 * 1_000_000_000
+    _prefix = "D"
+
+
+cdef class Hour(Tick):
+    _nanos_inc = 3600 * 1_000_000_000
+    _prefix = "H"
+
+
+cdef class Minute(Tick):
+    _nanos_inc = 60 * 1_000_000_000
+    _prefix = "T"
+
+
+cdef class Second(Tick):
+    _nanos_inc = 1_000_000_000
+    _prefix = "S"
+
+
+cdef class Milli(Tick):
+    _nanos_inc = 1_000_000
+    _prefix = "L"
+
+
+cdef class Micro(Tick):
+    _nanos_inc = 1000
+    _prefix = "U"
+
+
+cdef class Nano(Tick):
+    _nanos_inc = 1
+    _prefix = "N"
+
+
+def delta_to_tick(delta: timedelta) -> Tick:
+    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
+        # nanoseconds only for pd.Timedelta
+        if delta.seconds == 0:
+            return Day(delta.days)
+        else:
+            seconds = delta.days * 86400 + delta.seconds
+            if seconds % 3600 == 0:
+                return Hour(seconds / 3600)
+            elif seconds % 60 == 0:
+                return Minute(seconds / 60)
+            else:
+                return Second(seconds)
+    else:
+        nanos = delta_to_nanoseconds(delta)
+        if nanos % 1_000_000 == 0:
+            return Milli(nanos // 1_000_000)
+        elif nanos % 1000 == 0:
+            return Micro(nanos // 1000)
+        else:  # pragma: no cover
+            return Nano(nanos)
+
+
+# --------------------------------------------------------------------
 
 
 class BusinessMixin(BaseOffset):
