@@ -101,6 +101,59 @@ class MixedFrameWithSeriesAxis:
         getattr(operator, opname)(self.df, self.ser)
 
 
+class FrameWithFrameWide:
+    # Many-columns, mixed dtypes
+
+    params = [
+        [
+            # GH#32779 has discussion of which operators are included here
+            operator.add,
+            operator.floordiv,
+            operator.gt,
+        ]
+    ]
+    param_names = ["op"]
+
+    def setup(self, op):
+        # we choose dtypes so as to make the blocks
+        #  a) not perfectly match between right and left
+        #  b) appreciably bigger than single columns
+        n_cols = 2000
+        n_rows = 500
+
+        # construct dataframe with 2 blocks
+        arr1 = np.random.randn(n_rows, int(n_cols / 2)).astype("f8")
+        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("f4")
+        df = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True,
+        )
+        # should already be the case, but just to be sure
+        df._consolidate_inplace()
+
+        # TODO: GH#33198 the setting here shoudlnt need two steps
+        arr1 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
+        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("i8")
+        arr3 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
+        df2 = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2), pd.DataFrame(arr3)],
+            axis=1,
+            ignore_index=True,
+        )
+        # should already be the case, but just to be sure
+        df2._consolidate_inplace()
+
+        self.left = df
+        self.right = df2
+
+    def time_op_different_blocks(self, op):
+        # blocks (and dtypes) are not aligned
+        op(self.left, self.right)
+
+    def time_op_same_blocks(self, op):
+        # blocks (and dtypes) are aligned
+        op(self.left, self.left)
+
+
 class Ops:
 
     params = [[True, False], ["default", 1]]
