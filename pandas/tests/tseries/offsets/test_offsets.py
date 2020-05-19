@@ -655,6 +655,19 @@ class TestCommon(Base):
         #
         tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
+    def test_pickle_roundtrip(self, offset_types):
+        off = self._get_offset(offset_types)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+        if type(off) is not DateOffset:
+            for attr in off._attributes:
+                if attr == "calendar":
+                    # np.busdaycalendar __eq__ will return False;
+                    #  we check holidays and weekmask attrs so are OK
+                    continue
+                # Make sure nothings got lost from _params (which __eq__) is based on
+                assert getattr(off, attr) == getattr(res, attr)
+
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
@@ -3462,6 +3475,11 @@ class TestLastWeekOfMonth(Base):
         weekday, dt, expected = case
         offset = LastWeekOfMonth(weekday=weekday)
         assert offset.is_on_offset(dt) == expected
+
+    def test_repr(self):
+        assert (
+            repr(LastWeekOfMonth(n=2, weekday=1)) == "<2 * LastWeekOfMonths: weekday=1>"
+        )
 
 
 class TestSemiMonthEnd(Base):

@@ -455,6 +455,11 @@ cdef class BaseOffset:
         all_paras = self.__dict__.copy()
         all_paras["n"] = self.n
         all_paras["normalize"] = self.normalize
+        for key in self._attributes:
+            if key not in all_paras:
+                # cython attributes are not in __dict__
+                all_paras[key] = getattr(self, key)
+
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'calendar']
@@ -551,7 +556,8 @@ cdef class BaseOffset:
     def _repr_attrs(self) -> str:
         exclude = {"n", "inc", "normalize"}
         attrs = []
-        for attr in sorted(self.__dict__):
+        for attr in sorted(self._attributes):
+            # _attributes instead of __dict__ because cython attrs are not in __dict__
             if attr.startswith("_") or attr == "kwds":
                 continue
             elif attr not in exclude:
@@ -1113,13 +1119,17 @@ class CustomMixin:
         object.__setattr__(self, "calendar", calendar)
 
 
-class WeekOfMonthMixin(BaseOffset):
+cdef class WeekOfMonthMixin(BaseOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+
+    cdef readonly:
+        int weekday
+
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        self.weekday = weekday
 
         if weekday < 0 or weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")

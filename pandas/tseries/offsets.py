@@ -300,14 +300,54 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         return True
 
     @cache_readonly
-    def _params(self):
-        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
-        return BaseOffset._params.__get__(self)
-
-    @cache_readonly
     def freqstr(self):
         # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
         return BaseOffset.freqstr.__get__(self)
+
+    def _repr_attrs(self) -> str:
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        exclude = {"n", "inc", "normalize"}
+        attrs = []
+        for attr in sorted(self.__dict__):
+            if attr.startswith("_") or attr == "kwds":
+                continue
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append(f"{attr}={value}")
+
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+    @cache_readonly
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        all_paras = self.__dict__.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
+        for key in self.__dict__:
+            if key not in all_paras:
+                # cython attributes are not in __dict__
+                all_paras[key] = getattr(self, key)
+
+        if "holidays" in all_paras and not all_paras["holidays"]:
+            all_paras.pop("holidays")
+        exclude = ["kwds", "name", "calendar"]
+        attrs = [
+            (k, v) for k, v in all_paras.items() if (k not in exclude) and (k[0] != "_")
+        ]
+        attrs = sorted(set(attrs))
+        params = tuple([str(type(self))] + attrs)
+        return params
 
 
 class SingleConstructorMixin:
@@ -1356,6 +1396,9 @@ class WeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1414,6 +1457,9 @@ class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
         if self.n == 0:
             raise ValueError("N cannot be 0")
         object.__setattr__(self, "week", -1)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
 
     def _get_offset_day(self, other: datetime) -> int:
         """
