@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Period, Timestamp, algos, iNaT, lib
+from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo,
@@ -84,6 +85,9 @@ def _datetimelike_array_cmp(cls, op):
         elif not is_list_like(other):
             raise InvalidComparison(other)
 
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
+
         else:
             try:
                 other = self._validate_listlike(other, opname, allow_object=True)
@@ -94,6 +98,10 @@ def _datetimelike_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
+        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
+            # TODO: handle 2D-like listlikes
+            return op(self.ravel(), other.ravel()).reshape(self.shape)
+
         try:
             other = _validate_comparison_value(self, other)
         except InvalidComparison:
@@ -1091,14 +1099,14 @@ class DatetimeLikeArrayMixin(
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution(self):
-        return frequencies.Resolution.get_reso_from_freq(self.freqstr)
+        return Resolution.get_reso_from_freq(self.freqstr)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return frequencies.Resolution.get_str(self._resolution)
+        return Resolution.get_str(self._resolution)
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):
@@ -1234,6 +1242,9 @@ class DatetimeLikeArrayMixin(
         """
         # overridden by PeriodArray
 
+        if len(self) != len(other):
+            raise ValueError("cannot add indices of unequal length")
+
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
             from pandas.core.arrays import TimedeltaArray
@@ -1301,10 +1312,12 @@ class DatetimeLikeArrayMixin(
         """
         assert op in [operator.add, operator.sub]
         if len(other) == 1:
+            # If both 1D then broadcasting is unambiguous
+            # TODO(EA2D): require self.ndim == other.ndim here
             return op(self, other[0])
 
         warnings.warn(
-            "Adding/subtracting array of DateOffsets to "
+            "Adding/subtracting object-dtype array to "
             f"{type(self).__name__} not vectorized",
             PerformanceWarning,
         )
@@ -1312,7 +1325,7 @@ class DatetimeLikeArrayMixin(
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.array(other))
+        res_values = op(self.astype("O"), np.asarray(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
