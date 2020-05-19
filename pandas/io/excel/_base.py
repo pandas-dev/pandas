@@ -103,7 +103,12 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None, "xlrd", "openpyxl" or "odf".
+    Acceptable values are None, "auto", "xlrd", "openpyxl", "odf", or "pyxlsb".
+    File compatibility:
+    "xlrd" engine supports .xls, and .xlsx files.
+    "openpyxl" engine supports .xlsx, .xlsm, .xltx, and .xltm files.
+    "odf" engine supports .odf files.
+    "pyxlsb" engine supports .xlsb files.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -790,11 +795,17 @@ class ExcelFile:
     ----------
     io : str, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpypl workbook.
-        If a string or path object, expected to be a path to xls, xlsx or odf file.
+        If a string or path object, expected to be a path to a
+        .xls, .xlsx, .xlsb, .xlsm, .xltx, .xltm or .odf file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl``,  ``odf``, or ``pyxlsb``.
-        Note that ``odf`` reads tables out of OpenDocument formatted files.
+        Acceptable values are None, ``auto``, ``xlrd``, ``openpyxl``,
+        ``odf``, or ``pyxlsb``.
+        File compatibility:
+        ``xlrd`` engine supports .xls, and .xlsx files.
+        ``openpyxl`` engine supports .xlsx, .xlsm, .xltx, and .xltm files.
+        ``odf`` engine supports .odf files.
+        ``pyxlsb`` engine supports .xlsb files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -809,6 +820,13 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
+    _supported_engine_filetypes = {
+        "xlrd": ["xls", "xlsx"],
+        "openpyxl": ["xlsx", "xlsm", "xltx", "xltm"],
+        "odf": ["odf"],
+        "pyxlsb": ["xlsb"],
+    }
+
     def __init__(self, io, engine=None):
         if engine is None:
             engine = "xlrd"
@@ -820,6 +838,9 @@ class ExcelFile:
         self.io = io
         # Always a string
         self._io = stringify_path(io)
+        # Check engine-extension compatibility
+        ext = os.path.splitext(io)[-1][1:]
+        self.check_extension(engine, ext)
 
         self._reader = self._engines[engine](self._io)
 
@@ -895,6 +916,32 @@ class ExcelFile:
     @property
     def sheet_names(self):
         return self._reader.sheet_names
+
+    @classmethod
+    def check_extension(cls, engine, ext):
+        """
+        checks that the provided path's extension is supported by the reader engine.
+        If it isn't supported, raises a ValueError.
+        """
+        if ext.startswith("."):
+            ext = ext[1:]
+        if ext not in cls._supported_engine_filetypes.get(engine):
+            supporting_engines = [
+                k for k, v in cls._supported_engine_filetypes.items() if ext in v
+            ]
+            if not supporting_engines:
+                eng_info = " No engines currently support the provided file extension."
+            else:
+                eng_info = (
+                    " Use engine(s) "
+                    + ", ".join("'{0}'".format(e) for e in supporting_engines)
+                    + " instead."
+                )
+            raise ValueError(
+                f"Unsupported extension for engine '{engine}': '.{ext}'." + eng_info
+            )
+        else:
+            return True
 
     def close(self):
         """close io if necessary"""
