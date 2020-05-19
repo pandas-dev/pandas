@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import operator
+from unittest.mock import Mock
 import warnings
 
 import numpy as np
@@ -728,35 +729,25 @@ class TestDataFrameApply:
 
     def test_apply_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/30815
-        def non_reducing_func_with_state(row):
-            non_reducing_func_with_state.call_count = getattr(non_reducing_func_with_state, 'call_count', 0) + 1
-            return row * non_reducing_func_with_state.call_count
+        non_reducing_mock = Mock(side_effect=lambda x: x)
+        reducing_mock = Mock(return_value=1)
 
-        def reducing_func_with_state(_):
-            reducing_func_with_state.call_count = getattr(reducing_func_with_state, 'call_count', 0) + 1
-            return reducing_func_with_state.call_count
-
-        df = pd.DataFrame({'a': [1, 2, 3]})
+        df = pd.DataFrame({"a": [1, 2, 3]})
 
         # no reduction
-        res0 = df.apply(non_reducing_func_with_state)
-        tm.assert_frame_equal(res0, df)
+        df.apply(non_reducing_mock, axis=1)
+        assert non_reducing_mock.call_count == 3
 
         # reduction
-        res1 = df.apply(reducing_func_with_state)
-        tm.assert_series_equal(res1, Series(data=[1], index=['a']))
+        df.apply(reducing_mock, axis=1)
+        assert reducing_mock.call_count == 3
 
     def test_applymap_function_runs_once(self):
+        reducing_mock = Mock(return_value=1)
 
-        # This function will create the same values as in the DataFrame
-        def func_with_state(_):
-            func_with_state.call_count = getattr(func_with_state, 'call_count', 0) + 1
-            return func_with_state.call_count
-
-        df = pd.DataFrame({'a': [1, 2, 3]})
-        result = df.applymap(func_with_state)
-        tm.assert_frame_equal(result, df)
-
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.applymap(reducing_mock)
+        assert reducing_mock.call_count == 3
 
 
 class TestInferOutputShape:
