@@ -42,9 +42,7 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _get_ids_and_dtypes(
-    data: FrameOrSeries,
-) -> Tuple["Index", Union["Series", "Index"]]:
+def _get_ids_and_dtypes(data: FrameOrSeries,) -> Tuple["Index", "Series"]:
     """
     Get DataFrame's columns (or Series' name) and dtypes.
 
@@ -65,7 +63,7 @@ def _get_ids_and_dtypes(
         dtypes = data.dtypes
     else:
         ids = Index([data.name])
-        dtypes = Index([data.dtypes])
+        dtypes = data._constructor(data.dtypes)
     return ids, dtypes
 
 
