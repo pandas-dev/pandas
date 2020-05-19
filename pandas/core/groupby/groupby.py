@@ -1970,7 +1970,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
-        mask = (sizes < max_len).values
+        mask = (sizes < max_len)._values
 
         # set the results which don't meet the criteria
         if len(result) and mask.any():
