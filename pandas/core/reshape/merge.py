@@ -592,7 +592,7 @@ def merge_asof(
     res = _merge(
         left.reset_index(level=subsequent_levels),
         right.reset_index(level=subsequent_levels),
-        by
+        by,
     )
 
     # Send subsequent levels back to the index

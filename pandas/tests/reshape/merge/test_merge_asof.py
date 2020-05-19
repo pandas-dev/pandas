@@ -221,16 +221,14 @@ class TestAsOfMerge:
     def test_multi_index_on(self):
         def index_by_time_then_arbitrary_new_level(df):
             df = df.set_index("time")
-            df = pd.concat([df, df], keys=['f1', 'f2'], names=['f', 'time'])
+            df = pd.concat([df, df], keys=["f1", "f2"], names=["f", "time"])
             return df.reorder_levels([1, 0]).sort_index()
 
         trades = index_by_time_then_arbitrary_new_level(self.trades)
         quotes = index_by_time_then_arbitrary_new_level(self.quotes)
         expected = index_by_time_then_arbitrary_new_level(self.asof)
 
-        result = merge_asof(
-            trades, quotes, on="time", by=["ticker"],
-        )
+        result = merge_asof(trades, quotes, on="time", by=["ticker"])
         tm.assert_frame_equal(result, expected)
 
     def test_on_and_index(self):
