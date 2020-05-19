@@ -579,6 +579,7 @@ Methods
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
+    WeekOfMonth.weekday
 
 LastWeekOfMonth
 ---------------
@@ -599,6 +600,7 @@ Properties
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
+    LastWeekOfMonth.weekday
 
 Methods
 ~~~~~~~
