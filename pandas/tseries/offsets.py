@@ -1565,61 +1565,7 @@ class QuarterBegin(QuarterOffset):
 # Year-Based Offset Classes
 
 
-class YearOffset(SingleConstructorOffset):
-    """
-    DateOffset that just needs a month.
-    """
-
-    _attributes = frozenset(["n", "normalize", "month"])
-
-    def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self.month instead of other.month
-        # TODO: there may be a more performant way to do this
-        return liboffsets.get_day_of_month(
-            other.replace(month=self.month), self._day_opt
-        )
-
-    @apply_wraps
-    def apply(self, other):
-        years = roll_yearday(other, self.n, self.month, self._day_opt)
-        months = years * 12 + (self.month - other.month)
-        return shift_month(other, months, self._day_opt)
-
-    @apply_index_wraps
-    def apply_index(self, dtindex):
-        shifted = liboffsets.shift_quarters(
-            dtindex.asi8, self.n, self.month, self._day_opt, modby=12
-        )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
-
-    def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
-            return False
-        return dt.month == self.month and dt.day == self._get_offset_day(dt)
-
-    def __init__(self, n=1, normalize=False, month=None):
-        BaseOffset.__init__(self, n, normalize)
-
-        month = month if month is not None else self._default_month
-        object.__setattr__(self, "month", month)
-
-        if self.month < 1 or self.month > 12:
-            raise ValueError("Month must go from 1 to 12")
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        kwargs = {}
-        if suffix:
-            kwargs["month"] = ccalendar.MONTH_TO_CAL_NUM[suffix]
-        return cls(**kwargs)
-
-    @property
-    def rule_code(self) -> str:
-        month = ccalendar.MONTH_ALIASES[self.month]
-        return f"{self._prefix}-{month}"
-
-
-class BYearEnd(YearOffset):
+class BYearEnd(liboffsets.YearOffset):
     """
     DateOffset increments between business EOM dates.
     """
@@ -1630,7 +1576,7 @@ class BYearEnd(YearOffset):
     _day_opt = "business_end"
 
 
-class BYearBegin(YearOffset):
+class BYearBegin(liboffsets.YearOffset):
     """
     DateOffset increments between business year begin dates.
     """
@@ -1641,7 +1587,7 @@ class BYearBegin(YearOffset):
     _day_opt = "business_start"
 
 
-class YearEnd(YearOffset):
+class YearEnd(liboffsets.YearOffset):
     """
     DateOffset increments between calendar year ends.
     """
@@ -1651,7 +1597,7 @@ class YearEnd(YearOffset):
     _day_opt = "end"
 
 
-class YearBegin(YearOffset):
+class YearBegin(liboffsets.YearOffset):
     """
     DateOffset increments between calendar year begin dates.
     """
