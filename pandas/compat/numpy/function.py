@@ -209,7 +209,7 @@ validate_any = CompatValidator(
 LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(out=None, keepdims=False)
+MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
