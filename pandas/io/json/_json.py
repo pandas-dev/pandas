@@ -673,7 +673,7 @@ class JsonReader(abc.Iterator):
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
         if self.nrows is not None:
-            self.chunksize = _validate_integer("nrows", self.nrows, 0)
+            self.nrows = _validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
 
