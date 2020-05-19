@@ -2065,16 +2065,16 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
 
 def _items_overlap_with_suffix(left: Index, right: Index, suffixes):
     """
-    Suffixes type validatoin.
+    Suffixes type validation.
 
     If two indices overlap, add suffixes to overlapping entries.
 
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not isinstance(suffixes, (tuple, list)):
+    if not isinstance(suffixes, tuple):
         raise TypeError(
-            f"suffixes should be of type list/tuple. But got {type(suffixes)}"
+            f"suffixes should be tuple of (str, str). But got {type(suffixes)}"
         )
 
     to_rename = left.intersection(right)

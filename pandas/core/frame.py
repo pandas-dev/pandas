@@ -226,7 +226,7 @@ right_index : bool, default False
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-suffixes : list/tuple of (str, str), default ('_x', '_y')
+suffixes : tuple of (str, str), default ('_x', '_y')
     Suffix to apply to overlapping column names in the left and right
     side, respectively. To raise an exception on overlapping columns use
     (False, False).
