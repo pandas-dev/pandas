@@ -75,7 +75,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         expected_layout = (1, expected_axes_num)
         expected_labels = label or column or [["a"], ["b"]]
 
-        index = Index(15 * [1] + 15 * [2], name="c")
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
         g = df.groupby("c")
 
@@ -99,10 +99,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_groupby_hist_series_with_legend(self, label, expected_label):
         # GH 6279
         # Histogram can have a legend
-        index = Index(15 * [1] + 15 * [2], name="c")
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
-        # older version of matplotlib fails if labels are not strings
-        df = df.astype(str)
         g = df.groupby("c")
 
         kwargs = {"legend": True}

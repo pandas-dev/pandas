@@ -138,7 +138,7 @@ class TestSeriesPlots(TestPlotBase):
     ):
         # GH 6279
         # Histogram can have a legend
-        index = 15 * [1] + 15 * [2]
+        index = 15 * ["1"] + 15 * ["2"]
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
@@ -327,7 +327,7 @@ class TestDataFramePlots(TestPlotBase):
         if by is not None:
             expected_labels = [expected_labels] * 2
 
-        index = Index(15 * [1] + 15 * [2], name="c")
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
         kwargs = {"legend": True, "by": by, "column": column}
