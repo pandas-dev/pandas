@@ -191,20 +191,6 @@ def read_sql_table(
     ...
 
 
-@overload
-def read_sql_table(
-    table_name,
-    con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: Optional[int] = None,
-) -> Union[DataFrame, Iterator[DataFrame]]:
-    ...
-
-
 def read_sql_table(
     table_name,
     con,
@@ -326,19 +312,6 @@ def read_sql_query(
     ...
 
 
-@overload
-def read_sql_query(
-    sql,
-    con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: Optional[int] = None,
-) -> Union[DataFrame, Iterator[DataFrame]]:
-    ...
-
-
 def read_sql_query(
     sql,
     con,
@@ -438,20 +411,6 @@ def read_sql(
     columns=None,
     chunksize: int = 1,
 ) -> Iterator[DataFrame]:
-    ...
-
-
-@overload
-def read_sql(
-    sql,
-    con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: Optional[int] = None,
-) -> Union[DataFrame, Iterator[DataFrame]]:
     ...
 
 
@@ -572,7 +531,7 @@ def to_sql(
     chunksize=None,
     dtype=None,
     method=None,
-):
+) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
 
