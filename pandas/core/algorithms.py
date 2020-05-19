@@ -428,12 +428,13 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # TODO(extension)
         # handle categoricals
         return comps.isin(values)  # type: ignore
-    try:
+
+    if hasattr(comps, "dtype") and hasattr(comps.dtype, "name"):
         if comps.dtype.name == "int64":
             comps, dtype = _ensure_data(comps, dtype=object)
         else:
             comps, dtype = _ensure_data(comps)
-    except:
+    else:
         comps, dtype = _ensure_data(comps)
 
     values, _ = _ensure_data(values, dtype=dtype)
