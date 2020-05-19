@@ -973,13 +973,17 @@ def delta_to_tick(delta: timedelta) -> Tick:
 # --------------------------------------------------------------------
 
 
-class BusinessMixin(BaseOffset):
+cdef class BusinessMixin(BaseOffset):
     """
     Mixin to business types to provide related functions.
     """
+
+    cdef readonly:
+        timedelta _offset
+
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
+        self._offset = offset
 
     @property
     def offset(self):
