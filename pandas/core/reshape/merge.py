@@ -2063,7 +2063,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, right: Index, suffixes):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
     """
     Suffixes type validation.
 
