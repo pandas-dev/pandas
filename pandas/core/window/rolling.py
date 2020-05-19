@@ -148,12 +148,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self):
+    def _create_blocks(self, obj):
         """
         Split data into blocks & return conformed data.
         """
-        obj = self._selected_obj
-
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
@@ -249,7 +247,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        blocks, obj = self._create_blocks()
+        blocks, obj = self._create_blocks(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
@@ -456,7 +454,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         win_type = self._get_win_type(kwargs)
         window = self._get_window(win_type=win_type)
 
-        blocks, obj = self._create_blocks()
+        blocks, obj = self._create_blocks(self._selected_obj)
         block_list = list(blocks)
         window_indexer = self._get_window_indexer(window)
 
@@ -1190,7 +1188,7 @@ class _Rolling_and_Expanding(_Rolling):
         # implementations shouldn't end up here
         assert not isinstance(self.window, BaseIndexer)
 
-        blocks, obj = self._create_blocks()
+        blocks, obj = self._create_blocks(self._selected_obj)
         results = []
         for b in blocks:
             result = b.notna().astype(int)
@@ -2150,23 +2148,14 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self):
+    def _create_blocks(self, obj):
         """
         Split data into blocks & return conformed data.
         """
         # Ensure the object we're rolling over is monotonically sorted relative
         # to the groups
-        obj = self._selected_obj.take(
-            np.concatenate(list(self._groupby.grouper.indices.values()))
-        )
-
-        # filter out the on from the object
-        if self.on is not None and not isinstance(self.on, Index):
-            if obj.ndim == 2:
-                obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-        blocks = obj._to_dict_of_blocks(copy=False).values()
-
-        return blocks, obj
+        obj = obj.take(np.concatenate(list(self._groupby.grouper.indices.values())))
+        return super()._create_blocks(obj)
 
     def _get_cython_func_type(self, func: str) -> Callable:
         """
