@@ -475,7 +475,7 @@ class BlockManager(PandasObject):
                     b.mgr_locs = sb.mgr_locs
 
             else:
-                new_axes[axis] = Index(np.concatenate([ax.values for ax in axes]))
+                new_axes[axis] = Index(np.concatenate([ax._values for ax in axes]))
 
             if transposed:
                 new_axes = new_axes[::-1]
