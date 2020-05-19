@@ -754,7 +754,9 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, ValueError):
+            # TODO: ValueError: Given date string not likely a datetime.
+            # should be KeyError?
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
