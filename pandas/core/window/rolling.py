@@ -2170,6 +2170,15 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
+
+        Parameters
+        ----------
+        window : int
+            window size for FixedWindowIndexer
+
+        Returns
+        -------
+        GroupbyRollingIndexer
         """
         rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]]
         if self.is_freq_type:
