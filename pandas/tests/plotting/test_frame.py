@@ -203,23 +203,18 @@ class TestDataFramePlots(TestPlotBase):
         # if there is a color symbol in the style strings:
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
+            # k for black, r for red
 
-    def test_color_and_marker(self):
-        # GH21003 - code sample from 2018-05-10 is equivalent to this test
+    @pytest.mark.parametrize(
+        "color", ['green', ['yellow', 'red', 'green', 'blue']])
+    def test_color_and_marker(self, color):
+        # GH 21003
         df = DataFrame(np.random.random((7, 4)))
-        ax = df.plot(color="green", style="d")  # d for diamond
-        for line in ax.lines:
-            assert line.get_color() == "green"
-            assert line.get_marker() == "d"
-
-    def test_color_list_and_marker(self):
-        # GH21003 - code sample from 2020-04-23 is equivalent to this test
-        df = DataFrame(np.random.random((7, 4)))
-        color_list = ["yellow", "red", "green", "blue"]
-        ax = df.plot(color=color_list, style="d")  # d for diamond
-        assert [line.get_color() for line in ax.lines] == color_list
-        for line in ax.lines:
-            assert line.get_marker() == "d"
+        ax = df.plot(color=color, style="d--")  # d for diamond
+        green_line = ax.lines[2]
+        assert green_line.get_color() == 'green'
+        assert green_line.get_marker() == 'd'
+        assert green_line.get_linestyle() == '--'
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
