@@ -543,24 +543,60 @@ def merge_asof(
     3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
     """
-    op = _AsOfMerge(
-        left,
-        right,
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        by=by,
-        left_by=left_by,
-        right_by=right_by,
-        suffixes=suffixes,
-        how="asof",
-        tolerance=tolerance,
-        allow_exact_matches=allow_exact_matches,
-        direction=direction,
+
+    def _merge(x, y, by):
+        op = _AsOfMerge(
+            x,
+            y,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            by=by,
+            left_by=left_by,
+            right_by=right_by,
+            suffixes=suffixes,
+            how="asof",
+            tolerance=tolerance,
+            allow_exact_matches=allow_exact_matches,
+            direction=direction,
+        )
+        return op.get_result()
+
+    if not isinstance(left.index, MultiIndex):
+        return _merge(left, right, by)
+
+    # Check multi-index merge possible
+    if left_on or right_on:
+        raise ValueError("left_on and right_on not supported for MultiIndex")
+    if left_index or right_index:
+        raise ValueError("left_index and right_index not supported for MultiIndex")
+    if left.index.names != right.index.names:
+        raise ValueError("Left and right frames must share index")
+    first_level, *subsequent_levels = left.index.names
+
+    if on is None:
+        on = first_level
+    if on is not first_level:
+        raise ValueError("Can only merge_asof MultiIndexed frames by first level")
+
+    # Group by subsequent levels then "by" columns
+    if by is None:
+        by = subsequent_levels
+    elif isinstance(by, list):
+        by = subsequent_levels + by
+    else:
+        by = subsequent_levels + [by]
+
+    res = _merge(
+        left.reset_index(level=subsequent_levels),
+        right.reset_index(level=subsequent_levels),
+        by
     )
-    return op.get_result()
+
+    # Send subsequent levels back to the index
+    return res.set_index([on] + subsequent_levels)
 
 
 # TODO: transformations??
