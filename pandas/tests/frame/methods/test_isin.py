@@ -189,3 +189,17 @@ class TestDataFrameIsIn:
         tm.assert_frame_equal(result, expected)
         result = df1_td.isin(df3)
         tm.assert_frame_equal(result, expected)
+    
+    def test_isin_int_df_string_search(self):
+        #Comparing df with int`s with a string at isin() -> should not match values
+        df = pd.DataFrame({"values": [1,2]})
+        result = df.isin(["1"])
+        expected_false = pd.DataFrame({"values": [False, False]})
+        tm.assert_frame_equal(result, expected_false)
+
+        #Comparing df with int`s with a int at isin() -> should find the value
+        result = df.isin([1])
+        expected_true = pd.DataFrame({"values": [True, False]})
+        tm.assert_frame_equal(result, expected_true)
+
+

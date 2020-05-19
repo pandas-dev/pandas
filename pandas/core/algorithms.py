@@ -428,8 +428,14 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # TODO(extension)
         # handle categoricals
         return comps.isin(values)  # type: ignore
+    try:
+        if comps.dtype.name == 'int64':
+            comps, dtype = _ensure_data(comps, dtype=object)
+        else:
+            comps, dtype = _ensure_data(comps)
+    except:
+        comps, dtype = _ensure_data(comps)
 
-    comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d
@@ -2084,3 +2090,4 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
