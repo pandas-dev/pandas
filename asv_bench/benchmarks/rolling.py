@@ -193,12 +193,20 @@ class Groupby:
     def setup(self, method):
         N = 1000
         df = pd.DataFrame(
-            {"A": [str(i) for i in range(N)] * 10, "B": list(range(N)) * 10}
+            {
+                "A": [str(i) for i in range(N)] * 10,
+                "B": list(range(N)) * 10,
+                "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
+            }
         )
-        self.groupby_roll = df.groupby("A").rolling(window=2)
+        self.groupby_roll_int = df.groupby("A").rolling(window=2)
+        self.groupby_roll_offset = df.groupby("A").rolling(window="30s", on="C")
 
-    def time_method(self, method):
-        getattr(self.groupby_roll, method)()
+    def time_rolling_int(self, method):
+        getattr(self.groupby_roll_int, method)()
+
+    def time_rolling_offset(self, method):
+        getattr(self.groupby_roll_offset, method)()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
