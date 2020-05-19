@@ -4983,7 +4983,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 else:
                     raise ValueError("Invalid weights: weights sum to zero")
 
-            weights = weights.values
+            weights = weights._values
 
         # If no frac or n, default to n=1.
         if n is None and frac is None:
