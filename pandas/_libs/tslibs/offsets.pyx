@@ -24,7 +24,9 @@ from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
-from pandas._libs.tslibs.ccalendar import MONTHS, DAYS, weekday_to_int, int_to_weekday
+from pandas._libs.tslibs.ccalendar import (
+    MONTHS, DAYS, MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
@@ -455,6 +457,11 @@ cdef class BaseOffset:
         all_paras = self.__dict__.copy()
         all_paras["n"] = self.n
         all_paras["normalize"] = self.normalize
+        for attr in self._attributes:
+            if hasattr(self, attr) and attr not in self.__dict__:
+                # cython attributes are not in __dict__
+                all_paras[attr] = getattr(self, attr)
+
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'calendar']
@@ -551,8 +558,9 @@ cdef class BaseOffset:
     def _repr_attrs(self) -> str:
         exclude = {"n", "inc", "normalize"}
         attrs = []
-        for attr in sorted(self.__dict__):
-            if attr.startswith("_") or attr == "kwds":
+        for attr in sorted(self._attributes):
+            if attr.startswith("_") or attr == "kwds" or not hasattr(self, attr):
+                # DateOffset may not have some of these attributes
                 continue
             elif attr not in exclude:
                 value = getattr(self, attr)
@@ -1267,6 +1275,69 @@ class WeekOfMonthMixin(BaseOffset):
             # LastWeekOfMonth
             return f"{self._prefix}-{weekday}"
         return f"{self._prefix}-{self.week + 1}{weekday}"
+
+
+# ----------------------------------------------------------------------
+
+cdef class YearOffset(BaseOffset):
+    """
+    DateOffset that just needs a month.
+    """
+    _attributes = frozenset(["n", "normalize", "month"])
+
+    # _default_month: int  # FIXME: python annotation here breaks things
+
+    cdef readonly:
+        int month
+
+    def __init__(self, n=1, normalize=False, month=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        month = month if month is not None else self._default_month
+        self.month = month
+
+        if month < 1 or month > 12:
+            raise ValueError("Month must go from 1 to 12")
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.month)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["month"] = MONTH_TO_CAL_NUM[suffix]
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.month]
+        return f"{self._prefix}-{month}"
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.month == self.month and dt.day == self._get_offset_day(dt)
+
+    def _get_offset_day(self, other) -> int:
+        # override BaseOffset method to use self.month instead of other.month
+        # TODO: there may be a more performant way to do this
+        return get_day_of_month(
+            other.replace(month=self.month), self._day_opt
+        )
+
+    @apply_wraps
+    def apply(self, other):
+        years = roll_yearday(other, self.n, self.month, self._day_opt)
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_quarters(
+            dtindex.asi8, self.n, self.month, self._day_opt, modby=12
+        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
 # ----------------------------------------------------------------------
