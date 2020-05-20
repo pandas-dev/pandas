@@ -1015,7 +1015,7 @@ Methods
 
     FY5253Quarter.apply
     FY5253Quarter.copy
-    FY5253.get_rule_code_suffix
+    FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
     FY5253Quarter.isAnchored
     FY5253Quarter.onOffset
