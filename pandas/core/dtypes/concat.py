@@ -40,14 +40,14 @@ def get_dtype_kinds(l):
         dtype = arr.dtype
         if is_categorical_dtype(dtype):
             typ = "category"
-        elif is_sparse(arr):
+        elif is_sparse(dtype):
             typ = "sparse"
         elif isinstance(arr, ABCRangeIndex):
             typ = "range"
-        elif is_datetime64tz_dtype(arr):
+        elif is_datetime64tz_dtype(dtype):
             # if to_concat contains different tz,
             # the result must be object dtype
-            typ = str(arr.dtype)
+            typ = str(dtype)
         elif is_datetime64_dtype(dtype):
             typ = "datetime"
         elif is_timedelta64_dtype(dtype):
@@ -57,7 +57,7 @@ def get_dtype_kinds(l):
         elif is_bool_dtype(dtype):
             typ = "bool"
         elif is_extension_array_dtype(dtype):
-            typ = str(arr.dtype)
+            typ = str(dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -357,7 +357,7 @@ def _concatenate_2d(to_concat, axis: int):
 def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
+    single M8[ns], datetime64[ns, tz] or m8[ns] dtype
 
     Parameters
     ----------

@@ -105,7 +105,7 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         # write_to_dataset does not support a file-like object when
-        # a dircetory path is used, so just pass the path string.
+        # a directory path is used, so just pass the path string.
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
                 table,
@@ -190,7 +190,7 @@ class FastParquetImpl(BaseImpl):
 
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
-            # pass the S3File().open function to fsatparquet impl.
+            # pass the S3File().open function to fastparquet impl.
             s3, filesystem = get_file_and_filesystem(path)
             try:
                 parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
