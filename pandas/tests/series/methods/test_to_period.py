@@ -1,6 +1,4 @@
 import numpy as np
-import pytest
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -10,6 +8,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+import pytest
 
 
 class TestToPeriod:
@@ -47,6 +46,9 @@ class TestToPeriod:
         expected.columns = exp_idx
         tm.assert_frame_equal(df.to_period(axis=1), expected)
 
+    def test_to_period_raises(self, indices):
         # invalid type , #34067 test
-        with pytest.raises(TypeError):
-            Series([0]).to_period()
+        idx = indices
+        msg = "unsupported Type RangeIndex"
+        with pytest.raises(TypeError, match=msg):
+            Series([idx]).to_period()

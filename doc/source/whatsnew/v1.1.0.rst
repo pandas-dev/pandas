@@ -339,6 +339,10 @@ Backwards incompatible API changes
 - Combining a ``Categorical`` with integer categories and which contains missing values
   with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
   will now result in a float column instead of an object dtyped column (:issue:`33607`)
+- :meth:`Series.to_timestamp` now raises a  ``TypeError`` if the axis is not a :class:`PeriodIndex`.
+  Previously an ``AttributeError`` was raised (:issue:`33327`)
+- :meth:`Series.to_period` now raises a  ``TypeError`` if the axis is not a :class:`DatetimeIndex`. 
+  Previously an ``AttributeError`` was raised (:issue:`33327`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
