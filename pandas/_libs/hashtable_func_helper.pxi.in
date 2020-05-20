@@ -125,7 +125,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 {{if dtype == 'object'}}
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
+def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0

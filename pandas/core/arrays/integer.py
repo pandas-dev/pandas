@@ -1,15 +1,15 @@
 import numbers
-from typing import TYPE_CHECKING, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -33,13 +33,13 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
-class _IntegerDtype(ExtensionDtype):
+class _IntegerDtype(BaseMaskedDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -52,7 +52,6 @@ class _IntegerDtype(ExtensionDtype):
     name: str
     base = None
     type: Type
-    na_value = libmissing.NA
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -94,6 +93,17 @@ class _IntegerDtype(ExtensionDtype):
         type
         """
         return IntegerArray
+
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # for now only handle other integer types
+        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+            return None
+        np_dtype = np.find_common_type(
+            [t.numpy_dtype for t in dtypes], []  # type: ignore
+        )
+        if np.issubdtype(np_dtype, np.integer):
+            return _dtypes[str(np_dtype)]
+        return None
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
@@ -360,10 +370,6 @@ class IntegerArray(BaseMaskedArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype, copy)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> "IntegerArray":
-        return integer_array(values, dtype=original.dtype)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
@@ -473,11 +479,6 @@ class IntegerArray(BaseMaskedArray):
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
-        # TODO: https://github.com/pandas-dev/pandas/issues/30037
-        # use masked algorithms, rather than object-dtype / np.nan.
-        return self.to_numpy(na_value=np.nan), np.nan
-
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -571,6 +572,13 @@ class IntegerArray(BaseMaskedArray):
         if np.isnan(result):
             return libmissing.NA
 
+        return result
+
+    def sum(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_sum((), kwargs)
+        result = masked_reductions.sum(
+            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
+        )
         return result
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):

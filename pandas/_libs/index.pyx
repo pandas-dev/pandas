@@ -19,16 +19,15 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
-from pandas._libs.tslibs import Period
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp, ABCTimedelta
+from pandas._libs.tslibs.period cimport is_period_object
 
 from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 
@@ -379,7 +378,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
-        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
+        if not (isinstance(scalar, ABCTimestamp) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
@@ -441,6 +440,10 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
+    def get_indexer_non_unique(self, targets):
+        # we may get datetime64[ns] or timedelta64[ns], cast these to int64
+        return super().get_indexer_non_unique(targets.view("i8"))
+
     def get_indexer(self, values):
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():
@@ -467,7 +470,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
         return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
-        if not (isinstance(scalar, Timedelta) or scalar is NaT):
+        if not (isinstance(scalar, ABCTimedelta) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
@@ -477,7 +480,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, Period):
+        if is_period_object(scalar):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)
@@ -500,38 +503,6 @@ cdef class PeriodEngine(Int64Engine):
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
-
-    def get_indexer(self, values):
-        cdef:
-            ndarray[int64_t, ndim=1] ordinals
-
-        super(PeriodEngine, self)._ensure_mapping_populated()
-
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinals = periodlib.extract_ordinals(values, freq)
-
-        return self.mapping.lookup(ordinals)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(other, freq)
-
-        return algos.pad(self._get_index_values(),
-                         np.asarray(ordinal), limit=limit)
-
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(other, freq)
-
-        return algos.backfill(self._get_index_values(),
-                              np.asarray(ordinal), limit=limit)
-
-    def get_indexer_non_unique(self, targets):
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(targets, freq)
-        ordinal_array = np.asarray(ordinal)
-
-        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
 
 
 cdef class BaseMultiIndexCodesEngine:

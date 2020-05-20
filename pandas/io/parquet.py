@@ -92,14 +92,20 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
+        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        # write_to_dataset does not support a file-like object when
+        # a directory path is used, so just pass the path string.
         if partition_cols is not None:
+            if is_fsspec_url(path) and 'filesystem' not in kwargs:
+                import fsspec.core
+                fs, path = fsspec.core.url_to_fs(path)
+                kwargs['filesystem'] = fs
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -108,18 +114,26 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
+            self.api.parquet.write_table(
+                table, file_obj_or_path, compression=compression, **kwargs
+            )
+        if should_close:
+            file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, should_close = get_filepath_or_buffer(path)
+        if is_fsspec_url(path) and 'filesystem' not in kwargs:
+            import fsspec.core
+            fs, path = fsspec.core.url_to_fs(path)
+            parquet_ds = self.api.parquet.ParquetDataset(
+                path, filesystem=fs, **kwargs
+            )
+        else:
+            parquet_ds = self.api.parquet.ParquetDataset(
+                path,  **kwargs
+            )
 
-        kwargs["use_pandas_metadata"] = True
-        result = self.api.parquet.read_table(
-            path, columns=columns, **kwargs
-        ).to_pandas()
-        if should_close:
-            path.close()
-
+        kwargs["columns"] = columns
+        result = parquet_ds.read_pandas(**kwargs).to_pandas()
         return result
 
 
@@ -161,8 +175,6 @@ class FastParquetImpl(BaseImpl):
             import fsspec
 
             # if path is s3:// or gs:// we need to open the file in 'wb' mode.
-            # TODO: Support 'ab'
-
             kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
@@ -178,8 +190,17 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, _ = get_filepath_or_buffer(path)
-        parquet_file = self.api.ParquetFile(path)
+        if is_fsspec_url(path):
+            import fsspec
+
+            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
+            # TODO: Support 'ab'
+
+            open_with = lambda path, _: fsspec.open(path, "rb").open()
+            parquet_file = self.api.ParquetFile(path, open_with=open_with)
+        else:
+            path, _, _, _ = get_filepath_or_buffer(path)
+            parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
@@ -259,7 +280,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables``
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
