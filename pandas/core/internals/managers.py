@@ -47,6 +47,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
+from pandas.core.internals.ops import operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -351,6 +352,12 @@ class BlockManager(PandasObject):
             res.update(nr)
 
         return res
+
+    def double_apply(self, other: "BlockManager", array_op) -> "BlockManager":
+        """
+        Apply array_op blockwise with another (aligned) BlockManager.
+        """
+        return operate_blockwise(self, other, array_op)
 
     def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
