@@ -5,7 +5,7 @@ import pandas._testing as tm
 
 
 class TestMultiIndexInsertion:
-    def test_mixed_depth_insert(self):
+    def test_setitem_mixed_depth(self):
         arrays = [
             ["a", "top", "top", "routine1", "routine1", "routine2"],
             ["", "OD", "OD", "result1", "result2", "result1"],

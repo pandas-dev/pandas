@@ -19,6 +19,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -30,29 +31,6 @@ from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
-
-
-def try_cast_to_ea(cls_or_instance, obj, dtype=None):
-    """
-    Call to `_from_sequence` that returns the object unchanged on Exception.
-
-    Parameters
-    ----------
-    cls_or_instance : ExtensionArray subclass or instance
-    obj : arraylike
-        Values to pass to cls._from_sequence
-    dtype : ExtensionDtype, optional
-
-    Returns
-    -------
-    ExtensionArray or obj
-    """
-    try:
-        result = cls_or_instance._from_sequence(obj, dtype=dtype)
-    except Exception:
-        # We can't predict what downstream EA constructors may raise
-        result = obj
-    return result
 
 
 class ExtensionArray:
@@ -80,6 +58,7 @@ class ExtensionArray:
     dropna
     factorize
     fillna
+    equals
     isna
     ravel
     repeat
@@ -106,6 +85,7 @@ class ExtensionArray:
     * _from_factorized
     * __getitem__
     * __len__
+    * __eq__
     * dtype
     * nbytes
     * isna
@@ -354,6 +334,24 @@ class ExtensionArray:
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
+
+    def __eq__(self, other: Any) -> ArrayLike:
+        """
+        Return for `self == other` (element-wise equality).
+        """
+        # Implementer note: this should return a boolean numpy ndarray or
+        # a boolean ExtensionArray.
+        # When `other` is one of Series, Index, or DataFrame, this method should
+        # return NotImplemented (to ensure that those objects are responsible for
+        # first unpacking the arrays, and then dispatch the operation to the
+        # underlying arrays)
+        raise AbstractMethodError(self)
+
+    def __ne__(self, other: Any) -> ArrayLike:
+        """
+        Return for `self != other` (element-wise in-equality).
+        """
+        return ~(self == other)
 
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value=lib.no_default
@@ -704,6 +702,38 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
+    def equals(self, other: "ExtensionArray") -> bool:
+        """
+        Return if another array is equivalent to this array.
+
+        Equivalent means that both arrays have the same shape and dtype, and
+        all values compare equal. Missing values in the same location are
+        considered equal (in contrast with normal equality).
+
+        Parameters
+        ----------
+        other : ExtensionArray
+            Array to compare to this Array.
+
+        Returns
+        -------
+        boolean
+            Whether the arrays are equivalent.
+        """
+        if not type(self) == type(other):
+            return False
+        elif not self.dtype == other.dtype:
+            return False
+        elif not len(self) == len(other):
+            return False
+        else:
+            equal_values = self == other
+            if isinstance(equal_values, ExtensionArray):
+                # boolean array with NA -> fill with False
+                equal_values = equal_values.fillna(False)
+            equal_na = self.isna() & other.isna()
+            return (equal_values | equal_na).all().item()
+
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
@@ -718,7 +748,7 @@ class ExtensionArray:
         na_value : object
             The value in `values` to consider missing. This will be treated
             as NA in the factorization routines, so it will be coded as
-            `na_sentinal` and not included in `uniques`. By default,
+            `na_sentinel` and not included in `uniques`. By default,
             ``np.nan`` is used.
 
         Notes
@@ -1026,7 +1056,7 @@ class ExtensionArray:
         cls, to_concat: Sequence["ExtensionArray"]
     ) -> "ExtensionArray":
         """
-        Concatenate multiple array.
+        Concatenate multiple array of this dtype.
 
         Parameters
         ----------
@@ -1036,6 +1066,11 @@ class ExtensionArray:
         -------
         ExtensionArray
         """
+        # Implementer note: this method will only be called with a sequence of
+        # ExtensionArrays of this class and with the same dtype as self. This
+        # should allow "easy" concatenation (no upcasting needed), and result
+        # in a new ExtensionArray of the same dtype.
+        # Note: this strict behaviour is only guaranteed starting with pandas 1.1
         raise AbstractMethodError(cls)
 
     # The _can_hold_na attribute is set to True so that pandas internals
@@ -1151,7 +1186,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True):
+    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the
@@ -1183,7 +1218,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
-        >>> __add__ = cls._create_method(operator.add)
+            __add__ = cls._create_method(operator.add)
 
         in the class definition of MyExtensionArray to create the operator
         for addition, that will be based on the operator implementation
@@ -1214,12 +1249,12 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = try_cast_to_ea(self, arr)
+                    res = maybe_cast_to_extension_array(type(self), arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
                 else:
-                    res = np.asarray(arr)
+                    res = np.asarray(arr, dtype=result_dtype)
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
@@ -1228,7 +1263,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             return _maybe_convert(res)
 
-        op_name = ops._get_op_name(op, True)
+        op_name = f"__{op.__name__}__"
         return set_function_name(_binop, op_name, cls)
 
     @classmethod
@@ -1237,4 +1272,4 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        return cls._create_method(op, coerce_to_dtype=False)
+        return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)

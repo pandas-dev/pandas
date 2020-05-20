@@ -635,12 +635,13 @@ class BaseExprVisitor(ast.NodeVisitor):
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
+                raise
 
-        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
+        raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
-        if isinstance(node.func, ast.Attribute):
+        if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")

@@ -5,13 +5,14 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
-from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
+from pandas._libs.tslibs import fields, parsing, resolution as libresolution, timezones
+from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -26,9 +27,9 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
-import pandas.core.tools.datetimes as tools
+from pandas.core.tools.times import to_time
 
-from pandas.tseries.frequencies import Resolution, to_offset
+from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import prefix_mapping
 
 
@@ -89,6 +90,7 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
+        "isocalendar",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
@@ -213,7 +215,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _attributes = ["name", "tz", "freq"]
 
     _is_numeric_dtype = False
-    _infer_as_myclass = True
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
@@ -224,7 +225,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=None,
+        freq=lib.no_default,
         tz=None,
         normalize=False,
         closed=None,
@@ -287,7 +288,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import _is_dates_only
 
-        return _is_dates_only(self.values) and self.tz is None
+        return self.tz is None and _is_dates_only(self._values)
 
     def __reduce__(self):
 
@@ -323,7 +324,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return libts.ints_to_pydatetime(self.asi8, self.tz)
+        return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -439,7 +440,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self.values.copy()
+            values = self._values.view("M8[ns]").copy()
 
         return Series(values, index=index, name=name)
 
@@ -454,7 +455,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=_NS_DTYPE)
+        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
 
         for i, v in enumerate(self):
             s = v
@@ -500,7 +501,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if reso not in valid_resos:
             raise KeyError
 
-        grp = Resolution.get_freq_group(reso)
+        grp = get_freq_group(reso)
         per = Period(parsed, freq=(grp, 1))
         start, end = per.start_time, per.end_time
 
@@ -525,7 +526,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             self.is_monotonic
             and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= Resolution.get_reso(reso)
+            and self._resolution >= libresolution.Resolution.get_reso(reso)
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
@@ -537,11 +538,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
             raise KeyError
-
-    def _maybe_promote(self, other):
-        if other.inferred_type == "date":
-            other = DatetimeIndex(other)
-        return self, other
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -720,7 +716,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Return index locations of index values at particular time of day
+        Return index locations of values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -736,7 +732,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_between_time, DataFrame.at_time
+        indexer_between_time : Get index locations of values between particular
+            times of day.
+        DataFrame.at_time : Select values at particular time of day.
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
@@ -777,10 +775,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        indexer_at_time, DataFrame.between_time
+        indexer_at_time : Get index locations of values at particular time of day.
+        DataFrame.between_time : Select values between particular times of day.
         """
-        start_time = tools.to_time(start_time)
-        end_time = tools.to_time(end_time)
+        start_time = to_time(start_time)
+        end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
@@ -1011,16 +1010,10 @@ def bdate_range(
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
         only used when custom frequency strings are passed.  The default
         value None is equivalent to 'Mon Tue Wed Thu Fri'.
-
-        .. versionadded:: 0.21.0
-
     holidays : list-like or None, default None
         Dates to exclude from the set of valid business days, passed to
         ``numpy.busdaycalendar``, only used when custom frequency strings
         are passed.
-
-        .. versionadded:: 0.21.0
-
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).

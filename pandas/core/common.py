@@ -4,17 +4,16 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-import collections
-from collections import abc
+from collections import abc, defaultdict
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Union
+from typing import Any, Collection, Iterable, List, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._typing import T
+from pandas._typing import AnyArrayLike, Scalar, T
 from pandas.compat.numpy import _np_version_under1p17
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -24,7 +23,12 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -200,20 +204,12 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except TypeError:
-        return listed
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
-        return values.values
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -357,8 +353,6 @@ def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     into : instance or subclass of collections.abc.Mapping
@@ -377,12 +371,12 @@ def standardize_mapping(into):
     Series.to_dict
     """
     if not inspect.isclass(into):
-        if isinstance(into, collections.defaultdict):
-            return partial(collections.defaultdict, into.default_factory)
+        if isinstance(into, defaultdict):
+            return partial(defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == collections.defaultdict:
+    elif into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
@@ -483,3 +477,18 @@ def get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def convert_to_list_like(
+    values: Union[Scalar, Iterable, AnyArrayLike]
+) -> Union[List, AnyArrayLike]:
+    """
+    Convert list-like or scalar input to list-like. List, numpy and pandas array-like
+    inputs are returned unmodified whereas others are converted to list.
+    """
+    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
+        return values
+    elif isinstance(values, abc.Iterable) and not isinstance(values, str):
+        return list(values)
+
+    return [values]

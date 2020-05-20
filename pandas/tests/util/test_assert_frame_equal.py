@@ -178,6 +178,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
     msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[4, 5, 6\\]
 \\[right\\]: \\[4, 5, 7\\]"""
 
@@ -197,6 +198,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
             """{obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) values are different \\(33\\.33333 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]""",
         ),
@@ -206,6 +208,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
             """{obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) are different
 
 {obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) values are different \\(100\\.0 %\\)
+\\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[a, a, a\\]""",
         ),

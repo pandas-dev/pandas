@@ -11,7 +11,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import Label
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -342,7 +342,7 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
-    @Appender(Int64Index.get_loc.__doc__)
+    @doc(Int64Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None and tolerance is None:
             if is_integer(key) or (is_float(key) and key.is_integer()):
@@ -386,7 +386,7 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
-    @Appender(Int64Index._shallow_copy.__doc__)
+    @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
 
@@ -397,7 +397,7 @@ class RangeIndex(Int64Index):
         else:
             return Int64Index._simple_new(values, name=name)
 
-    @Appender(Int64Index.copy.__doc__)
+    @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
         self._validate_dtype(dtype)
         if name is None:
@@ -619,7 +619,7 @@ class RangeIndex(Int64Index):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
-    @Appender(Int64Index.join.__doc__)
+    @doc(Int64Index.join)
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         if how == "outer" and self is not other:
             # note: could return RangeIndex in more circumstances
@@ -627,14 +627,18 @@ class RangeIndex(Int64Index):
 
         return super().join(other, how, level, return_indexers, sort)
 
-    def _concat_same_dtype(self, indexes, name):
+    def _concat(self, indexes, name):
         """
-        Concatenates multiple RangeIndex instances. All members of "indexes" must
-        be of type RangeIndex; result will be RangeIndex if possible, Int64Index
-        otherwise. E.g.:
+        Overriding parent method for the case of all RangeIndex instances.
+
+        When all members of "indexes" are of type RangeIndex: result will be
+        RangeIndex if possible, Int64Index otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
         """
+        if not all(isinstance(x, RangeIndex) for x in indexes):
+            return super()._concat(indexes, name)
+
         start = step = next_ = None
 
         # Filter the empty indexes
@@ -741,7 +745,7 @@ class RangeIndex(Int64Index):
             """
             Parameters
             ----------
-            op : callable that accepts 2 parms
+            op : callable that accepts 2 params
                 perform the binary op
             step : callable, optional, default to False
                 op to apply to the step parm if not None

@@ -259,7 +259,7 @@ Inspecting the ``ddf`` object, we see a few things
 * There are familiar methods like ``.groupby``, ``.sum``, etc.
 * There are new attributes like ``.npartitions`` and ``.divisions``
 
-The partitions and divisions are how Dask parallizes computation. A **Dask**
+The partitions and divisions are how Dask parallelizes computation. A **Dask**
 DataFrame is made up of many **Pandas** DataFrames. A single method call on a
 Dask DataFrame ends up making many pandas method calls, and Dask knows how to
 coordinate everything to get the result.

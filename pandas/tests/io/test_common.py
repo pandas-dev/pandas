@@ -137,7 +137,7 @@ bar2,12,13,14,15
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
-    def test_read_non_existant(self, reader, module, error_class, fn_ext):
+    def test_read_non_existent(self, reader, module, error_class, fn_ext):
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
@@ -234,6 +234,11 @@ bar2,12,13,14,15
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:This method will be removed in future versions.  "
+        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
+        ":PendingDeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)

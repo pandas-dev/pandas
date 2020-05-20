@@ -139,6 +139,6 @@ class TestBetweenTime:
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, axis=1)
