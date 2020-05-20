@@ -785,40 +785,6 @@ Methods
     QuarterBegin.is_on_offset
     QuarterBegin.__call__
 
-YearOffset
-----------
-.. autosummary::
-   :toctree: api/
-
-    YearOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.freqstr
-    YearOffset.kwds
-    YearOffset.name
-    YearOffset.nanos
-    YearOffset.normalize
-    YearOffset.rule_code
-    YearOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.apply
-    YearOffset.apply_index
-    YearOffset.copy
-    YearOffset.isAnchored
-    YearOffset.onOffset
-    YearOffset.is_anchored
-    YearOffset.is_on_offset
-    YearOffset.__call__
-
 BYearEnd
 --------
 .. autosummary::
@@ -838,6 +804,7 @@ Properties
     BYearEnd.normalize
     BYearEnd.rule_code
     BYearEnd.n
+    BYearEnd.month
 
 Methods
 ~~~~~~~
@@ -872,6 +839,7 @@ Properties
     BYearBegin.normalize
     BYearBegin.rule_code
     BYearBegin.n
+    BYearBegin.month
 
 Methods
 ~~~~~~~
@@ -906,6 +874,7 @@ Properties
     YearEnd.normalize
     YearEnd.rule_code
     YearEnd.n
+    YearEnd.month
 
 Methods
 ~~~~~~~
@@ -940,6 +909,7 @@ Properties
     YearBegin.normalize
     YearBegin.rule_code
     YearBegin.n
+    YearBegin.month
 
 Methods
 ~~~~~~~
@@ -1017,6 +987,7 @@ Methods
 
     FY5253Quarter.apply
     FY5253Quarter.copy
+    FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
     FY5253Quarter.isAnchored
     FY5253Quarter.onOffset
