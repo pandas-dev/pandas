@@ -1,6 +1,5 @@
 from collections import abc
 from decimal import Decimal
-
 import warnings
 
 import cython
@@ -63,7 +62,7 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
@@ -76,6 +75,7 @@ from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 from pandas._libs.missing cimport (
     checknull,
@@ -188,7 +188,7 @@ def is_scalar(val: object) -> bool:
     return (PyNumber_Check(val)
             or is_period_object(val)
             or is_interval(val)
-            or util.is_offset_object(val))
+            or is_offset_object(val))
 
 
 def is_iterator(obj: object) -> bool:

@@ -1,13 +1,14 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
+from typing import Optional
 
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
-    get_base_alias,
-    get_freq,
+    base_and_stride,
+    get_freq_code,
     is_subperiod,
     is_superperiod,
 )
@@ -165,6 +166,16 @@ def _get_ax_freq(ax):
     return ax_freq
 
 
+def get_period_alias(freq) -> Optional[str]:
+    if isinstance(freq, DateOffset):
+        freq = freq.rule_code
+    else:
+        freq = base_and_stride(freq)[0]
+
+    freq = frequencies.get_period_alias(freq)
+    return freq
+
+
 def _get_freq(ax, series):
     # get frequency from data
     freq = getattr(series.index, "freq", None)
@@ -178,12 +189,7 @@ def _get_freq(ax, series):
         freq = ax_freq
 
     # get the period frequency
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = get_base_alias(freq)
-
-    freq = frequencies.get_period_alias(freq)
+    freq = get_period_alias(freq)
     return freq, ax_freq
 
 
@@ -200,18 +206,14 @@ def _use_dynamic_x(ax, data):
     if freq is None:
         return False
 
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = get_base_alias(freq)
-    freq = frequencies.get_period_alias(freq)
+    freq = get_period_alias(freq)
 
     if freq is None:
         return False
 
-    # hack this for 0.10.1, creating more technical debt...sigh
+    # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = get_freq(freq)
+        base = get_freq_code(freq)[0]
         x = data.index
         if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized
@@ -238,8 +240,6 @@ def _maybe_convert_index(ax, data):
 
         if freq is None:
             freq = getattr(data.index, "inferred_freq", None)
-        if isinstance(freq, DateOffset):
-            freq = freq.rule_code
 
         if freq is None:
             freq = _get_ax_freq(ax)
@@ -247,8 +247,7 @@ def _maybe_convert_index(ax, data):
         if freq is None:
             raise ValueError("Could not get frequency alias for plotting")
 
-        freq = get_base_alias(freq)
-        freq = frequencies.get_period_alias(freq)
+        freq = get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
             data = data.tz_localize(None).to_period(freq=freq)

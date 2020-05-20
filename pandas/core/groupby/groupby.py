@@ -36,7 +36,6 @@ from pandas._config.config import option_context
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
 from pandas._typing import FrameOrSeries, Scalar
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -191,6 +190,24 @@ _apply_docs = dict(
     {examples}
     """,
 )
+
+_groupby_agg_method_template = """
+Compute {fname} of group values.
+
+Parameters
+----------
+numeric_only : bool, default {no}
+    Include only float, int, boolean columns. If None, will attempt to use
+    everything, then use only numeric data.
+min_count : int, default {mc}
+    The required number of valid values to perform the operation. If fewer
+    than ``min_count`` non-NA values are present the result will be NA.
+
+Returns
+-------
+Series or DataFrame
+    Computed {fname} of values within each group.
+"""
 
 _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
@@ -474,6 +491,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
+        dropna: bool = True,
     ):
 
         self._selection = selection
@@ -496,6 +514,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
+        self.dropna = dropna
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -508,6 +527,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
                 sort=sort,
                 observed=observed,
                 mutated=self.mutated,
+                dropna=self.dropna,
             )
 
         self.obj = obj
@@ -646,11 +666,11 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ):
             return
 
-        ax = self.obj._info_axis
         groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
+            ax = self.obj._info_axis
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
@@ -942,6 +962,37 @@ b  2""",
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
+    def _agg_general(
+        self,
+        numeric_only: bool = True,
+        min_count: int = -1,
+        *,
+        alias: str,
+        npfunc: Callable,
+    ):
+        self._set_group_selection()
+
+        # try a cython aggregation if we can
+        try:
+            return self._cython_agg_general(
+                how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count,
+            )
+        except DataError:
+            pass
+        except NotImplementedError as err:
+            if "function is not implemented for this dtype" in str(
+                err
+            ) or "category dtype not supported" in str(err):
+                # raised in _get_cython_function, in some cases can
+                #  be trimmed by implementing cython funcs for more dtypes
+                pass
+            else:
+                raise
+
+        # apply a non-cython aggregation
+        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+        return result
+
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
@@ -1182,6 +1233,14 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     more
     """
 
+    @property
+    def _obj_1d_constructor(self) -> Type["Series"]:
+        # GH28330 preserve subclassed Series/DataFrames
+        if isinstance(self.obj, DataFrame):
+            return self.obj._constructor_sliced
+        assert isinstance(self.obj, Series)
+        return self.obj._constructor
+
     def _bool_agg(self, val_test, skipna):
         """
         Shared func to call any / all Cython GroupBy implementations.
@@ -1357,8 +1416,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        # TODO: implement at Cython level?
-        return np.sqrt(self.var(ddof=ddof))
+        result = self.var(ddof=ddof)
+        if result.ndim == 1:
+            result = np.sqrt(result)
+        else:
+            cols = result.columns.get_indexer_for(
+                result.columns.difference(self.exclusions).unique()
+            )
+            # TODO(GH-22046) - setting with iloc broken if labels are not unique
+            # .values to remove labels
+            result.iloc[:, cols] = np.sqrt(result.iloc[:, cols]).values
+
+        return result
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1405,7 +1474,19 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        return self.std(ddof=ddof) / np.sqrt(self.count())
+        result = self.std(ddof=ddof)
+        if result.ndim == 1:
+            result /= np.sqrt(self.count())
+        else:
+            cols = result.columns.get_indexer_for(
+                result.columns.difference(self.exclusions).unique()
+            )
+            # TODO(GH-22046) - setting with iloc broken if labels are not unique
+            # .values to remove labels
+            result.iloc[:, cols] = (
+                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            )
+        return result
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1420,109 +1501,86 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         result = self.grouper.size()
 
-        if isinstance(self.obj, Series):
-            result.name = self.obj.name
+        # GH28330 preserve subclassed Series/DataFrames through calls
+        if issubclass(self.obj._constructor, Series):
+            result = self._obj_1d_constructor(result, name=self.obj.name)
+        else:
+            result = self._obj_1d_constructor(result)
         return self._reindex_output(result, fill_value=0)
 
-    @classmethod
-    def _add_numeric_operations(cls):
-        """
-        Add numeric operations to the GroupBy generically.
-        """
+    @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
+    def sum(self, numeric_only: bool = True, min_count: int = 0):
+        return self._agg_general(
+            numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
+        )
 
-        def groupby_function(
-            name: str,
-            alias: str,
-            npfunc,
-            numeric_only: bool = True,
-            min_count: int = -1,
-        ):
+    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
+    def prod(self, numeric_only: bool = True, min_count: int = 0):
+        return self._agg_general(
+            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
+        )
 
-            _local_template = """
-            Compute %(f)s of group values.
+    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
+    def min(self, numeric_only: bool = False, min_count: int = -1):
+        return self._agg_general(
+            numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
+        )
 
-            Parameters
-            ----------
-            numeric_only : bool, default %(no)s
-                Include only float, int, boolean columns. If None, will attempt to use
-                everything, then use only numeric data.
-            min_count : int, default %(mc)s
-                The required number of valid values to perform the operation. If fewer
-                than ``min_count`` non-NA values are present the result will be NA.
+    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
+    def max(self, numeric_only: bool = False, min_count: int = -1):
+        return self._agg_general(
+            numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
+        )
 
-            Returns
-            -------
-            Series or DataFrame
-                Computed %(f)s of values within each group.
-            """
-
-            @Substitution(name="groupby", f=name, no=numeric_only, mc=min_count)
-            @Appender(_common_see_also)
-            @Appender(_local_template)
-            def func(self, numeric_only=numeric_only, min_count=min_count):
-                self._set_group_selection()
-
-                # try a cython aggregation if we can
-                try:
-                    return self._cython_agg_general(
-                        how=alias,
-                        alt=npfunc,
-                        numeric_only=numeric_only,
-                        min_count=min_count,
-                    )
-                except DataError:
-                    pass
-                except NotImplementedError as err:
-                    if "function is not implemented for this dtype" in str(
-                        err
-                    ) or "category dtype not supported" in str(err):
-                        # raised in _get_cython_function, in some cases can
-                        #  be trimmed by implementing cython funcs for more dtypes
-                        pass
-                    else:
-                        raise
-
-                # apply a non-cython aggregation
-                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-                return result
-
-            set_function_name(func, name, cls)
-
-            return func
-
-        def first_compat(x, axis=0):
-            def first(x):
-                x = x.to_numpy()
-
-                x = x[notna(x)]
+    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
+    def first(self, numeric_only: bool = False, min_count: int = -1):
+        def first_compat(obj: FrameOrSeries, axis: int = 0):
+            def first(x: Series):
+                """Helper function for first item that isn't NA.
+                """
+                x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
                 return x[0]
 
-            if isinstance(x, DataFrame):
-                return x.apply(first, axis=axis)
+            if isinstance(obj, DataFrame):
+                return obj.apply(first, axis=axis)
+            elif isinstance(obj, Series):
+                return first(obj)
             else:
-                return first(x)
+                raise TypeError(type(obj))
 
-        def last_compat(x, axis=0):
-            def last(x):
-                x = x.to_numpy()
-                x = x[notna(x)]
+        return self._agg_general(
+            numeric_only=numeric_only,
+            min_count=min_count,
+            alias="first",
+            npfunc=first_compat,
+        )
+
+    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
+    def last(self, numeric_only: bool = False, min_count: int = -1):
+        def last_compat(obj: FrameOrSeries, axis: int = 0):
+            def last(x: Series):
+                """Helper function for last item that isn't NA.
+                """
+                x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
                 return x[-1]
 
-            if isinstance(x, DataFrame):
-                return x.apply(last, axis=axis)
+            if isinstance(obj, DataFrame):
+                return obj.apply(last, axis=axis)
+            elif isinstance(obj, Series):
+                return last(obj)
             else:
-                return last(x)
+                raise TypeError(type(obj))
 
-        cls.sum = groupby_function("sum", "add", np.sum, min_count=0)
-        cls.prod = groupby_function("prod", "prod", np.prod, min_count=0)
-        cls.min = groupby_function("min", "min", np.min, numeric_only=False)
-        cls.max = groupby_function("max", "max", np.max, numeric_only=False)
-        cls.first = groupby_function("first", "first", first_compat, numeric_only=False)
-        cls.last = groupby_function("last", "last", last_compat, numeric_only=False)
+        return self._agg_general(
+            numeric_only=numeric_only,
+            min_count=min_count,
+            alias="last",
+            npfunc=last_compat,
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1643,15 +1701,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         0   2000-01-01 00:00:00  0  1
             2000-01-01 00:03:00  0  2
         5   2000-01-01 00:03:00  5  1
-
-        Add an offset of twenty seconds.
-
-        >>> df.groupby('a').resample('3T', loffset='20s').sum()
-                               a  b
-        a
-        0   2000-01-01 00:00:20  0  2
-            2000-01-01 00:03:20  0  1
-        5   2000-01-01 00:00:20  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
@@ -1921,7 +1970,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
-        mask = (sizes < max_len).values
+        mask = (sizes < max_len)._values
 
         # set the results which don't meet the criteria
         if len(result) and mask.any():
@@ -2116,7 +2165,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         """
         with _group_selection_context(self):
             index = self._selected_obj.index
-            result = Series(self.grouper.group_info[0], index)
+            result = self._obj_1d_constructor(self.grouper.group_info[0], index)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
@@ -2178,7 +2227,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
-            return Series(cumcounts, index)
+            return self._obj_1d_constructor(cumcounts, index)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -2631,9 +2680,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         return output.reset_index(drop=True)
 
 
-GroupBy._add_numeric_operations()
-
-
 @doc(GroupBy)
 def get_groupby(
     obj: NDFrame,
@@ -2649,6 +2695,7 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
+    dropna: bool = True,
 ) -> GroupBy:
 
     klass: Type[GroupBy]
@@ -2677,4 +2724,5 @@ def get_groupby(
         squeeze=squeeze,
         observed=observed,
         mutated=mutated,
+        dropna=dropna,
     )

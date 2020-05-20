@@ -13,6 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
+from pandas._typing import Scalar
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -46,6 +47,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
+from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -784,7 +786,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
@@ -1220,21 +1222,36 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
         """
         Sum of non-NA/null values
 
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        min_count : int, default 0
+            The required number of valid values to perform the summation. If fewer
+            than ``min_count`` valid values are present, the result will be the missing
+            value indicator for subarray type.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
         Returns
         -------
-        sum : float
+        scalar
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
+            if check_below_min_count(valid_vals.shape, None, min_count):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
+            if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, *args, **kwargs):
@@ -1517,7 +1534,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
         mask = notna(arr)
     else:
         # cast to object comparison to be safe
-        if is_string_dtype(arr):
+        if is_string_dtype(arr.dtype):
             arr = arr.astype(object)
 
         if is_object_dtype(arr.dtype):

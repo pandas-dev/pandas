@@ -81,6 +81,41 @@ class SharedTests:
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
 
+    @pytest.mark.parametrize("reverse", [True, False])
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_compare_categorical_dtype(self, arr1d, as_index, reverse, ordered):
+        other = pd.Categorical(arr1d, ordered=ordered)
+        if as_index:
+            other = pd.CategoricalIndex(other)
+
+        left, right = arr1d, other
+        if reverse:
+            left, right = right, left
+
+        ones = np.ones(arr1d.shape, dtype=bool)
+        zeros = ~ones
+
+        result = left == right
+        tm.assert_numpy_array_equal(result, ones)
+
+        result = left != right
+        tm.assert_numpy_array_equal(result, zeros)
+
+        if not reverse and not as_index:
+            # Otherwise Categorical raises TypeError bc it is not ordered
+            # TODO: we should probably get the same behavior regardless?
+            result = left < right
+            tm.assert_numpy_array_equal(result, zeros)
+
+            result = left <= right
+            tm.assert_numpy_array_equal(result, ones)
+
+            result = left > right
+            tm.assert_numpy_array_equal(result, zeros)
+
+            result = left >= right
+            tm.assert_numpy_array_equal(result, ones)
+
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10 ** 9
         np.random.shuffle(data)
@@ -133,7 +168,8 @@ class SharedTests:
         arr = self.array_cls(idx)
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
-        expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
+        arr2 = arr.astype(object)
+        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]), None)
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
@@ -248,6 +284,20 @@ class SharedTests:
         expected[[0, 1]] = arr1d[-2:]
 
         arr1d[:2] = [str(x) for x in arr1d[-2:]]
+
+        tm.assert_equal(arr1d, expected)
+
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_setitem_categorical(self, arr1d, as_index):
+        expected = arr1d.copy()[::-1]
+        if not isinstance(expected, PeriodArray):
+            expected = expected._with_freq(None)
+
+        cat = pd.Categorical(arr1d)
+        if as_index:
+            cat = pd.CategoricalIndex(cat)
+
+        arr1d[:] = cat[::-1]
 
         tm.assert_equal(arr1d, expected)
 
@@ -924,6 +974,7 @@ def test_to_numpy_extra(array):
     tm.assert_equal(array, original)
 
 
+@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "values",
     [
@@ -932,9 +983,23 @@ def test_to_numpy_extra(array):
         pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
-@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
-def test_searchsorted_datetimelike_with_listlike(values, klass):
+@pytest.mark.parametrize(
+    "klass",
+    [
+        list,
+        np.array,
+        pd.array,
+        pd.Series,
+        pd.Index,
+        pd.Categorical,
+        pd.CategoricalIndex,
+    ],
+)
+def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     # https://github.com/pandas-dev/pandas/issues/32762
+    if not as_index:
+        values = values._data
+
     result = values.searchsorted(klass(values))
     expected = np.array([0, 1], dtype=result.dtype)
 

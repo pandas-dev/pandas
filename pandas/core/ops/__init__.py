@@ -26,6 +26,7 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
+from pandas.core.ops.blockwise import operate_blockwise
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -325,8 +326,9 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
+        array_op = get_array_op(func, str_rep=str_rep)
+        bm = operate_blockwise(left, right, array_op)
+        return type(left)(bm)
 
     elif isinstance(right, ABCSeries) and axis == "columns":
         # We only get here if called via _combine_series_frame,
@@ -504,37 +506,31 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
 
     Returns
     -------
-    result : DataFrame
+    result : DataFrame or Dict[int, Series[]]
     """
     # We assume that self.align(other, ...) has already been called
-    if axis == 0:
-        values = right._values
-        if isinstance(values, np.ndarray):
-            # TODO(EA2D): no need to special-case with 2D EAs
-            # We can operate block-wise
-            values = values.reshape(-1, 1)
-            values = np.broadcast_to(values, left.shape)
 
-            array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._mgr.apply(array_op, right=values.T, align_keys=["right"])
-            return type(left)(bm)
-
-        new_data = dispatch_to_series(left, right, func)
-
-    else:
-        rvalues = right._values
-        if isinstance(rvalues, np.ndarray):
-            # We can operate block-wise
+    rvalues = right._values
+    if isinstance(rvalues, np.ndarray):
+        # TODO(EA2D): no need to special-case with 2D EAs
+        # We can operate block-wise
+        if axis == 0:
+            rvalues = rvalues.reshape(-1, 1)
+        else:
             rvalues = rvalues.reshape(1, -1)
-            rvalues = np.broadcast_to(rvalues, left.shape)
 
-            array_op = get_array_op(func, str_rep=str_rep)
-            bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
-            return type(left)(bm)
+        rvalues = np.broadcast_to(rvalues, left.shape)
 
+        array_op = get_array_op(func, str_rep=str_rep)
+        bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
+        return type(left)(bm)
+
+    if axis == 0:
+        new_data = dispatch_to_series(left, right, func)
+    else:
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
-    return left._construct_result(new_data)
+    return new_data
 
 
 def _align_method_FRAME(
@@ -713,7 +709,6 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = pass_op if not is_logical else op
 
             new_data = self._combine_frame(other, pass_op, fill_value)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
@@ -725,7 +720,7 @@ def _arith_method_FRAME(cls, op, special):
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(
+            new_data = _combine_series_frame(
                 self, other, pass_op, axis=axis, str_rep=str_rep
             )
         else:
@@ -734,7 +729,8 @@ def _arith_method_FRAME(cls, op, special):
                 self = self.fillna(fill_value)
 
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -758,15 +754,17 @@ def _flex_comp_method_FRAME(cls, op, special):
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, op, axis=axis, str_rep=str_rep)
+            new_data = _combine_series_frame(
+                self, other, op, axis=axis, str_rep=str_rep
+            )
         else:
             # in this case we always have `np.ndim(other) == 0`
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -784,21 +782,9 @@ def _comp_method_FRAME(cls, op, special):
             self, other, axis=None, level=None, flex=False
         )
 
-        if isinstance(other, ABCDataFrame):
-            # Another DataFrame
-            new_data = dispatch_to_series(self, other, op, str_rep)
-
-        elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(
-                self, other, op, str_rep=str_rep, axis="columns"
-            )
-
-        else:
-
-            # straight boolean comparisons we want to allow all columns
-            # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op, str_rep)
-
+        axis = "columns"  # only relevant for Series other case
+        # See GH#4537 for discussion of scalar op behavior
+        new_data = dispatch_to_series(self, other, op, str_rep, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
