@@ -742,7 +742,6 @@ class JsonReader(abc.Iterator):
             obj = concat(self)
         elif self.lines:
             data = ensure_str(self.data)
-            print(data)
             if self.nrows:
                 compiled_pattern = re.compile("\n")
                 data_iterator = compiled_pattern.finditer(data)
@@ -757,7 +756,6 @@ class JsonReader(abc.Iterator):
                     start = end
                     nrows_seen += 1
                 data = data_surrogate
-                print(data)
             else:
                 data = data.split("\n")
             obj = self._get_object_parser(self._combine_lines(data))
