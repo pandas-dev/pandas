@@ -8,10 +8,17 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_object_dtype,
+    is_scalar,
+    is_string_dtype,
+)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import nanops
 from pandas.core.algorithms import _factorize_array, take
+from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
@@ -76,6 +83,23 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         item = check_array_indexer(self, item)
 
         return type(self)(self._data[item], self._mask[item])
+
+    def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
+        raise AbstractMethodError(self)
+
+    def __setitem__(self, key, value) -> None:
+        _is_scalar = is_scalar(value)
+        if _is_scalar:
+            value = [value]
+        value, mask = self._coerce_to_array(value)
+
+        if _is_scalar:
+            value = value[0]
+            mask = mask[0]
+
+        key = check_array_indexer(self, key)
+        self._data[key] = value
+        self._mask[key] = mask
 
     def __iter__(self):
         for i in range(len(self)):
@@ -305,3 +329,24 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         counts = IntegerArray(counts, mask)
 
         return Series(counts, index=index)
+
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+        data = self._data
+        mask = self._mask
+
+        if name in {"sum", "prod", "min", "max"}:
+            op = getattr(masked_reductions, name)
+            return op(data, mask, skipna=skipna, **kwargs)
+
+        # coerce to a nan-aware float if needed
+        # (we explicitly use NaN within reductions)
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
+
+        op = getattr(nanops, "nan" + name)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
+
+        return result
