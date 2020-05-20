@@ -544,7 +544,7 @@ def merge_asof(
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
     """
 
-    def _merge(x, y, by):
+    def _merge(x, y, _by):
         op = _AsOfMerge(
             x,
             y,
@@ -553,7 +553,7 @@ def merge_asof(
             right_on=right_on,
             left_index=left_index,
             right_index=right_index,
-            by=by,
+            by=_by,
             left_by=left_by,
             right_by=right_by,
             suffixes=suffixes,
