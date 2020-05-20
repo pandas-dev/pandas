@@ -197,10 +197,16 @@ def test_quantile_missing_group_values_correct_results(
     # GH 28662, GH 33200, GH 33569
     df = pd.DataFrame({"key": key, "val": val})
 
-    result = df.groupby("key").quantile(0.5)
     expected = pd.DataFrame(
         expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
     )
+
+    grp = df.groupby("key")
+
+    result = grp.quantile(0.5)
+    tm.assert_frame_equal(result, expected)
+
+    result = grp.quantile()
     tm.assert_frame_equal(result, expected)
 
 
