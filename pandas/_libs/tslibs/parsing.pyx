@@ -39,10 +39,10 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_offset_object,
     get_c_string_buf_and_size,
 )
 from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
