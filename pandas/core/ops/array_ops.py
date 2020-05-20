@@ -6,6 +6,7 @@ from datetime import timedelta
 from functools import partial
 import operator
 from typing import Any, Optional, Tuple
+import warnings
 
 import numpy as np
 
@@ -120,7 +121,7 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str):
+def define_na_arithmetic_op(op, str_rep: Optional[str]):
     def na_op(x, y):
         return na_arithmetic_op(x, y, op, str_rep)
 
@@ -191,7 +192,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
     lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_for_op(right, lvalues.shape)
+    rvalues = maybe_upcast_datetimelike_array(right)
+    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -254,8 +256,13 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
+        with warnings.catch_warnings():
+            # suppress warnings from numpy about element-wise comparison
+            warnings.simplefilter("ignore", DeprecationWarning)
+            with np.errstate(all="ignore"):
+                res_values = na_arithmetic_op(
+                    lvalues, rvalues, op, str_rep, is_cmp=True
+                )
 
     return res_values
 
