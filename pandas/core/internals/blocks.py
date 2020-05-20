@@ -793,7 +793,6 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-
         if self._can_hold_element(value):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
