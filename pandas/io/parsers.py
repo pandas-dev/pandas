@@ -170,7 +170,7 @@ dtype : Type name or dict of column -> type, optional
     of dtype conversion.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
-    is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.13
+    is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.15
     as a dependency however.
 
     .. versionchanged:: 1.1
@@ -919,7 +919,6 @@ class TextFileReader(abc.Iterator):
 
         for argname, default in _parser_defaults.items():
             value = kwds.get(argname, default)
-
             if argname in _pyarrow_unsupported:
                 if engine == "pyarrow" and value != default:
                     raise ValueError(
@@ -928,7 +927,7 @@ class TextFileReader(abc.Iterator):
                     )
             if argname == "iterator" and engine == "pyarrow":
                 raise ValueError(
-                    "The iterator option is not supported with the" "pyarrow engine"
+                    "The iterator option is not supported with the pyarrow engine"
                 )
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
@@ -2262,17 +2261,22 @@ class ArrowParserWrapper(ParserBase):
     def __init__(self, src, **kwds):
         self.kwds = kwds
         self.src = src
-        # kwds = kwds.copy()
 
         ParserBase.__init__(self, kwds)
 
         encoding = kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
 
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
-        self.na_values = _clean_na_values(
-            kwds["na_values"], keep_default_na=kwds["keep_default_na"]
+        na_values = kwds["na_values"]
+        if isinstance(na_values, dict):
+            raise ValueError(
+                "The pyarrow engine doesn't support passing a dict for na_values"
+            )
+        self.na_values = list(
+            _clean_na_values(
+                kwds["na_values"], keep_default_na=kwds["keep_default_na"]
+            )[0]
         )
-
         if isinstance(self.src, TextIOBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
 
@@ -2280,48 +2284,51 @@ class ArrowParserWrapper(ParserBase):
         pyarrow = import_optional_dependency(
             "pyarrow.csv", extra="pyarrow is required to use the pyarrow engine"
         )
+        kwdscopy = {k: v for k, v in self.kwds.items() if v is not None}
+        # these are kwargs passed to pyarrow
+        parseoptions = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
+        convertoptions = {
+            "include_columns",
+            "null_values",
+            "true_values",
+            "false_values",
+        }
+        parse_options = {k: v for k, v in kwdscopy.items() if k in parseoptions}
+        convert_options = {k: v for k, v in kwdscopy.items() if k in convertoptions}
+        read_options = pyarrow.ReadOptions(autogenerate_column_names=True)
+        headerexists = True if self.header is not None and self.header >= 0 else False
         try:
-            read_options = pyarrow.ReadOptions(
-                skip_rows=self.kwds.get("skiprows"), autogenerate_column_names=True,
-            )
+            skiprows = self.kwds.get("skiprows")
+            if skiprows is not None:
+                read_options = pyarrow.ReadOptions(skip_rows=skiprows)
+            elif self.header >= 0:
+                read_options = pyarrow.ReadOptions(skip_rows=self.header)
         except TypeError as e:
             msg = "__init__() got an unexpected keyword argument"
             if msg in str(e):
                 raise ImportError(
-                    "Pyarrow version >= 0.15.0 is needed in order "
-                    "to use skiprows kwarg with engine=pyarrow. "
-                    "Please upgrade Pyarrow or switch engines."
+                    "pyarrow version >= 0.15.0 is required to use "
+                    "read_csv with engine='pyarrow'"
                 )
-            else:
-                raise e
         table = pyarrow.read_csv(
             self.src,
             read_options=read_options,
-            parse_options=pyarrow.ParseOptions(
-                delimiter=self.kwds.get("delimiter"),
-                quote_char=self.kwds.get("quotechar"),
-                escape_char=self.kwds.get("escapechar"),
-                ignore_empty_lines=self.kwds.get("skip_blank_lines"),
-            ),
-            convert_options=pyarrow.ConvertOptions(
-                include_columns=self.usecols,
-                null_values=self.kwds.get("na_values"),
-                true_values=self.kwds.get("true_values"),
-                false_values=self.kwds.get("false_values"),
-            ),
+            parse_options=pyarrow.ParseOptions(**parse_options),
+            convert_options=pyarrow.ConvertOptions(**convert_options),
         )
         frame = table.to_pandas()
         num_cols = len(frame.columns)
-        if self.names is None:
-            if self.prefix:
-                self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-            elif self.header is not None:
-                self.names = frame.iloc[self.header].tolist()
-                frame.drop(range(self.header + 1), axis=0, inplace=True)
-                frame.reset_index(drop=True, inplace=True)
-            elif self.header is None:
-                self.names = range(num_cols)
-        frame.columns = self.names
+        if not headerexists:
+            if self.names is None:
+                if self.prefix is not None:
+                    self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
+                # elif self.header is not None:
+                #    self.names = frame.iloc[self.header].tolist()
+                #    frame.drop(range(self.header + 1), axis=0, inplace=True)
+                #    frame.reset_index(drop=True, inplace=True)
+                elif self.header is None:
+                    self.names = range(num_cols)
+            frame.columns = self.names
         if self.index_col is not None:
             index_col = [frame.columns[i] for i in self.index_col]
             frame.set_index(index_col, drop=True, inplace=True)
@@ -2330,41 +2337,6 @@ class ArrowParserWrapper(ParserBase):
         else:
             frame = frame.infer_objects()
         return frame
-
-    def _clean_na_values(na_values, keep_default_na=True):
-        if na_values is None:
-            if keep_default_na:
-                na_values = STR_NA_VALUES
-            else:
-                na_values = set()
-            na_fvalues = set()
-        elif isinstance(na_values, dict):
-            old_na_values = na_values.copy()
-            na_values = {}  # Prevent aliasing.
-
-            # Convert the values in the na_values dictionary
-            # into array-likes for further use. This is also
-            # where we append the default NaN values, provided
-            # that `keep_default_na=True`.
-            for k, v in old_na_values.items():
-                if not is_list_like(v):
-                    v = [v]
-
-                if keep_default_na:
-                    v = set(v) | STR_NA_VALUES
-
-                na_values[k] = v
-            na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
-        else:
-            if not is_list_like(na_values):
-                na_values = [na_values]
-            na_values = _stringify_na_values(na_values)
-            if keep_default_na:
-                na_values = na_values | STR_NA_VALUES
-
-            na_fvalues = _floatify_na_values(na_values)
-
-        return na_values, na_fvalues
 
 
 def TextParser(*args, **kwds):

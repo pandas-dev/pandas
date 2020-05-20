@@ -262,19 +262,30 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 class ReadCSVEngine(StringIORewind):
     def setup(self):
-        data = ["A,B,C"] + (["1,2,3"] * 1000000)
+        data = ["A,B,C"] + (["1,2,3"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
+        # simulate reading from file
+        self.BytesIO_input = self.StringIO_input.read().encode("utf-8")
 
-    def time_read_csv_c(self):
+    def time_read_stringcsv_c(self):
         read_csv(self.data(self.StringIO_input))
 
-    def time_read_csv_arrow(self):
+    def time_read_stringcsv_arrow(self):
         read_csv(self.data(self.StringIO_input), engine="pyarrow")
 
-    def time_read_csv_python_engine(self):
+    def time_read_stringcsv_python_engine(self):
         read_csv(
             self.data(self.StringIO_input), engine="python",
         )
+
+    def time_read_bytescsv_c(self):
+        read_csv(self.BytesIO_input)
+
+    def time_read_bytescsv_arrow(self):
+        read_csv(self.BytesIO_input, engine="pyarrow")
+
+    def time_read_bytescsv_python_engine(self):
+        read_csv(self.BytesIO_input, engine="python")
 
 
 class ReadCSVCategorical(BaseIO):
