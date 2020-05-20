@@ -1,9 +1,8 @@
 from datetime import timedelta
 
-import numpy as np
 import pytest
 
-from pandas import Series, Timedelta, date_range, period_range, to_datetime
+from pandas import PeriodIndex, Series, Timedelta, date_range, period_range, to_datetime
 import pandas._testing as tm
 
 
@@ -56,17 +55,11 @@ class TestToTimestamp:
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == "foo"
 
-    def test_to_timestamp_raises_type_error_for_rangeindex(self, indices):
-        # invalid type , #34067 test
-        idx = indices
-        msg = "unsupported Type RangeIndex"
-        with pytest.raises(TypeError, match=msg):
-            Series([idx]).to_timestamp()
-
-    def test_to_timestamp_raises_type_error_for_datetimeindex(self):
-        # invalid type , #34067 test
-        msg = "unsupported Type .*"
-        with pytest.raises(TypeError, match=msg):
-            rng = date_range("1/1/2012", periods=5, freq="M")
-            ts = Series(np.random.randn(len(rng)), index=rng)
-            ts.to_timestamp()
+    def test_to_timestamp_raises(self, indices):
+        # https://github.com/pandas-dev/pandas/issues/33327
+        index = indices
+        ser = Series(index=index, dtype=object)
+        if not isinstance(index, PeriodIndex):
+            msg = f"unsupported Type {type(index).__name__}"
+            with pytest.raises(TypeError, match=msg):
+                ser.to_timestamp()

@@ -48,8 +48,10 @@ class TestToPeriod:
         tm.assert_frame_equal(df.to_period(axis=1), expected)
 
     def test_to_period_raises(self, indices):
-        # invalid type , #34067 test
-        idx = indices
-        msg = "unsupported Type RangeIndex"
-        with pytest.raises(TypeError, match=msg):
-            Series([idx]).to_period()
+        # https://github.com/pandas-dev/pandas/issues/33327
+        index = indices
+        ser = Series(index=index, dtype=object)
+        if not isinstance(index, DatetimeIndex):
+            msg = f"unsupported Type {type(index).__name__}"
+            with pytest.raises(TypeError, match=msg):
+                ser.to_period()
