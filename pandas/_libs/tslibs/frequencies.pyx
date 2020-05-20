@@ -3,9 +3,10 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 # ----------------------------------------------------------------------
 # Constants

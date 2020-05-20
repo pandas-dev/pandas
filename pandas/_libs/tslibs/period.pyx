@@ -65,7 +65,9 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport (
+    to_offset, is_tick_object, is_offset_object,
+)
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -1598,7 +1600,7 @@ cdef class _Period:
                     return Period(ordinal=ordinal, freq=self.freq)
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
-        elif util.is_offset_object(other):
+        elif is_offset_object(other):
             if other.base == self.freq.base:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
@@ -1617,7 +1619,7 @@ cdef class _Period:
             return other.__add__(self)
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+                is_offset_object(other)):
             return self._add_delta(other)
         elif other is NaT:
             return NaT
@@ -1643,7 +1645,7 @@ cdef class _Period:
             return NotImplemented
 
         elif (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+                is_offset_object(other)):
             neg_other = -other
             return self + neg_other
         elif util.is_integer_object(other):

@@ -168,21 +168,6 @@ cdef inline bint is_array(object val):
     return PyArray_Check(val)
 
 
-cdef inline bint is_offset_object(object val):
-    """
-    Check if an object is a DateOffset object.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_date_offset : bool
-    """
-    return getattr(val, '_typ', None) == "dateoffset"
-
-
 cdef inline bint is_nan(object val):
     """
     Check if val is a Not-A-Number float or complex, including
