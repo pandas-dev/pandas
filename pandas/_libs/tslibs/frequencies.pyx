@@ -298,21 +298,6 @@ cpdef str get_freq_str(base, mult=1):
     return str(mult) + code
 
 
-cpdef str get_base_alias(freqstr):
-    """
-    Returns the base frequency alias, e.g., '5D' -> 'D'
-
-    Parameters
-    ----------
-    freqstr : str
-
-    Returns
-    -------
-    base_alias : str
-    """
-    return base_and_stride(freqstr)[0]
-
-
 cpdef int get_to_timestamp_base(int base):
     """
     Return frequency code group used for base of to_timestamp against
