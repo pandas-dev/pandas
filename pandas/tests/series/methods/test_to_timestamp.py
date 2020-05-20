@@ -1,9 +1,10 @@
 from datetime import timedelta
 
-from pandas import Series, Timedelta, date_range, period_range, to_datetime
 import numpy as np
-import pandas._testing as tm
 import pytest
+
+from pandas import Series, Timedelta, date_range, period_range, to_datetime
+import pandas._testing as tm
 
 
 class TestToTimestamp:
