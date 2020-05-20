@@ -2585,10 +2585,7 @@ Name: Max Speed, dtype: float64
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = (
-                f"to_append should be a Series or list/tuple of Series, "
-                f"got DataFrame"
-            )
+            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
             raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
@@ -4774,7 +4771,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, PeriodIndex)
+        if not isinstance(self.index, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
         new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
@@ -4801,7 +4799,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, DatetimeIndex)
+        if not isinstance(self.index, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
         new_index = self.index.to_period(freq=freq)  # type: ignore
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
