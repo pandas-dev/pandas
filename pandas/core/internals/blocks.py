@@ -332,10 +332,22 @@ class Block(PandasObject):
         apply the function to my values; return a block if we are not
         one
         """
+        kwargs = self._ensure_same_shape_values(kwargs)
+
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
 
         return self._split_op_result(result)
+
+    def _ensure_same_shape_values(self, kwargs):
+        # TODO(EA2D): kludge for arithmetic not needed with 2D EA
+        if self.ndim == 2 and self.values.ndim == 1:
+            if "right" in kwargs and isinstance(kwargs["right"], np.ndarray):
+                right = kwargs["right"]
+                if right.ndim == 2:
+                    assert right.shape == (1, len(self.values)), right.shape
+                    kwargs["right"] = right[0]
+        return kwargs
 
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate

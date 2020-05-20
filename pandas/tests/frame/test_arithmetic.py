@@ -339,6 +339,20 @@ class TestFrameFlexComparisons:
         result = getattr(empty, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(result, pd.Series([2], index=[np.dtype(bool)]))
 
+    def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):
+        ii = pd.IntervalIndex.from_breaks([1, 2, 3])
+        df = pd.DataFrame({"A": ii, "B": ii})
+
+        ser = pd.Series([0, 0])
+        res = df.eq(ser, axis=0)
+
+        expected = pd.DataFrame({"A": [False, False], "B": [False, False]})
+        tm.assert_frame_equal(res, expected)
+
+        ser2 = pd.Series([1, 2], index=["A", "B"])
+        res2 = df.eq(ser2, axis=1)
+        tm.assert_frame_equal(res2, expected)
+
 
 # -------------------------------------------------------------------
 # Arithmetic
