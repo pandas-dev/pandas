@@ -1,5 +1,6 @@
 import distutils.version
 import importlib
+import sys
 import types
 import warnings
 
@@ -92,10 +93,16 @@ def import_optional_dependency(
             raise ImportError(msg) from None
         else:
             return None
-
+    # Grab parent module if submodule being imported
+    parent = name.split(".")[0]
+    if parent != name:
+        name = parent
+        module_to_get = sys.modules[name]
+    else:
+        module_to_get = module
     minimum_version = VERSIONS.get(name)
     if minimum_version:
-        version = _get_version(module)
+        version = _get_version(module_to_get)
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
             msg = (
