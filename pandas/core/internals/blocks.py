@@ -332,7 +332,6 @@ class Block(PandasObject):
         apply the function to my values; return a block if we are not
         one
         """
-
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
 

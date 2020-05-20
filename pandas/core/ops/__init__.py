@@ -511,19 +511,7 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     # We assume that self.align(other, ...) has already been called
 
     rvalues = right._values
-    if isinstance(rvalues, np.ndarray):
-        # TODO(EA2D): no need to special-case with 2D EAs
-        # We can operate block-wise
-        if axis == 0:
-            rvalues = rvalues.reshape(-1, 1)
-        else:
-            rvalues = rvalues.reshape(1, -1)
-
-        rvalues = np.broadcast_to(rvalues, left.shape)
-
-        array_op = get_array_op(func, str_rep=str_rep)
-        bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
-        return type(left)(bm)
+    assert not isinstance(rvalues, np.ndarray)  # handled by align_series_as_frame
 
     if axis == 0:
         new_data = dispatch_to_series(left, right, func)
