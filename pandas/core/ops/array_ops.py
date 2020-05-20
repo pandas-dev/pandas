@@ -160,6 +160,9 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
             #  In this case we do not fall back to the masked op, as that
             #  will handle complex numbers incorrectly, see GH#32047
             raise
+        if left.dtype.kind == "m":
+            # TODO: More systematic
+            raise
         result = masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):

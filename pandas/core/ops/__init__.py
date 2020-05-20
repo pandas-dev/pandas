@@ -57,7 +57,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa:F401
+    from pandas import DataFrame, Series  # noqa:F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -619,6 +619,7 @@ def _align_method_FRAME(
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
+        right = _align_series_as_frame(left, right, axis)
 
     return left, right
 
@@ -679,6 +680,25 @@ def _frame_arith_method_with_reindex(
     return result.reindex(join_columns, axis=1)
 
 
+def _align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+    """
+    If the Series operand is not EA-dtype, we can broadcast to 2D and operate
+    blockwise.
+    """
+    rvalues = series._values
+    if not isinstance(rvalues, np.ndarray):
+        # TODO(EA2D): no need to special-case with 2D EAs
+        return series
+
+    if axis == 0:
+        rvalues = rvalues.reshape(-1, 1)
+    else:
+        rvalues = rvalues.reshape(1, -1)
+
+    rvalues = np.broadcast_to(rvalues, frame.shape)
+    return type(frame)(rvalues, index=frame.index, columns=frame.columns)
+
+
 def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -701,6 +721,10 @@ def _arith_method_FRAME(cls, op, special):
         ):
             return _frame_arith_method_with_reindex(self, other, op)
 
+        if isinstance(other, ABCSeries) and fill_value is not None:
+            # TODO: We could allow this in cases where we end up going
+            #  through the DataFrame path
+            raise NotImplementedError(f"fill_value {fill_value} not supported.")
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
@@ -715,9 +739,6 @@ def _arith_method_FRAME(cls, op, special):
             # so do not want the masked op.
             pass_op = op if axis in [0, "columns", None] else na_op
             pass_op = pass_op if not is_logical else op
-
-            if fill_value is not None:
-                raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
             new_data = _combine_series_frame(

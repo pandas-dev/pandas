@@ -1424,12 +1424,13 @@ class TestFrameArithmeticUnsorted:
             range(1, 4),
         ]:
 
-            tm.assert_series_equal(
-                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
+            expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
+            tm.assert_frame_equal(align(df, val, "index")[1], expected)
+
+            expected = DataFrame(
+                {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
             )
-            tm.assert_series_equal(
-                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
-            )
+            tm.assert_frame_equal(align(df, val, "columns")[1], expected)
 
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
