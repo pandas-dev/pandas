@@ -107,7 +107,7 @@ cdef class Reducer:
 
         result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
-        partial_result = None
+        reduction_success = True
 
         try:
             for i in range(self.nresults):
@@ -150,7 +150,8 @@ cdef class Reducer:
                             # catch only the specific exception
                             raise
 
-                        partial_result = copy(res)
+                        reduction_success = False
+                        PyArray_SETITEM(result, PyArray_ITER_DATA(it), copy(res))
                         break
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), extracted_res)
@@ -162,7 +163,7 @@ cdef class Reducer:
             chunk.data = dummy_buf
 
         result = maybe_convert_objects(result)
-        return result, partial_result
+        return result, reduction_success
 
 
 cdef class _BaseGrouper:

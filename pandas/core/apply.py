@@ -220,13 +220,12 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        result, partial_result = libreduction.compute_reduction(
+        result, reduction_success = libreduction.compute_reduction(
             self.values, self.f, axis=self.axis
         )
 
-        # A non None partial_result means that the reduction was unsuccessful
         # We expect np.apply_along_axis to give a two-dimensional result, or raise.
-        if partial_result is not None:
+        if not reduction_success:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -264,7 +263,8 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_standard(self):
 
-        partial_result = None
+        partial_result = None  # partial result that may be returned from reduction.
+
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
@@ -292,7 +292,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             )
 
             try:
-                result, partial_result = libreduction.compute_reduction(
+                result, reduction_success = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
             except TypeError:
@@ -303,14 +303,17 @@ class FrameApply(metaclass=abc.ABCMeta):
                 # reached via numexpr; fall back to python implementation
                 pass
             else:
-                # this means that the reduction was successful
-                if partial_result is None:
+                if reduction_success:
                     return self.obj._constructor_sliced(result, index=labels)
                 else:
+                    # no exceptions - however reduction was unsuccessful,
+                    # use the computed function result for first element
+                    partial_result = result[0]
                     if isinstance(partial_result, ABCSeries):
                         partial_result = partial_result.infer_objects()
 
-        # compute the result using the series generator
+        # compute the result using the series generator,
+        # use the result computed while trying to reduce if available.
         results, res_index = self.apply_series_generator(partial_result)
 
         # wrap results
