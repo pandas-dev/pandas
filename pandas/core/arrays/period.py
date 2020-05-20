@@ -665,7 +665,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other):
+    def _add_offset(self, other: DateOffset):
         assert not isinstance(other, Tick)
 
         if other.base != self.freq.base:
