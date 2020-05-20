@@ -802,6 +802,7 @@ Properties
     BYearEnd.normalize
     BYearEnd.rule_code
     BYearEnd.n
+    BYearEnd.month
 
 Methods
 ~~~~~~~
@@ -836,6 +837,7 @@ Properties
     BYearBegin.normalize
     BYearBegin.rule_code
     BYearBegin.n
+    BYearBegin.month
 
 Methods
 ~~~~~~~
@@ -870,6 +872,7 @@ Properties
     YearEnd.normalize
     YearEnd.rule_code
     YearEnd.n
+    YearEnd.month
 
 Methods
 ~~~~~~~
@@ -904,6 +907,7 @@ Properties
     YearBegin.normalize
     YearBegin.rule_code
     YearBegin.n
+    YearBegin.month
 
 Methods
 ~~~~~~~
