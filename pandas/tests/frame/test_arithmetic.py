@@ -49,9 +49,11 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                msg = re.escape(
-                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
-                )
+                msgs = [
+                    r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
+                    "invalid type promotion",
+                ]
+                msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
                     x >= y
                 with pytest.raises(TypeError, match=msg):
@@ -106,7 +108,7 @@ class TestFrameComparisons:
             else:
                 msg = (
                     "'(<|>)=?' not supported between "
-                    "instances of 'Timestamp' and 'float'"
+                    "instances of 'numpy.ndarray' and 'Timestamp'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))

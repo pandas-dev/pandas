@@ -10,7 +10,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Period, PeriodIndex, Series, period_range
+from pandas import Period, PeriodIndex, Series, TimedeltaIndex, Timestamp, period_range
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
@@ -730,13 +730,13 @@ class TestPeriodIndexArithmetic:
         tdi = pd.TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
 
-        msg = r"Input has different freq=None from PeriodArray\(freq=Q-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        msg = r"Cannot add or subtract timedelta64\[ns\] dtype from period\[Q-DEC\]"
+        with pytest.raises(TypeError, match=msg):
             rng + tdarr
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        with pytest.raises(TypeError, match=msg):
             tdarr + rng
 
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        with pytest.raises(TypeError, match=msg):
             rng - tdarr
         msg = r"cannot subtract PeriodArray from timedelta64\[ns\]"
         with pytest.raises(TypeError, match=msg):
@@ -772,6 +772,48 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             tdi - rng
+
+    @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
+    @pytest.mark.parametrize("tdi_freq", [None, "H"])
+    def test_parr_sub_td64array(self, box_with_array, tdi_freq, pi_freq):
+        box = box_with_array
+        xbox = box if box is not tm.to_array else pd.Index
+
+        tdi = TimedeltaIndex(["1 hours", "2 hours"], freq=tdi_freq)
+        dti = Timestamp("2018-03-07 17:16:40") + tdi
+        pi = dti.to_period(pi_freq)
+
+        # TODO: parametrize over box for pi?
+        td64obj = tm.box_expected(tdi, box)
+
+        if pi_freq == "H":
+            result = pi - td64obj
+            expected = (pi.to_timestamp("S") - tdi).to_period(pi_freq)
+            expected = tm.box_expected(expected, xbox)
+            tm.assert_equal(result, expected)
+
+            # Subtract from scalar
+            result = pi[0] - td64obj
+            expected = (pi[0].to_timestamp("S") - tdi).to_period(pi_freq)
+            expected = tm.box_expected(expected, box)
+            tm.assert_equal(result, expected)
+
+        elif pi_freq == "D":
+            # Tick, but non-compatible
+            msg = "Input has different freq=None from PeriodArray"
+            with pytest.raises(IncompatibleFrequency, match=msg):
+                pi - td64obj
+            with pytest.raises(IncompatibleFrequency, match=msg):
+                pi[0] - td64obj
+
+        else:
+            # With non-Tick freq, we could not add timedelta64 array regardless
+            #  of what its resolution is
+            msg = "Cannot add or subtract timedelta64"
+            with pytest.raises(TypeError, match=msg):
+                pi - td64obj
+            with pytest.raises(TypeError, match=msg):
+                pi[0] - td64obj
 
     # -----------------------------------------------------------------
     # operations with array/Index of DateOffset objects

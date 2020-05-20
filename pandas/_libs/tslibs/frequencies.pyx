@@ -124,7 +124,49 @@ _lite_rule_alias = {
 
 _dont_uppercase = {'MS', 'ms'}
 
+# Map attribute-name resolutions to resolution abbreviations
+_attrname_to_abbrevs = {
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
+}
+cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+
+
 # ----------------------------------------------------------------------
+
+def get_freq_group(freq) -> int:
+    """
+    Return frequency code group of given frequency str or offset.
+
+    Examples
+    --------
+    >>> get_freq_group('W-MON')
+    4000
+
+    >>> get_freq_group('W-FRI')
+    4000
+    """
+    if is_offset_object(freq):
+        freq = freq.rule_code
+
+    if isinstance(freq, str):
+        freq = attrname_to_abbrevs.get(freq, freq)
+        base, mult = get_freq_code(freq)
+        freq = base
+    elif isinstance(freq, int):
+        pass
+    else:
+        raise ValueError('input must be str, offset or int')
+    return (freq // 1000) * 1000
+
 
 cpdef get_freq_code(freqstr):
     """
@@ -304,25 +346,6 @@ cpdef int get_to_timestamp_base(int base):
     elif FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
     return base
-
-
-cpdef object get_freq(object freq):
-    """
-    Return frequency code of given frequency str.
-    If input is not string, return input as it is.
-
-    Examples
-    --------
-    >>> get_freq('A')
-    1000
-
-    >>> get_freq('3A')
-    1000
-    """
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    return freq
 
 
 # ----------------------------------------------------------------------

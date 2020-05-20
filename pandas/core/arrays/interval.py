@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCExtensionArray,
     ABCIndexClass,
     ABCIntervalIndex,
     ABCPeriodIndex,
@@ -767,7 +766,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Avoid materializing self.values
         return self.left.size
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -1049,6 +1048,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False.
         """
+
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
     @property  # type: ignore
