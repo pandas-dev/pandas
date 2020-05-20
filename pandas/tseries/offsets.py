@@ -1665,7 +1665,50 @@ class YearBegin(YearOffset):
 # Special Offset Classes
 
 
-class FY5253(SingleConstructorOffset):
+class FY5253Mixin(BaseOffset):
+    def __init__(
+        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+    ):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "startingMonth", startingMonth)
+        object.__setattr__(self, "weekday", weekday)
+
+        object.__setattr__(self, "variation", variation)
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+        if self.variation not in ["nearest", "last"]:
+            raise ValueError(f"{self.variation} is not a valid variation")
+
+    def is_anchored(self) -> bool:
+        return (
+            self.n == 1 and self.startingMonth is not None and self.weekday is not None
+        )
+
+    # --------------------------------------------------------------------
+    # Name-related methods
+
+    @property
+    def rule_code(self) -> str:
+        prefix = self._prefix
+        suffix = self.get_rule_code_suffix()
+        return f"{prefix}-{suffix}"
+
+    def _get_suffix_prefix(self) -> str:
+        if self.variation == "nearest":
+            return "N"
+        else:
+            return "L"
+
+    def get_rule_code_suffix(self) -> str:
+        prefix = self._get_suffix_prefix()
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
+        weekday = ccalendar.int_to_weekday[self.weekday]
+        return f"{prefix}-{month}-{weekday}"
+
+
+class FY5253(SingleConstructorMixin, FY5253Mixin):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1715,26 +1758,6 @@ class FY5253(SingleConstructorOffset):
 
     _prefix = "RE"
     _attributes = frozenset(["weekday", "startingMonth", "variation"])
-
-    def __init__(
-        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
-    ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "startingMonth", startingMonth)
-        object.__setattr__(self, "weekday", weekday)
-
-        object.__setattr__(self, "variation", variation)
-
-        if self.n == 0:
-            raise ValueError("N cannot be 0")
-
-        if self.variation not in ["nearest", "last"]:
-            raise ValueError(f"{self.variation} is not a valid variation")
-
-    def is_anchored(self) -> bool:
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not is_normalized(dt):
@@ -1830,24 +1853,6 @@ class FY5253(SingleConstructorOffset):
                 # The previous self.weekday is closer than the upcoming one
                 return target_date + timedelta(days_forward - 7)
 
-    @property
-    def rule_code(self) -> str:
-        prefix = self._prefix
-        suffix = self.get_rule_code_suffix()
-        return f"{prefix}-{suffix}"
-
-    def _get_suffix_prefix(self) -> str:
-        if self.variation == "nearest":
-            return "N"
-        else:
-            return "L"
-
-    def get_rule_code_suffix(self) -> str:
-        prefix = self._get_suffix_prefix()
-        month = ccalendar.MONTH_ALIASES[self.startingMonth]
-        weekday = ccalendar.int_to_weekday[self.weekday]
-        return f"{prefix}-{month}-{weekday}"
-
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
         if varion_code == "N":
@@ -1871,7 +1876,7 @@ class FY5253(SingleConstructorOffset):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(SingleConstructorOffset):
+class FY5253Quarter(SingleConstructorMixin, FY5253Mixin):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -1941,15 +1946,8 @@ class FY5253Quarter(SingleConstructorOffset):
         qtr_with_extra_week=1,
         variation="nearest",
     ):
-        BaseOffset.__init__(self, n, normalize)
-
-        object.__setattr__(self, "startingMonth", startingMonth)
-        object.__setattr__(self, "weekday", weekday)
+        FY5253Mixin.__init__(self, n, normalize, weekday, startingMonth, variation)
         object.__setattr__(self, "qtr_with_extra_week", qtr_with_extra_week)
-        object.__setattr__(self, "variation", variation)
-
-        if self.n == 0:
-            raise ValueError("N cannot be 0")
 
     @cache_readonly
     def _offset(self):
@@ -1958,9 +1956,6 @@ class FY5253Quarter(SingleConstructorOffset):
             weekday=self.weekday,
             variation=self.variation,
         )
-
-    def is_anchored(self) -> bool:
-        return self.n == 1 and self._offset.is_anchored()
 
     def _rollback_to_year(self, other):
         """
@@ -2077,9 +2072,9 @@ class FY5253Quarter(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
-        suffix = self._offset.get_rule_code_suffix()
+        suffix = FY5253Mixin.rule_code.fget(self)  # type: ignore
         qtr = self.qtr_with_extra_week
-        return f"{self._prefix}-{suffix}-{qtr}"
+        return f"{suffix}-{qtr}"
 
     @classmethod
     def _from_name(cls, *args):
