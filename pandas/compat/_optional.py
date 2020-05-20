@@ -22,7 +22,7 @@ VERSIONS = {
     "pytest": "5.0.1",
     "pyxlsb": "1.0.6",
     "s3fs": "0.3.0",
-    "scipy": "0.19.0",
+    "scipy": "1.2.0",
     "sqlalchemy": "1.1.4",
     "tables": "3.4.3",
     "tabulate": "0.8.3",

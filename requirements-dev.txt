@@ -8,7 +8,7 @@ asv
 cython>=0.29.16
 black==19.10b0
 cpplint
-flake8
+flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort
@@ -50,7 +50,7 @@ ipython>=7.11.1
 jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
-scipy>=1.1
+scipy>=1.2
 numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib

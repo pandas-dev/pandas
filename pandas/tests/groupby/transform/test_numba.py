@@ -1,9 +1,11 @@
 import pytest
 
+from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba", "0.46.0")
@@ -15,10 +17,10 @@ def test_correct_function_signature():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(ValueError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key").transform(incorrect_function, engine="numba")
 
-    with pytest.raises(ValueError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba")
 
 
@@ -31,10 +33,10 @@ def test_check_nopython_kwargs():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(ValueError, match="numba does not support"):
+    with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key").transform(incorrect_function, engine="numba", a=1)
 
-    with pytest.raises(ValueError, match="numba does not support"):
+    with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", a=1)
 
 
@@ -98,13 +100,13 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     expected = grouped.transform(lambda x: x + 1, engine="cython")
     tm.assert_equal(result, expected)
     # func_1 should be in the cache now
-    assert func_1 in grouped._numba_func_cache
+    assert (func_1, "groupby_transform") in NUMBA_FUNC_CACHE
 
     # Add func_2 to the cache
     result = grouped.transform(func_2, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x * 5, engine="cython")
     tm.assert_equal(result, expected)
-    assert func_2 in grouped._numba_func_cache
+    assert (func_2, "groupby_transform") in NUMBA_FUNC_CACHE
 
     # Retest func_1 which should use the cache
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
