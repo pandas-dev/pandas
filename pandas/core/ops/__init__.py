@@ -322,7 +322,10 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         return type(left)(bm)
 
     elif isinstance(right, ABCDataFrame):
-        assert right._indexed_same(left)
+        assert left.index.equals(right.index)
+        assert left.columns.equals(right.columns)
+        # TODO: The previous assertion `assert right._indexed_same(left)`
+        #  fails in cases with shaoe[1] == 0
 
         array_op = get_array_op(func, str_rep=str_rep)
         bm = operate_blockwise(left, right, array_op)
@@ -710,8 +713,7 @@ def _arith_method_FRAME(cls, op, special):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            pass_op = op if is_logical else na_op
-            new_data = self._combine_frame(other, pass_op, fill_value)
+            new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
