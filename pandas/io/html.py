@@ -8,7 +8,9 @@ from collections import abc
 import numbers
 import os
 import re
+from typing import Dict, List, Optional, Pattern, Union
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
 from pandas.util._decorators import deprecate_nonkeyword_arguments
@@ -16,6 +18,7 @@ from pandas.util._decorators import deprecate_nonkeyword_arguments
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.frame import DataFrame
 
 from pandas.io.common import is_url, urlopen, validate_header_arg
 from pandas.io.formats.printing import pprint_thing
@@ -924,22 +927,22 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
 @deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
-    io,
-    match=".+",
-    flavor=None,
+    io: FilePathOrBuffer,
+    match: Union[str, Pattern] = ".+",
+    flavor: Optional[str] = None,
     header=None,
     index_col=None,
     skiprows=None,
-    attrs=None,
-    parse_dates=False,
-    thousands=",",
-    encoding=None,
-    decimal=".",
-    converters=None,
+    attrs: Optional[Dict[str, str]] = None,
+    parse_dates: Optional[bool] = False,
+    thousands: str = ",",
+    encoding: Optional[str] = None,
+    decimal: str = ".",
+    converters: Optional[dict] = None,
     na_values=None,
-    keep_default_na=True,
-    displayed_only=True,
-):
+    keep_default_na: bool = True,
+    displayed_only: bool = True,
+) -> List[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
