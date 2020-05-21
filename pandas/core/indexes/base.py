@@ -639,13 +639,15 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
+            return CategoricalIndex(
+                self._values, name=self.name, dtype=dtype, copy=copy
+            )
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
-            casted = self.values.astype(dtype, copy=copy)
+            casted = self._values.astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
@@ -906,7 +908,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, **kwargs)
 
     def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        values = self.values
+        values = self._values
 
         from pandas.io.formats.format import format_array
 

@@ -341,6 +341,8 @@ Backwards incompatible API changes
 - Combining a ``Categorical`` with integer categories and which contains missing values
   with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
   will now result in a float column instead of an object dtyped column (:issue:`33607`)
+- :meth:`Series.to_timestamp` now raises a ``TypeError`` if the axis is not a :class:`PeriodIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
+- :meth:`Series.to_period` now raises a ``TypeError`` if the axis is not a :class:`DatetimeIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -613,7 +615,7 @@ Performance improvements
   and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
-
+- Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 
 .. ---------------------------------------------------------------------------
 
@@ -818,9 +820,10 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
+- Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
-
+- Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
 
 Reshaping
 ^^^^^^^^^
@@ -885,6 +888,7 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- More informative error message with ``np.min`` or ``np.max`` on unordered :class:`Categorical` (:issue:`33115`)
 - Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 
 .. ---------------------------------------------------------------------------

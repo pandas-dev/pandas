@@ -665,10 +665,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other):
+    def _add_offset(self, other: DateOffset):
         assert not isinstance(other, Tick)
-        base = libfrequencies.get_base_alias(other.rule_code)
-        if base != self.freq.rule_code:
+
+        if other.base != self.freq.base:
             raise raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
