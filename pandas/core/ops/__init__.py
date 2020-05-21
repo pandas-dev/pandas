@@ -21,14 +21,12 @@ from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
     comparison_op,
-    define_na_arithmetic_op,
     get_array_op,
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.blockwise import operate_blockwise
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -628,7 +626,7 @@ def _align_method_FRAME(
 
 
 def _should_reindex_frame_op(
-    left: "DataFrame", right, op, axis, default_axis: int, fill_value, level
+    left: "DataFrame", right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -689,7 +687,7 @@ def _arith_method_FRAME(cls, op, special):
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    na_op = define_na_arithmetic_op(op, str_rep)
+    na_op = get_array_op(op, str_rep)
     is_logical = str_rep in ["&", "|", "^"]
 
     if op_name in _op_descriptions:
@@ -712,7 +710,7 @@ def _arith_method_FRAME(cls, op, special):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            pass_op = op if should_series_dispatch(self, other, op) else na_op
+            pass_op = op if is_logical else na_op
             new_data = self._combine_frame(other, pass_op, fill_value)
 
         elif isinstance(other, ABCSeries):
