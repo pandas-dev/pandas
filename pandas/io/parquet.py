@@ -102,10 +102,11 @@ class PyArrowImpl(BaseImpl):
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
         if partition_cols is not None:
-            if is_fsspec_url(path) and 'filesystem' not in kwargs:
+            if is_fsspec_url(path) and "filesystem" not in kwargs:
                 import fsspec.core
+
                 fs, path = fsspec.core.url_to_fs(path)
-                kwargs['filesystem'] = fs
+                kwargs["filesystem"] = fs
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -121,16 +122,13 @@ class PyArrowImpl(BaseImpl):
             file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        if is_fsspec_url(path) and 'filesystem' not in kwargs:
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
             import fsspec.core
+
             fs, path = fsspec.core.url_to_fs(path)
-            parquet_ds = self.api.parquet.ParquetDataset(
-                path, filesystem=fs, **kwargs
-            )
+            parquet_ds = self.api.parquet.ParquetDataset(path, filesystem=fs, **kwargs)
         else:
-            parquet_ds = self.api.parquet.ParquetDataset(
-                path,  **kwargs
-            )
+            parquet_ds = self.api.parquet.ParquetDataset(path, **kwargs)
 
         kwargs["columns"] = columns
         result = parquet_ds.read_pandas(**kwargs).to_pandas()
