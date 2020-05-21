@@ -996,7 +996,7 @@ class ScatterPlot(PlanePlot):
                 colors = [scatter.cmap(scatter.norm(i)) for i in codes]
                 labels = [self.data[c].cat.categories[i] for i in codes]
                 handles = [
-                    self.plt.scatter([], [], color=colors[i], label=labels[i],)
+                    self.plt.scatter([], [], color=colors[i], label=labels[i])
                     for i in codes
                 ]
                 ax.legend(handles=handles, title=cbar_label)
