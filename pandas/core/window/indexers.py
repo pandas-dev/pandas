@@ -201,6 +201,9 @@ class GroupbyRollingIndexer(BaseIndexer):
         center: Optional[bool] = None,
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        # 1) For each group, get the indices that belong to the group
+        # 2) Use the indices to calculate the start & end bounds of the window
+        # 3) Append the window bounds in group order
         start_arrays = []
         end_arrays = []
         window_indicies_start = 0

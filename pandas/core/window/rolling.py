@@ -148,7 +148,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self, obj):
+    def _create_blocks(self, obj: FrameOrSeries):
         """
         Split data into blocks & return conformed data.
         """
@@ -2123,7 +2123,9 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             use_numba_cache,
             **kwargs,
         )
-        # _wrap_outputs does not know about what the result index should be
+        # Cannot use _wrap_outputs because we calculate the result all at once
+        # Compose MultiIndex result from grouping levels then rolling level
+        # Aggregate the MultiIndex data as tuples then the level names
         grouped_object_index = self._groupby._selected_obj.index
         grouped_index_name = [grouped_object_index.name]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
@@ -2148,7 +2150,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self, obj):
+    def _create_blocks(self, obj: FrameOrSeries):
         """
         Split data into blocks & return conformed data.
         """
