@@ -5,12 +5,9 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64,
-    parse_timedelta_unit,
-    precision_from_unit,
-)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
