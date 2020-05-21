@@ -3,9 +3,10 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 # ----------------------------------------------------------------------
 # Constants
@@ -124,7 +125,49 @@ _lite_rule_alias = {
 
 _dont_uppercase = {'MS', 'ms'}
 
+# Map attribute-name resolutions to resolution abbreviations
+_attrname_to_abbrevs = {
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
+}
+cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+
+
 # ----------------------------------------------------------------------
+
+def get_freq_group(freq) -> int:
+    """
+    Return frequency code group of given frequency str or offset.
+
+    Examples
+    --------
+    >>> get_freq_group('W-MON')
+    4000
+
+    >>> get_freq_group('W-FRI')
+    4000
+    """
+    if is_offset_object(freq):
+        freq = freq.rule_code
+
+    if isinstance(freq, str):
+        freq = attrname_to_abbrevs.get(freq, freq)
+        base, mult = get_freq_code(freq)
+        freq = base
+    elif isinstance(freq, int):
+        pass
+    else:
+        raise ValueError('input must be str, offset or int')
+    return (freq // 1000) * 1000
+
 
 cpdef get_freq_code(freqstr):
     """
@@ -253,21 +296,6 @@ cpdef str get_freq_str(base, mult=1):
     if mult == 1:
         return code
     return str(mult) + code
-
-
-cpdef str get_base_alias(freqstr):
-    """
-    Returns the base frequency alias, e.g., '5D' -> 'D'
-
-    Parameters
-    ----------
-    freqstr : str
-
-    Returns
-    -------
-    base_alias : str
-    """
-    return base_and_stride(freqstr)[0]
 
 
 cpdef int get_to_timestamp_base(int base):
