@@ -69,9 +69,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.parametrize("column, expected_axes_num", [(None, 2), ("b", 1)])
     @pytest.mark.parametrize("label", [None, "d"])
-    def test_groupby_hist_with_legend(self, column, expected_axes_num, label):
-        # GH 6279
-        # Histogram can have a legend
+    def test_groupby_hist_frame_with_legend(self, column, expected_axes_num, label):
+        # GH 6279 - Histogram can have a legend
         expected_layout = (1, expected_axes_num)
         expected_labels = label or column or [["a"], ["b"]]
 
@@ -84,8 +83,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         if label is not None:
             kwargs["label"] = label
 
-        ret = g.hist(**kwargs)
-        for (_, axes) in ret.iteritems():
+        for axes in g.hist(**kwargs):
             self._check_axes_shape(
                 axes, axes_num=expected_axes_num, layout=expected_layout
             )
@@ -96,8 +94,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         "label, expected_label", [(None, ["1", "2"]), ("d", ["d", "d"])]
     )
     def test_groupby_hist_series_with_legend(self, label, expected_label):
-        # GH 6279
-        # Histogram can have a legend
+        # GH 6279 - Histogram can have a legend
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
         g = df.groupby("c")
@@ -107,7 +104,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         if label is not None:
             kwargs["label"] = label
 
-        axes = g["a"].hist(**kwargs)
-        for (_, ax) in axes.iteritems():
+        for ax in g["a"].hist(**kwargs):
             self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
             self._check_legend_labels(ax, expected_label)

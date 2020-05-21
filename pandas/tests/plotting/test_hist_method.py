@@ -136,8 +136,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_with_legend(
         self, by, expected_axes_num, expected_layout, label, expected_label
     ):
-        # GH 6279
-        # Histogram can have a legend
+        # GH 6279 - Histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
@@ -319,8 +318,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.parametrize("column", [None, "b"])
     @pytest.mark.parametrize("label", [None, "d"])
     def test_hist_with_legend(self, by, column, label):
-        # GH 6279
-        # Histogram can have a legend
+        # GH 6279 - Histogram can have a legend
         expected_axes_num = 1 if by is None and column is not None else 2
         expected_layout = (1, expected_axes_num)
         expected_labels = label or column or ["a", "b"]
