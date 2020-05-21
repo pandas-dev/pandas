@@ -294,7 +294,7 @@ def read_sql_query(
     coerce_float=True,
     params=None,
     parse_dates=None,
-    chunksize: int = 1,
+    chunksize: None = None,
 ) -> DataFrame:
     ...
 
@@ -307,7 +307,7 @@ def read_sql_query(
     coerce_float=True,
     params=None,
     parse_dates=None,
-    chunksize: None = None,
+    chunksize: int = 1,
 ) -> Iterator[DataFrame]:
     ...
 
