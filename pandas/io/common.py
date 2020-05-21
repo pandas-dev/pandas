@@ -141,12 +141,7 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     Returns true if fsspec is installed and the given URL looks like
     something fsspec can handle
     """
-    try:
-        import fsspec  # noqa: F401
-
-        return isinstance(url, str) and ("::" in url or "://" in url)
-    except ImportError:
-        return False
+    return isinstance(url, str) and ("::" in url or "://" in url)
 
 
 def get_filepath_or_buffer(
