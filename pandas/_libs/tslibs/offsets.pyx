@@ -1011,6 +1011,11 @@ cdef class BusinessMixin(BaseOffset):
             out += ": " + ", ".join(attrs)
         return out
 
+    cpdef __setstate__(self, state):
+        # We need to use a cdef/cpdef method to set the readonly _offset attribute
+        BaseOffset.__setstate__(self, state)
+        self._offset = state["_offset"]
+
 
 class BusinessHourMixin(BusinessMixin):
     _adjust_dst = False
@@ -1063,6 +1068,9 @@ class BusinessHourMixin(BusinessMixin):
 
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
