@@ -46,6 +46,25 @@ def test_read_csv(cleared_fs):
 
 
 @td.skip_if_no("fsspec")
+def test_reasonable_error(monkeypatch):
+    from fsspec.registry import _registry, known_implementations
+
+    _registry.clear()
+    with pytest.raises(ValueError) as e:
+        read_csv("nosuchprotocol://test/test.csv")
+        assert "nosuchprotocol" in str(e.value)
+    err_mgs = "test error messgae"
+    monkeypatch.setitem(
+        known_implementations,
+        "couldexist",
+        {"class": "unimportable.CouldExist", "err": err_mgs},
+    )
+    with pytest.raises(ImportError) as e:
+        read_csv("couldexist://test/test.csv")
+        assert err_mgs in str(e.value)
+
+
+@td.skip_if_no("fsspec")
 def test_to_csv(cleared_fs):
     df1.to_csv("memory://test/test.csv", index=True)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
