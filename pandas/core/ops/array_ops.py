@@ -390,7 +390,7 @@ def get_array_op(op, str_rep: Optional[str] = None):
     """
     if isinstance(op, partial):
         # We get here via dispatch_to_series in DataFrame case
-        # TODO: try to aovid getting here
+        # TODO: try to avoid getting here
         return op
 
     op_name = op.__name__.strip("_")
