@@ -23,6 +23,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -2640,7 +2641,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         n: Optional[int] = None,
         frac: Optional[float] = None,
         replace: bool = False,
-        weights=None,
+        weights: Optional[Union[Sequence, Series]] = None,
         random_state=None,
     ):
         """
