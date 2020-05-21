@@ -191,6 +191,10 @@ class TestCategoricalDtype(Base):
         result = str(Categorical(DatetimeIndex([])).categories.dtype)
         assert result == expected
 
+    def test_not_string(self):
+        # though CategoricalDtype has object kind, it cannot be string
+        assert not is_string_dtype(CategoricalDtype())
+
 
 class TestDatetimeTZDtype(Base):
     @pytest.fixture
@@ -912,10 +916,6 @@ class TestCategoricalDtypeParametrized:
         msg = "a CategoricalDtype must be passed to perform an update, "
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
-
-    def test_not_string(self):
-        # though CategoricalDtype has object kind, it cannot be string
-        assert not is_string_dtype(CategoricalDtype)
 
 
 @pytest.mark.parametrize(
