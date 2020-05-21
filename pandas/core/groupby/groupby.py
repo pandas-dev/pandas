@@ -2039,6 +2039,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 inference = "datetime64[ns]"
                 vals = np.asarray(vals).astype(np.float)
 
+            if vals.dtype != np.dtype(np.float64):
+                vals = vals.astype(np.float64)
+
             return vals, inference
 
         def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:
@@ -2396,7 +2399,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing:
-            if not callable(pre_processing):
+            if not callable(post_processing):
                 raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
@@ -2411,6 +2414,37 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         labels, _, ngroups = grouper.group_info
         output: Dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
+
+        if how == "group_quantile":
+            values = self._obj_with_exclusions._values
+            result_sz = ngroups if aggregate else len(values)
+
+            vals, inferences = pre_processing(values)
+            if self._obj_with_exclusions.ndim == 1:
+                width = 1
+                vals = np.reshape(vals, (-1, 1))
+            else:
+                width = len(self._obj_with_exclusions.columns)
+            result = np.zeros((result_sz, width), dtype=cython_dtype)
+            counts = np.zeros(self.ngroups, dtype=np.int64)
+            mask = isna(vals).view(np.uint8)
+
+            func = partial(base_func, result, counts, vals, labels, -1, mask)
+            func(**kwargs)  # Call func to modify indexer values in place
+            result = post_processing(result, inferences)
+
+            if self._obj_with_exclusions.ndim == 1:
+                key = base.OutputKey(label=self._obj_with_exclusions.name, position=0)
+                output[key] = result[:, 0]
+            else:
+                for idx, name in enumerate(self._obj_with_exclusions.columns):
+                    key = base.OutputKey(label=name, position=idx)
+                    output[key] = result[:, idx]
+
+            if aggregate:
+                return self._wrap_aggregated_output(output)
+            else:
+                return self._wrap_transformed_output(output)
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
