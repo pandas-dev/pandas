@@ -1,5 +1,3 @@
-import gc
-
 import numpy as np
 import pytest
 
@@ -50,7 +48,6 @@ def test_read_csv(cleared_fs):
 @td.skip_if_no("fsspec")
 def test_to_csv(cleared_fs):
     df1.to_csv("memory://test/test.csv", index=True)
-    gc.collect()  # pandas does not explicitly close file buffers
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
 
     tm.assert_frame_equal(df1, df2)
