@@ -993,12 +993,13 @@ class ScatterPlot(PlanePlot):
                 self._plot_colorbar(ax, label=cbar_label)
             else:
                 codes = (self.data[c].cat.codes).unique()
-                colors = [scatter.cmap(scatter.norm(i)) for i in codes]
-                labels = [self.data[c].cat.categories[i] for i in codes]
-                handles = [
-                    self.plt.scatter([], [], color=colors[i], label=labels[i])
-                    for i in codes
-                ]
+                empty_plot = lambda i: self.plt.scatter(
+                    [],
+                    [],
+                    color=scatter.cmap(scatter.norm(i)),
+                    label=self.data[c].cat.categories[i],
+                )
+                handles = [empty_plot(i) for i in codes]
                 ax.legend(handles=handles, title=cbar_label)
 
         if label is not None:
