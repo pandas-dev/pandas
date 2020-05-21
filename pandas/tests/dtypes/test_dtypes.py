@@ -913,6 +913,10 @@ class TestCategoricalDtypeParametrized:
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
+    def test_not_string(self):
+        # though CategoricalDtype has object kind, it cannot be string
+        assert not is_string_dtype(CategoricalDtype)
+
 
 @pytest.mark.parametrize(
     "dtype", [CategoricalDtype, IntervalDtype, DatetimeTZDtype, PeriodDtype]
