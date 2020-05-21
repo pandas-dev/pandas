@@ -1190,6 +1190,16 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
+    def test_scatterplot_color_by_categorical(self):
+        df = pd.DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = pd.Categorical(
+            ["setosa", "setosa", "virginica", "virginica", "versicolor"]
+        )
+        _check_plot_works(df.plot.scatter, x=0, y=1, c="species")
+
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
