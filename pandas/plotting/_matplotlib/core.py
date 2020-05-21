@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -413,7 +414,8 @@ class MPLPlot:
         # np.ndarray before plot.
         numeric_data = numeric_data.copy()
         for col in numeric_data:
-            numeric_data[col] = np.asarray(numeric_data[col])
+            if not is_categorical_dtype(numeric_data[col]):
+                numeric_data[col] = np.asarray(numeric_data[col])
 
         self.data = numeric_data
 
@@ -965,7 +967,11 @@ class ScatterPlot(PlanePlot):
         elif color is not None:
             c_values = color
         elif c_is_column:
-            c_values = self.data[c].values
+            if not is_categorical_dtype(self.data[c]):
+                c_values = self.data[c].values
+
+            else:
+                c_values = self.data[c].cat.codes
         else:
             c_values = c
 
@@ -983,7 +989,20 @@ class ScatterPlot(PlanePlot):
         )
         if cb:
             cbar_label = c if c_is_column else ""
-            self._plot_colorbar(ax, label=cbar_label)
+            if not is_categorical_dtype(self.data[c]):
+                self._plot_colorbar(ax, label=cbar_label)
+            else:
+                codes = (self.data[c].cat.codes).unique()
+                handles = [
+                    self.plt.scatter(
+                        [],
+                        [],
+                        color=scatter.cmap(scatter.norm(i)),
+                        label=self.data[c].cat.categories[i],
+                    )
+                    for i in codes
+                ]
+                ax.legend(handles=handles, title=cbar_label)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
