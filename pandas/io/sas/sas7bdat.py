@@ -37,9 +37,10 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str):
 
     Parameters
     ----------
-    sas_datetimes : Series of 64bit floats representing dates or datetimes
-        in SAS
-    unit : "d" if the floats represent dates, "t" for datetimes
+    sas_datetimes : {Series, Sequence[float]} 
+       Dates or datetimes in SAS
+    unit : {str}
+       "d" if the floats represent dates, "s" for datetimes
     """
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")

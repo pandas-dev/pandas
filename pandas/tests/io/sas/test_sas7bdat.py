@@ -1,4 +1,5 @@
 from datetime import datetime
+import dateutil.parser
 import io
 import os
 from pathlib import Path
@@ -219,6 +220,9 @@ def test_zero_variables(datapath):
 def round_datetime_to_ms(ts):
     if isinstance(ts, datetime):
         return ts.replace(microsecond=int(round(ts.microsecond, -3) / 1000) * 1000)
+    elif isinstance(ts, str):
+        _ts = dateutil.parser.parse(timestr=ts)
+        return _ts.replace(microsecond=int(round(_ts.microsecond, -3) / 1000) * 1000)
     else:
         return ts
 
@@ -269,6 +273,8 @@ def test_max_sas_date_iterator(datapath):
             df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
         except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
             df = df.applymap(round_datetime_to_ms)
+        except AttributeError as e:
+            df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
         df.reset_index(inplace=True, drop=True)
         results.append(df)
     expected = [
