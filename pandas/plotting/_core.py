@@ -4,14 +4,12 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 from pandas._config import get_option
 
 from pandas._typing import Label
-
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
-
 
 if TYPE_CHECKING:
     from pandas import DataFrame
