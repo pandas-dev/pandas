@@ -632,6 +632,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
+    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -666,6 +667,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
+    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -700,6 +702,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
+    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -734,6 +737,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
+    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
