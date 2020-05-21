@@ -992,13 +992,15 @@ class ScatterPlot(PlanePlot):
             if not is_categorical_dtype(self.data[c]):
                 self._plot_colorbar(ax, label=cbar_label)
             else:
-                empty_plot = lambda i: self.plt.scatter(
-                    [],
-                    [],
-                    color=scatter.cmap(scatter.norm(i)),
-                    label=self.data[c].cat.categories[i],
-                )
-                handles = [empty_plot(i) for i in self.data[c].cat.codes.unique()]
+                handles = [
+                    self.plt.scatter(
+                        [],
+                        [],
+                        color=scatter.cmap(scatter.norm(i)),
+                        label=self.data[c].cat.categories[i],
+                    )
+                    for i in self.data[c].cat.codes.unique()
+                ]
                 ax.legend(handles=handles, title=cbar_label)
 
         if label is not None:
