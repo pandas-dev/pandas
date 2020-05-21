@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -45,3 +46,12 @@ class TestToPeriod:
         expected = df.copy()
         expected.columns = exp_idx
         tm.assert_frame_equal(df.to_period(axis=1), expected)
+
+    def test_to_period_raises(self, indices):
+        # https://github.com/pandas-dev/pandas/issues/33327
+        index = indices
+        ser = Series(index=index, dtype=object)
+        if not isinstance(index, DatetimeIndex):
+            msg = f"unsupported Type {type(index).__name__}"
+            with pytest.raises(TypeError, match=msg):
+                ser.to_period()
