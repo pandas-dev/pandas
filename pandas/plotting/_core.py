@@ -3,12 +3,15 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
+from pandas._typing import Label
+
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
+
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -99,7 +102,7 @@ def hist_series(
 
 def hist_frame(
     data: "DataFrame",
-    column: Optional[Union[str, Sequence[str]]] = None,
+    column: Union[Label, Sequence[Label]] = None,
     by=None,
     grid: bool = True,
     xlabelsize: Optional[int] = None,
