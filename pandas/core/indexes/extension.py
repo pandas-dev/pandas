@@ -236,10 +236,6 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _concat_same_dtype(self, to_concat, name):
-        arr = type(self._data)._concat_same_type(to_concat)
-        return type(self)._simple_new(arr, name=name)
-
     def _get_unique_index(self, dropna=False):
         if self.is_unique and not dropna:
             return self

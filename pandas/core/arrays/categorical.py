@@ -58,12 +58,16 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-
+import csv
 def _cat_compare_op(op):
     opname = f"__{op.__name__}__"
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
+        if is_list_like(other) and len(other) != len(self):
+            # TODO: Could this fail if the categories are listlike objects?
+            raise ValueError("Lengths must match.")
+
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
@@ -1869,11 +1873,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(self.categories[:num], None)
-            tail = fmt.format_array(self.categories[-num:], None)
+            head = fmt.format_array(self.categories[:num], None, quoting=csv.QUOTE_NONNUMERIC)
+            tail = fmt.format_array(self.categories[-num:], None, quoting=csv.QUOTE_NONNUMERIC)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(self.categories, None)
+            category_strs = fmt.format_array(self.categories, None, quoting=csv.QUOTE_NONNUMERIC)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]

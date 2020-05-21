@@ -14,10 +14,7 @@ from pandas.tests.arrays.categorical.common import TestCategorical
 
 class TestCategoricalReprWithFactor(TestCategorical):
     def test_print(self):
-        expected = [
-            "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-            "Categories (3, object): ['a' < 'b' < 'c']",
-        ]
+        expected = ["[a, b, b, a, a, c, c, c]", "Categories (3, object): [a < b < c]"]
         expected = "\n".join(expected)
         actual = repr(self.factor)
         assert actual == expected
@@ -27,9 +24,9 @@ class TestCategoricalRepr:
     def test_big_print(self):
         factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ["a", "b", "c"], fastpath=True)
         expected = [
-            "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
+            "[a, b, c, a, b, ..., b, c, a, b, c]",
             "Length: 600",
-            "Categories (3, object): ['a', 'b', 'c']",
+            "Categories (3, object): [a, b, c]",
         ]
         expected = "\n".join(expected)
 
@@ -39,13 +36,13 @@ class TestCategoricalRepr:
 
     def test_empty_print(self):
         factor = Categorical([], ["a", "b", "c"])
-        expected = "[], Categories (3, object): ['a', 'b', 'c']"
+        expected = "[], Categories (3, object): [a, b, c]"
         actual = repr(factor)
         assert actual == expected
 
         assert expected == actual
         factor = Categorical([], ["a", "b", "c"], ordered=True)
-        expected = "[], Categories (3, object): ['a' < 'b' < 'c']"
+        expected = "[], Categories (3, object): [a < b < c]"
         actual = repr(factor)
         assert expected == actual
 
@@ -67,17 +64,17 @@ class TestCategoricalRepr:
     def test_unicode_print(self):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\
-['aaaaa', 'bb', 'cccc', 'aaaaa', 'bb', ..., 'bb', 'cccc', 'aaaaa', 'bb', 'cccc']
+[aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
 Length: 60
-Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
+Categories (3, object): [aaaaa, bb, cccc]"""
 
         assert repr(c) == expected
 
         c = Categorical(["ああああ", "いいいいい", "ううううううう"] * 20)
         expected = """\
-['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
+[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
-Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
         assert repr(c) == expected
 
@@ -86,9 +83,9 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
         with option_context("display.unicode.east_asian_width", True):
 
             c = Categorical(["ああああ", "いいいいい", "ううううううう"] * 20)
-            expected = """['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
+            expected = """[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
-Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
             assert repr(c) == expected
 
@@ -530,4 +527,5 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_categorical_str_repr(self):
         result = repr(Categorical([1, "2", 3, 4]))
         expected = "[1, '2', 3, 4]\nCategories (4, object): [1, 3, 4, '2']"
+        breakpoint()
         assert result == expected

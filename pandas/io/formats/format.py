@@ -191,11 +191,13 @@ class CategoricalFormatter:
         return str(footer)
 
     def _get_formatted_values(self) -> List[str]:
+        breakpoint()
         return format_array(
             self.categorical._internal_get_values(),
             None,
             float_format=None,
             na_rep=self.na_rep,
+            quoting=2
         )
 
     def to_string(self) -> str:
@@ -1086,6 +1088,7 @@ def format_array(
     justify: str = "right",
     decimal: str = ".",
     leading_space: Optional[bool] = None,
+    quoting=None
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1148,11 +1151,11 @@ def format_array(
         justify=justify,
         decimal=decimal,
         leading_space=leading_space,
+        quoting=quoting
     )
-
     return fmt_obj.get_result()
 
-
+import csv
 class GenericArrayFormatter:
     def __init__(
         self,
@@ -1237,8 +1240,6 @@ class GenericArrayFormatter:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
-            elif isinstance(v, str):
-                fmt_values.append(f"'{v}'")
             else:
                 if leading_space is False:
                     # False specifically, so that the default is

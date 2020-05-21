@@ -11,10 +11,10 @@ import pandas._testing as tm
 
 def test_repr():
     df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype="string")})
-    expected = "      A\n0   'a'\n1  <NA>\n2   'b'"
+    expected = "      A\n0     a\n1  <NA>\n2     b"
     assert repr(df) == expected
 
-    expected = "0     'a'\n1    <NA>\n2     'b'\nName: A, dtype: string"
+    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
     assert repr(df.A) == expected
 
     expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
@@ -98,7 +98,7 @@ def test_add_2d():
         a + b
 
     s = pd.Series(a)
-    with pytest.raises(ValueError, match="Lengths must match"):
+    with pytest.raises(ValueError, match="3 != 1"):
         s + b
 
 

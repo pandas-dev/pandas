@@ -66,9 +66,9 @@ class TestDataFrameReprInfoEtc:
         DataFrame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
-        assert "\t" in repr(df)
-        assert "\r" in repr(df)
-        assert "a\n" in repr(df)
+        assert "\t" not in repr(df)
+        assert "\r" not in repr(df)
+        assert "a\n" not in repr(df)
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2], [3, 4]])
@@ -123,7 +123,7 @@ class TestDataFrameReprInfoEtc:
         df = DataFrame({"A": [uval, uval]})
 
         result = repr(df)
-        ex_top = "       A"
+        ex_top = "      A"
         assert result.split("\n")[0].rstrip() == ex_top
 
         df = DataFrame({"A": [uval, uval]})
@@ -173,10 +173,10 @@ class TestDataFrameReprInfoEtc:
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
 \toprule
-{} &          0 &   1 &   2 \\
+{} &         0 &  1 &  2 \\
 \midrule
-0 & '$\alpha$' & 'b' & 'c' \\
-1 &          1 &   2 &   3 \\
+0 &  $\alpha$ &  b &  c \\
+1 &         1 &  2 &  3 \\
 \bottomrule
 \end{tabular}
 """
