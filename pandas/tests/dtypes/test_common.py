@@ -12,6 +12,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
+    DateDtype
 )
 
 import pandas as pd
@@ -205,6 +206,14 @@ def test_is_categorical():
     assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
     assert not com.is_categorical([1, 2, 3])
+
+
+def test_is_date_type():
+    assert not com.is_date_dtype(object)
+    assert not com.is_date_dtype([1, 2, 3])
+    assert not com.is_date_dtype(np.array([], dtype=int))
+
+    assert com.is_date_dtype(DateDtype("2020-01-01"))
 
 
 def test_is_datetime64_dtype():
@@ -721,3 +730,6 @@ def test__get_dtype_fails(input_param, expected_error_message):
 )
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
+
+if __name__ == '__main__':
+    test_is_date_type()
