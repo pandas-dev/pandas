@@ -29,7 +29,7 @@ def parser_and_data(all_parsers, csv1):
 
 
 @pytest.mark.parametrize("compression", ["zip", "infer", "zip2"])
-def test_zip(parser_and_data, compression):
+def test_zip(parser_and_data, compression, pyarrow_xfail):
     parser, data, expected = parser_and_data
 
     with tm.ensure_clean("test_file.zip") as path:
@@ -46,7 +46,7 @@ def test_zip(parser_and_data, compression):
 
 
 @pytest.mark.parametrize("compression", ["zip", "infer"])
-def test_zip_error_multiple_files(parser_and_data, compression):
+def test_zip_error_multiple_files(parser_and_data, compression, pyarrow_xfail):
     parser, data, expected = parser_and_data
 
     with tm.ensure_clean("combined_zip.zip") as path:
@@ -60,7 +60,7 @@ def test_zip_error_multiple_files(parser_and_data, compression):
             parser.read_csv(path, compression=compression)
 
 
-def test_zip_error_no_files(parser_and_data):
+def test_zip_error_no_files(parser_and_data, pyarrow_xfail):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
@@ -71,7 +71,7 @@ def test_zip_error_no_files(parser_and_data):
             parser.read_csv(path, compression="zip")
 
 
-def test_zip_error_invalid_zip(parser_and_data):
+def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
@@ -86,6 +86,11 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
     compress_type = compression_only
 
     ext = "gz" if compress_type == "gzip" else compress_type
+    pyarrow_unsupported_exts = {"bz2", "zip", "xz"}
+    if ext in pyarrow_unsupported_exts and parser.engine == "pyarrow":
+        # need to skip since this test will hang forever and not fail
+        pytest.skip(f"The pyarrow package doesn't come with {ext} support")
+
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
@@ -141,7 +146,7 @@ def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding
 
 
 @pytest.mark.parametrize("invalid_compression", ["sfark", "bz3", "zipper"])
-def test_invalid_compression(all_parsers, invalid_compression):
+def test_invalid_compression(all_parsers, invalid_compression, pyarrow_xfail):
     parser = all_parsers
     compress_kwargs = dict(compression=invalid_compression)
 

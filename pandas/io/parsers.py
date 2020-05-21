@@ -2322,10 +2322,6 @@ class ArrowParserWrapper(ParserBase):
             if self.names is None:
                 if self.prefix is not None:
                     self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-                # elif self.header is not None:
-                #    self.names = frame.iloc[self.header].tolist()
-                #    frame.drop(range(self.header + 1), axis=0, inplace=True)
-                #    frame.reset_index(drop=True, inplace=True)
                 elif self.header is None:
                     self.names = range(num_cols)
             frame.columns = self.names

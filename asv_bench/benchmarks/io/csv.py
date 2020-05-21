@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO, StringIO
 import random
 import string
 
@@ -265,7 +265,7 @@ class ReadCSVEngine(StringIORewind):
         data = ["A,B,C"] + (["1,2,3"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
         # simulate reading from file
-        self.BytesIO_input = self.StringIO_input.read().encode("utf-8")
+        self.BytesIO_input = BytesIO(self.StringIO_input.read().encode("utf-8"))
 
     def time_read_stringcsv_c(self):
         read_csv(self.data(self.StringIO_input))

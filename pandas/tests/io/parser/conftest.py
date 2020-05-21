@@ -1,7 +1,8 @@
+import distutils.version
 import os
-import pkgutil
 from typing import List, Optional
 
+import pkg_resources
 import pytest
 
 from pandas import read_csv, read_table
@@ -79,7 +80,10 @@ _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
 _pyarrow_parser_ids = ["pyarrow"]
 
-if pkgutil.find_loader("pyarrow"):
+pyarrow_version = pkg_resources.get_distribution("pyarrow").version
+if (
+    distutils.version.LooseVersion(pyarrow_version) > "0.15.0"
+):  # TODO remove this if block once required pyarrow>0.15.0
     _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
     _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
 else:
@@ -135,3 +139,14 @@ def encoding_fmt(request):
     Fixture for all possible string formats of a UTF encoding.
     """
     return request.param
+
+
+@pytest.fixture
+def pyarrow_xfail(request):
+    """
+    Fixture that xfails a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+        if parser.engine == "pyarrow":
+            pytest.xfail("pyarrow doesn't support this.")
