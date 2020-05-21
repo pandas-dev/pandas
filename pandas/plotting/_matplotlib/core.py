@@ -969,7 +969,6 @@ class ScatterPlot(PlanePlot):
         elif c_is_column:
             if not is_categorical_dtype(self.data[c]):
                 c_values = self.data[c].values
-
             else:
                 c_values = self.data[c].cat.codes
         else:
