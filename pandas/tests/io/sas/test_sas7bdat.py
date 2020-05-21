@@ -242,7 +242,7 @@ def test_max_sas_date(datapath):
         df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
     except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
         df = df.applymap(round_datetime_to_ms)
-    except AttributeError as e:
+    except AttributeError:
         df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
     # if there are any date/times > pandas.Timestamp.max then ALL in that chunk
     # are returned as datetime.datetime
@@ -278,7 +278,7 @@ def test_max_sas_date_iterator(datapath):
             df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
         except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
             df = df.applymap(round_datetime_to_ms)
-        except AttributeError as e:
+        except AttributeError:
             df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
         df.reset_index(inplace=True, drop=True)
         results.append(df)
@@ -304,5 +304,5 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
-    for r, e in zip(results, expected):
-        tm.assert_frame_equal(r, e)
+    for result, expected in zip(results, expected):
+        tm.assert_frame_equal(result, expected)
