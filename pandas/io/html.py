@@ -8,7 +8,7 @@ from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Union
+from typing import Dict, List, Optional, Pattern, Sequence, Union
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -930,9 +930,9 @@ def read_html(
     io: FilePathOrBuffer,
     match: Union[str, Pattern] = ".+",
     flavor: Optional[str] = None,
-    header=None,
-    index_col=None,
-    skiprows=None,
+    header: Union[int, Sequence[int], None] = None,
+    index_col: Union[int, Sequence[int], None] = None,
+    skiprows: Union[int, Sequence[int], slice, None] = None,
     attrs: Optional[Dict[str, str]] = None,
     parse_dates: Optional[bool] = False,
     thousands: str = ",",
@@ -967,14 +967,14 @@ def read_html(
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
         falls back on ``bs4`` + ``html5lib``.
 
-    header : int or list-like or None, optional
+    header : int or sequence of ints, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
         make the columns headers.
 
-    index_col : int or list-like or None, optional
+    index_col : int or sequence of ints, optional
         The column (or list of columns) to use to create the index.
 
-    skiprows : int or list-like or slice or None, optional
+    skiprows : int, sequence of ints or slice, optional
         Number of rows to skip after parsing the column integer. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
