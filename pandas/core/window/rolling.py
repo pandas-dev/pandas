@@ -58,7 +58,7 @@ from pandas.tseries.offsets import DateOffset
 
 def calculate_center_offset(window) -> int:
     """
-    Calculates an offset necessary to have the window label to be centered
+    Calculate an offset necessary to have the window label to be centered.
 
     Parameters
     ----------
@@ -82,7 +82,7 @@ def calculate_min_periods(
     floor: int,
 ) -> int:
     """
-    Calculates final minimum periods value for rolling aggregations.
+    Calculate final minimum periods value for rolling aggregations.
 
     Parameters
     ----------
@@ -111,7 +111,7 @@ def calculate_min_periods(
 
 def get_weighted_roll_func(cfunc: Callable) -> Callable:
     """
-    Wrap weighted rolling cython function with min periods argument
+    Wrap weighted rolling cython function with min periods argument.
 
     Parameters
     ----------

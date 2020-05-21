@@ -23,7 +23,7 @@ _bias_template = """
 """
 
 
-def _get_center_of_mass(comass, span, halflife, alpha):
+def get_center_of_mass(comass, span, halflife, alpha) -> float:
     valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
@@ -168,7 +168,7 @@ class EWM(_Rolling):
         axis=0,
     ):
         self.obj = obj
-        self.com = _get_center_of_mass(com, span, halflife, alpha)
+        self.com = get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = min_periods
         self.adjust = adjust
         self.ignore_na = ignore_na
