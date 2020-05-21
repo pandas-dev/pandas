@@ -2,6 +2,7 @@ import re
 from typing import Dict, List, Optional, Union
 import warnings
 
+from matplotlib.artist import Artist
 import numpy as np
 
 from pandas._typing import Label
@@ -112,7 +113,7 @@ class MPLPlot:
         import matplotlib.pyplot as plt
 
         self.data = data
-        self.by = [by] if not isinstance(by, list) and by is not None else by
+        self.by = com.maybe_make_list(by)
 
         if self.by:
             self._grouped_data_size = len(data.groupby(self.by))
@@ -169,8 +170,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles: List = []
-        self.legend_labels: List = []
+        self.legend_handles: List[Artist] = []
+        self.legend_labels: List[Label] = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))

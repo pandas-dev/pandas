@@ -119,7 +119,11 @@ class HistPlot(LinePlot):
             self._add_legend_handle(artists[0], label, index=i)
 
     def _reformat_y(self, y: Union[Series, np.array]) -> Union[Series, np.array]:
-        """Internal function to reformat y given `by` is applied or not."""
+        """Internal function to reformat y given `by` is applied or not.
+
+        If by is None, input y is 1-d array; and if by is not None, groupby will take
+        place and input y is multi-dimensional array.
+        """
         if self.by is not None and len(y.shape) > 1:
             notna = [col[~isna(col)] for col in y.T]
             y = np.array(np.array(notna).T)
