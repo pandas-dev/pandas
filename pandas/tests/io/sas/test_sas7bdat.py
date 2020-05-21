@@ -1,9 +1,9 @@
 from datetime import datetime
-import dateutil.parser
 import io
 import os
 from pathlib import Path
 
+import dateutil.parser
 import numpy as np
 import pytest
 
