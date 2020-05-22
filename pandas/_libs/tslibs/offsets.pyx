@@ -1299,6 +1299,31 @@ cdef class QuarterOffset(BaseOffset):
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
+cdef class MonthOffset(BaseOffset):
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+        n = roll_convention(other.day, self.n, compare_day)
+        return shift_month(other, n, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        # default _from_name calls cls with no args
+        if suffix:
+            raise ValueError(f"Bad freq suffix {suffix}")
+        return cls()
+
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 

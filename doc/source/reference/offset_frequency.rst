@@ -173,40 +173,6 @@ Methods
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.__call__
 
-MonthOffset
------------
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.freqstr
-    MonthOffset.kwds
-    MonthOffset.name
-    MonthOffset.nanos
-    MonthOffset.normalize
-    MonthOffset.rule_code
-    MonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.apply
-    MonthOffset.apply_index
-    MonthOffset.copy
-    MonthOffset.isAnchored
-    MonthOffset.onOffset
-    MonthOffset.is_anchored
-    MonthOffset.is_on_offset
-    MonthOffset.__call__
-
 MonthEnd
 --------
 .. autosummary::
