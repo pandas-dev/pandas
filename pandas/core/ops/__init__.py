@@ -339,17 +339,13 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         else:
             right = right._values
 
-        arrays = []
-        for l, r in zip(left._iter_column_arrays(), right):
-            arrays.append()
+        arrays = [array_op(l, r) for l, r in zip(left._iter_column_arrays(), right)]
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
         right = right._values
 
-        arrays = []
-        for l in left._iter_column_arrays():
-            arrays.append(array_op(l, right))
+        arrays = [array_op(l, right) for l in left._iter_column_arrays()]
 
     else:
         # Remaining cases have less-obvious dispatch rules
