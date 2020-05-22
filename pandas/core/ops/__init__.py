@@ -511,7 +511,7 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     # We assume that self.align(other, ...) has already been called
 
     rvalues = right._values
-    if isinstance(rvalues, np.ndarray):
+    if not left._mgr.any_extension_types and isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
         # We can operate block-wise
         if axis == 0:
