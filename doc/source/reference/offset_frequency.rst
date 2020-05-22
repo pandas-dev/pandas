@@ -613,40 +613,6 @@ Methods
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.__call__
 
-QuarterOffset
--------------
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.freqstr
-    QuarterOffset.kwds
-    QuarterOffset.name
-    QuarterOffset.nanos
-    QuarterOffset.normalize
-    QuarterOffset.rule_code
-    QuarterOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.apply
-    QuarterOffset.apply_index
-    QuarterOffset.copy
-    QuarterOffset.isAnchored
-    QuarterOffset.onOffset
-    QuarterOffset.is_anchored
-    QuarterOffset.is_on_offset
-    QuarterOffset.__call__
-
 BQuarterEnd
 -----------
 .. autosummary::
@@ -666,6 +632,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
+    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -700,6 +667,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
+    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -734,6 +702,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
+    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -768,6 +737,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
+    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
