@@ -153,7 +153,7 @@ def cast_scalar_indexer(val, warn_float=False):
     ----------
     val : scalar
     warn_float : bool, default False
-        If True, raise deprecation warning for a float indexer.
+        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
