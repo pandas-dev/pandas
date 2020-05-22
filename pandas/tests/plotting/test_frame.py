@@ -1218,10 +1218,7 @@ class TestDataFramePlots(TestPlotBase):
 
         expected_yticklabels = categories
         result_yticklabels = [i.get_text() for i in colorbar.ax.get_ymajorticklabels()]
-        assert all(
-            result == expected
-            for result, expected in zip(result_yticklabels, expected_yticklabels)
-        )
+        assert all(i == j for i, j in zip(result_yticklabels, expected_yticklabels))
 
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
