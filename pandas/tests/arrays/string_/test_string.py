@@ -305,6 +305,28 @@ def test_value_counts_na():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (pd.array(["a", "b", "c"]), np.array([False, False, False])),
+        (pd.array(["a", "b", None]), np.array([False, False, True])),
+    ],
+)
+def test_use_inf_as_na(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/33655
+    with pd.option_context("mode.use_inf_as_na", True):
+        result = values.isna()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.Series(values).isna()
+        expected = pd.Series(expected)
+        tm.assert_series_equal(result, expected)
+
+        result = pd.DataFrame(values).isna()
+        expected = pd.DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+
+
 def test_memory_usage():
     # GH 33963
     series = pd.Series(["a", "b", "c"], dtype="string")

@@ -44,9 +44,6 @@ from pandas.core.window.common import (
     _doc_template,
     _flex_binary_moment,
     _shared_docs,
-    calculate_center_offset,
-    calculate_min_periods,
-    get_weighted_roll_func,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -57,6 +54,81 @@ from pandas.core.window.indexers import (
 from pandas.core.window.numba_ import generate_numba_apply_func
 
 from pandas.tseries.offsets import DateOffset
+
+
+def calculate_center_offset(window) -> int:
+    """
+    Calculate an offset necessary to have the window label to be centered.
+
+    Parameters
+    ----------
+    window: ndarray or int
+        window weights or window
+
+    Returns
+    -------
+    int
+    """
+    if not is_integer(window):
+        window = len(window)
+    return int((window - 1) / 2.0)
+
+
+def calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+) -> int:
+    """
+    Calculate final minimum periods value for rolling aggregations.
+
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
+
+    Returns
+    -------
+    min_periods : int
+    """
+    if min_periods is None:
+        min_periods = window
+    else:
+        min_periods = max(required_min_periods, min_periods)
+    if min_periods > window:
+        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
+    elif min_periods > num_values:
+        min_periods = num_values + 1
+    elif min_periods < 0:
+        raise ValueError("min_periods must be >= 0")
+    return max(min_periods, floor)
+
+
+def get_weighted_roll_func(cfunc: Callable) -> Callable:
+    """
+    Wrap weighted rolling cython function with min periods argument.
+
+    Parameters
+    ----------
+    cfunc : function
+        Cython weighted rolling function
+
+    Returns
+    -------
+    function
+    """
+
+    def func(arg, window, min_periods=None):
+        if min_periods is None:
+            min_periods = len(window)
+        return cfunc(arg, window, min_periods)
+
+    return func
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -247,8 +319,22 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
-        url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError(f"See issue #11704 {url}")
+        window = self._get_window(win_type=None)
+        blocks, obj = self._create_blocks()
+        index = self._get_window_indexer(window=window)
+
+        start, end = index.get_window_bounds(
+            num_values=len(obj),
+            min_periods=self.min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        # From get_window_bounds, those two should be equal in length of array
+        assert len(start) == len(end)
+
+        for s, e in zip(start, end):
+            result = obj.iloc[slice(s, e)]
+            yield result
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
@@ -1302,6 +1388,8 @@ class _Rolling_and_Expanding(_Rolling):
             use_numba_cache=engine == "numba",
             raw=raw,
             original_func=func,
+            args=args,
+            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):

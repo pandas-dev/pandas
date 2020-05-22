@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
+from typing import Iterator, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -89,7 +90,7 @@ def _handle_date_column(col, utc=None, format=None):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col.dtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -108,7 +109,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -162,6 +163,7 @@ def execute(sql, con, cur=None, params=None):
 # -- Read and write to DataFrames
 
 
+@overload
 def read_sql_table(
     table_name,
     con,
@@ -170,8 +172,35 @@ def read_sql_table(
     coerce_float=True,
     parse_dates=None,
     columns=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql_table(
+    table_name,
+    con,
+    schema=None,
+    index_col=None,
+    coerce_float=True,
+    parse_dates=None,
+    columns=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql_table(
+    table_name,
+    con,
+    schema=None,
+    index_col=None,
+    coerce_float=True,
+    parse_dates=None,
+    columns=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL database table into a DataFrame.
 
@@ -210,7 +239,7 @@ def read_sql_table(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
         A SQL table is returned as two-dimensional data structure with labeled
         axes.
 
@@ -257,6 +286,7 @@ def read_sql_table(
         raise ValueError(f"Table {table_name} not found", con)
 
 
+@overload
 def read_sql_query(
     sql,
     con,
@@ -264,8 +294,33 @@ def read_sql_query(
     coerce_float=True,
     params=None,
     parse_dates=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql_query(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql_query(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
 
@@ -308,7 +363,7 @@ def read_sql_query(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
 
     See Also
     --------
@@ -331,6 +386,7 @@ def read_sql_query(
     )
 
 
+@overload
 def read_sql(
     sql,
     con,
@@ -339,8 +395,35 @@ def read_sql(
     params=None,
     parse_dates=None,
     columns=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    columns=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    columns=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query or database table into a DataFrame.
 
@@ -391,7 +474,7 @@ def read_sql(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
 
     See Also
     --------
@@ -448,7 +531,7 @@ def to_sql(
     chunksize=None,
     dtype=None,
     method=None,
-):
+) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
 

@@ -54,7 +54,6 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
     ABCDatetimeIndex,
-    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
@@ -640,13 +639,15 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
+            return CategoricalIndex(
+                self._values, name=self.name, dtype=dtype, copy=copy
+            )
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
-            casted = self.values.astype(dtype, copy=copy)
+            casted = self._values.astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
@@ -907,7 +908,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, **kwargs)
 
     def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        values = self.values
+        values = self._values
 
         from pandas.io.formats.format import format_array
 
@@ -3529,7 +3530,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             multi_join_idx = multi_join_idx.remove_unused_levels()
 
-            return multi_join_idx, lidx, ridx
+            if return_indexers:
+                return multi_join_idx, lidx, ridx
+            else:
+                return multi_join_idx
 
         jl = list(overlap)[0]
 
@@ -4099,37 +4103,13 @@ class Index(IndexOpsMixin, PandasObject):
         return self._concat(to_concat, name)
 
     def _concat(self, to_concat, name):
-
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if len(typs) == 1:
-            return self._concat_same_dtype(to_concat, name=name)
-        return Index._concat_same_dtype(self, to_concat, name=name)
-
-    def _concat_same_dtype(self, to_concat, name):
         """
-        Concatenate to_concat which has the same class.
+        Concatenate multiple Index objects.
         """
-        # must be overridden in specific classes
-        klasses = (
-            ABCDatetimeIndex,
-            ABCTimedeltaIndex,
-            ABCPeriodIndex,
-            ExtensionArray,
-            ABCIntervalIndex,
-        )
-        to_concat = [
-            x.astype(object) if isinstance(x, klasses) else x for x in to_concat
-        ]
-
-        self = to_concat[0]
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
-
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        res_values = np.concatenate(to_concat)
-        return Index(res_values, name=name)
+        result = _concat.concat_compat(to_concat)
+        return Index(result, name=name)
 
     def putmask(self, mask, value):
         """
