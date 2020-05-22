@@ -913,7 +913,7 @@ class PlanePlot(MPLPlot):
 
         if _mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
-            return
+            return cbar
 
         points = ax.get_position().get_points()
         cbar_points = cbar.ax.get_position().get_points()
@@ -930,6 +930,8 @@ class PlanePlot(MPLPlot):
         # the following two lines:
         # print(points[1, 1] - points[0, 1])
         # print(cbar_points[1, 1] - cbar_points[0, 1])
+
+        return cbar
 
 
 class ScatterPlot(PlanePlot):
@@ -953,6 +955,12 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
+        color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
+        color_by_ordered_categorical = color_by_categorical and self.data[c].cat.ordered
+        color_by_unordered_categorical = (
+            color_by_categorical and not self.data[c].cat.ordered
+        )
+
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop("colorbar", self.colormap or c_is_column)
 
@@ -967,40 +975,71 @@ class ScatterPlot(PlanePlot):
         elif color is not None:
             c_values = color
         elif c_is_column:
-            if not is_categorical_dtype(self.data[c]):
+            if not color_by_categorical:
                 c_values = self.data[c].values
             else:
                 c_values = self.data[c].cat.codes
+
         else:
             c_values = c
+
+        if color_by_categorical:
+            from matplotlib import colors
+
+            n_cats = len(self.data[c].cat.categories)
+            cmap = colors.ListedColormap([cmap(i) for i in range((cmap.N))])
+            bounds = np.linspace(0, n_cats, n_cats + 1)
+            ticks = np.linspace(0.5, n_cats - 0.5, n_cats)
+            norm = colors.BoundaryNorm(bounds, cmap.N)
 
         if self.legend and hasattr(self, "label"):
             label = self.label
         else:
             label = None
-        scatter = ax.scatter(
-            data[x].values,
-            data[y].values,
-            c=c_values,
-            label=label,
-            cmap=cmap,
-            **self.kwds,
-        )
+        if color_by_categorical:
+            scatter = ax.scatter(
+                data[x].values,
+                data[y].values,
+                c=c_values,
+                label=label,
+                cmap=cmap,
+                norm=norm,
+                **self.kwds,
+            )
+        else:
+            scatter = ax.scatter(
+                data[x].values,
+                data[y].values,
+                c=c_values,
+                label=label,
+                cmap=cmap,
+                **self.kwds,
+            )
         if cb:
             cbar_label = c if c_is_column else ""
-            if not is_categorical_dtype(self.data[c]):
-                self._plot_colorbar(ax, label=cbar_label)
-            else:
+            if color_by_unordered_categorical:
                 handles = [
                     self.plt.scatter(
-                        [],
-                        [],
+                        *([], []),
                         color=scatter.cmap(scatter.norm(i)),
                         label=self.data[c].cat.categories[i],
+                        norm=norm,
                     )
-                    for i in self.data[c].cat.codes.unique()
+                    for i in range(n_cats)
                 ]
                 ax.legend(handles=handles, title=cbar_label)
+            elif color_by_ordered_categorical:
+                cbar = self._plot_colorbar(
+                    ax,
+                    label=cbar_label,
+                    cmap=cmap,
+                    boundaries=bounds,
+                    ticks=ticks,
+                    norm=norm,
+                )
+                cbar.ax.set_yticklabels(self.data[c].cat.categories)
+            else:
+                self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
