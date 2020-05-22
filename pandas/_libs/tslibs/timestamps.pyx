@@ -1490,6 +1490,7 @@ default 'raise'
         newformat = "".join(newformat)
         return _time.strftime(newformat, self.timetuple())
 
+
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
