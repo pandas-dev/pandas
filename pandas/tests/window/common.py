@@ -1,77 +1,19 @@
-from datetime import datetime
-
 import numpy as np
-from numpy.random import randn
 
-from pandas import DataFrame, Series, bdate_range
+from pandas import Series
 import pandas._testing as tm
 
-N, K = 100, 10
 
+def check_pairwise_moment(frame, dispatch, name, **kwargs):
+    def get_result(obj, obj2=None):
+        return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
 
-class Base:
-
-    _nan_locs = np.arange(20, 40)
-    _inf_locs = np.array([])
-
-    def _create_data(self):
-        arr = randn(N)
-        arr[self._nan_locs] = np.NaN
-
-        self.arr = arr
-        self.rng = bdate_range(datetime(2009, 1, 1), periods=N)
-        self.series = Series(arr.copy(), index=self.rng)
-        self.frame = DataFrame(randn(N, K), index=self.rng, columns=np.arange(K))
-
-
-class ConsistencyBase(Base):
-    base_functions = [
-        (lambda v: Series(v).count(), None, "count"),
-        (lambda v: Series(v).max(), None, "max"),
-        (lambda v: Series(v).min(), None, "min"),
-        (lambda v: Series(v).sum(), None, "sum"),
-        (lambda v: Series(v).mean(), None, "mean"),
-        (lambda v: Series(v).std(), 1, "std"),
-        (lambda v: Series(v).cov(Series(v)), None, "cov"),
-        (lambda v: Series(v).corr(Series(v)), None, "corr"),
-        (lambda v: Series(v).var(), 1, "var"),
-        # restore once GH 8086 is fixed
-        # lambda v: Series(v).skew(), 3, 'skew'),
-        # (lambda v: Series(v).kurt(), 4, 'kurt'),
-        # restore once GH 8084 is fixed
-        # lambda v: Series(v).quantile(0.3), None, 'quantile'),
-        (lambda v: Series(v).median(), None, "median"),
-        (np.nanmax, 1, "max"),
-        (np.nanmin, 1, "min"),
-        (np.nansum, 1, "sum"),
-        (np.nanmean, 1, "mean"),
-        (lambda v: np.nanstd(v, ddof=1), 1, "std"),
-        (lambda v: np.nanvar(v, ddof=1), 1, "var"),
-        (np.nanmedian, 1, "median"),
-    ]
-    no_nan_functions = [
-        (np.max, None, "max"),
-        (np.min, None, "min"),
-        (np.sum, None, "sum"),
-        (np.mean, None, "mean"),
-        (lambda v: np.std(v, ddof=1), 1, "std"),
-        (lambda v: np.var(v, ddof=1), 1, "var"),
-        (np.median, None, "median"),
-    ]
-
-    def _create_data(self):
-        super()._create_data()
-
-    def _check_pairwise_moment(self, dispatch, name, **kwargs):
-        def get_result(obj, obj2=None):
-            return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
-
-        result = get_result(self.frame)
-        result = result.loc[(slice(None), 1), 5]
-        result.index = result.index.droplevel(1)
-        expected = get_result(self.frame[1], self.frame[5])
-        expected.index = expected.index._with_freq(None)
-        tm.assert_series_equal(result, expected, check_names=False)
+    result = get_result(frame)
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = get_result(frame[1], frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 def ew_func(A, B, com, name, **kwargs):

@@ -32,14 +32,17 @@ from dateutil.parser import parse as du_parse
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.nattype cimport (
+    c_nat_strings as nat_strings,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_offset_object,
     get_c_string_buf_and_size,
 )
 from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -435,9 +438,9 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                      f'between 1 and 4: {date_string}')
 
             if freq is not None:
-                # hack attack, #1228
+                # TODO: hack attack, #1228
                 try:
-                    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
+                    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     raise DateParseError(f'Unable to retrieve month '
                                          f'information from given '
