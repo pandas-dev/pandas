@@ -381,15 +381,19 @@ class TestTimestamp:
         t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
         assert t2.tz_convert(tz="UTC").freq == t2.freq
 
-    @pytest.mark.parametrize("_input,fmt,_output", [
-        ("2020-05-22 11:07:30", "%Y-%m-%d", "2020-05-22"),
-        ("2020-05-22 11:07:30.123456", "%Y-%m-%d %f", "2020-05-22 123456"),
-        ("2020-05-22 11:07:30.123456789", "%f", "123456789"),
-    ])
+    @pytest.mark.parametrize(
+        "_input,fmt,_output",
+        [
+            ("2020-05-22 11:07:30", "%Y-%m-%d", "2020-05-22"),
+            ("2020-05-22 11:07:30.123456", "%Y-%m-%d %f", "2020-05-22 123456"),
+            ("2020-05-22 11:07:30.123456789", "%f", "123456789"),
+        ],
+    )
     def test_strftime(self, _input, fmt, _output):
         ts = Timestamp(_input)
         result = ts.strftime(fmt)
         assert result == _output
+
 
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
@@ -451,18 +455,20 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 10
 
-    @pytest.mark.parametrize("date", [
-        "2020-05-22 08:53:19.123456789",
-        "2020-05-22 08:53:19.123456",
-        "2020-05-22 08:53:19"
-    ])
-    @pytest.mark.parametrize("fmt", [
-        "%m/%d/%Y %H:%M:%S.%f", "%m%d%Y%H%M%S%f"
-    ])
+    @pytest.mark.parametrize(
+        "date",
+        [
+            "2020-05-22 08:53:19.123456789",
+            "2020-05-22 08:53:19.123456",
+            "2020-05-22 08:53:19",
+        ],
+    )
+    @pytest.mark.parametrize("fmt", ["%m/%d/%Y %H:%M:%S.%f", "%m%d%Y%H%M%S%f"])
     def test_nanosecond_roundtrip(self, date, fmt):
         ts = Timestamp(date)
         string = ts.strftime(fmt)
         assert ts == to_datetime(string, format=fmt)
+
 
 class TestTimestampToJulianDate:
     def test_compare_1700(self):
