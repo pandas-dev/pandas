@@ -332,3 +332,29 @@ def test_memory_usage():
     series = pd.Series(["a", "b", "c"], dtype="string")
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+def test_extension_assert():
+    import pandas as pd
+    from pandas import StringDtype
+    from pandas.core.arrays import StringArray
+    from pandas.core.dtypes.dtypes import register_extension_dtype
+
+    @register_extension_dtype
+    class MyExtensionDtype(StringDtype):
+        name = "my_extension"
+
+        def __repr__(self) -> str:
+            return "MyExtensionDtype"
+
+        @classmethod
+        def construct_array_type(cls) -> "Type[MyExtensionStringArray]":
+            return MyExtensionStringArray
+
+    class MyExtensionStringArray(StringArray):
+        def __init__(self, values, copy=False):
+            super().__init__(values, copy)
+            self._dtype = MyExtensionDtype()
+
+    series = pd.Series(["test", "test2"], dtype="my_extension")
+    assert series.dtype == "my_extension"
