@@ -183,4 +183,5 @@ class SortIndexSeries:
     def time_sort_index(self):
         self.s.sort_index()
 
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
