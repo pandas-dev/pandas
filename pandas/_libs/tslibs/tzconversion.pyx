@@ -312,18 +312,21 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
+cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NULL):
     """
     Parameters
     ----------
     utc_val : int64_t
     tz : tzinfo
+    fold : bint*
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
 
     Returns
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
+    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
 
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
@@ -489,7 +492,8 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
 
-cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
+cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
+                                     bint* fold=NULL):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.
@@ -502,32 +506,6 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
-
-    Returns
-    -------
-    result : int64_t
-    """
-    cdef int64_t delta
-
-    delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
-
-    if to_utc:
-        return val - delta
-    else:
-        return val + delta
-
-
-cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
-    """
-    Convert the i8 representation of a datetime from UTC to local timezone,
-    set fold by pointer
-
-    Private, not intended for use outside of tslibs.conversion
-
-    Parameters
-    ----------
-    val : int64_t
-    tz : tzinfo
     fold : bint*
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment
@@ -540,11 +518,15 @@ cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
     -----
     Sets fold by pointer
     """
-    cdef int64_t delta
+    cdef:
+        int64_t delta
 
-    delta = _tzlocal_get_offset_components(val, tz, False, fold)
+    delta = _tzlocal_get_offset_components(val, tz, to_utc, fold)
 
-    return val + delta
+    if to_utc:
+        return val - delta
+    else:
+        return val + delta
 
 
 @cython.boundscheck(False)
