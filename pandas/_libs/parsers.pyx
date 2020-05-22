@@ -34,7 +34,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
 import pandas._libs.lib as lib
 
@@ -55,9 +55,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
     pandas_dtype, is_extension_array_dtype)
-from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
-import pandas.io.common as icom
 
 from pandas.compat import _import_lzma, _get_lzma_file
 from pandas.errors import (ParserError, DtypeWarning,
@@ -1149,7 +1147,8 @@ cdef class TextReader:
 
             # Method accepts list of strings, not encoded ones.
             true_values = [x.decode() for x in self.true_values]
-            cat = Categorical._from_inferred_categories(
+            array_type = dtype.construct_array_type()
+            cat = array_type._from_inferred_categories(
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 

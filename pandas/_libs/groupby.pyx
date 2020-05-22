@@ -9,10 +9,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
+from numpy.math cimport NAN
 cnp.import_array()
-
-cdef extern from "numpy/npy_math.h":
-    float64_t NAN "NPY_NAN"
 
 from pandas._libs.util cimport numeric, get_nat
 
@@ -893,7 +891,9 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -986,7 +986,9 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1

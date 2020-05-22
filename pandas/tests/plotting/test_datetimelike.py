@@ -1456,7 +1456,9 @@ class TestTSPlot(TestPlotBase):
         # ax.xaxis.converter with a DatetimeConverter
         s = Series(np.random.randn(10), index=date_range("1970-01-02", periods=10))
         ax = s.plot()
-        ax.plot(s.index, s.values, color="g")
+        with tm.assert_produces_warning(DeprecationWarning):
+            # multi-dimensional indexing
+            ax.plot(s.index, s.values, color="g")
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 

@@ -309,6 +309,18 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_searchsorted(data_for_sorting, as_series)
 
+    def test_shift_0_periods(self, data):
+        # GH#33856 shifting with periods=0 should return a copy, not same obj
+        result = data.shift(0)
+
+        data._sparse_values[0] = data._sparse_values[1]
+        assert result._sparse_values[0] != result._sparse_values[1]
+
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value, as_series, box)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):

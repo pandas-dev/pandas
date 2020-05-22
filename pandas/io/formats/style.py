@@ -124,7 +124,7 @@ class Styler:
     * Column label cells include
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
-      * ``evel<k>`` where `k` is the level in a MultiIndex
+      * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Blank cells include ``blank``
     * Data cells include ``data``
@@ -542,7 +542,7 @@ class Styler:
         d = self._translate()
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
-        # so we have the neested anys below
+        # so we have the nested anys below
         trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
         d["cellstyle"] = trimmed
         d.update(kwargs)
