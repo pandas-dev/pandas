@@ -757,7 +757,7 @@ class DatetimeLikeArrayMixin(
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=10,
+                stacklevel=8,
             )
             fill_value = new_fill
 
