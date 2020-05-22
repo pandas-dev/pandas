@@ -5,7 +5,7 @@ from pandas._libs.tslibs.util cimport get_nat
 
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies cimport get_freq_code
+from pandas._libs.tslibs.frequencies cimport attrname_to_abbrevs
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
@@ -24,6 +24,7 @@ cdef:
     int RESO_MIN = 4
     int RESO_HR = 5
     int RESO_DAY = 6
+
 
 # ----------------------------------------------------------------------
 
@@ -106,31 +107,6 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
-def get_freq_group(freq) -> int:
-    """
-    Return frequency code group of given frequency str or offset.
-
-    Examples
-    --------
-    >>> get_freq_group('W-MON')
-    4000
-
-    >>> get_freq_group('W-FRI')
-    4000
-    """
-    if getattr(freq, '_typ', None) == 'dateoffset':
-        freq = freq.rule_code
-
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    elif isinstance(freq, int):
-        pass
-    else:
-        raise ValueError('input must be str, offset or int')
-    return (freq // 1000) * 1000
-
-
 class Resolution:
 
     # Note: cython won't allow us to reference the cdef versions at the
@@ -163,7 +139,7 @@ class Resolution:
         RESO_HR: 60,
         RESO_DAY: 24}
 
-    _reso_str_bump_map = {
+    reso_str_bump_map = {
         'D': 'H',
         'H': 'T',
         'T': 'S',
@@ -174,19 +150,7 @@ class Resolution:
 
     _str_reso_map = {v: k for k, v in _reso_str_map.items()}
 
-    _reso_freq_map = {
-        'year': 'A',
-        'quarter': 'Q',
-        'month': 'M',
-        'day': 'D',
-        'hour': 'H',
-        'minute': 'T',
-        'second': 'S',
-        'millisecond': 'L',
-        'microsecond': 'U',
-        'nanosecond': 'N'}
-
-    _freq_reso_map = {v: k for k, v in _reso_freq_map.items()}
+    _freq_reso_map = {v: k for k, v in attrname_to_abbrevs.items()}
 
     @classmethod
     def get_str(cls, reso: int) -> str:
@@ -214,30 +178,6 @@ class Resolution:
         True
         """
         return cls._str_reso_map.get(resostr, cls.RESO_DAY)
-
-    @classmethod
-    def get_freq_group(cls, resostr: str) -> int:
-        """
-        Return frequency str against resolution str.
-
-        Examples
-        --------
-        >>> f.Resolution.get_freq_group('day')
-        4000
-        """
-        return get_freq_group(cls.get_freq(resostr))
-
-    @classmethod
-    def get_freq(cls, resostr: str) -> str:
-        """
-        Return frequency str against resolution str.
-
-        Examples
-        --------
-        >>> f.Resolution.get_freq('day')
-        'D'
-        """
-        return cls._reso_freq_map[resostr]
 
     @classmethod
     def get_str_from_freq(cls, freq: str) -> str:
@@ -303,7 +243,7 @@ class Resolution:
                 )
 
             next_value = cls._reso_mult_map[start_reso] * value
-            next_name = cls._reso_str_bump_map[freq]
+            next_name = cls.reso_str_bump_map[freq]
             return cls.get_stride_from_decimal(next_value, next_name)
 
 

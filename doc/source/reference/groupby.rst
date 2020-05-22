@@ -36,8 +36,10 @@ Function application
 
    GroupBy.apply
    GroupBy.agg
-   GroupBy.aggregate
-   GroupBy.transform
+   SeriesGroupBy.aggregate
+   DataFrameGroupBy.aggregate
+   SeriesGroupBy.transform
+   DataFrameGroupBy.transform
    GroupBy.pipe
 
 Computations / descriptive stats

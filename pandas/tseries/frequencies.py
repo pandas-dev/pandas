@@ -11,8 +11,7 @@ from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.offsets import _offset_to_period_map
-import pandas._libs.tslibs.resolution as libresolution
-from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.resolution import Resolution, month_position_check
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion import tz_convert
 from pandas.util._decorators import cache_readonly
@@ -124,7 +123,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
+        name, _ = libfreqs.base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -159,7 +158,7 @@ def to_offset(freq) -> Optional[DateOffset]:
                     stride_sign = -1 if stride.startswith("-") else 1
                 if not stride:
                     stride = 1
-                if prefix in Resolution._reso_str_bump_map.keys():
+                if prefix in Resolution.reso_str_bump_map:
                     stride, name = Resolution.get_stride_from_decimal(
                         float(stride), prefix
                     )
@@ -272,12 +271,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_dtype(index):
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index):
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
@@ -400,7 +402,7 @@ class _FrequencyInferer:
         return Timestamp(self.i8values[0])
 
     def month_position_check(self):
-        return libresolution.month_position_check(self.fields, self.index.dayofweek)
+        return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
     def mdiffs(self):

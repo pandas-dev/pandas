@@ -373,23 +373,20 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
-        align_copy = False
-        if f == "where":
-            align_copy = True
-
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
 
             if aligned_args:
-                b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
-                        axis = obj._info_axis_number
-                        kwargs[k] = obj.reindex(
-                            b_items, axis=axis, copy=align_copy
-                        )._values
+                        # The caller is responsible for ensuring that
+                        #  obj.axes[-1].equals(self.items)
+                        if obj.ndim == 1:
+                            kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
+                        else:
+                            kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
@@ -478,7 +475,7 @@ class BlockManager(PandasObject):
                     b.mgr_locs = sb.mgr_locs
 
             else:
-                new_axes[axis] = Index(np.concatenate([ax.values for ax in axes]))
+                new_axes[axis] = Index(np.concatenate([ax._values for ax in axes]))
 
             if transposed:
                 new_axes = new_axes[::-1]
@@ -603,7 +600,7 @@ class BlockManager(PandasObject):
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # figure out our mask a-priori to avoid repeated replacements
+        # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
         def comp(s, regex=False):
@@ -784,14 +781,28 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose: bool = False) -> np.ndarray:
+    def as_array(
+        self,
+        transpose: bool = False,
+        dtype=None,
+        copy: bool = False,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
 
         Parameters
         ----------
         transpose : bool, default False
-            If True, transpose the return array,
+            If True, transpose the return array.
+        dtype : object, default None
+            Data type of the return array.
+        copy : bool, default False
+            If True then guarantee that a copy is returned. A value of
+            False does not guarantee that the underlying data is not
+            copied.
+        na_value : object, default lib.no_default
+            Value to be used as the missing value sentinel.
 
         Returns
         -------
@@ -801,24 +812,41 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
-        if self._is_single_block and self.blocks[0].is_datetimetz:
-            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
-            # always be object dtype. Some callers seem to want the
-            # DatetimeArray (previously DTI)
-            arr = self.blocks[0].get_values(dtype=object)
+        # We want to copy when na_value is provided to avoid
+        # mutating the original object
+        copy = copy or na_value is not lib.no_default
+
+        if self._is_single_block and self.blocks[0].is_extension:
+            # Avoid implicit conversion of extension blocks to object
+            arr = (
+                self.blocks[0]
+                .values.to_numpy(dtype=dtype, na_value=na_value)
+                .reshape(self.blocks[0].shape)
+            )
         elif self._is_single_block or not self.is_mixed_type:
             arr = np.asarray(self.blocks[0].get_values())
+            if dtype:
+                arr = arr.astype(dtype, copy=False)
         else:
-            arr = self._interleave()
+            arr = self._interleave(dtype=dtype, na_value=na_value)
+            # The underlying data was copied within _interleave
+            copy = False
+
+        if copy:
+            arr = arr.copy()
+
+        if na_value is not lib.no_default:
+            arr[isna(arr)] = na_value
 
         return arr.transpose() if transpose else arr
 
-    def _interleave(self) -> np.ndarray:
+    def _interleave(self, dtype=None, na_value=lib.no_default) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        dtype = _interleaved_dtype(self.blocks)
+        if not dtype:
+            dtype = _interleaved_dtype(self.blocks)
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
@@ -833,7 +861,12 @@ class BlockManager(PandasObject):
 
         for blk in self.blocks:
             rl = blk.mgr_locs
-            result[rl.indexer] = blk.get_values(dtype)
+            if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
+                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
+            else:
+                arr = blk.get_values(dtype)
+            result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
@@ -1125,6 +1158,7 @@ class BlockManager(PandasObject):
         new_axis = self.items.insert(loc, item)
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+            # TODO(EA2D): special case not needed with 2D EAs
             value = _safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
@@ -1235,11 +1269,21 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
+    def _slice_take_blocks_ax0(
+        self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
+    ):
         """
         Slice/take blocks along axis=0.
 
         Overloaded for SingleBlock
+
+        Parameters
+        ----------
+        slice_or_indexer : slice, ndarray[bool], or list-like of ints
+        fill_value : scalar, default lib.no_default
+        only_slice : bool, default False
+            If True, we always return views on existing arrays, never copies.
+            This is used when called from ops.blockwise.operate_blockwise.
 
         Returns
         -------
@@ -1264,14 +1308,23 @@ class BlockManager(PandasObject):
                 if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
 
-                return [
-                    blk.take_nd(
-                        slobj,
-                        axis=0,
-                        new_mgr_locs=slice(0, sllen),
-                        fill_value=fill_value,
-                    )
-                ]
+                if not allow_fill and only_slice:
+                    # GH#33597 slice instead of take, so we get
+                    #  views instead of copies
+                    blocks = [
+                        blk.getitem_block([ml], new_mgr_locs=i)
+                        for i, ml in enumerate(slobj)
+                    ]
+                    return blocks
+                else:
+                    return [
+                        blk.take_nd(
+                            slobj,
+                            axis=0,
+                            new_mgr_locs=slice(0, sllen),
+                            fill_value=fill_value,
+                        )
+                    ]
 
         if sl_type in ("slice", "mask"):
             blknos = self.blknos[slobj]
@@ -1286,9 +1339,6 @@ class BlockManager(PandasObject):
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
-        #
-        # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
-        # pytables serialization will break otherwise.
         blocks = []
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
@@ -1311,11 +1361,25 @@ class BlockManager(PandasObject):
                         blocks.append(newblk)
 
                 else:
-                    blocks.append(
-                        blk.take_nd(
-                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
-                        )
-                    )
+                    # GH#32779 to avoid the performance penalty of copying,
+                    #  we may try to only slice
+                    taker = blklocs[mgr_locs.indexer]
+                    max_len = max(len(mgr_locs), taker.max() + 1)
+                    if only_slice:
+                        taker = lib.maybe_indices_to_slice(taker, max_len)
+
+                    if isinstance(taker, slice):
+                        nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
+                        blocks.append(nb)
+                    elif only_slice:
+                        # GH#33597 slice instead of take, so we get
+                        #  views instead of copies
+                        for i, ml in zip(taker, mgr_locs):
+                            nb = blk.getitem_block([i], new_mgr_locs=ml)
+                            blocks.append(nb)
+                    else:
+                        nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
+                        blocks.append(nb)
 
         return blocks
 
