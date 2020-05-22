@@ -25,6 +25,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     Minute,
     Nano,
     Second,
+    SingleConstructorOffset,
     Tick,
     apply_index_wraps,
     apply_wraps,
@@ -298,37 +299,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
-    @cache_readonly
-    def _params(self):
-        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
-        return BaseOffset._params.__get__(self)
-
-    @cache_readonly
-    def freqstr(self):
-        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
-        return BaseOffset.freqstr.__get__(self)
-
-
-class SingleConstructorMixin:
-    @cache_readonly
-    def _params(self):
-        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
-        return BaseOffset._params.__get__(self)
-
-    @cache_readonly
-    def freqstr(self):
-        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
-        return BaseOffset.freqstr.__get__(self)
-
-
-class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
-    @classmethod
-    def _from_name(cls, suffix=None):
-        # default _from_name calls cls with no args
-        if suffix:
-            raise ValueError(f"Bad freq suffix {suffix}")
-        return cls()
-
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
@@ -441,7 +411,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHour(SingleConstructorMixin, liboffsets.BusinessHourMixin):
+class BusinessHour(liboffsets.BusinessHourMixin):
     """
     DateOffset subclass representing possibly n business hours.
     """
@@ -1320,7 +1290,7 @@ class Week(SingleConstructorOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
+class WeekOfMonth(liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
@@ -1381,7 +1351,7 @@ class WeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
+class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month".
@@ -1443,7 +1413,7 @@ class LastWeekOfMonth(SingleConstructorMixin, liboffsets.WeekOfMonthMixin):
 # Quarter-Based Offset Classes
 
 
-class QuarterOffset(SingleConstructorMixin, liboffsets.QuarterOffset):
+class QuarterOffset(liboffsets.QuarterOffset):
     """
     Quarter representation.
     """
@@ -1552,7 +1522,7 @@ class YearBegin(liboffsets.YearOffset):
 # Special Offset Classes
 
 
-class FY5253Mixin(BaseOffset):
+class FY5253Mixin(SingleConstructorOffset):
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
@@ -1595,7 +1565,7 @@ class FY5253Mixin(BaseOffset):
         return f"{prefix}-{month}-{weekday}"
 
 
-class FY5253(SingleConstructorMixin, FY5253Mixin):
+class FY5253(FY5253Mixin):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1763,7 +1733,7 @@ class FY5253(SingleConstructorMixin, FY5253Mixin):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(SingleConstructorMixin, FY5253Mixin):
+class FY5253Quarter(FY5253Mixin):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
