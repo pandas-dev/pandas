@@ -109,7 +109,8 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df1.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df1.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     df2 = DataFrame(
@@ -124,12 +125,14 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df2.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
     df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    result = df.groupby("X", squeeze=False).count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
 
