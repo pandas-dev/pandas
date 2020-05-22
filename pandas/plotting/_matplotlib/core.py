@@ -1023,7 +1023,7 @@ class ScatterPlot(PlanePlot):
                 ]
                 ax.legend(handles=handles, title=cbar_label)
             else:
-                cbar = self._plot_colorbar(ax, label=cbar_label,)
+                cbar = self._plot_colorbar(ax, label=cbar_label)
                 if color_by_ordered_categorical:
                     cbar.set_ticks(ticks)
                     cbar.ax.set_yticklabels(yticklabels)
