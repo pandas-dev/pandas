@@ -158,3 +158,14 @@ class TestDataFrameDiff:
 
         result = df.diff(axis=1, periods=-1)
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_sparse(self):
+        # GH#28813 .diff() should work for sparse dataframes as well
+        sparse_df = pd.DataFrame([[0, 1], [1, 0]], dtype="Sparse[int]")
+
+        result = sparse_df.diff()
+        expected = pd.DataFrame(
+            [[np.nan, np.nan], [1.0, -1.0]], dtype=pd.SparseDtype("float", 0.0)
+        )
+
+        tm.assert_frame_equal(result, expected)
