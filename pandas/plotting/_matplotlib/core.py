@@ -991,30 +991,24 @@ class ScatterPlot(PlanePlot):
             bounds = np.linspace(0, n_cats, n_cats + 1)
             ticks = np.linspace(0.5, n_cats - 0.5, n_cats)
             norm = colors.BoundaryNorm(bounds, cmap.N)
+            yticklabels = self.data[c].cat.categories
+        else:
+            ticks = None
+            norm = None
 
         if self.legend and hasattr(self, "label"):
             label = self.label
         else:
             label = None
-        if color_by_categorical:
-            scatter = ax.scatter(
-                data[x].values,
-                data[y].values,
-                c=c_values,
-                label=label,
-                cmap=cmap,
-                norm=norm,
-                **self.kwds,
-            )
-        else:
-            scatter = ax.scatter(
-                data[x].values,
-                data[y].values,
-                c=c_values,
-                label=label,
-                cmap=cmap,
-                **self.kwds,
-            )
+        scatter = ax.scatter(
+            data[x].values,
+            data[y].values,
+            c=c_values,
+            label=label,
+            cmap=cmap,
+            norm=norm,
+            **self.kwds,
+        )
         if cb:
             cbar_label = c if c_is_column else ""
             if color_by_unordered_categorical:
@@ -1028,18 +1022,11 @@ class ScatterPlot(PlanePlot):
                     for i in range(n_cats)
                 ]
                 ax.legend(handles=handles, title=cbar_label)
-            elif color_by_ordered_categorical:
-                cbar = self._plot_colorbar(
-                    ax,
-                    label=cbar_label,
-                    cmap=cmap,
-                    boundaries=bounds,
-                    ticks=ticks,
-                    norm=norm,
-                )
-                cbar.ax.set_yticklabels(self.data[c].cat.categories)
             else:
-                self._plot_colorbar(ax, label=cbar_label)
+                cbar = self._plot_colorbar(ax, label=cbar_label,)
+                if color_by_ordered_categorical:
+                    cbar.set_ticks(ticks)
+                    cbar.ax.set_yticklabels(yticklabels)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
