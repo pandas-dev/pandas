@@ -120,10 +120,9 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
-    Similar to ``pd.melt`` but more user-friendly. Accepts a dictionary,
-    ``groups``, in which each key is a new column name and each value is a
-    list of old column names that will be "melted" under the new column name as
-    part of the reshape.
+    Accepts a dictionary, ``groups``, in which each key is a new column name
+    and each value is a list of old column names that will be "melted" under
+    the new column name as part of the reshape.
 
     Parameters
     ----------
