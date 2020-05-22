@@ -1474,7 +1474,6 @@ default 'raise'
         # don't do additional processing if its not necessary
         if '%f' not in format:
             return super().strftime(format)
-        
         newformat = []
         i, n = 0, len(format)
         while i < n:
@@ -1487,12 +1486,9 @@ default 'raise'
                 newformat.append(f"{self.microsecond:06}{ns}")
             else:
                 newformat.append(ch)
-
             i += 1
-        
         newformat = "".join(newformat)
         return _time.strftime(newformat, self.timetuple())
-
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
