@@ -329,55 +329,52 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs) -> Callable[[F], F]:
+def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
     This decorator will add a variable "_docstring_components" to the wrapped
-    function to keep track the original docstring template for potential usage.
+    callable to keep track the original docstring template for potential usage.
     If it should be consider as a template, it will be saved as a string.
     Otherwise, it will be saved as callable, and later user __doc__ and dedent
     to get docstring.
 
     Parameters
     ----------
-    *args : str or callable
+    *docstrings : str or callable
         The string / docstring / docstring template to be appended in order
-        after default docstring under function.
-    **kwargs
-        The objects which would be used to format docstring template.
+        after default docstring under callable.
+    **params
+        The string which would be used to format docstring template.
     """
 
-    def decorator(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable:
-            return func(*args, **kwargs)
-
+    def decorator(decorated: F) -> F:
         # collecting docstring and docstring templates
         docstring_components: List[Union[str, Callable]] = []
-        if func.__doc__:
-            docstring_components.append(dedent(func.__doc__))
+        if decorated.__doc__:
+            docstring_components.append(dedent(decorated.__doc__))
 
-        for arg in args:
-            if hasattr(arg, "_docstring_components"):
-                docstring_components.extend(arg._docstring_components)  # type: ignore
-            elif isinstance(arg, str) or arg.__doc__:
-                docstring_components.append(arg)
+        for docstring in docstrings:
+            if hasattr(docstring, "_docstring_components"):
+                docstring_components.extend(
+                    docstring._docstring_components  # type: ignore
+                )
+            elif isinstance(docstring, str) or docstring.__doc__:
+                docstring_components.append(docstring)
 
         # formatting templates and concatenating docstring
-        wrapper.__doc__ = "".join(
+        decorated.__doc__ = "".join(
             [
-                arg.format(**kwargs)
-                if isinstance(arg, str)
-                else dedent(arg.__doc__ or "")
-                for arg in docstring_components
+                component.format(**params)
+                if isinstance(component, str)
+                else dedent(component.__doc__ or "")
+                for component in docstring_components
             ]
         )
 
-        wrapper._docstring_components = docstring_components  # type: ignore
-
-        return cast(F, wrapper)
+        decorated._docstring_components = docstring_components  # type: ignore
+        return decorated
 
     return decorator
 
