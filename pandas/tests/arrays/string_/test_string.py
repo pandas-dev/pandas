@@ -1,4 +1,5 @@
 import operator
+from typing import Type
 
 import numpy as np
 import pytest
