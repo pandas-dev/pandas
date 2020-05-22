@@ -193,7 +193,7 @@ class StringArray(PandasArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
-            assert dtype == "string"
+            assert isinstance(dtype, StringDtype)
 
         result = np.asarray(scalars, dtype="object")
         if copy and result is scalars:
