@@ -1335,6 +1335,31 @@ def _validate_parse_dates_arg(parse_dates):
     return parse_dates
 
 
+def _check_unexpected_data(columns, data, index_col):
+    """
+    Checks whether or not ammount of columns in data matches expected number of columns.
+    Raises a warning if those numbers don't match.
+
+    Parameters
+    ----------
+    columns : list
+        List that contains columns names.
+    data : array-like
+        Object that contains column data.
+    index_col : list or False, optional
+        Columns to use as the index.
+    """
+    if index_col is None or index_col is False:
+        index_col = []
+    expected_columns = len(columns) + len(index_col)
+    if expected_columns != len(data) and notna(data[expected_columns:]).any():
+        warnings.warn(
+            "Expected {} columns instead of {}".format(expected_columns, len(data)),
+            ParserWarning,
+            stacklevel=2,
+        )
+
+
 class ParserBase:
     def __init__(self, kwds):
         self.names = kwds.get("names")
@@ -2187,31 +2212,6 @@ class CParserWrapper(ParserBase):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values
-
-
-def _check_unexpected_data(columns, data, index_col):
-    """
-    Checks whether or not ammount of columns in data matches expected number of columns.
-    Raises a warning if those numbers don't match.
-
-    Parameters
-    ----------
-    columns : list
-        List that contains columns names.
-    data : array-like
-        Object that contains column data.
-    index_col : list or False, optional
-        Columns to use as the index.
-    """
-    if index_col is None or index_col is False:
-        index_col = []
-    expected_columns = len(columns) + len(index_col)
-    if expected_columns != len(data) and notna(data[expected_columns:]).any():
-        warnings.warn(
-            "Expected {} columns instead of {}".format(expected_columns, len(data)),
-            ParserWarning,
-            stacklevel=2,
-        )
 
 
 def TextParser(*args, **kwds):
