@@ -35,7 +35,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_dt64D,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 __all__ = [
     "Day",
@@ -877,11 +877,12 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = "business_start"
 
 
+@doc(bound="bound")
 class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
-    Increments between %(bound)s of month dates.
+    Increments between {bound} of month dates.
 
     Parameters
     ----------
@@ -971,14 +972,12 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
-@Substitution(bound="end")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="end")
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBM"
 
 
-@Substitution(bound="beginning")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="beginning")
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     _prefix = "CBMS"
 
