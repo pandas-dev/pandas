@@ -174,4 +174,13 @@ class SortIntegerArray:
         self.array.argsort()
 
 
+class SortIndexSeries:
+    def setup(self):
+        N = 10 ** 5
+        idx = pd.date_range(start="1/1/2000", periods=N, freq="s")
+        self.s = pd.Series(np.random.randn(N), index=idx)
+
+    def time_sort_index(self):
+        self.s.sort_index()
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
