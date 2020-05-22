@@ -743,19 +743,16 @@ class JsonReader(abc.Iterator):
         elif self.lines:
             data = ensure_str(self.data)
             if self.nrows:
-                compiled_pattern = re.compile("\n")
+                compiled_pattern = re.compile(".*\n")
                 data_iterator = compiled_pattern.finditer(data)
-                data_surrogate = []
-                start = 0
+                data = []
                 nrows_seen = 0
+                print(data_iterator)
                 for vals in data_iterator:
                     if nrows_seen >= self.nrows:
                         break
-                    begin, end = vals.span()
-                    data_surrogate.append(data[start:begin].strip())
-                    start = end
+                    data.append(vals.group(0))
                     nrows_seen += 1
-                data = data_surrogate
             else:
                 data = data.split("\n")
             obj = self._get_object_parser(self._combine_lines(data))
