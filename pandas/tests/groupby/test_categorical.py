@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import PY37, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -13,6 +13,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
@@ -210,7 +211,10 @@ def test_level_get_group(observed):
 
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
 #  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
+@pytest.mark.xfail(
+    PY37 and _np_version_under1p17 and not is_platform_windows(),
+    reason="Flaky, GH-27902",
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -498,9 +502,9 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            f"Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
-            + "Result:\n{result}"
+            "Labels and aggregation results not consistently sorted\n"
+            f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            f"Result:\n{result}"
         )
         assert False, msg
 
@@ -609,7 +613,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    with pytest.raises(ValueError):
+    msg = r"Length of grouper \(8\) and axis \(10\) must be same length"
+    with pytest.raises(ValueError, match=msg):
         series.groupby(bins).mean()
 
 
@@ -1255,7 +1260,7 @@ def test_get_nonexistent_category():
 
 
 def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool
+    reduction_func: str, observed: bool, request
 ):
     # GH 17605
 
@@ -1263,7 +1268,8 @@ def test_series_groupby_on_2_categoricals_unobserved(
         pytest.skip("ngroup is not truly a reduction")
 
     if reduction_func == "corrwith":  # GH 32293
-        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
+        mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {
@@ -1404,4 +1410,49 @@ def test_read_only_category_no_sort():
     )
     expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
     result = df.groupby("b", sort=False).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sorted_missing_category_values():
+    # GH 28597
+    df = pd.DataFrame(
+        {
+            "foo": [
+                "small",
+                "large",
+                "large",
+                "large",
+                "medium",
+                "large",
+                "large",
+                "medium",
+            ],
+            "bar": ["C", "A", "A", "C", "A", "C", "A", "C"],
+        }
+    )
+    df["foo"] = (
+        df["foo"]
+        .astype("category")
+        .cat.set_categories(["tiny", "small", "medium", "large"], ordered=True)
+    )
+
+    expected = pd.DataFrame(
+        {
+            "tiny": {"A": 0, "C": 0},
+            "small": {"A": 0, "C": 1},
+            "medium": {"A": 1, "C": 1},
+            "large": {"A": 3, "C": 2},
+        }
+    )
+    expected = expected.rename_axis("bar", axis="index")
+    expected.columns = pd.CategoricalIndex(
+        ["tiny", "small", "medium", "large"],
+        categories=["tiny", "small", "medium", "large"],
+        ordered=True,
+        name="foo",
+        dtype="category",
+    )
+
+    result = df.groupby(["bar", "foo"]).size().unstack()
+
     tm.assert_frame_equal(result, expected)

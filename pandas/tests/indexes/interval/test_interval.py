@@ -19,6 +19,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.indexes.base import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -425,10 +426,10 @@ class TestIntervalIndex:
         key = make_key(breaks2)
 
         msg = (
-            "Cannot index an IntervalIndex of subtype {dtype1} with "
-            "values of dtype {dtype2}"
+            f"Cannot index an IntervalIndex of subtype {breaks1.dtype} with "
+            f"values of dtype {breaks2.dtype}"
         )
-        msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
+        msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
@@ -567,13 +568,17 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with pytest.raises(TypeError, match="unorderable types"):
+        msg = (
+            "not supported between instances of 'int' and "
+            "'pandas._libs.interval.Interval'"
+        )
+        with pytest.raises(TypeError, match=msg):
             self.index > 0
-        with pytest.raises(TypeError, match="unorderable types"):
+        with pytest.raises(TypeError, match=msg):
             self.index <= 0
-        msg = r"unorderable types: Interval\(\) > int\(\)"
         with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
+
         msg = "Lengths must match to compare"
         with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
@@ -857,6 +862,17 @@ class TestIntervalIndex:
         year_2017_index = pd.IntervalIndex([year_2017])
         assert not year_2017_index.is_all_dates
 
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_value_non_scalar_errors(self, key):
+        # GH 31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        s = pd.Series(range(len(idx)), index=idx)
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.get_value(s, key)
+
 
 def test_dir():
     # GH#27571 dir(interval_index) should not raise
@@ -882,6 +898,6 @@ def test_searchsorted_different_argument_classes(klass):
 )
 def test_searchsorted_invalid_argument(arg):
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-    msg = "unorderable types"
+    msg = "'<' not supported between instances of 'pandas._libs.interval.Interval' and "
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)

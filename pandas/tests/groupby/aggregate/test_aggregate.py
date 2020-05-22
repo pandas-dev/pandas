@@ -950,3 +950,11 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+
+def test_groupby_get_by_index():
+    # GH 33439
+    df = pd.DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
+    res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
+    expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    pd.testing.assert_frame_equal(res, expected)

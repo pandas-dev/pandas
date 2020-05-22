@@ -142,7 +142,7 @@ class _Unstacker:
         indexer, to_sort = self._indexer_and_to_sort
         return [l.take(indexer) for l in to_sort]
 
-    def _make_sorted_values(self, values):
+    def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
 
         sorted_values = algos.take_nd(values, indexer, axis=0)
@@ -205,6 +205,9 @@ class _Unstacker:
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
+            # TODO: Under what circumstances can we rely on sorted_values
+            #  matching values?  When that holds, we can slice instead
+            #  of take (in particular for EAs)
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)
@@ -229,10 +232,10 @@ class _Unstacker:
         # we need to convert to a basic dtype
         # and possibly coerce an input to our output dtype
         # e.g. ints -> floats
-        if needs_i8_conversion(values):
+        if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values):
+        elif is_bool_dtype(values.dtype):
             sorted_values = sorted_values.astype("object")
             new_values = new_values.astype("object")
         else:
@@ -250,7 +253,7 @@ class _Unstacker:
         )
 
         # reconstruct dtype if needed
-        if needs_i8_conversion(values):
+        if needs_i8_conversion(values.dtype):
             new_values = new_values.view(values.dtype)
 
         return new_values, new_mask
