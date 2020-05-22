@@ -2317,14 +2317,8 @@ you can use the ``tz_convert`` method.
 .. warning::
 
     Be aware that for times in the future, correct conversion between time zones
-    (and UTC) cannot be guaranteed by any time zone library. Sometimes the rules
-    governing a timezone's offset from UTC are changed. Authorities usually
-    announce such changes many months in advance but there have been examples of
-    much shorter lead times such as when Morocco announced just two days before
-    the planned switch from summer time to winter time in 2018 that the country
-    would stay on summer time permanently. Furthermore, the databases that
-    Pandas relies on may need some time to record planned changes to timezone
-    offsets.
+    (and UTC) cannot be guaranteed by any time zone library because a timezone's
+    offset from UTC may be changed by the respective government.
 
 .. warning::
 
