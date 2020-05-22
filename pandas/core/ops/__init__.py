@@ -4,7 +4,7 @@ Arithmetic operations for PandasObjects
 This is not a public API.
 """
 import operator
-from typing import TYPE_CHECKING, Optional, Set
+from typing import TYPE_CHECKING, Optional, Set, Type
 
 import numpy as np
 
@@ -325,7 +325,8 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         assert left.index.equals(right.index)
         assert left.columns.equals(right.columns)
         # TODO: The previous assertion `assert right._indexed_same(left)`
-        #  fails in cases with shaoe[1] == 0
+        #  fails in cases with empty columns reached via
+        #  _frame_arith_method_with_reindex
 
         array_op = get_array_op(func, str_rep=str_rep)
         bm = operate_blockwise(left, right, array_op)
@@ -684,7 +685,7 @@ def _frame_arith_method_with_reindex(
     return result.reindex(join_columns, axis=1)
 
 
-def _arith_method_FRAME(cls, op, special):
+def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -744,7 +745,7 @@ def _arith_method_FRAME(cls, op, special):
     return f
 
 
-def _flex_comp_method_FRAME(cls, op, special):
+def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -780,7 +781,7 @@ def _flex_comp_method_FRAME(cls, op, special):
     return f
 
 
-def _comp_method_FRAME(cls, op, special):
+def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert special  # "special" also means "not flex"
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
