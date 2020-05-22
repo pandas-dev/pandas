@@ -55,8 +55,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     doc,
     rewrite_axis_style_signature,
 )
@@ -6966,6 +6964,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    16.0
         Name: d, dtype: float64
         """
+
+    @doc(_shared_docs["interpolate"], **_shared_doc_kwargs)
+    def interpolate(
+        self,
+        method="linear",
+        axis=0,
+        limit=None,
+        inplace=False,
+        limit_direction="forward",
+        limit_area=None,
+        downcast=None,
+        **kwargs,
+    ):
+        """
+        Interpolate values according to different methods.
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
@@ -10701,29 +10715,29 @@ def _doc_parms(cls):
 
 
 _num_doc = """
-%(desc)s
+{desc}
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : {axis_descr}
     Axis for the function to be applied on.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s.
+    particular level, collapsing into a {name1}.
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
-%(min_count)s\
+{min_count}\
 **kwargs
     Additional keyword arguments to be passed to the function.
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)\
-%(see_also)s\
-%(examples)s
+{name1} or {name2} (if level specified)\
+{see_also}\
+{examples}
 """
 
 _num_ddof_doc = """
@@ -10755,11 +10769,11 @@ To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)\n"""
 
 _bool_doc = """
-%(desc)s
+{desc}
 
 Parameters
 ----------
-axis : {0 or 'index', 1 or 'columns', None}, default 0
+axis : {{0 or 'index', 1 or 'columns', None}}, default 0
     Indicate which axis or axes should be reduced.
 
     * 0 / 'index' : reduce the index, return a Series whose index is the
@@ -10773,24 +10787,24 @@ bool_only : bool, default None
     then use only boolean data. Not implemented for Series.
 skipna : bool, default True
     Exclude NA/null values. If the entire row/column is NA and skipna is
-    True, then the result will be %(empty_value)s, as for an empty row/column.
+    True, then the result will be {empty_value}, as for an empty row/column.
     If skipna is False, then NA are treated as True, because these are not
     equal to zero.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s.
+    particular level, collapsing into a {name1}.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
 
 Returns
 -------
-%(name1)s or %(name2)s
-    If level is specified, then, %(name2)s is returned; otherwise, %(name1)s
+{name1} or {name2}
+    If level is specified, then, {name2} is returned; otherwise, {name1}
     is returned.
 
-%(see_also)s
-%(examples)s"""
+{see_also}
+{examples}"""
 
 _all_desc = """\
 Return whether all elements are True, potentially over an axis.
@@ -10853,14 +10867,14 @@ DataFrame.any : Return True if one (or more) elements are True.
 """
 
 _cnum_doc = """
-Return cumulative %(desc)s over a DataFrame or Series axis.
+Return cumulative {desc} over a DataFrame or Series axis.
 
 Returns a DataFrame or Series of the same size containing the cumulative
-%(desc)s.
+{desc}.
 
 Parameters
 ----------
-axis : {0 or 'index', 1 or 'columns'}, default 0
+axis : {{0 or 'index', 1 or 'columns'}}, default 0
     The index or the name of the axis. 0 is equivalent to None or 'index'.
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
@@ -10871,21 +10885,21 @@ skipna : bool, default True
 
 Returns
 -------
-%(name1)s or %(name2)s
-    Return cumulative %(desc)s of %(name1)s or %(name2)s.
+{name1} or {name2}
+    Return cumulative {desc} of {name1} or {name2}.
 
 See Also
 --------
-core.window.Expanding.%(accum_func_name)s : Similar functionality
+core.window.Expanding.{accum_func_name} : Similar functionality
     but ignores ``NaN`` values.
-%(name2)s.%(accum_func_name)s : Return the %(desc)s over
-    %(name2)s axis.
-%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.
-%(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
-%(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
-%(name2)s.cumprod : Return cumulative product over %(name2)s axis.
+{name2}.{accum_func_name} : Return the {desc} over
+    {name2} axis.
+{name2}.cummax : Return cumulative maximum over {name2} axis.
+{name2}.cummin : Return cumulative minimum over {name2} axis.
+{name2}.cumsum : Return cumulative sum over {name2} axis.
+{name2}.cumprod : Return cumulative product over {name2} axis.
 
-%(examples)s"""
+{examples}"""
 
 _cummin_examples = """\
 Examples
@@ -11366,7 +11380,8 @@ def _make_min_count_stat_function(
     see_also: str = "",
     examples: str = "",
 ) -> Callable:
-    @Substitution(
+    @doc(
+        _num_doc,
         desc=desc,
         name1=name1,
         name2=name2,
@@ -11375,7 +11390,6 @@ def _make_min_count_stat_function(
         see_also=see_also,
         examples=examples,
     )
-    @Appender(_num_doc)
     def stat_func(
         self,
         axis=None,
@@ -11422,7 +11436,8 @@ def _make_stat_function(
     see_also: str = "",
     examples: str = "",
 ) -> Callable:
-    @Substitution(
+    @doc(
+        _num_doc,
         desc=desc,
         name1=name1,
         name2=name2,
@@ -11431,7 +11446,6 @@ def _make_stat_function(
         see_also=see_also,
         examples=examples,
     )
-    @Appender(_num_doc)
     def stat_func(
         self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs
     ):
@@ -11486,7 +11500,8 @@ def _make_cum_function(
     accum_func_name: str,
     examples: str,
 ) -> Callable:
-    @Substitution(
+    @doc(
+        _cnum_doc,
         desc=desc,
         name1=name1,
         name2=name2,
@@ -11494,7 +11509,6 @@ def _make_cum_function(
         accum_func_name=accum_func_name,
         examples=examples,
     )
-    @Appender(_cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
@@ -11532,7 +11546,8 @@ def _make_logical_function(
     examples: str,
     empty_value: bool,
 ) -> Callable:
-    @Substitution(
+    @doc(
+        _bool_doc,
         desc=desc,
         name1=name1,
         name2=name2,
@@ -11541,7 +11556,6 @@ def _make_logical_function(
         examples=examples,
         empty_value=empty_value,
     )
-    @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
         nv.validate_logical_func(tuple(), kwargs, fname=name)
         if level is not None:
