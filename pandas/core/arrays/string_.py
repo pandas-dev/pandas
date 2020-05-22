@@ -104,11 +104,6 @@ class StringArray(PandasArray):
 
     .. versionadded:: 1.0.0
 
-    .. versionchanged:: 1.1.0
-
-        ``StringArray`` allow non-string input values, but will always convert the
-        values  to strings. (Before Pandas 1.1 non-string values were not allowed).
-
     .. warning::
 
        StringArray is considered experimental. The implementation and
@@ -157,9 +152,13 @@ class StringArray(PandasArray):
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Like ``object`` dtype arrays instantiated with ``dtype="str"``, ``StringArray``
-    allows non-string values but will always convert the values to strings.
+    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    will convert the values to strings.
 
+    >>> pd.array(['1', 1], dtype="object")
+    <PandasArray>
+    ['1', 1]
+    Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
     <StringArray>
     ['1', '1']

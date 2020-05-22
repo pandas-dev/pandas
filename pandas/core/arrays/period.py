@@ -564,7 +564,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         actually format my specific types
         """
         values = self.astype(object)
-
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:

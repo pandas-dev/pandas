@@ -343,6 +343,15 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         # comp = result.dtypes.equals(df.dtypes)
         # assert not comp.any()
 
+    @pytest.mark.xfail(raises=AssertionError, reason="no sparse str dtype")
+    def test_astype_str(self, data):
+        # Sparse arrays don't support str dtype
+        super().test_astype_str(data)
+
+    @pytest.mark.xfail(raises=AssertionError, reason="no sparse StringDtype")
+    def test_astype_string(self, data):
+        super().test_astype_string(data)
+
 
 class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     series_scalar_exc = None

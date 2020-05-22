@@ -2676,7 +2676,7 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    def combine(self, other, func, fill_value=None, dtype=None) -> "Series":
+    def combine(self, other, func, fill_value=None) -> "Series":
         """
         Combine the Series with a Series or scalar according to `func`.
 
@@ -2695,11 +2695,6 @@ Name: Max Speed, dtype: float64
             The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
             appropriate NaN value for the underlying dtype of the Series.
-        dtype : str, numpy.dtype, or ExtensionDtype, optional
-            Data type for the output Series. If not specified, this will be
-            inferred from the combined data.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -2770,13 +2765,13 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if dtype is not None:
-            return self._constructor(
-                new_values, index=new_index, name=new_name, dtype=dtype
-            )
         if is_categorical_dtype(self.dtype):
             pass
         elif is_extension_array_dtype(self.dtype):
+            # Everything can be be converted to strings, but we may not want to convert
+            if self.dtype == "string" and lib.infer_dtype(new_values) != "string":
+                return self._constructor(new_values, index=new_index, name=new_name)
+
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
