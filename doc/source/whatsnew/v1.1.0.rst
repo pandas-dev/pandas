@@ -208,7 +208,7 @@ this new data type uses ``pd.NA`` (and its corresponding behaviour) as missing
 value indicator, in line with the already existing nullable :ref:`integer <integer_na>`
 and :ref:`boolean <boolean>` data types.
 
-One example where the behaviour of ``np.nan`` and ``pd.NA`` is diffferent is
+One example where the behaviour of ``np.nan`` and ``pd.NA`` is different is
 comparison operations:
 
 .. code-block:: python
