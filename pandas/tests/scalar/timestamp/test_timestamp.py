@@ -15,7 +15,7 @@ from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
 from pandas.compat.numpy import np_datetime64_compat
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Timedelta, Timestamp
+from pandas import NaT, Timedelta, Timestamp, to_datetime
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -442,6 +442,18 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 10
 
+    @pytest.mark.parametrize("date", [
+        "2020-05-22 08:53:19.123456789",
+        "2020-05-22 08:53:19.123456",
+        "2020-05-22 08:53:19"
+    ])
+    @pytest.mark.parametrize("fmt", [
+        "%m/%d/%Y %H:%M:%S.%f", "%m%d%Y%H%M%S%f"
+    ])
+    def test_nanosecond_roundtrip(self, date, fmt):
+        ts = Timestamp(date)
+        string = ts.strftime(fmt)
+        assert ts == to_datetime(string, format=fmt)
 
 class TestTimestampToJulianDate:
     def test_compare_1700(self):

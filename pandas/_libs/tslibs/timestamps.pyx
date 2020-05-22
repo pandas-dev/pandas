@@ -7,6 +7,7 @@ construction requirements, we need to do object instantiation in python
 shadows the python class, where we do any heavy lifting.
 """
 import warnings
+import time as _time
 
 import numpy as np
 cimport numpy as cnp
@@ -1468,6 +1469,30 @@ default 'raise'
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
+
+    def strftime(self, format: str) -> str:
+        """
+        Override datetime.strftime() method so we can display
+        nanosecond precision.
+        """
+        freplace = None  # the string to use for %f
+        
+        newformat = []
+        i, n = 0, len(format)
+        while i < n:
+            ch = format[i]
+            if ch == 'f':
+                # remove accompanying %
+                newformat.pop()
+                # and put fractional seconds in its place
+                newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
+            else:
+                newformat.append(ch)
+
+            i += 1
+        
+        newformat = "".join(newformat)
+        return _time.strftime(newformat, self.timetuple())
 
 
 # Add the min and max fields at the class level
