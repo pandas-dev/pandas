@@ -353,7 +353,7 @@ class BlockManager(PandasObject):
 
         return res
 
-    def double_apply(self, other: "BlockManager", array_op) -> "BlockManager":
+    def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """

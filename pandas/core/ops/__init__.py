@@ -326,7 +326,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         assert right._indexed_same(left)
 
         array_op = get_array_op(func, str_rep=str_rep)
-        bm = left._mgr.double_apply(right._mgr, array_op)
+        bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
     elif isinstance(right, ABCSeries) and axis == "columns":
