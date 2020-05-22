@@ -1580,36 +1580,37 @@ cdef class _Period:
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented
+        return NotImplemented  # TODO: ndarray[object]?
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
-    def _add_delta(self, other):
+    def _add_delta(self, other) -> "Period":
         cdef:
             int64_t nanos, offset_nanos
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                is_tick_object(other)):
-            offset = to_offset(self.freq.rule_code)
-            if is_tick_object(offset):
-                nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                if nanos % offset_nanos == 0:
-                    ordinal = self.ordinal + (nanos // offset_nanos)
-                    return Period(ordinal=ordinal, freq=self.freq)
-            raise IncompatibleFrequency("Input cannot be converted to "
-                                        f"Period(freq={self.freqstr})")
-        elif is_offset_object(other):
-            if other.base == self.freq.base:
-                ordinal = self.ordinal + other.n
+        if is_tick_object(self.freq):
+            nanos = delta_to_nanoseconds(other)
+            offset_nanos = self.freq.base.nanos
+            if nanos % offset_nanos == 0:
+                ordinal = self.ordinal + (nanos // offset_nanos)
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                        own_freq=self.freqstr,
-                                        other_freq=other.freqstr)
-            raise IncompatibleFrequency(msg)
-        else:  # pragma no cover
-            return NotImplemented
+        raise IncompatibleFrequency("Input cannot be converted to "
+                                    f"Period(freq={self.freqstr})")
+
+    def _add_offset(self, other) -> "Period":
+        # Non-Tick DateOffset other
+        cdef:
+            int64_t ordinal
+
+        if other.base == self.freq.base:
+            ordinal = self.ordinal + other.n
+            return Period(ordinal=ordinal, freq=self.freq)
+
+        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                    own_freq=self.freqstr,
+                                    other_freq=other.freqstr)
+        raise IncompatibleFrequency(msg)
 
     def __add__(self, other):
         if not is_period_object(self):
@@ -1618,9 +1619,10 @@ cdef class _Period:
                 return NaT
             return other.__add__(self)
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                is_offset_object(other)):
+        if is_any_tdlike_scalar(other):
             return self._add_delta(other)
+        elif is_offset_object(other):
+            return self._add_offset(other)
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
@@ -1644,8 +1646,11 @@ cdef class _Period:
                 return NaT
             return NotImplemented
 
-        elif (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                is_offset_object(other)):
+        elif is_any_tdlike_scalar(other):
+            neg_other = -other
+            return self + neg_other
+        elif is_offset_object(other):
+            # Non-Tick DateOffset
             neg_other = -other
             return self + neg_other
         elif util.is_integer_object(other):
@@ -2516,3 +2521,18 @@ def validate_end_alias(how):
     if how not in {'S', 'E'}:
         raise ValueError('How must be one of S or E')
     return how
+
+
+cpdef is_any_tdlike_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
+    return util.is_timedelta64_object(obj) or PyDelta_Check(obj) or is_tick_object(obj)

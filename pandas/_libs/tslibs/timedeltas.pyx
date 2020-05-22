@@ -176,7 +176,7 @@ cdef convert_to_timedelta64(object ts, object unit):
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
-    elif isinstance(ts, Timedelta):
+    elif isinstance(ts, _Timedelta):
         # already in the proper format
         ts = np.timedelta64(ts.value)
     elif is_datetime64_object(ts):
@@ -1149,10 +1149,9 @@ class Timedelta(_Timedelta):
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
-        if (isinstance(value, Timedelta) and unit is None and
-                len(kwargs) == 0):
+        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
             return value
-        elif isinstance(value, Timedelta):
+        elif isinstance(value, _Timedelta):
             value = value.value
         elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
