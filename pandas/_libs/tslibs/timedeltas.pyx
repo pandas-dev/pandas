@@ -21,12 +21,12 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS
+from pandas._libs.tslibs.conversion cimport cast_from_unit
 
 from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
+    cmp_scalar, td64_to_tdstruct, pandas_timedeltastruct)
 
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
@@ -34,6 +34,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.offsets cimport is_tick_object
 
 # ----------------------------------------------------------------------
 # Constants
@@ -257,77 +258,6 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
                     raise
 
     return iresult.base  # .base to access underlying np.ndarray
-
-
-cpdef inline object precision_from_unit(str unit):
-    """
-    Return a casting of the unit represented to nanoseconds + the precision
-    to round the fractional part.
-
-    Notes
-    -----
-    The caller is responsible for ensuring that the default value of "ns"
-    takes the place of None.
-    """
-    cdef:
-        int64_t m
-        int p
-
-    if unit == 'Y':
-        m = 1000000000 * 31556952
-        p = 9
-    elif unit == 'M':
-        m = 1000000000 * 2629746
-        p = 9
-    elif unit == 'W':
-        m = DAY_NANOS * 7
-        p = 9
-    elif unit == 'D' or unit == 'd':
-        m = DAY_NANOS
-        p = 9
-    elif unit == 'h':
-        m = 1000000000 * 3600
-        p = 9
-    elif unit == 'm':
-        m = 1000000000 * 60
-        p = 9
-    elif unit == 's':
-        m = 1000000000
-        p = 9
-    elif unit == 'ms':
-        m = 1000000
-        p = 6
-    elif unit == 'us':
-        m = 1000
-        p = 3
-    elif unit == 'ns' or unit is None:
-        m = 1
-        p = 0
-    else:
-        raise ValueError(f"cannot cast unit {unit}")
-    return m, p
-
-
-cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
-        round the fractional part of a float to our precision, p """
-    cdef:
-        int64_t m
-        int p
-
-    m, p = precision_from_unit(unit)
-
-    # just give me the unit back
-    if ts is None:
-        return m
-
-    # cast the unit, multiply base/frace separately
-    # to avoid precision issues from float -> int
-    base = <int64_t>ts
-    frac = ts - base
-    if p:
-        frac = round(frac, p)
-    return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
 cdef inline int64_t parse_timedelta_string(str ts) except? -1:
