@@ -70,6 +70,11 @@ if _pyarrow_version_ge_015:
         def __hash__(self):
             return hash((str(self), self.freq))
 
+        def to_pandas_dtype(self):
+            import pandas as pd
+
+            return pd.PeriodDtype(freq=self.freq)
+
     # register the type with a dummy instance
     _period_type = ArrowPeriodType("D")
     pyarrow.register_extension_type(_period_type)
@@ -118,6 +123,11 @@ if _pyarrow_version_ge_015:
 
         def __hash__(self):
             return hash((str(self), str(self.subtype), self.closed))
+
+        def to_pandas_dtype(self):
+            import pandas as pd
+
+            return pd.IntervalDtype(self.subtype.to_pandas_dtype())
 
     # register the type with a dummy instance
     _interval_type = ArrowIntervalType(pyarrow.int64(), "left")

@@ -237,3 +237,26 @@ def test_arrow_table_roundtrip(breaks):
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+@pytest.mark.parametrize(
+    "breaks",
+    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    ids=["float", "datetime64[ns]"],
+)
+def test_arrow_table_roundtrip_without_metadata(breaks):
+    import pyarrow as pa
+
+    arr = IntervalArray.from_breaks(breaks)
+    arr[1] = None
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    # remove the metadata
+    table = table.replace_schema_metadata()
+    assert table.schema.metadata is None
+
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.IntervalDtype)
+    tm.assert_frame_equal(result, df)
