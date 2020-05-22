@@ -2973,7 +2973,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return xarray.Dataset.from_dataframe(self)
 
-    @Substitution(returns=fmt.return_docstring)
+    @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf=None,
@@ -3002,9 +3002,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
-        Requires ``\usepackage{booktabs}``.  The output can be copy/pasted
+        Requires ``\usepackage{{booktabs}}``.  The output can be copy/pasted
         into a main LaTeX document or read from an external file
-        with ``\input{table.tex}``.
+        with ``\input{{table.tex}}``.
 
         .. versionchanged:: 0.20.2
            Added to Series.
@@ -3027,13 +3027,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write row names (index).
         na_rep : str, default 'NaN'
             Missing data representation.
-        formatters : list of functions or dict of {str: function}, optional
+        formatters : list of functions or dict of {{str: function}}, optional
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
         float_format : one-parameter function or str, optional, default None
             Formatter for floating point numbers. For example
-            ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
+            ``float_format="%.2f"`` and ``float_format="{{:0.2f}}".format`` will
             both result in 0.1234 being formatted as 0.12.
         sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
@@ -3051,7 +3051,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         longtable : bool, optional
             By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
-            adding a \usepackage{longtable} to your LaTeX preamble.
+            adding a \usepackage{{longtable}} to your LaTeX preamble.
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
@@ -3069,24 +3069,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The default will be read from the config module.
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
-            \usepackage{multirow} to your LaTeX preamble. Will print
+            \usepackage{{multirow}} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
         caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+            The LaTeX caption to be placed inside ``\caption{{}}`` in the output.
 
             .. versionadded:: 1.0.0
 
         label : str, optional
-            The LaTeX label to be placed inside ``\label{}`` in the output.
-            This is used with ``\ref{}`` in the main ``.tex`` file.
+            The LaTeX label to be placed inside ``\label{{}}`` in the output.
+            This is used with ``\ref{{}}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{}`` in the output.
-        %(returns)s
+        {returns}
         See Also
         --------
         DataFrame.to_string : Render a DataFrame to a console-friendly
@@ -3095,18 +3095,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']})
+        ...                    'weapon': ['sai', 'bo staff']}})
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
-        \begin{tabular}{lll}
+        \begin{{tabular}}{{lll}}
          \toprule
                name &    mask &    weapon \\
          \midrule
             Raphael &     red &       sai \\
           Donatello &  purple &  bo staff \\
         \bottomrule
-        \end{tabular}
+        \end{{tabular}}
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
