@@ -257,7 +257,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     # like out = {'index': foo, 'columns': bar}
 
     # Start by validating for consistency
-    if "axis" in kwargs and any(x in kwargs for x in data._AXIS_NUMBERS):
+    if "axis" in kwargs and any(x in kwargs for x in data._AXIS_TO_AXIS_NUMBER):
         msg = "Cannot specify both 'axis' and any of 'index' or 'columns'."
         raise TypeError(msg)
 
@@ -302,8 +302,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "a 'TypeError'."
         )
         warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
-        out[data._AXIS_NAMES[0]] = args[0]
-        out[data._AXIS_NAMES[1]] = args[1]
+        out[data._get_axis_name(0)] = args[0]
+        out[data._get_axis_name(1)] = args[1]
     else:
         msg = f"Cannot specify all of '{arg_name}', 'index', 'columns'."
         raise TypeError(msg)
@@ -353,7 +353,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
 
-    This function checks if the given float oriterable of floats is a valid percentile
+    This function checks if the given float or iterable of floats is a valid percentile
     otherwise raises a ValueError.
 
     Parameters

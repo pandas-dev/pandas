@@ -7,7 +7,8 @@ import pandas.util._test_decorators as td
 
 from pandas import Series
 import pandas._testing as tm
-from pandas.core.tools.datetimes import to_time
+from pandas.core.tools.datetimes import to_time as to_time_alias
+from pandas.core.tools.times import to_time
 
 
 class TestToTime:
@@ -46,7 +47,8 @@ class TestToTime:
         res = to_time(arg, format="%I:%M%p", errors="ignore")
         tm.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
 
-        with pytest.raises(ValueError):
+        msg = "Cannot convert.+to a time with given format"
+        with pytest.raises(ValueError, match=msg):
             to_time(arg, format="%I:%M%p", errors="raise")
 
         tm.assert_series_equal(
@@ -56,3 +58,12 @@ class TestToTime:
         res = to_time(np.array(arg))
         assert isinstance(res, list)
         assert res == expected_arr
+
+
+def test_to_time_alias():
+    expected = time(14, 15)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = to_time_alias(expected)
+
+    assert result == expected

@@ -410,7 +410,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values):
+        if is_interval_dtype(new_values.dtype):
             return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
 
@@ -514,7 +514,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def _should_fallback_to_positional(self):
+    def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]

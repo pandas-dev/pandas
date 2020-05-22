@@ -90,7 +90,7 @@ class IndexingError(Exception):
 
 class IndexingMixin:
     """
-    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    Mixin for adding .loc/.iloc/.at/.iat to Dataframes and Series.
     """
 
     @property
@@ -616,6 +616,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # invalid indexer type vs 'other' indexing errors
             if "cannot do" in str(e):
                 raise
+            elif "unhashable type" in str(e):
+                raise
             raise IndexingError(key) from e
 
     def _ensure_listlike_indexer(self, key, axis=None):
@@ -1046,7 +1048,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _get_label(self, label, axis: int):
         # GH#5667 this will fail if the label is not present in the axis.
-        return self.obj._xs(label, axis=axis)
+        return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
@@ -1079,37 +1081,6 @@ class _LocIndexer(_LocationIndexer):
         elif com.is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
-
-            # convert various list-like indexers
-            # to a list of keys
-            # we will use the *values* of the object
-            # and NOT the index if its a PandasObject
-            if isinstance(labels, ABCMultiIndex):
-
-                if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
-                    # Series, or 0,1 ndim ndarray
-                    # GH 14730
-                    key = list(key)
-                elif isinstance(key, ABCDataFrame):
-                    # GH 15438
-                    raise NotImplementedError(
-                        "Indexing a MultiIndex with a "
-                        "DataFrame key is not "
-                        "implemented"
-                    )
-                elif hasattr(key, "ndim") and key.ndim > 1:
-                    raise NotImplementedError(
-                        "Indexing a MultiIndex with a "
-                        "multidimensional key is not "
-                        "implemented"
-                    )
-
-                if (
-                    not isinstance(key, tuple)
-                    and len(key)
-                    and not isinstance(key[0], tuple)
-                ):
-                    key = tuple([key])
 
             # an iterable multi-selection
             if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):
@@ -1257,11 +1228,13 @@ class _LocIndexer(_LocationIndexer):
         indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
+            self._validate_read_indexer(
+                keyarr, indexer, axis, raise_missing=raise_missing
+            )
             return ax[indexer], indexer
 
         if ax.is_unique and not getattr(ax, "is_overlapping", False):
-            indexer = ax.get_indexer_for(key)
+            indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
@@ -1525,7 +1498,7 @@ class _iLocIndexer(_LocationIndexer):
         return key
 
     def _get_setitem_indexer(self, key):
-        # GH#32257 Fall through to let numnpy do validation
+        # GH#32257 Fall through to let numpy do validation
         return key
 
     # -------------------------------------------------------------------
@@ -2284,9 +2257,9 @@ def need_slice(obj) -> bool:
 
 def _non_reducing_slice(slice_):
     """
-    Ensurse that a slice doesn't reduce to a Series or Scalar.
+    Ensure that a slice doesn't reduce to a Series or Scalar.
 
-    Any user-paseed `subset` should have this called on it
+    Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
     # default to column slice, like DataFrame

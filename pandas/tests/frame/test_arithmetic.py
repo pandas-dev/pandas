@@ -49,9 +49,11 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                msg = re.escape(
-                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
-                )
+                msgs = [
+                    r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
+                    "invalid type promotion",
+                ]
+                msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
                     x >= y
                 with pytest.raises(TypeError, match=msg):
@@ -106,7 +108,7 @@ class TestFrameComparisons:
             else:
                 msg = (
                     "'(<|>)=?' not supported between "
-                    "instances of 'Timestamp' and 'float'"
+                    "instances of 'numpy.ndarray' and 'Timestamp'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
@@ -613,13 +615,6 @@ class TestFrameArithmetic:
 
         expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
 
-        if opname in ["__rmod__", "__rfloordiv__"]:
-            # exvals will have dtypes [f8, i8, i8] so expected will be
-            #   all-f8, but the DataFrame operation will return mixed dtypes
-            # use exvals[-1].dtype instead of "i8" for compat with 32-bit
-            # systems/pythons
-            expected[False] = expected[False].astype(exvals[-1].dtype)
-
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
@@ -1042,7 +1037,7 @@ class TestFrameArithmeticUnsorted:
 
         # no upcast needed
         added = mixed_float_frame + series
-        _check_mixed_float(added)
+        assert np.all(added.dtypes == series.dtype)
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
