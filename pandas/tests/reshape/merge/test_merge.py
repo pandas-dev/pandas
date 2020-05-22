@@ -2056,7 +2056,7 @@ def test_merge_duplicate_suffix(how, expected):
 
 @pytest.mark.parametrize(
     "col1, col2, suffixes",
-    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, "")),],
+    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, ""))],
 )
 def test_merge_suffix_error(col1, col2, suffixes):
     # issue: 24782
@@ -2076,7 +2076,9 @@ def test_merge_suffix_type_error(col1, col2, suffixes):
     a = pd.DataFrame({col1: [1, 2, 3]})
     b = pd.DataFrame({col2: [3, 4, 5]})
 
-    msg = f"suffixes should be tuple of \\(str, str\\). But got {type(suffixes)}"
+    msg = (
+        f"suffixes should be tuple of \\(str, str\\). But got {type(suffixes).__name__}"
+    )
     with pytest.raises(TypeError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 

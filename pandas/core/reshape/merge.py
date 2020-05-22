@@ -2074,7 +2074,7 @@ def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, s
     """
     if not isinstance(suffixes, tuple):
         raise TypeError(
-            f"suffixes should be tuple of (str, str). But got {type(suffixes)}"
+            f"suffixes should be tuple of (str, str). But got {type(suffixes).__name__}"
         )
 
     to_rename = left.intersection(right)
