@@ -26,7 +26,6 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
-from pandas.core.ops.blockwise import operate_blockwise
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -327,7 +326,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         assert right._indexed_same(left)
 
         array_op = get_array_op(func, str_rep=str_rep)
-        bm = operate_blockwise(left, right, array_op)
+        bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
     elif isinstance(right, ABCSeries) and axis == "columns":
