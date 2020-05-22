@@ -747,7 +747,6 @@ class JsonReader(abc.Iterator):
                 data_iterator = compiled_pattern.finditer(data)
                 data = []
                 nrows_seen = 0
-                print(data_iterator)
                 for vals in data_iterator:
                     if nrows_seen >= self.nrows:
                         break
