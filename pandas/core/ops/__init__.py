@@ -322,7 +322,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        array_op = get_array_op(func, str_rep=str_rep)
         bm = operate_blockwise(left, right, array_op)
         return type(left)(bm)
 
