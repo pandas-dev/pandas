@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import PY37, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -13,6 +13,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
@@ -210,7 +211,10 @@ def test_level_get_group(observed):
 
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
 #  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
+@pytest.mark.xfail(
+    PY37 and _np_version_under1p17 and not is_platform_windows(),
+    reason="Flaky, GH-27902",
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -498,9 +502,9 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            f"Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
-            + "Result:\n{result}"
+            "Labels and aggregation results not consistently sorted\n"
+            f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            f"Result:\n{result}"
         )
         assert False, msg
 
@@ -1256,7 +1260,7 @@ def test_get_nonexistent_category():
 
 
 def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool
+    reduction_func: str, observed: bool, request
 ):
     # GH 17605
 
@@ -1264,7 +1268,8 @@ def test_series_groupby_on_2_categoricals_unobserved(
         pytest.skip("ngroup is not truly a reduction")
 
     if reduction_func == "corrwith":  # GH 32293
-        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
+        mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {

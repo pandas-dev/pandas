@@ -36,16 +36,22 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object
+
+from pandas._libs.tslibs.base cimport ABCPeriod, is_period_object, is_tick_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
-cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar cimport dayofweek, get_day_of_year, is_leapyear
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport (
+    dayofweek,
+    get_day_of_year,
+    is_leapyear,
+    get_week_of_year,
+    get_days_in_month,
+)
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.frequencies cimport (
     get_base_alias,
     get_freq_code,
@@ -55,11 +61,14 @@ from pandas._libs.tslibs.frequencies cimport (
 )
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
+    _nat_scalar_rules,
+    NPY_NAT,
+    is_null_datetimelike,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport to_offset
-from pandas._libs.tslibs.offsets import _Tick
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -1315,7 +1324,7 @@ cdef int pweek(int64_t ordinal, int freq):
     cdef:
         npy_datetimestruct dts
     get_date_info(ordinal, freq, &dts)
-    return ccalendar.get_week_of_year(dts.year, dts.month, dts.day)
+    return get_week_of_year(dts.year, dts.month, dts.day)
 
 
 cdef int phour(int64_t ordinal, int freq):
@@ -1343,7 +1352,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     cdef:
         npy_datetimestruct dts
     get_date_info(ordinal, freq, &dts)
-    return ccalendar.get_days_in_month(dts.year, dts.month)
+    return get_days_in_month(dts.year, dts.month)
 
 
 @cython.wraparound(False)
@@ -1522,7 +1531,7 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period:
+cdef class _Period(ABCPeriod):
 
     cdef readonly:
         int64_t ordinal
@@ -1570,16 +1579,7 @@ cdef class _Period:
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        # index/series like
-        elif hasattr(other, '_typ'):
-            return NotImplemented
-        else:
-            if op == Py_EQ:
-                return NotImplemented
-            elif op == Py_NE:
-                return NotImplemented
-            raise TypeError(f"Cannot compare type {type(self).__name__} "
-                            f"with type {type(other).__name__}")
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1589,9 +1589,9 @@ cdef class _Period:
             int64_t nanos, offset_nanos
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                isinstance(other, _Tick)):
+                is_tick_object(other)):
             offset = to_offset(self.freq.rule_code)
-            if isinstance(offset, _Tick):
+            if is_tick_object(offset):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
@@ -1655,13 +1655,7 @@ cdef class _Period:
                     raise IncompatibleFrequency(msg)
                 # GH 23915 - mul by base freq since __add__ is agnostic of n
                 return (self.ordinal - other.ordinal) * self.freq.base
-            elif getattr(other, '_typ', None) == 'periodindex':
-                # GH#21314 PeriodIndex - Period returns an object-index
-                # of DateOffset objects, for which we cannot use __neg__
-                # directly, so we have to apply it pointwise
-                return other.__sub__(self).map(lambda x: -x)
-            else:  # pragma: no cover
-                return NotImplemented
+            return NotImplemented
         elif is_period_object(other):
             if self is NaT:
                 return NaT
@@ -1685,7 +1679,7 @@ cdef class _Period:
         resampled : Period
         """
         freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
         base1, mult1 = get_freq_code(self.freq)
         base2, mult2 = get_freq_code(freq)
 
@@ -1758,7 +1752,7 @@ cdef class _Period:
         """
         if freq is not None:
             freq = self._maybe_convert_freq(freq)
-        how = _validate_end_alias(how)
+        how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
@@ -2501,7 +2495,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     if quarter <= 0 or quarter > 4:
         raise ValueError('Quarter must be 1 <= q <= 4')
 
-    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
+    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
     month = (mnum + (quarter - 1) * 3) % 12 + 1
     if month > mnum:
         year -= 1
@@ -2509,7 +2503,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     return year, month
 
 
-def _validate_end_alias(how):
+def validate_end_alias(how):
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}
