@@ -1471,11 +1471,9 @@ default 'raise'
         return Timestamp(normalized_value).tz_localize(self.tz)
 
     def strftime(self, format: str) -> str:
-        """
-        Override datetime.strftime() method so we can display
-        nanosecond precision.
-        """
-        freplace = None  # the string to use for %f
+        # don't do additional processing if its not necessary
+        if '%f' not in format:
+            return super().strftime(format)
         
         newformat = []
         i, n = 0, len(format)
@@ -1485,7 +1483,8 @@ default 'raise'
                 # remove accompanying %
                 newformat.pop()
                 # and put fractional seconds in its place
-                newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
+                ns = f"{self.nanosecond:03}" if self.nanosecond else ""
+                newformat.append(f"{self.microsecond:06}{ns}")
             else:
                 newformat.append(ch)
 

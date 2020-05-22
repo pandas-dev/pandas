@@ -381,6 +381,15 @@ class TestTimestamp:
         t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
         assert t2.tz_convert(tz="UTC").freq == t2.freq
 
+    @pytest.mark.parametrize("_input,fmt,_output", [
+        ("2020-05-22 11:07:30", "%Y-%m-%d", "2020-05-22"),
+        ("2020-05-22 11:07:30.123456", "%Y-%m-%d %f", "2020-05-22 123456"),
+        ("2020-05-22 11:07:30.123456789", "%f", "123456789"),
+    ])
+    def test_strftime(self, _input, fmt, _output):
+        ts = Timestamp(_input)
+        result = ts.strftime(fmt)
+        assert result == _output
 
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
