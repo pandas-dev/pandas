@@ -178,8 +178,8 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, left, left, "evaluate")
             assert result != left._is_mixed_type
 
-            result = expr.evaluate(op, op_str, left, left, use_numexpr=True)
-            expected = expr.evaluate(op, op_str, left, left, use_numexpr=False)
+            result = expr.evaluate(op, left, left, use_numexpr=True)
+            expected = expr.evaluate(op, left, left, use_numexpr=False)
 
             if isinstance(result, DataFrame):
                 tm.assert_frame_equal(result, expected)
@@ -219,8 +219,8 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
             assert result != left._is_mixed_type
 
-            result = expr.evaluate(op, op_str, left, f12, use_numexpr=True)
-            expected = expr.evaluate(op, op_str, left, f12, use_numexpr=False)
+            result = expr.evaluate(op, left, f12, use_numexpr=True)
+            expected = expr.evaluate(op, left, f12, use_numexpr=False)
             if isinstance(result, DataFrame):
                 tm.assert_frame_equal(result, expected)
             else:
