@@ -1060,6 +1060,13 @@ class BusinessHourMixin(BusinessMixin):
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
 
+    @classmethod
+    def _from_name(cls, suffix=None):
+        # default _from_name calls cls with no args
+        if suffix:
+            raise ValueError(f"Bad freq suffix {suffix}")
+        return cls()
+
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
         hours = ",".join(
@@ -1223,6 +1230,75 @@ cdef class YearOffset(BaseOffset):
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
+cdef class QuarterOffset(BaseOffset):
+    _attributes = frozenset(["n", "normalize", "startingMonth"])
+    # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
+    #       point.  Also apply_index, is_on_offset, rule_code if
+    #       startingMonth vs month attr names are resolved
+
+    # FIXME: python annotations here breaks things
+    # _default_startingMonth: int
+    # _from_name_startingMonth: int
+
+    cdef readonly:
+        int startingMonth
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if startingMonth is None:
+            startingMonth = self._default_startingMonth
+        self.startingMonth = startingMonth
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.startingMonth)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_startingMonth is not None:
+                kwargs["startingMonth"] = cls._from_name_startingMonth
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.startingMonth]
+        return f"{self._prefix}-{month}"
+
+    def is_anchored(self) -> bool:
+        return self.n == 1 and self.startingMonth is not None
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        # months_since: find the calendar quarter containing other.month,
+        # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
+        # Then find the month in that quarter containing an is_on_offset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 3 - self.startingMonth % 3
+        qtrs = roll_qtrday(
+            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=3
+        )
+        months = qtrs * 3 - months_since
+        return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_quarters(
+            dtindex.asi8, self.n, self.startingMonth, self._day_opt
+        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
@@ -1268,7 +1344,7 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_quarters(
+cdef shift_quarters(
     const int64_t[:] dtindex,
     int quarters,
     int q1start_month,
@@ -1612,7 +1688,7 @@ def shift_month(stamp: datetime, months: int,
     return stamp.replace(year=year, month=month, day=day)
 
 
-cpdef int get_day_of_month(datetime other, day_opt) except? -1:
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
