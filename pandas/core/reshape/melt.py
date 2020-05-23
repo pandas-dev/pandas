@@ -72,7 +72,14 @@ def melt(
                     "The following 'value_vars' are not present in "
                     f"the DataFrame: {list(missing)}"
                 )
-        frame = frame.loc[:, id_vars + value_vars]
+        # use `iloc` instead of `loc` when `col_level` is specified
+        if col_level is not None:
+            nlevels = frame.columns.nlevels
+            iid_vars = [int(cols.index(elm) / nlevels) for elm in id_vars]
+            ivalue_vars = [int(cols.index(elm) / nlevels) for elm in value_vars]
+            frame = frame.iloc[:, iid_vars + ivalue_vars]
+        else:
+            frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
 
