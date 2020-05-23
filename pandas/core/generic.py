@@ -2903,9 +2903,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
-        # formatters is a list
-        if formatters_col and type(formatters_col) == list:
-            formatters = [lambda x: f"{style}{x}" for style in formatters_col]
+        if formatters_col:
+            if is_list_like(formatters_col):
+                formatters = [lambda x: style % x for style in formatters_col]
+            else:
+                raise ValueError
 
         formatter = DataFrameFormatter(
             self,
