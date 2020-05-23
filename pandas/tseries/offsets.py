@@ -790,7 +790,7 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
 # Month-Based Offset Classes
 
 
-class MonthEnd(SingleConstructorMixin, liboffsets.MonthOffset):
+class MonthEnd(liboffsets.MonthOffset):
     """
     DateOffset of one month end.
     """
@@ -799,7 +799,7 @@ class MonthEnd(SingleConstructorMixin, liboffsets.MonthOffset):
     _day_opt = "end"
 
 
-class MonthBegin(SingleConstructorMixin, liboffsets.MonthOffset):
+class MonthBegin(liboffsets.MonthOffset):
     """
     DateOffset of one month at beginning.
     """
@@ -808,7 +808,7 @@ class MonthBegin(SingleConstructorMixin, liboffsets.MonthOffset):
     _day_opt = "start"
 
 
-class BusinessMonthEnd(SingleConstructorMixin, liboffsets.MonthOffset):
+class BusinessMonthEnd(liboffsets.MonthOffset):
     """
     DateOffset increments between business EOM dates.
     """
@@ -817,7 +817,7 @@ class BusinessMonthEnd(SingleConstructorMixin, liboffsets.MonthOffset):
     _day_opt = "business_end"
 
 
-class BusinessMonthBegin(SingleConstructorMixin, liboffsets.MonthOffset):
+class BusinessMonthBegin(liboffsets.MonthOffset):
     """
     DateOffset of one business month at beginning.
     """
@@ -827,9 +827,7 @@ class BusinessMonthBegin(SingleConstructorMixin, liboffsets.MonthOffset):
 
 
 @doc(bound="bound")
-class _CustomBusinessMonth(
-    CustomMixin, BusinessMixin, SingleConstructorMixin, liboffsets.MonthOffset
-):
+class _CustomBusinessMonth(CustomMixin, BusinessMixin, liboffsets.MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 

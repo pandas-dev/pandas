@@ -207,7 +207,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
             dict(
                 and_=bool_method(cls, operator.and_, special),
                 or_=bool_method(cls, operator.or_, special),
-                # For some reason ``^`` wasn't used in original.
                 xor=bool_method(cls, operator.xor, special),
                 rand_=bool_method(cls, rand_, special),
                 ror_=bool_method(cls, ror_, special),
