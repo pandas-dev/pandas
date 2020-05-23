@@ -17,7 +17,6 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     ApplyTypeError,
     BaseOffset,
     BusinessMixin,
-    CustomMixin,
     Day,
     Hour,
     Micro,
@@ -300,7 +299,7 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         return True
 
 
-class BusinessDay(BusinessMixin, SingleConstructorOffset):
+class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
     """
@@ -585,7 +584,8 @@ class BusinessHour(liboffsets.BusinessHourMixin):
 
             # adjust by business days first
             if bd != 0:
-                if isinstance(self, CustomMixin):  # GH 30593
+                if self._prefix.startswith("C"):
+                    # GH#30593 this is a CustomFooOffset
                     skip_bd = CustomBusinessDay(
                         n=bd,
                         weekmask=self.weekmask,
@@ -679,7 +679,7 @@ class BusinessHour(liboffsets.BusinessHourMixin):
             return False
 
 
-class CustomBusinessDay(CustomMixin, BusinessDay):
+class CustomBusinessDay(liboffsets.CustomBusinessMixin, BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
 
@@ -707,18 +707,6 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         #  it will be re-constructed within __init__
         tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
         return type(self), tup
-
-    def __init__(
-        self,
-        n=1,
-        normalize=False,
-        weekmask="Mon Tue Wed Thu Fri",
-        holidays=None,
-        calendar=None,
-        offset=timedelta(0),
-    ):
-        BusinessDay.__init__(self, n, normalize, offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
     def apply(self, other):
@@ -760,7 +748,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(CustomMixin, BusinessHour):
+class CustomBusinessHour(liboffsets.CustomBusinessMixin, BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -783,7 +771,9 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         offset=timedelta(0),
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
+        liboffsets.CustomBusinessMixin.__init__(
+            self, n, normalize, weekmask, holidays, calendar, offset
+        )
 
 
 # ---------------------------------------------------------------------
@@ -827,7 +817,7 @@ class BusinessMonthBegin(liboffsets.MonthOffset):
 
 
 @doc(bound="bound")
-class _CustomBusinessMonth(CustomMixin, BusinessMixin, liboffsets.MonthOffset):
+class _CustomBusinessMonth(liboffsets.CustomBusinessMixin, liboffsets.MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -856,18 +846,6 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, liboffsets.MonthOffset):
 
     is_on_offset = BaseOffset.is_on_offset  # override MonthOffset method
     apply_index = BaseOffset.apply_index  # override MonthOffset method
-
-    def __init__(
-        self,
-        n=1,
-        normalize=False,
-        weekmask="Mon Tue Wed Thu Fri",
-        holidays=None,
-        calendar=None,
-        offset=timedelta(0),
-    ):
-        BusinessMixin.__init__(self, n, normalize, offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     def __reduce__(self):
         # None for self.calendar bc np.busdaycalendar doesnt pickle nicely

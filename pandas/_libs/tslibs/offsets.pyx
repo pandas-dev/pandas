@@ -709,7 +709,7 @@ cdef class BaseOffset:
             raise ValueError(f'`n` argument must be an integer, got {n}')
         return nint
 
-    def __setstate__(self, state):
+    cpdef __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
         if 'offset' in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
@@ -731,6 +731,8 @@ cdef class BaseOffset:
         self.__dict__.update(state)
 
         if 'weekmask' in state and 'holidays' in state:
+            self.weekmask = state.pop("weekmask")
+            self.holidays = state.pop("holidays")
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
                                                holidays=self.holidays,
                                                calendar=None)
@@ -922,7 +924,7 @@ cdef class Tick(SingleConstructorOffset):
     def __reduce__(self):
         return (type(self), (self.n,))
 
-    def __setstate__(self, state):
+    cpdef __setstate__(self, state):
         self.n = state["n"]
         self.normalize = False
 
@@ -1024,6 +1026,44 @@ cdef class BusinessMixin(SingleConstructorOffset):
         self._offset = state["_offset"]
 
 
+cdef class CustomBusinessMixin(BusinessMixin):
+    cdef readonly:
+        object weekmask, holidays, calendar
+
+    def __init__(
+            self,
+            n=1,
+            normalize=False,
+            weekmask="Mon Tue Wed Thu Fri",
+            holidays=None,
+            calendar=None,
+            offset=timedelta(0)
+    ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+        self.weekmask = weekmask
+        self.holidays = holidays
+        self.calendar = calendar
+
+    cpdef __setstate__(self, state):
+        weekmask = state.pop("weekmask")
+        holidays = state.pop("holidays")
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=None)
+        self.weekmask = weekmask
+        self.calendar = calendar
+        self.holidays = holidays
+
+        BusinessMixin.__setstate__(self, state)
+
+
 class BusinessHourMixin(BusinessMixin):
     _adjust_dst = False
 
@@ -1119,25 +1159,6 @@ class BusinessHourMixin(BusinessMixin):
                     seconds=self._get_business_hours_by_sec(st, self.end[i])
                 )
         assert False
-
-
-class CustomMixin:
-    """
-    Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes.
-    """
-
-    def __init__(self, weekmask, holidays, calendar):
-        calendar, holidays = _get_calendar(
-            weekmask=weekmask, holidays=holidays, calendar=calendar
-        )
-        # Custom offset instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        object.__setattr__(self, "weekmask", weekmask)
-        object.__setattr__(self, "holidays", holidays)
-        object.__setattr__(self, "calendar", calendar)
 
 
 class WeekOfMonthMixin(SingleConstructorOffset):
