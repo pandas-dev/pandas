@@ -3267,7 +3267,7 @@ def _make_date_converter(
     def converter(*date_cols):
         if date_parser is None:
             date_cols = tuple(
-                [x if isinstance(x, np.ndarray) else x.to_numpy() for x in date_cols]
+                x if isinstance(x, np.ndarray) else x.to_numpy() for x in date_cols
             )
             strs = parsing.concat_date_cols(date_cols)
 
