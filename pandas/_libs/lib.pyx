@@ -74,7 +74,8 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
-from pandas._libs.tslibs.base cimport is_period_object
+from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 from pandas._libs.missing cimport (
     checknull,
@@ -187,7 +188,7 @@ def is_scalar(val: object) -> bool:
     return (PyNumber_Check(val)
             or is_period_object(val)
             or is_interval(val)
-            or util.is_offset_object(val))
+            or is_offset_object(val))
 
 
 def is_iterator(obj: object) -> bool:
