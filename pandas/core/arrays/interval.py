@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCExtensionArray,
     ABCIndexClass,
     ABCIntervalIndex,
     ABCPeriodIndex,
@@ -149,9 +148,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     can_hold_na = True
     _na_value = _fill_value = np.nan
 
-    def __new__(cls, data, closed=None, dtype=None, copy=False, verify_integrity=True):
+    def __new__(
+        cls,
+        data,
+        closed=None,
+        dtype=None,
+        copy: bool = False,
+        verify_integrity: bool = True,
+    ):
 
-        if isinstance(data, ABCSeries) and is_interval_dtype(data):
+        if isinstance(data, ABCSeries) and is_interval_dtype(data.dtype):
             data = data._values
 
         if isinstance(data, (cls, ABCIntervalIndex)):
@@ -542,19 +548,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg) from err
 
+        if needs_float_conversion:
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+
         key = check_array_indexer(self, key)
+
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        if needs_float_conversion:
-            left = left.astype("float")
-        left.values[key] = value_left
+        left._values[key] = value_left
         self._left = left
 
         right = self.right.copy(deep=True)
-        if needs_float_conversion:
-            right = right.astype("float")
-        right.values[key] = value_right
+        right._values[key] = value_right
         self._right = right
 
     def __eq__(self, other):
@@ -569,8 +575,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # determine the dtype of the elements we want to compare
         if isinstance(other, Interval):
-            other_dtype = "interval"
-        elif not is_categorical_dtype(other):
+            other_dtype = pandas_dtype("interval")
+        elif not is_categorical_dtype(other.dtype):
             other_dtype = other.dtype
         else:
             # for categorical defer to categories for dtype
@@ -605,9 +611,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = True
 
         return result
-
-    def __ne__(self, other):
-        return ~self.__eq__(other)
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -648,7 +651,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise TypeError(msg)
 
-        value = getattr(value, "_values", value)
         self._check_closed_matches(value, name="value")
 
         left = self.left.fillna(value=value.left)
@@ -678,7 +680,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
-        dtype = pandas_dtype(dtype)
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
         if is_interval_dtype(dtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
@@ -763,7 +766,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Avoid materializing self.values
         return self.left.size
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -1045,6 +1048,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False.
         """
+
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
     @property  # type: ignore

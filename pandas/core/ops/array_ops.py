@@ -5,7 +5,8 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Optional, Tuple
+from typing import Any, Tuple
+import warnings
 
 import numpy as np
 
@@ -75,14 +76,7 @@ def masked_arith_op(x: np.ndarray, y, op):
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
-            if not _can_broadcast(x, y):
-                raise ValueError(x.shape, y.shape)
-
-            # Call notna on pre-broadcasted y for performance
-            ymask = notna(y)
-            y = np.broadcast_to(y, x.shape)
-            ymask = np.broadcast_to(ymask, x.shape)
-
+            raise ValueError(x.shape, y.shape)
         else:
             ymask = notna(y)
 
@@ -127,24 +121,16 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str):
-    def na_op(x, y):
-        return na_arithmetic_op(x, y, op, str_rep)
-
-    return na_op
-
-
-def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
+def na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
-    If native types are not compatible, try coersion to object dtype.
+    If native types are not compatible, try coercion to object dtype.
 
     Parameters
     ----------
     left : np.ndarray
     right : np.ndarray or scalar
-    str_rep : str or None
     is_cmp : bool, default False
         If this a comparison operation.
 
@@ -159,7 +145,7 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     import pandas.core.computation.expressions as expressions
 
     try:
-        result = expressions.evaluate(op, str_rep, left, right)
+        result = expressions.evaluate(op, left, right)
     except TypeError:
         if is_cmp:
             # numexpr failed on comparison op, e.g. ndarray[float] > datetime
@@ -176,7 +162,7 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
+def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -187,18 +173,18 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
         Cannot be a DataFrame or Index.  Series is *not* excluded.
     op : {operator.add, operator.sub, ...}
         Or one of the reversed variants from roperator.
-    str_rep : str
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
     lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_for_op(right, lvalues.shape)
+    rvalues = maybe_upcast_datetimelike_array(right)
+    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -206,59 +192,12 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
 
     else:
         with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep)
+            res_values = na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
 
-def _broadcast_comparison_op(lvalues, rvalues, op) -> np.ndarray:
-    """
-    Broadcast a comparison operation between two 2D arrays.
-
-    Parameters
-    ----------
-    lvalues : np.ndarray or ExtensionArray
-    rvalues : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    np.ndarray[bool]
-    """
-    if isinstance(rvalues, np.ndarray):
-        rvalues = np.broadcast_to(rvalues, lvalues.shape)
-        result = comparison_op(lvalues, rvalues, op)
-    else:
-        result = np.empty(lvalues.shape, dtype=bool)
-        for i in range(len(lvalues)):
-            result[i, :] = comparison_op(lvalues[i], rvalues[:, 0], op)
-    return result
-
-
-def _can_broadcast(lvalues, rvalues) -> bool:
-    """
-    Check if we can broadcast rvalues to match the shape of lvalues.
-
-    Parameters
-    ----------
-    lvalues : np.ndarray or ExtensionArray
-    rvalues : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    bool
-    """
-    # We assume that lengths dont match
-    if lvalues.ndim == rvalues.ndim == 2:
-        # See if we can broadcast unambiguously
-        if lvalues.shape[1] == rvalues.shape[-1]:
-            if rvalues.shape[0] == 1:
-                return True
-    return False
-
-
-def comparison_op(
-    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
-) -> ArrayLike:
+def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -287,8 +226,6 @@ def comparison_op(
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
         if len(lvalues) != len(rvalues):
-            if _can_broadcast(lvalues, rvalues):
-                return _broadcast_comparison_op(lvalues, rvalues, op)
             raise ValueError(
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
@@ -308,8 +245,11 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
+        with warnings.catch_warnings():
+            # suppress warnings from numpy about element-wise comparison
+            warnings.simplefilter("ignore", DeprecationWarning)
+            with np.errstate(all="ignore"):
+                res_values = na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -369,7 +309,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
     """
     fill_int = lambda x: x
 
@@ -420,7 +360,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     return res_values
 
 
-def get_array_op(op, str_rep: Optional[str] = None):
+def get_array_op(op):
     """
     Return a binary array operation corresponding to the given operator op.
 
@@ -428,20 +368,23 @@ def get_array_op(op, str_rep: Optional[str] = None):
     ----------
     op : function
         Binary operator from operator or roperator module.
-    str_rep : str or None, default None
-        str_rep to pass to arithmetic_op
 
     Returns
     -------
-    function
+    functools.partial
     """
+    if isinstance(op, partial):
+        # We get here via dispatch_to_series in DataFrame case
+        # TODO: avoid getting here
+        return op
+
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op, str_rep=str_rep)
+        return partial(comparison_op, op=op)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
     else:
-        return partial(arithmetic_op, op=op, str_rep=str_rep)
+        return partial(arithmetic_op, op=op)
 
 
 def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:

@@ -159,10 +159,12 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
 
-        assert is_categorical(s.dtype)
-        assert is_categorical(s)
-        assert not is_categorical(np.dtype("float64"))
-        assert not is_categorical(1.0)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#33385 deprecated
+            assert is_categorical(s.dtype)
+            assert is_categorical(s)
+            assert not is_categorical(np.dtype("float64"))
+            assert not is_categorical(1.0)
 
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
@@ -188,6 +190,10 @@ class TestCategoricalDtype(Base):
         expected = "datetime64[ns]"
         result = str(Categorical(DatetimeIndex([])).categories.dtype)
         assert result == expected
+
+    def test_not_string(self):
+        # though CategoricalDtype has object kind, it cannot be string
+        assert not is_string_dtype(CategoricalDtype())
 
 
 class TestDatetimeTZDtype(Base):
@@ -276,12 +282,14 @@ class TestDatetimeTZDtype(Base):
         assert not DatetimeTZDtype.is_dtype(None)
         assert DatetimeTZDtype.is_dtype(dtype)
         assert DatetimeTZDtype.is_dtype("datetime64[ns, US/Eastern]")
+        assert DatetimeTZDtype.is_dtype("M8[ns, US/Eastern]")
         assert not DatetimeTZDtype.is_dtype("foo")
         assert DatetimeTZDtype.is_dtype(DatetimeTZDtype("ns", "US/Pacific"))
         assert not DatetimeTZDtype.is_dtype(np.float64)
 
     def test_equality(self, dtype):
         assert is_dtype_equal(dtype, "datetime64[ns, US/Eastern]")
+        assert is_dtype_equal(dtype, "M8[ns, US/Eastern]")
         assert is_dtype_equal(dtype, DatetimeTZDtype("ns", "US/Eastern"))
         assert not is_dtype_equal(dtype, "foo")
         assert not is_dtype_equal(dtype, DatetimeTZDtype("ns", "CET"))
@@ -291,6 +299,8 @@ class TestDatetimeTZDtype(Base):
 
         # numpy compat
         assert is_dtype_equal(np.dtype("M8[ns]"), "datetime64[ns]")
+
+        assert dtype == "M8[ns, US/Eastern]"
 
     def test_basic(self, dtype):
 

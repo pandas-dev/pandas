@@ -62,7 +62,7 @@ gen_random_datetime = st.datetimes(
 # enough runtime information (e.g. type hints) to infer how to build them.
 gen_yqm_offset = st.one_of(
     *map(
-        st.from_type,
+        st.from_type,  # type: ignore
         [
             MonthBegin,
             MonthEnd,
@@ -85,8 +85,6 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
-# Based on CI runs: Always passes on OSX, fails on Linux, sometimes on Windows
-@pytest.mark.xfail(strict=False, reason="inconsistent between OSs, Pythons")
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
@@ -125,11 +123,12 @@ def test_apply_index_implementations(offset, rng):
     # TODO: Check randomly assorted entries, not just first/last
 
 
-@pytest.mark.xfail  # TODO: reason?
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization
+    assume(not offset.normalize)
+
     # Note that dti includes a transition across DST boundary
     dti = pd.date_range(
         start="2017-10-30 12:00:00", end="2017-11-06", freq="D", tz="US/Eastern"

@@ -29,11 +29,14 @@ def _make_flex_doc(op_name, typ):
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
+        if op_desc["reverse"]:
+            base_doc += _see_also_reverse_SERIES.format(
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+            )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
             op_name=op_name,
             equiv=equiv,
-            reverse=op_desc["reverse"],
             series_returns=op_desc["series_returns"],
         )
         if op_desc["series_examples"]:
@@ -375,18 +378,28 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     },
 }
 
+_py_num_ref = """see
+    `Python documentation
+    <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_
+    for more details"""
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
     reverse_op = _op_descriptions[key]["reverse"]
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
+        _op_descriptions[key][
+            "see_also_desc"
+        ] = f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
+        _op_descriptions[reverse_op][
+            "see_also_desc"
+        ] = f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value for
-missing data in one of the inputs.
+missing data in either one of the inputs.
 
 Parameters
 ----------
@@ -395,7 +408,7 @@ fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
-    the result will be missing.
+    the result of filling (at that location) will be missing.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
@@ -403,10 +416,12 @@ level : int or name
 Returns
 -------
 {series_returns}
+"""
 
+_see_also_reverse_SERIES = """
 See Also
 --------
-Series.{reverse}
+Series.{reverse} : {see_also_desc}.
 """
 
 _arith_doc_FRAME = """
