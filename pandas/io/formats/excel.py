@@ -23,6 +23,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.style import Styler
 
 
 class ExcelCell:
@@ -385,7 +386,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render"):
+        if hasattr(df, "render") and isinstance(df, Styler):
             self.styler = df
             df = df.data
             if style_converter is None:
