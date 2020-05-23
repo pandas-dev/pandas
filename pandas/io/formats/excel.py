@@ -16,7 +16,7 @@ from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import Index, MultiIndex, PeriodIndex, DataFrame
+from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
 from pandas.io.common import stringify_path
