@@ -74,10 +74,10 @@ def melt(
                 )
         # use `iloc` instead of `loc` when `col_level` is specified
         if col_level is not None:
-            nlevels = frame.columns.nlevels
-            iid_vars = [int(cols.index(elm) / nlevels) for elm in id_vars]
-            ivalue_vars = [int(cols.index(elm) / nlevels) for elm in value_vars]
-            frame = frame.iloc[:, iid_vars + ivalue_vars]
+            idx = frame.columns.get_level_values(col_level).get_indexer(
+                id_vars + value_vars
+            )
+            frame = frame.iloc[:, idx]
         else:
             frame = frame.loc[:, id_vars + value_vars]
     else:
