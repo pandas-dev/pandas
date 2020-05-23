@@ -1329,6 +1329,56 @@ cdef class MonthOffset(SingleConstructorOffset):
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
+# ---------------------------------------------------------------------
+# Special Offset Classes
+
+cdef class FY5253Mixin(SingleConstructorOffset):
+    cdef readonly:
+        int startingMonth
+        int weekday
+        str variation
+
+    def __init__(
+        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+    ):
+        BaseOffset.__init__(self, n, normalize)
+        self.startingMonth = startingMonth
+        self.weekday = weekday
+        self.variation = variation
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+        if self.variation not in ["nearest", "last"]:
+            raise ValueError(f"{self.variation} is not a valid variation")
+
+    def is_anchored(self) -> bool:
+        return (
+            self.n == 1 and self.startingMonth is not None and self.weekday is not None
+        )
+
+    # --------------------------------------------------------------------
+    # Name-related methods
+
+    @property
+    def rule_code(self) -> str:
+        prefix = self._prefix
+        suffix = self.get_rule_code_suffix()
+        return f"{prefix}-{suffix}"
+
+    def _get_suffix_prefix(self) -> str:
+        if self.variation == "nearest":
+            return "N"
+        else:
+            return "L"
+
+    def get_rule_code_suffix(self) -> str:
+        prefix = self._get_suffix_prefix()
+        month = MONTH_ALIASES[self.startingMonth]
+        weekday = int_to_weekday[self.weekday]
+        return f"{prefix}-{month}-{weekday}"
+
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
