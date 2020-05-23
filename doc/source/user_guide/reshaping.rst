@@ -331,8 +331,6 @@ user-friendly.
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
-
-
 .. _reshaping.combine_with_groupby:
 
 Combining with stats and GroupBy
