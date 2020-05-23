@@ -988,13 +988,17 @@ def delta_to_tick(delta: timedelta) -> Tick:
 # --------------------------------------------------------------------
 
 
-class BusinessMixin(SingleConstructorOffset):
+cdef class BusinessMixin(SingleConstructorOffset):
     """
     Mixin to business types to provide related functions.
     """
+
+    cdef readonly:
+        timedelta _offset
+
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
+        self._offset = offset
 
     @property
     def offset(self):
@@ -1013,6 +1017,11 @@ class BusinessMixin(SingleConstructorOffset):
         if attrs:
             out += ": " + ", ".join(attrs)
         return out
+
+    cpdef __setstate__(self, state):
+        # We need to use a cdef/cpdef method to set the readonly _offset attribute
+        BaseOffset.__setstate__(self, state)
+        self._offset = state["_offset"]
 
 
 class BusinessHourMixin(BusinessMixin):
@@ -1066,6 +1075,9 @@ class BusinessHourMixin(BusinessMixin):
 
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
@@ -1315,6 +1327,56 @@ cdef class MonthOffset(SingleConstructorOffset):
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
+# ---------------------------------------------------------------------
+# Special Offset Classes
+
+cdef class FY5253Mixin(SingleConstructorOffset):
+    cdef readonly:
+        int startingMonth
+        int weekday
+        str variation
+
+    def __init__(
+        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+    ):
+        BaseOffset.__init__(self, n, normalize)
+        self.startingMonth = startingMonth
+        self.weekday = weekday
+        self.variation = variation
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+        if self.variation not in ["nearest", "last"]:
+            raise ValueError(f"{self.variation} is not a valid variation")
+
+    def is_anchored(self) -> bool:
+        return (
+            self.n == 1 and self.startingMonth is not None and self.weekday is not None
+        )
+
+    # --------------------------------------------------------------------
+    # Name-related methods
+
+    @property
+    def rule_code(self) -> str:
+        prefix = self._prefix
+        suffix = self.get_rule_code_suffix()
+        return f"{prefix}-{suffix}"
+
+    def _get_suffix_prefix(self) -> str:
+        if self.variation == "nearest":
+            return "N"
+        else:
+            return "L"
+
+    def get_rule_code_suffix(self) -> str:
+        prefix = self._get_suffix_prefix()
+        month = MONTH_ALIASES[self.startingMonth]
+        weekday = int_to_weekday[self.weekday]
+        return f"{prefix}-{month}-{weekday}"
 
 
 # ----------------------------------------------------------------------
