@@ -109,6 +109,17 @@ class TimestampProperties:
         self.ts.month_name()
 
 
+class TimestampMethods:
+    params = ["%Y-%m-%d %H:%M:%S", "%Y-%m%d %H:%M:%S.%f"]
+    param_names = ["fmt"]
+
+    def setup(self):
+        self.ts = Timestamp("2020-05-23 18:06:13.123456789")
+
+    def time_strftime(self, fmt):
+        self.strftime(fmt)
+
+
 class TimestampOps:
     params = [None, "US/Eastern", pytz.UTC, dateutil.tz.tzutc()]
     param_names = ["tz"]
