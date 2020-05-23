@@ -121,13 +121,6 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op):
-    def na_op(x, y):
-        return na_arithmetic_op(x, y, op)
-
-    return na_op
-
-
 def na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
@@ -378,8 +371,13 @@ def get_array_op(op):
 
     Returns
     -------
-    function
+    functools.partial
     """
+    if isinstance(op, partial):
+        # We get here via dispatch_to_series in DataFrame case
+        # TODO: avoid getting here
+        return op
+
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
         return partial(comparison_op, op=op)

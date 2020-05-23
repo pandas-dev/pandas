@@ -762,6 +762,13 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, liboffsets.MonthOffset):
         BusinessMixin.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset),
+        )
+
     @cache_readonly
     def cbday_roll(self):
         """
@@ -1397,50 +1404,7 @@ class YearBegin(liboffsets.YearOffset):
 # Special Offset Classes
 
 
-class FY5253Mixin(SingleConstructorOffset):
-    def __init__(
-        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
-    ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "startingMonth", startingMonth)
-        object.__setattr__(self, "weekday", weekday)
-
-        object.__setattr__(self, "variation", variation)
-
-        if self.n == 0:
-            raise ValueError("N cannot be 0")
-
-        if self.variation not in ["nearest", "last"]:
-            raise ValueError(f"{self.variation} is not a valid variation")
-
-    def is_anchored(self) -> bool:
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
-
-    # --------------------------------------------------------------------
-    # Name-related methods
-
-    @property
-    def rule_code(self) -> str:
-        prefix = self._prefix
-        suffix = self.get_rule_code_suffix()
-        return f"{prefix}-{suffix}"
-
-    def _get_suffix_prefix(self) -> str:
-        if self.variation == "nearest":
-            return "N"
-        else:
-            return "L"
-
-    def get_rule_code_suffix(self) -> str:
-        prefix = self._get_suffix_prefix()
-        month = ccalendar.MONTH_ALIASES[self.startingMonth]
-        weekday = ccalendar.int_to_weekday[self.weekday]
-        return f"{prefix}-{month}-{weekday}"
-
-
-class FY5253(FY5253Mixin):
+class FY5253(liboffsets.FY5253Mixin):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1490,6 +1454,10 @@ class FY5253(FY5253Mixin):
 
     _prefix = "RE"
     _attributes = frozenset(["weekday", "startingMonth", "variation"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.weekday, self.startingMonth, self.variation)
+        return type(self), tup
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not is_normalized(dt):
@@ -1608,7 +1576,7 @@ class FY5253(FY5253Mixin):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(FY5253Mixin):
+class FY5253Quarter(liboffsets.FY5253Mixin):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -1678,8 +1646,21 @@ class FY5253Quarter(FY5253Mixin):
         qtr_with_extra_week=1,
         variation="nearest",
     ):
-        FY5253Mixin.__init__(self, n, normalize, weekday, startingMonth, variation)
+        liboffsets.FY5253Mixin.__init__(
+            self, n, normalize, weekday, startingMonth, variation
+        )
         object.__setattr__(self, "qtr_with_extra_week", qtr_with_extra_week)
+
+    def __reduce__(self):
+        tup = (
+            self.n,
+            self.normalize,
+            self.weekday,
+            self.startingMonth,
+            self.qtr_with_extra_week,
+            self.variation,
+        )
+        return type(self), tup
 
     @cache_readonly
     def _offset(self):
@@ -1804,7 +1785,7 @@ class FY5253Quarter(FY5253Mixin):
 
     @property
     def rule_code(self) -> str:
-        suffix = FY5253Mixin.rule_code.fget(self)  # type: ignore
+        suffix = liboffsets.FY5253Mixin.rule_code.__get__(self)
         qtr = self.qtr_with_extra_week
         return f"{suffix}-{qtr}"
 
