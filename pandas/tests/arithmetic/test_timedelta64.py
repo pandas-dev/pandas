@@ -552,7 +552,10 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        warn = None
+        if box is not pd.DataFrame or tz_naive_fixture is None:
+            warn = PerformanceWarning
+        with tm.assert_produces_warning(warn):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
 
