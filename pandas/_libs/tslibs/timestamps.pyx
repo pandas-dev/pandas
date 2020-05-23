@@ -1472,7 +1472,7 @@ default 'raise'
 
     def strftime(self, format: str) -> str:
         # don't do additional processing if its not necessary
-        if '%f' not in format:
+        if not self.nanosecond or '%f' not in format:
             return super().strftime(format)
         newformat = []
         i, n = 0, len(format)
@@ -1482,8 +1482,7 @@ default 'raise'
                 # remove accompanying %
                 newformat.pop()
                 # and put fractional seconds in its place
-                ns = f"{self.nanosecond:03}" if self.nanosecond else ""
-                newformat.append(f"{self.microsecond:06}{ns}")
+                newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
             else:
                 newformat.append(ch)
             i += 1
