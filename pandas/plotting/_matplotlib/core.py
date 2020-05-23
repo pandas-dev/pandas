@@ -1211,7 +1211,6 @@ class LinePlot(MPLPlot):
             # irregular TS rotated 30 deg. by default
             # probably a better place to check / set this.
             if not self._rot_set:
-                # 1/0
                 self.rot = 30
             format_date_labels(ax, rot=self.rot)
 
