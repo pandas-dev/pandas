@@ -26,7 +26,6 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
-from pandas.core.ops.blockwise import operate_blockwise
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -180,51 +179,6 @@ def _get_frame_op_default_axis(name):
         return "columns"
 
 
-def _get_opstr(op):
-    """
-    Find the operation string, if any, to pass to numexpr for this
-    operation.
-
-    Parameters
-    ----------
-    op : binary operator
-
-    Returns
-    -------
-    op_str : string or None
-    """
-    return {
-        operator.add: "+",
-        radd: "+",
-        operator.mul: "*",
-        rmul: "*",
-        operator.sub: "-",
-        rsub: "-",
-        operator.truediv: "/",
-        rtruediv: "/",
-        operator.floordiv: "//",
-        rfloordiv: "//",
-        operator.mod: "%",
-        rmod: "%",
-        operator.pow: "**",
-        rpow: "**",
-        operator.eq: "==",
-        operator.ne: "!=",
-        operator.le: "<=",
-        operator.lt: "<",
-        operator.ge: ">=",
-        operator.gt: ">",
-        operator.and_: "&",
-        rand_: "&",
-        operator.or_: "|",
-        ror_: "|",
-        operator.xor: "^",
-        rxor: "^",
-        divmod: None,
-        rdivmod: None,
-    }[op]
-
-
 def _get_op_name(op, special: bool) -> str:
     """
     Find the name to attach to this method according to conventions
@@ -294,7 +248,7 @@ def fill_binop(left, right, fill_value):
 # Dispatch logic
 
 
-def dispatch_to_series(left, right, func, str_rep=None, axis=None):
+def dispatch_to_series(left, right, func, axis=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -304,7 +258,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     left : DataFrame
     right : scalar or DataFrame
     func : arithmetic or comparison operator
-    str_rep : str or None, default None
     axis : {None, 0, 1, "index", "columns"}
 
     Returns
@@ -319,15 +272,15 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     if lib.is_scalar(right) or np.ndim(right) == 0:
 
         # Get the appropriate array-op to apply to each block's values.
-        array_op = get_array_op(func, str_rep=str_rep)
+        array_op = get_array_op(func)
         bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        array_op = get_array_op(func, str_rep=str_rep)
-        bm = operate_blockwise(left, right, array_op)
+        array_op = get_array_op(func)
+        bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
     elif isinstance(right, ABCSeries) and axis == "columns":
@@ -359,7 +312,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
+    new_data = expressions.evaluate(column_op, left, right)
     return new_data
 
 
@@ -392,7 +345,6 @@ def _arith_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -403,7 +355,7 @@ def _arith_method_SERIES(cls, op, special):
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
-        result = arithmetic_op(lvalues, rvalues, op, str_rep)
+        result = arithmetic_op(lvalues, rvalues, op)
 
         return left._construct_result(result, name=res_name)
 
@@ -416,7 +368,6 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -430,7 +381,7 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op, str_rep)
+        res_values = comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -491,7 +442,7 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(left, right, func, axis: int, str_rep: str):
+def _combine_series_frame(left, right, func, axis: int):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the axis argument.
@@ -502,7 +453,6 @@ def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     right : Series
     func : binary operator
     axis : {0, 1}
-    str_rep : str
 
     Returns
     -------
@@ -688,12 +638,11 @@ def _align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
 
 
 def _arith_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    na_op = define_na_arithmetic_op(op, str_rep)
-    is_logical = str_rep in ["&", "|", "^"]
+    na_op = define_na_arithmetic_op(op)
+    is_logical = op.__name__.strip("_").lstrip("_") in ["and", "or", "xor"]
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -729,15 +678,13 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = pass_op if not is_logical else op
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(
-                self, other, pass_op, axis=axis, str_rep=str_rep
-            )
+            new_data = _combine_series_frame(self, other, pass_op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            new_data = dispatch_to_series(self, other, op, str_rep)
+            new_data = dispatch_to_series(self, other, op)
 
         return self._construct_result(new_data)
 
@@ -747,7 +694,6 @@ def _arith_method_FRAME(cls, op, special):
 
 
 def _flex_comp_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
@@ -762,16 +708,14 @@ def _flex_comp_method_FRAME(cls, op, special):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            new_data = dispatch_to_series(self, other, op, str_rep)
+            new_data = dispatch_to_series(self, other, op)
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(
-                self, other, op, axis=axis, str_rep=str_rep
-            )
+            new_data = _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op, str_rep)
+            new_data = dispatch_to_series(self, other, op)
 
         return self._construct_result(new_data)
 
@@ -781,7 +725,6 @@ def _flex_comp_method_FRAME(cls, op, special):
 
 
 def _comp_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @Appender(f"Wrapper for comparison method {op_name}")
@@ -793,7 +736,7 @@ def _comp_method_FRAME(cls, op, special):
 
         axis = "columns"  # only relevant for Series other case
         # See GH#4537 for discussion of scalar op behavior
-        new_data = dispatch_to_series(self, other, op, str_rep, axis=axis)
+        new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
