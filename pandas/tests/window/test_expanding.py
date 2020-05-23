@@ -88,15 +88,6 @@ def test_missing_minp_zero():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("klass", [pd.Series, pd.DataFrame])
-def test_iter_raises(klass):
-    # https://github.com/pandas-dev/pandas/issues/11704
-    # Iteration over a Window
-    obj = klass([1, 2, 3, 4])
-    with pytest.raises(NotImplementedError):
-        iter(obj.expanding(2))
-
-
 def test_expanding_axis(axis_frame):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
@@ -131,3 +122,91 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
     result = constructor(values).expanding().count()
     expected = constructor(expected_counts)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "df,expected,min_periods",
+    [
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
+            3,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
+            2,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
+                ({"A": [1, 2, 3], "B": [4, 5, 6]}, [0, 1, 2]),
+            ],
+            1,
+        ),
+        (DataFrame({"A": [1], "B": [4]}), [], 2),
+        (DataFrame(), [({}, [])], 1),
+        (
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
+            3,
+        ),
+        (
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
+            2,
+        ),
+        (
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            [
+                ({"A": [1.0], "B": [np.nan]}, [0]),
+                ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
+                ({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}, [0, 1, 2]),
+            ],
+            1,
+        ),
+    ],
+)
+def test_iter_expanding_dataframe(df, expected, min_periods):
+    # GH 11704
+    expected = [DataFrame(values, index=index) for (values, index) in expected]
+
+    for (expected, actual) in zip(expected, df.expanding(min_periods)):
+        tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "ser,expected,min_periods",
+    [
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 3),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 2),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 1),
+        (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2),
+        (Series([np.nan, 2]), [([np.nan], [0]), ([np.nan, 2], [0, 1])], 2),
+        (Series([], dtype="int64"), [], 2),
+    ],
+)
+def test_iter_expanding_series(ser, expected, min_periods):
+    # GH 11704
+    expected = [Series(values, index=index) for (values, index) in expected]
+
+    for (expected, actual) in zip(expected, ser.expanding(min_periods)):
+        tm.assert_series_equal(actual, expected)
