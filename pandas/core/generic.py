@@ -2776,7 +2776,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
-        formatters_col=None,
+        multifloat_format=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2854,17 +2854,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             from the pandas config module.
         caption : str, optional
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
-
             .. versionadded:: 1.0.0
-
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
-
             .. versionadded:: 1.0.0
-        formatters_col: list of str, optional, default None
-            Formatter elements. The result of each function must be a unicode string.
-            List must be of length equal to the number.
+        multifloat_format: list of str, default None, optional
+            Formatting floats by columns, similar to `float_format`.
+            The result of each function must be a unicode string.
             This applies the changes in the original order of the columns.
 
         %(returns)s
@@ -2903,9 +2900,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
-        if formatters_col:
-            if is_list_like(formatters_col):
-                formatters = [lambda x: style % x for style in formatters_col]
+        if multifloat_format:
+            if is_list_like(multifloat_format):
+                formatters = [lambda x: style % x for style in multifloat_format]
             else:
                 raise ValueError
 
