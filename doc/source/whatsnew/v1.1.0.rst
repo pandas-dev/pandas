@@ -853,6 +853,7 @@ Reshaping
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
+- Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 
 Sparse
 ^^^^^^
