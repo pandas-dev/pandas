@@ -1299,7 +1299,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
-cdef class MonthOffset(BaseOffset):
+cdef class MonthOffset(SingleConstructorOffset):
     def is_on_offset(self, dt) -> bool:
         if self.normalize and not is_normalized(dt):
             return False
@@ -1315,13 +1315,6 @@ cdef class MonthOffset(BaseOffset):
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        # default _from_name calls cls with no args
-        if suffix:
-            raise ValueError(f"Bad freq suffix {suffix}")
-        return cls()
 
 
 # ----------------------------------------------------------------------
