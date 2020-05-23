@@ -1024,8 +1024,11 @@ cdef class BusinessMixin(SingleConstructorOffset):
         self._offset = state["_offset"]
 
 
-class BusinessHourMixin(BusinessMixin):
+cdef class BusinessHourMixin(BusinessMixin):
     _adjust_dst = False
+
+    cdef readonly:
+        tuple start, end
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
@@ -1073,8 +1076,8 @@ class BusinessHourMixin(BusinessMixin):
                 "one another"
             )
 
-        object.__setattr__(self, "start", start)
-        object.__setattr__(self, "end", end)
+        self.start = start
+        self.end = end
 
     def __reduce__(self):
         return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
