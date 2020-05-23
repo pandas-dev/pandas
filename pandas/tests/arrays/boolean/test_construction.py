@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import BooleanArray
@@ -346,31 +344,3 @@ def test_to_numpy_copy():
 #     mask = pd.array([True, False, True, None], dtype="boolean")
 #     with pytest.raises(IndexError):
 #         result = arr[mask]
-
-
-@td.skip_if_no("pyarrow", min_version="0.15.0")
-def test_arrow_array(data):
-    # protocol added in 0.15.0
-    import pyarrow as pa
-
-    arr = pa.array(data)
-
-    # TODO use to_numpy(na_value=None) here
-    data_object = np.array(data, dtype=object)
-    data_object[data.isna()] = None
-    expected = pa.array(data_object, type=pa.bool_(), from_pandas=True)
-    assert arr.equals(expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
-def test_arrow_roundtrip():
-    # roundtrip possible from arrow 1.0.0
-    import pyarrow as pa
-
-    data = pd.array([True, False, None], dtype="boolean")
-    df = pd.DataFrame({"a": data})
-    table = pa.table(df)
-    assert table.field("a").type == "bool"
-    result = table.to_pandas()
-    assert isinstance(result["a"].dtype, pd.BooleanDtype)
-    tm.assert_frame_equal(result, df)
