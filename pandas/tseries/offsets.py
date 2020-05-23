@@ -830,6 +830,22 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
+        )
+
 
 # ---------------------------------------------------------------------
 # Month-Based Offset Classes
