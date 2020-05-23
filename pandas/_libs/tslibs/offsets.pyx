@@ -988,13 +988,17 @@ def delta_to_tick(delta: timedelta) -> Tick:
 # --------------------------------------------------------------------
 
 
-class BusinessMixin(SingleConstructorOffset):
+cdef class BusinessMixin(SingleConstructorOffset):
     """
     Mixin to business types to provide related functions.
     """
+
+    cdef readonly:
+        timedelta _offset
+
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
+        self._offset = offset
 
     @property
     def offset(self):
@@ -1013,6 +1017,11 @@ class BusinessMixin(SingleConstructorOffset):
         if attrs:
             out += ": " + ", ".join(attrs)
         return out
+
+    cpdef __setstate__(self, state):
+        # We need to use a cdef/cpdef method to set the readonly _offset attribute
+        BaseOffset.__setstate__(self, state)
+        self._offset = state["_offset"]
 
 
 class BusinessHourMixin(BusinessMixin):
@@ -1066,6 +1075,9 @@ class BusinessHourMixin(BusinessMixin):
 
         object.__setattr__(self, "start", start)
         object.__setattr__(self, "end", end)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()

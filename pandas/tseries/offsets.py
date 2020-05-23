@@ -869,6 +869,13 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, liboffsets.MonthOffset):
         BusinessMixin.__init__(self, n, normalize, offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset),
+        )
+
     @cache_readonly
     def cbday_roll(self):
         """
