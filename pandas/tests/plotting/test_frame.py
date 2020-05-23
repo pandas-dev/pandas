@@ -65,6 +65,7 @@ class TestDataFramePlots(TestPlotBase):
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        self._check_ticks_props(axes, xrot=0)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
@@ -77,7 +78,8 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
         _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
@@ -109,7 +111,8 @@ class TestDataFramePlots(TestPlotBase):
 
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
 
         # unicode
         index = MultiIndex.from_tuples(
