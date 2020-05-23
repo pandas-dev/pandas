@@ -593,6 +593,7 @@ Deprecations
 - Indexing an :class:`Index` object with a float key is deprecated, and will
   raise an ``IndexError`` in the future. You can manually convert to an integer key
   instead (:issue:`34191`).
+- The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 
 .. ---------------------------------------------------------------------------
 

@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import _np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -406,7 +406,7 @@ def random_state(state=None):
 
         ..versionchanged:: 1.1.0
 
-            array-like and BitGenerator (for NumPy>=1.17) object now passed to
+            array-like and BitGenerator (for NumPy>=1.18) object now passed to
             np.random.RandomState() as seed
 
         Default None.
@@ -419,7 +419,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not _np_version_under1p17 and isinstance(state, np.random.BitGenerator))
+        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
