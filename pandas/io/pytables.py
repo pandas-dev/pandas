@@ -4789,7 +4789,7 @@ def _maybe_convert_for_string_atom(
 
         # we cannot serialize this data, so report an exception on a column
         # by column basis
-        for i in range(len(block.shape[0])):
+        for i in range(block.shape[0]):
 
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
