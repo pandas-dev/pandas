@@ -548,6 +548,7 @@ def boxplot_frame_groupby(
     Examples
     --------
     >>> import itertools
+    >>> from pandas.plotting import boxplot_frame_groupby
     >>> tuples = [t for t in itertools.product(range(1000), range(4))]
     >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
     >>> data = np.random.randn(len(index),4)
