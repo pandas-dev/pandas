@@ -1198,6 +1198,7 @@ class LinePlot(MPLPlot):
             xticklabels = [get_label(x) for x in xticks]
             ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
+
         condition = (
             not self._use_dynamic_x()
             and (data.index.is_all_dates and self.use_index)
