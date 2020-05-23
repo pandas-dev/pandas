@@ -101,15 +101,25 @@ class TestMelt:
         tm.assert_frame_equal(result, expected)
 
     def test_single_vars_work_with_multiindex(self):
-        expected = DataFrame(
+        expected0 = DataFrame(
             {
                 "A": {0: 1.067683, 1: -1.321405, 2: -0.807333},
                 "CAP": {0: "B", 1: "B", 2: "B"},
                 "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
             }
         )
-        result = self.df1.melt(["A"], ["B"], col_level=0)
-        tm.assert_frame_equal(result, expected)
+        result0 = self.df1.melt(["A"], ["B"], col_level=0)
+        tm.assert_frame_equal(result0, expected0)
+
+        expected1 = DataFrame(
+            {
+                "a": {0: 1.067683, 1: -1.321405, 2: -0.807333},
+                "low": {0: "b", 1: "b", 2: "b"},
+                "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
+            }
+        )
+        result1 = self.df1.melt(["a"], ["b"], col_level=1)
+        tm.assert_frame_equal(result1, expected1)
 
     def test_tuple_vars_fail_with_multiindex(self):
         # melt should fail with an informative error message if
