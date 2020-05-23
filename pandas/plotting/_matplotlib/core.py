@@ -951,9 +951,6 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
-        # plot a colorbar only if a colormap is provided or necessary
-        cb = self.kwds.pop("colorbar", self.colormap or c_is_column)
-
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "Greys"
         cmap = self.plt.cm.get_cmap(cmap)
@@ -968,6 +965,16 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        # plot a colorbar only if a colormap is provided or necessary
+        from matplotlib.colors import is_color_like
+
+        c_is_column_not_containing_colors = c_is_column and not all(
+            np.vectorize(is_color_like)(c_values)
+        )
+        cb = self.kwds.pop(
+            "colorbar", self.colormap or c_is_column_not_containing_colors
+        )
 
         if self.legend and hasattr(self, "label"):
             label = self.label
