@@ -2135,3 +2135,17 @@ def test_no_header_two_extra_columns(all_parsers):
     parser = all_parsers
     df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
+
+
+def test_dtype_with_parse_dates(all_parsers):
+    # GH 34066
+    parser = all_parsers
+    data = """
+a,b
+1,2020-05-23 01:00:00"""
+    expected = DataFrame(
+        [["1", "2020-05-23 01:00:00"]], columns=["a", "b"], dtype="string"
+    )
+    expected = expected.astype({"b": np.datetime64})
+    df = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
+    tm.assert_frame_equal(df, expected)
