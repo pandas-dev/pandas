@@ -880,6 +880,9 @@ Properties
     FY5253.normalize
     FY5253.rule_code
     FY5253.n
+    FY5253.startingMonth
+    FY5253.variation
+    FY5253.weekday
 
 Methods
 ~~~~~~~
@@ -915,6 +918,9 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.startingMonth
+    FY5253Quarter.variation
+    FY5253Quarter.weekday
 
 Methods
 ~~~~~~~
