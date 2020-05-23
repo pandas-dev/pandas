@@ -18,6 +18,8 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+# TODO: formalize having _libs.properties "above" tslibs in the dependency structure
+from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
@@ -447,7 +449,7 @@ cdef class BaseOffset:
     def __hash__(self):
         return hash(self._params)
 
-    @property
+    @cache_readonly
     def _params(self):
         """
         Returns a tuple containing all of the attributes needed to evaluate
@@ -583,7 +585,7 @@ cdef class BaseOffset:
     def rule_code(self) -> str:
         return self._prefix
 
-    @property
+    @cache_readonly
     def freqstr(self) -> str:
         try:
             code = self.rule_code
@@ -778,7 +780,19 @@ cdef class BaseOffset:
         return self.n == 1
 
 
-cdef class Tick(BaseOffset):
+cdef class SingleConstructorOffset(BaseOffset):
+    @classmethod
+    def _from_name(cls, suffix=None):
+        # default _from_name calls cls with no args
+        if suffix:
+            raise ValueError(f"Bad freq suffix {suffix}")
+        return cls()
+
+
+# ---------------------------------------------------------------------
+# Tick Offsets
+
+cdef class Tick(SingleConstructorOffset):
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
     _adjust_dst = False
@@ -795,13 +809,6 @@ cdef class Tick(BaseOffset):
             raise ValueError(
                 "Tick offset with `normalize=True` are not allowed."
             )
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        # default _from_name calls cls with no args
-        if suffix:
-            raise ValueError(f"Bad freq suffix {suffix}")
-        return cls()
 
     def _repr_attrs(self) -> str:
         # Since cdef classes have no __dict__, we need to override
@@ -1098,7 +1105,7 @@ class RelativeDeltaOffset(BaseOffset):
 # --------------------------------------------------------------------
 
 
-class BusinessMixin(BaseOffset):
+class BusinessMixin(SingleConstructorOffset):
     """
     Mixin to business types to provide related functions.
     """
@@ -1238,7 +1245,7 @@ class CustomMixin:
         object.__setattr__(self, "calendar", calendar)
 
 
-class WeekOfMonthMixin(BaseOffset):
+class WeekOfMonthMixin(SingleConstructorOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
@@ -1279,7 +1286,7 @@ class WeekOfMonthMixin(BaseOffset):
 
 # ----------------------------------------------------------------------
 
-cdef class YearOffset(BaseOffset):
+cdef class YearOffset(SingleConstructorOffset):
     """
     DateOffset that just needs a month.
     """
@@ -1340,6 +1347,93 @@ cdef class YearOffset(BaseOffset):
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
 
 
+cdef class QuarterOffset(SingleConstructorOffset):
+    _attributes = frozenset(["n", "normalize", "startingMonth"])
+    # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
+    #       point.  Also apply_index, is_on_offset, rule_code if
+    #       startingMonth vs month attr names are resolved
+
+    # FIXME: python annotations here breaks things
+    # _default_startingMonth: int
+    # _from_name_startingMonth: int
+
+    cdef readonly:
+        int startingMonth
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if startingMonth is None:
+            startingMonth = self._default_startingMonth
+        self.startingMonth = startingMonth
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.startingMonth)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_startingMonth is not None:
+                kwargs["startingMonth"] = cls._from_name_startingMonth
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.startingMonth]
+        return f"{self._prefix}-{month}"
+
+    def is_anchored(self) -> bool:
+        return self.n == 1 and self.startingMonth is not None
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        # months_since: find the calendar quarter containing other.month,
+        # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
+        # Then find the month in that quarter containing an is_on_offset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 3 - self.startingMonth % 3
+        qtrs = roll_qtrday(
+            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=3
+        )
+        months = qtrs * 3 - months_since
+        return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_quarters(
+            dtindex.asi8, self.n, self.startingMonth, self._day_opt
+        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
+cdef class MonthOffset(SingleConstructorOffset):
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+        n = roll_convention(other.day, self.n, compare_day)
+        return shift_month(other, n, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
@@ -1385,7 +1479,7 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_quarters(
+cdef shift_quarters(
     const int64_t[:] dtindex,
     int quarters,
     int q1start_month,
@@ -1729,7 +1823,7 @@ def shift_month(stamp: datetime, months: int,
     return stamp.replace(year=year, month=month, day=day)
 
 
-cpdef int get_day_of_month(datetime other, day_opt) except? -1:
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.

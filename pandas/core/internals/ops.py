@@ -5,22 +5,24 @@ import numpy as np
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
+    from pandas.core.internals.managers import BlockManager  # noqa:F401
     from pandas.core.internals.blocks import Block  # noqa:F401
 
 
-def operate_blockwise(left, right, array_op):
-    # At this point we have already checked
-    #  assert right._indexed_same(left)
+def operate_blockwise(
+    left: "BlockManager", right: "BlockManager", array_op
+) -> "BlockManager":
+    # At this point we have already checked the parent DataFrames for
+    #  assert rframe._indexed_same(lframe)
 
     res_blks: List["Block"] = []
-    rmgr = right._mgr
-    for n, blk in enumerate(left._mgr.blocks):
+    for n, blk in enumerate(left.blocks):
         locs = blk.mgr_locs
         blk_vals = blk.values
 
         left_ea = not isinstance(blk_vals, np.ndarray)
 
-        rblks = rmgr._slice_take_blocks_ax0(locs.indexer, only_slice=True)
+        rblks = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
 
         # Assertions are disabled for performance, but should hold:
         # if left_ea:
@@ -51,11 +53,11 @@ def operate_blockwise(left, right, array_op):
     # Assertions are disabled for performance, but should hold:
     #  slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
     #  nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
-    #  assert nlocs == len(left.columns), (nlocs, len(left.columns))
+    #  assert nlocs == len(left.items), (nlocs, len(left.items))
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    new_mgr = type(rmgr)(res_blks, axes=rmgr.axes, do_integrity_check=False)
+    new_mgr = type(right)(res_blks, axes=right.axes, do_integrity_check=False)
     return new_mgr
 
 
