@@ -1198,12 +1198,10 @@ class LinePlot(MPLPlot):
             xticklabels = [get_label(x) for x in xticks]
             ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
-
         condition = (
             not self._use_dynamic_x()
-            and data.index.is_all_dates
-            and not self.subplots
-            or (self.subplots and self.sharex)
+            and (data.index.is_all_dates and self.use_index)
+            and (not self.subplots or (self.subplots and self.sharex))
         )
 
         index_name = self._get_index_name()
@@ -1212,6 +1210,7 @@ class LinePlot(MPLPlot):
             # irregular TS rotated 30 deg. by default
             # probably a better place to check / set this.
             if not self._rot_set:
+                # 1/0
                 self.rot = 30
             format_date_labels(ax, rot=self.rot)
 

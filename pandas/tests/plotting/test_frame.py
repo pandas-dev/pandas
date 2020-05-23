@@ -285,12 +285,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=0)
 
         tm.close()
         pd.plotting.plot_params["x_compat"] = False
@@ -306,12 +308,14 @@ class TestDataFramePlots(TestPlotBase):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+            self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        self._check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
         # GH 9012
@@ -3349,6 +3353,12 @@ class TestDataFramePlots(TestPlotBase):
         result = df_concat.plot()
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
+
+    def test_subplots_non_date_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/29460
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        ax = _check_plot_works(df.plot, subplots=True)
+        self._check_ticks_props(ax, xrot=0)
 
 
 def _generate_4_axes_via_gridspec():
