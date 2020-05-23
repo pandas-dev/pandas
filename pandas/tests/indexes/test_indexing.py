@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 from pandas import Float64Index, Index, Int64Index, UInt64Index
+import pandas._testing as tm
 
 
 class TestContains:
@@ -82,3 +83,16 @@ class TestContains:
         assert 1.1 in float_index
         assert 1.0 not in float_index
         assert 1 not in float_index
+
+
+@pytest.mark.parametrize(
+    "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
+)
+def test_getitem_deprecated_float(idx):
+    # https://github.com/pandas-dev/pandas/issues/34191
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = idx[1.0]
+
+    expected = idx[1]
+    assert result == expected
