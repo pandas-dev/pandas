@@ -618,7 +618,6 @@ Performance improvements
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in `indexing.check_bool_indexer` when `key` is a list (:issue:`33924`) 
 
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.bug_fixes:
