@@ -5,12 +5,9 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64,
-    parse_timedelta_unit,
-    precision_from_unit,
-)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -471,6 +468,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+        if len(other) != len(self) and not is_timedelta64_dtype(other.dtype):
+            # Exclude timedelta64 here so we correctly raise TypeError
+            #  for that instead of ValueError
+            raise ValueError("Cannot multiply with unequal lengths")
 
         if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
@@ -514,7 +515,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if is_timedelta64_dtype(other.dtype):
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
@@ -564,7 +568,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
-        if is_timedelta64_dtype(other.dtype):
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
@@ -613,8 +620,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+        if len(other) != len(self):
+            raise ValueError("Cannot divide with unequal lengths")
 
-        if is_timedelta64_dtype(other.dtype):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -666,7 +675,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # list, tuple
             other = np.array(other)
 
-        if is_timedelta64_dtype(other.dtype):
+        if len(other) != len(self):
+            raise ValueError("Cannot divide with unequal lengths")
+
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate

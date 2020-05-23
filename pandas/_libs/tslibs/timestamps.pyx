@@ -21,11 +21,11 @@ from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_float_object, is_integer_object, is_offset_object,
+    is_datetime64_object, is_float_object, is_integer_object,
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
@@ -40,7 +40,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
@@ -386,6 +386,10 @@ cdef class _Timestamp(ABCTimestamp):
                     [self + other[n] for n in range(len(other))],
                     dtype=object,
                 )
+
+        elif not isinstance(self, _Timestamp):
+            # cython semantics, args have been switched and this is __radd__
+            return other.__add__(self)
 
         return NotImplemented
 
@@ -1051,7 +1055,7 @@ timedelta}, default 'raise'
         return Period(self, freq=freq)
 
     @property
-    def dayofweek(self):
+    def dayofweek(self) -> int:
         """
         Return day of the week.
         """
@@ -1092,7 +1096,7 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def dayofyear(self):
+    def dayofyear(self) -> int:
         """
         Return the day of the year.
         """
@@ -1115,7 +1119,7 @@ timedelta}, default 'raise'
         return ((self.month - 1) // 3) + 1
 
     @property
-    def days_in_month(self):
+    def days_in_month(self) -> int:
         """
         Return the number of days in the month.
         """
@@ -1428,16 +1432,7 @@ default 'raise'
 
         return base1 + base2
 
-    def _has_time_component(self) -> bool:
-        """
-        Returns if the Timestamp has a time component
-        in addition to the date part
-        """
-        return (self.time() != _zero_time
-                or self.tzinfo is not None
-                or self.nanosecond != 0)
-
-    def to_julian_date(self):
+    def to_julian_date(self) -> np.float64:
         """
         Convert TimeStamp to a Julian Date.
         0 Julian date is noon January 1, 4713 BC.
@@ -1473,11 +1468,6 @@ default 'raise'
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
-
-    def __radd__(self, other):
-        # __radd__ on cython extension types like _Timestamp is not used, so
-        # define it here instead
-        return self + other
 
 
 # Add the min and max fields at the class level

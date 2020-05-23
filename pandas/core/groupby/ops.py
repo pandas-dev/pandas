@@ -952,7 +952,9 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        return type(sdata)(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -962,10 +964,13 @@ class FrameSplitter(DataSplitter):
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        return type(sdata)(mgr)
 
 
 def get_splitter(
