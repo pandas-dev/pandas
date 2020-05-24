@@ -560,7 +560,8 @@ def boxplot_frame_groupby(
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
         >>> boxplot_frame_groupby(grouped, rot=45, fontsize=12)
-        The ``subplots=False`` option shows the boxplots in a single figure.
+
+    The ``subplots=False`` option shows the boxplots in a single figure.
 
     .. plot::
         :context: close-figs
