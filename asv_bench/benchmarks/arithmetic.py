@@ -469,7 +469,7 @@ class ApplyIndex:
         offset.apply_index(self.rng)
 
 
-class Sub:
+class SubMultiIndex:
     def setup(self):
         date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
         level_0_names = [str(i) for i in range(30)]
@@ -489,8 +489,7 @@ class Sub:
             columns=column_names,
         )
 
-    def subsequent_sub_application(self):
-        self.df.sub(self.sub_df, level=0)
+    def time_sub_multiindex(self):
         self.df.sub(self.sub_df, level=0)
 
 
