@@ -1794,6 +1794,13 @@ class _iLocIndexer(_LocationIndexer):
         """
         from pandas import Series, DataFrame
 
+        def check_valid_categorical(new_values, obj_dtype):
+            if is_categorical_dtype(obj_dtype):
+                if (~np.in1d(new_values, obj_dtype.categories.values)).any():
+                    raise ValueError(
+                        "Cannot setitem on a Categorical with a new category"
+                    )
+
         # reindex the axis to the new value
         # and set inplace
         if self.ndim == 1:
@@ -1824,11 +1831,7 @@ class _iLocIndexer(_LocationIndexer):
             else:
                 dtype = None
 
-            if is_categorical_dtype(self.obj.dtype):
-                if (~np.in1d(new_values, self.obj.dtypes.categories.values)).any():
-                    raise ValueError(
-                        "Cannot setitem on a Categorical with a new category"
-                    )
+            check_valid_categorical(new_values, self.obj.dtype)
 
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name, dtype=dtype
@@ -1857,16 +1860,7 @@ class _iLocIndexer(_LocationIndexer):
                     value = list(value)
                     for i in range(len(self.obj.columns)):
                         value[i] = Series(data=[value[i]], dtype=self.obj.dtypes[i])
-                        if is_categorical_dtype(self.obj.dtypes[i]):
-                            if (
-                                ~np.in1d(
-                                    value[i].values,
-                                    self.obj.dtypes[i].categories.values,
-                                )
-                            ).any():
-                                raise ValueError(
-                                    "Cannot setitem on a Categorical with a new category"
-                                )
+                        check_valid_categorical(value[i], self.obj.dtypes[i])
                     value = dict(zip(self.obj.columns, value))
                     value = DataFrame(value)
                     value.index = [indexer]
