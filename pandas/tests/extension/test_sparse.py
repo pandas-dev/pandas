@@ -403,6 +403,7 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
         super().test_array_repr(data, size)
 
     def test_fillna_repr(self):
+        # GH-34352
         result = str(pd.SparseDtype("int64", fill_value=0))
         expected = "Sparse[int64, 0]"
         assert result == expected
@@ -410,6 +411,7 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
         result = str(pd.SparseDtype(object, fill_value="0"))
         expected = "Sparse[object, '0']"
         assert result == expected
+
 
 class TestParsing(BaseSparseTests, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
