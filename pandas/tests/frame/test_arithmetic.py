@@ -1487,17 +1487,19 @@ def test_pow_nan_with_zero():
 
 
 def test_performance_subsequent_sub_calls():
-    date_range = pd.date_range('20200101 00:00', '20200102 0:00', freq='S')
+    date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
     level_0_names = list(str(i) for i in range(30))
 
     index = pd.MultiIndex.from_product([level_0_names, date_range])
-    column_names = ['col_1', 'col_2']
+    column_names = ["col_1", "col_2"]
 
     df = pd.DataFrame(np.random.rand(len(index), 2), index=index, columns=column_names)
 
-    sub_df = pd.DataFrame(np.random.randint(1, 10, (len(level_0_names), 2)),
-                          index=level_0_names,
-                          columns=column_names)
+    sub_df = pd.DataFrame(
+        np.random.randint(1, 10, (len(level_0_names), 2)),
+        index=level_0_names,
+        columns=column_names,
+    )
 
     start = datetime.now()
     df.sub(sub_df, level=0)

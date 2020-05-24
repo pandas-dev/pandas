@@ -3218,7 +3218,7 @@ class MultiIndex(Index):
                 # other cannot contain tuples, so cannot match self
                 return False
 
-            if len(self) != len(other) or isinstance(self, MultiIndex):
+            if len(self) != len(other):
                 return False
             return array_equivalent(self._values, other._values)
 
