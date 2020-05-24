@@ -7,7 +7,9 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -20,8 +22,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
-from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas.core.common as com
 from pandas.core.indexers import (
