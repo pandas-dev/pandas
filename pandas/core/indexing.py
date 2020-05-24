@@ -20,6 +20,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -1790,7 +1792,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
-        from pandas import Series
+        from pandas import Series, DataFrame
 
         # reindex the axis to the new value
         # and set inplace
@@ -1815,8 +1817,21 @@ class _iLocIndexer(_LocationIndexer):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
+                if is_object_dtype(new_values.dtype):
+                    dtype = self.obj.dtype
+                else:
+                    dtype = find_common_type([self.obj.dtype, new_values.dtype])
+            else:
+                dtype = None
+
+            if is_categorical_dtype(self.obj.dtype):
+                if (~np.in1d(new_values, self.obj.dtypes.categories.values)).any():
+                    raise ValueError(
+                        "Cannot setitem on a Categorical with a new category"
+                    )
+
             self.obj._mgr = self.obj._constructor(
-                new_values, index=new_index, name=self.obj.name
+                new_values, index=new_index, name=self.obj.name, dtype=dtype
             )._mgr
             self.obj._maybe_update_cacher(clear=True)
 
@@ -1838,7 +1853,25 @@ class _iLocIndexer(_LocationIndexer):
                     if len(value) != len(self.obj.columns):
                         raise ValueError("cannot set a row with mismatched columns")
 
-                value = Series(value, index=self.obj.columns, name=indexer)
+                if len(set(self.obj.dtypes)) > 1:
+                    value = list(value)
+                    for i in range(len(self.obj.columns)):
+                        value[i] = Series(data=[value[i]], dtype=self.obj.dtypes[i])
+                        if is_categorical_dtype(self.obj.dtypes[i]):
+                            if (
+                                ~np.in1d(
+                                    value[i].values,
+                                    self.obj.dtypes[i].categories.values,
+                                )
+                            ).any():
+                                raise ValueError(
+                                    "Cannot setitem on a Categorical with a new category"
+                                )
+                    value = dict(zip(self.obj.columns, value))
+                    value = DataFrame(value)
+                    value.index = [indexer]
+                else:
+                    value = Series(value, index=self.obj.columns, name=indexer)
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
