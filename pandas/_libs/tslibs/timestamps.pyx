@@ -1475,9 +1475,7 @@ default 'raise'
         if not self.nanosecond or '%f' not in format:
             return super().strftime(format)
         newformat = []
-        i, n = 0, len(format)
-        while i < n:
-            ch = format[i]
+        for ch in format: 
             if ch == 'f':
                 # remove accompanying %
                 newformat.pop()
@@ -1485,7 +1483,6 @@ default 'raise'
                 newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
             else:
                 newformat.append(ch)
-            i += 1
         newformat = "".join(newformat)
         return _time.strftime(newformat, self.timetuple())
 
