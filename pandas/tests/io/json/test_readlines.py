@@ -205,3 +205,13 @@ def test_readjson_nrows_chunks(nrows, chunksize):
     chunked = pd.concat(reader)
     expected = pd.DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
+
+
+def test_readjson_nrows_requires_lines():
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}"""
+    msg = "nrows can only be passed if lines=True"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(jsonl, lines=False, nrows=2)
