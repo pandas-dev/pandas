@@ -456,6 +456,7 @@ class ExtensionArray:
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> ArrayLike:

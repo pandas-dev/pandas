@@ -141,6 +141,7 @@ class TestCasting(BaseNumPyTests, base.BaseCastingTests):
 
     @skip_nested
     def test_astype_string(self, data):
+        # GH-33465
         # ValueError: setting an array element with a sequence
         super().test_astype_string(data)
 
