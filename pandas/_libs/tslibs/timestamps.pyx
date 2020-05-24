@@ -1475,7 +1475,7 @@ default 'raise'
         if not self.nanosecond or '%f' not in format:
             return super().strftime(format)
         newformat = []
-        for ch in format: 
+        for ch in format:
             if ch == 'f':
                 # remove accompanying %
                 newformat.pop()
