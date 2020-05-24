@@ -110,14 +110,14 @@ class TimestampProperties:
 
 
 class TimestampMethods:
-    params = ["%Y-%m-%d %H:%M:%S", "%Y-%m%d %H:%M:%S.%f"]
+    params = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]
     param_names = ["fmt"]
 
-    def setup(self):
+    def setup(self, fmt):
         self.ts = Timestamp("2020-05-23 18:06:13.123456789")
 
     def time_strftime(self, fmt):
-        self.strftime(fmt)
+        self.ts.strftime(fmt)
 
 
 class TimestampOps:
