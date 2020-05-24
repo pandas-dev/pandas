@@ -6797,6 +6797,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
+
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to interpolate along.
         limit : int, optional
