@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 from pandas.core.dtypes.common import is_categorical_dtype
+from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 
 import pandas._testing as tm
 import pandas.core.common as com
