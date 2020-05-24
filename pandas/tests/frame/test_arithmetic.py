@@ -1488,7 +1488,7 @@ def test_pow_nan_with_zero():
 
 def test_performance_subsequent_sub_calls():
     date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
-    level_0_names = list(str(i) for i in range(30))
+    level_0_names = [str(i) for i in range(30)]
 
     index = pd.MultiIndex.from_product([level_0_names, date_range])
     column_names = ["col_1", "col_2"]
