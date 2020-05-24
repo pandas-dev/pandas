@@ -1832,7 +1832,6 @@ class _iLocIndexer(_LocationIndexer):
                 dtype = None
 
             check_valid_categorical(new_values, self.obj.dtype)
-             
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name, dtype=dtype
             )._mgr
