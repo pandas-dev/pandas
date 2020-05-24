@@ -1825,14 +1825,14 @@ class _iLocIndexer(_LocationIndexer):
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
                 if is_object_dtype(new_values.dtype):
-                    dtype = self.obj.dtype
+                    dtype = None
                 else:
                     dtype = find_common_type([self.obj.dtype, new_values.dtype])
             else:
                 dtype = None
 
             check_valid_categorical(new_values, self.obj.dtype)
-
+             
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name, dtype=dtype
             )._mgr
