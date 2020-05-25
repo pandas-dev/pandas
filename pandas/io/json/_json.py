@@ -744,14 +744,8 @@ class JsonReader(abc.Iterator):
             data = ensure_str(self.data)
             if self.nrows:
                 compiled_pattern = re.compile(".*\n")
-                data_iterator = compiled_pattern.finditer(data)
-                data = []
-                nrows_seen = 0
-                for vals in data_iterator:
-                    if nrows_seen >= self.nrows:
-                        break
-                    data.append(vals.group(0))
-                    nrows_seen += 1
+                data = (line.group(0) for line in compiled_pattern.finditer(data))
+                data = islice(data, self.nrows)
             else:
                 data = data.split("\n")
             obj = self._get_object_parser(self._combine_lines(data))
