@@ -54,7 +54,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa:F401
+    from pandas import DataFrame, Series  # noqa:F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -262,15 +262,11 @@ def dispatch_to_series(left, right, func, axis=None):
     -------
     DataFrame
     """
-    # Note: we use iloc to access columns for compat with cases
-    #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
+    # Get the appropriate array-op to apply to each column/block's values.
+    array_op = get_array_op(func)
 
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
-
-        # Get the appropriate array-op to apply to each block's values.
-        array_op = get_array_op(func)
         bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
@@ -281,7 +277,6 @@ def dispatch_to_series(left, right, func, axis=None):
         #  fails in cases with empty columns reached via
         #  _frame_arith_method_with_reindex
 
-        array_op = get_array_op(func)
         bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
@@ -295,27 +290,24 @@ def dispatch_to_series(left, right, func, axis=None):
             # Note: we do not do this unconditionally as it may be lossy or
             #  expensive for EA dtypes.
             right = np.asarray(right)
-
-            def column_op(a, b):
-                return {i: func(a.iloc[:, i], b[i]) for i in range(len(a.columns))}
-
         else:
+            right = right._values
 
-            def column_op(a, b):
-                return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
+        arrays = [array_op(l, r) for l, r in zip(left._iter_column_arrays(), right)]
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
+        right = right._values
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
+        arrays = [array_op(l, right) for l in left._iter_column_arrays()]
 
     else:
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
-    new_data = expressions.evaluate(column_op, left, right)
-    return new_data
+    return type(left)._from_arrays(
+        arrays, left.columns, left.index, verify_integrity=False
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -467,19 +459,7 @@ def _combine_series_frame(left, right, func, axis: int):
     # We assume that self.align(other, ...) has already been called
 
     rvalues = right._values
-    if isinstance(rvalues, np.ndarray):
-        # TODO(EA2D): no need to special-case with 2D EAs
-        # We can operate block-wise
-        if axis == 0:
-            rvalues = rvalues.reshape(-1, 1)
-        else:
-            rvalues = rvalues.reshape(1, -1)
-
-        rvalues = np.broadcast_to(rvalues, left.shape)
-
-        array_op = get_array_op(func)
-        bm = left._mgr.apply(array_op, right=rvalues.T, align_keys=["right"])
-        return type(left)(bm)
+    assert not isinstance(rvalues, np.ndarray)  # handled by align_series_as_frame
 
     if axis == 0:
         new_data = dispatch_to_series(left, right, func)
@@ -575,6 +555,7 @@ def _align_method_FRAME(
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
+        right = _maybe_align_series_as_frame(left, right, axis)
 
     return left, right
 
@@ -635,13 +616,31 @@ def _frame_arith_method_with_reindex(
     return result.reindex(join_columns, axis=1)
 
 
+def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+    """
+    If the Series operand is not EA-dtype, we can broadcast to 2D and operate
+    blockwise.
+    """
+    rvalues = series._values
+    if not isinstance(rvalues, np.ndarray):
+        # TODO(EA2D): no need to special-case with 2D EAs
+        return series
+
+    if axis == 0:
+        rvalues = rvalues.reshape(-1, 1)
+    else:
+        rvalues = rvalues.reshape(1, -1)
+
+    rvalues = np.broadcast_to(rvalues, frame.shape)
+    return type(frame)(rvalues, index=frame.index, columns=frame.columns)
+
+
 def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
     na_op = get_array_op(op)
-    is_logical = op.__name__.strip("_").lstrip("_") in ["and", "or", "xor"]
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -657,6 +656,11 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
         ):
             return _frame_arith_method_with_reindex(self, other, op)
 
+        if isinstance(other, ABCSeries) and fill_value is not None:
+            # TODO: We could allow this in cases where we end up going
+            #  through the DataFrame path
+            raise NotImplementedError(f"fill_value {fill_value} not supported.")
+
         # TODO: why are we passing flex=True instead of flex=not special?
         #  15 tests fail if we pass flex=not special instead
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
@@ -666,18 +670,8 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
-            # For these values of `axis`, we end up dispatching to Series op,
-            # so do not want the masked op.
-            # TODO: the above comment is no longer accurate since we now
-            #  operate blockwise if other._values is an ndarray
-            pass_op = op if axis in [0, "columns", None] else na_op
-            pass_op = pass_op if not is_logical else op
-
-            if fill_value is not None:
-                raise NotImplementedError(f"fill_value {fill_value} not supported.")
-
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, pass_op, axis=axis)
+            new_data = _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
