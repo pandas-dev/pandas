@@ -166,6 +166,7 @@ class StringArray(PandasArray):
 
     On the other hand, instantiating StringArrays directly with non-strings will
     raise an error:
+
     >>> pd.arrays.StringArray(np.array([1, 2]))
     ValueError: StringArray requires a sequence of strings or pandas.NA
 
