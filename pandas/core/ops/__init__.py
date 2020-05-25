@@ -563,7 +563,7 @@ def _align_method_FRAME(
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
-        right = _align_series_as_frame(left, right, axis)
+        right = _maybe_align_series_as_frame(left, right, axis)
 
     return left, right
 
@@ -624,7 +624,7 @@ def _frame_arith_method_with_reindex(
     return result.reindex(join_columns, axis=1)
 
 
-def _align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.
