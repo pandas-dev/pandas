@@ -649,7 +649,6 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     default_axis = _get_frame_op_default_axis(op_name)
 
     na_op = get_array_op(op)
-    is_logical = op.__name__.strip("_").lstrip("_") in ["and", "or", "xor"]
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -679,15 +678,8 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
-            # For these values of `axis`, we end up dispatching to Series op,
-            # so do not want the masked op.
-            # TODO: the above comment is no longer accurate since we now
-            #  operate blockwise if other._values is an ndarray
-            pass_op = op if axis in [0, "columns", None] else na_op
-            pass_op = pass_op if not is_logical else op
-
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, pass_op, axis=axis)
+            new_data = _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
