@@ -469,8 +469,11 @@ class ApplyIndex:
         offset.apply_index(self.rng)
 
 
-class SubMultiIndex:
-    def setup(self):
+class BinaryOpsMultiIndex:
+    params = ["sub", "add", "mul", "div"]
+    param_names = ["func"]
+
+    def setup(self, func):
         date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
         level_0_names = [str(i) for i in range(30)]
 
@@ -481,14 +484,14 @@ class SubMultiIndex:
             np.random.rand(len(index), 2), index=index, columns=column_names
         )
 
-        self.sub_df = pd.DataFrame(
+        self.arg_df = pd.DataFrame(
             np.random.randint(1, 10, (len(level_0_names), 2)),
             index=level_0_names,
             columns=column_names,
         )
 
-    def time_sub_multiindex(self):
-        self.df.sub(self.sub_df, level=0)
+    def time_sub_multiindex(self, func):
+        getattr(self.df, func)(self.arg_df, level=0)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
