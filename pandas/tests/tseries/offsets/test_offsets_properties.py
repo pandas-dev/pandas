@@ -62,7 +62,7 @@ gen_random_datetime = st.datetimes(
 # enough runtime information (e.g. type hints) to infer how to build them.
 gen_yqm_offset = st.one_of(
     *map(
-        st.from_type,  # type: ignore
+        st.from_type,
         [
             MonthBegin,
             MonthEnd,
