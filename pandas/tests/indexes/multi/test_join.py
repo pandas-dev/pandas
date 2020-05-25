@@ -114,6 +114,7 @@ def test_join_multi_return_indexers():
     result = midx1.join(midx2, return_indexers=False)
     tm.assert_index_equal(result, midx1)
 
+
 def test_join_multi_single():
     midx = pd.MultiIndex.from_arrays([[1, 1, 3], [0, 1, 0]], names=["i", "ii"])
     idx = pd.Index([1, 2], name="i")
