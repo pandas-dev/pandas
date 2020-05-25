@@ -2728,7 +2728,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Examples
         --------
-
         >>> df = pd.DataFrame(
         ...     {"a": ["red"] * 2 + ["blue"] * 2 + ["black"] * 2, "b": range(6)}
         ... )
@@ -2740,11 +2739,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         3   blue  3
         4  black  4
         5  black  5
+
+        Select one row at random for each distinct value in column a. The
+        `random_state` argument can be used to guarantee reproducibility:
+
         >>> df.groupby("a").sample(n=1, random_state=1)
                a  b
         4  black  4
         2   blue  2
         0    red  0
+
+        Set `frac` to sample fixed proportions rather than counts:
+
         >>> df.groupby("a")["b"].sample(frac=0.5, random_state=2)
         5    5
         3    3
