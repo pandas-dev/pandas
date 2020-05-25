@@ -1389,14 +1389,9 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize("replacement", [np.nan, pd.NA, 5])
-    @pytest.mark.parametrize("inplace", [True, False])
-    def test_replace_with_duplicate_columns(self, replacement, inplace):
-        # https://github.com/pandas-dev/pandas/issues/24798
-        # should be able to assign column of df with replace()
-        # even if the df has duplicate columns
-
-        # can't init df with duplicate columns, so we assign after
+    @pytest.mark.parametrize("replacement", [np.nan, 5])
+    def test_replace_with_duplicate_columns(self, replacement):
+        # GH 24798
         result = pd.DataFrame({"A": [1, 2, 3], "A1": [4, 5, 6], "B": [7, 8, 9]})
         result.columns = list("AAB")
 
@@ -1405,12 +1400,6 @@ class TestDataFrameReplace:
         )
         expected.columns = list("AAB")
 
-        if inplace:
-            # fails for now, will be fixed eventually
-            with pytest.raises(pd.core.common.SettingWithCopyError):
-                result["B"].replace(7, replacement, inplace=True)
-                tm.assert_frame_equal(result, expected)
-        else:
-            result["B"] = result["B"].replace(7, replacement, inplace=False)
+        result["B"] = result["B"].replace(7, replacement)
 
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
