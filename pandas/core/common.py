@@ -9,12 +9,13 @@ from datetime import datetime, timedelta
 from functools import partial
 import inspect
 from typing import Any, Collection, Iterable, List, Union
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import _np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -144,13 +145,15 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val):
+def cast_scalar_indexer(val, warn_float=False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
     Parameters
     ----------
     val : scalar
+    warn_float : bool, default False
+        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -158,6 +161,13 @@ def cast_scalar_indexer(val):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
+        if warn_float:
+            warnings.warn(
+                "Indexing with a float is deprecated, and will raise an IndexError "
+                "in pandas 2.0. You can manually convert to an integer key instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return int(val)
     return val
 
@@ -396,7 +406,7 @@ def random_state(state=None):
 
         ..versionchanged:: 1.1.0
 
-            array-like and BitGenerator (for NumPy>=1.17) object now passed to
+            array-like and BitGenerator (for NumPy>=1.18) object now passed to
             np.random.RandomState() as seed
 
         Default None.
@@ -409,7 +419,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not _np_version_under1p17 and isinstance(state, np.random.BitGenerator))
+        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
