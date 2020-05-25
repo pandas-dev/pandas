@@ -575,7 +575,8 @@ the previous index (:issue:`32240`).
 
 .. ipython:: python
 
-   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"], "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
+   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
+                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
    df
 
 *Previous behavior*:
