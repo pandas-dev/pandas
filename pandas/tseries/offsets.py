@@ -200,6 +200,7 @@ class DateOffset(liboffsets.RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
+
     pass
 
 
