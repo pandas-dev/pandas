@@ -8,6 +8,10 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas import StringDtype
+from pandas.core.arrays import StringArray
+from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.dtypes import register_extension_dtype
 
 
 def test_repr():
@@ -335,12 +339,7 @@ def test_memory_usage():
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
 
 
-def test_extension_assert():
-    import pandas as pd
-    from pandas import StringDtype
-    from pandas.core.arrays import StringArray
-    from pandas.core.dtypes.dtypes import register_extension_dtype
-
+def test_string_dtype_subclassing():
     @register_extension_dtype
     class MyExtensionDtype(StringDtype):
         name = "my_extension"
@@ -359,3 +358,5 @@ def test_extension_assert():
 
     series = pd.Series(["test", "test2"], dtype="my_extension")
     assert series.dtype == "my_extension"
+    assert series.values == ["test", "test2"]
+    assert is_string_dtype(series)
