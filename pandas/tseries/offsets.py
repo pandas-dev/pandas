@@ -310,8 +310,53 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    def _repr_attrs(self) -> str:
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        exclude = {"n", "inc", "normalize"}
+        attrs = []
+        for attr in sorted(self.__dict__):
+            if attr.startswith("_") or attr == "kwds":
+                continue
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append(f"{attr}={value}")
 
-class BusinessDay(BusinessMixin, SingleConstructorOffset):
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+    @cache_readonly
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        all_paras = self.__dict__.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
+        for key in self.__dict__:
+            if key not in all_paras:
+                # cython attributes are not in __dict__
+                all_paras[key] = getattr(self, key)
+
+        if "holidays" in all_paras and not all_paras["holidays"]:
+            all_paras.pop("holidays")
+        exclude = ["kwds", "name", "calendar"]
+        attrs = [
+            (k, v) for k, v in all_paras.items() if (k not in exclude) and (k[0] != "_")
+        ]
+        attrs = sorted(set(attrs))
+        params = tuple([str(type(self))] + attrs)
+        return params
+
+
+class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
     """
@@ -795,6 +840,22 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
+
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
+        )
 
 
 # ---------------------------------------------------------------------
@@ -1286,6 +1347,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1344,6 +1408,9 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.n == 0:
             raise ValueError("N cannot be 0")
         object.__setattr__(self, "week", -1)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
 
     def _get_offset_day(self, other: datetime) -> int:
         """
