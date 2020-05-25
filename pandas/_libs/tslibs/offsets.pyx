@@ -562,6 +562,7 @@ cdef class BaseOffset:
         exclude = {"n", "inc", "normalize"}
         attrs = []
         for attr in sorted(self._attributes):
+            # _attributes instead of __dict__ because cython attrs are not in __dict__
             if attr.startswith("_") or attr == "kwds" or not hasattr(self, attr):
                 # DateOffset may not have some of these attributes
                 continue
@@ -710,7 +711,7 @@ cdef class BaseOffset:
             raise ValueError(f'`n` argument must be an integer, got {n}')
         return nint
 
-    cpdef __setstate__(self, state):
+    def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
         if isinstance(self, MonthOffset):
             # We can't just override MonthOffset.__setstate__ because of the
@@ -940,7 +941,7 @@ cdef class Tick(SingleConstructorOffset):
     def __reduce__(self):
         return (type(self), (self.n,))
 
-    cpdef __setstate__(self, state):
+    def __setstate__(self, state):
         self.n = state["n"]
         self.normalize = False
 
@@ -1013,10 +1014,26 @@ cdef class BusinessMixin(SingleConstructorOffset):
 
     cdef readonly:
         timedelta _offset
+        # Only Custom subclasses use weekmask, holiday, calendar
+        object weekmask, holidays, calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
         self._offset = offset
+
+    cpdef _init_custom(self, weekmask, holidays, calendar):
+        """
+        Additional __init__ for Custom subclasses.
+        """
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+        self.weekmask = weekmask
+        self.holidays = holidays
+        self.calendar = calendar
 
     @property
     def offset(self):
@@ -1042,45 +1059,19 @@ cdef class BusinessMixin(SingleConstructorOffset):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
+
+        if self._prefix.startswith("C"):
+            # i.e. this is a Custom class
+            weekmask = state.pop("weekmask")
+            holidays = state.pop("holidays")
+            calendar, holidays = _get_calendar(weekmask=weekmask,
+                                               holidays=holidays,
+                                               calendar=None)
+            self.weekmask = weekmask
+            self.calendar = calendar
+            self.holidays = holidays
+
         BaseOffset.__setstate__(self, state)
-
-
-cdef class CustomBusinessMixin(BusinessMixin):
-    cdef readonly:
-        object weekmask, holidays, calendar
-
-    def __init__(
-            self,
-            n=1,
-            normalize=False,
-            weekmask="Mon Tue Wed Thu Fri",
-            holidays=None,
-            calendar=None,
-            offset=timedelta(0)
-    ):
-        BusinessMixin.__init__(self, n, normalize, offset)
-
-        calendar, holidays = _get_calendar(
-            weekmask=weekmask, holidays=holidays, calendar=calendar
-        )
-        # Custom offset instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-        self.weekmask = weekmask
-        self.holidays = holidays
-        self.calendar = calendar
-
-    cpdef __setstate__(self, state):
-        weekmask = state.pop("weekmask")
-        holidays = state.pop("holidays")
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=None)
-        self.weekmask = weekmask
-        self.calendar = calendar
-        self.holidays = holidays
-
-        BusinessMixin.__setstate__(self, state)
 
 
 cdef class BusinessHourMixin(BusinessMixin):
@@ -1183,13 +1174,17 @@ cdef class BusinessHourMixin(BusinessMixin):
         assert False
 
 
-class WeekOfMonthMixin(SingleConstructorOffset):
+cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+
+    cdef readonly:
+        int weekday
+
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        self.weekday = weekday
 
         if weekday < 0 or weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")

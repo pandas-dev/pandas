@@ -3,10 +3,10 @@ import pytest
 from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG,
     _period_str_to_code,
-    get_rule_month,
     is_subperiod,
     is_superperiod,
 )
+from pandas._libs.tslibs.parsing import get_rule_month
 
 from pandas.tseries import offsets
 

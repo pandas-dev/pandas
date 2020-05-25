@@ -309,6 +309,51 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    def _repr_attrs(self) -> str:
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        exclude = {"n", "inc", "normalize"}
+        attrs = []
+        for attr in sorted(self.__dict__):
+            if attr.startswith("_") or attr == "kwds":
+                continue
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append(f"{attr}={value}")
+
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+    @cache_readonly
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # The DateOffset class differs from other classes in that members
+        #  of self._attributes may not be defined, so we have to use __dict__
+        #  instead.
+        all_paras = self.__dict__.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
+        for key in self.__dict__:
+            if key not in all_paras:
+                # cython attributes are not in __dict__
+                all_paras[key] = getattr(self, key)
+
+        if "holidays" in all_paras and not all_paras["holidays"]:
+            all_paras.pop("holidays")
+        exclude = ["kwds", "name", "calendar"]
+        attrs = [
+            (k, v) for k, v in all_paras.items() if (k not in exclude) and (k[0] != "_")
+        ]
+        attrs = sorted(set(attrs))
+        params = tuple([str(type(self))] + attrs)
+        return params
+
 
 class BusinessDay(BusinessMixin):
     """
@@ -596,7 +641,7 @@ class BusinessHour(liboffsets.BusinessHourMixin):
             # adjust by business days first
             if bd != 0:
                 if self._prefix.startswith("C"):
-                    # GH#30593 this is a CustomFooOffset
+                    # GH#30593 this is a Custom class
                     skip_bd = CustomBusinessDay(
                         n=bd,
                         weekmask=self.weekmask,
@@ -690,7 +735,7 @@ class BusinessHour(liboffsets.BusinessHourMixin):
             return False
 
 
-class CustomBusinessDay(liboffsets.CustomBusinessMixin, BusinessDay):
+class CustomBusinessDay(BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
 
@@ -718,6 +763,18 @@ class CustomBusinessDay(liboffsets.CustomBusinessMixin, BusinessDay):
         #  it will be re-constructed within __init__
         tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
         return type(self), tup
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        BusinessDay.__init__(self, n, normalize, offset)
+        self._init_custom(weekmask, holidays, calendar)
 
     @apply_wraps
     def apply(self, other):
@@ -759,7 +816,7 @@ class CustomBusinessDay(liboffsets.CustomBusinessMixin, BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(liboffsets.CustomBusinessMixin, BusinessHour):
+class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -782,8 +839,22 @@ class CustomBusinessHour(liboffsets.CustomBusinessMixin, BusinessHour):
         offset=timedelta(0),
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
-        liboffsets.CustomBusinessMixin.__init__(
-            self, n, normalize, weekmask, holidays, calendar, offset
+        self._init_custom(weekmask, holidays, calendar)
+
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
         )
 
 
@@ -792,7 +863,7 @@ class CustomBusinessHour(liboffsets.CustomBusinessMixin, BusinessHour):
 
 
 @doc(bound="bound")
-class _CustomBusinessMonth(liboffsets.CustomBusinessMixin, liboffsets.MonthOffset):
+class _CustomBusinessMonth(BusinessMixin, liboffsets.MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -821,6 +892,18 @@ class _CustomBusinessMonth(liboffsets.CustomBusinessMixin, liboffsets.MonthOffse
 
     is_on_offset = BaseOffset.is_on_offset  # override MonthOffset method
     apply_index = BaseOffset.apply_index  # override MonthOffset method
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+        self._init_custom(weekmask, holidays, calendar)
 
     def __reduce__(self):
         # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
@@ -1264,6 +1347,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1322,6 +1408,9 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.n == 0:
             raise ValueError("N cannot be 0")
         object.__setattr__(self, "week", -1)
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
 
     def _get_offset_day(self, other: datetime) -> int:
         """
