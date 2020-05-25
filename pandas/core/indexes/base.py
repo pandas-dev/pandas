@@ -3642,7 +3642,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if how == "left":
-            #TODO: if return_indexers = False, just return "self"
+            # TODO: if return_indexers = False, just return "self"
             new_level = old_level
         elif how == "right":
             new_level = right
@@ -3652,7 +3652,9 @@ class Index(IndexOpsMixin, PandasObject):
             new_level = old_level.union(right)
 
         left_index = left._get_level_values(level)
-        join, left_indexer, right_indexer = left_index.join(right, how=how, return_indexers=True)
+        join, left_indexer, right_indexer = left_index.join(
+                right, how=how, return_indexers=True
+            )
         new_code = new_level.get_indexer(join)
         new_codes = []
 
@@ -3665,8 +3667,8 @@ class Index(IndexOpsMixin, PandasObject):
         new_levels = list(left.levels)
         new_levels[level] = new_level
         join_index = MultiIndex(
-                levels=new_levels, codes=new_codes, names=left.names, verify_integrity=False
-            )
+            levels=new_levels, codes=new_codes, names=left.names, verify_integrity=False
+        )
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer
