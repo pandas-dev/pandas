@@ -1470,8 +1470,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1486,8 +1484,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -2012,7 +2008,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         pattern = (
-            "true_divide cannot use operands|"
+            "true_divide'? cannot use operands|"
             "cannot perform __div__|"
             "cannot perform __truediv__|"
             "unsupported operand|"
