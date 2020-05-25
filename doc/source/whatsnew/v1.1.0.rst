@@ -619,6 +619,7 @@ Performance improvements
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
+- Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
 
 .. ---------------------------------------------------------------------------
 

@@ -232,7 +232,7 @@ class EWM(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks, obj = self._create_blocks()
+        blocks, obj = self._create_blocks(self._selected_obj)
         block_list = list(blocks)
 
         results = []
