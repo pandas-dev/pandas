@@ -40,7 +40,6 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     YearEnd,
     apply_index_wraps,
     apply_wraps,
-    as_datetime,
     is_normalized,
     shift_month,
     to_dt64D,
@@ -107,7 +106,7 @@ class OffsetMeta(type):
         return issubclass(obj, BaseOffset)
 
 
-class DateOffset(BaseOffset, metaclass=OffsetMeta):
+class DateOffset(liboffsets.RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -202,158 +201,7 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
-    _adjust_dst = False
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        BaseOffset.__init__(self, n, normalize)
-
-        off, use_rd = liboffsets._determine_offset(kwds)
-        object.__setattr__(self, "_offset", off)
-        object.__setattr__(self, "_use_relativedelta", use_rd)
-        for key in kwds:
-            val = kwds[key]
-            object.__setattr__(self, key, val)
-
-    @apply_wraps
-    def apply(self, other):
-        if self._use_relativedelta:
-            other = as_datetime(other)
-
-        if len(self.kwds) > 0:
-            tzinfo = getattr(other, "tzinfo", None)
-            if tzinfo is not None and self._use_relativedelta:
-                # perform calculation in UTC
-                other = other.replace(tzinfo=None)
-
-            if self.n > 0:
-                for i in range(self.n):
-                    other = other + self._offset
-            else:
-                for i in range(-self.n):
-                    other = other - self._offset
-
-            if tzinfo is not None and self._use_relativedelta:
-                # bring tz back from UTC calculation
-                other = conversion.localize_pydatetime(other, tzinfo)
-
-            return Timestamp(other)
-        else:
-            return other + timedelta(self.n)
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        """
-        Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplementedError for offsets without a
-        vectorized implementation.
-
-        Parameters
-        ----------
-        i : DatetimeIndex
-
-        Returns
-        -------
-        y : DatetimeIndex
-        """
-        kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-        }
-        # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
-
-            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
-            if months:
-                shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, dtype=i.dtype)
-
-            weeks = (kwds.get("weeks", 0)) * self.n
-            if weeks:
-                # integer addition on PeriodIndex is deprecated,
-                #   so we directly use _time_shift instead
-                asper = i.to_period("W")
-                shifted = asper._time_shift(weeks)
-                i = shifted.to_timestamp() + i.to_perioddelta("W")
-
-            timedelta_kwds = {
-                k: v
-                for k, v in kwds.items()
-                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
-            }
-            if timedelta_kwds:
-                delta = Timedelta(**timedelta_kwds)
-                i = i + (self.n * delta)
-            return i
-        elif not self._use_relativedelta and hasattr(self, "_offset"):
-            # timedelta
-            return i + (self._offset * self.n)
-        else:
-            # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
-            raise NotImplementedError(
-                "DateOffset with relativedelta "
-                f"keyword(s) {kwd} not able to be "
-                "applied vectorized"
-            )
-
-    def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
-            return False
-        # TODO, see #1395
-        return True
-
-    def _repr_attrs(self) -> str:
-        # The DateOffset class differs from other classes in that members
-        #  of self._attributes may not be defined, so we have to use __dict__
-        #  instead.
-        exclude = {"n", "inc", "normalize"}
-        attrs = []
-        for attr in sorted(self.__dict__):
-            if attr.startswith("_") or attr == "kwds":
-                continue
-            elif attr not in exclude:
-                value = getattr(self, attr)
-                attrs.append(f"{attr}={value}")
-
-        out = ""
-        if attrs:
-            out += ": " + ", ".join(attrs)
-        return out
-
-    @cache_readonly
-    def _params(self):
-        """
-        Returns a tuple containing all of the attributes needed to evaluate
-        equality between two DateOffset objects.
-        """
-        # The DateOffset class differs from other classes in that members
-        #  of self._attributes may not be defined, so we have to use __dict__
-        #  instead.
-        all_paras = self.__dict__.copy()
-        all_paras["n"] = self.n
-        all_paras["normalize"] = self.normalize
-        for key in self.__dict__:
-            if key not in all_paras:
-                # cython attributes are not in __dict__
-                all_paras[key] = getattr(self, key)
-
-        if "holidays" in all_paras and not all_paras["holidays"]:
-            all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
-        attrs = [
-            (k, v) for k, v in all_paras.items() if (k not in exclude) and (k[0] != "_")
-        ]
-        attrs = sorted(set(attrs))
-        params = tuple([str(type(self))] + attrs)
-        return params
+    pass
 
 
 class BusinessDay(BusinessMixin):
