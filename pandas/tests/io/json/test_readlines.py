@@ -184,6 +184,7 @@ def test_readjson_unicode(monkeypatch):
 
 @pytest.mark.parametrize("nrows", [1, 2])
 def test_readjson_nrows(nrows):
+    # GH 33916
     # Test reading line-format JSON to Series with nrows param
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
@@ -196,6 +197,7 @@ def test_readjson_nrows(nrows):
 
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
 def test_readjson_nrows_chunks(nrows, chunksize):
+    # GH 33916
     # Test reading line-format JSON to Series with nrows and chunksize param
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
@@ -208,6 +210,8 @@ def test_readjson_nrows_chunks(nrows, chunksize):
 
 
 def test_readjson_nrows_requires_lines():
+    # GH 33916
+    # Test ValuError raised if nrows is set without setting lines in read_json
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
