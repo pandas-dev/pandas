@@ -478,9 +478,7 @@ class SubMultiIndex:
         column_names = ["col_1", "col_2"]
 
         self.df = pd.DataFrame(
-            np.random.rand(len(index), 2),
-            index=index,
-            columns=column_names
+            np.random.rand(len(index), 2), index=index, columns=column_names
         )
 
         self.sub_df = pd.DataFrame(
