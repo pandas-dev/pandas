@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 
+from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -95,8 +96,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[str] = None,
-        ylabel: Optional[str] = None,
+        xlabel: Optional[Label] = None,
+        ylabel: Optional[Label] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,

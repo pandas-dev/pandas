@@ -3358,6 +3358,8 @@ class TestDataFramePlots(TestPlotBase):
             (None, "", "", "", ""),
             (None, "", "new_x", "", "new_y"),
             ("old_x", "old_x", "new_x", "", "new_y"),
+            (None, "", 1, "", ""),
+            (None, "", 1, "", 2),
         ],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
@@ -3375,8 +3377,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # old xlabel will be overriden and assigned ylabel will be used as ylabel
         ax = df.plot(kind=kind, ylabel=new_ylabel, xlabel=new_xlabel)
-        assert ax.get_ylabel() == new_ylabel
-        assert ax.get_xlabel() == new_xlabel
+        assert ax.get_ylabel() == str(new_ylabel)
+        assert ax.get_xlabel() == str(new_xlabel)
 
     @pytest.mark.parametrize(
         "index_name, old_xlabel, new_xlabel, old_ylabel, new_ylabel",
@@ -3386,6 +3388,8 @@ class TestDataFramePlots(TestPlotBase):
             (None, "", "", "", ""),
             (None, "", "new_x", "", "new_y"),
             ("old_x", "old_x", "new_x", "", "new_y"),
+            (None, "", 1, "", ""),
+            (None, "", 1, "", 2),
         ],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
@@ -3403,8 +3407,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # old xlabel will be overriden and assigned ylabel will be used as ylabel
         axes = df.plot(kind=kind, ylabel=new_ylabel, xlabel=new_xlabel, subplots=True)
-        assert all(ax.get_ylabel() == new_ylabel for ax in axes)
-        assert all(ax.get_xlabel() == new_xlabel for ax in axes)
+        assert all(ax.get_ylabel() == str(new_ylabel) for ax in axes)
+        assert all(ax.get_xlabel() == str(new_xlabel) for ax in axes)
 
 
 def _generate_4_axes_via_gridspec():
