@@ -866,6 +866,7 @@ Sparse
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
 - Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 - Bug in :meth:`Series.sum` with ``SparseArray`` raises ``TypeError`` (:issue:`25777`)
+- The repr of :class:`SparseDtype` now includes the repr of its ``fill_value`` attribute. Previously it used ``fill_value``'s  string representation (:issue:`34352`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
