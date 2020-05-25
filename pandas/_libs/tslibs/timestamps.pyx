@@ -194,7 +194,7 @@ def integer_op_not_supported(obj):
         "Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    ).format(cls=cls)
+    )
     return TypeError(int_addsub_msg)
 
 
