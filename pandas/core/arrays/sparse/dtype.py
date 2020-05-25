@@ -166,7 +166,7 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return f"Sparse[{self.subtype.name}, {self.fill_value}]"
+        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
         return self.name

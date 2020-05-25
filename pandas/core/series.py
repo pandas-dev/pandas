@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Axis, DtypeObj, IndexKeyFunc, Label, ValueKeyFunc
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -1642,11 +1643,23 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = False,
+        squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> "SeriesGroupBy":
         from pandas.core.groupby.generic import SeriesGroupBy
+
+        if squeeze is not no_default:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -2584,10 +2597,7 @@ Name: Max Speed, dtype: float64
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = (
-                f"to_append should be a Series or list/tuple of Series, "
-                f"got DataFrame"
-            )
+            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
             raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
@@ -4687,7 +4697,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, PeriodIndex)
+        if not isinstance(self.index, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
         new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
@@ -4714,7 +4725,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, DatetimeIndex)
+        if not isinstance(self.index, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
         new_index = self.index.to_period(freq=freq)  # type: ignore
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"

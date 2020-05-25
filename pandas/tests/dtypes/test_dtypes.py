@@ -191,6 +191,10 @@ class TestCategoricalDtype(Base):
         result = str(Categorical(DatetimeIndex([])).categories.dtype)
         assert result == expected
 
+    def test_not_string(self):
+        # though CategoricalDtype has object kind, it cannot be string
+        assert not is_string_dtype(CategoricalDtype())
+
 
 class TestDatetimeTZDtype(Base):
     @pytest.fixture

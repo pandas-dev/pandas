@@ -655,6 +655,19 @@ class TestCommon(Base):
         #
         tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
+    def test_pickle_roundtrip(self, offset_types):
+        off = self._get_offset(offset_types)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+        if type(off) is not DateOffset:
+            for attr in off._attributes:
+                if attr == "calendar":
+                    # np.busdaycalendar __eq__ will return False;
+                    #  we check holidays and weekmask attrs so are OK
+                    continue
+                # Make sure nothings got lost from _params (which __eq__) is based on
+                assert getattr(off, attr) == getattr(res, attr)
+
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
@@ -756,7 +769,9 @@ class TestBusinessDay(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset2(self.d) == datetime(2008, 1, 3)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 1, 3)
 
     def testRollback1(self):
         assert BDay(10).rollback(self.d) == self.d
@@ -1040,13 +1055,15 @@ class TestBusinessHour(Base):
         assert offset == offset
 
     def test_call(self):
-        assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
-        assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
-        assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
-        assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
-        assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
+            assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
+            assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
+            assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
+            assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
 
     def test_sub(self):
         # we have to override test_sub here because self.offset2 is not
@@ -2377,8 +2394,10 @@ class TestCustomBusinessHour(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -2642,8 +2661,10 @@ class TestCustomBusinessDay(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset2(self.d) == datetime(2008, 1, 3)
-        assert self.offset2(self.nd) == datetime(2008, 1, 3)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 1, 3)
+            assert self.offset2(self.nd) == datetime(2008, 1, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(self.d) == self.d
@@ -2892,8 +2913,10 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthEnd>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthEnds>"
 
-    def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 2, 29)
+    def test_call(self):
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -3041,8 +3064,10 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthBegin>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthBegins>"
 
-    def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 3, 3)
+    def test_call(self):
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -3450,6 +3475,11 @@ class TestLastWeekOfMonth(Base):
         weekday, dt, expected = case
         offset = LastWeekOfMonth(weekday=weekday)
         assert offset.is_on_offset(dt) == expected
+
+    def test_repr(self):
+        assert (
+            repr(LastWeekOfMonth(n=2, weekday=1)) == "<2 * LastWeekOfMonths: weekday=1>"
+        )
 
 
 class TestSemiMonthEnd(Base):
