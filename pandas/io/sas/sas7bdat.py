@@ -58,6 +58,8 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
             return sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
             )
+        else:
+            raise ValueError("unit must be 'd' or 's'")
 
 
 class _subheader_pointer:
