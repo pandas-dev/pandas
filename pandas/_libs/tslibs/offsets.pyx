@@ -562,6 +562,7 @@ cdef class BaseOffset:
         exclude = {"n", "inc", "normalize"}
         attrs = []
         for attr in sorted(self._attributes):
+            # _attributes instead of __dict__ because cython attrs are not in __dict__
             if attr.startswith("_") or attr == "kwds" or not hasattr(self, attr):
                 # DateOffset may not have some of these attributes
                 continue
@@ -1164,13 +1165,17 @@ class CustomMixin:
         object.__setattr__(self, "calendar", calendar)
 
 
-class WeekOfMonthMixin(SingleConstructorOffset):
+cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+
+    cdef readonly:
+        int weekday
+
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "weekday", weekday)
+        self.weekday = weekday
 
         if weekday < 0 or weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
