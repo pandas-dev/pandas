@@ -3653,8 +3653,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         left_index = left._get_level_values(level)
         join, left_indexer, right_indexer = left_index.join(
-                right, how=how, return_indexers=True
-            )
+            right, how=how, return_indexers=True
+        )
         new_code = new_level.get_indexer(join)
         new_codes = []
 
