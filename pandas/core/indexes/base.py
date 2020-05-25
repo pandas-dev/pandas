@@ -3619,41 +3619,9 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _join_level(
-        self, other, level, how="left", return_indexers=False, keep_order=True
+        self, other, level, how="left", return_indexers=False
     ):
-        """
-        The join method *only* affects the level of the resulting
-        MultiIndex. Otherwise it just exactly aligns the Index data to the
-        labels of the level in the MultiIndex.
-
-        If ```keep_order == True```, the order of the data indexed by the
-        MultiIndex will not be changed; otherwise, it will tie out
-        with `other`.
-        """
         from pandas.core.indexes.multi import MultiIndex
-
-        def _get_leaf_sorter(labels):
-            """
-            Returns sorter for the inner most level while preserving the
-            order of higher levels.
-            """
-            if labels[0].size == 0:
-                return np.empty(0, dtype="int64")
-
-            if len(labels) == 1:
-                lab = ensure_int64(labels[0])
-                sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
-                return sorter
-
-            # find indexers of beginning of each set of
-            # same-key labels w.r.t all but last level
-            tic = labels[0][:-1] != labels[0][1:]
-            for lab in labels[1:-1]:
-                tic |= lab[:-1] != lab[1:]
-
-            starts = np.hstack(([True], tic, [True])).nonzero()[0]
-            lab = ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError("Join on level between two MultiIndex objects is ambiguous")
@@ -3673,77 +3641,32 @@ class Index(IndexOpsMixin, PandasObject):
                 "Index._join_level on non-unique index is not implemented"
             )
 
-        new_level, left_lev_indexer, right_lev_indexer = old_level.join(
-            right, how=how, return_indexers=True
-        )
+        if how == "left":
+            #TODO: if return_indexers = False, just return "self"
+            new_level = old_level
+        elif how == "right":
+            new_level = right
+        elif how == "inner":
+            new_level = old_level.intersection(right, sort=False)
+        elif how == "outer":
+            new_level = old_level.union(right)
 
-        if left_lev_indexer is None:
-            if keep_order or len(left) == 0:
-                left_indexer = None
-                join_index = left
-            else:  # sort the leaves
-                left_indexer = _get_leaf_sorter(left.codes[: level + 1])
-                join_index = left[left_indexer]
+        left_index = left._get_level_values(level)
+        join, left_indexer, right_indexer = left_index.join(right, how=how, return_indexers=True)
+        new_code = new_level.get_indexer(join)
+        new_codes = []
 
-        else:
-            left_lev_indexer = ensure_int64(left_lev_indexer)
-            rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
+        for lev, code in enumerate(left.codes):
+            if lev == level:
+                new_codes.append(new_code)
+            else:
+                new_codes.append(algos.take_nd(code, left_indexer, fill_value=-1))
 
-            new_lev_codes = algos.take_nd(
-                rev_indexer, left.codes[level], allow_fill=False
+        new_levels = list(left.levels)
+        new_levels[level] = new_level
+        join_index = MultiIndex(
+                levels=new_levels, codes=new_codes, names=left.names, verify_integrity=False
             )
-
-            new_codes = list(left.codes)
-            new_codes[level] = new_lev_codes
-
-            new_levels = list(left.levels)
-            new_levels[level] = new_level
-
-            if keep_order:  # just drop missing values. o.w. keep order
-                left_indexer = np.arange(len(left), dtype=np.intp)
-                mask = new_lev_codes != -1
-                if not mask.all():
-                    new_codes = [lab[mask] for lab in new_codes]
-                    left_indexer = left_indexer[mask]
-
-            else:  # tie out the order with other
-                if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_codes.max()
-                    left_indexer, counts = libalgos.groupsort_indexer(
-                        new_lev_codes, ngroups
-                    )
-
-                    # missing values are placed first; drop them!
-                    left_indexer = left_indexer[counts[0] :]
-                    new_codes = [lab[left_indexer] for lab in new_codes]
-
-                else:  # sort the leaves
-                    mask = new_lev_codes != -1
-                    mask_all = mask.all()
-                    if not mask_all:
-                        new_codes = [lab[mask] for lab in new_codes]
-
-                    left_indexer = _get_leaf_sorter(new_codes[: level + 1])
-                    new_codes = [lab[left_indexer] for lab in new_codes]
-
-                    # left_indexers are w.r.t masked frame.
-                    # reverse to original frame!
-                    if not mask_all:
-                        left_indexer = mask.nonzero()[0][left_indexer]
-
-            join_index = MultiIndex(
-                levels=new_levels,
-                codes=new_codes,
-                names=left.names,
-                verify_integrity=False,
-            )
-
-        if right_lev_indexer is not None:
-            right_indexer = algos.take_nd(
-                right_lev_indexer, join_index.codes[level], allow_fill=False
-            )
-        else:
-            right_indexer = join_index.codes[level]
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer

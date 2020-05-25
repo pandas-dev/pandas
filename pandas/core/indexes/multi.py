@@ -2300,7 +2300,7 @@ class MultiIndex(Index):
             else:
                 target = ensure_index(target)
             target, indexer, _ = self._join_level(
-                target, level, how="right", return_indexers=True, keep_order=False
+                target, level, how="right", return_indexers=True
             )
         else:
             target = ensure_index(target)

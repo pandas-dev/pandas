@@ -770,6 +770,7 @@ MultiIndex
         left.intersection(right, sort=False)
 
 - Bug when joining 2 Multi-indexes, without specifying level with different columns. Return-indexers parameter is ignored. (:issue:`34074`)
+- Bug when joining a Multi-index with a single index, outer-joins and right-joins don't include single-index data. (:issue:`34292`)
 
 I/O
 ^^^
