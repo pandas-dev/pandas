@@ -1281,7 +1281,7 @@ cdef class YearOffset(SingleConstructorOffset):
 cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BYearEnd
@@ -1307,7 +1307,7 @@ cdef class BYearEnd(YearOffset):
 cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BYearBegin
@@ -1320,7 +1320,6 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2020-01-01 05:01:15')
     >>> ts + BYearBegin(2)
     Timestamp('2022-01-03 05:01:15')
-
     """
 
     _outputName = "BusinessYearBegin"
@@ -1433,7 +1432,7 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BQuarterEnd
@@ -1446,7 +1445,6 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
-
     """
     _outputName = "BusinessQuarterEnd"
     _default_startingMonth = 3
@@ -1462,7 +1460,7 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BQuarterBegin
@@ -1552,7 +1550,7 @@ cdef class MonthBegin(MonthOffset):
 cdef class BusinessMonthEnd(MonthOffset):
     """
     DateOffset increments between the last business day of the month
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BMonthEnd
@@ -1571,7 +1569,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 cdef class BusinessMonthBegin(MonthOffset):
     """
     DateOffset of one month at the first business day.
-    
+
     Examples
     --------
     >>> from pandas.tseries.offset import BMonthBegin
