@@ -6,12 +6,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas as pd
-import pandas._testing as tm
-from pandas import StringDtype
-from pandas.core.arrays import StringArray
 from pandas.core.dtypes.common import is_string_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
+
+import pandas as pd
+from pandas import StringDtype
+import pandas._testing as tm
+from pandas.core.arrays import StringArray
 
 
 def test_repr():
