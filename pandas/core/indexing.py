@@ -2016,10 +2016,10 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
 
         if not isinstance(key, tuple):
             key = _tuplify(self.ndim, key)
+        key = list(self._convert_key(key, is_setter=True))
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
 
-        key = list(self._convert_key(key, is_setter=True))
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
@@ -2032,6 +2032,12 @@ class _AtIndexer(_ScalarAccessIndexer):
         Require they keys to be the same type as the index. (so we don't
         fallback)
         """
+        # GH 26989
+        # For series, unpacking key needs to result in the label.
+        # This is already the case for len(key) == 1; e.g. (1,)
+        if self.ndim == 1 and len(key) > 1:
+            key = (key,)
+
         # allow arbitrary setting
         if is_setter:
             return list(key)
