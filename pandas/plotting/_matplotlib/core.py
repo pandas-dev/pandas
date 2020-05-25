@@ -968,8 +968,8 @@ class ScatterPlot(PlanePlot):
             c_values = c
 
         # don't plot a colorbar if `c` is a column containing color names
-        c_is_col_not_containing_colors = c_is_column and is_numeric_dtype(c_values)
-        cb = self.kwds.pop("colorbar", self.colormap or c_is_col_not_containing_colors)
+        c_is_numeric_col = c_is_column and is_numeric_dtype(c_values)
+        cb = self.kwds.pop("colorbar", self.colormap or c_is_numeric_col)
 
         if self.legend and hasattr(self, "label"):
             label = self.label
