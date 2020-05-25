@@ -10,7 +10,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -21,26 +20,24 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
+from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
-class _IntegerDtype(ExtensionDtype):
+class _IntegerDtype(BaseMaskedDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -53,7 +50,6 @@ class _IntegerDtype(ExtensionDtype):
     name: str
     base = None
     type: Type
-    na_value = libmissing.NA
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -372,10 +368,6 @@ class IntegerArray(BaseMaskedArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype, copy)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> "IntegerArray":
-        return integer_array(values, dtype=original.dtype)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
@@ -423,19 +415,8 @@ class IntegerArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value, dtype=self.dtype)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -484,11 +465,6 @@ class IntegerArray(BaseMaskedArray):
 
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
-
-    def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
-        # TODO: https://github.com/pandas-dev/pandas/issues/30037
-        # use masked algorithms, rather than object-dtype / np.nan.
-        return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -563,27 +539,6 @@ class IntegerArray(BaseMaskedArray):
 
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)

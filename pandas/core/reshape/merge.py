@@ -652,7 +652,7 @@ class _MergeOperation:
         ) = self._get_merge_keys()
 
         # validate the merge keys dtypes. We may need to coerce
-        # to avoid incompat dtypes
+        # to avoid incompatible dtypes
         self._maybe_coerce_merge_keys()
 
         # If argument passed to validate,
@@ -1067,7 +1067,7 @@ class _MergeOperation:
         return left_keys, right_keys, join_names
 
     def _maybe_coerce_merge_keys(self):
-        # we have valid mergees but we may have to further
+        # we have valid merges but we may have to further
         # coerce these if they are originally incompatible types
         #
         # for example if these are categorical, but are not dtype_equal
@@ -1079,10 +1079,10 @@ class _MergeOperation:
             if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
                 continue
 
-            lk_is_cat = is_categorical_dtype(lk)
-            rk_is_cat = is_categorical_dtype(rk)
-            lk_is_object = is_object_dtype(lk)
-            rk_is_object = is_object_dtype(rk)
+            lk_is_cat = is_categorical_dtype(lk.dtype)
+            rk_is_cat = is_categorical_dtype(rk.dtype)
+            lk_is_object = is_object_dtype(lk.dtype)
+            rk_is_object = is_object_dtype(rk.dtype)
 
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
@@ -1105,12 +1105,12 @@ class _MergeOperation:
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
             # the same, then proceed
-            if is_numeric_dtype(lk) and is_numeric_dtype(rk):
+            if is_numeric_dtype(lk.dtype) and is_numeric_dtype(rk.dtype):
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
                 # check whether ints and floats
-                elif is_integer_dtype(rk) and is_float_dtype(lk):
+                elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn(
                             "You are merging on int and float "
@@ -1120,7 +1120,7 @@ class _MergeOperation:
                         )
                     continue
 
-                elif is_float_dtype(rk) and is_integer_dtype(lk):
+                elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
                     if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn(
                             "You are merging on int and float "
@@ -1140,14 +1140,14 @@ class _MergeOperation:
             # incompatible dtypes GH 9780, GH 15800
 
             # bool values are coerced to object
-            elif (lk_is_object and is_bool_dtype(rk)) or (
-                is_bool_dtype(lk) and rk_is_object
+            elif (lk_is_object and is_bool_dtype(rk.dtype)) or (
+                is_bool_dtype(lk.dtype) and rk_is_object
             ):
                 pass
 
             # object values are allowed to be merged
-            elif (lk_is_object and is_numeric_dtype(rk)) or (
-                is_numeric_dtype(lk) and rk_is_object
+            elif (lk_is_object and is_numeric_dtype(rk.dtype)) or (
+                is_numeric_dtype(lk.dtype) and rk_is_object
             ):
                 inferred_left = lib.infer_dtype(lk, skipna=False)
                 inferred_right = lib.infer_dtype(rk, skipna=False)
@@ -1167,13 +1167,17 @@ class _MergeOperation:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
-            elif needs_i8_conversion(lk) and not needs_i8_conversion(rk):
+            elif needs_i8_conversion(lk.dtype) and not needs_i8_conversion(rk.dtype):
                 raise ValueError(msg)
-            elif not needs_i8_conversion(lk) and needs_i8_conversion(rk):
+            elif not needs_i8_conversion(lk.dtype) and needs_i8_conversion(rk.dtype):
                 raise ValueError(msg)
-            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+            elif is_datetime64tz_dtype(lk.dtype) and not is_datetime64tz_dtype(
+                rk.dtype
+            ):
                 raise ValueError(msg)
-            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
+            elif not is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(
+                rk.dtype
+            ):
                 raise ValueError(msg)
 
             elif lk_is_object and rk_is_object:
@@ -1392,7 +1396,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index) -> MultiIndex:
+    def _convert_to_multiindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1402,7 +1406,7 @@ def _restore_dropped_levels_multijoin(
     # the returned index if of type Index
     # Assure that join_index is of type MultiIndex
     # so that dropped levels can be appended
-    join_index = _convert_to_mulitindex(join_index)
+    join_index = _convert_to_multiindex(join_index)
 
     join_levels = join_index.levels
     join_codes = join_index.codes

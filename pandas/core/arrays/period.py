@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     period as libperiod,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
@@ -32,7 +33,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndexClass,
+    ABCPeriodIndex,
+    ABCSeries,
+    ABCTimedeltaArray,
+)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -40,7 +46,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, delta_to_tick
+from pandas.tseries.offsets import DateOffset
 
 
 def _field_accessor(name: str, alias: int, docstring=None):
@@ -284,7 +290,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         elif dtype == bool:
             return ~self._isnan
 
-        # This will raise TypeErorr for non-object dtypes
+        # This will raise TypeError for non-object dtypes
         return np.array(list(self), dtype=object)
 
     def __arrow_array__(self, type=None):
@@ -604,6 +610,37 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
+    def _sub_period_array(self, other):
+        """
+        Subtract a Period Array/Index from self.  This is only valid if self
+        is itself a Period Array/Index, raises otherwise.  Both objects must
+        have the same frequency.
+
+        Parameters
+        ----------
+        other : PeriodIndex or PeriodArray
+
+        Returns
+        -------
+        result : np.ndarray[object]
+            Array of DateOffset objects; nulls represented by NaT.
+        """
+        if self.freq != other.freq:
+            msg = DIFFERENT_FREQ.format(
+                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
+            )
+            raise IncompatibleFrequency(msg)
+
+        new_values = algos.checked_add_with_arr(
+            self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
+        )
+
+        new_values = np.array([self.freq.base * x for x in new_values])
+        if self._hasnans or other._hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = NaT
+        return new_values
+
     def _addsub_int_array(
         self, other: np.ndarray, op: Callable[[Any, Any], Any],
     ) -> "PeriodArray":
@@ -628,10 +665,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other):
+    def _add_offset(self, other: DateOffset):
         assert not isinstance(other, Tick)
-        base = libfrequencies.get_base_alias(other.rule_code)
-        if base != self.freq.rule_code:
+
+        if other.base != self.freq.base:
             raise raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
@@ -676,7 +713,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
-            raise raise_on_incompatible(self, other)
+            raise TypeError(
+                f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
+            )
 
         if not np.all(isna(other)):
             delta = self._check_timedeltalike_freq_compat(other)
@@ -708,8 +747,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         IncompatibleFrequency
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
-        own_offset = frequencies.to_offset(self.freq.rule_code)
-        base_nanos = delta_to_nanoseconds(own_offset)
+        base_nanos = self.freq.base.nanos
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             nanos = delta_to_nanoseconds(other)
@@ -753,7 +791,7 @@ def raise_on_incompatible(left, right):
         Exception to be raised by the caller.
     """
     # GH#24283 error message format depends on whether right is scalar
-    if isinstance(right, np.ndarray) or right is None:
+    if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr

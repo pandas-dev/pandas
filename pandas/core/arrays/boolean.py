@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -19,25 +18,22 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
-from pandas.core.array_algos import masked_reductions
-from pandas.core.indexers import check_array_indexer
+from pandas.core import ops
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
-class BooleanDtype(ExtensionDtype):
+class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
@@ -65,23 +61,16 @@ class BooleanDtype(ExtensionDtype):
     name = "boolean"
 
     @property
-    def na_value(self) -> libmissing.NAType:
-        """
-        BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
-
-        .. warning::
-
-           `na_value` may change in a future release.
-        """
-        return libmissing.NA
-
-    @property
     def type(self) -> Type[np.bool_]:
         return np.bool_
 
     @property
     def kind(self) -> str:
         return "b"
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        return np.dtype("bool")
 
     @classmethod
     def construct_array_type(cls) -> Type["BooleanArray"]:
@@ -99,6 +88,10 @@ class BooleanDtype(ExtensionDtype):
 
     @property
     def _is_boolean(self) -> bool:
+        return True
+
+    @property
+    def _is_numeric(self) -> bool:
         return True
 
     def __from_arrow__(
@@ -304,15 +297,6 @@ class BooleanArray(BaseMaskedArray):
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
-        data = self._data.astype("int8")
-        data[self._mask] = -1
-        return data, -1
-
-    @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
-        return cls._from_sequence(values, dtype=original.dtype)
-
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
     def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
@@ -360,19 +344,8 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -683,24 +656,7 @@ class BooleanArray(BaseMaskedArray):
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
+        return super()._reduce(name, skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

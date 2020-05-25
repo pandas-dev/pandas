@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDateOffset,
     ABCDatetimeIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -45,9 +44,6 @@ from pandas.core.window.common import (
     _doc_template,
     _flex_binary_moment,
     _shared_docs,
-    calculate_center_offset,
-    calculate_min_periods,
-    get_weighted_roll_func,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -56,6 +52,83 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+from pandas.tseries.offsets import DateOffset
+
+
+def calculate_center_offset(window) -> int:
+    """
+    Calculate an offset necessary to have the window label to be centered.
+
+    Parameters
+    ----------
+    window: ndarray or int
+        window weights or window
+
+    Returns
+    -------
+    int
+    """
+    if not is_integer(window):
+        window = len(window)
+    return int((window - 1) / 2.0)
+
+
+def calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+) -> int:
+    """
+    Calculate final minimum periods value for rolling aggregations.
+
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
+
+    Returns
+    -------
+    min_periods : int
+    """
+    if min_periods is None:
+        min_periods = window
+    else:
+        min_periods = max(required_min_periods, min_periods)
+    if min_periods > window:
+        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
+    elif min_periods > num_values:
+        min_periods = num_values + 1
+    elif min_periods < 0:
+        raise ValueError("min_periods must be >= 0")
+    return max(min_periods, floor)
+
+
+def get_weighted_roll_func(cfunc: Callable) -> Callable:
+    """
+    Wrap weighted rolling cython function with min periods argument.
+
+    Parameters
+    ----------
+    cfunc : function
+        Cython weighted rolling function
+
+    Returns
+    -------
+    function
+    """
+
+    def func(arg, window, min_periods=None):
+        if min_periods is None:
+            min_periods = len(window)
+        return cfunc(arg, window, min_periods)
+
+    return func
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -246,8 +319,22 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
-        url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError(f"See issue #11704 {url}")
+        window = self._get_window(win_type=None)
+        blocks, obj = self._create_blocks()
+        index = self._get_window_indexer(window=window)
+
+        start, end = index.get_window_bounds(
+            num_values=len(obj),
+            min_periods=self.min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        # From get_window_bounds, those two should be equal in length of array
+        assert len(start) == len(end)
+
+        for s, e in zip(start, end):
+            result = obj.iloc[slice(s, e)]
+            yield result
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
@@ -539,8 +626,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.sum : Reducing sum for Series.
-    DataFrame.sum : Reducing sum for DataFrame.
+    pandas.Series.sum : Reducing sum for Series.
+    pandas.DataFrame.sum : Reducing sum for DataFrame.
 
     Examples
     --------
@@ -617,10 +704,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.mean : Equivalent method for Series.
-    DataFrame.mean : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.mean : Equivalent method for Series.
+    pandas.DataFrame.mean : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -666,10 +753,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.var : Equivalent method for Series.
-    DataFrame.var : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.var : Equivalent method for Series.
+    pandas.DataFrame.var : Equivalent method for DataFrame.
     numpy.var : Equivalent method for Numpy array.
 
     Notes
@@ -726,10 +813,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.std : Equivalent method for Series.
-    DataFrame.std : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.std : Equivalent method for Series.
+    pandas.DataFrame.std : Equivalent method for DataFrame.
     numpy.std : Equivalent method for Numpy array.
 
     Notes
@@ -1040,8 +1127,8 @@ class Window(_Window):
         """
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    pandas.DataFrame.aggregate : Similar DataFrame method.
+    pandas.Series.aggregate : Similar Series method.
     """
     )
 
@@ -1141,9 +1228,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    DataFrame.count : Count of the full DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -1239,8 +1326,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Series %(name)s.
-    DataFrame.%(name)s : DataFrame %(name)s.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrame data.
+    pandas.Series.apply : Similar method for Series.
+    pandas.DataFrame.apply : Similar method for DataFrame.
 
     Notes
     -----
@@ -1299,6 +1388,8 @@ class _Rolling_and_Expanding(_Rolling):
             use_numba_cache=engine == "numba",
             raw=raw,
             original_func=func,
+            args=args,
+            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1361,10 +1452,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with a Series.
-    DataFrame.%(name)s : Calling object with a DataFrame.
-    Series.min : Similar method for Series.
-    DataFrame.min : Similar method for DataFrame.
+    pandas.Series.%(name)s : Calling object with a Series.
+    pandas.DataFrame.%(name)s : Calling object with a DataFrame.
+    pandas.Series.min : Similar method for Series.
+    pandas.DataFrame.min : Similar method for DataFrame.
 
     Examples
     --------
@@ -1408,10 +1499,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.median : Equivalent method for Series.
-    DataFrame.median : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.median : Equivalent method for Series.
+    pandas.DataFrame.median : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -1507,10 +1598,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.kurt : Equivalent method for Series.
-    DataFrame.kurt : Equivalent method for DataFrame.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.kurt : Equivalent method for Series.
+    pandas.DataFrame.kurt : Equivalent method for DataFrame.
     scipy.stats.skew : Third moment of a probability density.
     scipy.stats.kurtosis : Reference SciPy method.
 
@@ -1563,9 +1654,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.quantile : Computes value at the given quantile over all data
+    pandas.Series.quantile : Computes value at the given quantile over all data
         in Series.
-    DataFrame.quantile : Computes values at the given quantile over
+    pandas.DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1692,11 +1783,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data.
-    DataFrame.%(name)s : Calling object with DataFrames.
-    Series.corr : Equivalent method for Series.
-    DataFrame.corr : Equivalent method for DataFrame.
-    %(name)s.cov : Similar method to calculate covariance.
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.corr : Equivalent method for Series.
+    pandas.DataFrame.corr : Equivalent method for DataFrame.
+    cov : Similar method to calculate covariance.
     numpy.corrcoef : NumPy Pearson's correlation calculation.
 
     Notes
@@ -1838,7 +1929,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, ABCDateOffset, timedelta)
+            self.window, (str, DateOffset, timedelta)
         ):
 
             self._validate_monotonic()
@@ -1901,8 +1992,8 @@ class Rolling(_Rolling_and_Expanding):
         """
     See Also
     --------
-    Series.rolling
-    DataFrame.rolling
+    pandas.Series.rolling : Calling object with Series data.
+    pandas.DataFrame.rolling : Calling object with DataFrame data.
     """
     )
 
@@ -1983,7 +2074,7 @@ class Rolling(_Rolling_and_Expanding):
         nv.validate_rolling_func("sum", args, kwargs)
         return super().sum(*args, **kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
     def max(self, *args, **kwargs):
@@ -2019,7 +2110,7 @@ class Rolling(_Rolling_and_Expanding):
         nv.validate_rolling_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="skew")
     @Appender(_doc_template)
     @Appender(_shared_docs["skew"])
     def skew(self, **kwargs):
@@ -2063,7 +2154,7 @@ class Rolling(_Rolling_and_Expanding):
             quantile=quantile, interpolation=interpolation, **kwargs
         )
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
