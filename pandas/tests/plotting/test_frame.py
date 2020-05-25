@@ -1307,6 +1307,7 @@ class TestDataFramePlots(TestPlotBase):
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
 
     def test_scatter_with_c_column_name_with_colors(self):
+        # https://github.com/pandas-dev/pandas/issues/34316
         df = pd.DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],

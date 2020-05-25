@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_number,
+    is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -966,12 +967,8 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
-        # plot a colorbar only if a colormap is provided or necessary
-        from matplotlib.colors import is_color_like
-
-        c_is_column_not_containing_colors = c_is_column and not all(
-            np.vectorize(is_color_like)(c_values)
-        )
+        # don't plot a colorbar if `c` is a column containing color names
+        c_is_column_not_containing_colors = c_is_column and is_numeric_dtype(c_values)
         cb = self.kwds.pop(
             "colorbar", self.colormap or c_is_column_not_containing_colors
         )
