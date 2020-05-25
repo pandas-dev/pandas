@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasDtype
 
 from .base import BaseExtensionTests
@@ -314,3 +315,31 @@ class BaseSetitemTests(BaseExtensionTests):
             mask = pd.array([True, True, True, False, False])
             arr[mask] = data[0]
             self.assert_extension_array_equal(expected, arr)
+
+    def test_setitem_dataframe_column_with_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+        result.loc[df.index, "data"] = df["data"]
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_dataframe_column_without_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+        result.loc[:, "data"] = df["data"]
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_series_with_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=np.object, name="data")
+        result.loc[ser.index] = ser
+        self.assert_series_equal(result, expected)
+
+    def test_setitem_series_without_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=np.object, name="data")
+        result.loc[:] = ser
+        self.assert_series_equal(result, expected)
