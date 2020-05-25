@@ -259,8 +259,6 @@ class JSONTableWriter(FrameWriter):
             )
             raise ValueError(msg)
 
-        self.schema = build_table_schema(obj, index=self.index)
-
         # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
             raise NotImplementedError(
@@ -277,10 +275,17 @@ class JSONTableWriter(FrameWriter):
             raise ValueError(msg)
 
         obj = obj.copy()
+
+        # Convert DataFrame to handled types before serializing
+        if obj.index.nlevels == 1 and isinstance(obj.index, MultiIndex):
+            obj.index = obj.index.get_level_values(0)
+
+        self.schema = build_table_schema(obj, index=self.index)
+
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serializing
+
         if is_period_dtype(obj.index.dtype):
             obj.index = obj.index.to_timestamp()
 

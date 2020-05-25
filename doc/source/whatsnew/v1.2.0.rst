@@ -503,6 +503,7 @@ I/O
 - Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 - :func:`read_csv` was closing user-provided binary file handles when ``engine="c"`` and an ``encoding`` was requested (:issue:`36980`)
 - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
+- Bug in :meth:`~DataFrame.to_json` with 'table' orient was writting wrong index field name for MultiIndex Dataframe with a single level (:issue:`29928`)
 
 Plotting
 ^^^^^^^^

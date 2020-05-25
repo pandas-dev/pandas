@@ -435,6 +435,23 @@ class TestTableOrient:
 
         assert result == expected
 
+    @pytest.mark.parametrize("name", [None, "foo"])
+    def test_multiindex_single_level(self, name):
+        # GH29928
+        index = pd.Index([1, 2, 3, 4], name=name)
+        expected = DataFrame(
+            data=[[1, 1], [2, 2], [3, 3], [4, 4]], columns=["A", "B"], index=index
+        )
+
+        index = pd.MultiIndex.from_tuples([(1,), (2,), (3,), (4,)], names=[name])
+        df = DataFrame(
+            data=[[1, 1], [2, 2], [3, 3], [4, 4]], columns=["A", "B"], index=index
+        )
+        js = df.to_json(orient="table")
+        result = pd.read_json(js, orient="table")
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:an integer is required (got type float)*:DeprecationWarning"
     )
