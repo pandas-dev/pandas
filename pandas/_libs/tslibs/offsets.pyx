@@ -112,7 +112,7 @@ cdef to_offset(object obj):
     return to_offset(obj)
 
 
-def as_datetime(obj: datetime) -> datetime:
+cdef datetime _as_datetime(datetime obj):
     if isinstance(obj, ABCTimestamp):
         return obj.to_pydatetime()
     return obj
@@ -360,10 +360,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
-                      'day', 'weekday', 'hour', 'minute', 'second',
-                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
-                      'minutes', 'seconds', 'microseconds'}
+_relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
+                       "day", "weekday", "hour", "minute", "second",
+                       "microsecond", "nanosecond", "nanoseconds", "hours",
+                       "minutes", "seconds", "microseconds"}
 
 
 def _determine_offset(kwds):
@@ -1002,6 +1002,123 @@ def delta_to_tick(delta: timedelta) -> Tick:
             return Micro(nanos // 1000)
         else:  # pragma: no cover
             return Nano(nanos)
+
+
+# --------------------------------------------------------------------
+
+class RelativeDeltaOffset(BaseOffset):
+    """
+    DateOffset subclass backed by a dateutil relativedelta object.
+    """
+    _attributes = frozenset(["n", "normalize"] + list(_relativedelta_kwds))
+    _adjust_dst = False
+
+    def __init__(self, n=1, normalize=False, **kwds):
+        BaseOffset.__init__(self, n, normalize)
+
+        off, use_rd = _determine_offset(kwds)
+        object.__setattr__(self, "_offset", off)
+        object.__setattr__(self, "_use_relativedelta", use_rd)
+        for key in kwds:
+            val = kwds[key]
+            object.__setattr__(self, key, val)
+
+    @apply_wraps
+    def apply(self, other):
+        if self._use_relativedelta:
+            other = _as_datetime(other)
+
+        if len(self.kwds) > 0:
+            tzinfo = getattr(other, "tzinfo", None)
+            if tzinfo is not None and self._use_relativedelta:
+                # perform calculation in UTC
+                other = other.replace(tzinfo=None)
+
+            if self.n > 0:
+                for i in range(self.n):
+                    other = other + self._offset
+            else:
+                for i in range(-self.n):
+                    other = other - self._offset
+
+            if tzinfo is not None and self._use_relativedelta:
+                # bring tz back from UTC calculation
+                other = localize_pydatetime(other, tzinfo)
+
+            from .timestamps import Timestamp
+            return Timestamp(other)
+        else:
+            return other + timedelta(self.n)
+
+    @apply_index_wraps
+    def apply_index(self, index):
+        """
+        Vectorized apply of DateOffset to DatetimeIndex,
+        raises NotImplementedError for offsets without a
+        vectorized implementation.
+
+        Parameters
+        ----------
+        index : DatetimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        kwds = self.kwds
+        relativedelta_fast = {
+            "years",
+            "months",
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "microseconds",
+        }
+        # relativedelta/_offset path only valid for base DateOffset
+        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+
+            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
+            if months:
+                shifted = shift_months(index.asi8, months)
+                index = type(index)(shifted, dtype=index.dtype)
+
+            weeks = kwds.get("weeks", 0) * self.n
+            if weeks:
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = index.to_period("W")
+                shifted = asper._time_shift(weeks)
+                index = shifted.to_timestamp() + index.to_perioddelta("W")
+
+            timedelta_kwds = {
+                k: v
+                for k, v in kwds.items()
+                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
+            }
+            if timedelta_kwds:
+                from .timedeltas import Timedelta
+                delta = Timedelta(**timedelta_kwds)
+                index = index + (self.n * delta)
+            return index
+        elif not self._use_relativedelta and hasattr(self, "_offset"):
+            # timedelta
+            return index + (self._offset * self.n)
+        else:
+            # relativedelta with other keywords
+            kwd = set(kwds) - relativedelta_fast
+            raise NotImplementedError(
+                "DateOffset with relativedelta "
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        # TODO: see GH#1395
+        return True
 
 
 # --------------------------------------------------------------------
