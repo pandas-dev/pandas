@@ -192,9 +192,9 @@ class TestDataFrameIsIn:
 
     def test_isin_against_categoryDataframe(self):
         # GH#34256
-        df1 = pd.DataFrame.from_dict({'a': [1, 2, 3], 'b': [4, 5, 6]})
-        df2 = pd.DataFrame({'a': [1, 2, 3]}, dtype='category')
-        df3 = pd.Series([1, 2, 3]).astype('category')
+        df1 = pd.DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df2 = pd.DataFrame({"a": [1, 2, 3]}, dtype="category")
+        df3 = pd.Series([1, 2, 3]).astype("category")
 
         expected1 = DataFrame({"a": [True, True, True], "b": [False, False, False]})
         expected2 = DataFrame({"a": [True, True, True], "b": [False, False, False]})
