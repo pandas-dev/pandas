@@ -48,7 +48,7 @@ from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Day, Tick, generate_range
+from pandas.tseries.offsets import BDay, Day, Tick
 
 _midnight = time(0, 0)
 
@@ -631,7 +631,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _assert_tzawareness_compat(self, other):
         # adapted from _Timestamp._assert_tzawareness_compat
         other_tz = getattr(other, "tzinfo", None)
-        if is_datetime64tz_dtype(other):
+        other_dtype = getattr(other, "dtype", None)
+
+        if is_datetime64tz_dtype(other_dtype):
             # Get tzinfo from Series dtype
             other_tz = other.dtype.tz
         if other is NaT:
@@ -652,6 +654,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     def _sub_datetime_arraylike(self, other):
         """subtract DatetimeArray/Index or ndarray[datetime64]"""
+        if len(self) != len(other):
+            raise ValueError("cannot add indices of unequal length")
+
         if isinstance(other, np.ndarray):
             assert is_datetime64_dtype(other)
             other = type(self)(other)
@@ -1913,8 +1918,9 @@ def sequence_to_dt64ns(
 
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy)
+    data_dtype = getattr(data, "dtype", None)
 
-    if is_object_dtype(data) or is_string_dtype(data):
+    if is_object_dtype(data_dtype) or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
@@ -1927,15 +1933,16 @@ def sequence_to_dt64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
             tz = maybe_infer_tz(tz, inferred_tz)
+        data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
-    if is_datetime64tz_dtype(data):
+    if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
         tz = maybe_infer_tz(tz, data.tz)
         result = data._data
 
-    elif is_datetime64_dtype(data):
+    elif is_datetime64_dtype(data_dtype):
         # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_data", data)
         if data.dtype != DT64NS_DTYPE:
@@ -2332,3 +2339,81 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
             localize_args["tz"] = tz
         ts = ts.tz_localize(**localize_args)
     return ts
+
+
+def generate_range(start=None, end=None, periods=None, offset=BDay()):
+    """
+    Generates a sequence of dates corresponding to the specified time
+    offset. Similar to dateutil.rrule except uses pandas DateOffset
+    objects to represent time increments.
+
+    Parameters
+    ----------
+    start : datetime, (default None)
+    end : datetime, (default None)
+    periods : int, (default None)
+    offset : DateOffset, (default BDay())
+
+    Notes
+    -----
+    * This method is faster for generating weekdays than dateutil.rrule
+    * At least two of (start, end, periods) must be specified.
+    * If both start and end are specified, the returned dates will
+    satisfy start <= date <= end.
+
+    Returns
+    -------
+    dates : generator object
+    """
+    offset = to_offset(offset)
+
+    start = Timestamp(start)
+    start = start if start is not NaT else None
+    end = Timestamp(end)
+    end = end if end is not NaT else None
+
+    if start and not offset.is_on_offset(start):
+        start = offset.rollforward(start)
+
+    elif end and not offset.is_on_offset(end):
+        end = offset.rollback(end)
+
+    if periods is None and end < start and offset.n >= 0:
+        end = None
+        periods = 0
+
+    if end is None:
+        end = start + (periods - 1) * offset
+
+    if start is None:
+        start = end - (periods - 1) * offset
+
+    cur = start
+    if offset.n >= 0:
+        while cur <= end:
+            yield cur
+
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
+
+            # faster than cur + offset
+            next_date = offset.apply(cur)
+            if next_date <= cur:
+                raise ValueError(f"Offset {offset} did not increment date")
+            cur = next_date
+    else:
+        while cur >= end:
+            yield cur
+
+            if cur == end:
+                # GH#24252 avoid overflows by not performing the addition
+                # in offset.apply unless we have to
+                break
+
+            # faster than cur + offset
+            next_date = offset.apply(cur)
+            if next_date >= cur:
+                raise ValueError(f"Offset {offset} did not decrement date")
+            cur = next_date

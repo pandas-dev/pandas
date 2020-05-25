@@ -17,16 +17,13 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
-from pandas.core.array_algos import masked_reductions
-from pandas.core.indexers import check_array_indexer
+from pandas.core import ops
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
@@ -90,6 +87,10 @@ class BooleanDtype(BaseMaskedDtype):
 
     @property
     def _is_boolean(self) -> bool:
+        return True
+
+    @property
+    def _is_numeric(self) -> bool:
         return True
 
     def __from_arrow__(
@@ -342,19 +343,8 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -664,24 +654,7 @@ class BooleanArray(BaseMaskedArray):
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
+        return super()._reduce(name, skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

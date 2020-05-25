@@ -3,9 +3,11 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.parsing cimport get_rule_month
 
 # ----------------------------------------------------------------------
 # Constants
@@ -124,7 +126,49 @@ _lite_rule_alias = {
 
 _dont_uppercase = {'MS', 'ms'}
 
+# Map attribute-name resolutions to resolution abbreviations
+_attrname_to_abbrevs = {
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
+}
+cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+
+
 # ----------------------------------------------------------------------
+
+def get_freq_group(freq) -> int:
+    """
+    Return frequency code group of given frequency str or offset.
+
+    Examples
+    --------
+    >>> get_freq_group('W-MON')
+    4000
+
+    >>> get_freq_group('W-FRI')
+    4000
+    """
+    if is_offset_object(freq):
+        freq = freq.rule_code
+
+    if isinstance(freq, str):
+        freq = attrname_to_abbrevs.get(freq, freq)
+        base, mult = get_freq_code(freq)
+        freq = base
+    elif isinstance(freq, int):
+        pass
+    else:
+        raise ValueError('input must be str, offset or int')
+    return (freq // 1000) * 1000
+
 
 cpdef get_freq_code(freqstr):
     """
@@ -255,21 +299,6 @@ cpdef str get_freq_str(base, mult=1):
     return str(mult) + code
 
 
-cpdef str get_base_alias(freqstr):
-    """
-    Returns the base frequency alias, e.g., '5D' -> 'D'
-
-    Parameters
-    ----------
-    freqstr : str
-
-    Returns
-    -------
-    base_alias : str
-    """
-    return base_and_stride(freqstr)[0]
-
-
 cpdef int get_to_timestamp_base(int base):
     """
     Return frequency code group used for base of to_timestamp against
@@ -304,25 +333,6 @@ cpdef int get_to_timestamp_base(int base):
     elif FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
     return base
-
-
-cpdef object get_freq(object freq):
-    """
-    Return frequency code of given frequency str.
-    If input is not string, return input as it is.
-
-    Examples
-    --------
-    >>> get_freq('A')
-    1000
-
-    >>> get_freq('3A')
-    1000
-    """
-    if isinstance(freq, str):
-        base, mult = get_freq_code(freq)
-        freq = base
-    return freq
 
 
 # ----------------------------------------------------------------------
@@ -458,8 +468,8 @@ cdef str _maybe_coerce_freq(code):
 
 
 cdef bint _quarter_months_conform(str source, str target):
-    snum = MONTH_NUMBERS[source]
-    tnum = MONTH_NUMBERS[target]
+    snum = c_MONTH_NUMBERS[source]
+    tnum = c_MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 
@@ -481,35 +491,3 @@ cdef bint _is_monthly(str rule):
 cdef bint _is_weekly(str rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
-
-
-# ----------------------------------------------------------------------
-
-cpdef str get_rule_month(object source, str default="DEC"):
-    """
-    Return starting month of given freq, default is December.
-
-    Parameters
-    ----------
-    source : object
-    default : str, default "DEC"
-
-    Returns
-    -------
-    rule_month: str
-
-    Examples
-    --------
-    >>> get_rule_month('D')
-    'DEC'
-
-    >>> get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]

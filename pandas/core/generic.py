@@ -1012,6 +1012,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index, columns : scalar, list-like, dict-like or function, optional
             A scalar, list-like, dict-like or functions transformations to
             apply to that axis' values.
+            Note that the ``columns`` parameter is not allowed if the
+            object is a Series. This parameter only apply for DataFrame
+            type objects.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
@@ -4980,7 +4983,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 else:
                     raise ValueError("Invalid weights: weights sum to zero")
 
-            weights = weights.values
+            weights = weights._values
 
         # If no frac or n, default to n=1.
         if n is None and frac is None:
@@ -6907,9 +6910,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
-                is_numeric_dtype(index)
-                or is_datetime64_any_dtype(index)
-                or is_timedelta64_dtype(index)
+                is_numeric_dtype(index.dtype)
+                or is_datetime64_any_dtype(index.dtype)
+                or is_timedelta64_dtype(index.dtype)
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
@@ -7469,6 +7472,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         squeeze : bool, default False
             Reduce the dimensionality of the return type if possible,
             otherwise return a consistent type.
+
+            .. deprecated:: 1.1.0
+
         observed : bool, default False
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
@@ -8588,7 +8594,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if is_datetime64tz_dtype(left.index):
+        if is_datetime64tz_dtype(left.index.dtype):
             if left.index.tz != right.index.tz:
                 if join_index is not None:
                     left.index = join_index
@@ -8675,7 +8681,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_series or (not is_series and axis == 0):
-            if is_datetime64tz_dtype(left.index):
+            if is_datetime64tz_dtype(left.index.dtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
                         left.index = join_index
@@ -9957,13 +9963,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return pd.Series(d, index=stat_index, name=data.name)
 
         def describe_1d(data):
-            if is_bool_dtype(data):
+            if is_bool_dtype(data.dtype):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data):
+            elif is_datetime64_any_dtype(data.dtype):
                 return describe_timestamp_1d(data)
-            elif is_timedelta64_dtype(data):
+            elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
             else:
                 return describe_categorical_1d(data)

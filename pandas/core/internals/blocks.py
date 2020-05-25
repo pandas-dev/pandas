@@ -251,7 +251,7 @@ class Block(PandasObject):
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(values, placement=placement, ndim=ndim, klass=type(self))
+        return type(self)(values, placement=placement, ndim=ndim)
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
@@ -824,8 +824,10 @@ class Block(PandasObject):
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
+            is_ea_value = True
             arr_value = value
         else:
+            is_ea_value = False
             arr_value = np.array(value)
 
         if transpose:
@@ -852,6 +854,11 @@ class Block(PandasObject):
             # we need to create a new categorical block
             values[indexer] = value
             return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
+        elif exact_match and is_ea_value:
+            # GH#32395 if we're going to replace the values entirely, just
+            #  substitute in the new array
+            return self.make_block(arr_value)
 
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
@@ -1325,7 +1332,7 @@ class Block(PandasObject):
             fastres = expressions.where(cond, values, other)
             return fastres
 
-        if cond.ravel().all():
+        if cond.ravel("K").all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
@@ -2382,7 +2389,7 @@ class ObjectBlock(Block):
         we can be a bool if we have only bool values but are of type
         object
         """
-        return lib.is_bool_array(self.values.ravel())
+        return lib.is_bool_array(self.values.ravel("K"))
 
     def convert(
         self,
@@ -2714,7 +2721,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)

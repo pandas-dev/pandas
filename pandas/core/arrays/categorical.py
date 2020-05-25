@@ -9,6 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -26,11 +27,9 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
-    is_iterator,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_sequence,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -66,6 +65,10 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
+        if is_list_like(other) and len(other) != len(self):
+            # TODO: Could this fail if the categories are listlike objects?
+            raise ValueError("Lengths must match.")
+
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
                 raise TypeError(
@@ -134,7 +137,7 @@ def _cat_compare_op(op):
                     "use 'np.asarray(cat) <op> other'."
                 )
 
-            if isinstance(other, ExtensionArray) and needs_i8_conversion(other):
+            if isinstance(other, ExtensionArray) and needs_i8_conversion(other.dtype):
                 # We would return NotImplemented here, but that messes up
                 #  ExtensionIndex's wrapped methods
                 return op(other, self)
@@ -324,7 +327,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
-                values = _convert_to_list_like(values)
+                values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
                 sanitize_dtype = np.dtype("O") if len(values) == 0 else None
@@ -2075,7 +2078,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return func(**kwargs)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def min(self, skipna=True):
+    def min(self, skipna=True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2094,6 +2097,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
+        nv.validate_min((), kwargs)
         self.check_for_ordered("min")
 
         if not len(self._codes):
@@ -2110,7 +2114,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return self.categories[pointer]
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def max(self, skipna=True):
+    def max(self, skipna=True, **kwargs):
         """
         The maximum value of the object.
 
@@ -2129,6 +2133,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
+        nv.validate_max((), kwargs)
         self.check_for_ordered("max")
 
         if not len(self._codes):
@@ -2645,20 +2650,6 @@ def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     )
     new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
     return new_codes
-
-
-def _convert_to_list_like(list_like):
-    if hasattr(list_like, "dtype"):
-        return list_like
-    if isinstance(list_like, list):
-        return list_like
-    if is_sequence(list_like) or isinstance(list_like, tuple) or is_iterator(list_like):
-        return list(list_like)
-    elif is_scalar(list_like):
-        return [list_like]
-    else:
-        # TODO: is this reached?
-        return [list_like]
 
 
 def factorize_from_iterable(values):
