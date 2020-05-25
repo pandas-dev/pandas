@@ -1284,7 +1284,7 @@ cdef class BYearEnd(YearOffset):
     
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearBegin
+    >>> from pandas.tseries.offset import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts - BYearEnd()
     Timestamp('2019-12-31 05:01:15')
