@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas._testing as tm
+    import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -113,3 +113,25 @@ def test_join_multi_return_indexers():
 
     result = midx1.join(midx2, return_indexers=False)
     tm.assert_index_equal(result, midx1)
+
+def test_join_multi_single():
+    midx = pd.MultiIndex.from_arrays([[1, 1, 3],[0, 1, 0]], names=["i", "ii"])
+    idx = pd.Index([1, 2], name="i")
+
+    result = midx.join(idx, how="inner")
+    expected = pd.MultiIndex.from_arrays([[1, 1],[0, 1]], names=["i", "ii"])
+    tm.assert_index_equal(result, expected)
+
+    result = midx.join(idx, how="left")
+    expected = midx
+    tm.assert_index_equal(result, midx)
+
+    result = midx.join(idx, how="right")
+    expected = pd.MultiIndex.from_arrays([[1, 1, 2],[0, 1, None]], names=["i", "ii"])
+    tm.assert_index_equal(result, expected)
+
+    result = midx.join(idx, how="outer")
+    expected = pd.MultiIndex.from_arrays(
+        [[1, 1, 2, 3],[0, 1, None, 0]], names=["i", "ii"]
+    )
+    tm.assert_index_equal(result, expected)
