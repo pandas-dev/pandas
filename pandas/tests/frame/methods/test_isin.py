@@ -190,16 +190,17 @@ class TestDataFrameIsIn:
         result = df1_td.isin(df3)
         tm.assert_frame_equal(result, expected)
 
-    def test_isin_against_categoryDataframe(self):
+    @pytest.mark.parametrize(
+        "category",
+        [
+            pd.DataFrame({"a": [1, 2, 3]}, dtype="category"),
+            pd.Series([1, 2, 3]).astype("category"),
+        ],
+    )
+    def test_isin_category_frame(self, category):
         # GH#34256
-        df1 = pd.DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
-        df2 = pd.DataFrame({"a": [1, 2, 3]}, dtype="category")
-        df3 = pd.Series([1, 2, 3]).astype("category")
+        df = pd.DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        expected = DataFrame({"a": [True, True, True], "b": [False, False, False]})
 
-        expected1 = DataFrame({"a": [True, True, True], "b": [False, False, False]})
-        expected2 = DataFrame({"a": [True, True, True], "b": [False, False, False]})
-        result1 = df1.isin(df2)
-        tm.assert_frame_equal(result1, expected1)
-
-        result2 = df1.isin(df3)
-        tm.assert_frame_equal(result2, expected2)
+        result = df.isin(category)
+        tm.assert_frame_equal(result, expected)
