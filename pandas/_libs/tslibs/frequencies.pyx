@@ -7,6 +7,7 @@ from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.parsing cimport get_rule_month
 
 # ----------------------------------------------------------------------
 # Constants
@@ -490,35 +491,3 @@ cdef bint _is_monthly(str rule):
 cdef bint _is_weekly(str rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
-
-
-# ----------------------------------------------------------------------
-
-cpdef str get_rule_month(object source, str default="DEC"):
-    """
-    Return starting month of given freq, default is December.
-
-    Parameters
-    ----------
-    source : object
-    default : str, default "DEC"
-
-    Returns
-    -------
-    rule_month: str
-
-    Examples
-    --------
-    >>> get_rule_month('D')
-    'DEC'
-
-    >>> get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]

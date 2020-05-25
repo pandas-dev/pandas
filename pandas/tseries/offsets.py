@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 import operator
-from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -16,17 +15,29 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     ApplyTypeError,
     BaseOffset,
+    BQuarterBegin,
+    BQuarterEnd,
     BusinessMixin,
+    BusinessMonthBegin,
+    BusinessMonthEnd,
+    BYearBegin,
+    BYearEnd,
     CustomMixin,
     Day,
     Hour,
     Micro,
     Milli,
     Minute,
+    MonthBegin,
+    MonthEnd,
     Nano,
+    QuarterBegin,
+    QuarterEnd,
     Second,
     SingleConstructorOffset,
     Tick,
+    YearBegin,
+    YearEnd,
     apply_index_wraps,
     apply_wraps,
     is_normalized,
@@ -189,7 +200,6 @@ class DateOffset(liboffsets.RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
     pass
 
 
@@ -678,45 +688,25 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
+        )
+
 
 # ---------------------------------------------------------------------
 # Month-Based Offset Classes
-
-
-class MonthEnd(liboffsets.MonthOffset):
-    """
-    DateOffset of one month end.
-    """
-
-    _prefix = "M"
-    _day_opt = "end"
-
-
-class MonthBegin(liboffsets.MonthOffset):
-    """
-    DateOffset of one month at beginning.
-    """
-
-    _prefix = "MS"
-    _day_opt = "start"
-
-
-class BusinessMonthEnd(liboffsets.MonthOffset):
-    """
-    DateOffset increments between business EOM dates.
-    """
-
-    _prefix = "BM"
-    _day_opt = "business_end"
-
-
-class BusinessMonthBegin(liboffsets.MonthOffset):
-    """
-    DateOffset of one business month at beginning.
-    """
-
-    _prefix = "BMS"
-    _day_opt = "business_start"
 
 
 @doc(bound="bound")
@@ -1204,6 +1194,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1263,6 +1256,9 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
             raise ValueError("N cannot be 0")
         object.__setattr__(self, "week", -1)
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1289,115 +1285,6 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
         # TODO: handle n here...
         weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
-
-
-# ---------------------------------------------------------------------
-# Quarter-Based Offset Classes
-
-
-class QuarterOffset(liboffsets.QuarterOffset):
-    """
-    Quarter representation.
-    """
-
-    _default_startingMonth: Optional[int] = None
-    _from_name_startingMonth: Optional[int] = None
-
-
-class BQuarterEnd(QuarterOffset):
-    """
-    DateOffset increments between business Quarter dates.
-
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
-    """
-
-    _outputName = "BusinessQuarterEnd"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 12
-    _prefix = "BQ"
-    _day_opt = "business_end"
-
-
-# TODO: This is basically the same as BQuarterEnd
-class BQuarterBegin(QuarterOffset):
-    _outputName = "BusinessQuarterBegin"
-    # I suspect this is wrong for *all* of them.
-    # TODO: What does the above comment refer to?
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = "BQS"
-    _day_opt = "business_start"
-
-
-class QuarterEnd(QuarterOffset):
-    """
-    DateOffset increments between business Quarter dates.
-
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
-    """
-
-    _outputName = "QuarterEnd"
-    _default_startingMonth = 3
-    _prefix = "Q"
-    _day_opt = "end"
-
-
-class QuarterBegin(QuarterOffset):
-    _outputName = "QuarterBegin"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = "QS"
-    _day_opt = "start"
-
-
-# ---------------------------------------------------------------------
-# Year-Based Offset Classes
-
-
-class BYearEnd(liboffsets.YearOffset):
-    """
-    DateOffset increments between business EOM dates.
-    """
-
-    _outputName = "BusinessYearEnd"
-    _default_month = 12
-    _prefix = "BA"
-    _day_opt = "business_end"
-
-
-class BYearBegin(liboffsets.YearOffset):
-    """
-    DateOffset increments between business year begin dates.
-    """
-
-    _outputName = "BusinessYearBegin"
-    _default_month = 1
-    _prefix = "BAS"
-    _day_opt = "business_start"
-
-
-class YearEnd(liboffsets.YearOffset):
-    """
-    DateOffset increments between calendar year ends.
-    """
-
-    _default_month = 12
-    _prefix = "A"
-    _day_opt = "end"
-
-
-class YearBegin(liboffsets.YearOffset):
-    """
-    DateOffset increments between calendar year begin dates.
-    """
-
-    _default_month = 1
-    _prefix = "AS"
-    _day_opt = "start"
 
 
 # ---------------------------------------------------------------------

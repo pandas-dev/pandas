@@ -93,6 +93,8 @@ Properties
     BusinessHour.normalize
     BusinessHour.rule_code
     BusinessHour.n
+    BusinessHour.start
+    BusinessHour.end
 
 Methods
 ~~~~~~~
@@ -159,6 +161,8 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.start
+    CustomBusinessHour.end
 
 Methods
 ~~~~~~~
@@ -545,6 +549,7 @@ Methods
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
+    WeekOfMonth.weekday
 
 LastWeekOfMonth
 ---------------
@@ -565,6 +570,7 @@ Properties
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
+    LastWeekOfMonth.weekday
 
 Methods
 ~~~~~~~
