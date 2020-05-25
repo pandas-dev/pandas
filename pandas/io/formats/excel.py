@@ -385,7 +385,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render") and not isinstance(df, DataFrame):
+        if not isinstance(df, DataFrame):
             self.styler = df
             df = df.data
             if style_converter is None:
