@@ -136,9 +136,8 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
-        return np.asarray(self, dtype=dtype)
+
+        return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):

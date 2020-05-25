@@ -164,6 +164,11 @@ class StringArray(PandasArray):
     ['1', '1']
     Length: 2, dtype: string
 
+    On the other hand, instantiating StringArrays directly with non-strings will
+    raise an error:
+    >>> pd.arrays.StringArray(np.array([1, 2]))
+    ValueError: StringArray requires a sequence of strings or pandas.NA
+
     For comparison methods, this returns a :class:`pandas.BooleanArray`
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
@@ -211,6 +216,7 @@ class StringArray(PandasArray):
         if has_nans and result is scalars:
             # force a copy now, if we haven't already
             result = result.copy()
+
         # convert to str, then to object to avoid dtype like '<U3', then insert na_value
         result = np.asarray(result, dtype=str)
         result = np.asarray(result, dtype="object")

@@ -18,18 +18,10 @@ Enhancements
 All dtypes can now be converted to ``StringDtype``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, declaring or converting to :class:`StringDtype` was in general only possible if the data was already only ``str`` or nan-like.
-For example:
-
-.. code-block:: ipython
-
-    In [1]: pd.Series([1, "abc", np.nan], dtype="string")
-    Out[1]: ValueError: StringArray requires a sequence of strings or pandas.NA
-    In [2]: pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
-    Out[2]: ValueError: StringArray requires a sequence of strings or pandas.NA
-
-This meant that in order to convert arbitrary data to :class:`StringDtype`, you would often have to use ``.astype(str).astype('string')``, which was not intuitive.
+Previously, declaring or converting to :class:`StringDtype` was in general only possible if the data was already only ``str`` or nan-like (:issue:`31204`).
 :class:`StringDtype` now works in all situations where ``astype(str)`` or ``dtype=str`` work:
+
+For example the below now work:
 
 .. ipython:: python
 

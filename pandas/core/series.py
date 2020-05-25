@@ -2768,10 +2768,6 @@ Name: Max Speed, dtype: float64
         if is_categorical_dtype(self.dtype):
             pass
         elif is_extension_array_dtype(self.dtype):
-            # Everything can be be converted to strings, but we may not want to convert
-            if self.dtype == "string" and lib.infer_dtype(new_values) != "string":
-                return self._constructor(new_values, index=new_index, name=new_name)
-
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
