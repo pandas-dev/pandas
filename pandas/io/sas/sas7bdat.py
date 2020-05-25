@@ -29,7 +29,7 @@ import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 
 
-def _convert_datetimes(sas_datetimes: pd.Series, unit: str):
+def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
     Convert to Timestamp if possible, otherwise to datetime.datetime.
     SAS float64 lacks precision for more than ms resolution so the fit
@@ -41,6 +41,11 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str):
        Dates or datetimes in SAS
     unit : {str}
        "d" if the floats represent dates, "s" for datetimes
+
+    Returns
+    -------
+    Series
+       Series of datetime64 dtype or datetime.datetime.
     """
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
