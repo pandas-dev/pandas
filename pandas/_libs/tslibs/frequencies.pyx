@@ -3,9 +3,11 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_offset_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.parsing cimport get_rule_month
 
 # ----------------------------------------------------------------------
 # Constants
@@ -297,21 +299,6 @@ cpdef str get_freq_str(base, mult=1):
     return str(mult) + code
 
 
-cpdef str get_base_alias(freqstr):
-    """
-    Returns the base frequency alias, e.g., '5D' -> 'D'
-
-    Parameters
-    ----------
-    freqstr : str
-
-    Returns
-    -------
-    base_alias : str
-    """
-    return base_and_stride(freqstr)[0]
-
-
 cpdef int get_to_timestamp_base(int base):
     """
     Return frequency code group used for base of to_timestamp against
@@ -504,35 +491,3 @@ cdef bint _is_monthly(str rule):
 cdef bint _is_weekly(str rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
-
-
-# ----------------------------------------------------------------------
-
-cpdef str get_rule_month(object source, str default="DEC"):
-    """
-    Return starting month of given freq, default is December.
-
-    Parameters
-    ----------
-    source : object
-    default : str, default "DEC"
-
-    Returns
-    -------
-    rule_month: str
-
-    Examples
-    --------
-    >>> get_rule_month('D')
-    'DEC'
-
-    >>> get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]

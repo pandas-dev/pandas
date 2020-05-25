@@ -93,6 +93,8 @@ Properties
     BusinessHour.normalize
     BusinessHour.rule_code
     BusinessHour.n
+    BusinessHour.start
+    BusinessHour.end
 
 Methods
 ~~~~~~~
@@ -159,6 +161,8 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.start
+    CustomBusinessHour.end
 
 Methods
 ~~~~~~~
@@ -172,40 +176,6 @@ Methods
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.__call__
-
-MonthOffset
------------
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.freqstr
-    MonthOffset.kwds
-    MonthOffset.name
-    MonthOffset.nanos
-    MonthOffset.normalize
-    MonthOffset.rule_code
-    MonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.apply
-    MonthOffset.apply_index
-    MonthOffset.copy
-    MonthOffset.isAnchored
-    MonthOffset.onOffset
-    MonthOffset.is_anchored
-    MonthOffset.is_on_offset
-    MonthOffset.__call__
 
 MonthEnd
 --------
@@ -579,6 +549,7 @@ Methods
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
+    WeekOfMonth.weekday
 
 LastWeekOfMonth
 ---------------
@@ -599,6 +570,7 @@ Properties
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
+    LastWeekOfMonth.weekday
 
 Methods
 ~~~~~~~
@@ -612,40 +584,6 @@ Methods
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.__call__
-
-QuarterOffset
--------------
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.freqstr
-    QuarterOffset.kwds
-    QuarterOffset.name
-    QuarterOffset.nanos
-    QuarterOffset.normalize
-    QuarterOffset.rule_code
-    QuarterOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.apply
-    QuarterOffset.apply_index
-    QuarterOffset.copy
-    QuarterOffset.isAnchored
-    QuarterOffset.onOffset
-    QuarterOffset.is_anchored
-    QuarterOffset.is_on_offset
-    QuarterOffset.__call__
 
 BQuarterEnd
 -----------
@@ -666,6 +604,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
+    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -700,6 +639,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
+    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -734,6 +674,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
+    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -768,6 +709,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
+    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -782,40 +724,6 @@ Methods
     QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
     QuarterBegin.__call__
-
-YearOffset
-----------
-.. autosummary::
-   :toctree: api/
-
-    YearOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.freqstr
-    YearOffset.kwds
-    YearOffset.name
-    YearOffset.nanos
-    YearOffset.normalize
-    YearOffset.rule_code
-    YearOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.apply
-    YearOffset.apply_index
-    YearOffset.copy
-    YearOffset.isAnchored
-    YearOffset.onOffset
-    YearOffset.is_anchored
-    YearOffset.is_on_offset
-    YearOffset.__call__
 
 BYearEnd
 --------
@@ -836,6 +744,7 @@ Properties
     BYearEnd.normalize
     BYearEnd.rule_code
     BYearEnd.n
+    BYearEnd.month
 
 Methods
 ~~~~~~~
@@ -870,6 +779,7 @@ Properties
     BYearBegin.normalize
     BYearBegin.rule_code
     BYearBegin.n
+    BYearBegin.month
 
 Methods
 ~~~~~~~
@@ -904,6 +814,7 @@ Properties
     YearEnd.normalize
     YearEnd.rule_code
     YearEnd.n
+    YearEnd.month
 
 Methods
 ~~~~~~~
@@ -938,6 +849,7 @@ Properties
     YearBegin.normalize
     YearBegin.rule_code
     YearBegin.n
+    YearBegin.month
 
 Methods
 ~~~~~~~
@@ -972,6 +884,9 @@ Properties
     FY5253.normalize
     FY5253.rule_code
     FY5253.n
+    FY5253.startingMonth
+    FY5253.variation
+    FY5253.weekday
 
 Methods
 ~~~~~~~
@@ -1007,6 +922,9 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.startingMonth
+    FY5253Quarter.variation
+    FY5253Quarter.weekday
 
 Methods
 ~~~~~~~
@@ -1015,6 +933,7 @@ Methods
 
     FY5253Quarter.apply
     FY5253Quarter.copy
+    FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
     FY5253Quarter.isAnchored
     FY5253Quarter.onOffset
