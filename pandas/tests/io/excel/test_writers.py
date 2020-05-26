@@ -1201,6 +1201,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(read, expected)
 
+    def test_render_as_column_name(self, path):
+        # see gh-34331
+        df = DataFrame({"render": [1, 2], "data": [3, 4]})
+        df.to_excel(path, "Sheet1")
+        read = pd.read_excel(path, "Sheet1", index_col=0)
+        expected = df
+        tm.assert_frame_equal(read, expected)
+
     def test_true_and_false_value_options(self, path):
         # see gh-13347
         df = pd.DataFrame([["foo", "bar"]], columns=["col1", "col2"])
