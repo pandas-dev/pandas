@@ -394,33 +394,42 @@ class ToDatetimeCache:
 
 class DatetimeAccessor:
 
-    params = [None, "US/Eastern", "UTC", dateutil.tz.tzutc()]
-    param_names = "tz"
+    params = (
+        [None, "US/Eastern", "UTC", dateutil.tz.tzutc()],
+        ["%Y-%m-%d %H:%M:%S.%f%z", "%Y-%m-%d %H:%M:%S%z"],
+        ["T", "S", "NS"],
+    )
+    param_names = ["tz", "fmt", "frequency"]
 
-    def setup(self, tz):
+    def setup(self, tz, fmt, frequency):
         N = 100000
-        self.series = Series(date_range(start="1/1/2000", periods=N, freq="T", tz=tz))
+        self.series = Series(
+            date_range(start="1/1/2000", periods=N, freq=frequency, tz=tz)
+        )
 
-    def time_dt_accessor(self, tz):
+    def time_dt_accessor(self, *args):
         self.series.dt
 
-    def time_dt_accessor_normalize(self, tz):
+    def time_dt_accessor_normalize(self, *args):
         self.series.dt.normalize()
 
-    def time_dt_accessor_month_name(self, tz):
+    def time_dt_accessor_month_name(self, *args):
         self.series.dt.month_name()
 
-    def time_dt_accessor_day_name(self, tz):
+    def time_dt_accessor_day_name(self, *args):
         self.series.dt.day_name()
 
-    def time_dt_accessor_time(self, tz):
+    def time_dt_accessor_time(self, *args):
         self.series.dt.time
 
-    def time_dt_accessor_date(self, tz):
+    def time_dt_accessor_date(self, *args):
         self.series.dt.date
 
-    def time_dt_accessor_year(self, tz):
+    def time_dt_accessor_year(self, *args):
         self.series.dt.year
+
+    def time_dt_accessor_strftime(self, _, fmt, *args):
+        self.series.dt.strftime(fmt)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
