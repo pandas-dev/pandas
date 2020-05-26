@@ -223,7 +223,7 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-    op_str = _op_str_mapping.get(op, None)
+    op_str = _op_str_mapping[op]
     if op_str is not None:
         use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
         if use_numexpr:

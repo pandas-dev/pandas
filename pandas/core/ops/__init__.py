@@ -280,9 +280,8 @@ def dispatch_to_series(left, right, func, axis=None):
         bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
-    elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via _combine_series_frame,
-        # in which case we specifically want to operate row-by-row
+    elif isinstance(right, ABCSeries) and axis == 1:
+        # axis=1 means we want to operate row-by-row
         assert right.index.equals(left.columns)
 
         if right.dtype == "timedelta64[ns]":
@@ -292,6 +291,8 @@ def dispatch_to_series(left, right, func, axis=None):
             right = np.asarray(right)
         else:
             right = right._values
+            # maybe_align_as_frame ensures we do not have an ndarray here
+            assert not isinstance(right, np.ndarray)
 
         arrays = [array_op(l, r) for l, r in zip(left._iter_column_arrays(), right)]
 
@@ -438,35 +439,6 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
-
-
-def _combine_series_frame(left, right, func, axis: int):
-    """
-    Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the axis argument.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : Series
-    func : binary operator
-    axis : {0, 1}
-
-    Returns
-    -------
-    result : DataFrame or Dict[int, Series[]]
-    """
-    # We assume that self.align(other, ...) has already been called
-
-    rvalues = right._values
-    assert not isinstance(rvalues, np.ndarray)  # handled by align_series_as_frame
-
-    if axis == 0:
-        new_data = dispatch_to_series(left, right, func)
-    else:
-        new_data = dispatch_to_series(left, right, func, axis="columns")
-
-    return new_data
 
 
 def _align_method_FRAME(
@@ -671,7 +643,7 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, op, axis=axis)
+            new_data = dispatch_to_series(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
@@ -707,7 +679,7 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, op, axis=axis)
+            new_data = dispatch_to_series(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             new_data = dispatch_to_series(self, other, op)
@@ -730,7 +702,7 @@ def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             self, other, axis=None, level=None, flex=False
         )
 
-        axis = "columns"  # only relevant for Series other case
+        axis = 1  # only relevant for Series other case
         # See GH#4537 for discussion of scalar op behavior
         new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
