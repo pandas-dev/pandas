@@ -78,14 +78,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {
-    "eq",
-    "ne",
-    "lt",
-    "gt",
-    "le",
-    "ge",
-}
+COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -690,9 +683,7 @@ def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     def f(self, other):
         axis = 1  # only relevant for Series other case
 
-        self, other = _align_method_FRAME(
-            self, other, axis, level=None, flex=False
-        )
+        self, other = _align_method_FRAME(self, other, axis, level=None, flex=False)
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = dispatch_to_series(self, other, op, axis=axis)
