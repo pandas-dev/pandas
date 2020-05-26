@@ -1397,7 +1397,22 @@ cdef class YearOffset(SingleConstructorOffset):
 
 cdef class BYearEnd(YearOffset):
     """
-    DateOffset increments between business EOM dates.
+    DateOffset increments between the last business day of the year.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BYearEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts - BYearEnd()
+    Timestamp('2019-12-31 05:01:15')
+    >>> ts + BYearEnd()
+    Timestamp('2020-12-31 05:01:15')
+    >>> ts + BYearEnd(3)
+    Timestamp('2022-12-30 05:01:15')
+    >>> ts + BYearEnd(-3)
+    Timestamp('2017-12-29 05:01:15')
+    >>> ts + BYearEnd(month=11)
+    Timestamp('2020-11-30 05:01:15')
     """
 
     _outputName = "BusinessYearEnd"
@@ -1408,7 +1423,20 @@ cdef class BYearEnd(YearOffset):
 
 cdef class BYearBegin(YearOffset):
     """
-    DateOffset increments between business year begin dates.
+    DateOffset increments between the first business day of the year.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BYearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BYearBegin()
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts - BYearBegin()
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(-1)
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(2)
+    Timestamp('2022-01-03 05:01:15')
     """
 
     _outputName = "BusinessYearBegin"
@@ -1516,11 +1544,24 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
 cdef class BQuarterEnd(QuarterOffset):
     """
-    DateOffset increments between business Quarter dates.
+    DateOffset increments between the last business day of each Quarter.
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BQuarterEnd()
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BQuarterEnd(2)
+    Timestamp('2020-09-30 05:01:15')
+    >>> ts + BQuarterEnd(1, startingMonth=2)
+    Timestamp('2020-05-29 05:01:15')
+    >>> ts + BQuarterEnd(startingMonth=2)
+    Timestamp('2020-05-29 05:01:15')
     """
     _outputName = "BusinessQuarterEnd"
     _default_startingMonth = 3
@@ -1529,11 +1570,28 @@ cdef class BQuarterEnd(QuarterOffset):
     _day_opt = "business_end"
 
 
-# TODO: This is basically the same as BQuarterEnd
 cdef class BQuarterBegin(QuarterOffset):
+    """
+    DateOffset increments between the first business day of each Quarter.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BQuarterBegin()
+    Timestamp('2020-06-01 05:01:15')
+    >>> ts + BQuarterBegin(2)
+    Timestamp('2020-09-01 05:01:15')
+    >>> ts + BQuarterBegin(startingMonth=2)
+    Timestamp('2020-08-03 05:01:15')
+    >>> ts + BQuarterBegin(-1)
+    Timestamp('2020-03-02 05:01:15')
+    """
     _outputName = "BusinessQuarterBegin"
-    # I suspect this is wrong for *all* of them.
-    # TODO: What does the above comment refer to?
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = "BQS"
@@ -1542,7 +1600,7 @@ cdef class BQuarterBegin(QuarterOffset):
 
 cdef class QuarterEnd(QuarterOffset):
     """
-    DateOffset increments between business Quarter dates.
+    DateOffset increments between Quarter end dates.
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1555,6 +1613,13 @@ cdef class QuarterEnd(QuarterOffset):
 
 
 cdef class QuarterBegin(QuarterOffset):
+    """
+    DateOffset increments between Quarter start dates.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+    """
     _outputName = "QuarterBegin"
     _default_startingMonth = 3
     _from_name_startingMonth = 1
@@ -1601,7 +1666,18 @@ cdef class MonthBegin(MonthOffset):
 
 cdef class BusinessMonthEnd(MonthOffset):
     """
-    DateOffset increments between business EOM dates.
+    DateOffset increments between the last business day of the month
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BMonthEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BMonthEnd()
+    Timestamp('2020-05-29 05:01:15')
+    >>> ts + BMonthEnd(2)
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BMonthEnd(-2)
+    Timestamp('2020-03-31 05:01:15')
     """
     _prefix = "BM"
     _day_opt = "business_end"
@@ -1609,7 +1685,18 @@ cdef class BusinessMonthEnd(MonthOffset):
 
 cdef class BusinessMonthBegin(MonthOffset):
     """
-    DateOffset of one business month at beginning.
+    DateOffset of one month at the first business day.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BMonthBegin
+    >>> ts=pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BMonthBegin()
+    Timestamp('2020-06-01 05:01:15')
+    >>> ts + BMonthBegin(2)
+    Timestamp('2020-07-01 05:01:15')
+    >>> ts + BMonthBegin(-3)
+    Timestamp('2020-03-02 05:01:15')
     """
     _prefix = "BMS"
     _day_opt = "business_start"
