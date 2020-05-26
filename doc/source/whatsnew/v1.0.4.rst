@@ -28,6 +28,7 @@ Fixed regressions
 - Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
 - More informative error message with ``np.min`` or ``np.max`` on unordered :class:`Categorical` (:issue:`33115`)
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)
 - 
 
 .. _whatsnew_104.bug_fixes:
