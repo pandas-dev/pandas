@@ -66,8 +66,8 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
 
 .. versionchanged:: 1.1.0
 
-You can also use ``string`` dtype on non-string data and it will be converted to
-``string`` dtype:
+You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
+it will be converted to ``string`` dtype:
 
 .. ipython:: python
 
@@ -76,6 +76,8 @@ You can also use ``string`` dtype on non-string data and it will be converted to
    type(s[1])
 
 or convert from existing pandas data:
+
+.. ipython:: python
 
    s1 = pd.Series([1,2, np.nan], dtype="Int64")
    s1

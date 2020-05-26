@@ -21,7 +21,7 @@ All dtypes can now be converted to ``StringDtype``
 Previously, declaring or converting to :class:`StringDtype` was in general only possible if the data was already only ``str`` or nan-like (:issue:`31204`).
 :class:`StringDtype` now works in all situations where ``astype(str)`` or ``dtype=str`` work:
 
-For example the below now work:
+For example, the below now works:
 
 .. ipython:: python
 
