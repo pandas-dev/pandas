@@ -14,3 +14,4 @@ from .period import PeriodArray, period_array  # noqa: F401
 from .sparse import SparseArray  # noqa: F401
 from .string_ import StringArray  # noqa: F401
 from .timedeltas import TimedeltaArray  # noqa: F401
+from .dates import DateArray  # noqa: F401

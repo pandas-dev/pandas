@@ -1117,3 +1117,82 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super().is_dtype(dtype)
+
+
+@register_extension_dtype
+class DateDtype(PandasExtensionDtype):
+    """
+    An ExtensionDtype to hold a single date.
+
+    The attributes name & type are set when subclasses are created.
+    """
+
+    _date_aliases = {"date", "date64"}
+    _unit = "D"
+    _numpy_dtype = np.datetime64
+
+
+    @property
+    def name(self) -> str:
+        """
+        The alias for DateDtype is ``'string'``.
+        """
+        return "date"
+
+    @property
+    def type(self):
+        return Timestamp
+
+    @property
+    def na_value(self):
+        return NaT
+
+    def __repr__(self):
+        return type(self)
+
+    @property
+    def kind(self):
+        return self.type.kind
+
+    @property
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if string in cls._date_aliases:
+            return cls()
+        return super().construct_from_string(string)
+
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import DateArray
+
+        return DateArray
+
+    # TODO make from arrow
+
+    @classmethod
+    def is_dtype(cls, dtype) -> bool:
+        if isinstance(dtype, str):
+            if dtype.lower().startswith("date"):
+                try:
+                    if cls.construct_from_string(dtype) is not None:
+                        return True
+                    else:
+                        return False
+                except (ValueError, TypeError):
+                    return False
+            else:
+                return False
+        return super().is_dtype(dtype)
+

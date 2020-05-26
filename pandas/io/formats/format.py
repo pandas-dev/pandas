@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_date_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -71,6 +72,7 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.arrays.dates import DateArray
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -357,6 +359,7 @@ class SeriesFormatter:
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
+        print(fmt_values)
 
         if self.truncate_v:
             n_header_rows = 0
@@ -1139,6 +1142,8 @@ def format_array(
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
+    elif is_date_dtype(values.dtype):
+        fmt_klass = DateFormatter
     elif is_extension_array_dtype(values.dtype):
         fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
@@ -1472,6 +1477,26 @@ class Datetime64Formatter(GenericArrayFormatter):
             na_rep=self.nat_rep,
         ).reshape(values.shape)
         return fmt_values.tolist()
+
+
+class DateFormatter(GenericArrayFormatter):
+    def __init__(
+        self,
+        values: Union[np.ndarray, "Series", DateArray],
+        nat_rep: str = "NaT",
+        date_format: None = None,
+        **kwargs,
+    ):
+        super().__init__(values, **kwargs)
+        self.nat_rep = nat_rep
+        self.date_format = date_format
+
+    def _format_strings(self) -> List[str]:
+        values = self.values
+        if self.formatter is not None and callable(self.formatter):
+            return [self.formatter(x) for x in values]
+
+        return values._data.astype('str')
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):

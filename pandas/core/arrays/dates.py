@@ -2,73 +2,13 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays.datetimelike import DatelikeOps, DatetimeLikeArrayMixin
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import DateDtype
 from pandas._libs.tslibs import Timestamp, NaT
 from pandas._libs import tslib
 
 import numpy as np
 
 D_DATETIME_DTYPE = "datetime64[D]"
-
-@register_extension_dtype
-class Date64Dtype(ExtensionDtype):
-    """
-    An ExtensionDtype to hold a single date.
-
-    The attributes name & type are set when subclasses are created.
-    """
-
-    _date_aliases = {"date", "date64"}
-    _unit = "D"
-    _numpy_dtype = np.datetime64
-
-
-    @property
-    def name(self) -> str:
-        """
-        The alias for DateDtype is ``'string'``.
-        """
-        return "date"
-
-    @property
-    def type(self):
-        return Timestamp
-
-    @property
-    def na_value(self):
-        return NaT
-
-    def __repr__(self):
-        return type(self)
-
-    @property
-    def kind(self):
-        return self.type.kind
-
-    @property
-    def itemsize(self):
-        """ Return the number of bytes in this dtype """
-        return self.numpy_dtype.itemsize
-
-    @classmethod
-    def construct_from_string(cls, string: str):
-        if string in cls._date_aliases:
-            return cls()
-        return super().construct_from_string(string)
-
-
-    @classmethod
-    def construct_array_type(cls):
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        return DateArray
-
-    # TODO make from arrow
 
 
 class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
@@ -162,7 +102,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @property
     def dtype(self) -> ExtensionDtype:
-        return Date64Dtype()
+        return DateDtype()
 
     @property
     def freq(self):

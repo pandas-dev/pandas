@@ -11,6 +11,7 @@ from pandas._typing import ArrayLike
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
+    DateDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -467,6 +468,36 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
         return False
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
 
+def is_date_dtype(arr_or_dtype) -> bool:
+    """
+    Check whether an array-like or dtype is of the date dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : array-like
+        The array-like or dtype to check.
+
+    Returns
+    -------
+    boolean
+        Whether or not the array-like or dtype is of the date dtype.
+
+    Examples
+    --------
+    >>> is_date_dtype(object)
+    False
+    >>> is_date_dtype(np.datetime64)
+    False
+    >>> is_date_dtype(pd.Date64Dtype())
+    True
+    >>> is_date_dtype([1, 2, 3])
+    False
+    >>> is_date_dtype(pd.Series([], dtype="date"))
+    True
+    >>> is_date_dtype('0 days')
+    False
+    """
+    return DateDtype.is_dtype(arr_or_dtype)
 
 def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """
