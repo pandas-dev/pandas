@@ -153,6 +153,11 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
+`D-Tale <https://github.com/man-group/dtale>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+D-Tale is the combination of a Flask back-end and React front-end to bring you an easy way to view, edit & analyze Pandas data structures. Also, includes a fully-featured chart builder by way of Plotly Dash. It integrates seamlessly with jupyter notebooks, python terminals, kaggle & Google Colab. Currently this tool supports such Pandas objects as DataFrame, Series, MultiIndex, DatetimeIndex & RangeIndex. A nice demo is located `here <http://alphatechadmin.pythonanywhere.com/>`__.
+
 
 .. _ecosystem.ide:
 
