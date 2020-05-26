@@ -490,7 +490,7 @@ class BinaryOpsMultiIndex:
             columns=column_names,
         )
 
-    def time_sub_multiindex(self, func):
+    def time_binary_op_multiindex(self, func):
         getattr(self.df, func)(self.arg_df, level=0)
 
 
