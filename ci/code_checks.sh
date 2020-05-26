@@ -266,12 +266,11 @@ if mods:
     sys.exit(len(mods))
     "
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-	
-	MSG='Check code for instances of os.remove' ; echo $MSG
-	#TODO: insert check here Issue #34384
-	RET=$(($RET + $?)) ; echo $MSG "DONE"
-	
-	
+
+    MSG='Check code for instances of os.remove' ; echo $MSG
+    invgrep -R --include="*.py*" -E "os.remove" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCTESTS ###

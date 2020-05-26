@@ -8,7 +8,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
-from pandas.testing import ensure_clean
+from pandas._testing import ensure_clean
 
 openpyxl = pytest.importorskip("openpyxl")
 
@@ -109,16 +109,17 @@ def test_write_append_mode(ext, mode, expected):
 
 
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
-    # GH 29854
-    df1 = DataFrame({"A": np.linspace(1, 10, 10)})
-    df2 = DataFrame({"B": np.linspace(1, 20, 10)})
-    df = pd.concat([df1, df2], axis=1)
-    styled = df.style.applymap(
-        lambda val: "color: %s" % ("red" if val < 0 else "black")
-    ).highlight_max()
+    
+    with ensure_clean('styled.xlsx') as filename:
+        # GH 29854
+        df1 = DataFrame({"A": np.linspace(1, 10, 10)})
+        df2 = DataFrame({"B": np.linspace(1, 20, 10)})
+        df = pd.concat([df1, df2], axis=1)
+        styled = df.style.applymap(
+            lambda val: "color: %s" % ("red" if val < 0 else "black")
+        ).highlight_max()
 
-    filename = tmpdir / "styled.xlsx"
-    styled.to_excel(filename, engine="openpyxl")
+        styled.to_excel(filename, engine="openpyxl")
 
-    assert filename.exists()
-    ensure_clean(filename)
+        assert filename.exists()
+
