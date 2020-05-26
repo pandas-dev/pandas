@@ -1,21 +1,17 @@
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import is_object_dtype, is_string_dtype, \
-    is_datetime64_dtype, is_integer_dtype, is_float_dtype, _NS_DTYPE
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimelike import DatelikeOps, DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimes import sequence_to_dt64ns
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.dtypes import register_extension_dtype, PandasExtensionDtype
-from datetime import datetime
-from typing import Type
-from pandas._libs import lib
+from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs import tslib
 
 import numpy as np
 
 D_DATETIME_DTYPE = "datetime64[D]"
 
 @register_extension_dtype
-class Date64Dtype(PandasExtensionDtype):
+class Date64Dtype(ExtensionDtype):
     """
     An ExtensionDtype to hold a single date.
 
@@ -130,17 +126,13 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
         print("done initing")
 
     @classmethod
-    def _simple_new(cls, values, freq="D", dtype=D_DATETIME_DTYPE):
+    def _simple_new(cls, values, **kwargs):
+        assert isinstance(values, np.ndarray)
         if values.dtype == "i8":
             values = values.view(D_DATETIME_DTYPE)
 
-        freq = "D"
-        dtype = D_DATETIME_DTYPE
-
         result = object.__new__(cls)
         result._data = values
-        result._freq = freq
-        result._dtype = dtype
         return result
 
     @classmethod
@@ -163,7 +155,8 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         Date64Array
         """
-        return Date64Array(scalars, copy=copy)
+        data, _, _ = sequence_to_dt64ns(scalars, copy=copy)
+        return cls._simple_new(data.astype(D_DATETIME_DTYPE))
 
     @property
     def dtype(self) -> ExtensionDtype:
@@ -179,6 +172,11 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
             return Timestamp(x, freq="D", tz="utc")
 
         return test
+
+    @property
+    def date(self):
+        timestamps = self.asi8
+        return tslib.ints_to_pydatetime(timestamps, box="date")
 
 
     # def astype(self, dtype, copy=True):
