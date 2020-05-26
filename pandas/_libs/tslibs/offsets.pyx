@@ -13,6 +13,7 @@ from cpython.datetime cimport (PyDateTime_IMPORT,
 PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
+from dateutil.easter import easter
 
 import numpy as np
 cimport numpy as cnp
@@ -1695,7 +1696,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
 
     cdef readonly:
-        int weekday
+        int weekday, week
 
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
@@ -2110,6 +2111,518 @@ cdef class BusinessMonthBegin(MonthOffset):
 
 
 # ---------------------------------------------------------------------
+# Semi-Month Based Offsets
+
+cdef class SemiMonthOffset(SingleConstructorOffset):
+    _default_day_of_month = 15
+    _min_day_of_month = 2
+    _attributes = frozenset(["n", "normalize", "day_of_month"])
+
+    cdef readonly:
+        int day_of_month
+
+    def __init__(self, n=1, normalize=False, day_of_month=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if day_of_month is None:
+            day_of_month = self._default_day_of_month
+
+        self.day_of_month = int(day_of_month)
+        if not self._min_day_of_month <= self.day_of_month <= 27:
+            raise ValueError(
+                "day_of_month must be "
+                f"{self._min_day_of_month}<=day_of_month<=27, "
+                f"got {self.day_of_month}"
+            )
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.day_of_month)
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self.day_of_month = state.pop("day_of_month")
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        return cls(day_of_month=suffix)
+
+    @property
+    def rule_code(self) -> str:
+        suffix = f"-{self.day_of_month}"
+        return self._prefix + suffix
+
+    @apply_wraps
+    def apply(self, other):
+        # shift `other` to self.day_of_month, incrementing `n` if necessary
+        n = roll_convention(other.day, self.n, self.day_of_month)
+
+        days_in_month = get_days_in_month(other.year, other.month)
+
+        # For SemiMonthBegin on other.day == 1 and
+        # SemiMonthEnd on other.day == days_in_month,
+        # shifting `other` to `self.day_of_month` _always_ requires
+        # incrementing/decrementing `n`, regardless of whether it is
+        # initially positive.
+        if type(self) is SemiMonthBegin and (self.n <= 0 and other.day == 1):
+            n -= 1
+        elif type(self) is SemiMonthEnd and (self.n > 0 and other.day == days_in_month):
+            n += 1
+
+        return self._apply(n, other)
+
+    def _apply(self, n, other):
+        """
+        Handle specific apply logic for child classes.
+        """
+        raise NotImplementedError(self)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        # determine how many days away from the 1st of the month we are
+        from pandas import Timedelta
+
+        dti = dtindex
+        days_from_start = dtindex.to_perioddelta("M").asi8
+        delta = Timedelta(days=self.day_of_month - 1).value
+
+        # get boolean array for each element before the day_of_month
+        before_day_of_month = days_from_start < delta
+
+        # get boolean array for each element after the day_of_month
+        after_day_of_month = days_from_start > delta
+
+        # determine the correct n for each date in dtindex
+        roll = self._get_roll(dtindex, before_day_of_month, after_day_of_month)
+
+        # isolate the time since it will be striped away one the next line
+        time = dtindex.to_perioddelta("D")
+
+        # apply the correct number of months
+
+        # integer-array addition on PeriodIndex is deprecated,
+        #  so we use _addsub_int_array directly
+        asper = dtindex.to_period("M")
+
+        shifted = asper._addsub_int_array(roll // 2, operator.add)
+        dtindex = type(dti)(shifted.to_timestamp())
+
+        # apply the correct day
+        dtindex = self._apply_index_days(dtindex, roll)
+
+        return dtindex + time
+
+    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+        """
+        Return an array with the correct n for each date in dtindex.
+
+        The roll array is based on the fact that dtindex gets rolled back to
+        the first day of the month.
+        """
+        raise NotImplementedError
+
+    def _apply_index_days(self, dtindex, roll):
+        """
+        Apply the correct day for each date in dtindex.
+        """
+        raise NotImplementedError
+
+
+cdef class SemiMonthEnd(SemiMonthOffset):
+    """
+    Two DateOffset's per month repeating on the last
+    day of the month and day_of_month.
+
+    Parameters
+    ----------
+    n : int
+    normalize : bool, default False
+    day_of_month : int, {1, 3,...,27}, default 15
+    """
+
+    _prefix = "SM"
+    _min_day_of_month = 1
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        days_in_month = get_days_in_month(dt.year, dt.month)
+        return dt.day in (self.day_of_month, days_in_month)
+
+    def _apply(self, n, other):
+        months = n // 2
+        day = 31 if n % 2 else self.day_of_month
+        return shift_month(other, months, day)
+
+    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+        n = self.n
+        is_month_end = dtindex.is_month_end
+        if n > 0:
+            roll_end = np.where(is_month_end, 1, 0)
+            roll_before = np.where(before_day_of_month, n, n + 1)
+            roll = roll_end + roll_before
+        elif n == 0:
+            roll_after = np.where(after_day_of_month, 2, 0)
+            roll_before = np.where(~after_day_of_month, 1, 0)
+            roll = roll_before + roll_after
+        else:
+            roll = np.where(after_day_of_month, n + 2, n + 1)
+        return roll
+
+    def _apply_index_days(self, dtindex, roll):
+        """
+        Add days portion of offset to DatetimeIndex dtindex.
+
+        Parameters
+        ----------
+        dtindex : DatetimeIndex
+        roll : ndarray[int64_t]
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        from pandas import Timedelta
+
+        nanos = (roll % 2) * Timedelta(days=self.day_of_month).value
+        dtindex += nanos.astype("timedelta64[ns]")
+        return dtindex + Timedelta(days=-1)
+
+
+cdef class SemiMonthBegin(SemiMonthOffset):
+    """
+    Two DateOffset's per month repeating on the first
+    day of the month and day_of_month.
+
+    Parameters
+    ----------
+    n : int
+    normalize : bool, default False
+    day_of_month : int, {2, 3,...,27}, default 15
+    """
+
+    _prefix = "SMS"
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day in (1, self.day_of_month)
+
+    def _apply(self, n, other):
+        months = n // 2 + n % 2
+        day = 1 if n % 2 else self.day_of_month
+        return shift_month(other, months, day)
+
+    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+        n = self.n
+        is_month_start = dtindex.is_month_start
+        if n > 0:
+            roll = np.where(before_day_of_month, n, n + 1)
+        elif n == 0:
+            roll_start = np.where(is_month_start, 0, 1)
+            roll_after = np.where(after_day_of_month, 1, 0)
+            roll = roll_start + roll_after
+        else:
+            roll_after = np.where(after_day_of_month, n + 2, n + 1)
+            roll_start = np.where(is_month_start, -1, 0)
+            roll = roll_after + roll_start
+        return roll
+
+    def _apply_index_days(self, dtindex, roll):
+        """
+        Add days portion of offset to DatetimeIndex dtindex.
+
+        Parameters
+        ----------
+        dtindex : DatetimeIndex
+        roll : ndarray[int64_t]
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        from pandas import Timedelta
+        nanos = (roll % 2) * Timedelta(days=self.day_of_month - 1).value
+        return dtindex + nanos.astype("timedelta64[ns]")
+
+
+# ---------------------------------------------------------------------
+# Week-Based Offset Classes
+
+
+cdef class Week(SingleConstructorOffset):
+    """
+    Weekly offset.
+
+    Parameters
+    ----------f
+    weekday : int, default None
+        Always generate specific day of week. 0 for Monday.
+    """
+
+    _inc = timedelta(weeks=1)
+    _prefix = "W"
+    _attributes = frozenset(["n", "normalize", "weekday"])
+
+    cdef readonly:
+        object weekday  # int or None
+
+    def __init__(self, n=1, normalize=False, weekday=None):
+        BaseOffset.__init__(self, n, normalize)
+        self.weekday = weekday
+
+        if self.weekday is not None:
+            if self.weekday < 0 or self.weekday > 6:
+                raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self.weekday = state.pop("weekday")
+
+    @property
+    def _params(self):
+        # TODO: making this into a property shouldn't be necessary, but otherwise
+        #  we unpickle legacy objects incorrectly
+        return BaseOffset._params.func(self)
+
+    def is_anchored(self) -> bool:
+        return self.n == 1 and self.weekday is not None
+
+    @apply_wraps
+    def apply(self, other):
+        if self.weekday is None:
+            return other + self.n * self._inc
+
+        if not isinstance(other, datetime):
+            raise TypeError(
+                f"Cannot add {type(other).__name__} to {type(self).__name__}"
+            )
+
+        k = self.n
+        otherDay = other.weekday()
+        if otherDay != self.weekday:
+            other = other + timedelta((self.weekday - otherDay) % 7)
+            if k > 0:
+                k -= 1
+
+        return other + timedelta(weeks=k)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        if self.weekday is None:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            asper = dtindex.to_period("W")
+
+            shifted = asper._time_shift(self.n)
+            return shifted.to_timestamp() + dtindex.to_perioddelta("W")
+        else:
+            return self._end_apply_index(dtindex)
+
+    def _end_apply_index(self, dtindex):
+        """
+        Add self to the given DatetimeIndex, specialized for case where
+        self.weekday is non-null.
+
+        Parameters
+        ----------
+        dtindex : DatetimeIndex
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        from pandas import Timedelta
+        from .frequencies import get_freq_code  # TODO: avoid circular import
+
+        off = dtindex.to_perioddelta("D")
+
+        base, mult = get_freq_code(self.freqstr)
+        base_period = dtindex.to_period(base)
+
+        if self.n > 0:
+            # when adding, dates on end roll to next
+            normed = dtindex - off + Timedelta(1, "D") - Timedelta(1, "ns")
+            roll = np.where(
+                base_period.to_timestamp(how="end") == normed, self.n, self.n - 1
+            )
+            # integer-array addition on PeriodIndex is deprecated,
+            #  so we use _addsub_int_array directly
+            shifted = base_period._addsub_int_array(roll, operator.add)
+            base = shifted.to_timestamp(how="end")
+        else:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            roll = self.n
+            base = base_period._time_shift(roll).to_timestamp(how="end")
+
+        return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        elif self.weekday is None:
+            return True
+        return dt.weekday() == self.weekday
+
+    @property
+    def rule_code(self) -> str:
+        suffix = ""
+        if self.weekday is not None:
+            weekday = int_to_weekday[self.weekday]
+            suffix = f"-{weekday}"
+        return self._prefix + suffix
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        if not suffix:
+            weekday = None
+        else:
+            weekday = weekday_to_int[suffix]
+        return cls(weekday=weekday)
+
+
+cdef class WeekOfMonth(WeekOfMonthMixin):
+    """
+    Describes monthly dates like "the Tuesday of the 2nd week of each month".
+
+    Parameters
+    ----------
+    n : int
+    week : int {0, 1, 2, 3, ...}, default 0
+        A specific integer for the week of the month.
+        e.g. 0 is 1st week of month, 1 is the 2nd week, etc.
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+    """
+
+    _prefix = "WOM"
+    _attributes = frozenset(["n", "normalize", "week", "weekday"])
+
+    def __init__(self, n=1, normalize=False, week=0, weekday=0):
+        WeekOfMonthMixin.__init__(self, n, normalize, weekday)
+        self.week = week
+
+        if self.week < 0 or self.week > 3:
+            raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self.weekday = state.pop("weekday")
+        self.week = state.pop("week")
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
+    def _get_offset_day(self, other: datetime) -> int:
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the self.week'th such day in the month.
+
+        Parameters
+        ----------
+        other : datetime
+
+        Returns
+        -------
+        day : int
+        """
+        mstart = datetime(other.year, other.month, 1)
+        wday = mstart.weekday()
+        shift_days = (self.weekday - wday) % 7
+        return 1 + shift_days + self.week * 7
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        if not suffix:
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
+        # TODO: handle n here...
+        # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
+        week = int(suffix[0]) - 1
+        weekday = weekday_to_int[suffix[1:]]
+        return cls(week=week, weekday=weekday)
+
+
+cdef class LastWeekOfMonth(WeekOfMonthMixin):
+    """
+    Describes monthly dates in last week of month like "the last Tuesday of
+    each month".
+
+    Parameters
+    ----------
+    n : int, default 1
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+    """
+
+    _prefix = "LWOM"
+    _attributes = frozenset(["n", "normalize", "weekday"])
+
+    def __init__(self, n=1, normalize=False, weekday=0):
+        WeekOfMonthMixin.__init__(self, n, normalize, weekday)
+        self.week = -1
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self.weekday = state.pop("weekday")
+        self.week = -1
+
+    def _get_offset_day(self, other: datetime) -> int:
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the last such day in the month.
+
+        Parameters
+        ----------
+        other: datetime
+
+        Returns
+        -------
+        day: int
+        """
+        dim = get_days_in_month(other.year, other.month)
+        mend = datetime(other.year, other.month, dim)
+        wday = mend.weekday()
+        shift_days = (wday - self.weekday) % 7
+        return dim - shift_days
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        if not suffix:
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
+        # TODO: handle n here...
+        weekday = weekday_to_int[suffix]
+        return cls(weekday=weekday)
+
+# ---------------------------------------------------------------------
 # Special Offset Classes
 
 cdef class FY5253Mixin(SingleConstructorOffset):
@@ -2131,6 +2644,12 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
         if self.variation not in ["nearest", "last"]:
             raise ValueError(f"{self.variation} is not a valid variation")
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self.weekday = state.pop("weekday")
+        self.variation = state.pop("variation")
 
     def is_anchored(self) -> bool:
         return (
@@ -2157,6 +2676,462 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         month = MONTH_ALIASES[self.startingMonth]
         weekday = int_to_weekday[self.weekday]
         return f"{prefix}-{month}-{weekday}"
+
+
+cdef class FY5253(FY5253Mixin):
+    """
+    Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
+
+    It is used by companies that desire that their
+    fiscal year always end on the same day of the week.
+
+    It is a method of managing accounting periods.
+    It is a common calendar structure for some industries,
+    such as retail, manufacturing and parking industry.
+
+    For more information see:
+    https://en.wikipedia.org/wiki/4-4-5_calendar
+
+    The year may either:
+
+    - end on the last X day of the Y month.
+    - end on the last X day closest to the last day of the Y month.
+
+    X is a specific day of the week.
+    Y is a certain month of the year
+
+    Parameters
+    ----------
+    n : int
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+
+    startingMonth : int {1, 2, ... 12}, default 1
+        The month in which the fiscal year ends.
+
+    variation : str, default "nearest"
+        Method of employing 4-4-5 calendar.
+
+        There are two options:
+
+        - "nearest" means year end is **weekday** closest to last day of month in year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
+    """
+
+    _prefix = "RE"
+    _attributes = frozenset(["weekday", "startingMonth", "variation"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.weekday, self.startingMonth, self.variation)
+        return type(self), tup
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        dt = datetime(dt.year, dt.month, dt.day)
+        year_end = self.get_year_end(dt)
+
+        if self.variation == "nearest":
+            # We have to check the year end of "this" cal year AND the previous
+            return year_end == dt or self.get_year_end(shift_month(dt, -1, None)) == dt
+        else:
+            return year_end == dt
+
+    @apply_wraps
+    def apply(self, other):
+        from pandas import Timestamp
+
+        norm = Timestamp(other).normalize()
+
+        n = self.n
+        prev_year = self.get_year_end(datetime(other.year - 1, self.startingMonth, 1))
+        cur_year = self.get_year_end(datetime(other.year, self.startingMonth, 1))
+        next_year = self.get_year_end(datetime(other.year + 1, self.startingMonth, 1))
+
+        prev_year = localize_pydatetime(prev_year, other.tzinfo)
+        cur_year = localize_pydatetime(cur_year, other.tzinfo)
+        next_year = localize_pydatetime(next_year, other.tzinfo)
+
+        # Note: next_year.year == other.year + 1, so we will always
+        # have other < next_year
+        if norm == prev_year:
+            n -= 1
+        elif norm == cur_year:
+            pass
+        elif n > 0:
+            if norm < prev_year:
+                n -= 2
+            elif prev_year < norm < cur_year:
+                n -= 1
+            elif cur_year < norm < next_year:
+                pass
+        else:
+            if cur_year < norm < next_year:
+                n += 1
+            elif prev_year < norm < cur_year:
+                pass
+            elif (
+                norm.year == prev_year.year
+                and norm < prev_year
+                and prev_year - norm <= timedelta(6)
+            ):
+                # GH#14774, error when next_year.year == cur_year.year
+                # e.g. prev_year == datetime(2004, 1, 3),
+                # other == datetime(2004, 1, 1)
+                n -= 1
+            else:
+                assert False
+
+        shifted = datetime(other.year + n, self.startingMonth, 1)
+        result = self.get_year_end(shifted)
+        result = datetime(
+            result.year,
+            result.month,
+            result.day,
+            other.hour,
+            other.minute,
+            other.second,
+            other.microsecond,
+        )
+        return result
+
+    def get_year_end(self, dt):
+        assert dt.tzinfo is None
+
+        dim = get_days_in_month(dt.year, self.startingMonth)
+        target_date = datetime(dt.year, self.startingMonth, dim)
+        wkday_diff = self.weekday - target_date.weekday()
+        if wkday_diff == 0:
+            # year_end is the same for "last" and "nearest" cases
+            return target_date
+
+        if self.variation == "last":
+            days_forward = (wkday_diff % 7) - 7
+
+            # days_forward is always negative, so we always end up
+            # in the same year as dt
+            return target_date + timedelta(days=days_forward)
+        else:
+            # variation == "nearest":
+            days_forward = wkday_diff % 7
+            if days_forward <= 3:
+                # The upcoming self.weekday is closer than the previous one
+                return target_date + timedelta(days_forward)
+            else:
+                # The previous self.weekday is closer than the upcoming one
+                return target_date + timedelta(days_forward - 7)
+
+    @classmethod
+    def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
+        if varion_code == "N":
+            variation = "nearest"
+        elif varion_code == "L":
+            variation = "last"
+        else:
+            raise ValueError(f"Unable to parse varion_code: {varion_code}")
+
+        startingMonth = MONTH_TO_CAL_NUM[startingMonth_code]
+        weekday = weekday_to_int[weekday_code]
+
+        return {
+            "weekday": weekday,
+            "startingMonth": startingMonth,
+            "variation": variation,
+        }
+
+    @classmethod
+    def _from_name(cls, *args):
+        return cls(**cls._parse_suffix(*args))
+
+
+cdef class FY5253Quarter(FY5253Mixin):
+    """
+    DateOffset increments between business quarter dates
+    for 52-53 week fiscal year (also known as a 4-4-5 calendar).
+
+    It is used by companies that desire that their
+    fiscal year always end on the same day of the week.
+
+    It is a method of managing accounting periods.
+    It is a common calendar structure for some industries,
+    such as retail, manufacturing and parking industry.
+
+    For more information see:
+    https://en.wikipedia.org/wiki/4-4-5_calendar
+
+    The year may either:
+
+    - end on the last X day of the Y month.
+    - end on the last X day closest to the last day of the Y month.
+
+    X is a specific day of the week.
+    Y is a certain month of the year
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+
+    Parameters
+    ----------
+    n : int
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+
+    startingMonth : int {1, 2, ..., 12}, default 1
+        The month in which fiscal years end.
+
+    qtr_with_extra_week : int {1, 2, 3, 4}, default 1
+        The quarter number that has the leap or 14 week when needed.
+
+    variation : str, default "nearest"
+        Method of employing 4-4-5 calendar.
+
+        There are two options:
+
+        - "nearest" means year end is **weekday** closest to last day of month in year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
+    """
+
+    _prefix = "REQ"
+    _attributes = frozenset(
+        ["weekday", "startingMonth", "qtr_with_extra_week", "variation"]
+    )
+
+    cdef readonly:
+        int qtr_with_extra_week
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekday=0,
+        startingMonth=1,
+        qtr_with_extra_week=1,
+        variation="nearest",
+    ):
+        FY5253Mixin.__init__(
+            self, n, normalize, weekday, startingMonth, variation
+        )
+        self.qtr_with_extra_week = qtr_with_extra_week
+
+    cpdef __setstate__(self, state):
+        FY5253Mixin.__setstate__(self, state)
+        self.qtr_with_extra_week = state.pop("qtr_with_extra_week")
+
+    def __reduce__(self):
+        tup = (
+            self.n,
+            self.normalize,
+            self.weekday,
+            self.startingMonth,
+            self.qtr_with_extra_week,
+            self.variation,
+        )
+        return type(self), tup
+
+    @cache_readonly
+    def _offset(self):
+        return FY5253(
+            startingMonth=self.startingMonth,
+            weekday=self.weekday,
+            variation=self.variation,
+        )
+
+    def _rollback_to_year(self, other):
+        """
+        Roll `other` back to the most recent date that was on a fiscal year
+        end.
+
+        Return the date of that year-end, the number of full quarters
+        elapsed between that year-end and other, and the remaining Timedelta
+        since the most recent quarter-end.
+
+        Parameters
+        ----------
+        other : datetime or Timestamp
+
+        Returns
+        -------
+        tuple of
+        prev_year_end : Timestamp giving most recent fiscal year end
+        num_qtrs : int
+        tdelta : Timedelta
+        """
+        from pandas import Timestamp, Timedelta
+
+        num_qtrs = 0
+
+        norm = Timestamp(other).tz_localize(None)
+        start = self._offset.rollback(norm)
+        # Note: start <= norm and self._offset.is_on_offset(start)
+
+        if start < norm:
+            # roll adjustment
+            qtr_lens = self.get_weeks(norm)
+
+            # check that qtr_lens is consistent with self._offset addition
+            end = shift_day(start, days=7 * sum(qtr_lens))
+            assert self._offset.is_on_offset(end), (start, end, qtr_lens)
+
+            tdelta = norm - start
+            for qlen in qtr_lens:
+                if qlen * 7 <= tdelta.days:
+                    num_qtrs += 1
+                    tdelta -= Timedelta(days=qlen * 7)
+                else:
+                    break
+        else:
+            tdelta = Timedelta(0)
+
+        # Note: we always have tdelta.value >= 0
+        return start, num_qtrs, tdelta
+
+    @apply_wraps
+    def apply(self, other):
+        # Note: self.n == 0 is not allowed.
+        from pandas import Timedelta
+
+        n = self.n
+
+        prev_year_end, num_qtrs, tdelta = self._rollback_to_year(other)
+        res = prev_year_end
+        n += num_qtrs
+        if self.n <= 0 and tdelta.value > 0:
+            n += 1
+
+        # Possible speedup by handling years first.
+        years = n // 4
+        if years:
+            res += self._offset * years
+            n -= years * 4
+
+        # Add an extra day to make *sure* we are getting the quarter lengths
+        # for the upcoming year, not the previous year
+        qtr_lens = self.get_weeks(res + Timedelta(days=1))
+
+        # Note: we always have 0 <= n < 4
+        weeks = sum(qtr_lens[:n])
+        if weeks:
+            res = shift_day(res, days=weeks * 7)
+
+        return res
+
+    def get_weeks(self, dt):
+        ret = [13] * 4
+
+        year_has_extra_week = self.year_has_extra_week(dt)
+
+        if year_has_extra_week:
+            ret[self.qtr_with_extra_week - 1] = 14
+
+        return ret
+
+    def year_has_extra_week(self, dt: datetime) -> bool:
+        # Avoid round-down errors --> normalize to get
+        # e.g. '370D' instead of '360D23H'
+        from pandas import Timestamp
+
+        norm = Timestamp(dt).normalize().tz_localize(None)
+
+        next_year_end = self._offset.rollforward(norm)
+        prev_year_end = norm - self._offset
+        weeks_in_year = (next_year_end - prev_year_end).days / 7
+        assert weeks_in_year in [52, 53], weeks_in_year
+        return weeks_in_year == 53
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        if self._offset.is_on_offset(dt):
+            return True
+
+        next_year_end = dt - self._offset
+
+        qtr_lens = self.get_weeks(dt)
+
+        current = next_year_end
+        for qtr_len in qtr_lens:
+            current = shift_day(current, days=qtr_len * 7)
+            if dt == current:
+                return True
+        return False
+
+    @property
+    def rule_code(self) -> str:
+        suffix = FY5253Mixin.rule_code.__get__(self)
+        qtr = self.qtr_with_extra_week
+        return f"{suffix}-{qtr}"
+
+    @classmethod
+    def _from_name(cls, *args):
+        return cls(
+            **dict(FY5253._parse_suffix(*args[:-1]), qtr_with_extra_week=int(args[-1]))
+        )
+
+
+cdef class Easter(SingleConstructorOffset):
+    """
+    DateOffset for the Easter holiday using logic defined in dateutil.
+
+    Right now uses the revised method which is valid in years 1583-4099.
+    """
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize)
+
+    cpdef __setstate__(self, state):
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+
+    @apply_wraps
+    def apply(self, other):
+        current_easter = easter(other.year)
+        current_easter = datetime(
+            current_easter.year, current_easter.month, current_easter.day
+        )
+        current_easter = localize_pydatetime(current_easter, other.tzinfo)
+
+        n = self.n
+        if n >= 0 and other < current_easter:
+            n -= 1
+        elif n < 0 and other > current_easter:
+            n += 1
+        # TODO: Why does this handle the 0 case the opposite of others?
+
+        # NOTE: easter returns a datetime.date so we have to convert to type of
+        # other
+        new = easter(other.year + n)
+        new = datetime(
+            new.year,
+            new.month,
+            new.day,
+            other.hour,
+            other.minute,
+            other.second,
+            other.microsecond,
+        )
+        return new
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
 # ----------------------------------------------------------------------
