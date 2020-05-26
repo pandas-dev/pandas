@@ -121,14 +121,3 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
 
     assert filename.exists()
     os.remove(filename)
-
-
-def test_to_excel_with_column_render(ext, tmpdir):
-    # GH 34331
-    df = DataFrame({"render": [1], "testcolumn": [2]})
-
-    filename = tmpdir / "render.xlsx"
-    df.to_excel(filename, engine="openpyxl")
-
-    assert filename.exists()
-    os.remove(filename)
