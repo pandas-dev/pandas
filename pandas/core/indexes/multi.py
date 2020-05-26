@@ -3217,7 +3217,8 @@ class MultiIndex(Index):
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-
+            elif len(self) != len(other):
+                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
