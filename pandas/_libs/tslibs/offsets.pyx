@@ -112,7 +112,7 @@ cdef to_offset(object obj):
     return to_offset(obj)
 
 
-def as_datetime(obj: datetime) -> datetime:
+cdef datetime _as_datetime(datetime obj):
     if isinstance(obj, ABCTimestamp):
         return obj.to_pydatetime()
     return obj
@@ -360,10 +360,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
-                      'day', 'weekday', 'hour', 'minute', 'second',
-                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
-                      'minutes', 'seconds', 'microseconds'}
+_relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
+                       "day", "weekday", "hour", "minute", "second",
+                       "microsecond", "nanosecond", "nanoseconds", "hours",
+                       "minutes", "seconds", "microseconds"}
 
 
 def _determine_offset(kwds):
@@ -1006,6 +1006,123 @@ def delta_to_tick(delta: timedelta) -> Tick:
 
 # --------------------------------------------------------------------
 
+class RelativeDeltaOffset(BaseOffset):
+    """
+    DateOffset subclass backed by a dateutil relativedelta object.
+    """
+    _attributes = frozenset(["n", "normalize"] + list(_relativedelta_kwds))
+    _adjust_dst = False
+
+    def __init__(self, n=1, normalize=False, **kwds):
+        BaseOffset.__init__(self, n, normalize)
+
+        off, use_rd = _determine_offset(kwds)
+        object.__setattr__(self, "_offset", off)
+        object.__setattr__(self, "_use_relativedelta", use_rd)
+        for key in kwds:
+            val = kwds[key]
+            object.__setattr__(self, key, val)
+
+    @apply_wraps
+    def apply(self, other):
+        if self._use_relativedelta:
+            other = _as_datetime(other)
+
+        if len(self.kwds) > 0:
+            tzinfo = getattr(other, "tzinfo", None)
+            if tzinfo is not None and self._use_relativedelta:
+                # perform calculation in UTC
+                other = other.replace(tzinfo=None)
+
+            if self.n > 0:
+                for i in range(self.n):
+                    other = other + self._offset
+            else:
+                for i in range(-self.n):
+                    other = other - self._offset
+
+            if tzinfo is not None and self._use_relativedelta:
+                # bring tz back from UTC calculation
+                other = localize_pydatetime(other, tzinfo)
+
+            from .timestamps import Timestamp
+            return Timestamp(other)
+        else:
+            return other + timedelta(self.n)
+
+    @apply_index_wraps
+    def apply_index(self, index):
+        """
+        Vectorized apply of DateOffset to DatetimeIndex,
+        raises NotImplementedError for offsets without a
+        vectorized implementation.
+
+        Parameters
+        ----------
+        index : DatetimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        kwds = self.kwds
+        relativedelta_fast = {
+            "years",
+            "months",
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "microseconds",
+        }
+        # relativedelta/_offset path only valid for base DateOffset
+        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+
+            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
+            if months:
+                shifted = shift_months(index.asi8, months)
+                index = type(index)(shifted, dtype=index.dtype)
+
+            weeks = kwds.get("weeks", 0) * self.n
+            if weeks:
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = index.to_period("W")
+                shifted = asper._time_shift(weeks)
+                index = shifted.to_timestamp() + index.to_perioddelta("W")
+
+            timedelta_kwds = {
+                k: v
+                for k, v in kwds.items()
+                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
+            }
+            if timedelta_kwds:
+                from .timedeltas import Timedelta
+                delta = Timedelta(**timedelta_kwds)
+                index = index + (self.n * delta)
+            return index
+        elif not self._use_relativedelta and hasattr(self, "_offset"):
+            # timedelta
+            return index + (self._offset * self.n)
+        else:
+            # relativedelta with other keywords
+            kwd = set(kwds) - relativedelta_fast
+            raise NotImplementedError(
+                "DateOffset with relativedelta "
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        # TODO: see GH#1395
+        return True
+
+
+# --------------------------------------------------------------------
+
 
 cdef class BusinessMixin(SingleConstructorOffset):
     """
@@ -1289,7 +1406,22 @@ cdef class YearOffset(SingleConstructorOffset):
 
 cdef class BYearEnd(YearOffset):
     """
-    DateOffset increments between business EOM dates.
+    DateOffset increments between the last business day of the year.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BYearEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts - BYearEnd()
+    Timestamp('2019-12-31 05:01:15')
+    >>> ts + BYearEnd()
+    Timestamp('2020-12-31 05:01:15')
+    >>> ts + BYearEnd(3)
+    Timestamp('2022-12-30 05:01:15')
+    >>> ts + BYearEnd(-3)
+    Timestamp('2017-12-29 05:01:15')
+    >>> ts + BYearEnd(month=11)
+    Timestamp('2020-11-30 05:01:15')
     """
 
     _outputName = "BusinessYearEnd"
@@ -1300,7 +1432,20 @@ cdef class BYearEnd(YearOffset):
 
 cdef class BYearBegin(YearOffset):
     """
-    DateOffset increments between business year begin dates.
+    DateOffset increments between the first business day of the year.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BYearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BYearBegin()
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts - BYearBegin()
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(-1)
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(2)
+    Timestamp('2022-01-03 05:01:15')
     """
 
     _outputName = "BusinessYearBegin"
@@ -1408,11 +1553,24 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
 cdef class BQuarterEnd(QuarterOffset):
     """
-    DateOffset increments between business Quarter dates.
+    DateOffset increments between the last business day of each Quarter.
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BQuarterEnd()
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BQuarterEnd(2)
+    Timestamp('2020-09-30 05:01:15')
+    >>> ts + BQuarterEnd(1, startingMonth=2)
+    Timestamp('2020-05-29 05:01:15')
+    >>> ts + BQuarterEnd(startingMonth=2)
+    Timestamp('2020-05-29 05:01:15')
     """
     _outputName = "BusinessQuarterEnd"
     _default_startingMonth = 3
@@ -1421,11 +1579,28 @@ cdef class BQuarterEnd(QuarterOffset):
     _day_opt = "business_end"
 
 
-# TODO: This is basically the same as BQuarterEnd
 cdef class BQuarterBegin(QuarterOffset):
+    """
+    DateOffset increments between the first business day of each Quarter.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BQuarterBegin()
+    Timestamp('2020-06-01 05:01:15')
+    >>> ts + BQuarterBegin(2)
+    Timestamp('2020-09-01 05:01:15')
+    >>> ts + BQuarterBegin(startingMonth=2)
+    Timestamp('2020-08-03 05:01:15')
+    >>> ts + BQuarterBegin(-1)
+    Timestamp('2020-03-02 05:01:15')
+    """
     _outputName = "BusinessQuarterBegin"
-    # I suspect this is wrong for *all* of them.
-    # TODO: What does the above comment refer to?
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = "BQS"
@@ -1434,7 +1609,7 @@ cdef class BQuarterBegin(QuarterOffset):
 
 cdef class QuarterEnd(QuarterOffset):
     """
-    DateOffset increments between business Quarter dates.
+    DateOffset increments between Quarter end dates.
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1447,6 +1622,13 @@ cdef class QuarterEnd(QuarterOffset):
 
 
 cdef class QuarterBegin(QuarterOffset):
+    """
+    DateOffset increments between Quarter start dates.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+    """
     _outputName = "QuarterBegin"
     _default_startingMonth = 3
     _from_name_startingMonth = 1
@@ -1493,7 +1675,18 @@ cdef class MonthBegin(MonthOffset):
 
 cdef class BusinessMonthEnd(MonthOffset):
     """
-    DateOffset increments between business EOM dates.
+    DateOffset increments between the last business day of the month
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BMonthEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BMonthEnd()
+    Timestamp('2020-05-29 05:01:15')
+    >>> ts + BMonthEnd(2)
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BMonthEnd(-2)
+    Timestamp('2020-03-31 05:01:15')
     """
     _prefix = "BM"
     _day_opt = "business_end"
@@ -1501,7 +1694,18 @@ cdef class BusinessMonthEnd(MonthOffset):
 
 cdef class BusinessMonthBegin(MonthOffset):
     """
-    DateOffset of one business month at beginning.
+    DateOffset of one month at the first business day.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BMonthBegin
+    >>> ts=pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BMonthBegin()
+    Timestamp('2020-06-01 05:01:15')
+    >>> ts + BMonthBegin(2)
+    Timestamp('2020-07-01 05:01:15')
+    >>> ts + BMonthBegin(-3)
+    Timestamp('2020-03-02 05:01:15')
     """
     _prefix = "BMS"
     _day_opt = "business_start"

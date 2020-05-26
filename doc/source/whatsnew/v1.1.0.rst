@@ -590,6 +590,9 @@ Deprecations
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
+- :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`33595`)
 - :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
 - Indexing an :class:`Index` object with a float key is deprecated, and will
   raise an ``IndexError`` in the future. You can manually convert to an integer key
@@ -741,6 +744,7 @@ Indexing
 - Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
 - Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
+- Bug in :meth:`Series.at` when used with a :class:`MultiIndex` would raise an exception on valid inputs (:issue:`26989`)
 
 Missing
 ^^^^^^^
@@ -781,6 +785,7 @@ I/O
   timestamps with ``version="2.0"`` (:issue:`31652`).
 - Bug in :meth:`read_csv` was raising `TypeError` when `sep=None` was used in combination with `comment` keyword (:issue:`31396`)
 - Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
+- :func:`read_sas()` now handles dates and datetimes larger than :attr:`Timestamp.max` returning them as :class:`datetime.datetime` objects (:issue:`20927`)
 - Bug in :meth:`DataFrame.to_json` where ``Timedelta`` objects would not be serialized correctly with ``date_format="iso"`` (:issue:`28256`)
 - :func:`read_csv` will raise a ``ValueError`` when the column names passed in `parse_dates` are missing in the Dataframe (:issue:`31251`)
 - Bug in :meth:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
@@ -825,6 +830,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
+- Bug in :meth:`GroupBy.quantile` causes the quantiles to be shifted when the ``by`` axis contains ``NaN`` (:issue:`33200`, :issue:`33569`)
 - Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)
 - Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
@@ -865,6 +871,7 @@ Sparse
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
 - Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 - Bug in :meth:`Series.sum` with ``SparseArray`` raises ``TypeError`` (:issue:`25777`)
+- The repr of :class:`SparseDtype` now includes the repr of its ``fill_value`` attribute. Previously it used ``fill_value``'s  string representation (:issue:`34352`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
