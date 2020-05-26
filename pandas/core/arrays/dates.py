@@ -66,12 +66,12 @@ class Date64Dtype(ExtensionDtype):
         -------
         type
         """
-        return Date64Array
+        return DateArray
 
     # TODO make from arrow
 
 
-class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
+class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     """
     Pandas ExtensionArray for date (year, month, day only) data.
 
@@ -120,7 +120,7 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
         if copy:
             values = values.copy()
 
-        self._data = values.astype("datetime64[D]")
+        self._data = values
         print("backend numpy values:", self._data)
         print("self representation", self)
         print("done initing")
@@ -153,10 +153,12 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
 
         Returns
         -------
-        Date64Array
+        DateArray
         """
         data, _, _ = sequence_to_dt64ns(scalars, copy=copy)
         return cls._simple_new(data.astype(D_DATETIME_DTYPE))
+
+    # def __repr__(self):
 
     @property
     def dtype(self) -> ExtensionDtype:
@@ -166,10 +168,14 @@ class Date64Array(DatetimeLikeArrayMixin, DatelikeOps):
     def freq(self):
         return "D"
 
+    def __iter__(self):
+        for date_data in self._data:
+            yield date_data
+
     @property
     def _box_func(self):
-        def test(x):
-            return Timestamp(x, freq="D", tz="utc")
+        def test(x: np.int64):
+            return x
 
         return test
 
