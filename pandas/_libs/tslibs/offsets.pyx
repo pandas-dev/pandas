@@ -1254,7 +1254,9 @@ cdef class BusinessDay(BusinessMixin):
             return result
 
         elif isinstance(other, (timedelta, Tick)):
-            return BusinessDay(self.n, offset=self.offset + other, normalize=self.normalize)
+            return BusinessDay(
+                self.n, offset=self.offset + other, normalize=self.normalize
+            )
         else:
             raise ApplyTypeError(
                 "Only know how to combine business day with datetime or timedelta."
