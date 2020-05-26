@@ -337,9 +337,16 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     -------
     ExtensionArray or obj
     """
+    from pandas.core.arrays.string_ import StringArray
+
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
+
+    # Everything can be be converted to StringArrays, but we may not want to convert
+    if issubclass(cls, StringArray) and lib.infer_dtype(obj) != "string":
+        return obj
+
     try:
         result = cls._from_sequence(obj, dtype=dtype)
     except Exception:

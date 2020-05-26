@@ -13,6 +13,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.astype_string:
+
+All dtypes can now be converted to ``StringDtype``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, declaring or converting to :class:`StringDtype` was in general only possible if the data was already only ``str`` or nan-like (:issue:`31204`).
+:class:`StringDtype` now works in all situations where ``astype(str)`` or ``dtype=str`` work:
+
+For example, the below now works:
+
+.. ipython:: python
+
+   ser = pd.Series([1, "abc", np.nan], dtype="string")
+   ser
+   ser[0]
+   pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
+
+
 .. _whatsnew_110.period_index_partial_string_slicing:
 
 Nonmonotonic PeriodIndex Partial String Slicing
