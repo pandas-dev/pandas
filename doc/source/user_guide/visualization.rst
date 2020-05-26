@@ -1332,6 +1332,8 @@ otherwise you will see a warning.
 
 .. ipython:: python
 
+   import matplotlib
+   matplotlib.rc('xtick', labelsize=8) 
    fig, axes = plt.subplots(4, 4, figsize=(6, 6))
    plt.subplots_adjust(wspace=0.5, hspace=0.5)
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
