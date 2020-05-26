@@ -35,7 +35,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
-from pandas._typing import F, FrameOrSeries, Scalar
+from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -868,7 +868,9 @@ b  2""",
 
         return result
 
-    def _python_apply_general(self, f: F, data: Union[Series, DataFrame]):
+    def _python_apply_general(
+        self, f: F, data: FrameOrSeriesUnion
+    ) -> FrameOrSeriesUnion:
         """
         Apply function f in python space
 
