@@ -72,7 +72,13 @@ def melt(
                     "The following 'value_vars' are not present in "
                     f"the DataFrame: {list(missing)}"
                 )
-        frame = frame.loc[:, id_vars + value_vars]
+        if col_level is not None:
+            idx = frame.columns.get_level_values(col_level).get_indexer(
+                id_vars + value_vars
+            )
+        else:
+            idx = frame.columns.get_indexer(id_vars + value_vars)
+        frame = frame.iloc[:, idx]
     else:
         frame = frame.copy()
 
