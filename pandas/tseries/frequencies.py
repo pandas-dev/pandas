@@ -600,7 +600,7 @@ def is_subperiod(source, target) -> bool:
     elif target == "N":
         return source in {"N"}
     else:
-        raise ValueError(target)
+        return False
 
 
 def is_superperiod(source, target) -> bool:
@@ -658,7 +658,7 @@ def is_superperiod(source, target) -> bool:
     elif source == "N":
         return target in {"N"}
     else:
-        raise ValueError(target)
+        return False
 
 
 def _maybe_coerce_freq(code) -> str:
