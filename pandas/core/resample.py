@@ -7,7 +7,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
-from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
@@ -29,7 +28,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs: Dict[str, str] = dict()
@@ -1709,7 +1708,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset,
+            first, last, freq, closed=closed, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1771,7 +1770,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, offset=offset,
+        first, last, freq, closed=closed, origin=origin, offset=offset
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
