@@ -107,11 +107,10 @@ def test_write_append_mode(ext, mode, expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
 
-@pytest.mark.parametrize("col", ["B", "render"])
-def test_to_excel_with_openpyxl_engine(ext, tmpdir, col):
+def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
     df1 = DataFrame({"A": np.linspace(1, 10, 10)})
-    df2 = DataFrame({col: np.linspace(1, 20, 10)})
+    df2 = DataFrame({"B": np.linspace(1, 20, 10)})
     df = pd.concat([df1, df2], axis=1)
     styled = df.style.applymap(
         lambda val: "color: %s" % ("red" if val < 0 else "black")
@@ -119,6 +118,17 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir, col):
 
     filename = tmpdir / "styled.xlsx"
     styled.to_excel(filename, engine="openpyxl")
+
+    assert filename.exists()
+    os.remove(filename)
+
+
+def test_to_excel_with_column_render(ext, tmpdir):
+    # GH 34331
+    df = DataFrame({"render": [1], "testcolumn": [2]})
+
+    filename = tmpdir / "render.xlsx"
+    df.to_excel(filename, engine="openpyxl")
 
     assert filename.exists()
     os.remove(filename)
