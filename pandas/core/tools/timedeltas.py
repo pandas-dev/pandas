@@ -14,7 +14,6 @@ from pandas._libs.tslibs.timedeltas import (
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
-import pandas as pd
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
@@ -33,16 +32,13 @@ def to_timedelta(arg, unit=None, box=True, errors='raise'):
         The data to be converted to timedelta.
     unit : str, default 'ns'
         Denotes the unit of the arg. Possible values:
-        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
-        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
         'sec', 'second', 'ms', 'milliseconds', 'millisecond',
         'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
         'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
         'nanosecond', 'N').
-    box : bool, default True
-        - If True returns a Timedelta/TimedeltaIndex of the results.
-        - If False returns a numpy.timedelta64 or numpy.darray of
-          values of dtype timedelta64[ns].
+
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -57,71 +53,67 @@ def to_timedelta(arg, unit=None, box=True, errors='raise'):
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
-
     Parsing a single string to a Timedelta:
 
     >>> pd.to_timedelta('1 days 06:05:01.00003')
     Timedelta('1 days 06:05:01.000030')
     >>> pd.to_timedelta('15.5us')
-    Timedelta('0 days 00:00:00.000015')
+    Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), unit='s')
-    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
-                    '00:00:03', '00:00:04'],
+    TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                    '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
-
-    Returning an ndarray by using the 'box' keyword argument:
-
-    >>> pd.to_timedelta(np.arange(5), box=False)
-    array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
     """
     unit = parse_timedelta_unit(unit)
 
-    if errors not in ('ignore', 'raise', 'coerce'):
-        raise ValueError("errors must be one of 'ignore', "
-                         "'raise', or 'coerce'}")
+    if errors not in ("ignore", "raise", "coerce"):
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+
+    if unit in {"Y", "y", "M"}:
+        raise ValueError(
+            "Units 'M' and 'Y' are no longer supported, as they do not "
+            "represent unambiguous timedelta values durations."
+        )
 
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, unit=unit,
-                                   box=False, errors=errors)
-        return Series(values, index=arg.index, name=arg.name)
+        values = _convert_listlike(arg._values, unit=unit, errors=errors)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
-        return _convert_listlike(arg, unit=unit, box=box,
-                                 errors=errors, name=arg.name)
+        return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
         arg = arg.item()
-    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:
-        return _convert_listlike(arg, unit=unit, box=box, errors=errors)
-    elif getattr(arg, 'ndim', 1) > 1:
-        raise TypeError('arg must be a string, timedelta, list, tuple, '
-                        '1-d array, or Series')
+    elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
+        return _convert_listlike(arg, unit=unit, errors=errors)
+    elif getattr(arg, "ndim", 1) > 1:
+        raise TypeError(
+            "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
+        )
 
     # ...so it must be a scalar value. Return scalar.
-    return _coerce_scalar_to_timedelta_type(arg, unit=unit,
-                                            box=box, errors=errors)
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
 
 
 def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
-
     try:
         result = parse_timedelta_string(r, unit)
         result = np.timedelta64(result)
@@ -137,15 +129,12 @@ def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
             # coerce
             result = pd.NaT
 
-    if box:
-        result = tslibs.Timedelta(result)
     return result
 
 
 def _convert_listlike(arg, unit=None, box=True, errors='raise', name=None):
     """Convert a list of objects to a timedelta index object."""
-
-    if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
+    if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
@@ -153,10 +142,9 @@ def _convert_listlike(arg, unit=None, box=True, errors='raise', name=None):
         arg = np.array(list(arg), dtype=object)
 
     try:
-        value = sequence_to_td64ns(arg, unit=unit,
-                                   errors=errors, copy=False)[0]
+        value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
     except ValueError:
-        if errors == 'ignore':
+        if errors == "ignore":
             return arg
         else:
             # This else-block accounts for the cases when errors='raise'
@@ -168,7 +156,7 @@ def _convert_listlike(arg, unit=None, box=True, errors='raise', name=None):
             # like to surface it.
             raise
 
-    if box:
-        from pandas import TimedeltaIndex
-        value = TimedeltaIndex(value, unit='ns', name=name)
+    from pandas import TimedeltaIndex
+
+    value = TimedeltaIndex(value, unit="ns", name=name)
     return value

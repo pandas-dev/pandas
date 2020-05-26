@@ -1,44 +1,52 @@
-"""Core eval alignment algorithms
+"""
+Core eval alignment algorithms.
 """
 
 from functools import partial, wraps
+from typing import Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
-from pandas.compat import range, zip
+from pandas._typing import FrameOrSeries
 from pandas.errors import PerformanceWarning
 
-import pandas as pd
-from pandas import compat
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.computation.common import _result_type_many
+from pandas.core.computation.common import result_type_many
 
 
-def _align_core_single_unary_op(term):
+def _align_core_single_unary_op(
+    term,
+) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
+
+    typ: Union[partial, Type[FrameOrSeries]]
+    axes: Optional[Dict[str, int]] = None
+
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
         typ = type(term.value)
-    ret = typ,
+        if hasattr(term.value, "axes"):
+            axes = _zip_axes_from_type(typ, term.value.axes)
 
-    if not hasattr(term.value, 'axes'):
-        ret += None,
-    else:
-        ret += _zip_axes_from_type(typ, term.value.axes),
-    return ret
+    return typ, axes
 
 
-def _zip_axes_from_type(typ, new_axes):
-    axes = {ax_name: new_axes[ax_ind]
-            for ax_ind, ax_name in compat.iteritems(typ._AXIS_NAMES)}
+def _zip_axes_from_type(
+    typ: Type[FrameOrSeries], new_axes: Sequence[int]
+) -> Dict[str, int]:
+    axes = {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
     return axes
 
 
-def _any_pandas_objects(terms):
-    """Check a sequence of terms for instances of PandasObject."""
-    return any(isinstance(term.value, pd.core.generic.PandasObject)
-               for term in terms)
+def _any_pandas_objects(terms) -> bool:
+    """
+    Check a sequence of terms for instances of PandasObject.
+    """
+    return any(isinstance(term.value, PandasObject) for term in terms)
 
 
 def _filter_special_cases(f):
@@ -52,18 +60,21 @@ def _filter_special_cases(f):
 
         # we don't have any pandas objects
         if not _any_pandas_objects(terms):
-            return _result_type_many(*term_values), None
+            return result_type_many(*term_values), None
 
         return f(terms)
+
     return wrapper
 
 
 @_filter_special_cases
 def _align_core(terms):
-    term_index = [i for i, term in enumerate(terms)
-                  if hasattr(term.value, 'axes')]
+    term_index = [i for i, term in enumerate(terms) if hasattr(term.value, "axes")]
     term_dims = [terms[i].value.ndim for i in term_index]
-    ndims = pd.Series(dict(zip(term_index, term_dims)))
+
+    from pandas import Series
+
+    ndims = Series(dict(zip(term_index, term_dims)))
 
     # initial axes are the axes of the largest-axis'd term
     biggest = terms[ndims.idxmax()].value
@@ -73,7 +84,7 @@ def _align_core(terms):
     gt_than_one_axis = naxes > 1
 
     for value in (terms[i].value for i in term_index):
-        is_series = isinstance(value, pd.Series)
+        is_series = isinstance(value, ABCSeries)
         is_series_and_gt_one_axis = is_series and gt_than_one_axis
 
         for axis, items in enumerate(value.axes):
@@ -83,14 +94,14 @@ def _align_core(terms):
                 ax, itm = axis, items
 
             if not axes[ax].is_(itm):
-                axes[ax] = axes[ax].join(itm, how='outer')
+                axes[ax] = axes[ax].join(itm, how="outer")
 
-    for i, ndim in compat.iteritems(ndims):
+    for i, ndim in ndims.items():
         for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
-            if hasattr(ti, 'reindex'):
-                transpose = isinstance(ti, pd.Series) and naxes > 1
+            if hasattr(ti, "reindex"):
+                transpose = isinstance(ti, ABCSeries) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
                 term_axis_size = len(ti.axes[axis])
@@ -98,10 +109,11 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if ordm >= 1 and reindexer_size >= 10000:
-                    w = ('Alignment difference on axis {axis} is larger '
-                         'than an order of magnitude on term {term!r}, by '
-                         'more than {ordm:.4g}; performance may suffer'
-                         ).format(axis=axis, term=terms[i].name, ordm=ordm)
+                    w = (
+                        f"Alignment difference on axis {axis} is larger "
+                        f"than an order of magnitude on term {repr(terms[i].name)}, "
+                        f"by more than {ordm:.4g}; performance may suffer"
+                    )
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)
@@ -113,29 +125,32 @@ def _align_core(terms):
     return typ, _zip_axes_from_type(typ, axes)
 
 
-def _align(terms):
-    """Align a set of terms"""
+def align_terms(terms):
+    """
+    Align a set of terms.
+    """
     try:
         # flatten the parse tree (a nested list, really)
         terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
-        if isinstance(terms.value, pd.core.generic.NDFrame):
+        if isinstance(terms.value, (ABCSeries, ABCDataFrame)):
             typ = type(terms.value)
             return typ, _zip_axes_from_type(typ, terms.value.axes)
         return np.result_type(terms.type), None
 
     # if all resolved variables are numeric scalars
     if all(term.is_scalar for term in terms):
-        return _result_type_many(*(term.value for term in terms)).type, None
+        return result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment
     typ, axes = _align_core(terms)
     return typ, axes
 
 
-def _reconstruct_object(typ, obj, axes, dtype):
-    """Reconstruct an object given its type, raw value, and possibly empty
+def reconstruct_object(typ, obj, axes, dtype):
+    """
+    Reconstruct an object given its type, raw value, and possibly empty
     (None) axes.
 
     Parameters
@@ -160,12 +175,11 @@ def _reconstruct_object(typ, obj, axes, dtype):
 
     res_t = np.result_type(obj.dtype, dtype)
 
-    if (not isinstance(typ, partial) and
-            issubclass(typ, pd.core.generic.PandasObject)):
+    if not isinstance(typ, partial) and issubclass(typ, PandasObject):
         return typ(obj, dtype=res_t, **axes)
 
     # special case for pathological things like ~True/~False
-    if hasattr(res_t, 'type') and typ == np.bool_ and res_t != np.bool_:
+    if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
         ret_value = res_t.type(obj)
     else:
         ret_value = typ(obj).astype(res_t)

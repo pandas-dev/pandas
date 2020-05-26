@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 from pandas.core.internals import ObjectBlock
 
@@ -8,9 +10,21 @@ class BaseCastingTests(BaseExtensionTests):
     """Casting to and from ExtensionDtypes"""
 
     def test_astype_object_series(self, all_data):
-        ser = pd.Series({"A": all_data})
+        ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
-        assert isinstance(result._data.blocks[0], ObjectBlock)
+        assert isinstance(result._mgr.blocks[0], ObjectBlock)
+
+    def test_astype_object_frame(self, all_data):
+        df = pd.DataFrame({"A": all_data})
+
+        result = df.astype(object)
+        blk = result._data.blocks[0]
+        assert isinstance(blk, ObjectBlock), type(blk)
+
+        # FIXME: these currently fail; dont leave commented-out
+        # check that we can compare the dtypes
+        # cmp = result.dtypes.equals(df.dtypes)
+        # assert not cmp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
@@ -21,3 +35,12 @@ class BaseCastingTests(BaseExtensionTests):
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series(data[:5].astype(str))
         self.assert_series_equal(result, expected)
+
+    def test_to_numpy(self, data):
+        expected = np.asarray(data)
+
+        result = data.to_numpy()
+        self.assert_equal(result, expected)
+
+        result = pd.Series(data).to_numpy()
+        self.assert_equal(result, expected)

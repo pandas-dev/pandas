@@ -1,13 +1,44 @@
-# -*- coding: utf-8 -*-
-from .blocks import (  # noqa:F401
-    _block2d_to_blocknd, _factor_indexer, _block_shape,  # io.pytables
-    _safe_reshape,  # io.packers
-    make_block,     # io.pytables, io.packers
-    FloatBlock, IntBlock, ComplexBlock, BoolBlock, ObjectBlock,
-    TimeDeltaBlock, DatetimeBlock, DatetimeTZBlock,
-    CategoricalBlock, ExtensionBlock, Block)
-from .managers import (  # noqa:F401
-    BlockManager, SingleBlockManager,
-    create_block_manager_from_arrays, create_block_manager_from_blocks,
-    items_overlap_with_suffix,  # reshape.merge
-    concatenate_block_managers)  # reshape.concat, reshape.merge
+from pandas.core.internals.blocks import (  # io.pytables, io.packers
+    Block,
+    BoolBlock,
+    CategoricalBlock,
+    ComplexBlock,
+    DatetimeBlock,
+    DatetimeTZBlock,
+    ExtensionBlock,
+    FloatBlock,
+    IntBlock,
+    ObjectBlock,
+    TimeDeltaBlock,
+    _safe_reshape,
+    make_block,
+)
+from pandas.core.internals.concat import concatenate_block_managers
+from pandas.core.internals.managers import (
+    BlockManager,
+    SingleBlockManager,
+    create_block_manager_from_arrays,
+    create_block_manager_from_blocks,
+)
+
+__all__ = [
+    "Block",
+    "BoolBlock",
+    "CategoricalBlock",
+    "ComplexBlock",
+    "DatetimeBlock",
+    "DatetimeTZBlock",
+    "ExtensionBlock",
+    "FloatBlock",
+    "IntBlock",
+    "ObjectBlock",
+    "TimeDeltaBlock",
+    "_safe_reshape",
+    "make_block",
+    "BlockManager",
+    "SingleBlockManager",
+    "concatenate_block_managers",
+    # those two are preserved here for downstream compatibility (GH-33892)
+    "create_block_manager_from_arrays",
+    "create_block_manager_from_blocks",
+]

@@ -1,0 +1,144 @@
+main:
+  templates_path: _templates
+  base_template: "layout.html"
+  ignore:
+  - _templates/layout.html
+  - config.yml
+  - try.md  # the binder page will be added later
+  github_repo_url: pandas-dev/pandas
+  context_preprocessors:
+  - pandas_web.Preprocessors.navbar_add_info
+  - pandas_web.Preprocessors.blog_add_posts
+  - pandas_web.Preprocessors.maintainers_add_info
+  - pandas_web.Preprocessors.home_add_releases
+  markdown_extensions:
+  - toc
+  - tables
+  - fenced_code
+  - meta
+static:
+  logo: /static/img/pandas_white.svg
+  css:
+  - /static/css/pandas.css
+navbar:
+  - name: "About us"
+    target:
+    - name: "About pandas"
+      target: /about/
+    - name: "Project roadmap"
+      target: /about/roadmap.html
+    - name: "Team"
+      target: /about/team.html
+    - name: "Sponsors"
+      target: /about/sponsors.html
+    - name: "Citing and logo"
+      target: /about/citing.html
+  - name: "Getting started"
+    target: /getting_started.html
+  - name: "Documentation"
+    target: /docs/
+  - name: "Community"
+    target:
+    - name: "Blog"
+      target: /community/blog/
+    - name: "Ask a question (StackOverflow)"
+      target: https://stackoverflow.com/questions/tagged/pandas
+    - name: "Code of conduct"
+      target: /community/coc.html
+    - name: "Ecosystem"
+      target: /community/ecosystem.html
+  - name: "Contribute"
+    target: /contribute.html
+blog:
+  num_posts: 50
+  posts_path: community/blog
+  author: "pandas team"
+  feed_name: "pandas blog"
+  feed:
+  - https://wesmckinney.com/feeds/pandas.atom.xml
+  - https://tomaugspurger.github.io/feed
+  - https://jorisvandenbossche.github.io/feeds/pandas.atom.xml
+  - https://datapythonista.github.io/blog/feeds/pandas.atom.xml
+  - https://numfocus.org/tag/pandas/feed/
+maintainers:
+  active:
+  - wesm
+  - jorisvandenbossche
+  - TomAugspurger
+  - shoyer
+  - jreback
+  - chris-b1
+  - sinhrks
+  - cpcloud
+  - gfyoung
+  - toobaz
+  - WillAyd
+  - mroeschke
+  - jschendel
+  - jbrockmendel
+  - datapythonista
+  - simonjayhawkins
+  - topper-123
+  emeritus:
+  - Wouter Overmeire
+  - Skipper Seabold
+  - Jeff Tratner
+  coc:
+  - Safia Abdalla
+  - Tom Augspurger
+  - Joris Van den Bossche
+  - Camille Scott
+  - Nathaniel Smith
+  numfocus:
+  - Phillip Cloud
+  - Stephan Hoyer
+  - Wes McKinney
+  - Jeff Reback
+  - Joris Van den Bossche
+sponsors:
+  active:
+  - name: "NumFOCUS"
+    url: https://numfocus.org/
+    logo: /static/img/partners/numfocus.svg
+    kind: numfocus
+  - name: "Anaconda"
+    url: https://www.anaconda.com/
+    logo: /static/img/partners/anaconda.svg
+    kind: partner
+    description: "Tom Augspurger, Brock Mendel"
+  - name: "Two Sigma"
+    url: https://www.twosigma.com/
+    logo: /static/img/partners/two_sigma.svg
+    kind: partner
+    description: "Phillip Cloud, Jeff Reback"
+  - name: "RStudio"
+    url: https://www.rstudio.com/
+    logo: /static/img/partners/r_studio.svg
+    kind: partner
+    description: "Wes McKinney"
+  - name: "Ursa Labs"
+    url: https://ursalabs.org/
+    logo: /static/img/partners/ursa_labs.svg
+    kind: partner
+    description: "Wes McKinney, Joris Van den Bossche"
+  - name: "Tidelift"
+    url: https://tidelift.com
+    logo: /static/img/partners/tidelift.svg
+    kind: regular
+    description: "<i>pandas</i> is part of the <a href=\"https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme\">Tidelift subscription</a>. You can support pandas by becoming a Tidelift subscriber."
+  - name: "Chan Zuckerberg Initiative"
+    url: https://chanzuckerberg.com/
+    logo: /static/img/partners/czi.svg
+    kind: regular
+    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
+  inkind:  # not included in active so they don't appear in the home page
+  - name: "OVH"
+    url: https://us.ovhcloud.com/
+    description: "Website and documentation hosting."
+  - name: "Indeed"
+    url: https://opensource.indeedeng.io/
+    description: "<i>pandas</i> logo design"
+  past:
+  - name: "Paris-Saclay Center for Data Science"
+    url: https://www.datascience-paris-saclay.fr/
+    kind: partner

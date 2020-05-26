@@ -4,20 +4,27 @@ All of pandas' ExtensionArrays.
 See :ref:`extending.extension-types` for more.
 """
 from pandas.core.arrays import (
-    IntervalArray, PeriodArray, Categorical, SparseArray, IntegerArray,
-    PandasArray,
+    BooleanArray,
+    Categorical,
     DatetimeArray,
+    IntegerArray,
+    IntervalArray,
+    PandasArray,
+    PeriodArray,
+    SparseArray,
+    StringArray,
     TimedeltaArray,
 )
 
-
 __all__ = [
-    'Categorical',
-    'DatetimeArray',
-    'IntegerArray',
-    'IntervalArray',
-    'PandasArray',
-    'PeriodArray',
-    'SparseArray',
-    'TimedeltaArray',
+    "BooleanArray",
+    "Categorical",
+    "DatetimeArray",
+    "IntegerArray",
+    "IntervalArray",
+    "PandasArray",
+    "PeriodArray",
+    "SparseArray",
+    "StringArray",
+    "TimedeltaArray",
 ]

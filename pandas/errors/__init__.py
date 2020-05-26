@@ -4,14 +4,26 @@
 Expose public exceptions & warnings
 """
 
+from pandas._config.config import OptionError
+
 from pandas._libs.tslibs import OutOfBoundsDatetime
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+
+    pass
 
 
 class PerformanceWarning(Warning):
     """
-    Warning raised when there is a possible
-    performance impact.
+    Warning raised when there is a possible performance impact.
     """
+
 
 class UnsupportedFunctionCall(ValueError):
     """
@@ -20,18 +32,25 @@ class UnsupportedFunctionCall(ValueError):
     the object e.g. ``np.cumsum(groupby_object)``.
     """
 
+
 class UnsortedIndexError(KeyError):
     """
     Error raised when attempting to get a slice of a MultiIndex,
     and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
     """
 
 
 class ParserError(ValueError):
     """
-    Exception that is raised by an error encountered in `pd.read_csv`.
+    Exception that is raised by an error encountered in parsing file contents.
+
+    This is a generic error raised for errors encountered when functions like
+    `read_csv` or `read_html` are parsing contents of a file.
+
+    See Also
+    --------
+    read_csv : Read CSV (comma-separated) file into a DataFrame.
+    read_html : Read HTML table into a DataFrame.
     """
 
 
@@ -45,8 +64,8 @@ class DtypeWarning(Warning):
 
     See Also
     --------
-    pandas.read_csv : Read CSV (comma-separated) file into a DataFrame.
-    pandas.read_table : Read general delimited file into a DataFrame.
+    read_csv : Read CSV (comma-separated) file into a DataFrame.
+    read_table : Read general delimited file into a DataFrame.
 
     Notes
     -----
@@ -129,7 +148,7 @@ class ParserWarning(Warning):
     Using a `sep` in `pd.read_csv` other than a single character:
 
     >>> import io
-    >>> csv = u'''a;b;c
+    >>> csv = '''a;b;c
     ...           1;1,8
     ...           1;2,1'''
     >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP
@@ -148,36 +167,36 @@ class MergeError(ValueError):
     """
 
 
-class NullFrequencyError(ValueError):
-    """
-    Error raised when a null `freq` attribute is used in an operation
-    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
-    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
-    """
-
-
 class AccessorRegistrationWarning(Warning):
-    """Warning for attribute conflicts in accessor registration."""
+    """
+    Warning for attribute conflicts in accessor registration.
+    """
 
 
 class AbstractMethodError(NotImplementedError):
-    """Raise this error instead of NotImplementedError for abstract methods
+    """
+    Raise this error instead of NotImplementedError for abstract methods
     while keeping compatibility with Python 2 and Python 3.
     """
 
-    def __init__(self, class_instance, methodtype='method'):
-        types = {'method', 'classmethod', 'staticmethod', 'property'}
+    def __init__(self, class_instance, methodtype="method"):
+        types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
-            msg = 'methodtype must be one of {}, got {} instead.'.format(
-                methodtype, types)
-            raise ValueError(msg)
+            raise ValueError(
+                f"methodtype must be one of {methodtype}, got {types} instead."
+            )
         self.methodtype = methodtype
         self.class_instance = class_instance
 
-    def __str__(self):
-        if self.methodtype == 'classmethod':
+    def __str__(self) -> str:
+        if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:
-            name = self.class_instance.__class__.__name__
-        msg = "This {methodtype} must be defined in the concrete class {name}"
-        return (msg.format(methodtype=self.methodtype, name=name))
+            name = type(self.class_instance).__name__
+        return f"This {self.methodtype} must be defined in the concrete class {name}"
+
+
+class NumbaUtilError(Exception):
+    """
+    Error raised for unsupported Numba engine routines.
+    """

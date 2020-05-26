@@ -1,7 +1,7 @@
 .. _whatsnew_0151:
 
-v0.15.1 (November 9, 2014)
---------------------------
+Version 0.15.1 (November 9, 2014)
+---------------------------------
 
 {{ header }}
 
@@ -275,7 +275,7 @@ Enhancements
 
 .. _whatsnew_0151.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in unpickling of a ``CustomBusinessDay`` object (:issue:`8591`)

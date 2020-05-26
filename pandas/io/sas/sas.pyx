@@ -1,8 +1,9 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
+from cython import Py_ssize_t
 
 import numpy as np
-import sas_constants as const
+import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
@@ -11,15 +12,15 @@ ctypedef unsigned short     uint16_t
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
-# https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
-cdef const uint8_t[:] rle_decompress(int result_length,
-                                     const uint8_t[:] inbuff):
+# https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
+cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff):
 
     cdef:
         uint8_t control_byte, x
         uint8_t[:] result = np.zeros(result_length, np.uint8)
-        int rpos = 0, ipos = 0, length = len(inbuff)
+        int rpos = 0
         int i, nbytes, end_of_first_byte
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -31,7 +32,7 @@ cdef const uint8_t[:] rle_decompress(int result_length,
                 raise ValueError("Unexpected non-zero end_of_first_byte")
             nbytes = <int>(inbuff[ipos]) + 64
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
                 rpos += 1
                 ipos += 1
@@ -40,20 +41,20 @@ cdef const uint8_t[:] rle_decompress(int result_length,
             nbytes = end_of_first_byte * 16
             nbytes += <int>(inbuff[ipos])
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
                 rpos += 1
             ipos += 1
         elif control_byte == 0x60:
             nbytes = end_of_first_byte * 256 + <int>(inbuff[ipos]) + 17
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x20
                 rpos += 1
         elif control_byte == 0x70:
             nbytes = end_of_first_byte * 256 + <int>(inbuff[ipos]) + 17
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x00
                 rpos += 1
         elif control_byte == 0x80:
@@ -84,32 +85,30 @@ cdef const uint8_t[:] rle_decompress(int result_length,
             nbytes = end_of_first_byte + 3
             x = inbuff[ipos]
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = x
                 rpos += 1
         elif control_byte == 0xD0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x40
                 rpos += 1
         elif control_byte == 0xE0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x20
                 rpos += 1
         elif control_byte == 0xF0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x00
                 rpos += 1
         else:
-            raise ValueError("unknown control byte: {byte}"
-                             .format(byte=control_byte))
+            raise ValueError(f"unknown control byte: {control_byte}")
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(result) != <Py_ssize_t>result_length:
-        raise ValueError("RLE: {got} != {expect}".format(got=len(result),
-                                                         expect=result_length))
+        raise ValueError(f"RLE: {len(result)} != {result_length}")
 
     return np.asarray(result)
 
@@ -117,18 +116,18 @@ cdef const uint8_t[:] rle_decompress(int result_length,
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 # http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef const uint8_t[:] rdc_decompress(int result_length,
-                                     const uint8_t[:] inbuff):
+cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff):
 
     cdef:
         uint8_t cmd
-        uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
-        int ipos = 0, rpos = 0, k
+        uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
+        int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     ii = -1
 
-    while ipos < len(inbuff):
+    while ipos < length:
         ii += 1
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
@@ -191,8 +190,7 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(outbuff) != <Py_ssize_t>result_length:
-        raise ValueError("RDC: {got} != {expect}\n"
-                         .format(got=len(outbuff), expect=result_length))
+        raise ValueError(f"RDC: {len(outbuff)} != {result_length}\n")
 
     return np.asarray(outbuff)
 
@@ -203,14 +201,15 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
-cdef int page_meta_type = const.page_meta_type
-cdef int page_mix_types_0 = const.page_mix_types[0]
-cdef int page_mix_types_1 = const.page_mix_types[1]
-cdef int page_data_type = const.page_data_type
-cdef int subheader_pointers_offset = const.subheader_pointers_offset
+cdef:
+    int page_meta_type = const.page_meta_type
+    int page_mix_types_0 = const.page_mix_types[0]
+    int page_mix_types_1 = const.page_mix_types[1]
+    int page_data_type = const.page_data_type
+    int subheader_pointers_offset = const.subheader_pointers_offset
 
 
-cdef class Parser(object):
+cdef class Parser:
 
     cdef:
         int column_count
@@ -232,8 +231,7 @@ cdef class Parser(object):
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        const uint8_t[:] (*decompress)(int result_length,
-                                       const uint8_t[:] inbuff)
+        const uint8_t[:] (*decompress)(int result_length, const uint8_t[:] inbuff)
         object parser
 
     def __init__(self, object parser):
@@ -266,9 +264,7 @@ cdef class Parser(object):
             elif column_types[j] == b's':
                 self.column_types[j] = column_type_string
             else:
-                raise ValueError("unknown column type: "
-                                 "{typ}"
-                                 .format(typ=self.parser.columns[j].ctype))
+                raise ValueError(f"unknown column type: {self.parser.columns[j].ctype}")
 
         # compression
         if parser.compression == const.rle_compression:
@@ -288,15 +284,14 @@ cdef class Parser(object):
             bint done
             int i
 
-        for i in range(nrows):
+        for _ in range(nrows):
             done = self.readline()
             if done:
                 break
 
         # update the parser
         self.parser._current_row_on_page_index = self.current_row_on_page_index
-        self.parser._current_row_in_chunk_index =\
-            self.current_row_in_chunk_index
+        self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
         self.parser._current_row_in_file_index = self.current_row_in_file_index
 
     cdef bint read_next_page(self):
@@ -317,9 +312,9 @@ cdef class Parser(object):
         self.current_page_type = self.parser._current_page_type
         self.current_page_block_count = self.parser._current_page_block_count
         self.current_page_data_subheader_pointers_len = len(
-            self.parser._current_page_data_subheader_pointers)
-        self.current_page_subheaders_count =\
-            self.parser._current_page_subheaders_count
+            self.parser._current_page_data_subheader_pointers
+        )
+        self.current_page_subheaders_count = self.parser._current_page_subheaders_count
 
     cdef readline(self):
 
@@ -357,19 +352,18 @@ cdef class Parser(object):
                 return False
             elif (self.current_page_type == page_mix_types_0 or
                     self.current_page_type == page_mix_types_1):
-                align_correction = (bit_offset + subheader_pointers_offset +
-                                    self.current_page_subheaders_count *
-                                    subheader_pointer_length)
+                align_correction = (
+                    bit_offset
+                    + subheader_pointers_offset
+                    + self.current_page_subheaders_count * subheader_pointer_length
+                )
                 align_correction = align_correction % 8
                 offset = bit_offset + align_correction
                 offset += subheader_pointers_offset
-                offset += (self.current_page_subheaders_count *
-                           subheader_pointer_length)
+                offset += self.current_page_subheaders_count * subheader_pointer_length
                 offset += self.current_row_on_page_index * self.row_length
-                self.process_byte_array_with_data(offset,
-                                                  self.row_length)
-                mn = min(self.parser.row_count,
-                         self.parser._mix_page_row_count)
+                self.process_byte_array_with_data(offset, self.row_length)
+                mn = min(self.parser.row_count, self.parser._mix_page_row_count)
                 if self.current_row_on_page_index == mn:
                     done = self.read_next_page()
                     if done:
@@ -377,19 +371,19 @@ cdef class Parser(object):
                 return False
             elif self.current_page_type & page_data_type == page_data_type:
                 self.process_byte_array_with_data(
-                    bit_offset + subheader_pointers_offset +
-                    self.current_row_on_page_index * self.row_length,
-                    self.row_length)
-                flag = (self.current_row_on_page_index ==
-                        self.current_page_block_count)
+                    bit_offset
+                    + subheader_pointers_offset
+                    + self.current_row_on_page_index * self.row_length,
+                    self.row_length,
+                )
+                flag = self.current_row_on_page_index == self.current_page_block_count
                 if flag:
                     done = self.read_next_page()
                     if done:
                         return True
                 return False
             else:
-                raise ValueError("unknown page type: {typ}"
-                                 .format(typ=self.current_page_type))
+                raise ValueError(f"unknown page type: {self.current_page_type}")
 
     cdef void process_byte_array_with_data(self, int offset, int length):
 
@@ -437,7 +431,7 @@ cdef class Parser(object):
             elif column_types[j] == column_type_string:
                 # string
                 string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tostring().rstrip(b"\x00 ")
+                    start + lngt)]).tobytes().rstrip(b"\x00 ")
                 js += 1
 
         self.current_row_on_page_index += 1

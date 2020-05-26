@@ -1,7 +1,7 @@
 .. _whatsnew_0150:
 
-v0.15.0 (October 18, 2014)
---------------------------
+Version 0.15.0 (October 18, 2014)
+---------------------------------
 
 {{ header }}
 
@@ -105,7 +105,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 .. _whatsnew_0150.timedeltaindex:
 
-TimedeltaIndex/Scalar
+TimedeltaIndex/scalar
 ^^^^^^^^^^^^^^^^^^^^^
 
 We introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
@@ -220,7 +220,7 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. _whatsnew_0150.memory:
 
-Memory Usage
+Memory usage
 ^^^^^^^^^^^^
 
 Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-memory-usage>` for more. (:issue:`6852`).
@@ -247,8 +247,8 @@ Additionally :meth:`~pandas.DataFrame.memory_usage` is an available method for a
 
 .. _whatsnew_0150.dt:
 
-.dt accessor
-^^^^^^^^^^^^
+Series.dt accessor
+^^^^^^^^^^^^^^^^^^
 
 ``Series`` has gained an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series. (:issue:`7207`)
 This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
@@ -312,14 +312,13 @@ Timezone handling improvements
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
-     :okwarning:
 
      ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts
      ts.tz_localize(None)
 
-     didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                             periods=10, tz='US/Eastern')
+     didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                          periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
 
@@ -339,7 +338,7 @@ Timezone handling improvements
 
 .. _whatsnew_0150.roll:
 
-Rolling/Expanding Moments improvements
+Rolling/expanding moments improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
@@ -601,7 +600,7 @@ Rolling/Expanding Moments improvements
 
 .. _whatsnew_0150.sql:
 
-Improvements in the sql io module
+Improvements in the SQL IO module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function. This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`).
@@ -701,13 +700,19 @@ Other notable API changes:
 
   This can also be seen in multi-axis indexing with a ``Panel``.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
-                  items=['ItemA', 'ItemB'],
-                  major_axis=[1, 2, 3],
-                  minor_axis=['A', 'B', 'C', 'D'])
-     p
+     >>> p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+     ...              items=['ItemA', 'ItemB'],
+     ...              major_axis=[1, 2, 3],
+     ...              minor_axis=['A', 'B', 'C', 'D'])
+     >>> p
+     <class 'pandas.core.panel.Panel'>
+     Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+     Items axis: ItemA to ItemB
+     Major_axis axis: 1 to 3
+     Minor_axis axis: A to D
+
 
   The following would raise ``KeyError`` prior to 0.15.0:
 
@@ -847,7 +852,7 @@ Other notable API changes:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
 
-     See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument (:issue:`7737`).
@@ -878,7 +883,7 @@ Other notable API changes:
 
 .. _whatsnew_0150.refactoring:
 
-Internal Refactoring
+Internal refactoring
 ^^^^^^^^^^^^^^^^^^^^
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
@@ -1108,7 +1113,7 @@ Performance
 
 .. _whatsnew_0150.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)

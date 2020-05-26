@@ -54,7 +54,7 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 int
-parse_iso_8601_datetime(char *str, int len,
+parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         npy_datetimestruct *out,
                         int *out_local,
                         int *out_tzoffset);
@@ -80,4 +80,13 @@ int
 make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                        NPY_DATETIMEUNIT base);
 
+/*
+ * Converts an pandas_timedeltastruct to an ISO 8601 string.
+ *
+ * Mutates outlen to provide size of (non-NULL terminated) string.
+ *
+ * Currently has no error handling
+ */
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
+                            size_t *outlen);
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

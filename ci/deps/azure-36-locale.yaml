@@ -1,0 +1,40 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.6.*
+
+  # tools
+  - cython>=0.29.16
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - pytest-asyncio
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - beautifulsoup4
+  - gcsfs
+  - html5lib
+  - ipython
+  - jinja2
+  - lxml
+  - matplotlib=3.0.*
+  - nomkl
+  - numexpr
+  - numpy=1.15.*
+  - openpyxl
+  # lowest supported version of pyarrow (putting it here instead of in
+  # azure-36-minimum_versions because it needs numpy >= 1.14)
+  - pyarrow=0.13
+  - pytables
+  - python-dateutil
+  - pytz
+  - s3fs
+  - scipy
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - moto

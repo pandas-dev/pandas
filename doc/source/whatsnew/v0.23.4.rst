@@ -1,6 +1,6 @@
 .. _whatsnew_0234:
 
-What's New in 0.23.4 (August 3, 2018)
+What's new in 0.23.4 (August 3, 2018)
 -------------------------------------
 
 {{ header }}
@@ -12,7 +12,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See :ref:`install.dropping-27` for more.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 .. contents:: What's new in v0.23.4
     :local:
@@ -20,17 +20,17 @@ and bug fixes. We recommend that all users upgrade to this version.
 
 .. _whatsnew_0234.fixed_regressions:
 
-Fixed Regressions
+Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Python 3.7 with Windows gave all missing values for rolling variance calculations (:issue:`21813`)
 
 .. _whatsnew_0234.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
-**Groupby/Resample/Rolling**
+**Groupby/resample/rolling**
 
 - Bug where calling :func:`DataFrameGroupBy.agg` with a list of functions including ``ohlc`` as the non-initial element would raise a ``ValueError`` (:issue:`21716`)
 - Bug in ``roll_quantile`` caused a memory leak when calling ``.rolling(...).quantile(q)`` with ``q`` in (0,1) (:issue:`21965`)

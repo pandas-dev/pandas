@@ -1,15 +1,11 @@
 import numpy as np
 
-from pandas.compat import reduce
-
 from pandas.core.dtypes.common import is_list_like
-
-from pandas.core import common as com
 
 
 def cartesian_product(X):
     """
-    Numpy version of itertools.product or pandas.compat.product.
+    Numpy version of itertools.product.
     Sometimes faster (for large inputs)...
 
     Parameters
@@ -23,14 +19,12 @@ def cartesian_product(X):
     Examples
     --------
     >>> cartesian_product([list('ABC'), [1, 2]])
-    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
-    array([1, 2, 1, 2, 1, 2])]
+    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='<U1'), array([1, 2, 1, 2, 1, 2])]
 
     See Also
     --------
     itertools.product : Cartesian product of input iterables.  Equivalent to
         nested for-loops.
-    pandas.compat.product : An alias for itertools.product.
     """
     msg = "Input must be a list-like of list-likes"
     if not is_list_like(X):
@@ -54,17 +48,20 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [np.tile(np.repeat(np.asarray(com.values_from_object(x)), b[i]),
-                    np.product(a[i]))
-            for i, x in enumerate(X)]
+    return [_tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
 
 
-def _compose2(f, g):
-    """Compose 2 callables"""
-    return lambda *args, **kwargs: f(g(*args, **kwargs))
+def _tile_compat(arr, num: int):
+    """
+    Index compat for np.tile.
 
+    Notes
+    -----
+    Does not support multi-dimensional `num`.
+    """
+    if isinstance(arr, np.ndarray):
+        return np.tile(arr, num)
 
-def compose(*funcs):
-    """Compose 2 or more callables"""
-    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
-    return reduce(_compose2, funcs)
+    # Otherwise we have an Index
+    taker = np.tile(np.arange(len(arr)), num)
+    return arr.take(taker)

@@ -1,18 +1,19 @@
-# -*- coding: utf-8 -*-
+from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
-from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
-                      PyUnicode_AsASCIIString)
-
-from cpython.datetime cimport (datetime, date,
-                               PyDateTime_IMPORT,
-                               PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
-                               PyDateTime_GET_DAY, PyDateTime_DATE_GET_HOUR,
-                               PyDateTime_DATE_GET_MINUTE,
-                               PyDateTime_DATE_GET_SECOND,
-                               PyDateTime_DATE_GET_MICROSECOND)
+from cpython.datetime cimport (
+    PyDateTime_DATE_GET_HOUR,
+    PyDateTime_DATE_GET_MICROSECOND,
+    PyDateTime_DATE_GET_MINUTE,
+    PyDateTime_DATE_GET_SECOND,
+    PyDateTime_GET_DAY,
+    PyDateTime_GET_MONTH,
+    PyDateTime_GET_YEAR,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from numpy cimport int64_t
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
@@ -33,7 +34,7 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    int parse_iso_8601_datetime(char *str, int len,
+    int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
@@ -66,15 +67,6 @@ cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
 
 # ----------------------------------------------------------------------
 # Comparison
-
-cdef int reverse_ops[6]
-
-reverse_ops[Py_LT] = Py_GT
-reverse_ops[Py_LE] = Py_GE
-reverse_ops[Py_EQ] = Py_EQ
-reverse_ops[Py_NE] = Py_NE
-reverse_ops[Py_GT] = Py_LT
-reverse_ops[Py_GE] = Py_LE
 
 
 cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
@@ -114,11 +106,9 @@ cdef inline check_dts_bounds(npy_datetimestruct *dts):
         error = True
 
     if error:
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-        raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: {fmt}'.format(fmt=fmt))
+        fmt = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
+               f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
+        raise OutOfBoundsDatetime(f'Out of bounds nanosecond timestamp: {fmt}')
 
 
 # ----------------------------------------------------------------------
@@ -171,33 +161,13 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
-                               int* out_local, int* out_tzoffset) except? -1:
+cdef inline int _string_to_dts(str val, npy_datetimestruct* dts,
+                               int* out_local, int* out_tzoffset,
+                               bint want_exc) except? -1:
     cdef:
-        int result
-        char *tmp
+        Py_ssize_t length
+        const char* buf
 
-    if isinstance(val, unicode):
-        val = PyUnicode_AsASCIIString(val)
-
-    tmp = val
-    result = _cstring_to_dts(tmp, len(val), dts, out_local, out_tzoffset)
-
-    if result == -1:
-        raise ValueError('Unable to parse %s' % str(val))
-    return result
-
-
-cdef inline int _cstring_to_dts(char *val, int length,
-                                npy_datetimestruct* dts,
-                                int* out_local, int* out_tzoffset) except? -1:
-    # Note: without this "extra layer" between _string_to_dts
-    # and parse_iso_8601_datetime, calling _string_to_dts raises
-    # `SystemError: <class 'str'> returned a result with an error set`
-    # in Python3
-    cdef:
-        int result
-
-    result = parse_iso_8601_datetime(val, length,
-                                     dts, out_local, out_tzoffset)
-    return result
+    buf = get_c_string_buf_and_size(val, &length)
+    return parse_iso_8601_datetime(buf, length, want_exc,
+                                   dts, out_local, out_tzoffset)

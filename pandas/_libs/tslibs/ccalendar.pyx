@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module
@@ -9,6 +8,8 @@ import cython
 from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
+
+from pandas._config.localization import set_locale
 from pandas._libs.tslibs.strptime import LocaleTime
 
 # ----------------------------------------------------------------------
@@ -39,6 +40,7 @@ MONTHS_FULL = ['', 'January', 'February', 'March', 'April', 'May', 'June',
                'July', 'August', 'September', 'October', 'November',
                'December']
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
+cdef dict c_MONTH_NUMBERS = MONTH_NUMBERS
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
 MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
@@ -51,13 +53,17 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 DAY_SECONDS = 86400
 HOUR_SECONDS = 3600
 
+cdef int64_t DAY_NANOS = DAY_SECONDS * 1_000_000_000
+cdef int64_t HOUR_NANOS = HOUR_SECONDS * 1_000_000_000
+
 # ----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
-    """Return the number of days in the given month of the given year.
+    """
+    Return the number of days in the given month of the given year.
 
     Parameters
     ----------
@@ -80,7 +86,8 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 @cython.boundscheck(False)
 @cython.cdivision
 cdef int dayofweek(int y, int m, int d) nogil:
-    """Find the day of week for the date described by the Y/M/D triple y, m, d
+    """
+    Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
 
     0 represents Monday.  See [1]_.
@@ -116,7 +123,8 @@ cdef int dayofweek(int y, int m, int d) nogil:
 
 
 cdef bint is_leapyear(int64_t year) nogil:
-    """Returns 1 if the given year is a leap year, 0 otherwise.
+    """
+    Returns 1 if the given year is a leap year, 0 otherwise.
 
     Parameters
     ----------
@@ -133,7 +141,8 @@ cdef bint is_leapyear(int64_t year) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
-    """Return the ordinal week-of-year for the given day.
+    """
+    Return the ordinal week-of-year for the given day.
 
     Parameters
     ----------
@@ -149,35 +158,68 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     -----
     Assumes the inputs describe a valid date.
     """
+    return get_iso_calendar(year, month, day)[1]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
+    """
+    Return the year, week, and day of year corresponding to ISO 8601
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+
+    Returns
+    -------
+    year : int32_t
+    week : int32_t
+    day : int32_t
+
+    Notes
+    -----
+    Assumes the inputs describe a valid date.
+    """
     cdef:
         int32_t doy, dow
-        int woy
+        int32_t iso_year, iso_week
 
     doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
 
     # estimate
-    woy = (doy - 1) - dow + 3
-    if woy >= 0:
-        woy = woy / 7 + 1
+    iso_week = (doy - 1) - dow + 3
+    if iso_week >= 0:
+        iso_week = iso_week // 7 + 1
 
     # verify
-    if woy < 0:
-        if (woy > -2) or (woy == -2 and is_leapyear(year - 1)):
-            woy = 53
+    if iso_week < 0:
+        if (iso_week > -2) or (iso_week == -2 and is_leapyear(year - 1)):
+            iso_week = 53
         else:
-            woy = 52
-    elif woy == 53:
+            iso_week = 52
+    elif iso_week == 53:
         if 31 - day + dow < 3:
-            woy = 1
+            iso_week = 1
 
-    return woy
+    iso_year = year
+    if iso_week == 1 and doy > 7:
+        iso_year += 1
+
+    elif iso_week >= 52 and doy < 7:
+        iso_year -= 1
+
+    return iso_year, iso_week, dow + 1
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
-    """Return the ordinal day-of-year for the given day.
+    """
+    Return the ordinal day-of-year for the given day.
 
     Parameters
     ----------
@@ -206,8 +248,9 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     return day_of_year
 
 
-cpdef get_locale_names(object name_type, object locale=None):
-    """Returns an array of localized day or month names
+def get_locale_names(name_type: str, locale: object = None):
+    """
+    Returns an array of localized day or month names.
 
     Parameters
     ----------
@@ -218,9 +261,6 @@ cpdef get_locale_names(object name_type, object locale=None):
     Returns
     -------
     list of locale names
-
     """
-    from pandas.util.testing import set_locale
-
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)

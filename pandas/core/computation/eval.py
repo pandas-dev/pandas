@@ -1,67 +1,70 @@
-#!/usr/bin/env python
-
-"""Top level ``eval`` module.
+"""
+Top level ``eval`` module.
 """
 
 import tokenize
+from typing import Optional
 import warnings
 
-from pandas.compat import string_types
+from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.scope import _ensure_scope
+from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.parsing import tokenize_string
+from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
-    """Make sure a valid engine is passed.
+def _check_engine(engine: Optional[str]) -> str:
+    """
+    Make sure a valid engine is passed.
 
     Parameters
     ----------
     engine : str
+        String to validate.
 
     Raises
     ------
     KeyError
-      * If an invalid engine is passed
+      * If an invalid engine is passed.
     ImportError
-      * If numexpr was requested but doesn't exist
+      * If numexpr was requested but doesn't exist.
 
     Returns
     -------
-    string engine
-
+    str
+        Engine name.
     """
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
     if engine is None:
-        if _NUMEXPR_INSTALLED:
-            engine = 'numexpr'
-        else:
-            engine = 'python'
+        engine = "numexpr" if _NUMEXPR_INSTALLED else "python"
 
     if engine not in _engines:
-        valid = list(_engines.keys())
-        raise KeyError('Invalid engine {engine!r} passed, valid engines are'
-                       ' {valid}'.format(engine=engine, valid=valid))
+        valid_engines = list(_engines.keys())
+        raise KeyError(
+            f"Invalid engine '{engine}' passed, valid engines are {valid_engines}"
+        )
 
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == 'numexpr':
+    if engine == "numexpr":
         if not _NUMEXPR_INSTALLED:
-            raise ImportError("'numexpr' is not installed or an "
-                              "unsupported version. Cannot use "
-                              "engine='numexpr' for query/eval "
-                              "if 'numexpr' is not installed")
+            raise ImportError(
+                "'numexpr' is not installed or an unsupported version. Cannot use "
+                "engine='numexpr' for query/eval if 'numexpr' is not installed"
+            )
 
     return engine
 
 
-def _check_parser(parser):
-    """Make sure a valid parser is passed.
+def _check_parser(parser: str):
+    """
+    Make sure a valid parser is passed.
 
     Parameters
     ----------
@@ -72,24 +75,26 @@ def _check_parser(parser):
     KeyError
       * If an invalid parser is passed
     """
-    from pandas.core.computation.expr import _parsers
-
     if parser not in _parsers:
-        raise KeyError('Invalid parser {parser!r} passed, valid parsers are'
-                       ' {valid}'.format(parser=parser, valid=_parsers.keys()))
+        raise KeyError(
+            f"Invalid parser '{parser}' passed, valid parsers are {_parsers.keys()}"
+        )
 
 
 def _check_resolvers(resolvers):
     if resolvers is not None:
         for resolver in resolvers:
-            if not hasattr(resolver, '__getitem__'):
+            if not hasattr(resolver, "__getitem__"):
                 name = type(resolver).__name__
-                raise TypeError('Resolver of type {name!r} does not implement '
-                                'the __getitem__ method'.format(name=name))
+                raise TypeError(
+                    f"Resolver of type '{name}' does not "
+                    "implement the __getitem__ method"
+                )
 
 
 def _check_expression(expr):
-    """Make sure an expression is not an empty string
+    """
+    Make sure an expression is not an empty string
 
     Parameters
     ----------
@@ -105,10 +110,11 @@ def _check_expression(expr):
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr):
-    """Convert an object to an expression.
+def _convert_expression(expr) -> str:
+    """
+    Convert an object to an expression.
 
-    Thus function converts an object to an expression (a unicode string) and
+    This function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
     convert operators to their string representation for recursive calls to
     :func:`~pandas.eval`.
@@ -120,7 +126,7 @@ def _convert_expression(expr):
 
     Returns
     -------
-    s : unicode
+    str
         The string representation of an object.
 
     Raises
@@ -133,30 +139,39 @@ def _convert_expression(expr):
     return s
 
 
-def _check_for_locals(expr, stack_level, parser):
-    from pandas.core.computation.expr import tokenize_string
+def _check_for_locals(expr: str, stack_level: int, parser: str):
 
     at_top_of_stack = stack_level == 0
-    not_pandas_parser = parser != 'pandas'
+    not_pandas_parser = parser != "pandas"
 
     if not_pandas_parser:
         msg = "The '@' prefix is only supported by the pandas parser"
     elif at_top_of_stack:
-        msg = ("The '@' prefix is not allowed in "
-               "top-level eval calls, \nplease refer to "
-               "your variables by name without the '@' "
-               "prefix")
+        msg = (
+            "The '@' prefix is not allowed in top-level eval calls.\n"
+            "please refer to your variables by name without the '@' prefix."
+        )
 
     if at_top_of_stack or not_pandas_parser:
         for toknum, tokval in tokenize_string(expr):
-            if toknum == tokenize.OP and tokval == '@':
+            if toknum == tokenize.OP and tokval == "@":
                 raise SyntaxError(msg)
 
 
-def eval(expr, parser='pandas', engine=None, truediv=True,
-         local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False):
-    """Evaluate a Python expression as a string using various backends.
+def eval(
+    expr,
+    parser="pandas",
+    engine: Optional[str] = None,
+    truediv=no_default,
+    local_dict=None,
+    global_dict=None,
+    resolvers=(),
+    level=0,
+    target=None,
+    inplace=False,
+):
+    """
+    Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
     ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following
@@ -169,20 +184,20 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     Parameters
     ----------
-    expr : str or unicode
+    expr : str
         The expression to evaluate. This string cannot contain any Python
         `statements
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
         <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
-    parser : string, default 'pandas', {'pandas', 'python'}
+    parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
         Python. Alternatively, you can parse an expression using the
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : string or None, default 'numexpr', {'python', 'numexpr'}
+    engine : {'python', 'numexpr'}, default 'numexpr'
 
         The engine used to evaluate the expression. Supported engines are
 
@@ -196,7 +211,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         More backends may be available in the future.
 
     truediv : bool, optional
-        Whether to use true division, like in Python >= 3
+        Whether to use true division, like in Python >= 3.
+        deprecated:: 1.0.0
+
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional
@@ -205,7 +222,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         A list of objects implementing the ``__getitem__`` special method that
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
-        :meth:`~pandas.DataFrame.query` method to inject the
+        :meth:`~DataFrame.query` method to inject the
         ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
@@ -248,8 +265,10 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See Also
     --------
-    pandas.DataFrame.query
-    pandas.DataFrame.eval
+    DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+    DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
     Notes
     -----
@@ -258,21 +277,49 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
-    """
-    from pandas.core.computation.expr import Expr
 
+    Examples
+    --------
+    >>> df = pd.DataFrame({"animal": ["dog", "pig"], "age": [10, 20]})
+    >>> df
+      animal  age
+    0    dog   10
+    1    pig   20
+
+    We can add a new column using ``pd.eval``:
+
+    >>> pd.eval("double_age = df.age * 2", target=df)
+      animal  age  double_age
+    0    dog   10          20
+    1    pig   20          40
+    """
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if isinstance(expr, string_types):
+    if truediv is not no_default:
+        warnings.warn(
+            (
+                "The `truediv` parameter in pd.eval is deprecated and "
+                "will be removed in a future version."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if isinstance(expr, str):
         _check_expression(expr)
-        exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
+        exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
     else:
         exprs = [expr]
     multi_line = len(exprs) > 1
 
     if multi_line and target is None:
-        raise ValueError("multi-line expressions are only valid in the "
-                         "context of data, use DataFrame.eval")
+        raise ValueError(
+            "multi-line expressions are only valid in the "
+            "context of data, use DataFrame.eval"
+        )
+    engine = _check_engine(engine)
+    _check_parser(parser)
+    _check_resolvers(resolvers)
 
     ret = None
     first_expr = True
@@ -280,18 +327,18 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     for expr in exprs:
         expr = _convert_expression(expr)
-        engine = _check_engine(engine)
-        _check_parser(parser)
-        _check_resolvers(resolvers)
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope
-        env = _ensure_scope(level + 1, global_dict=global_dict,
-                            local_dict=local_dict, resolvers=resolvers,
-                            target=target)
+        env = ensure_scope(
+            level + 1,
+            global_dict=global_dict,
+            local_dict=local_dict,
+            resolvers=resolvers,
+            target=target,
+        )
 
-        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env,
-                           truediv=truediv)
+        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]
@@ -300,11 +347,12 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
         if parsed_expr.assigner is None:
             if multi_line:
-                raise ValueError("Multi-line expressions are only valid"
-                                 " if all expressions contain an assignment")
+                raise ValueError(
+                    "Multi-line expressions are only valid "
+                    "if all expressions contain an assignment"
+                )
             elif inplace:
-                raise ValueError("Cannot operate inplace "
-                                 "if there is no assignment")
+                raise ValueError("Cannot operate inplace if there is no assignment")
 
         # assign if needed
         assigner = parsed_expr.assigner
@@ -315,8 +363,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
             if not inplace and first_expr:
                 try:
                     target = env.target.copy()
-                except AttributeError:
-                    raise ValueError("Cannot return a copy of the target")
+                except AttributeError as err:
+                    raise ValueError("Cannot return a copy of the target") from err
             else:
                 target = env.target
 
@@ -328,8 +376,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
-            except (TypeError, IndexError):
-                raise ValueError("Cannot assign expression output to target")
+            except (TypeError, IndexError) as err:
+                raise ValueError("Cannot assign expression output to target") from err
 
             if not resolvers:
                 resolvers = ({assigner: ret},)

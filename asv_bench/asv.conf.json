@@ -7,7 +7,7 @@
     "project": "pandas",
 
     // The project's homepage
-    "project_url": "http://pandas.pydata.org/",
+    "project_url": "https://pandas.pydata.org/",
 
     // The URL of the source code repository for the project being
     // benchmarked
@@ -39,10 +39,11 @@
     // followed by the pip installed packages).
     "matrix": {
         "numpy": [],
-        "Cython": [],
+        "Cython": ["0.29.16"],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
+        "numba": [],
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
@@ -50,12 +51,13 @@
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
+        "odfpy": [],
         "pytest": [],
         // If using Windows with python 2.7 and want to build using the
         // mingw toolchain (rather than MSVC), uncomment the following line.
         // "libpython": [],
     },
-
+    "conda_channels": ["defaults", "conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
@@ -107,7 +109,7 @@
     // `asv` will cache wheels of the recent builds in each
     // environment, making them faster to install next time.  This is
     // number of builds to keep, per environment.
-    "wheel_cache_size": 8,
+    "build_cache_size": 8,
 
     // The commits after which the regression search in `asv publish`
     // should start looking for regressions. Dictionary whose keys are
@@ -118,9 +120,11 @@
     // skipped for the matching benchmark.
     //
     "regressions_first_commits": {
-        ".*": "v0.20.0"
+        ".*": "0409521665"
     },
     "regression_thresholds": {
-        ".*": 0.05
-    }
+    },
+    "build_command":
+    ["python setup.py build -j4",
+     "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }

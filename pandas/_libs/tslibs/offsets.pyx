@@ -1,11 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import cython
 
 import time
+from typing import Any
+import warnings
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
-                               datetime, timedelta,
+                               PyDate_Check,
+                               PyDelta_Check,
+                               datetime, timedelta, date,
                                time as dt_time)
 PyDateTime_IMPORT
 
@@ -16,21 +18,32 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+# TODO: formalize having _libs.properties "above" tslibs in the dependency structure
+from pandas._libs.properties import cache_readonly
 
-from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs cimport util
+from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 
-from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.base cimport ABCTimestamp
+
+from pandas._libs.tslibs.ccalendar import (
+    MONTHS, DAYS, MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, pydt_to_i8, localize_pydatetime)
-from pandas._libs.tslibs.nattype cimport NPY_NAT
+    convert_datetime_to_tsobject,
+    localize_pydatetime,
+)
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
+from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+
+from .timedeltas cimport delta_to_nanoseconds
 
 # ---------------------------------------------------------------------
 # Constants
-
 
 _offset_to_period_map = {
     'WEEKDAY': 'D',
@@ -65,43 +78,52 @@ need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
 for __prefix in need_suffix:
     for _m in MONTHS:
-        key = '%s-%s' % (__prefix, _m)
+        key = f'{__prefix}-{_m}'
         _offset_to_period_map[key] = _offset_to_period_map[__prefix]
 
 for __prefix in ['A', 'Q']:
     for _m in MONTHS:
-        _alias = '%s-%s' % (__prefix, _m)
+        _alias = f'{__prefix}-{_m}'
         _offset_to_period_map[_alias] = _alias
 
 for _d in DAYS:
-    _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
+    _offset_to_period_map[f'W-{_d}'] = f'W-{_d}'
 
 
 # ---------------------------------------------------------------------
 # Misc Helpers
+
+cdef bint is_offset_object(object obj):
+    return isinstance(obj, BaseOffset)
+
+
+cdef bint is_tick_object(object obj):
+    return isinstance(obj, Tick)
+
 
 cdef to_offset(object obj):
     """
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
-    if isinstance(obj, _BaseOffset):
+    if isinstance(obj, BaseOffset):
         return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
 
 
-def as_datetime(obj):
-    f = getattr(obj, 'to_pydatetime', None)
-    if f is not None:
-        obj = f()
+cdef datetime _as_datetime(datetime obj):
+    if isinstance(obj, ABCTimestamp):
+        return obj.to_pydatetime()
     return obj
 
 
-cpdef bint _is_normalized(dt):
-    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
-            dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
+cpdef bint is_normalized(datetime dt):
+    if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
+        # Regardless of whether dt is datetime vs Timestamp
         return False
+    if isinstance(dt, ABCTimestamp):
+        return dt.nanosecond == 0
     return True
 
 
@@ -109,7 +131,18 @@ def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other):
-        result = func(self, other)
+
+        is_index = not util.is_array(other._data)
+
+        # operate on DatetimeArray
+        arr = other._data if is_index else other
+
+        result = func(self, arr)
+
+        if is_index:
+            # Wrap DatetimeArray result back to DatetimeIndex
+            result = type(other)._simple_new(result, name=other.name)
+
         if self.normalize:
             result = result.to_period('D').to_timestamp()
         return result
@@ -125,6 +158,86 @@ def apply_index_wraps(func):
         pass
     return wrapper
 
+
+def apply_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely with cython class methods
+
+    def wrapper(self, other):
+        from pandas import Timestamp
+
+        if other is NaT:
+            return NaT
+        elif isinstance(other, BaseOffset) or PyDelta_Check(other):
+            # timedelta path
+            return func(self, other)
+        elif is_datetime64_object(other) or PyDate_Check(other):
+            # PyDate_Check includes date, datetime
+            other = Timestamp(other)
+        else:
+            # This will end up returning NotImplemented back in __add__
+            raise ApplyTypeError
+
+        tz = other.tzinfo
+        nano = other.nanosecond
+
+        if self._adjust_dst:
+            other = other.tz_localize(None)
+
+        result = func(self, other)
+
+        result = Timestamp(result)
+        if self._adjust_dst:
+            result = result.tz_localize(tz)
+
+        if self.normalize:
+            result = result.normalize()
+
+        # nanosecond may be deleted depending on offset process
+        if not self.normalize and nano != 0:
+            if result.nanosecond != nano:
+                if result.tz is not None:
+                    # convert to UTC
+                    value = result.tz_localize(None).value
+                else:
+                    value = result.value
+                result = Timestamp(value + nano)
+
+        if tz is not None and result.tzinfo is None:
+            result = result.tz_localize(tz)
+
+        return result
+
+    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    try:
+        wrapper.__module__ = func.__module__
+    except AttributeError:
+        # AttributeError: 'method_descriptor' object has no
+        # attribute '__module__'
+        pass
+    return wrapper
+
+
+cdef _wrap_timedelta_result(result):
+    """
+    Tick operations dispatch to their Timedelta counterparts.  Wrap the result
+    of these operations in a Tick if possible.
+
+    Parameters
+    ----------
+    result : object
+
+    Returns
+    -------
+    object
+    """
+    if PyDelta_Check(result):
+        # convert Timedelta back to a Tick
+        return delta_to_tick(result)
+
+    return result
 
 # ---------------------------------------------------------------------
 # Business Helpers
@@ -194,7 +307,7 @@ def _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64(dt, dtype='datetime64[D]') for dt in holidays]
+    holidays = [to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
     kwargs = {'weekmask': weekmask}
@@ -205,19 +318,22 @@ def _get_calendar(weekmask, holidays, calendar):
     return busdaycalendar, holidays
 
 
-def _to_dt64(dt, dtype='datetime64'):
+def to_dt64D(dt):
     # Currently
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
     # Thus astype is needed to cast datetime to datetime64[D]
     if getattr(dt, 'tzinfo', None) is not None:
-        i8 = pydt_to_i8(dt)
+        # Get the nanosecond timestamp,
+        #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
+        nanos = getattr(dt, "nanosecond", 0)
+        i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
         dt = tz_convert_single(i8, UTC, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
-    if dt.dtype.name != dtype:
-        dt = dt.astype(dtype)
+    if dt.dtype.name != "datetime64[D]":
+        dt = dt.astype("datetime64[D]")
     return dt
 
 
@@ -226,7 +342,7 @@ def _to_dt64(dt, dtype='datetime64'):
 
 
 def _validate_business_time(t_input):
-    if is_string_object(t_input):
+    if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
             return dt_time(hour=t.tm_hour, minute=t.tm_min)
@@ -244,10 +360,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
-                      'day', 'weekday', 'hour', 'minute', 'second',
-                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
-                      'minutes', 'seconds', 'microseconds'}
+_relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
+                       "day", "weekday", "hour", "minute", "second",
+                       "microsecond", "nanosecond", "nanoseconds", "hours",
+                       "minutes", "seconds", "microseconds"}
 
 
 def _determine_offset(kwds):
@@ -289,7 +405,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset(object):
+cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -297,18 +413,23 @@ class _BaseOffset(object):
     _typ = "dateoffset"
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
+    _use_relativedelta = False
+    _adjust_dst = True
+    _deprecations = frozenset(["isAnchored", "onOffset"])
+
+    cdef readonly:
+        int64_t n
+        bint normalize
+        dict _cache
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
-        object.__setattr__(self, "n", n)
-        object.__setattr__(self, "normalize", normalize)
-        object.__setattr__(self, "_cache", {})
+        self.n = n
+        self.normalize = normalize
+        self._cache = {}
 
-    def __setattr__(self, name, value):
-        raise AttributeError("DateOffset objects are immutable.")
-
-    def __eq__(self, other):
-        if is_string_object(other):
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True
@@ -328,21 +449,29 @@ class _BaseOffset(object):
     def __hash__(self):
         return hash(self._params)
 
-    @property
+    @cache_readonly
     def _params(self):
         """
         Returns a tuple containing all of the attributes needed to evaluate
         equality between two DateOffset objects.
         """
         # NB: non-cython subclasses override property with cache_readonly
-        all_paras = self.__dict__.copy()
+        d = getattr(self, "__dict__", {})
+        all_paras = d.copy()
+        all_paras["n"] = self.n
+        all_paras["normalize"] = self.normalize
+        for attr in self._attributes:
+            if hasattr(self, attr) and attr not in d:
+                # cython attributes are not in __dict__
+                all_paras[attr] = getattr(self, attr)
+
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'calendar']
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
+        params = tuple([str(type(self))] + attrs)
         return params
 
     @property
@@ -361,11 +490,9 @@ class _BaseOffset(object):
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
-                                            "datetimearray", "periodarray",
-                                            "series", "period", "dataframe"]:
-            # defer to the other class's implementation
-            return other + self
+        if not isinstance(self, BaseOffset):
+            # cython semantics; this is __radd__
+            return other.__add__(self)
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -377,27 +504,46 @@ class _BaseOffset(object):
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
+        elif not isinstance(self, BaseOffset):
+            # cython semantics, this is __rsub__
+            return (-other).__add__(self)
         else:  # pragma: no cover
             return NotImplemented
 
     def __call__(self, other):
+        warnings.warn(
+            "DateOffset.__call__ is deprecated and will be removed in a future "
+            "version.  Use `offset + other` instead.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.apply(other)
 
     def __mul__(self, other):
-        return type(self)(n=other * self.n, normalize=self.normalize,
-                          **self.kwds)
+        if util.is_array(other):
+            return np.array([self * x for x in other])
+        elif is_integer_object(other):
+            return type(self)(n=other * self.n, normalize=self.normalize,
+                              **self.kwds)
+        elif not isinstance(self, BaseOffset):
+            # cython semantics, this is __rmul__
+            return other.__mul__(self)
+        return NotImplemented
 
     def __neg__(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * -1
 
     def copy(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
-    def __repr__(self):
+    # ------------------------------------------------------------------
+    # Name and Rendering Methods
+
+    def __repr__(self) -> str:
         className = getattr(self, '_outputName', type(self).__name__)
 
         if abs(self.n) != 1:
@@ -407,19 +553,140 @@ class _BaseOffset(object):
 
         n_str = ""
         if self.n != 1:
-            n_str = "%s * " % self.n
+            n_str = f"{self.n} * "
 
-        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
         return out
+
+    def _repr_attrs(self) -> str:
+        exclude = {"n", "inc", "normalize"}
+        attrs = []
+        for attr in sorted(self._attributes):
+            # _attributes instead of __dict__ because cython attrs are not in __dict__
+            if attr.startswith("_") or attr == "kwds" or not hasattr(self, attr):
+                # DateOffset may not have some of these attributes
+                continue
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append(f"{attr}={value}")
+
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+    @property
+    def name(self) -> str:
+        return self.rule_code
+
+    @property
+    def _prefix(self) -> str:
+        raise NotImplementedError("Prefix not defined")
+
+    @property
+    def rule_code(self) -> str:
+        return self._prefix
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        try:
+            code = self.rule_code
+        except NotImplementedError:
+            return str(repr(self))
+
+        if self.n != 1:
+            fstr = f"{self.n}{code}"
+        else:
+            fstr = code
+
+        try:
+            if self._offset:
+                fstr += self._offset_str()
+        except AttributeError:
+            # TODO: standardize `_offset` vs `offset` naming convention
+            pass
+
+        return fstr
+
+    def _offset_str(self) -> str:
+        return ""
+
+    # ------------------------------------------------------------------
+
+    @apply_index_wraps
+    def apply_index(self, index):
+        """
+        Vectorized apply of DateOffset to DatetimeIndex,
+        raises NotImplementedError for offsets without a
+        vectorized implementation.
+
+        Parameters
+        ----------
+        index : DatetimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        raise NotImplementedError(
+            f"DateOffset subclass {type(self).__name__} "
+            "does not have a vectorized implementation"
+        )
+
+    def rollback(self, dt):
+        """
+        Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
+        """
+        from pandas import Timestamp
+        dt = Timestamp(dt)
+        if not self.is_on_offset(dt):
+            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
+        return dt
+
+    def rollforward(self, dt):
+        """
+        Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
+        """
+        from pandas import Timestamp
+        dt = Timestamp(dt)
+        if not self.is_on_offset(dt):
+            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
+        return dt
 
     def _get_offset_day(self, datetime other):
         # subclass must implement `_day_opt`; calling from the base class
         # will raise NotImplementedError.
         return get_day_of_month(other, self._day_opt)
 
-    def _validate_n(self, n):
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+
+        # Default (slow) method for determining if some date is a member of the
+        # date range generated by this offset. Subclasses may have this
+        # re-implemented in a nicer way.
+        a = dt
+        b = (dt + self) - self
+        return a == b
+
+    # ------------------------------------------------------------------
+
+    # Staticmethod so we can call from Tick.__init__, will be unnecessary
+    #  once BaseOffset is a cdef class and is inherited by Tick
+    @staticmethod
+    def _validate_n(n):
         """
-        Require that `n` be a nonzero integer.
+        Require that `n` be an integer.
 
         Parameters
         ----------
@@ -434,18 +701,27 @@ class _BaseOffset(object):
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
+        if util.is_timedelta64_object(n):
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         try:
             nint = int(n)
         except (ValueError, TypeError):
-            raise TypeError('`n` argument must be an integer, '
-                            'got {ntype}'.format(ntype=type(n)))
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         if n != nint:
-            raise ValueError('`n` argument must be an integer, '
-                             'got {n}'.format(n=n))
+            raise ValueError(f'`n` argument must be an integer, got {n}')
         return nint
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
+        if isinstance(self, MonthOffset):
+            # We can't just override MonthOffset.__setstate__ because of the
+            #  combination of MRO resolution and cython not handling
+            #  multiple inheritance nicely for cdef classes.
+            state.pop("_use_relativedelta", False)
+            state.pop("offset", None)
+            state.pop("_offset", None)
+            state.pop("kwds", {})
+
         if 'offset' in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
             if '_offset' in state:  # pragma: no cover
@@ -460,24 +736,34 @@ class _BaseOffset(object):
             kwds = {key: odict[key] for key in odict if odict[key]}
             state.update(kwds)
 
-        if '_cache' not in state:
-            state['_cache'] = {}
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
+
+        if not len(state):
+            # FIXME: kludge because some classes no longer have a __dict__,
+            #  so we need to short-circuit before raising on the next line
+            return
 
         self.__dict__.update(state)
 
         if 'weekmask' in state and 'holidays' in state:
-            calendar, holidays = _get_calendar(weekmask=self.weekmask,
-                                               holidays=self.holidays,
+            weekmask = state.pop("weekmask")
+            holidays = state.pop("holidays")
+            calendar, holidays = _get_calendar(weekmask=weekmask,
+                                               holidays=holidays,
                                                calendar=None)
-            object.__setattr__(self, "calendar", calendar)
-            object.__setattr__(self, "holidays", holidays)
+            self.calendar = calendar
+            self.holidays = holidays
 
     def __getstate__(self):
         """Return a pickleable state"""
-        state = self.__dict__.copy()
+        state = getattr(self, "__dict__", {}).copy()
+        state["n"] = self.n
+        state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
+        # as its a np.busyday; we recreate on deserialization
         if 'calendar' in state:
             del state['calendar']
         try:
@@ -487,28 +773,896 @@ class _BaseOffset(object):
 
         return state
 
+    @property
+    def nanos(self):
+        raise ValueError(f"{self} is a non-fixed frequency")
 
-class BaseOffset(_BaseOffset):
-    # Here we add __rfoo__ methods that don't play well with cdef classes
-    def __rmul__(self, other):
-        return self.__mul__(other)
+    def onOffset(self, dt) -> bool:
+        warnings.warn(
+            "onOffset is a deprecated, use is_on_offset instead",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self.is_on_offset(dt)
 
-    def __radd__(self, other):
-        return self.__add__(other)
+    def isAnchored(self) -> bool:
+        warnings.warn(
+            "isAnchored is a deprecated, use is_anchored instead",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self.is_anchored()
 
-    def __rsub__(self, other):
-        if getattr(other, '_typ', None) in ['datetimeindex', 'series']:
-            # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
-            return other - self
-        return -self + other
+    def is_anchored(self) -> bool:
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what is_anchored means.
+        return self.n == 1
 
 
-class _Tick(object):
+cdef class SingleConstructorOffset(BaseOffset):
+    @classmethod
+    def _from_name(cls, suffix=None):
+        # default _from_name calls cls with no args
+        if suffix:
+            raise ValueError(f"Bad freq suffix {suffix}")
+        return cls()
+
+
+# ---------------------------------------------------------------------
+# Tick Offsets
+
+cdef class Tick(SingleConstructorOffset):
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+    _adjust_dst = False
+    _prefix = "undefined"
+    _attributes = frozenset(["n", "normalize"])
+
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        self.n = n
+        self.normalize = False
+        self._cache = {}
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Tick offset with `normalize=True` are not allowed."
+            )
+
+    def _repr_attrs(self) -> str:
+        # Since cdef classes have no __dict__, we need to override
+        return ""
+
+    @property
+    def delta(self):
+        from .timedeltas import Timedelta
+        return self.n * Timedelta(self._nanos_inc)
+
+    @property
+    def nanos(self) -> int64_t:
+        return self.n * self._nanos_inc
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    def is_anchored(self) -> bool:
+        return False
+
+    # --------------------------------------------------------------------
+    # Comparison and Arithmetic Methods
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
+        return self.delta == other
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __le__(self, other):
+        return self.delta.__le__(other)
+
+    def __lt__(self, other):
+        return self.delta.__lt__(other)
+
+    def __ge__(self, other):
+        return self.delta.__ge__(other)
+
+    def __gt__(self, other):
+        return self.delta.__gt__(other)
+
+    def __truediv__(self, other):
+        if not isinstance(self, Tick):
+            # cython semantics mean the args are sometimes swapped
+            result = other.delta.__rtruediv__(self)
+        else:
+            result = self.delta.__truediv__(other)
+        return _wrap_timedelta_result(result)
+
+    def __add__(self, other):
+        if not isinstance(self, Tick):
+            # cython semantics; this is __radd__
+            return other.__add__(self)
+
+        if isinstance(other, Tick):
+            if type(self) == type(other):
+                return type(self)(self.n + other.n)
+            else:
+                return delta_to_tick(self.delta + other.delta)
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            # Includes pd.Period
+            return NotImplemented
+        except OverflowError as err:
+            raise OverflowError(
+                f"the add operation between {self} and {other} will overflow"
+            ) from err
+
+    def apply(self, other):
+        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
+        if isinstance(other, ABCTimestamp):
+
+            # GH#15126
+            # in order to avoid a recursive
+            # call of __add__ and __radd__ if there is
+            # an exception, when we call using the + operator,
+            # we directly call the known method
+            result = other.__add__(self)
+            if result is NotImplemented:
+                raise OverflowError
+            return result
+        elif other is NaT:
+            return NaT
+        elif is_datetime64_object(other) or PyDate_Check(other):
+            # PyDate_Check includes date, datetime
+            from pandas import Timestamp
+            return Timestamp(other) + self
+
+        if PyDelta_Check(other):
+            return other + self.delta
+        elif isinstance(other, type(self)):
+            # TODO: this is reached in tests that specifically call apply,
+            #  but should not be reached "naturally" because __add__ should
+            #  catch this case first.
+            return type(self)(self.n + other.n)
+
+        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
+
+    # --------------------------------------------------------------------
+    # Pickle Methods
+
+    def __reduce__(self):
+        return (type(self), (self.n,))
+
+    def __setstate__(self, state):
+        self.n = state["n"]
+        self.normalize = False
+
+
+cdef class Day(Tick):
+    _nanos_inc = 24 * 3600 * 1_000_000_000
+    _prefix = "D"
+
+
+cdef class Hour(Tick):
+    _nanos_inc = 3600 * 1_000_000_000
+    _prefix = "H"
+
+
+cdef class Minute(Tick):
+    _nanos_inc = 60 * 1_000_000_000
+    _prefix = "T"
+
+
+cdef class Second(Tick):
+    _nanos_inc = 1_000_000_000
+    _prefix = "S"
+
+
+cdef class Milli(Tick):
+    _nanos_inc = 1_000_000
+    _prefix = "L"
+
+
+cdef class Micro(Tick):
+    _nanos_inc = 1000
+    _prefix = "U"
+
+
+cdef class Nano(Tick):
+    _nanos_inc = 1
+    _prefix = "N"
+
+
+def delta_to_tick(delta: timedelta) -> Tick:
+    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
+        # nanoseconds only for pd.Timedelta
+        if delta.seconds == 0:
+            return Day(delta.days)
+        else:
+            seconds = delta.days * 86400 + delta.seconds
+            if seconds % 3600 == 0:
+                return Hour(seconds / 3600)
+            elif seconds % 60 == 0:
+                return Minute(seconds / 60)
+            else:
+                return Second(seconds)
+    else:
+        nanos = delta_to_nanoseconds(delta)
+        if nanos % 1_000_000 == 0:
+            return Milli(nanos // 1_000_000)
+        elif nanos % 1000 == 0:
+            return Micro(nanos // 1000)
+        else:  # pragma: no cover
+            return Nano(nanos)
+
+
+# --------------------------------------------------------------------
+
+class RelativeDeltaOffset(BaseOffset):
     """
-    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
-    can do isinstance checks on _Tick and avoid importing tseries.offsets
+    DateOffset subclass backed by a dateutil relativedelta object.
     """
-    pass
+    _attributes = frozenset(["n", "normalize"] + list(_relativedelta_kwds))
+    _adjust_dst = False
+
+    def __init__(self, n=1, normalize=False, **kwds):
+        BaseOffset.__init__(self, n, normalize)
+
+        off, use_rd = _determine_offset(kwds)
+        object.__setattr__(self, "_offset", off)
+        object.__setattr__(self, "_use_relativedelta", use_rd)
+        for key in kwds:
+            val = kwds[key]
+            object.__setattr__(self, key, val)
+
+    @apply_wraps
+    def apply(self, other):
+        if self._use_relativedelta:
+            other = _as_datetime(other)
+
+        if len(self.kwds) > 0:
+            tzinfo = getattr(other, "tzinfo", None)
+            if tzinfo is not None and self._use_relativedelta:
+                # perform calculation in UTC
+                other = other.replace(tzinfo=None)
+
+            if self.n > 0:
+                for i in range(self.n):
+                    other = other + self._offset
+            else:
+                for i in range(-self.n):
+                    other = other - self._offset
+
+            if tzinfo is not None and self._use_relativedelta:
+                # bring tz back from UTC calculation
+                other = localize_pydatetime(other, tzinfo)
+
+            from .timestamps import Timestamp
+            return Timestamp(other)
+        else:
+            return other + timedelta(self.n)
+
+    @apply_index_wraps
+    def apply_index(self, index):
+        """
+        Vectorized apply of DateOffset to DatetimeIndex,
+        raises NotImplementedError for offsets without a
+        vectorized implementation.
+
+        Parameters
+        ----------
+        index : DatetimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        kwds = self.kwds
+        relativedelta_fast = {
+            "years",
+            "months",
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "microseconds",
+        }
+        # relativedelta/_offset path only valid for base DateOffset
+        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+
+            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
+            if months:
+                shifted = shift_months(index.asi8, months)
+                index = type(index)(shifted, dtype=index.dtype)
+
+            weeks = kwds.get("weeks", 0) * self.n
+            if weeks:
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = index.to_period("W")
+                shifted = asper._time_shift(weeks)
+                index = shifted.to_timestamp() + index.to_perioddelta("W")
+
+            timedelta_kwds = {
+                k: v
+                for k, v in kwds.items()
+                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
+            }
+            if timedelta_kwds:
+                from .timedeltas import Timedelta
+                delta = Timedelta(**timedelta_kwds)
+                index = index + (self.n * delta)
+            return index
+        elif not self._use_relativedelta and hasattr(self, "_offset"):
+            # timedelta
+            return index + (self._offset * self.n)
+        else:
+            # relativedelta with other keywords
+            kwd = set(kwds) - relativedelta_fast
+            raise NotImplementedError(
+                "DateOffset with relativedelta "
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        # TODO: see GH#1395
+        return True
+
+
+# --------------------------------------------------------------------
+
+
+cdef class BusinessMixin(SingleConstructorOffset):
+    """
+    Mixin to business types to provide related functions.
+    """
+
+    cdef readonly:
+        timedelta _offset
+
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
+        BaseOffset.__init__(self, n, normalize)
+        self._offset = offset
+
+    @property
+    def offset(self):
+        """
+        Alias for self._offset.
+        """
+        # Alias for backward compat
+        return self._offset
+
+    def _repr_attrs(self) -> str:
+        if self.offset:
+            attrs = [f"offset={repr(self.offset)}"]
+        else:
+            attrs = []
+        out = ""
+        if attrs:
+            out += ": " + ", ".join(attrs)
+        return out
+
+    cpdef __setstate__(self, state):
+        # We need to use a cdef/cpdef method to set the readonly _offset attribute
+        if "_offset" in state:
+            self._offset = state.pop("_offset")
+        elif "offset" in state:
+            self._offset = state.pop("offset")
+        BaseOffset.__setstate__(self, state)
+
+
+cdef class BusinessHourMixin(BusinessMixin):
+    _adjust_dst = False
+
+    cdef readonly:
+        tuple start, end
+
+    def __init__(
+            self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
+        ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+
+        # must be validated here to equality check
+        if np.ndim(start) == 0:
+            # i.e. not is_list_like
+            start = [start]
+        if not len(start):
+            raise ValueError("Must include at least 1 start time")
+
+        if np.ndim(end) == 0:
+            # i.e. not is_list_like
+            end = [end]
+        if not len(end):
+            raise ValueError("Must include at least 1 end time")
+
+        start = np.array([_validate_business_time(x) for x in start])
+        end = np.array([_validate_business_time(x) for x in end])
+
+        # Validation of input
+        if len(start) != len(end):
+            raise ValueError("number of starting time and ending time must be the same")
+        num_openings = len(start)
+
+        # sort starting and ending time by starting time
+        index = np.argsort(start)
+
+        # convert to tuple so that start and end are hashable
+        start = tuple(start[index])
+        end = tuple(end[index])
+
+        total_secs = 0
+        for i in range(num_openings):
+            total_secs += self._get_business_hours_by_sec(start[i], end[i])
+            total_secs += self._get_business_hours_by_sec(
+                end[i], start[(i + 1) % num_openings]
+            )
+        if total_secs != 24 * 60 * 60:
+            raise ValueError(
+                "invalid starting and ending time(s): "
+                "opening hours should not touch or overlap with "
+                "one another"
+            )
+
+        self.start = start
+        self.end = end
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
+
+    def _repr_attrs(self) -> str:
+        out = super()._repr_attrs()
+        hours = ",".join(
+            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
+            for st, en in zip(self.start, self.end)
+        )
+        attrs = [f"{self._prefix}={hours}"]
+        out += ": " + ", ".join(attrs)
+        return out
+
+    def _get_business_hours_by_sec(self, start, end):
+        """
+        Return business hours in a day by seconds.
+        """
+        # create dummy datetime to calculate business hours in a day
+        dtstart = datetime(2014, 4, 1, start.hour, start.minute)
+        day = 1 if start < end else 2
+        until = datetime(2014, 4, day, end.hour, end.minute)
+        return int((until - dtstart).total_seconds())
+
+    def _get_closing_time(self, dt):
+        """
+        Get the closing time of a business hour interval by its opening time.
+
+        Parameters
+        ----------
+        dt : datetime
+            Opening time of a business hour interval.
+
+        Returns
+        -------
+        result : datetime
+            Corresponding closing time.
+        """
+        for i, st in enumerate(self.start):
+            if st.hour == dt.hour and st.minute == dt.minute:
+                return dt + timedelta(
+                    seconds=self._get_business_hours_by_sec(st, self.end[i])
+                )
+        assert False
+
+
+class CustomMixin:
+    """
+    Mixin for classes that define and validate calendar, holidays,
+    and weekdays attributes.
+    """
+
+    def __init__(self, weekmask, holidays, calendar):
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+
+        object.__setattr__(self, "weekmask", weekmask)
+        object.__setattr__(self, "holidays", holidays)
+        object.__setattr__(self, "calendar", calendar)
+
+
+cdef class WeekOfMonthMixin(SingleConstructorOffset):
+    """
+    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
+    """
+
+    cdef readonly:
+        int weekday
+
+    def __init__(self, n=1, normalize=False, weekday=0):
+        BaseOffset.__init__(self, n, normalize)
+        self.weekday = weekday
+
+        if weekday < 0 or weekday > 6:
+            raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
+
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, "start")
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+    @property
+    def rule_code(self) -> str:
+        weekday = int_to_weekday.get(self.weekday, "")
+        if self.week == -1:
+            # LastWeekOfMonth
+            return f"{self._prefix}-{weekday}"
+        return f"{self._prefix}-{self.week + 1}{weekday}"
+
+
+# ----------------------------------------------------------------------
+# Year-Based Offset Classes
+
+cdef class YearOffset(SingleConstructorOffset):
+    """
+    DateOffset that just needs a month.
+    """
+    _attributes = frozenset(["n", "normalize", "month"])
+
+    # _default_month: int  # FIXME: python annotation here breaks things
+
+    cdef readonly:
+        int month
+
+    def __init__(self, n=1, normalize=False, month=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        month = month if month is not None else self._default_month
+        self.month = month
+
+        if month < 1 or month > 12:
+            raise ValueError("Month must go from 1 to 12")
+
+    cpdef __setstate__(self, state):
+        self.month = state.pop("month")
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = {}
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.month)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["month"] = MONTH_TO_CAL_NUM[suffix]
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.month]
+        return f"{self._prefix}-{month}"
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.month == self.month and dt.day == self._get_offset_day(dt)
+
+    def _get_offset_day(self, other) -> int:
+        # override BaseOffset method to use self.month instead of other.month
+        # TODO: there may be a more performant way to do this
+        return get_day_of_month(
+            other.replace(month=self.month), self._day_opt
+        )
+
+    @apply_wraps
+    def apply(self, other):
+        years = roll_yearday(other, self.n, self.month, self._day_opt)
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_quarters(
+            dtindex.asi8, self.n, self.month, self._day_opt, modby=12
+        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
+cdef class BYearEnd(YearOffset):
+    """
+    DateOffset increments between business EOM dates.
+    """
+
+    _outputName = "BusinessYearEnd"
+    _default_month = 12
+    _prefix = "BA"
+    _day_opt = "business_end"
+
+
+cdef class BYearBegin(YearOffset):
+    """
+    DateOffset increments between business year begin dates.
+    """
+
+    _outputName = "BusinessYearBegin"
+    _default_month = 1
+    _prefix = "BAS"
+    _day_opt = "business_start"
+
+
+cdef class YearEnd(YearOffset):
+    """
+    DateOffset increments between calendar year ends.
+    """
+
+    _default_month = 12
+    _prefix = "A"
+    _day_opt = "end"
+
+
+cdef class YearBegin(YearOffset):
+    """
+    DateOffset increments between calendar year begin dates.
+    """
+
+    _default_month = 1
+    _prefix = "AS"
+    _day_opt = "start"
+
+
+# ----------------------------------------------------------------------
+# Quarter-Based Offset Classes
+
+cdef class QuarterOffset(SingleConstructorOffset):
+    _attributes = frozenset(["n", "normalize", "startingMonth"])
+    # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
+    #       point.  Also apply_index, is_on_offset, rule_code if
+    #       startingMonth vs month attr names are resolved
+
+    # FIXME: python annotations here breaks things
+    # _default_startingMonth: int
+    # _from_name_startingMonth: int
+
+    cdef readonly:
+        int startingMonth
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if startingMonth is None:
+            startingMonth = self._default_startingMonth
+        self.startingMonth = startingMonth
+
+    cpdef __setstate__(self, state):
+        self.startingMonth = state.pop("startingMonth")
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.startingMonth)
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_startingMonth is not None:
+                kwargs["startingMonth"] = cls._from_name_startingMonth
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.startingMonth]
+        return f"{self._prefix}-{month}"
+
+    def is_anchored(self) -> bool:
+        return self.n == 1 and self.startingMonth is not None
+
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        # months_since: find the calendar quarter containing other.month,
+        # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
+        # Then find the month in that quarter containing an is_on_offset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 3 - self.startingMonth % 3
+        qtrs = roll_qtrday(
+            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=3
+        )
+        months = qtrs * 3 - months_since
+        return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_quarters(
+            dtindex.asi8, self.n, self.startingMonth, self._day_opt
+        )
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
+cdef class BQuarterEnd(QuarterOffset):
+    """
+    DateOffset increments between business Quarter dates.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+    """
+    _outputName = "BusinessQuarterEnd"
+    _default_startingMonth = 3
+    _from_name_startingMonth = 12
+    _prefix = "BQ"
+    _day_opt = "business_end"
+
+
+# TODO: This is basically the same as BQuarterEnd
+cdef class BQuarterBegin(QuarterOffset):
+    _outputName = "BusinessQuarterBegin"
+    # I suspect this is wrong for *all* of them.
+    # TODO: What does the above comment refer to?
+    _default_startingMonth = 3
+    _from_name_startingMonth = 1
+    _prefix = "BQS"
+    _day_opt = "business_start"
+
+
+cdef class QuarterEnd(QuarterOffset):
+    """
+    DateOffset increments between business Quarter dates.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    """
+    _outputName = "QuarterEnd"
+    _default_startingMonth = 3
+    _prefix = "Q"
+    _day_opt = "end"
+
+
+cdef class QuarterBegin(QuarterOffset):
+    _outputName = "QuarterBegin"
+    _default_startingMonth = 3
+    _from_name_startingMonth = 1
+    _prefix = "QS"
+    _day_opt = "start"
+
+
+# ----------------------------------------------------------------------
+# Month-Based Offset Classes
+
+cdef class MonthOffset(SingleConstructorOffset):
+    def is_on_offset(self, dt) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+        n = roll_convention(other.day, self.n, compare_day)
+        return shift_month(other, n, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
+        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+
+cdef class MonthEnd(MonthOffset):
+    """
+    DateOffset of one month end.
+    """
+    _prefix = "M"
+    _day_opt = "end"
+
+
+cdef class MonthBegin(MonthOffset):
+    """
+    DateOffset of one month at beginning.
+    """
+    _prefix = "MS"
+    _day_opt = "start"
+
+
+cdef class BusinessMonthEnd(MonthOffset):
+    """
+    DateOffset increments between business EOM dates.
+    """
+    _prefix = "BM"
+    _day_opt = "business_end"
+
+
+cdef class BusinessMonthBegin(MonthOffset):
+    """
+    DateOffset of one business month at beginning.
+    """
+    _prefix = "BMS"
+    _day_opt = "business_start"
+
+
+# ---------------------------------------------------------------------
+# Special Offset Classes
+
+cdef class FY5253Mixin(SingleConstructorOffset):
+    cdef readonly:
+        int startingMonth
+        int weekday
+        str variation
+
+    def __init__(
+        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+    ):
+        BaseOffset.__init__(self, n, normalize)
+        self.startingMonth = startingMonth
+        self.weekday = weekday
+        self.variation = variation
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+        if self.variation not in ["nearest", "last"]:
+            raise ValueError(f"{self.variation} is not a valid variation")
+
+    def is_anchored(self) -> bool:
+        return (
+            self.n == 1 and self.startingMonth is not None and self.weekday is not None
+        )
+
+    # --------------------------------------------------------------------
+    # Name-related methods
+
+    @property
+    def rule_code(self) -> str:
+        prefix = self._prefix
+        suffix = self.get_rule_code_suffix()
+        return f"{prefix}-{suffix}"
+
+    def _get_suffix_prefix(self) -> str:
+        if self.variation == "nearest":
+            return "N"
+        else:
+            return "L"
+
+    def get_rule_code_suffix(self) -> str:
+        prefix = self._get_suffix_prefix()
+        month = MONTH_ALIASES[self.startingMonth]
+        weekday = int_to_weekday[self.weekday]
+        return f"{prefix}-{month}-{weekday}"
 
 
 # ----------------------------------------------------------------------
@@ -541,7 +1695,7 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
@@ -556,8 +1710,13 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_quarters(int64_t[:] dtindex, int quarters,
-                   int q1start_month, object day, int modby=3):
+cdef shift_quarters(
+    const int64_t[:] dtindex,
+    int quarters,
+    int q1start_month,
+    object day,
+    int modby=3,
+):
     """
     Given an int64 array representing nanosecond timestamps, shift all elements
     by the specified number of quarters using DateOffset semantics.
@@ -706,7 +1865,7 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(int64_t[:] dtindex, int months, object day=None):
+def shift_months(const int64_t[:] dtindex, int months, object day=None):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
@@ -895,9 +2054,9 @@ def shift_month(stamp: datetime, months: int,
     return stamp.replace(year=year, month=month, day=day)
 
 
-cpdef int get_day_of_month(datetime other, day_opt) except? -1:
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
-    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
 
     Parameters

@@ -1,11 +1,25 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 
+import numpy as np
+cimport numpy as cnp
+cnp.import_array()
+
+from pandas._libs.lib cimport c_is_list_like
 
 ctypedef fused reshape_t:
     uint8_t
@@ -23,11 +37,11 @@ ctypedef fused reshape_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack(reshape_t[:, :] values, uint8_t[:] mask,
+def unstack(reshape_t[:, :] values, const uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
             reshape_t[:, :] new_values, uint8_t[:, :] new_mask):
     """
-    transform long sorted_values to wide new_values
+    Transform long values to wide new_values.
 
     Parameters
     ----------
@@ -82,14 +96,57 @@ def unstack(reshape_t[:, :] values, uint8_t[:] mask,
                         nulls += 1
 
 
-unstack_uint8 = unstack["uint8_t"]
-unstack_uint16 = unstack["uint16_t"]
-unstack_uint32 = unstack["uint32_t"]
-unstack_uint64 = unstack["uint64_t"]
-unstack_int8 = unstack["int8_t"]
-unstack_int16 = unstack["int16_t"]
-unstack_int32 = unstack["int32_t"]
-unstack_int64 = unstack["int64_t"]
-unstack_float32 = unstack["float32_t"]
-unstack_float64 = unstack["float64_t"]
-unstack_object = unstack["object"]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def explode(ndarray[object] values):
+    """
+    transform array list-likes to long form
+    preserve non-list entries
+
+    Parameters
+    ----------
+    values : object ndarray
+
+    Returns
+    -------
+    tuple(values, counts)
+    """
+    cdef:
+        Py_ssize_t i, j, count, n
+        object v
+        ndarray[object] result
+        ndarray[int64_t] counts
+
+    # find the resulting len
+    n = len(values)
+    counts = np.zeros(n, dtype='int64')
+    for i in range(n):
+        v = values[i]
+        if c_is_list_like(v, False):
+            if len(v):
+                counts[i] += len(v)
+            else:
+                # empty list-like, use a nan marker
+                counts[i] += 1
+        else:
+            counts[i] += 1
+
+    result = np.empty(counts.sum(), dtype='object')
+    count = 0
+    for i in range(n):
+        v = values[i]
+
+        if c_is_list_like(v, False):
+            if len(v):
+                for j in range(len(v)):
+                    result[count] = v[j]
+                    count += 1
+            else:
+                # empty list-like, use a nan marker
+                result[count] = np.nan
+                count += 1
+        else:
+            # replace with the existing scalar
+            result[count] = v
+            count += 1
+    return result, counts

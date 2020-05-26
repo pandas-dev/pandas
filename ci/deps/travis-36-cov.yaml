@@ -1,0 +1,53 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.6.*
+
+  # tools
+  - cython>=0.29.16
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+  - pytest-cov  # this is only needed in the coverage build
+
+  # pandas dependencies
+  - beautifulsoup4
+  - botocore>=1.11
+  - cython>=0.29.16
+  - dask
+  - fastparquet>=0.3.2
+  - gcsfs
+  - geopandas
+  - html5lib
+  - matplotlib
+  - moto
+  - nomkl
+  - numexpr
+  - numpy=1.15.*
+  - odfpy
+  - openpyxl
+  - pandas-gbq
+  - psycopg2
+  - pyarrow>=0.13.0
+  - pymysql
+  - pytables
+  - python-snappy
+  - pytz
+  - s3fs
+  - scikit-learn
+  - scipy
+  - sqlalchemy
+  - statsmodels
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - pip
+  - pip:
+    - brotlipy
+    - coverage
+    - pandas-datareader
+    - python-dateutil
+    - pyxlsb

@@ -66,12 +66,13 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
-int parse_iso_8601_datetime(char *str, int len,
+int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     int year_leap = 0;
     int i, numdigits;
-    char *substr, sublen;
+    const char *substr;
+    int sublen;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
@@ -172,8 +173,10 @@ int parse_iso_8601_datetime(char *str, int len,
         goto parse_error;
     }
     if (out->month < 1 || out->month > 12) {
-        PyErr_Format(PyExc_ValueError,
-                     "Month out of range in datetime string \"%s\"", str);
+        if (want_exc) {
+            PyErr_Format(PyExc_ValueError,
+                        "Month out of range in datetime string \"%s\"", str);
+        }
         goto error;
     }
 
@@ -216,8 +219,10 @@ int parse_iso_8601_datetime(char *str, int len,
     }
     if (out->day < 1 ||
         out->day > days_per_month_table[year_leap][out->month - 1]) {
-        PyErr_Format(PyExc_ValueError,
-                     "Day out of range in datetime string \"%s\"", str);
+        if (want_exc) {
+            PyErr_Format(PyExc_ValueError,
+                        "Day out of range in datetime string \"%s\"", str);
+        }
         goto error;
     }
 
@@ -250,8 +255,11 @@ int parse_iso_8601_datetime(char *str, int len,
         ++substr;
         --sublen;
         if (out->hour >= 24) {
-            PyErr_Format(PyExc_ValueError,
-                         "Hours out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                             "Hours out of range in datetime string \"%s\"",
+                             str);
+            }
             goto error;
         }
     }
@@ -290,8 +298,11 @@ int parse_iso_8601_datetime(char *str, int len,
         ++substr;
         --sublen;
         if (out->min >= 60) {
-            PyErr_Format(PyExc_ValueError,
-                         "Minutes out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                             "Minutes out of range in datetime string \"%s\"",
+                             str);
+            }
             goto error;
         }
     } else if (!has_hms_sep) {
@@ -327,8 +338,11 @@ int parse_iso_8601_datetime(char *str, int len,
         ++substr;
         --sublen;
         if (out->sec >= 60) {
-            PyErr_Format(PyExc_ValueError,
-                         "Seconds out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                             "Seconds out of range in datetime string \"%s\"",
+                             str);
+            }
             goto error;
         }
     } else if (!has_hms_sep) {
@@ -437,10 +451,12 @@ parse_timezone:
             substr += 2;
             sublen -= 2;
             if (offset_hour >= 24) {
-                PyErr_Format(PyExc_ValueError,
-                             "Timezone hours offset out of range "
-                             "in datetime string \"%s\"",
-                             str);
+                if (want_exc) {
+                    PyErr_Format(PyExc_ValueError,
+                                "Timezone hours offset out of range "
+                                "in datetime string \"%s\"",
+                                str);
+                }
                 goto error;
             }
         } else if (sublen >= 1 && isdigit(substr[0])) {
@@ -465,10 +481,12 @@ parse_timezone:
                 substr += 2;
                 sublen -= 2;
                 if (offset_minute >= 60) {
-                    PyErr_Format(PyExc_ValueError,
-                                 "Timezone minutes offset out of range "
-                                 "in datetime string \"%s\"",
-                                 str);
+                    if (want_exc) {
+                        PyErr_Format(PyExc_ValueError,
+                                    "Timezone minutes offset out of range "
+                                    "in datetime string \"%s\"",
+                                    str);
+                    }
                     goto error;
                 }
             } else if (sublen >= 1 && isdigit(substr[0])) {
@@ -506,9 +524,11 @@ finish:
     return 0;
 
 parse_error:
-    PyErr_Format(PyExc_ValueError,
-                 "Error parsing datetime string \"%s\" at position %d", str,
-                 (int)(substr - str));
+    if (want_exc) {
+        PyErr_Format(PyExc_ValueError,
+                    "Error parsing datetime string \"%s\" at position %d", str,
+                    (int)(substr - str));
+    }
     return -1;
 
 error:
@@ -586,7 +606,8 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  */
 int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                            NPY_DATETIMEUNIT base) {
-    char *substr = outstr, sublen = outlen;
+    char *substr = outstr;
+    int sublen = outlen;
     int tmplen;
 
     /*
@@ -609,7 +630,7 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     tmplen = _snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
 #else
     tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
-#endif
+#endif  // _WIN32
     /* If it ran out of space or there isn't space for the NULL terminator */
     if (tmplen < 0 || tmplen > sublen) {
         goto string_too_short;
@@ -883,4 +904,38 @@ string_too_short:
                  "was too short, with length %d",
                  outlen);
     return -1;
+}
+
+
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds,
+                            char *outstr, size_t *outlen) {
+  *outlen = 0;
+  *outlen += snprintf(outstr, 60,  // NOLINT
+                     "P%" NPY_INT64_FMT
+                     "DT%" NPY_INT32_FMT
+                     "H%" NPY_INT32_FMT
+                     "M%" NPY_INT32_FMT,
+                     tds->days, tds->hrs, tds->min, tds->sec);
+  outstr += *outlen;
+
+  if (tds->ns != 0) {
+    *outlen += snprintf(outstr, 12,  // NOLINT
+                       ".%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "S", tds->ms, tds->us, tds->ns);
+  } else if (tds->us != 0) {
+    *outlen += snprintf(outstr, 9,  // NOLINT
+                       ".%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "S", tds->ms, tds->us);
+  } else if (tds->ms != 0) {
+    *outlen += snprintf(outstr, 6,  // NOLINT
+                        ".%03" NPY_INT32_FMT "S", tds->ms);
+  } else {
+    *outlen += snprintf(outstr, 2,  // NOLINT
+                        "%s", "S");
+  }
+
+  return 0;
 }

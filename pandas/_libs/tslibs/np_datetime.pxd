@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython.datetime cimport date, datetime
 
 from numpy cimport int64_t, int32_t
@@ -55,8 +53,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *result) nogil
 
 
-cdef int reverse_ops[6]
-
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(npy_datetimestruct *dts)
@@ -72,5 +68,6 @@ cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 
-cdef int _string_to_dts(object val, npy_datetimestruct* dts,
-                        int* out_local, int* out_tzoffset) except? -1
+cdef int _string_to_dts(str val, npy_datetimestruct* dts,
+                        int* out_local, int* out_tzoffset,
+                        bint want_exc) except? -1

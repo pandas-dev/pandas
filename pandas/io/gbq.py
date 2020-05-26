@@ -1,32 +1,39 @@
 """ Google BigQuery support """
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-import warnings
+from pandas.compat._optional import import_optional_dependency
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def _try_import():
     # since pandas is a dependency of pandas-gbq
     # we need to import on first use
-    try:
-        import pandas_gbq
-    except ImportError:
-
-        # give a nice error message
-        raise ImportError("Load data from Google BigQuery\n"
-                          "\n"
-                          "the pandas-gbq package is not installed\n"
-                          "see the docs: https://pandas-gbq.readthedocs.io\n"
-                          "\n"
-                          "you can install via pip or conda:\n"
-                          "pip install pandas-gbq\n"
-                          "conda install pandas-gbq -c conda-forge\n")
-
+    msg = (
+        "pandas-gbq is required to load data from Google BigQuery. "
+        "See the docs: https://pandas-gbq.readthedocs.io."
+    )
+    pandas_gbq = import_optional_dependency("pandas_gbq", extra=msg)
     return pandas_gbq
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, auth_local_webserver=False, dialect=None,
-             location=None, configuration=None, credentials=None,
-             private_key=None, verbose=None):
+def read_gbq(
+    query: str,
+    project_id: Optional[str] = None,
+    index_col: Optional[str] = None,
+    col_order: Optional[List[str]] = None,
+    reauth: bool = False,
+    auth_local_webserver: bool = False,
+    dialect: Optional[str] = None,
+    location: Optional[str] = None,
+    configuration: Optional[Dict[str, Any]] = None,
+    credentials=None,
+    use_bqstorage_api: Optional[bool] = None,
+    private_key=None,
+    verbose=None,
+    progress_bar_type: Optional[str] = None,
+) -> "DataFrame":
     """
     Load data from Google BigQuery.
 
@@ -49,21 +56,21 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     col_order : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    reauth : boolean, default False
+    reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : boolean, default False
+    auth_local_webserver : bool, default False
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
 
         .. _local webserver flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+            https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
         .. _console flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+            https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
-        Note: The default value is changing to 'standard' in a future verion.
+        Note: The default value is changing to 'standard' in a future version.
 
         SQL syntax dialect to use. Value can be one of:
 
@@ -103,21 +110,45 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         *New in version 0.8.0 of pandas-gbq*.
 
         .. versionadded:: 0.24.0
-    private_key : str, deprecated
-        Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-        parameter and
-        :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-        or
-        :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-        instead.
+    use_bqstorage_api : bool, default False
+        Use the `BigQuery Storage API
+        <https://cloud.google.com/bigquery/docs/reference/storage/>`__ to
+        download query results quickly, but at an increased cost. To use this
+        API, first `enable it in the Cloud Console
+        <https://console.cloud.google.com/apis/library/bigquerystorage.googleapis.com>`__.
+        You must also have the `bigquery.readsessions.create
+        <https://cloud.google.com/bigquery/docs/access-control#roles>`__
+        permission on the project you are billing queries to.
 
-        Service account private key in JSON format. Can be file path
-        or string contents. This is useful for remote server
-        authentication (eg. Jupyter/IPython notebook on remote host).
-    verbose : None, deprecated
-        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
-        adjust verbosity instead
-        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+        This feature requires version 0.10.0 or later of the ``pandas-gbq``
+        package. It also requires the ``google-cloud-bigquery-storage`` and
+        ``fastavro`` packages.
+
+        .. versionadded:: 0.25.0
+    progress_bar_type : Optional, str
+        If set, use the `tqdm <https://tqdm.github.io/>`__ library to
+        display a progress bar while the data downloads. Install the
+        ``tqdm`` package to use this feature.
+
+        Possible values of ``progress_bar_type`` include:
+
+        ``None``
+            No progress bar.
+        ``'tqdm'``
+            Use the :func:`tqdm.tqdm` function to print a progress bar
+            to :data:`sys.stderr`.
+        ``'tqdm_notebook'``
+            Use the :func:`tqdm.tqdm_notebook` function to display a
+            progress bar as a Jupyter notebook widget.
+        ``'tqdm_gui'``
+            Use the :func:`tqdm.tqdm_gui` function to display a
+            progress bar as a graphical dialog box.
+
+        Note that his feature requires version 0.12.0 or later of the
+        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
+        different than ``pandas-gbq``, here the default is ``None``.
+
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -127,36 +158,63 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     See Also
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
-    pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+    DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
 
-    if dialect is None:
-        dialect = "legacy"
-        warnings.warn(
-            'The default value for dialect is changing to "standard" in a '
-            'future version of pandas-gbq. Pass in dialect="legacy" to '
-            "disable this warning.",
-            FutureWarning,
-            stacklevel=2,
-        )
+    kwargs: Dict[str, Union[str, bool]] = {}
+
+    # START: new kwargs.  Don't populate unless explicitly set.
+    if use_bqstorage_api is not None:
+        kwargs["use_bqstorage_api"] = use_bqstorage_api
+
+    if progress_bar_type is not None:
+        kwargs["progress_bar_type"] = progress_bar_type
+    # END: new kwargs
 
     return pandas_gbq.read_gbq(
-        query, project_id=project_id, index_col=index_col,
-        col_order=col_order, reauth=reauth,
-        auth_local_webserver=auth_local_webserver, dialect=dialect,
-        location=location, configuration=configuration,
-        credentials=credentials, verbose=verbose, private_key=private_key)
+        query,
+        project_id=project_id,
+        index_col=index_col,
+        col_order=col_order,
+        reauth=reauth,
+        auth_local_webserver=auth_local_webserver,
+        dialect=dialect,
+        location=location,
+        configuration=configuration,
+        credentials=credentials,
+        **kwargs,
+    )
 
 
-def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
-           reauth=False, if_exists='fail', auth_local_webserver=False,
-           table_schema=None, location=None, progress_bar=True,
-           credentials=None, verbose=None, private_key=None):
+def to_gbq(
+    dataframe: "DataFrame",
+    destination_table: str,
+    project_id: Optional[str] = None,
+    chunksize: Optional[int] = None,
+    reauth: bool = False,
+    if_exists: str = "fail",
+    auth_local_webserver: bool = False,
+    table_schema: Optional[List[Dict[str, str]]] = None,
+    location: Optional[str] = None,
+    progress_bar: bool = True,
+    credentials=None,
+    verbose=None,
+    private_key=None,
+) -> None:
     pandas_gbq = _try_import()
-    return pandas_gbq.to_gbq(
-        dataframe, destination_table, project_id=project_id,
-        chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-        auth_local_webserver=auth_local_webserver, table_schema=table_schema,
-        location=location, progress_bar=progress_bar,
-        credentials=credentials, verbose=verbose, private_key=private_key)
+    pandas_gbq.to_gbq(
+        dataframe,
+        destination_table,
+        project_id=project_id,
+        chunksize=chunksize,
+        reauth=reauth,
+        if_exists=if_exists,
+        auth_local_webserver=auth_local_webserver,
+        table_schema=table_schema,
+        location=location,
+        progress_bar=progress_bar,
+        credentials=credentials,
+        verbose=verbose,
+        private_key=private_key,
+    )

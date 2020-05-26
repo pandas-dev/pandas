@@ -1,168 +1,131 @@
+:notoc:
+
 .. pandas documentation master file, created by
-
-*********************************************
-pandas: powerful Python data analysis toolkit
-*********************************************
-
-`PDF Version <pandas.pdf>`__
-
-`Zipped HTML <pandas.zip>`__
 
 .. module:: pandas
 
+********************
+pandas documentation
+********************
+
 **Date**: |today| **Version**: |version|
 
-**Binary Installers:** https://pypi.org/project/pandas
+**Download documentation**: `PDF Version <pandas.pdf>`__ | `Zipped HTML <pandas.zip>`__
 
-**Source Repository:** https://github.com/pandas-dev/pandas
+**Useful links**:
+`Binary Installers <https://pypi.org/project/pandas>`__ |
+`Source Repository <https://github.com/pandas-dev/pandas>`__ |
+`Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
+`Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
+`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
 
-**Issues & Ideas:** https://github.com/pandas-dev/pandas/issues
+:mod:`pandas` is an open source, BSD-licensed library providing high-performance,
+easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
+programming language.
 
-**Q&A Support:** https://stackoverflow.com/questions/tagged/pandas
+.. raw:: html
 
-**Developer Mailing List:** https://groups.google.com/forum/#!forum/pydata
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_getting_started.svg" class="card-img-top" alt="getting started with pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">Getting started</h5>
+                    <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
+                    contain an introduction to <em>pandas'</em> main concepts and links to additional tutorials.</p>
 
-**pandas** is a `Python <https://www.python.org>`__ package providing fast,
-flexible, and expressive data structures designed to make working with
-"relational" or "labeled" data both easy and intuitive. It aims to be the
-fundamental high-level building block for doing practical, **real world** data
-analysis in Python. Additionally, it has the broader goal of becoming **the
-most powerful and flexible open source data analysis / manipulation tool
-available in any language**. It is already well on its way toward this goal.
+.. container:: custom-button
 
-pandas is well suited for many different kinds of data:
+    :ref:`To the getting started guides<getting_started>`
 
-  - Tabular data with heterogeneously-typed columns, as in an SQL table or
-    Excel spreadsheet
-  - Ordered and unordered (not necessarily fixed-frequency) time series data.
-  - Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
-    column labels
-  - Any other form of observational / statistical data sets. The data actually
-    need not be labeled at all to be placed into a pandas data structure
+.. raw:: html
 
-The two primary data structures of pandas, :class:`Series` (1-dimensional)
-and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
-cases in finance, statistics, social science, and many areas of
-engineering. For R users, :class:`DataFrame` provides everything that R's
-``data.frame`` provides and much more. pandas is built on top of `NumPy
-<https://www.numpy.org>`__ and is intended to integrate well within a scientific
-computing environment with many other 3rd party libraries.
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_user_guide.svg" class="card-img-top" alt="pandas user guide action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">User guide</h5>
+                    <p class="card-text">The user guide provides in-depth information on the
+                    key concepts of pandas with useful background information and explanation.</p>
 
-Here are just a few of the things that pandas does well:
+.. container:: custom-button
 
-  - Easy handling of **missing data** (represented as NaN) in floating point as
-    well as non-floating point data
-  - Size mutability: columns can be **inserted and deleted** from DataFrame and
-    higher dimensional objects
-  - Automatic and explicit **data alignment**: objects can be explicitly
-    aligned to a set of labels, or the user can simply ignore the labels and
-    let `Series`, `DataFrame`, etc. automatically align the data for you in
-    computations
-  - Powerful, flexible **group by** functionality to perform
-    split-apply-combine operations on data sets, for both aggregating and
-    transforming data
-  - Make it **easy to convert** ragged, differently-indexed data in other
-    Python and NumPy data structures into DataFrame objects
-  - Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
-    of large data sets
-  - Intuitive **merging** and **joining** data sets
-  - Flexible **reshaping** and pivoting of data sets
-  - **Hierarchical** labeling of axes (possible to have multiple labels per
-    tick)
-  - Robust IO tools for loading data from **flat files** (CSV and delimited),
-    Excel files, databases, and saving / loading data from the ultrafast **HDF5
-    format**
-  - **Time series**-specific functionality: date range generation and frequency
-    conversion, moving window statistics, moving window linear regressions,
-    date shifting and lagging, etc.
+    :ref:`To the user guide<user_guide>`
 
-Many of these principles are here to address the shortcomings frequently
-experienced using other languages / scientific research environments. For data
-scientists, working with data is typically divided into multiple stages:
-munging and cleaning data, analyzing / modeling it, then organizing the results
-of the analysis into a form suitable for plotting or tabular display. pandas
-is the ideal tool for all of these tasks.
+.. raw:: html
 
-Some other notes
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_api.svg" class="card-img-top" alt="api of pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">API reference</h5>
+                    <p class="card-text">The reference guide contains a detailed description of
+                    the pandas API. The reference describes how the methods work and which parameters can
+                    be used. It assumes that you have an understanding of the key concepts.</p>
 
- - pandas is **fast**. Many of the low-level algorithmic bits have been
-   extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
-   anything else generalization usually sacrifices performance. So if you focus
-   on one feature for your application you may be able to create a faster
-   specialized tool.
+.. container:: custom-button
 
- - pandas is a dependency of `statsmodels
-   <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
-   statistical computing ecosystem in Python.
+    :ref:`To the reference guide<api>`
 
- - pandas has been used extensively in production in financial applications.
+.. raw:: html
 
-.. note::
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_contribute.svg" class="card-img-top" alt="contribute to pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">Developer guide</h5>
+                    <p class="card-text">Saw a typo in the documentation? Want to improve
+                    existing functionalities? The contributing guidelines will guide
+                    you through the process of improving pandas.</p>
 
-   This documentation assumes general familiarity with NumPy. If you haven't
-   used NumPy much or at all, do invest some time in `learning about NumPy
-   <https://docs.scipy.org>`__ first.
+.. container:: custom-button
 
-See the package overview for more detail about what's in the library.
+    :ref:`To the development guide<development>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
-    :maxdepth: 4
+    :maxdepth: 3
+    :titlesonly:
 
     {{ single_doc[:-4] }}
 {% elif single_doc %}
 .. autosummary::
-    :toctree: api/generated/
+    :toctree: reference/api/
 
     {{ single_doc }}
 {% else -%}
 .. toctree::
-    :maxdepth: 4
+    :maxdepth: 3
+    :hidden:
+    :titlesonly:
 {% endif %}
-
-    {% if not single_doc -%}
-    What's New <whatsnew/v0.24.0>
-    install
-    contributing
-    overview
-    10min
-    tutorials
-    cookbook
-    dsintro
-    basics
-    text
-    options
-    indexing
-    advanced
-    computation
-    missing_data
-    groupby
-    merging
-    reshaping
-    timeseries
-    timedeltas
-    categorical
-    integer_na
-    visualization
-    style
-    io
-    enhancingperf
-    sparse
-    gotchas
-    r_interface
-    ecosystem
-    comparison_with_r
-    comparison_with_sql
-    comparison_with_sas
-    comparison_with_stata
+{% if not single_doc %}
+    getting_started/index
+    user_guide/index
     {% endif -%}
     {% if include_api -%}
-    api/index
+    reference/index
     {% endif -%}
     {% if not single_doc -%}
-    developer
-    internals
-    extending
-    releases
-    {% endif -%}
+    development/index
+    whatsnew/index
+{% endif %}

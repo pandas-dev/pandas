@@ -4,10 +4,14 @@ import pytest
 from pandas import Interval, Timedelta, Timestamp
 
 
-@pytest.fixture(params=[
-    (Timedelta('0 days'), Timedelta('1 day')),
-    (Timestamp('2018-01-01'), Timedelta('1 day')),
-    (0, 1)], ids=lambda x: type(x[0]).__name__)
+@pytest.fixture(
+    params=[
+        (Timedelta("0 days"), Timedelta("1 day")),
+        (Timestamp("2018-01-01"), Timedelta("1 day")),
+        (0, 1),
+    ],
+    ids=lambda x: type(x[0]).__name__,
+)
 def start_shift(request):
     """
     Fixture for generating intervals of types from a start value and a shift
@@ -16,8 +20,7 @@ def start_shift(request):
     return request.param
 
 
-class TestOverlaps(object):
-
+class TestOverlaps:
     def test_overlaps_self(self, start_shift, closed):
         start, shift = start_shift
         interval = Interval(start, start + shift, closed)
@@ -49,12 +52,13 @@ class TestOverlaps(object):
         expected = interval1.closed_right and interval2.closed_left
         assert result == expected
 
-    @pytest.mark.parametrize('other', [
-        10, True, 'foo', Timedelta('1 day'), Timestamp('2018-01-01')],
-        ids=lambda x: type(x).__name__)
+    @pytest.mark.parametrize(
+        "other",
+        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        ids=lambda x: type(x).__name__,
+    )
     def test_overlaps_invalid_type(self, other):
         interval = Interval(0, 1)
-        msg = '`other` must be an Interval, got {other}'.format(
-            other=type(other).__name__)
+        msg = f"`other` must be an Interval, got {type(other).__name__}"
         with pytest.raises(TypeError, match=msg):
             interval.overlaps(other)

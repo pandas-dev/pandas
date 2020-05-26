@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import cython
 
 import numpy as np
@@ -35,30 +34,33 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to the indices.
+    check_integrity : bool, default=True
+        Check integrity of the input.
     """
 
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, Py_ssize_t length, indices):
+    def __init__(self, Py_ssize_t length, indices, bint check_integrity=True):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
-        self.check_integrity()
+        if check_integrity:
+            self.check_integrity()
 
     def __reduce__(self):
         args = (self.length, self.indices)
         return IntIndex, args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = 'IntIndex\n'
-        output += 'Indices: %s\n' % repr(self.indices)
+        output += f'Indices: {repr(self.indices)}\n'
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.indices.nbytes
 
     def check_integrity(self):
@@ -72,33 +74,27 @@ cdef class IntIndex(SparseIndex):
         A ValueError is raised if any of these conditions is violated.
         """
 
-        cdef:
-            int32_t index, prev = -1
-
         if self.npoints > self.length:
-            msg = ("Too many indices. Expected "
-                   "{exp} but found {act}").format(
-                exp=self.length, act=self.npoints)
-            raise ValueError(msg)
+            raise ValueError(
+                f"Too many indices. Expected {self.length} but found {self.npoints}"
+            )
 
         # Indices are vacuously ordered and non-negative
         # if the sequence of indices is empty.
         if self.npoints == 0:
             return
 
-        if min(self.indices) < 0:
+        if self.indices.min() < 0:
             raise ValueError("No index can be less than zero")
 
-        if max(self.indices) >= self.length:
+        if self.indices.max() >= self.length:
             raise ValueError("All indices must be less than the length")
 
-        for index in self.indices:
-            if prev != -1 and index <= prev:
-                raise ValueError("Indices must be strictly increasing")
+        monotonic = np.all(self.indices[:-1] < self.indices[1:])
+        if not monotonic:
+            raise ValueError("Indices must be strictly increasing")
 
-            prev = index
-
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if not isinstance(other, IntIndex):
             return False
 
@@ -110,7 +106,7 @@ cdef class IntIndex(SparseIndex):
         return same_length and same_indices
 
     @property
-    def ngaps(self):
+    def ngaps(self) -> int:
         return self.length - self.npoints
 
     def to_int_index(self):
@@ -195,8 +191,7 @@ cdef class IntIndex(SparseIndex):
             return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[
-            int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
@@ -347,19 +342,19 @@ cdef class BlockIndex(SparseIndex):
         args = (self.length, self.blocs, self.blengths)
         return BlockIndex, args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = 'BlockIndex\n'
-        output += 'Block locations: %s\n' % repr(self.blocs)
-        output += 'Block lengths: %s' % repr(self.blengths)
+        output += f'Block locations: {repr(self.blocs)}\n'
+        output += f'Block lengths: {repr(self.blengths)}'
 
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.blocs.nbytes + self.blengths.nbytes
 
     @property
-    def ngaps(self):
+    def ngaps(self) -> int:
         return self.length - self.npoints
 
     cpdef check_integrity(self):
@@ -386,17 +381,16 @@ cdef class BlockIndex(SparseIndex):
 
             if i < self.nblocks - 1:
                 if blocs[i] + blengths[i] > blocs[i + 1]:
-                    raise ValueError('Block {idx} overlaps'.format(idx=i))
+                    raise ValueError(f'Block {i} overlaps')
             else:
                 if blocs[i] + blengths[i] > self.length:
-                    raise ValueError('Block {idx} extends beyond end'
-                                     .format(idx=i))
+                    raise ValueError(f'Block {i} extends beyond end')
 
             # no zero-length blocks
             if blengths[i] == 0:
-                raise ValueError('Zero-length block {idx}'.format(idx=i))
+                raise ValueError(f'Zero-length block {i}')
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if not isinstance(other, BlockIndex):
             return False
 
@@ -432,12 +426,9 @@ cdef class BlockIndex(SparseIndex):
         """
         Intersect two BlockIndex objects
 
-        Parameters
-        ----------
-
         Returns
         -------
-        intersection : BlockIndex
+        BlockIndex
         """
         cdef:
             BlockIndex y
@@ -456,7 +447,7 @@ cdef class BlockIndex(SparseIndex):
         ylen = y.blengths
 
         # block may be split, but can't exceed original len / 2 + 1
-        max_len = int(min(self.length, y.length) / 2) + 1
+        max_len = min(self.length, y.length) // 2 + 1
         out_bloc = np.empty(max_len, dtype=np.int32)
         out_blen = np.empty(max_len, dtype=np.int32)
 
@@ -526,7 +517,7 @@ cdef class BlockIndex(SparseIndex):
 
         Returns
         -------
-        union : BlockIndex
+        BlockIndex
         """
         return BlockUnion(self, y.to_block_index()).result
 
@@ -556,8 +547,7 @@ cdef class BlockIndex(SparseIndex):
         return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[
-            int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
@@ -603,7 +593,7 @@ cdef class BlockIndex(SparseIndex):
 
         result = np.empty(other.npoints, dtype=np.float64)
 
-        for 0 <= i < other.nblocks:
+        for i in range(other.nblocks):
             ocur = olocs[i]
             ocurlen = olens[i]
 
@@ -619,7 +609,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 
-cdef class BlockMerge(object):
+cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
@@ -680,7 +670,7 @@ cdef class BlockUnion(BlockMerge):
         ystart = self.ystart
         yend = self.yend
 
-        max_len = int(min(self.x.length, self.y.length) / 2) + 1
+        max_len = min(self.x.length, self.y.length) // 2 + 1
         out_bloc = np.empty(max_len, dtype=np.int32)
         out_blen = np.empty(max_len, dtype=np.int32)
 
@@ -751,9 +741,6 @@ cdef class BlockUnion(BlockMerge):
             ynblocks = self.x.nblocks
 
         nend = xend[xi]
-
-        # print 'here xi=%d, yi=%d, mode=%d, nend=%d' % (self.xi, self.yi,
-        #                                                mode, nend)
 
         # done with y?
         if yi == ynblocks:

@@ -1,25 +1,90 @@
-# -*- coding: utf-8 -*-
-# TODO: Needs a better name; too many modules are already called "concat"
 from collections import defaultdict
 import copy
+from typing import List
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, tslibs
+from pandas._libs import NaT, internals as libinternals
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    _get_dtype, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
-    is_numeric_dtype, is_sparse, is_timedelta64_dtype)
-import pandas.core.dtypes.concat as _concat
+    _get_dtype,
+    is_categorical_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_extension_array_dtype,
+    is_float_dtype,
+    is_numeric_dtype,
+    is_sparse,
+    is_timedelta64_dtype,
+)
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
+from pandas.core.internals.blocks import make_block
+from pandas.core.internals.managers import BlockManager
 
 
-def get_mgr_concatenation_plan(mgr, indexers):
+def concatenate_block_managers(
+    mgrs_indexers, axes, concat_axis: int, copy: bool
+) -> BlockManager:
+    """
+    Concatenate block managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (BlockManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    BlockManager
+    """
+    concat_plans = [
+        _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
+    ]
+    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    blocks = []
+
+    for placement, join_units in concat_plan:
+
+        if len(join_units) == 1 and not join_units[0].indexers:
+            b = join_units[0].block
+            values = b.values
+            if copy:
+                values = values.copy()
+            else:
+                values = values.view()
+            b = b.make_block_same_class(values, placement=placement)
+        elif _is_uniform_join_units(join_units):
+            blk = join_units[0].block
+            vals = [ju.block.values for ju in join_units]
+
+            if not blk.is_extension:
+                values = concat_compat(vals, axis=blk.ndim - 1)
+            else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
+                values = concat_compat(vals)
+                if not isinstance(values, ExtensionArray):
+                    values = values.reshape(1, len(values))
+
+            b = make_block(values, placement=placement, ndim=blk.ndim)
+        else:
+            b = make_block(
+                _concatenate_join_units(join_units, concat_axis, copy=copy),
+                placement=placement,
+            )
+        blocks.append(b)
+
+    return BlockManager(blocks, axes)
+
+
+def _get_mgr_concatenation_plan(mgr, indexers):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -42,8 +107,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr._is_single_block:
@@ -51,13 +116,11 @@ def get_mgr_concatenation_plan(mgr, indexers):
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
         ax0_indexer = None
-        blknos = mgr._blknos
-        blklocs = mgr._blklocs
+        blknos = mgr.blknos
+        blklocs = mgr.blklocs
 
     plan = []
-    for blkno, placements in libinternals.get_blkno_placements(blknos,
-                                                               mgr.nblocks,
-                                                               group=False):
+    for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
 
         assert placements.is_slice_like
 
@@ -73,18 +136,26 @@ def get_mgr_concatenation_plan(mgr, indexers):
             blk = mgr.blocks[blkno]
             ax0_blk_indexer = blklocs[placements.indexer]
 
-            unit_no_ax0_reindexing = (len(placements) == len(blk.mgr_locs) and
-                                      # Fastpath detection of join unit not
-                                      # needing to reindex its block: no ax0
-                                      # reindexing took place and block
-                                      # placement was sequential before.
-                                      ((ax0_indexer is None and
-                                        blk.mgr_locs.is_slice_like and
-                                        blk.mgr_locs.as_slice.step == 1) or
-                                       # Slow-ish detection: all indexer locs
-                                       # are sequential (and length match is
-                                       # checked above).
-                                       (np.diff(ax0_blk_indexer) == 1).all()))
+            unit_no_ax0_reindexing = (
+                len(placements) == len(blk.mgr_locs)
+                and
+                # Fastpath detection of join unit not
+                # needing to reindex its block: no ax0
+                # reindexing took place and block
+                # placement was sequential before.
+                (
+                    (
+                        ax0_indexer is None
+                        and blk.mgr_locs.is_slice_like
+                        and blk.mgr_locs.as_slice.step == 1
+                    )
+                    or
+                    # Slow-ish detection: all indexer locs
+                    # are sequential (and length match is
+                    # checked above).
+                    (np.diff(ax0_blk_indexer) == 1).all()
+                )
+            )
 
             # Omit indexer if no item reindexing is required.
             if unit_no_ax0_reindexing:
@@ -99,8 +170,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
     return plan
 
 
-class JoinUnit(object):
-
+class JoinUnit:
     def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
         if indexers is None:
@@ -109,10 +179,8 @@ class JoinUnit(object):
         self.indexers = indexers
         self.shape = shape
 
-    def __repr__(self):
-        return '{name}({block!r}, {indexers})'.format(
-            name=self.__class__.__name__, block=self.block,
-            indexers=self.indexers)
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
 
     @cache_readonly
     def needs_filling(self):
@@ -131,8 +199,7 @@ class JoinUnit(object):
         if not self.needs_filling:
             return self.block.dtype
         else:
-            return _get_dtype(maybe_promote(self.block.dtype,
-                                            self.block.fill_value)[0])
+            return _get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
 
     @cache_readonly
     def is_na(self):
@@ -151,13 +218,14 @@ class JoinUnit(object):
         elif is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
+            # TODO(EA2D): no need for special case with 2D EAs
             values_flat = values
         else:
-            values_flat = values.ravel(order='K')
+            values_flat = values.ravel(order="K")
         total_len = values_flat.shape[0]
         chunk_len = max(total_len // 40, 1000)
         for i in range(0, total_len, chunk_len):
-            if not isna(values_flat[i:i + chunk_len]).all():
+            if not isna(values_flat[i : i + chunk_len]).all():
                 return False
 
         return True
@@ -171,34 +239,35 @@ class JoinUnit(object):
             fill_value = upcasted_na
 
             if self.is_na:
-                if getattr(self.block, 'is_object', False):
+                if getattr(self.block, "is_object", False):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = self.block.values.ravel(order='K')
+                    values = self.block.values.ravel(order="K")
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if (getattr(self.block, 'is_datetimetz', False) or
-                        is_datetime64tz_dtype(empty_dtype)):
+                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                    empty_dtype
+                ):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
-                        return array(np.full(self.shape[1], fill_value),
-                                     dtype=empty_dtype)
+                        # TODO(EA2D): special case unneeded with 2D EAs
+                        return array(
+                            np.full(self.shape[1], fill_value.value), dtype=empty_dtype
+                        )
+                elif getattr(self.block, "is_categorical", False):
                     pass
-                elif getattr(self.block, 'is_categorical', False):
-                    pass
-                elif getattr(self.block, 'is_sparse', False):
+                elif getattr(self.block, "is_extension", False):
                     pass
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
 
-            if not self.indexers:
-                if not self.block._can_consolidate:
-                    # preserve these for validation in _concat_compat
-                    return self.block.values
+            if (not self.indexers) and (not self.block._can_consolidate):
+                # preserve these for validation in concat_compat
+                return self.block.values
 
             if self.block.is_bool and not self.block.is_categorical:
                 # External code requested filling/upcasting, bool values must
@@ -209,7 +278,7 @@ class JoinUnit(object):
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
-                values = self.block.get_values()
+                values = self.block.values
 
         if not self.indexers:
             # If there's no indexing to be done, we want to signal outside
@@ -219,13 +288,12 @@ class JoinUnit(object):
 
         else:
             for ax, indexer in self.indexers.items():
-                values = algos.take_nd(values, indexer, axis=ax,
-                                       fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax, fill_value=fill_value)
 
         return values
 
 
-def concatenate_join_units(join_units, concat_axis, copy):
+def _concatenate_join_units(join_units, concat_axis, copy):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -233,11 +301,12 @@ def concatenate_join_units(join_units, concat_axis, copy):
         # Concatenating join units along ax0 is handled in _merge_blocks.
         raise AssertionError("Concatenating join units along axis0")
 
-    empty_dtype, upcasted_na = get_empty_dtype_and_na(join_units)
+    empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)
 
-    to_concat = [ju.get_reindexed_values(empty_dtype=empty_dtype,
-                                         upcasted_na=upcasted_na)
-                 for ju in join_units]
+    to_concat = [
+        ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
+        for ju in join_units
+    ]
 
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
@@ -251,12 +320,12 @@ def concatenate_join_units(join_units, concat_axis, copy):
             else:
                 concat_values = concat_values.copy()
     else:
-        concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=concat_axis)
 
     return concat_values
 
 
-def get_empty_dtype_and_na(join_units):
+def _get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -270,10 +339,10 @@ def get_empty_dtype_and_na(join_units):
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
-            return np.float64, np.nan
+            return np.dtype(np.float64), np.nan
 
-    if is_uniform_reindex(join_units):
-        # XXX: integrate property
+    if _is_uniform_reindex(join_units):
+        # FIXME: integrate property
         empty_dtype = join_units[0].block.dtype
         upcasted_na = join_units[0].block.fill_value
         return empty_dtype, upcasted_na
@@ -293,25 +362,25 @@ def get_empty_dtype_and_na(join_units):
             continue
 
         if is_categorical_dtype(dtype):
-            upcast_cls = 'category'
+            upcast_cls = "category"
         elif is_datetime64tz_dtype(dtype):
-            upcast_cls = 'datetimetz'
+            upcast_cls = "datetimetz"
         elif issubclass(dtype.type, np.bool_):
-            upcast_cls = 'bool'
+            upcast_cls = "bool"
         elif issubclass(dtype.type, np.object_):
-            upcast_cls = 'object'
+            upcast_cls = "object"
         elif is_datetime64_dtype(dtype):
-            upcast_cls = 'datetime'
+            upcast_cls = "datetime"
         elif is_timedelta64_dtype(dtype):
-            upcast_cls = 'timedelta'
+            upcast_cls = "timedelta"
         elif is_sparse(dtype):
             upcast_cls = dtype.subtype.name
         elif is_extension_array_dtype(dtype):
-            upcast_cls = 'object'
+            upcast_cls = "object"
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:
-            upcast_cls = 'float'
+            upcast_cls = "float"
 
         # Null blocks should not influence upcast class selection, unless there
         # are only null blocks, when same upcasting rules must be applied to
@@ -324,23 +393,26 @@ def get_empty_dtype_and_na(join_units):
     if not upcast_classes:
         upcast_classes = null_upcast_classes
 
+    # TODO: de-duplicate with maybe_promote?
     # create the result
-    if 'object' in upcast_classes:
+    if "object" in upcast_classes:
         return np.dtype(np.object_), np.nan
-    elif 'bool' in upcast_classes:
+    elif "bool" in upcast_classes:
         if has_none_blocks:
             return np.dtype(np.object_), np.nan
         else:
             return np.dtype(np.bool_), None
-    elif 'category' in upcast_classes:
+    elif "category" in upcast_classes:
         return np.dtype(np.object_), np.nan
-    elif 'datetimetz' in upcast_classes:
-        dtype = upcast_classes['datetimetz']
-        return dtype[0], tslibs.iNaT
-    elif 'datetime' in upcast_classes:
-        return np.dtype('M8[ns]'), tslibs.iNaT
-    elif 'timedelta' in upcast_classes:
-        return np.dtype('m8[ns]'), tslibs.iNaT
+    elif "datetimetz" in upcast_classes:
+        # GH-25014. We use NaT instead of iNaT, since this eventually
+        # ends up in DatetimeArray.take, which does not allow iNaT.
+        dtype = upcast_classes["datetimetz"]
+        return dtype[0], NaT
+    elif "datetime" in upcast_classes:
+        return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
+    elif "timedelta" in upcast_classes:
+        return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
         try:
             g = np.find_common_type(upcast_classes, [])
@@ -352,7 +424,7 @@ def get_empty_dtype_and_na(join_units):
                 return g, g.type(np.nan)
             elif is_numeric_dtype(g):
                 if has_none_blocks:
-                    return np.float64, np.nan
+                    return np.dtype(np.float64), np.nan
                 else:
                     return g, None
 
@@ -360,42 +432,45 @@ def get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def is_uniform_join_units(join_units):
+def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
-    concatenate_join_units (which uses `_concat._concat_compat`).
+    _concatenate_join_units (which uses `concat_compat`).
 
     """
+    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
+    #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
+        all(isinstance(ju.block, type(join_units[0].block)) for ju in join_units)
+        and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
-        all(not ju.is_na or ju.block.is_extension for ju in join_units) and
+        all(not ju.is_na or ju.block.is_extension for ju in join_units)
+        and
         # no blocks with indexers (as then the dimensions do not fit)
-        all(not ju.indexers for ju in join_units) and
-        # disregard Panels
-        all(ju.block.ndim <= 2 for ju in join_units) and
+        all(not ju.indexers for ju in join_units)
+        and
         # only use this path when there is something to concatenate
-        len(join_units) > 1)
-
-
-def is_uniform_reindex(join_units):
-    return (
-        # TODO: should this be ju.block._can_hold_na?
-        all(ju.block and ju.block.is_extension for ju in join_units) and
-        len({ju.block.dtype.name for ju in join_units}) == 1
+        len(join_units) > 1
     )
 
 
-def trim_join_unit(join_unit, length):
+def _is_uniform_reindex(join_units) -> bool:
+    return (
+        # TODO: should this be ju.block._can_hold_na?
+        all(ju.block and ju.block.is_extension for ju in join_units)
+        and len({ju.block.dtype.name for ju in join_units}) == 1
+    )
+
+
+def _trim_join_unit(join_unit, length):
     """
     Reduce join_unit's shape along item axis to length.
 
     Extra items that didn't fit are returned as a separate block.
     """
-
     if 0 not in join_unit.indexers:
         extra_indexers = join_unit.indexers
 
@@ -414,11 +489,10 @@ def trim_join_unit(join_unit, length):
     extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
     join_unit.shape = (length,) + join_unit.shape[1:]
 
-    return JoinUnit(block=extra_block, indexers=extra_indexers,
-                    shape=extra_shape)
+    return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def combine_concat_plans(plans, concat_axis):
+def _combine_concat_plans(plans, concat_axis):
     """
     Combine multiple concatenation plans into one.
 
@@ -470,10 +544,9 @@ def combine_concat_plans(plans, concat_axis):
                 for i, (plc, unit) in enumerate(next_items):
                     yielded_units[i] = unit
                     if len(plc) > min_len:
-                        # trim_join_unit updates unit in place, so only
+                        # _trim_join_unit updates unit in place, so only
                         # placement needs to be sliced to skip min_len.
-                        next_items[i] = (plc[min_len:],
-                                         trim_join_unit(unit, min_len))
+                        next_items[i] = (plc[min_len:], _trim_join_unit(unit, min_len))
                     else:
                         yielded_placement = plc
                         next_items[i] = _next_or_none(plans[i])

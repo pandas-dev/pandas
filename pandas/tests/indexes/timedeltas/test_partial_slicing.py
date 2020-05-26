@@ -1,53 +1,49 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Series, Timedelta, timedelta_range
-from pandas.util.testing import assert_series_equal
+from pandas import Series, timedelta_range
+import pandas._testing as tm
 
 
-class TestSlicing(object):
-    def test_slice_keeps_name(self):
-        # GH4226
-        dr = pd.timedelta_range('1d', '5d', freq='H', name='timebucket')
-        assert dr[1:].name == dr.name
-
+class TestSlicing:
     def test_partial_slice(self):
-        rng = timedelta_range('1 day 10:11:12', freq='h', periods=500)
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
         s = Series(np.arange(len(rng)), index=rng)
 
-        result = s['5 day':'6 day']
+        result = s["5 day":"6 day"]
         expected = s.iloc[86:134]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        result = s['5 day':]
+        result = s["5 day":]
         expected = s.iloc[86:]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        result = s[:'6 day']
+        result = s[:"6 day"]
         expected = s.iloc[:134]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        result = s['6 days, 23:11:12']
+        result = s["6 days, 23:11:12"]
         assert result == s.iloc[133]
 
-        pytest.raises(KeyError, s.__getitem__, '50 days')
+        msg = r"^Timedelta\('50 days 00:00:00'\)$"
+        with pytest.raises(KeyError, match=msg):
+            s["50 days"]
 
     def test_partial_slice_high_reso(self):
 
         # higher reso
-        rng = timedelta_range('1 day 10:11:12', freq='us', periods=2000)
+        rng = timedelta_range("1 day 10:11:12", freq="us", periods=2000)
         s = Series(np.arange(len(rng)), index=rng)
 
-        result = s['1 day 10:11:12':]
+        result = s["1 day 10:11:12":]
         expected = s.iloc[0:]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        result = s['1 day 10:11:12.001':]
+        result = s["1 day 10:11:12.001":]
         expected = s.iloc[1000:]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        result = s['1 days, 10:11:12.001001']
+        result = s["1 days, 10:11:12.001001"]
         assert result == s.iloc[1001]
 
     def test_slice_with_negative_step(self):

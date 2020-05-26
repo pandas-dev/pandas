@@ -2,32 +2,35 @@ import decimal
 import numbers
 import random
 import sys
+from typing import Type
 
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import register_extension_dtype
+from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.indexers import check_array_indexer
 
 
 @register_extension_dtype
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
-    name = 'decimal'
-    na_value = decimal.Decimal('NaN')
-    _metadata = ('context',)
+    name = "decimal"
+    na_value = decimal.Decimal("NaN")
+    _metadata = ("context",)
 
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
 
-    def __repr__(self):
-        return 'DecimalDtype(context={})'.format(self.context)
+    def __repr__(self) -> str:
+        return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls):
-        """Return the array type associated with this dtype
+    def construct_array_type(cls) -> Type["DecimalArray"]:
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -35,16 +38,8 @@ class DecimalDtype(ExtensionDtype):
         """
         return DecimalArray
 
-    @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError("Cannot construct a '{}' from "
-                            "'{}'".format(cls, string))
-
     @property
-    def _is_numeric(self):
+    def _is_numeric(self) -> bool:
         return True
 
 
@@ -54,8 +49,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
             if not isinstance(val, decimal.Decimal):
-                raise TypeError("All values must be of type " +
-                                str(decimal.Decimal))
+                raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -77,17 +71,49 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence([decimal.Decimal(x) for x in strings],
-                                  dtype, copy)
+        return cls._from_sequence([decimal.Decimal(x) for x in strings], dtype, copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values)
 
+    _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
+
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+    ) -> np.ndarray:
+        result = np.asarray(self, dtype=dtype)
+        if decimals is not None:
+            result = np.asarray([round(x, decimals) for x in result])
+        return result
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        #
+        if not all(
+            isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
+        ):
+            return NotImplemented
+
+        inputs = tuple(x._data if isinstance(x, DecimalArray) else x for x in inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        def reconstruct(x):
+            if isinstance(x, (decimal.Decimal, numbers.Number)):
+                return x
+            else:
+                return DecimalArray._from_sequence(x)
+
+        if isinstance(result, tuple):
+            return tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self._data[item]
         else:
+            # array, slice.
+            item = pd.api.indexers.check_array_indexer(self, item)
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):
@@ -97,14 +123,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
-        result = take(data, indexer, fill_value=fill_value,
-                      allow_fill=allow_fill)
+        result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
         return self._from_sequence(result)
 
-    def copy(self, deep=False):
-        if deep:
-            return type(self)(self._data.copy())
-        return type(self)(self)
+    def copy(self):
+        return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
@@ -118,13 +141,15 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             value = [decimal.Decimal(v) for v in value]
         else:
             value = decimal.Decimal(value)
+
+        key = check_array_indexer(self, key)
         self._data[key] = value
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         n = len(self)
         if n:
             return n * sys.getsizeof(self[0])
@@ -135,7 +160,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     @property
     def _na_value(self):
-        return decimal.Decimal('NaN')
+        return decimal.Decimal("NaN")
+
+    def _formatter(self, boxed=False):
+        if boxed:
+            return "Decimal: {0}".format
+        return repr
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -144,13 +174,21 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _reduce(self, name, skipna=True, **kwargs):
 
         if skipna:
-            raise NotImplementedError("decimal does not support skipna=True")
+            # If we don't have any NAs, we can ignore skipna
+            if self.isna().any():
+                other = self[~self.isna()]
+                return other._reduce(name, **kwargs)
+
+        if name == "sum" and len(self) == 0:
+            # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
+            return decimal.Decimal(0)
 
         try:
             op = getattr(self.data, name)
-        except AttributeError:
-            raise NotImplementedError("decimal does not support "
-                                      "the {} operation".format(name))
+        except AttributeError as err:
+            raise NotImplementedError(
+                f"decimal does not support the {name} operation"
+            ) from err
         return op(axis=0)
 
 

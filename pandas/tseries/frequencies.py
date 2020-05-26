@@ -1,84 +1,78 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import re
+from typing import Dict, Optional
+import warnings
 
 import numpy as np
-from pytz import AmbiguousTimeError
 
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
-from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
-    FreqGroup, get_base_alias, get_freq, get_freq_code, get_to_timestamp_base,
-    is_subperiod, is_superperiod)
-from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
-import pandas._libs.tslibs.resolution as libresolution
-from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.offsets import _offset_to_period_map
+from pandas._libs.tslibs.resolution import Resolution, month_position_check
 from pandas._libs.tslibs.timezones import UTC
-import pandas.compat as compat
-from pandas.compat import zip
+from pandas._libs.tslibs.tzconversion import tz_convert
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype, is_period_arraylike, is_timedelta64_dtype)
+    is_datetime64_dtype,
+    is_period_dtype,
+    is_timedelta64_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
-from pandas.tseries.offsets import (  # noqa
-    BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin,
-    BYearEnd, CDay, DateOffset, Day, Hour, Micro, Milli, Minute, MonthBegin,
-    MonthEnd, Nano, QuarterBegin, QuarterEnd, Second, Week, YearBegin, YearEnd,
-    prefix_mapping)
-
-RESO_NS = 0
-RESO_US = 1
-RESO_MS = 2
-RESO_SEC = 3
-RESO_MIN = 4
-RESO_HR = 5
-RESO_DAY = 6
+from pandas.tseries.offsets import (
+    DateOffset,
+    Day,
+    Hour,
+    Micro,
+    Milli,
+    Minute,
+    Nano,
+    Second,
+    prefix_mapping,
+)
 
 _ONE_MICRO = 1000
-_ONE_MILLI = (_ONE_MICRO * 1000)
-_ONE_SECOND = (_ONE_MILLI * 1000)
-_ONE_MINUTE = (60 * _ONE_SECOND)
-_ONE_HOUR = (60 * _ONE_MINUTE)
-_ONE_DAY = (24 * _ONE_HOUR)
+_ONE_MILLI = _ONE_MICRO * 1000
+_ONE_SECOND = _ONE_MILLI * 1000
+_ONE_MINUTE = 60 * _ONE_SECOND
+_ONE_HOUR = 60 * _ONE_MINUTE
+_ONE_DAY = 24 * _ONE_HOUR
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-try:
-    cday = CDay()
-except NotImplementedError:
-    cday = None
-
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map: Dict[str, DateOffset] = {}
 
 
-def get_period_alias(offset_str):
-    """ alias to closest period strings BQ->Q etc"""
+def get_period_alias(offset_str: str) -> Optional[str]:
+    """
+    Alias to closest period strings BQ->Q etc.
+    """
     return _offset_to_period_map.get(offset_str, None)
 
 
-_name_to_offset_map = {'days': Day(1),
-                       'hours': Hour(1),
-                       'minutes': Minute(1),
-                       'seconds': Second(1),
-                       'milliseconds': Milli(1),
-                       'microseconds': Micro(1),
-                       'nanoseconds': Nano(1)}
+_name_to_offset_map = {
+    "days": Day(1),
+    "hours": Hour(1),
+    "minutes": Minute(1),
+    "seconds": Second(1),
+    "milliseconds": Milli(1),
+    "microseconds": Micro(1),
+    "nanoseconds": Nano(1),
+}
 
 
-def to_offset(freq):
+def to_offset(freq) -> Optional[DateOffset]:
     """
     Return DateOffset object from string or tuple representation
-    or datetime.timedelta object
+    or datetime.timedelta object.
 
     Parameters
     ----------
@@ -86,8 +80,8 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
-        None if freq is None
+    DateOffset
+        None if freq is None.
 
     Raises
     ------
@@ -96,23 +90,23 @@ def to_offset(freq):
 
     See Also
     --------
-    pandas.DateOffset
+    DateOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
-    >>> to_offset('5min')
+    >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset('1D1H')
+    >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(('W', 2))
+    >>> to_offset(("W", 2))
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, 'B'))
+    >>> to_offset((2, "B"))
     <2 * BusinessDays>
 
-    >>> to_offset(datetime.timedelta(days=1))
+    >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
     >>> to_offset(Hour())
@@ -127,10 +121,10 @@ def to_offset(freq):
     if isinstance(freq, tuple):
         name = freq[0]
         stride = freq[1]
-        if isinstance(stride, compat.string_types):
+        if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = libfreqs._base_and_stride(name)
-        delta = get_offset(name) * stride
+        name, _ = libfreqs.base_and_stride(name)
+        delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
         delta = None
@@ -145,39 +139,38 @@ def to_offset(freq):
                         delta = offset
                     else:
                         delta = delta + offset
-        except Exception:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except ValueError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     else:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(libfreqs.opattern, freq)
-            if splitted[-1] != '' and not splitted[-1].isspace():
+            split = re.split(libfreqs.opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
-                raise ValueError('last element must be blank')
-            for sep, stride, name in zip(splitted[0::4], splitted[1::4],
-                                         splitted[2::4]):
-                if sep != '' and not sep.isspace():
-                    raise ValueError('separator must be spaces')
+                raise ValueError("last element must be blank")
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
+                if sep != "" and not sep.isspace():
+                    raise ValueError("separator must be spaces")
                 prefix = libfreqs._lite_rule_alias.get(name) or name
                 if stride_sign is None:
-                    stride_sign = -1 if stride.startswith('-') else 1
+                    stride_sign = -1 if stride.startswith("-") else 1
                 if not stride:
                     stride = 1
-                if prefix in Resolution._reso_str_bump_map.keys():
+                if prefix in Resolution.reso_str_bump_map:
                     stride, name = Resolution.get_stride_from_decimal(
                         float(stride), prefix
                     )
                 stride = int(stride)
-                offset = get_offset(name)
+                offset = _get_offset(name)
                 offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
                     delta = delta + offset
-        except Exception:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except (ValueError, TypeError) as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     if delta is None:
         raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
@@ -185,13 +178,32 @@ def to_offset(freq):
     return delta
 
 
-def get_offset(name):
+def get_offset(name: str) -> DateOffset:
     """
-    Return DateOffset object associated with rule name
+    Return DateOffset object associated with rule name.
+
+    .. deprecated:: 1.0.0
 
     Examples
     --------
     get_offset('EOM') --> BMonthEnd(1)
+    """
+    warnings.warn(
+        "get_offset is deprecated and will be removed in a future version, "
+        "use to_offset instead",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return _get_offset(name)
+
+
+def _get_offset(name: str) -> DateOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
     """
     if name not in libfreqs._dont_uppercase:
         name = name.upper()
@@ -202,27 +214,25 @@ def get_offset(name):
 
     if name not in _offset_map:
         try:
-            split = name.split('-')
+            split = name.split("-")
             klass = prefix_mapping[split[0]]
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
             offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
         # cache
         _offset_map[name] = offset
 
     return _offset_map[name]
 
 
-getOffset = get_offset
-
 # ---------------------------------------------------------------------
 # Period codes
 
 
-def infer_freq(index, warn=True):
+def infer_freq(index, warn: bool = True) -> Optional[str]:
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -230,98 +240,114 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX)
-    warn : boolean, default True
+      If passed a Series will use the values of the series (NOT THE INDEX).
+    warn : bool, default True
 
     Returns
     -------
-    freq : string or None
-        None if no discernible frequency
-        TypeError if the index is not datetime-like
-        ValueError if there are less than three values.
+    str or None
+        None if no discernible frequency.
+
+    Raises
+    ------
+    TypeError
+        If the index is not datetime-like.
+    ValueError
+        If there are fewer than three values.
     """
     import pandas as pd
 
     if isinstance(index, ABCSeries):
         values = index._values
-        if not (is_datetime64_dtype(values) or
-                is_timedelta64_dtype(values) or
-                values.dtype == object):
-            raise TypeError("cannot infer freq from a non-convertible dtype "
-                            "on a Series of {dtype}".format(dtype=index.dtype))
+        if not (
+            is_datetime64_dtype(values)
+            or is_timedelta64_dtype(values)
+            or values.dtype == object
+        ):
+            raise TypeError(
+                "cannot infer freq from a non-convertible dtype "
+                f"on a Series of {index.dtype}"
+            )
         index = values
 
-    if is_period_arraylike(index):
-        raise TypeError("PeriodIndex given. Check the `freq` attribute "
-                        "instead of using infer_freq.")
-    elif is_timedelta64_dtype(index):
+    inferer: _FrequencyInferer
+
+    if not hasattr(index, "dtype"):
+        pass
+    elif is_period_dtype(index.dtype):
+        raise TypeError(
+            "PeriodIndex given. Check the `freq` attribute "
+            "instead of using infer_freq."
+        )
+    elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
     if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
-            raise TypeError("cannot infer freq from a non-convertible index "
-                            "type {type}".format(type=type(index)))
-        index = index.values
+            raise TypeError(
+                f"cannot infer freq from a non-convertible index type {type(index)}"
+            )
+        index = index._values
 
     if not isinstance(index, pd.DatetimeIndex):
-        try:
-            index = pd.DatetimeIndex(index)
-        except AmbiguousTimeError:
-            index = pd.DatetimeIndex(index.asi8)
+        index = pd.DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn=True):
+    def __init__(self, index, warn: bool = True):
         self.index = index
-        self.values = index.asi8
+        self.i8values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
-        if hasattr(index, 'tz'):
+        if hasattr(index, "tz"):
             if index.tz is not None:
-                self.values = tz_convert(self.values, UTC, index.tz)
+                self.i8values = tz_convert(self.i8values, UTC, index.tz)
 
         self.warn = warn
 
         if len(index) < 3:
-            raise ValueError('Need at least 3 dates to infer frequency')
+            raise ValueError("Need at least 3 dates to infer frequency")
 
-        self.is_monotonic = (self.index._is_monotonic_increasing or
-                             self.index._is_monotonic_decreasing)
+        self.is_monotonic = (
+            self.index._is_monotonic_increasing or self.index._is_monotonic_decreasing
+        )
 
     @cache_readonly
     def deltas(self):
-        return unique_deltas(self.values)
+        return unique_deltas(self.i8values)
 
     @cache_readonly
     def deltas_asi8(self):
+        # NB: we cannot use self.i8values here because we may have converted
+        #  the tz in __init__
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return len(self.deltas) == 1
 
     @cache_readonly
-    def is_unique_asi8(self):
+    def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):  # noqa:F811
+    def get_freq(self) -> Optional[str]:
         """
         Find the appropriate frequency string to describe the inferred
-        frequency of self.values
+        frequency of self.i8values
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
         if not self.is_monotonic or not self.index._is_unique:
             return None
@@ -332,7 +358,7 @@ class _FrequencyInferer(object):
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
-            return 'BH'
+            return "BH"
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
@@ -342,22 +368,22 @@ class _FrequencyInferer(object):
         delta = self.deltas_asi8[0]
         if _is_multiple(delta, _ONE_HOUR):
             # Hours
-            return _maybe_add_count('H', delta / _ONE_HOUR)
+            return _maybe_add_count("H", delta / _ONE_HOUR)
         elif _is_multiple(delta, _ONE_MINUTE):
             # Minutes
-            return _maybe_add_count('T', delta / _ONE_MINUTE)
+            return _maybe_add_count("T", delta / _ONE_MINUTE)
         elif _is_multiple(delta, _ONE_SECOND):
             # Seconds
-            return _maybe_add_count('S', delta / _ONE_SECOND)
+            return _maybe_add_count("S", delta / _ONE_SECOND)
         elif _is_multiple(delta, _ONE_MILLI):
             # Milliseconds
-            return _maybe_add_count('L', delta / _ONE_MILLI)
+            return _maybe_add_count("L", delta / _ONE_MILLI)
         elif _is_multiple(delta, _ONE_MICRO):
             # Microseconds
-            return _maybe_add_count('U', delta / _ONE_MICRO)
+            return _maybe_add_count("U", delta / _ONE_MICRO)
         else:
             # Nanoseconds
-            return _maybe_add_count('N', delta)
+            return _maybe_add_count("N", delta)
 
     @cache_readonly
     def day_deltas(self):
@@ -369,31 +395,30 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def fields(self):
-        return build_field_sarray(self.values)
+        return build_field_sarray(self.i8values)
 
     @cache_readonly
     def rep_stamp(self):
-        return Timestamp(self.values[0])
+        return Timestamp(self.i8values[0])
 
     def month_position_check(self):
-        return libresolution.month_position_check(self.fields,
-                                                  self.index.dayofweek)
+        return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
     def mdiffs(self):
-        nmonths = self.fields['Y'] * 12 + self.fields['M']
-        return unique_deltas(nmonths.astype('i8'))
+        nmonths = self.fields["Y"] * 12 + self.fields["M"]
+        return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
     def ydiffs(self):
-        return unique_deltas(self.fields['Y'].astype('i8'))
+        return unique_deltas(self.fields["Y"].astype("i8"))
 
-    def _infer_daily_rule(self):
+    def _infer_daily_rule(self) -> Optional[str]:
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
             month = MONTH_ALIASES[self.rep_stamp.month]
-            alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
+            alias = f"{annual_rule}-{month}"
             return _maybe_add_count(alias, nyears)
 
         quarterly_rule = self._get_quarterly_rule()
@@ -401,8 +426,7 @@ class _FrequencyInferer(object):
             nquarters = self.mdiffs[0] / 3
             mod_dict = {0: 12, 2: 11, 1: 10}
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
-            alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
-                                              month=month)
+            alias = f"{quarterly_rule}-{month}"
             return _maybe_add_count(alias, nquarters)
 
         monthly_rule = self._get_monthly_rule()
@@ -414,30 +438,30 @@ class _FrequencyInferer(object):
             if days % 7 == 0:
                 # Weekly
                 day = int_to_weekday[self.rep_stamp.weekday()]
-                return _maybe_add_count(
-                    'W-{day}'.format(day=day), days / 7)
+                return _maybe_add_count(f"W-{day}", days / 7)
             else:
-                return _maybe_add_count('D', days)
+                return _maybe_add_count("D", days)
 
         if self._is_business_daily():
-            return 'B'
+            return "B"
 
         wom_rule = self._get_wom_rule()
         if wom_rule:
             return wom_rule
 
-    def _get_annual_rule(self):
+        return None
+
+    def _get_annual_rule(self) -> Optional[str]:
         if len(self.ydiffs) > 1:
             return None
 
-        if len(unique(self.fields['M'])) > 1:
+        if len(unique(self.fields["M"])) > 1:
             return None
 
         pos_check = self.month_position_check()
-        return {'cs': 'AS', 'bs': 'BAS',
-                'ce': 'A', 'be': 'BA'}.get(pos_check)
+        return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
-    def _get_quarterly_rule(self):
+    def _get_quarterly_rule(self) -> Optional[str]:
         if len(self.mdiffs) > 1:
             return None
 
@@ -445,17 +469,15 @@ class _FrequencyInferer(object):
             return None
 
         pos_check = self.month_position_check()
-        return {'cs': 'QS', 'bs': 'BQS',
-                'ce': 'Q', 'be': 'BQ'}.get(pos_check)
+        return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
-    def _get_monthly_rule(self):
+    def _get_monthly_rule(self) -> Optional[str]:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
-        return {'cs': 'MS', 'bs': 'BMS',
-                'ce': 'M', 'be': 'BM'}.get(pos_check)
+        return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
 
-    def _is_business_daily(self):
+    def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
         if self.day_deltas != [1, 3]:
             return False
@@ -465,10 +487,13 @@ class _FrequencyInferer(object):
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(((weekdays == 0) & (shifts == 3)) |
-                      ((weekdays > 0) & (weekdays <= 4) & (shifts == 1)))
+        return np.all(
+            ((weekdays == 0) & (shifts == 3))
+            | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+        )
 
-    def _get_wom_rule(self):
+    def _get_wom_rule(self) -> Optional[str]:
+        # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
@@ -488,31 +513,30 @@ class _FrequencyInferer(object):
         week = week_of_months[0] + 1
         wd = int_to_weekday[weekdays[0]]
 
-        return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
+        return f"WOM-{week}{wd}"
 
 
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
-
     def _infer_daily_rule(self):
         if self.is_unique:
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
                 wd = int_to_weekday[self.rep_stamp.weekday()]
-                alias = 'W-{weekday}'.format(weekday=wd)
+                alias = f"W-{wd}"
                 return _maybe_add_count(alias, days / 7)
             else:
-                return _maybe_add_count('D', days)
+                return _maybe_add_count("D", days)
 
 
-def _is_multiple(us, mult):
+def _is_multiple(us, mult: int) -> bool:
     return us % mult == 0
 
 
-def _maybe_add_count(base, count):
+def _maybe_add_count(base: str, count: float) -> str:
     if count != 1:
         assert count == int(count)
         count = int(count)
-        return '{count}{base}'.format(count=count, base=base)
+        return f"{count}{base}"
     else:
         return base

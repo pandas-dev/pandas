@@ -1,13 +1,13 @@
 codecov:
   branch: master
 
+comment: off
+
 coverage:
   status:
     project:
       default:
-        enabled: no
         target: '82'
     patch:
       default:
-        enabled: no
         target: '50'

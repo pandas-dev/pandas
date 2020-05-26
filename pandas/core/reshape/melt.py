@@ -1,69 +1,77 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 import re
+from typing import List
 
 import numpy as np
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 
-from pandas.core.dtypes.common import is_extension_type, is_list_like
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core.arrays import Categorical
-from pandas.core.frame import _shared_docs
-from pandas.core.indexes.base import Index
+import pandas.core.common as com
+from pandas.core.frame import DataFrame, _shared_docs
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
 
-@Appender(_shared_docs['melt'] %
-          dict(caller='pd.melt(df, ',
-               versionadded="",
-               other='DataFrame.melt'))
-def melt(frame, id_vars=None, value_vars=None, var_name=None,
-         value_name='value', col_level=None):
+@Appender(
+    _shared_docs["melt"]
+    % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
+)
+def melt(
+    frame: DataFrame,
+    id_vars=None,
+    value_vars=None,
+    var_name=None,
+    value_name="value",
+    col_level=None,
+) -> DataFrame:
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
-    if isinstance(frame.columns, ABCMultiIndex):
+    if isinstance(frame.columns, MultiIndex):
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(id_vars, list)):
-            raise ValueError('id_vars must be a list of tuples when columns'
-                             ' are a MultiIndex')
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(id_vars, list):
+            raise ValueError(
+                "id_vars must be a list of tuples when columns are a MultiIndex"
+            )
         else:
             # Check that `id_vars` are in frame
             id_vars = list(id_vars)
-            missing = Index(np.ravel(id_vars)).difference(cols)
+            missing = Index(com.flatten(id_vars)).difference(cols)
             if not missing.empty:
-                raise KeyError("The following 'id_vars' are not present"
-                               " in the DataFrame: {missing}"
-                               "".format(missing=list(missing)))
+                raise KeyError(
+                    "The following 'id_vars' are not present "
+                    f"in the DataFrame: {list(missing)}"
+                )
     else:
         id_vars = []
 
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(value_vars, list)):
-            raise ValueError('value_vars must be a list of tuples when'
-                             ' columns are a MultiIndex')
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(value_vars, list):
+            raise ValueError(
+                "value_vars must be a list of tuples when columns are a MultiIndex"
+            )
         else:
             value_vars = list(value_vars)
             # Check that `value_vars` are in frame
-            missing = Index(np.ravel(value_vars)).difference(cols)
+            missing = Index(com.flatten(value_vars)).difference(cols)
             if not missing.empty:
-                raise KeyError("The following 'value_vars' are not present in"
-                               " the DataFrame: {missing}"
-                               "".format(missing=list(missing)))
+                raise KeyError(
+                    "The following 'value_vars' are not present in "
+                    f"the DataFrame: {list(missing)}"
+                )
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
@@ -73,16 +81,16 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
-        if isinstance(frame.columns, ABCMultiIndex):
+        if isinstance(frame.columns, MultiIndex):
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = ['variable_{i}'.format(i=i)
-                            for i in range(len(frame.columns.names))]
+                var_name = [f"variable_{i}" for i in range(len(frame.columns.names))]
         else:
-            var_name = [frame.columns.name if frame.columns.name is not None
-                        else 'variable']
-    if isinstance(var_name, compat.string_types):
+            var_name = [
+                frame.columns.name if frame.columns.name is not None else "variable"
+            ]
+    if isinstance(var_name, str):
         var_name = [var_name]
 
     N, K = frame.shape
@@ -91,24 +99,24 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_type(id_data):
+        if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
-            id_data = np.tile(id_data.values, K)
+            id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame.values.ravel('F')
+    mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns
-                                   ._get_level_values(i)).repeat(N)
+        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
     return frame._constructor(mdata, columns=mcolumns)
 
 
-def lreshape(data, groups, dropna=True, label=None):
+@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
+def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
 
@@ -153,32 +161,33 @@ def lreshape(data, groups, dropna=True, label=None):
 
     for seq in values:
         if len(seq) != K:
-            raise ValueError('All column lists must be same length')
+            raise ValueError("All column lists must be same length")
 
     mdata = {}
     pivot_cols = []
 
     for target, names in zip(keys, values):
-        to_concat = [data[col].values for col in names]
+        to_concat = [data[col]._values for col in names]
 
-        import pandas.core.dtypes.concat as _concat
-        mdata[target] = _concat._concat_compat(to_concat)
+        mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:
-        mdata[col] = np.tile(data[col].values, K)
+        mdata[col] = np.tile(data[col]._values, K)
 
     if dropna:
         mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
         for c in pivot_cols:
             mask &= notna(mdata[c])
         if not mask.all():
-            mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
+            mdata = {k: v[mask] for k, v in mdata.items()}
 
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
+def wide_to_long(
+    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -196,12 +205,12 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     Parameters
     ----------
     df : DataFrame
-        The wide-format DataFrame
+        The wide-format DataFrame.
     stubnames : str or list-like
         The stub name(s). The wide format variables are assumed to
         start with the stub names.
     i : str or list-like
-        Column(s) to use as id variable(s)
+        Column(s) to use as id variable(s).
     j : str
         The name of the sub-observation variable. What you wish to name your
         suffix in the long format.
@@ -209,19 +218,14 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hyphen by specifying `sep='-'`
-
-        .. versionadded:: 0.20.0
-
+        can strip the hyphen by specifying `sep='-'`.
     suffix : str, default '\\d+'
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
         suffixes, for example, if your wide variables are of the form
         A-one, B-two,.., and you have an unrelated column A-rating, you can
-        ignore the last one by specifying `suffix='(!?one|two)'`
-
-        .. versionadded:: 0.20.0
+        ignore the last one by specifying `suffix='(!?one|two)'`.
 
         .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.
@@ -230,7 +234,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     -------
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
-        (i, j)
+        (i, j).
 
     Notes
     -----
@@ -273,15 +277,15 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     ...     'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
     ... })
     >>> df
-       birth  famid  ht1  ht2
+       famid  birth  ht1  ht2
     0      1      1  2.8  3.4
-    1      2      1  2.9  3.8
-    2      3      1  2.2  2.9
-    3      1      2  2.0  3.2
+    1      1      2  2.9  3.8
+    2      1      3  2.2  2.9
+    3      2      1  2.0  3.2
     4      2      2  1.8  2.8
-    5      3      2  1.9  2.4
-    6      1      3  2.2  3.3
-    7      2      3  2.3  3.4
+    5      2      3  1.9  2.4
+    6      3      1  2.2  3.3
+    7      3      2  2.3  3.4
     8      3      3  2.1  2.9
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
     >>> l
@@ -326,43 +330,39 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     Less wieldy column names are also handled
 
     >>> np.random.seed(0)
-    >>> df = pd.DataFrame({'A(quarterly)-2010': np.random.rand(3),
-    ...                    'A(quarterly)-2011': np.random.rand(3),
-    ...                    'B(quarterly)-2010': np.random.rand(3),
-    ...                    'B(quarterly)-2011': np.random.rand(3),
+    >>> df = pd.DataFrame({'A(weekly)-2010': np.random.rand(3),
+    ...                    'A(weekly)-2011': np.random.rand(3),
+    ...                    'B(weekly)-2010': np.random.rand(3),
+    ...                    'B(weekly)-2011': np.random.rand(3),
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
     >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
-       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  ...
-    0           0.548814           0.544883           0.437587  ...
-    1           0.715189           0.423655           0.891773  ...
-    2           0.602763           0.645894           0.963663  ...
-       X  id
-    0  0   0
-    1  1   1
-    2  1   2
+       A(weekly)-2010  A(weekly)-2011  B(weekly)-2010  B(weekly)-2011  X  id
+    0        0.548814        0.544883        0.437587        0.383442  0   0
+    1        0.715189        0.423655        0.891773        0.791725  1   1
+    2        0.602763        0.645894        0.963663        0.528895  1   2
 
-    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id',
+    >>> pd.wide_to_long(df, ['A(weekly)', 'B(weekly)'], i='id',
     ...                 j='year', sep='-')
     ... # doctest: +NORMALIZE_WHITESPACE
-             X  A(quarterly)  B(quarterly)
+             X  A(weekly)  B(weekly)
     id year
-    0  2010  0      0.548814     0.437587
-    1  2010  1      0.715189     0.891773
-    2  2010  1      0.602763     0.963663
-    0  2011  0      0.544883     0.383442
-    1  2011  1      0.423655     0.791725
-    2  2011  1      0.645894     0.528895
+    0  2010  0   0.548814   0.437587
+    1  2010  1   0.715189   0.891773
+    2  2010  1   0.602763   0.963663
+    0  2011  0   0.544883   0.383442
+    1  2011  1   0.423655   0.791725
+    2  2011  1   0.645894   0.528895
 
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
 
     >>> stubnames = sorted(
     ...     set([match[0] for match in df.columns.str.findall(
-    ...         r'[A-B]\(.*\)').values if match != [] ])
+    ...         r'[A-B]\(.*\)').values if match != []])
     ... )
     >>> list(stubnames)
-    ['A(quarterly)', 'B(quarterly)']
+    ['A(weekly)', 'B(weekly)']
 
     All of the above examples have integers as suffixes. It is possible to
     have non-integers as suffixes.
@@ -374,19 +374,19 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
     ... })
     >>> df
-       birth  famid  ht_one  ht_two
+       famid  birth  ht_one  ht_two
     0      1      1     2.8     3.4
-    1      2      1     2.9     3.8
-    2      3      1     2.2     2.9
-    3      1      2     2.0     3.2
+    1      1      2     2.9     3.8
+    2      1      3     2.2     2.9
+    3      2      1     2.0     3.2
     4      2      2     1.8     2.8
-    5      3      2     1.9     2.4
-    6      1      3     2.2     3.3
-    7      2      3     2.3     3.4
+    5      2      3     1.9     2.4
+    6      3      1     2.2     3.3
+    7      3      2     2.3     3.4
     8      3      3     2.1     2.9
 
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-                            sep='_', suffix='\w')
+    ...                     sep='_', suffix='\w+')
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
@@ -410,20 +410,25 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
           3     one  2.1
                 two  2.9
     """
-    def get_var_names(df, stub, sep, suffix):
-        regex = r'^{stub}{sep}{suffix}$'.format(
-            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix)
+
+    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
+        regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
-    def melt_stub(df, stub, i, j, value_vars, sep):
-        newdf = melt(df, id_vars=i, value_vars=value_vars,
-                     value_name=stub.rstrip(sep), var_name=j)
+    def melt_stub(df, stub: str, i, j, value_vars, sep: str):
+        newdf = melt(
+            df,
+            id_vars=i,
+            value_vars=value_vars,
+            value_name=stub.rstrip(sep),
+            var_name=j,
+        )
         newdf[j] = Categorical(newdf[j])
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
 
         # GH17627 Cast numerics suffixes to int/float
-        newdf[j] = to_numeric(newdf[j], errors='ignore')
+        newdf[j] = to_numeric(newdf[j], errors="ignore")
 
         return newdf.set_index(i + [j])
 
@@ -448,9 +453,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = [melt_stub(df, s, i, j, v, sep)
-              for s, v in zip(stubnames, value_vars)]
-    melted = melted[0].join(melted[1:], how='outer')
+    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
+    melted = _melted[0].join(_melted[1:], how="outer")
 
     if len(i) == 1:
         new = df[id_vars].set_index(i).join(melted)

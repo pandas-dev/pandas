@@ -4,21 +4,32 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-import collections
+from collections import abc, defaultdict
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
+from typing import Any, Collection, Iterable, List, Union
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-import pandas.compat as compat
-from pandas.compat import PY36, OrderedDict, iteritems
+from pandas._typing import AnyArrayLike, Scalar, T
+from pandas.compat.numpy import _np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    is_array_like, is_bool_dtype, is_extension_array_dtype, is_integer)
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+    is_array_like,
+    is_bool_dtype,
+    is_extension_array_dtype,
+    is_integer,
+)
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -32,7 +43,8 @@ class SettingWithCopyWarning(Warning):
 
 
 def flatten(l):
-    """Flatten an arbitrarily nested sequence.
+    """
+    Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
@@ -66,18 +78,12 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
-def maybe_box_datetimelike(value):
+def maybe_box_datetimelike(value, dtype=None):
     # turn a datetime like into a Timestamp/timedelta as needed
+    if dtype == object:
+        # If we dont have datetime64/timedelta64 dtype, we dont want to
+        #  box datetimelike scalars
+        return value
 
     if isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
@@ -87,11 +93,7 @@ def maybe_box_datetimelike(value):
     return value
 
 
-values_from_object = lib.values_from_object
-
-
-def is_bool_indexer(key):
-    # type: (Any) -> bool
+def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
 
@@ -106,30 +108,32 @@ def is_bool_indexer(key):
     Returns
     -------
     bool
+        Whether `key` is a valid boolean indexer.
 
     Raises
     ------
     ValueError
         When the array is an object-dtype ndarray or ExtensionArray
         and contains missing values.
+
+    See Also
+    --------
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
-    na_msg = 'cannot index with vector containing NA / NaN values'
-    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or
-            (is_array_like(key) and is_extension_array_dtype(key.dtype))):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
+        is_array_like(key) and is_extension_array_dtype(key.dtype)
+    ):
         if key.dtype == np.object_:
-            key = np.asarray(values_from_object(key))
+            key = np.asarray(key)
 
             if not lib.is_bool_array(key):
+                na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
                 if isna(key).any():
                     raise ValueError(na_msg)
                 return False
             return True
         elif is_bool_dtype(key.dtype):
-            # an ndarray with bool-dtype by definition has no missing values.
-            # So we only need to check for NAs in ExtensionArrays
-            if is_extension_array_dtype(key.dtype):
-                if np.any(key.isna()):
-                    raise ValueError(na_msg)
             return True
     elif isinstance(key, list):
         try:
@@ -141,102 +145,92 @@ def is_bool_indexer(key):
     return False
 
 
-def cast_scalar_indexer(val):
+def cast_scalar_indexer(val, warn_float=False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
     Parameters
     ----------
     val : scalar
+    warn_float : bool, default False
+        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
+        if warn_float:
+            warnings.warn(
+                "Indexing with a float is deprecated, and will raise an IndexError "
+                "in pandas 2.0. You can manually convert to an integer key instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return int(val)
     return val
 
 
-def _not_none(*args):
-    """Returns a generator consisting of the arguments that are not None"""
+def not_none(*args):
+    """
+    Returns a generator consisting of the arguments that are not None.
+    """
     return (arg for arg in args if arg is not None)
 
 
-def _any_none(*args):
-    """Returns a boolean indicating if any argument is None"""
-    for arg in args:
-        if arg is None:
-            return True
-    return False
+def any_none(*args) -> bool:
+    """
+    Returns a boolean indicating if any argument is None.
+    """
+    return any(arg is None for arg in args)
 
 
-def _all_none(*args):
-    """Returns a boolean indicating if all arguments are None"""
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
+def all_none(*args) -> bool:
+    """
+    Returns a boolean indicating if all arguments are None.
+    """
+    return all(arg is None for arg in args)
 
 
-def _any_not_none(*args):
-    """Returns a boolean indicating if any argument is not None"""
-    for arg in args:
-        if arg is not None:
-            return True
-    return False
+def any_not_none(*args) -> bool:
+    """
+    Returns a boolean indicating if any argument is not None.
+    """
+    return any(arg is not None for arg in args)
 
 
-def _all_not_none(*args):
-    """Returns a boolean indicating if all arguments are not None"""
-    for arg in args:
-        if arg is None:
-            return False
-    return True
+def all_not_none(*args) -> bool:
+    """
+    Returns a boolean indicating if all arguments are not None.
+    """
+    return all(arg is not None for arg in args)
 
 
-def count_not_none(*args):
-    """Returns the count of arguments that are not None"""
+def count_not_none(*args) -> int:
+    """
+    Returns the count of arguments that are not None.
+    """
     return sum(x is not None for x in args)
-
-
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except Exception:
-        return listed
-
-
-def dict_keys_to_ordered_list(mapping):
-    # when pandas drops support for Python < 3.6, this function
-    # can be replaced by a simple list(mapping.keys())
-    if PY36 or isinstance(mapping, OrderedDict):
-        keys = list(mapping.keys())
-    else:
-        keys = try_sort(mapping)
-    return keys
 
 
 def asarray_tuplesafe(values, dtype=None):
 
-    if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
+    if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
-        return values.values
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
 
-    if issubclass(result.dtype.type, compat.string_types):
+    if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
         # Avoid building an array of arrays:
-        # TODO: verify whether any path hits this except #18819 (invalid)
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
 
@@ -256,7 +250,7 @@ def index_labels_to_array(labels, dtype=None):
     -------
     array
     """
-    if isinstance(labels, (compat.string_types, tuple)):
+    if isinstance(labels, (str, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
@@ -276,10 +270,25 @@ def maybe_make_list(obj):
     return obj
 
 
-def is_null_slice(obj):
-    """ we have a null slice """
-    return (isinstance(obj, slice) and obj.start is None and
-            obj.stop is None and obj.step is None)
+def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
+    """
+    If obj is Iterable but not list-like, consume into list.
+    """
+    if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
+        return list(obj)
+    return obj
+
+
+def is_null_slice(obj) -> bool:
+    """
+    We have a null slice.
+    """
+    return (
+        isinstance(obj, slice)
+        and obj.start is None
+        and obj.stop is None
+        and obj.step is None
+    )
 
 
 def is_true_slices(l):
@@ -290,22 +299,25 @@ def is_true_slices(l):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l):
-    """ we have a full length slice """
-    return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
-            obj.step is None)
+def is_full_slice(obj, l) -> bool:
+    """
+    We have a full length slice.
+    """
+    return (
+        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+    )
 
 
 def get_callable_name(obj):
     # typical case has name
-    if hasattr(obj, '__name__'):
-        return getattr(obj, '__name__')
+    if hasattr(obj, "__name__"):
+        return getattr(obj, "__name__")
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
     # fall back to class name
-    if hasattr(obj, '__call__'):
-        return obj.__class__.__name__
+    if hasattr(obj, "__call__"):
+        return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
     # instead of the empty string in this case to allow
@@ -316,7 +328,7 @@ def get_callable_name(obj):
 def apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
-    otherwise return as it is
+    otherwise return as it is.
 
     Parameters
     ----------
@@ -324,7 +336,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
@@ -333,7 +344,8 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
 
 def dict_compat(d):
     """
-    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
+    Helper function to convert datetimelike-keyed dicts
+    to Timestamp-keyed dict.
 
     Parameters
     ----------
@@ -344,24 +356,22 @@ def dict_compat(d):
     dict
 
     """
-    return {maybe_box_datetimelike(key): value for key, value in iteritems(d)}
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
-    into : instance or subclass of collections.Mapping
+    into : instance or subclass of collections.abc.Mapping
         Must be a class, an initialized collections.defaultdict,
-        or an instance of a collections.Mapping subclass.
+        or an instance of a collections.abc.Mapping subclass.
 
     Returns
     -------
-    mapping : a collections.Mapping subclass or other constructor
+    mapping : a collections.abc.Mapping subclass or other constructor
         a callable object that can accept an iterator to create
         the desired Mapping.
 
@@ -371,23 +381,14 @@ def standardize_mapping(into):
     Series.to_dict
     """
     if not inspect.isclass(into):
-        if isinstance(into, collections.defaultdict):
-            return partial(
-                collections.defaultdict, into.default_factory)
+        if isinstance(into, defaultdict):
+            return partial(defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, compat.Mapping):
-        raise TypeError('unsupported type: {into}'.format(into=into))
-    elif into == collections.defaultdict:
-        raise TypeError(
-            'to_dict() only accepts initialized defaultdicts')
+    if not issubclass(into, abc.Mapping):
+        raise TypeError(f"unsupported type: {into}")
+    elif into == defaultdict:
+        raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
-
-
-def sentinel_factory():
-    class Sentinel(object):
-        pass
-
-    return Sentinel()
 
 
 def random_state(state=None):
@@ -396,30 +397,45 @@ def random_state(state=None):
 
     Parameters
     ----------
-    state : int, np.random.RandomState, None.
-        If receives an int, passes to np.random.RandomState() as seed.
+    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+        If receives an int, array-like, or BitGenerator, passes to
+        np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
+
+        ..versionchanged:: 1.1.0
+
+            array-like and BitGenerator (for NumPy>=1.18) object now passed to
+            np.random.RandomState() as seed
+
         Default None.
 
     Returns
     -------
     np.random.RandomState
-    """
 
-    if is_integer(state):
+    """
+    if (
+        is_integer(state)
+        or is_array_like(state)
+        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+    ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
     elif state is None:
         return np.random
     else:
-        raise ValueError("random_state must be an integer, a numpy "
-                         "RandomState, or None")
+        raise ValueError(
+            (
+                "random_state must be an integer, array-like, a BitGenerator, "
+                "a numpy RandomState, or None"
+            )
+        )
 
 
-def _pipe(obj, func, *args, **kwargs):
+def pipe(obj, func, *args, **kwargs):
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -429,15 +445,15 @@ def _pipe(obj, func, *args, **kwargs):
 
     Parameters
     ----------
-    func : callable or tuple of (callable, string)
+    func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
         string indicating the keyword of `callable`` that expects the
         object.
-    args : iterable, optional
-        positional arguments passed into ``func``.
-    kwargs : dict, optional
-        a dictionary of keyword arguments passed into ``func``.
+    *args : iterable, optional
+        Positional arguments passed into ``func``.
+    **kwargs : dict, optional
+        A dictionary of keyword arguments passed into ``func``.
 
     Returns
     -------
@@ -446,7 +462,7 @@ def _pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = '%s is both the pipe target and a keyword argument' % target
+            msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)
@@ -454,19 +470,35 @@ def _pipe(obj, func, *args, **kwargs):
         return func(obj, *args, **kwargs)
 
 
-def _get_rename_function(mapper):
+def get_rename_function(mapper):
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
         def f(x):
             if x in mapper:
                 return mapper[x]
             else:
                 return x
+
     else:
         f = mapper
 
     return f
+
+
+def convert_to_list_like(
+    values: Union[Scalar, Iterable, AnyArrayLike]
+) -> Union[List, AnyArrayLike]:
+    """
+    Convert list-like or scalar input to list-like. List, numpy and pandas array-like
+    inputs are returned unmodified whereas others are converted to list.
+    """
+    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
+        return values
+    elif isinstance(values, abc.Iterable) and not isinstance(values, str):
+        return list(values)
+
+    return [values]

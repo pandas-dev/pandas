@@ -1,19 +1,30 @@
 """
-concat routines
+Concat routines.
 """
+
+from collections import abc
+from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
-import pandas.core.dtypes.concat as _concat
+from pandas._typing import FrameOrSeriesUnion, Label
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat
-from pandas.core import common as com
+from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
-    _factorize_from_iterable, _factorize_from_iterables)
+    factorize_from_iterable,
+    factorize_from_iterables,
+)
+import pandas.core.common as com
 from pandas.core.generic import NDFrame
-from pandas.core.index import (
-    _all_indexes_same, _get_consensus_names, _get_objs_combined_axis,
-    ensure_index)
+from pandas.core.indexes.api import (
+    all_indexes_same,
+    ensure_index,
+    get_consensus_names,
+    get_objs_combined_axis,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
@@ -21,9 +32,50 @@ from pandas.core.internals import concatenate_block_managers
 # Concatenate DataFrame objects
 
 
-def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, levels=None, names=None, verify_integrity=False,
-           sort=None, copy=True):
+@overload
+def concat(
+    objs: Union[Iterable["DataFrame"], Mapping[Label, "DataFrame"]],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> "DataFrame":
+    ...
+
+
+@overload
+def concat(
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
+    ...
+
+
+def concat(
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
+    axis=0,
+    join="outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -34,19 +86,16 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series, DataFrame, or Panel objects
-        If a dict is passed, the sorted keys will be used as the `keys`
+    objs : a sequence or mapping of Series or DataFrame objects
+        If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
-        they are all None in which case a ValueError will be raised
+        they are all None in which case a ValueError will be raised.
     axis : {0/'index', 1/'columns'}, default 0
-        The axis to concatenate along
+        The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
-        How to handle indexes on other axis(es)
-    join_axes : list of Index objects
-        Specific indexes to use for the other n - 1 axes instead of performing
-        inner/outer set logic
-    ignore_index : boolean, default False
+        How to handle indexes on other axis (or axes).
+    ignore_index : bool, default False
         If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
         concatenating objects where the concatenation axis does not have
@@ -54,34 +103,32 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         axes are still respected in the join.
     keys : sequence, default None
         If multiple levels passed, should contain tuples. Construct
-        hierarchical index using the passed keys as the outermost level
+        hierarchical index using the passed keys as the outermost level.
     levels : list of sequences, default None
         Specific levels (unique values) to use for constructing a
-        MultiIndex. Otherwise they will be inferred from the keys
+        MultiIndex. Otherwise they will be inferred from the keys.
     names : list, default None
-        Names for the levels in the resulting hierarchical index
-    verify_integrity : boolean, default False
+        Names for the levels in the resulting hierarchical index.
+    verify_integrity : bool, default False
         Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
-    sort : boolean, default None
+        be very expensive relative to the actual data concatenation.
+    sort : bool, default False
         Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'. The current default of sorting is deprecated and will
-        change to not-sorting in a future version of pandas.
-
-        Explicitly pass ``sort=True`` to silence the warning and sort.
-        Explicitly pass ``sort=False`` to silence the warning and not sort.
-
+        is 'outer'.
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
         .. versionadded:: 0.23.0
+        .. versionchanged:: 1.0.0
 
-    copy : boolean, default True
-        If False, do not copy data unnecessarily
+           Changed to not sort by default.
+
+    copy : bool, default True
+        If False, do not copy data unnecessarily.
 
     Returns
     -------
-    concatenated : object, type of objs
+    object, type of objs
         When concatenating all ``Series`` along the index (axis=0), a
         ``Series`` is returned. When ``objs`` contains at least one
         ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
@@ -89,10 +136,10 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     See Also
     --------
-    Series.append
-    DataFrame.append
-    DataFrame.join
-    DataFrame.merge
+    Series.append : Concatenate Series.
+    DataFrame.append : Concatenate DataFrames.
+    DataFrame.join : Join DataFrames using indexes.
+    DataFrame.merge : Merge DataFrames by indexes or columns.
 
     Notes
     -----
@@ -100,7 +147,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
-    <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
     Examples
     --------
@@ -128,7 +175,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
 
-    >>> pd.concat([s1, s2], keys=['s1', 's2',])
+    >>> pd.concat([s1, s2], keys=['s1', 's2'])
     s1  0    a
         1    b
     s2  0    c
@@ -221,48 +268,67 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         ...
     ValueError: Indexes have overlapping values: ['a']
     """
-    op = _Concatenator(objs, axis=axis, join_axes=join_axes,
-                       ignore_index=ignore_index, join=join,
-                       keys=keys, levels=levels, names=names,
-                       verify_integrity=verify_integrity,
-                       copy=copy, sort=sort)
+    op = _Concatenator(
+        objs,
+        axis=axis,
+        ignore_index=ignore_index,
+        join=join,
+        keys=keys,
+        levels=levels,
+        names=names,
+        verify_integrity=verify_integrity,
+        copy=copy,
+        sort=sort,
+    )
+
     return op.get_result()
 
 
-class _Concatenator(object):
+class _Concatenator:
     """
     Orchestrates a concatenation operation for BlockManagers
     """
 
-    def __init__(self, objs, axis=0, join='outer', join_axes=None,
-                 keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False, copy=True,
-                 sort=False):
-        if isinstance(objs, (NDFrame, compat.string_types)):
-            raise TypeError('first argument must be an iterable of pandas '
-                            'objects, you passed an object of type '
-                            '"{name}"'.format(name=type(objs).__name__))
+    def __init__(
+        self,
+        objs,
+        axis=0,
+        join: str = "outer",
+        keys=None,
+        levels=None,
+        names=None,
+        ignore_index: bool = False,
+        verify_integrity: bool = False,
+        copy: bool = True,
+        sort=False,
+    ):
+        if isinstance(objs, (NDFrame, str)):
+            raise TypeError(
+                "first argument must be an iterable of pandas "
+                f'objects, you passed an object of type "{type(objs).__name__}"'
+            )
 
-        if join == 'outer':
+        if join == "outer":
             self.intersect = False
-        elif join == 'inner':
+        elif join == "inner":
             self.intersect = True
         else:  # pragma: no cover
-            raise ValueError('Only can inner (intersect) or outer (union) '
-                             'join the other axis')
+            raise ValueError(
+                "Only can inner (intersect) or outer (union) join the other axis"
+            )
 
-        if isinstance(objs, dict):
+        if isinstance(objs, abc.Mapping):
             if keys is None:
-                keys = sorted(objs)
+                keys = list(objs.keys())
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)
 
         if len(objs) == 0:
-            raise ValueError('No objects to concatenate')
+            raise ValueError("No objects to concatenate")
 
         if keys is None:
-            objs = list(com._not_none(*objs))
+            objs = list(com.not_none(*objs))
         else:
             # #1649
             clean_keys = []
@@ -273,19 +339,20 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            name = getattr(keys, 'name', None)
+            name = getattr(keys, "name", None)
             keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
-            raise ValueError('All objects passed were None')
+            raise ValueError("All objects passed were None")
 
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, NDFrame):
-                msg = ('cannot concatenate object of type "{0}";'
-                       ' only pd.Series, pd.DataFrame, and pd.Panel'
-                       ' (deprecated) objs are valid'.format(type(obj)))
+            if not isinstance(obj, (Series, DataFrame)):
+                msg = (
+                    f"cannot concatenate object of type '{type(obj)}'; "
+                    "only Series and DataFrame objs are valid"
+                )
                 raise TypeError(msg)
 
             # consolidate
@@ -306,13 +373,13 @@ class _Concatenator(object):
         else:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
-            non_empties = [obj for obj in objs
-                           if sum(obj.shape) > 0 or isinstance(obj, Series)]
+            non_empties = [
+                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, Series)
+            ]
 
-            if (len(non_empties) and (keys is None and names is None and
-                                      levels is None and
-                                      join_axes is None and
-                                      not self.intersect)):
+            if len(non_empties) and (
+                keys is None and names is None and levels is None and not self.intersect
+            ):
                 objs = non_empties
                 sample = objs[0]
 
@@ -327,14 +394,15 @@ class _Concatenator(object):
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
-            axis = 1 if axis == 0 else 0
+            axis = DataFrame._get_block_manager_axis(axis)
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
-            raise AssertionError("axis must be between 0 and {ndim}, input was"
-                                 " {axis}".format(ndim=sample.ndim, axis=axis))
+            raise AssertionError(
+                f"axis must be between 0 and {sample.ndim}, input was {axis}"
+            )
 
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
@@ -349,11 +417,13 @@ class _Concatenator(object):
                     pass
 
                 elif ndim != max_ndim - 1:
-                    raise ValueError("cannot concatenate unaligned mixed "
-                                     "dimensional NDFrame objects")
+                    raise ValueError(
+                        "cannot concatenate unaligned mixed "
+                        "dimensional NDFrame objects"
+                    )
 
                 else:
-                    name = getattr(obj, 'name', None)
+                    name = getattr(obj, "name", None)
                     if ignore_index or name is None:
                         name = current_column
                         current_column += 1
@@ -367,10 +437,10 @@ class _Concatenator(object):
                 self.objs.append(obj)
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
-        self.axis = axis
-        self.join_axes = join_axes
+        self.bm_axis = axis
+        self.axis = 1 - self.bm_axis if self._is_frame else 0
         self.keys = keys
-        self.names = names or getattr(keys, 'names', None)
+        self.names = names or getattr(keys, "names", None)
         self.levels = levels
         self.sort = sort
 
@@ -386,111 +456,98 @@ class _Concatenator(object):
         if self._is_series:
 
             # stack blocks
-            if self.axis == 0:
+            if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
+                cons = self.objs[0]._constructor
 
-                mgr = self.objs[0]._data.concat([x._data for x in self.objs],
-                                                self.new_axes)
-                cons = _concat._get_series_result_type(mgr, self.objs)
-                return cons(mgr, name=name).__finalize__(self, method='concat')
+                arrs = [ser._values for ser in self.objs]
+
+                res = concat_compat(arrs, axis=0)
+                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = _concat._get_series_result_type(data)
+
+                # GH28330 Preserves subclassed objects through concat
+                cons = self.objs[0]._constructor_expanddim
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
                 df.columns = columns
-                return df.__finalize__(self, method='concat')
+                return df.__finalize__(self, method="concat")
 
         # combine block managers
         else:
             mgrs_indexers = []
             for obj in self.objs:
-                mgr = obj._data
                 indexers = {}
                 for ax, new_labels in enumerate(self.new_axes):
-                    if ax == self.axis:
+                    # ::-1 to convert BlockManager ax to DataFrame ax
+                    if ax == self.bm_axis:
                         # Suppress reindexing on concat axis
                         continue
 
-                    obj_labels = mgr.axes[ax]
+                    # 1-ax to convert BlockManager axis to DataFrame axis
+                    obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
-                mgrs_indexers.append((obj._data, indexers))
+                mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.axis,
-                copy=self.copy)
+                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
+            )
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            cons = _concat._get_frame_result_type(new_data, self.objs)
-            return (cons._from_axes(new_data, self.new_axes)
-                    .__finalize__(self, method='concat'))
+            cons = self.objs[0]._constructor
+            return cons(new_data).__finalize__(self, method="concat")
 
-    def _get_result_dim(self):
-        if self._is_series and self.axis == 1:
+    def _get_result_dim(self) -> int:
+        if self._is_series and self.bm_axis == 1:
             return 2
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self):
+    def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
-        new_axes = [None] * ndim
+        return [
+            self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)
+            for i in range(ndim)
+        ]
 
-        if self.join_axes is None:
-            for i in range(ndim):
-                if i == self.axis:
-                    continue
-                new_axes[i] = self._get_comb_axis(i)
-        else:
-            if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must be equal "
-                                     "to {length}".format(length=ndim - 1))
-
-            # ufff...
-            indices = compat.lrange(ndim)
-            indices.remove(self.axis)
-
-            for i, ax in zip(indices, self.join_axes):
-                new_axes[i] = ax
-
-        new_axes[self.axis] = self._get_concat_axis()
-        return new_axes
-
-    def _get_comb_axis(self, i):
+    def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
-        try:
-            return _get_objs_combined_axis(self.objs, axis=data_axis,
-                                           intersect=self.intersect,
-                                           sort=self.sort)
-        except IndexError:
-            types = [type(x).__name__ for x in self.objs]
-            raise TypeError("Cannot concatenate list of {types}"
-                            .format(types=types))
+        return get_objs_combined_axis(
+            self.objs,
+            axis=data_axis,
+            intersect=self.intersect,
+            sort=self.sort,
+            copy=self.copy,
+        )
 
-    def _get_concat_axis(self):
+    def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
         """
         if self._is_series:
-            if self.axis == 0:
+            if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)
+                names: List[Label] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
-                        raise TypeError("Cannot concatenate type 'Series' "
-                                        "with object of type {type!r}"
-                                        .format(type=type(x).__name__))
+                        raise TypeError(
+                            f"Cannot concatenate type 'Series' with "
+                            f"object of type '{type(x).__name__}'"
+                        )
                     if x.name is not None:
                         names[i] = x.name
                         has_names = True
@@ -504,7 +561,7 @@ class _Concatenator(object):
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
-            indexes = [x._data.axes[self.axis] for x in self.objs]
+            indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
             idx = ibase.default_index(sum(len(i) for i in indexes))
@@ -513,35 +570,36 @@ class _Concatenator(object):
         if self.keys is None:
             concat_axis = _concat_indexes(indexes)
         else:
-            concat_axis = _make_concat_multiindex(indexes, self.keys,
-                                                  self.levels, self.names)
+            concat_axis = _make_concat_multiindex(
+                indexes, self.keys, self.levels, self.names
+            )
 
         self._maybe_check_integrity(concat_axis)
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index):
+    def _maybe_check_integrity(self, concat_index: Index):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
-                raise ValueError('Indexes have overlapping values: '
-                                 '{overlap!s}'.format(overlap=overlap))
+                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
 
-def _concat_indexes(indexes):
+def _concat_indexes(indexes) -> Index:
     return indexes[0].append(indexes[1:])
 
 
-def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
 
-    if ((levels is None and isinstance(keys[0], tuple)) or
-            (levels is not None and len(levels) > 1)):
-        zipped = compat.lzip(*keys)
+    if (levels is None and isinstance(keys[0], tuple)) or (
+        levels is not None and len(levels) > 1
+    ):
+        zipped = list(zip(*keys))
         if names is None:
             names = [None] * len(zipped)
 
         if levels is None:
-            _, levels = _factorize_from_iterables(zipped)
+            _, levels = factorize_from_iterables(zipped)
         else:
             levels = [ensure_index(x) for x in levels]
     else:
@@ -554,7 +612,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not _all_indexes_same(indexes):
+    if not all_indexes_same(indexes):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
@@ -563,11 +621,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                try:
-                    i = level.get_loc(key)
-                except KeyError:
-                    raise ValueError('Key {key!s} not in level {level!s}'
-                                     .format(key=key, level=level))
+                mask = level == key
+                if not mask.any():
+                    raise ValueError(f"Key {key} not in level {level}")
+                i = np.nonzero(level == key)[0][0]
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))
@@ -579,7 +636,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             codes_list.extend(concat_index.codes)
         else:
-            codes, categories = _factorize_from_iterable(concat_index)
+            codes, categories = factorize_from_iterable(concat_index)
             levels.append(categories)
             codes_list.append(codes)
 
@@ -588,14 +645,16 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         else:
             # make sure that all of the passed indices have the same nlevels
             if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError("Cannot concat indices that do"
-                                     " not have the same number of levels")
+                raise AssertionError(
+                    "Cannot concat indices that do not have the same number of levels"
+                )
 
             # also copies
-            names = names + _get_consensus_names(indexes)
+            names = names + get_consensus_names(indexes)
 
-        return MultiIndex(levels=levels, codes=codes_list, names=names,
-                          verify_integrity=False)
+        return MultiIndex(
+            levels=levels, codes=codes_list, names=names, verify_integrity=False
+        )
 
     new_index = indexes[0]
     n = len(new_index)
@@ -616,8 +675,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError('Values not found in passed level: {hlevel!s}'
-                             .format(hlevel=hlevel[mask]))
+            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
 
         new_codes.append(np.repeat(mapped, n))
 
@@ -631,5 +689,6 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)
 
-    return MultiIndex(levels=new_levels, codes=new_codes, names=new_names,
-                      verify_integrity=False)
+    return MultiIndex(
+        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    )

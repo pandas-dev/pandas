@@ -1,4 +1,5 @@
 import operator
+from typing import Optional, Type
 
 import pytest
 
@@ -9,9 +10,8 @@ from .base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
-
     def get_op_from_name(self, op_name):
-        short_opname = op_name.strip('_')
+        short_opname = op_name.strip("_")
         try:
             op = getattr(operator, short_opname)
         except AttributeError:
@@ -29,14 +29,20 @@ class BaseOpsUtil(BaseExtensionTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
-            expected = s.combine(other, op)
-            self.assert_series_equal(result, expected)
+            if isinstance(s, pd.DataFrame):
+                if len(s.columns) != 1:
+                    raise NotImplementedError
+                expected = s.iloc[:, 0].combine(other, op).to_frame()
+                self.assert_frame_equal(result, expected)
+            else:
+                expected = s.combine(other, op)
+                self.assert_series_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=Exception):
-        # divmod has multiple return values, so check separatly
+        # divmod has multiple return values, so check separately
         if exc is None:
             result_div, result_mod = op(s, other)
             if op is divmod:
@@ -51,7 +57,8 @@ class BaseOpsUtil(BaseExtensionTests):
 
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
-    """Various Series and DataFrame arithmetic ops methods.
+    """
+    Various Series and DataFrame arithmetic ops methods.
 
     Subclasses supporting various ops should set the class variables
     to indicate that they support ops of that kind
@@ -61,10 +68,11 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * series_array_exc = TypeError
     * divmod_exc = TypeError
     """
-    series_scalar_exc = TypeError
-    frame_scalar_exc = TypeError
-    series_array_exc = TypeError
-    divmod_exc = TypeError
+
+    series_scalar_exc: Optional[Type[TypeError]] = TypeError
+    frame_scalar_exc: Optional[Type[TypeError]] = TypeError
+    series_array_exc: Optional[Type[TypeError]] = TypeError
+    divmod_exc: Optional[Type[TypeError]] = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
@@ -76,24 +84,31 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
-        df = pd.DataFrame({'A': data})
+        df = pd.DataFrame({"A": data})
         self.check_opname(df, op_name, data[0], exc=self.frame_scalar_exc)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)
-        self.check_opname(s, op_name, pd.Series([s.iloc[0]] * len(s)),
-                          exc=self.series_array_exc)
+        self.check_opname(
+            s, op_name, pd.Series([s.iloc[0]] * len(s)), exc=self.series_array_exc
+        )
 
     def test_divmod(self, data):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
         self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
 
-    def test_divmod_series_array(self, data):
+    def test_divmod_series_array(self, data, data_for_twos):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, data)
+
+        other = data_for_twos
+        self._check_divmod_op(other, ops.rdivmod, s)
+
+        other = pd.Series(other)
+        self._check_divmod_op(other, ops.rdivmod, s)
 
     def test_add_series_with_extension_array(self, data):
         s = pd.Series(data)
@@ -111,13 +126,11 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         # EAs should return NotImplemented for ops with Series.
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
-        if hasattr(data, '__add__'):
+        if hasattr(data, "__add__"):
             result = data.__add__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(
-                "{} does not implement add".format(data.__class__.__name__)
-            )
+            raise pytest.skip(f"{type(data).__name__} does not implement add")
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
@@ -125,11 +138,9 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
-        if op_name == '__eq__':
-            assert getattr(data, op_name)(other) is NotImplemented
+        if op_name == "__eq__":
             assert not op(s, other).all()
-        elif op_name == '__ne__':
-            assert getattr(data, op_name)(other) is NotImplemented
+        elif op_name == "__ne__":
             assert op(s, other).all()
 
         else:
@@ -157,10 +168,22 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         # EAs should return NotImplemented for ops with Series.
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
-        if hasattr(data, '__eq__'):
+        if hasattr(data, "__eq__"):
             result = data.__eq__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(
-                "{} does not implement __eq__".format(data.__class__.__name__)
-            )
+            raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+
+        if hasattr(data, "__ne__"):
+            result = data.__ne__(other)
+            assert result is NotImplemented
+        else:
+            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
+
+
+class BaseUnaryOpsTests(BaseOpsUtil):
+    def test_invert(self, data):
+        s = pd.Series(data, name="name")
+        result = ~s
+        expected = pd.Series(~data, name="name")
+        self.assert_series_equal(result, expected)

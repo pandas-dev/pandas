@@ -1,0 +1,1131 @@
+.. _computation:
+
+{{ header }}
+
+Computational tools
+===================
+
+
+Statistical functions
+---------------------
+
+.. _computation.pct_change:
+
+Percent change
+~~~~~~~~~~~~~~
+
+``Series`` and ``DataFrame`` have a method
+:meth:`~DataFrame.pct_change` to compute the percent change over a given number
+of periods (using ``fill_method`` to fill NA/null values *before* computing
+the percent change).
+
+.. ipython:: python
+
+   ser = pd.Series(np.random.randn(8))
+
+   ser.pct_change()
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10, 4))
+
+   df.pct_change(periods=3)
+
+.. _computation.covariance:
+
+Covariance
+~~~~~~~~~~
+
+:meth:`Series.cov` can be used to compute covariance between series
+(excluding missing values).
+
+.. ipython:: python
+
+   s1 = pd.Series(np.random.randn(1000))
+   s2 = pd.Series(np.random.randn(1000))
+   s1.cov(s2)
+
+Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the
+series in the DataFrame, also excluding NA/null values.
+
+.. _computation.covariance.caveats:
+
+.. note::
+
+    Assuming the missing data are missing at random this results in an estimate
+    for the covariance matrix which is unbiased. However, for many applications
+    this estimate may not be acceptable because the estimated covariance matrix
+    is not guaranteed to be positive semi-definite. This could lead to
+    estimated correlations having absolute values which are greater than one,
+    and/or a non-invertible covariance matrix. See `Estimation of covariance
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    for more details.
+
+.. ipython:: python
+
+   frame = pd.DataFrame(np.random.randn(1000, 5),
+                        columns=['a', 'b', 'c', 'd', 'e'])
+   frame.cov()
+
+``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
+specifies the required minimum number of observations for each column pair
+in order to have a valid result.
+
+.. ipython:: python
+
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
+   frame.loc[frame.index[:5], 'a'] = np.nan
+   frame.loc[frame.index[5:10], 'b'] = np.nan
+
+   frame.cov()
+
+   frame.cov(min_periods=12)
+
+
+.. _computation.correlation:
+
+Correlation
+~~~~~~~~~~~
+
+Correlation may be computed using the :meth:`~DataFrame.corr` method.
+Using the ``method`` parameter, several methods for computing correlations are
+provided:
+
+.. csv-table::
+    :header: "Method name", "Description"
+    :widths: 20, 80
+
+    ``pearson (default)``, Standard correlation coefficient
+    ``kendall``, Kendall Tau correlation coefficient
+    ``spearman``, Spearman rank correlation coefficient
+
+.. \rho = \cov(x, y) / \sigma_x \sigma_y
+
+All of these are currently computed using pairwise complete observations.
+Wikipedia has articles covering the above correlation coefficients:
+
+* `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+* `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+* `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+.. note::
+
+    Please see the :ref:`caveats <computation.covariance.caveats>` associated
+    with this method of calculating correlation matrices in the
+    :ref:`covariance section <computation.covariance>`.
+
+.. ipython:: python
+
+   frame = pd.DataFrame(np.random.randn(1000, 5),
+                        columns=['a', 'b', 'c', 'd', 'e'])
+   frame.iloc[::2] = np.nan
+
+   # Series with Series
+   frame['a'].corr(frame['b'])
+   frame['a'].corr(frame['b'], method='spearman')
+
+   # Pairwise correlation of DataFrame columns
+   frame.corr()
+
+Note that non-numeric columns will be automatically excluded from the
+correlation calculation.
+
+Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
+
+.. ipython:: python
+
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
+   frame.loc[frame.index[:5], 'a'] = np.nan
+   frame.loc[frame.index[5:10], 'b'] = np.nan
+
+   frame.corr()
+
+   frame.corr(min_periods=12)
+
+
+.. versionadded:: 0.24.0
+
+The ``method`` argument can also be a callable for a generic correlation
+calculation. In this case, it should be a single function
+that produces a single value from two ndarray inputs. Suppose we wanted to
+compute the correlation based on histogram intersection:
+
+.. ipython:: python
+
+   # histogram intersection
+   def histogram_intersection(a, b):
+       return np.minimum(np.true_divide(a, a.sum()),
+                         np.true_divide(b, b.sum())).sum()
+
+   frame.corr(method=histogram_intersection)
+
+A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to
+compute the correlation between like-labeled Series contained in different
+DataFrame objects.
+
+.. ipython:: python
+
+   index = ['a', 'b', 'c', 'd', 'e']
+   columns = ['one', 'two', 'three', 'four']
+   df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
+   df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
+   df1.corrwith(df2)
+   df2.corrwith(df1, axis=1)
+
+.. _computation.ranking:
+
+Data ranking
+~~~~~~~~~~~~
+
+The :meth:`~Series.rank` method produces a data ranking with ties being
+assigned the mean of the ranks (by default) for the group:
+
+.. ipython:: python
+
+   s = pd.Series(np.random.randn(5), index=list('abcde'))
+   s['d'] = s['b']  # so there's a tie
+   s.rank()
+
+:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows
+(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the
+ranking.
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10, 6))
+   df[4] = df[2][:5]  # some ties
+   df
+   df.rank(1)
+
+``rank`` optionally takes a parameter ``ascending`` which by default is true;
+when false, data is reverse-ranked, with larger values assigned a smaller rank.
+
+``rank`` supports different tie-breaking methods, specified with the ``method``
+parameter:
+
+  - ``average`` : average rank of tied group
+  - ``min`` : lowest rank in the group
+  - ``max`` : highest rank in the group
+  - ``first`` : ranks assigned in the order they appear in the array
+
+.. _stats.moments:
+
+Window functions
+----------------
+
+.. currentmodule:: pandas.core.window
+
+For working with data, a number of window functions are provided for
+computing common *window* or *rolling* statistics. Among these are count, sum,
+mean, median, correlation, variance, covariance, standard deviation, skewness,
+and kurtosis.
+
+The ``rolling()`` and ``expanding()``
+functions can be used directly from DataFrameGroupBy objects,
+see the :ref:`groupby docs <groupby.transform.window_resample>`.
+
+
+.. note::
+
+   The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
+
+We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
+objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
+
+.. ipython:: python
+
+   s = pd.Series(np.random.randn(1000),
+                 index=pd.date_range('1/1/2000', periods=1000))
+   s = s.cumsum()
+   s
+
+These are created from methods on ``Series`` and ``DataFrame``.
+
+.. ipython:: python
+
+   r = s.rolling(window=60)
+   r
+
+These object provide tab-completion of the available methods and properties.
+
+.. code-block:: ipython
+
+   In [14]: r.<TAB>                                          # noqa: E225, E999
+   r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
+   r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
+
+Generally these methods all have the same interface. They all
+accept the following arguments:
+
+- ``window``: size of moving window
+- ``min_periods``: threshold of non-null data points to require (otherwise
+  result is NA)
+- ``center``: boolean, whether to set the labels at the center (default is False)
+
+We can then call methods on these ``rolling`` objects. These return like-indexed objects:
+
+.. ipython:: python
+
+   r.mean()
+
+.. ipython:: python
+
+   s.plot(style='k--')
+
+   @savefig rolling_mean_ex.png
+   r.mean().plot(style='k')
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+They can also be applied to DataFrame objects. This is really just syntactic
+sugar for applying the moving window operator to all of the DataFrame's columns:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=pd.date_range('1/1/2000', periods=1000),
+                     columns=['A', 'B', 'C', 'D'])
+   df = df.cumsum()
+
+   @savefig rolling_mean_frame.png
+   df.rolling(window=60).sum().plot(subplots=True)
+
+.. _stats.summary:
+
+Method summary
+~~~~~~~~~~~~~~
+
+We provide a number of common statistical functions:
+
+.. currentmodule:: pandas.core.window
+
+.. csv-table::
+    :header: "Method", "Description"
+    :widths: 20, 80
+
+    :meth:`~Rolling.count`, Number of non-null observations
+    :meth:`~Rolling.sum`, Sum of values
+    :meth:`~Rolling.mean`, Mean of values
+    :meth:`~Rolling.median`, Arithmetic median of values
+    :meth:`~Rolling.min`, Minimum
+    :meth:`~Rolling.max`, Maximum
+    :meth:`~Rolling.std`, Sample standard deviation
+    :meth:`~Rolling.var`, Sample variance
+    :meth:`~Rolling.skew`, Sample skewness (3rd moment)
+    :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
+    :meth:`~Rolling.quantile`, Sample quantile (value at %)
+    :meth:`~Rolling.apply`, Generic apply
+    :meth:`~Rolling.cov`, Sample covariance (binary)
+    :meth:`~Rolling.corr`, Sample correlation (binary)
+
+.. _computation.window_variance.caveats:
+
+.. note::
+
+   Please note that :meth:`~Rolling.std` and :meth:`~Rolling.var` use the sample
+   variance formula by default, i.e. the sum of squared differences is divided by
+   ``window_size - 1`` and not by ``window_size`` during averaging. In statistics,
+   we use sample when the dataset is drawn from a larger population that we
+   don't have access to. Using it implies that the data in our window is a
+   random sample from the population, and we are interested not in the variance
+   inside the specific window but in the variance of some general window that
+   our windows represent. In this situation, using the sample variance formula
+   results in an unbiased estimator and so is preferred.
+
+   Usually, we are instead interested in the variance of each window as we slide
+   it over the data, and in this case we should specify ``ddof=0`` when calling
+   these methods to use population variance instead of sample variance. Using
+   sample variance under the circumstances would result in a biased estimator
+   of the variable we are trying to determine.
+
+   The same caveats apply to using any supported statistical sample methods.
+
+.. _stats.rolling_apply:
+
+Rolling apply
+~~~~~~~~~~~~~
+
+The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
+generic rolling computations. The ``func`` argument should be a single function
+that produces a single value from an ndarray input. Suppose we wanted to
+compute the mean absolute deviation on a rolling basis:
+
+.. ipython:: python
+
+   def mad(x):
+       return np.fabs(x - x.mean()).mean()
+
+   @savefig rolling_apply_ex.png
+   s.rolling(window=60).apply(mad, raw=True).plot(style='k')
+
+.. versionadded:: 1.0
+
+Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
+if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
+``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
+Numba will be applied in potentially two routines:
+
+1. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__
+the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+
+2. The engine will JIT the for loop where the apply function is applied to each window.
+
+The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
+`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+These keyword arguments will be applied to *both* the passed function (if a standard Python function)
+and the apply for loop over each window. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported,
+and their default values are set to ``False``, ``True`` and ``False`` respectively.
+
+.. note::
+
+   In terms of performance, **the first time a function is run using the Numba engine will be slow**
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
+   a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: data = pd.Series(range(1_000_000))
+
+   In [2]: roll = data.rolling(10)
+
+   In [3]: def f(x):
+      ...:     return np.sum(x) + 5
+   # Run the first time, compilation time will affect performance
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)  # noqa: E225
+   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+.. _stats.rolling_window:
+
+Rolling windows
+~~~~~~~~~~~~~~~
+
+Passing ``win_type`` to ``.rolling`` generates a generic rolling window computation, that is weighted according the ``win_type``.
+The following methods are available:
+
+.. csv-table::
+    :header: "Method", "Description"
+    :widths: 20, 80
+
+    :meth:`~Window.sum`, Sum of values
+    :meth:`~Window.mean`, Mean of values
+
+The weights used in the window are specified by the ``win_type`` keyword.
+The list of recognized types are the `scipy.signal window functions
+<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
+
+* ``boxcar``
+* ``triang``
+* ``blackman``
+* ``hamming``
+* ``bartlett``
+* ``parzen``
+* ``bohman``
+* ``blackmanharris``
+* ``nuttall``
+* ``barthann``
+* ``kaiser`` (needs beta)
+* ``gaussian`` (needs std)
+* ``general_gaussian`` (needs power, width)
+* ``slepian`` (needs width)
+* ``exponential`` (needs tau).
+
+.. ipython:: python
+
+   ser = pd.Series(np.random.randn(10),
+                   index=pd.date_range('1/1/2000', periods=10))
+
+   ser.rolling(window=5, win_type='triang').mean()
+
+Note that the ``boxcar`` window is equivalent to :meth:`~Rolling.mean`.
+
+.. ipython:: python
+
+   ser.rolling(window=5, win_type='boxcar').mean()
+   ser.rolling(window=5).mean()
+
+For some windowing functions, additional parameters must be specified:
+
+.. ipython:: python
+
+   ser.rolling(window=5, win_type='gaussian').mean(std=0.1)
+
+.. _stats.moments.normalization:
+
+.. note::
+
+    For ``.sum()`` with a ``win_type``, there is no normalization done to the
+    weights for the window. Passing custom weights of ``[1, 1, 1]`` will yield a different
+    result than passing weights of ``[2, 2, 2]``, for example. When passing a
+    ``win_type`` instead of explicitly specifying the weights, the weights are
+    already normalized so that the largest weight is 1.
+
+    In contrast, the nature of the ``.mean()`` calculation is
+    such that the weights are normalized with respect to each other. Weights
+    of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
+
+.. _stats.moments.ts:
+
+Time-aware rolling
+~~~~~~~~~~~~~~~~~~
+
+It is possible to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
+variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
+within the indicated time delta.
+
+This can be particularly useful for a non-regular time frequency index.
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index=pd.date_range('20130101 09:00:00',
+                                          periods=5,
+                                          freq='s'))
+   dft
+
+This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
+
+.. ipython:: python
+
+   dft.rolling(2).sum()
+   dft.rolling(2, min_periods=1).sum()
+
+Specifying an offset allows a more intuitive specification of the rolling frequency.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Using a non-regular, but still monotonic index, rolling with an integer window does not impart any special calculation.
+
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index=pd.Index([pd.Timestamp('20130101 09:00:00'),
+                                      pd.Timestamp('20130101 09:00:02'),
+                                      pd.Timestamp('20130101 09:00:03'),
+                                      pd.Timestamp('20130101 09:00:05'),
+                                      pd.Timestamp('20130101 09:00:06')],
+                                     name='foo'))
+   dft
+   dft.rolling(2).sum()
+
+
+Using the time-specification generates variable windows for this sparse data.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Furthermore, we now allow an optional ``on`` parameter to specify a column (rather than the
+default of the index) in a DataFrame.
+
+.. ipython:: python
+
+   dft = dft.reset_index()
+   dft
+   dft.rolling('2s', on='foo').sum()
+
+.. _stats.custom_rolling_window:
+
+Custom window rolling
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.0
+
+In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
+a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
+The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
+a tuple of two arrays, the first being the starting indices of the windows and second being the
+ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
+and will automatically be passed to ``get_window_bounds`` and the defined method must
+always accept these arguments.
+
+For example, if we have the following ``DataFrame``:
+
+.. ipython:: python
+
+   use_expanding = [True, False, True, False, True]
+   use_expanding
+   df = pd.DataFrame({'values': range(5)})
+   df
+
+and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
+1, we can create the following ``BaseIndexer``:
+
+.. code-block:: ipython
+
+   In [2]: from pandas.api.indexers import BaseIndexer
+   ...:
+   ...: class CustomIndexer(BaseIndexer):
+   ...:
+   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
+   ...:        start = np.empty(num_values, dtype=np.int64)
+   ...:        end = np.empty(num_values, dtype=np.int64)
+   ...:        for i in range(num_values):
+   ...:            if self.use_expanding[i]:
+   ...:                start[i] = 0
+   ...:                end[i] = i + 1
+   ...:            else:
+   ...:                start[i] = i
+   ...:                end[i] = i + self.window_size
+   ...:        return start, end
+   ...:
+
+   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+
+   In [4]: df.rolling(indexer).sum()
+   Out[4]:
+       values
+   0     0.0
+   1     1.0
+   2     3.0
+   3     3.0
+   4    10.0
+
+.. versionadded:: 1.1
+
+For some problems knowledge of the future is available for analysis. For example, this occurs when
+each data point is a full time series read from an experiment, and the task is to extract underlying
+conditions. In these cases it can be useful to perform forward-looking rolling window computations.
+:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+forward-looking rolling window, and we can use it as follows:
+
+.. ipython:: ipython
+
+   from pandas.api.indexers import FixedForwardWindowIndexer
+   indexer = FixedForwardWindowIndexer(window_size=2)
+   df.rolling(indexer, min_periods=1).sum()
+
+.. _stats.rolling_window.endpoints:
+
+Rolling window endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+parameter:
+
+.. csv-table::
+    :header: "``closed``", "Description", "Default for"
+    :widths: 20, 30, 30
+
+    ``right``, close right endpoint, time-based windows
+    ``left``, close left endpoint,
+    ``both``, close both endpoints, fixed windows
+    ``neither``, open endpoints,
+
+For example, having the right endpoint open is useful in many problems that require that there is no contamination
+from present information back to past information. This allows the rolling window to compute statistics
+"up to that point in time", but not including that point in time.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': 1},
+                     index=[pd.Timestamp('20130101 09:00:01'),
+                            pd.Timestamp('20130101 09:00:02'),
+                            pd.Timestamp('20130101 09:00:03'),
+                            pd.Timestamp('20130101 09:00:04'),
+                            pd.Timestamp('20130101 09:00:06')])
+
+   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
+   df["both"] = df.rolling('2s', closed='both').x.sum()
+   df["left"] = df.rolling('2s', closed='left').x.sum()
+   df["neither"] = df.rolling('2s', closed='neither').x.sum()
+
+   df
+
+Currently, this feature is only implemented for time-based windows.
+For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
+
+.. _stats.iter_rolling_window:
+
+Iteration over window:
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
+
+.. ipython::
+
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
+
+
+.. _stats.moments.ts-versus-resampling:
+
+Time-aware rolling vs. resampling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using ``.rolling()`` with a time-based index is quite similar to :ref:`resampling <timeseries.resampling>`. They
+both operate and perform reductive operations on time-indexed pandas objects.
+
+When using ``.rolling()`` with an offset. The offset is a time-delta. Take a backwards-in-time looking window, and
+aggregate all of the values in that window (including the end-point, but not the start-point). This is the new value
+at that point in the result. These are variable sized windows in time-space for each point of the input. You will get
+a same sized result as the input.
+
+When using ``.resample()`` with an offset. Construct a new index that is the frequency of the offset. For each frequency
+bin, aggregate points from the input within a backwards-in-time looking window that fall in that bin. The result of this
+aggregation is the output for that frequency point. The windows are fixed size in the frequency space. Your result
+will have the shape of a regular frequency between the min and the max of the original input object.
+
+To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.
+
+Centering windows
+~~~~~~~~~~~~~~~~~
+
+By default the labels are set to the right edge of the window, but a
+``center`` keyword is available so the labels can be set at the center.
+
+.. ipython:: python
+
+   ser.rolling(window=5).mean()
+   ser.rolling(window=5, center=True).mean()
+
+.. _stats.moments.binary:
+
+Binary window functions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`~Rolling.cov` and :meth:`~Rolling.corr` can compute moving window statistics about
+two ``Series`` or any combination of ``DataFrame/Series`` or
+``DataFrame/DataFrame``. Here is the behavior in each case:
+
+* two ``Series``: compute the statistic for the pairing.
+* ``DataFrame/Series``: compute the statistics for each column of the DataFrame
+  with the passed Series, thus returning a DataFrame.
+* ``DataFrame/DataFrame``: by default compute the statistic for matching column
+  names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
+  passed then computes the statistic for each pair of columns, returning a
+  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
+  <stats.moments.corr_pairwise>`).
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=pd.date_range('1/1/2000', periods=1000),
+                     columns=['A', 'B', 'C', 'D'])
+   df = df.cumsum()
+
+   df2 = df[:20]
+   df2.rolling(window=5).corr(df2['B'])
+
+.. _stats.moments.corr_pairwise:
+
+Computing rolling pairwise covariances and correlations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In financial data analysis and other fields it's common to compute covariance
+and correlation matrices for a collection of time series. Often one is also
+interested in moving-window covariance and correlation matrices. This can be
+done by passing the ``pairwise`` keyword argument, which in the case of
+``DataFrame`` inputs will yield a MultiIndexed ``DataFrame`` whose ``index`` are the dates in
+question. In the case of a single DataFrame argument the ``pairwise`` argument
+can even be omitted:
+
+.. note::
+
+    Missing values are ignored and each entry is computed using the pairwise
+    complete observations.  Please see the :ref:`covariance section
+    <computation.covariance>` for :ref:`caveats
+    <computation.covariance.caveats>` associated with this method of
+    calculating covariance and correlation matrices.
+
+.. ipython:: python
+
+   covs = (df[['B', 'C', 'D']].rolling(window=50)
+                              .cov(df[['A', 'B', 'C']], pairwise=True))
+   covs.loc['2002-09-22':]
+
+.. ipython:: python
+
+   correls = df.rolling(window=50).corr()
+   correls.loc['2002-09-22':]
+
+You can efficiently retrieve the time series of correlations between two
+columns by reshaping and indexing:
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. ipython:: python
+
+   @savefig rolling_corr_pairwise_ex.png
+   correls.unstack(1)[('A', 'C')].plot()
+
+.. _stats.aggregate:
+
+Aggregation
+-----------
+
+Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
+perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
+:ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
+
+
+.. ipython:: python
+
+   dfa = pd.DataFrame(np.random.randn(1000, 3),
+                      index=pd.date_range('1/1/2000', periods=1000),
+                      columns=['A', 'B', 'C'])
+   r = dfa.rolling(window=60, min_periods=1)
+   r
+
+We can aggregate by passing a function to the entire DataFrame, or select a
+Series (or multiple Series) via standard ``__getitem__``.
+
+.. ipython:: python
+
+   r.aggregate(np.sum)
+
+   r['A'].aggregate(np.sum)
+
+   r[['A', 'B']].aggregate(np.sum)
+
+As you can see, the result of the aggregation will have the selected columns, or all
+columns if none are selected.
+
+.. _stats.aggregate.multifunc:
+
+Applying multiple functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With windowed ``Series`` you can also pass a list of functions to do
+aggregation with, outputting a DataFrame:
+
+.. ipython:: python
+
+   r['A'].agg([np.sum, np.mean, np.std])
+
+On a windowed DataFrame, you can pass a list of functions to apply to each
+column, which produces an aggregated result with a hierarchical index:
+
+.. ipython:: python
+
+   r.agg([np.sum, np.mean])
+
+Passing a dict of functions has different behavior by default, see the next
+section.
+
+Applying different functions to DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By passing a dict to ``aggregate`` you can apply a different aggregation to the
+columns of a ``DataFrame``:
+
+.. ipython:: python
+
+   r.agg({'A': np.sum, 'B': lambda x: np.std(x, ddof=1)})
+
+The function names can also be strings. In order for a string to be valid it
+must be implemented on the windowed object
+
+.. ipython:: python
+
+   r.agg({'A': 'sum', 'B': 'std'})
+
+Furthermore you can pass a nested dict to indicate different aggregations on different columns.
+
+.. ipython:: python
+
+   r.agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+
+
+.. _stats.moments.expanding:
+
+Expanding windows
+-----------------
+
+A common alternative to rolling statistics is to use an *expanding* window,
+which yields the value of the statistic with all the data available up to that
+point in time.
+
+These follow a similar interface to ``.rolling``, with the ``.expanding`` method
+returning an :class:`~pandas.core.window.Expanding` object.
+
+As these calculations are a special case of rolling statistics,
+they are implemented in pandas such that the following two calls are equivalent:
+
+.. ipython:: python
+
+   df.rolling(window=len(df), min_periods=1).mean()[:5]
+
+   df.expanding(min_periods=1).mean()[:5]
+
+These have a similar set of methods to ``.rolling`` methods.
+
+Method summary
+~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+
+    :meth:`~Expanding.count`, Number of non-null observations
+    :meth:`~Expanding.sum`, Sum of values
+    :meth:`~Expanding.mean`, Mean of values
+    :meth:`~Expanding.median`, Arithmetic median of values
+    :meth:`~Expanding.min`, Minimum
+    :meth:`~Expanding.max`, Maximum
+    :meth:`~Expanding.std`, Sample standard deviation
+    :meth:`~Expanding.var`, Sample variance
+    :meth:`~Expanding.skew`, Sample skewness (3rd moment)
+    :meth:`~Expanding.kurt`, Sample kurtosis (4th moment)
+    :meth:`~Expanding.quantile`, Sample quantile (value at %)
+    :meth:`~Expanding.apply`, Generic apply
+    :meth:`~Expanding.cov`, Sample covariance (binary)
+    :meth:`~Expanding.corr`, Sample correlation (binary)
+
+.. note::
+
+   Using sample variance formulas for :meth:`~Expanding.std` and
+   :meth:`~Expanding.var` comes with the same caveats as using them with rolling
+   windows. See :ref:`this section <computation.window_variance.caveats>` for more
+   information.
+
+   The same caveats apply to using any supported statistical sample methods.
+
+.. currentmodule:: pandas
+
+Aside from not having a ``window`` parameter, these functions have the same
+interfaces as their ``.rolling`` counterparts. Like above, the parameters they
+all accept are:
+
+* ``min_periods``: threshold of non-null data points to require. Defaults to
+  minimum needed to compute statistic. No ``NaNs`` will be output once
+  ``min_periods`` non-null data points have been seen.
+* ``center``: boolean, whether to set the labels at the center (default is False).
+
+.. _stats.moments.expanding.note:
+.. note::
+
+   The output of the ``.rolling`` and ``.expanding`` methods do not return a
+   ``NaN`` if there are at least ``min_periods`` non-null values in the current
+   window. For example:
+
+   .. ipython:: python
+
+        sn = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+        sn
+        sn.rolling(2).max()
+        sn.rolling(2, min_periods=1).max()
+
+   In case of expanding functions, this differs from :meth:`~DataFrame.cumsum`,
+   :meth:`~DataFrame.cumprod`, :meth:`~DataFrame.cummax`,
+   and :meth:`~DataFrame.cummin`, which return ``NaN`` in the output wherever
+   a ``NaN`` is encountered in the input. In order to match the output of ``cumsum``
+   with ``expanding``, use :meth:`~DataFrame.fillna`:
+
+   .. ipython:: python
+
+        sn.expanding().sum()
+        sn.cumsum()
+        sn.cumsum().fillna(method='ffill')
+
+
+An expanding window statistic will be more stable (and less responsive) than
+its rolling window counterpart as the increasing window size decreases the
+relative impact of an individual data point. As an example, here is the
+:meth:`~core.window.Expanding.mean` output for the previous time series dataset:
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. ipython:: python
+
+   s.plot(style='k--')
+
+   @savefig expanding_mean_frame.png
+   s.expanding().mean().plot(style='k')
+
+
+.. _stats.moments.exponentially_weighted:
+
+Exponentially weighted windows
+------------------------------
+
+.. currentmodule:: pandas.core.window
+
+A related set of functions are exponentially weighted versions of several of
+the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
+through the ``.ewm`` method to receive an :class:`~EWM` object.
+A number of expanding EW (exponentially weighted)
+methods are provided:
+
+
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+
+    :meth:`~EWM.mean`, EW moving average
+    :meth:`~EWM.var`, EW moving variance
+    :meth:`~EWM.std`, EW moving standard deviation
+    :meth:`~EWM.corr`, EW moving correlation
+    :meth:`~EWM.cov`, EW moving covariance
+
+In general, a weighted moving average is calculated as
+
+.. math::
+
+    y_t = \frac{\sum_{i=0}^t w_i x_{t-i}}{\sum_{i=0}^t w_i},
+
+where :math:`x_t` is the input, :math:`y_t` is the result and the :math:`w_i`
+are the weights.
+
+The EW functions support two variants of exponential weights.
+The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`
+which gives
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...
+    + (1 - \alpha)^t x_{0}}{1 + (1 - \alpha) + (1 - \alpha)^2 + ...
+    + (1 - \alpha)^t}
+
+When ``adjust=False`` is specified, moving averages are calculated as
+
+.. math::
+
+    y_0 &= x_0 \\
+    y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+
+which is equivalent to using weights
+
+.. math::
+
+    w_i = \begin{cases}
+        \alpha (1 - \alpha)^i & \text{if } i < t \\
+        (1 - \alpha)^i        & \text{if } i = t.
+    \end{cases}
+
+.. note::
+
+   These equations are sometimes written in terms of :math:`\alpha' = 1 - \alpha`, e.g.
+
+   .. math::
+
+      y_t = \alpha' y_{t-1} + (1 - \alpha') x_t.
+
+The difference between the above two variants arises because we are
+dealing with series which have finite history. Consider a series of infinite
+history, with ``adjust=True``:
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {1 + (1 - \alpha) + (1 - \alpha)^2 + ...}
+
+Noting that the denominator is a geometric series with initial term equal to 1
+and a ratio of :math:`1 - \alpha` we have
+
+.. math::
+
+    y_t &= \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {\frac{1}{1 - (1 - \alpha)}}\\
+    &= [x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...] \alpha \\
+    &= \alpha x_t + [(1-\alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...]\alpha \\
+    &= \alpha x_t + (1 - \alpha)[x_{t-1} + (1 - \alpha) x_{t-2} + ...]\alpha\\
+    &= \alpha x_t + (1 - \alpha) y_{t-1}
+
+which is the same expression as ``adjust=False`` above and therefore
+shows the equivalence of the two variants for infinite series.
+When ``adjust=False``, we have :math:`y_0 = x_0` and
+:math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`.
+Therefore, there is an assumption that :math:`x_0` is not an ordinary value
+but rather an exponentially weighted moment of the infinite series up to that
+point.
+
+One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
+:math:`\alpha` directly, it's often easier to think about either the
+**span**, **center  of mass (com)** or **half-life** of an EW moment:
+
+.. math::
+
+   \alpha =
+    \begin{cases}
+        \frac{2}{s + 1},               & \text{for span}\ s \geq 1\\
+        \frac{1}{1 + c},               & \text{for center of mass}\ c \geq 0\\
+        1 - \exp^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
+    \end{cases}
+
+One must specify precisely one of **span**, **center of mass**, **half-life**
+and **alpha** to the EW functions:
+
+* **Span** corresponds to what is commonly called an "N-day EW moving average".
+* **Center of mass** has a more physical interpretation and can be thought of
+  in terms of span: :math:`c = (s - 1) / 2`.
+* **Half-life** is the period of time for the exponential weight to reduce to
+  one half.
+* **Alpha** specifies the smoothing factor directly.
+
+Here is an example for a univariate time series:
+
+.. ipython:: python
+
+   s.plot(style='k--')
+
+   @savefig ewma_ex.png
+   s.ewm(span=20).mean().plot(style='k')
+
+EWM has a ``min_periods`` argument, which has the same
+meaning it does for all the ``.expanding`` and ``.rolling`` methods:
+no output values will be set until at least ``min_periods`` non-null values
+are encountered in the (expanding) window.
+
+EWM also has an ``ignore_na`` argument, which determines how
+intermediate null values affect the calculation of the weights.
+When ``ignore_na=False`` (the default), weights are calculated based on absolute
+positions, so that intermediate null values affect the result.
+When ``ignore_na=True``,
+weights are calculated by ignoring intermediate null values.
+For example, assuming ``adjust=True``, if ``ignore_na=False``, the weighted
+average of ``3, NaN, 5`` would be calculated as
+
+.. math::
+
+	\frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
+
+Whereas if ``ignore_na=True``, the weighted average would be calculated as
+
+.. math::
+
+	\frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
+
+The :meth:`~Ewm.var`, :meth:`~Ewm.std`, and :meth:`~Ewm.cov` functions have a ``bias`` argument,
+specifying whether the result should contain biased or unbiased statistics.
+For example, if ``bias=True``, ``ewmvar(x)`` is calculated as
+``ewmvar(x) = ewma(x**2) - ewma(x)**2``;
+whereas if ``bias=False`` (the default), the biased variance statistics
+are scaled by debiasing factors
+
+.. math::
+
+    \frac{\left(\sum_{i=0}^t w_i\right)^2}{\left(\sum_{i=0}^t w_i\right)^2 - \sum_{i=0}^t w_i^2}.
+
+(For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
+with :math:`N = t + 1`.)
+See `Weighted Sample Variance <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
+on Wikipedia for further details.

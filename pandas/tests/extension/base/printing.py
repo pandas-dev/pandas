@@ -3,7 +3,6 @@ import io
 import pytest
 
 import pandas as pd
-from pandas import compat
 
 from .base import BaseExtensionTests
 
@@ -19,15 +18,15 @@ class BasePrintingTests(BaseExtensionTests):
             data = type(data)._concat_same_type([data] * 5)
 
         result = repr(data)
-        assert data.__class__.__name__ in result
-        assert 'Length: {}'.format(len(data)) in result
+        assert type(data).__name__ in result
+        assert f"Length: {len(data)}" in result
         assert str(data.dtype) in result
-        if size == 'big':
-            assert '...' in result
+        if size == "big":
+            assert "..." in result
 
     def test_array_repr_unicode(self, data):
-        result = compat.text_type(data)
-        assert isinstance(result, compat.text_type)
+        result = str(data)
+        assert isinstance(result, str)
 
     def test_series_repr(self, data):
         ser = pd.Series(data)

@@ -1,107 +1,74 @@
 """
 Base and utility classes for pandas objects.
 """
+
+import builtins
 import textwrap
-import warnings
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
 import pandas._libs.lib as lib
-import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins, map, range
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._decorators import cache_readonly, doc
 
+from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
-    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
-    is_scalar, is_timedelta64_ns_dtype)
+    is_categorical_dtype,
+    is_dict_like,
+    is_extension_array_dtype,
+    is_list_like,
+    is_object_dtype,
+    is_scalar,
+    needs_i8_conversion,
+)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.algorithms import duplicated, unique1d, value_counts
+from pandas.core.arrays import ExtensionArray
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()
-_indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
+_shared_docs: Dict[str, str] = dict()
+_indexops_doc_kwargs = dict(
+    klass="IndexOpsMixin",
+    inplace="",
+    unique="IndexOpsMixin",
+    duplicated="IndexOpsMixin",
+)
 
 
-class StringMixin(object):
-    """implements string methods so long as object defines a `__unicode__`
-    method.
-
-    Handles Python2/3 compatibility transparently.
+class PandasObject(DirNamesMixin):
     """
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
+    Baseclass for various pandas objects.
+    """
 
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __unicode__(self):
-        raise AbstractMethodError(self)
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        from pandas.core.config import get_option
-
-        encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
-
-
-class PandasObject(StringMixin, DirNamesMixin):
-
-    """baseclass for various pandas objects"""
+    _cache: Dict[str, Any]
 
     @property
     def _constructor(self):
-        """class constructor (for this class it's just `__class__`"""
-        return self.__class__
+        """
+        Class constructor (for this class it's just `__class__`.
+        """
+        return type(self)
 
-    def __unicode__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular object.
-
-        Invoked by unicode(obj) in py2 only. Yields a Unicode String in both
-        py2/py3.
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
-        if getattr(self, '_cache', None) is None:
+        if getattr(self, "_cache", None) is None:
             return
         if key is None:
             self._cache.clear()
@@ -113,138 +80,128 @@ class PandasObject(StringMixin, DirNamesMixin):
         Generates the total memory usage for an object that returns
         either a value or Series of values
         """
-        if hasattr(self, 'memory_usage'):
+        if hasattr(self, "memory_usage"):
             mem = self.memory_usage(deep=True)
-            if not is_scalar(mem):
-                mem = mem.sum()
-            return int(mem)
+            return int(mem if is_scalar(mem) else mem.sum())
 
-        # no memory_usage attribute, so fall back to
-        # object's 'sizeof'
-        return super(PandasObject, self).__sizeof__()
+        # no memory_usage attribute, so fall back to object's 'sizeof'
+        return super().__sizeof__()
 
 
-class NoNewAttributesMixin(object):
-    """Mixin which prevents adding new attributes.
+class NoNewAttributesMixin:
+    """
+    Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attributes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on an accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
     """
 
     def _freeze(self):
-        """Prevents setting additional attributes"""
+        """
+        Prevents setting additional attributes.
+        """
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value):
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
         # 1.) getattr is false for attributes that raise errors
         # 2.) cls.__dict__ doesn't traverse into base classes
-        if (getattr(self, "__frozen", False) and not
-                (key == "_cache" or
-                 key in type(self).__dict__ or
-                 getattr(self, key, None) is not None)):
-            raise AttributeError("You cannot add any new attribute '{key}'".
-                                 format(key=key))
+        if getattr(self, "__frozen", False) and not (
+            key == "_cache"
+            or key in type(self).__dict__
+            or getattr(self, key, None) is not None
+        ):
+            raise AttributeError(f"You cannot add any new attribute '{key}'")
         object.__setattr__(self, key, value)
 
 
-class GroupByError(Exception):
+class DataError(Exception):
     pass
 
 
-class DataError(GroupByError):
+class SpecificationError(Exception):
     pass
 
 
-class SpecificationError(GroupByError):
-    pass
-
-
-class SelectionMixin(object):
+class SelectionMixin:
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
+
     _selection = None
-    _internal_names = ['_cache', '__setstate__']
+    _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = OrderedDict((
-        (builtins.sum, np.sum),
-        (builtins.max, np.max),
-        (builtins.min, np.min),
-    ))
+    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
 
-    _cython_table = OrderedDict((
-        (builtins.sum, 'sum'),
-        (builtins.max, 'max'),
-        (builtins.min, 'min'),
-        (np.all, 'all'),
-        (np.any, 'any'),
-        (np.sum, 'sum'),
-        (np.nansum, 'sum'),
-        (np.mean, 'mean'),
-        (np.nanmean, 'mean'),
-        (np.prod, 'prod'),
-        (np.nanprod, 'prod'),
-        (np.std, 'std'),
-        (np.nanstd, 'std'),
-        (np.var, 'var'),
-        (np.nanvar, 'var'),
-        (np.median, 'median'),
-        (np.nanmedian, 'median'),
-        (np.max, 'max'),
-        (np.nanmax, 'max'),
-        (np.min, 'min'),
-        (np.nanmin, 'min'),
-        (np.cumprod, 'cumprod'),
-        (np.nancumprod, 'cumprod'),
-        (np.cumsum, 'cumsum'),
-        (np.nancumsum, 'cumsum'),
-    ))
+    _cython_table = {
+        builtins.sum: "sum",
+        builtins.max: "max",
+        builtins.min: "min",
+        np.all: "all",
+        np.any: "any",
+        np.sum: "sum",
+        np.nansum: "sum",
+        np.mean: "mean",
+        np.nanmean: "mean",
+        np.prod: "prod",
+        np.nanprod: "prod",
+        np.std: "std",
+        np.nanstd: "std",
+        np.var: "var",
+        np.nanvar: "var",
+        np.median: "median",
+        np.nanmedian: "median",
+        np.max: "max",
+        np.nanmax: "max",
+        np.min: "min",
+        np.nanmin: "min",
+        np.cumprod: "cumprod",
+        np.nancumprod: "cumprod",
+        np.cumsum: "cumsum",
+        np.nancumsum: "cumsum",
+    }
 
     @property
     def _selection_name(self):
         """
-        return a name for myself; this would ideally be called
-        the 'name' property, but we cannot conflict with the
-        Series.name property which can be set
+        Return a name for myself;
+
+        This would ideally be called the 'name' property,
+        but we cannot conflict with the Series.name property which can be set.
         """
-        if self._selection is None:
-            return None  # 'result'
-        else:
-            return self._selection
+        return self._selection
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, ABCSeries,
-                                            ABCIndexClass, np.ndarray)):
+        if not isinstance(
+            self._selection, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)
+        ):
             return [self._selection]
         return self._selection
 
     @cache_readonly
     def _selected_obj(self):
-
         if self._selection is None or isinstance(self.obj, ABCSeries):
             return self.obj
         else:
             return self.obj[self._selection]
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         return self._selected_obj.ndim
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj,
-                                                      ABCDataFrame):
+        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -254,40 +211,36 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise IndexError('Column(s) {selection} already selected'
-                             .format(selection=self._selection))
+            raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
-                            np.ndarray)):
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError("Columns not found: {missing}"
-                               .format(missing=str(bad_keys)[1:-1]))
+                raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
-        elif not getattr(self, 'as_index', False):
+        elif not getattr(self, "as_index", False):
             if key not in self.obj.columns:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
             if key not in self.obj:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
 
         Parameters
         ----------
-        key : string / list of selections
+        key : str / list of selections
         ndim : 1,2
             requested ndim of result
         subset : object, default None
             subset to act on
-
         """
         raise AbstractMethodError(self)
 
@@ -296,15 +249,14 @@ class SelectionMixin(object):
 
     agg = aggregate
 
-    def _try_aggregate_string_function(self, arg, *args, **kwargs):
+    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
         - try to find a function (or attribute) on ourselves
         - try to find a numpy function
         - raise
-
         """
-        assert isinstance(arg, compat.string_types)
+        assert isinstance(arg, str)
 
         f = getattr(self, arg, None)
         if f is not None:
@@ -314,15 +266,18 @@ class SelectionMixin(object):
             # people may try to aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs
-                        if kwarg not in ['axis', '_level']]) == 0
+            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
 
         f = getattr(np, arg, None)
         if f is not None:
-            return f(self, *args, **kwargs)
+            if hasattr(self, "__array__"):
+                # in particular exclude Window
+                return f(self, *args, **kwargs)
 
-        raise ValueError("{arg} is an unknown string function".format(arg=arg))
+        raise AttributeError(
+            f"'{arg}' is not a valid function for '{type(self).__name__}' object"
+        )
 
     def _aggregate(self, arg, *args, **kwargs):
         """
@@ -344,40 +299,27 @@ class SelectionMixin(object):
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-        is_nested_renamer = False
 
-        _axis = kwargs.pop('_axis', None)
+        _axis = kwargs.pop("_axis", None)
         if _axis is None:
-            _axis = getattr(self, 'axis', 0)
-        _level = kwargs.pop('_level', None)
+            _axis = getattr(self, "axis", 0)
 
-        if isinstance(arg, compat.string_types):
-            return self._try_aggregate_string_function(arg, *args,
-                                                       **kwargs), None
+        if isinstance(arg, str):
+            return self._try_aggregate_string_function(arg, *args, **kwargs), None
 
         if isinstance(arg, dict):
-
             # aggregate based on the passed dict
             if _axis != 0:  # pragma: no cover
-                raise ValueError('Can only pass dict with axis=0')
+                raise ValueError("Can only pass dict with axis=0")
 
             obj = self._selected_obj
-
-            def nested_renaming_depr(level=4):
-                # deprecation of nested renaming
-                # GH 15931
-                warnings.warn(
-                    ("using a dict with renaming "
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
-            if any(is_aggregator(x) for x in compat.itervalues(arg)):
-                new_arg = compat.OrderedDict()
-                for k, v in compat.iteritems(arg):
+            if any(is_aggregator(x) for x in arg.values()):
+                new_arg = {}
+                for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -394,30 +336,23 @@ class SelectionMixin(object):
                     # not ok
                     # {'ra' : { 'A' : 'mean' }}
                     if isinstance(v, dict):
-                        is_nested_renamer = True
-
-                        if k not in obj.columns:
-                            msg = ('cannot perform renaming for {key} with a '
-                                   'nested dictionary').format(key=k)
-                            raise SpecificationError(msg)
-                        nested_renaming_depr(4 + (_level or 0))
-
+                        raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCSeries):
-                        nested_renaming_depr()
-                    elif (isinstance(obj, ABCDataFrame) and
-                          k not in obj.columns):
-                        raise KeyError(
-                            "Column '{col}' does not exist!".format(col=k))
+                        raise SpecificationError("nested renamer is not supported")
+                    elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
+                        raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
 
             else:
                 # deprecation of renaming keys
                 # GH 15931
-                keys = list(compat.iterkeys(arg))
-                if (isinstance(obj, ABCDataFrame) and
-                        len(obj.columns.intersection(keys)) != len(keys)):
-                    nested_renaming_depr()
+                keys = list(arg.keys())
+                if isinstance(obj, ABCDataFrame) and len(
+                    obj.columns.intersection(keys)
+                ) != len(keys):
+                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
 
@@ -427,50 +362,33 @@ class SelectionMixin(object):
                 """
                 colg = self._gotitem(name, ndim=1, subset=subset)
                 if colg.ndim != 1:
-                    raise SpecificationError("nested dictionary is ambiguous "
-                                             "in aggregation")
-                return colg.aggregate(how, _level=(_level or 0) + 1)
+                    raise SpecificationError(
+                        "nested dictionary is ambiguous in aggregation"
+                    )
+                return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
-                colg = self._gotitem(self._selection, ndim=2,
-                                     subset=obj)
-                return colg.aggregate(how, _level=None)
+                colg = self._gotitem(self._selection, ndim=2, subset=obj)
+                return colg.aggregate(how)
 
             def _agg(arg, func):
                 """
                 run the aggregations over the arg with func
-                return an OrderedDict
+                return a dict
                 """
-                result = compat.OrderedDict()
-                for fname, agg_how in compat.iteritems(arg):
+                result = {}
+                for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
-            keys = list(compat.iterkeys(arg))
-            result = compat.OrderedDict()
+            keys = list(arg.keys())
+            result = {}
 
-            # nested renamer
-            if is_nested_renamer:
-                result = list(_agg(arg, _agg_1dim).values())
-
-                if all(isinstance(r, dict) for r in result):
-
-                    result, results = compat.OrderedDict(), result
-                    for r in results:
-                        result.update(r)
-                    keys = list(compat.iterkeys(result))
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
-
-            # some selection on the object
-            elif self._selection is not None:
+            if self._selection is not None:
 
                 sl = set(self._selection_list)
 
@@ -478,8 +396,9 @@ class SelectionMixin(object):
                 # but may have multiple aggregations
                 if len(sl) == 1:
 
-                    result = _agg(arg, lambda fname,
-                                  agg_how: _agg_1dim(self._selection, agg_how))
+                    result = _agg(
+                        arg, lambda fname, agg_how: _agg_1dim(self._selection, agg_how)
+                    )
 
                 # we are selecting the same set as we are aggregating
                 elif not len(sl - set(keys)):
@@ -504,15 +423,13 @@ class SelectionMixin(object):
 
             # combine results
 
-            def is_any_series():
+            def is_any_series() -> bool:
                 # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCSeries)
-                           for r in compat.itervalues(result))
+                return any(isinstance(r, ABCSeries) for r in result.values())
 
-            def is_any_frame():
+            def is_any_frame() -> bool:
                 # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCDataFrame)
-                           for r in compat.itervalues(result))
+                return any(isinstance(r, ABCDataFrame) for r in result.values())
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1, sort=True), True
@@ -521,8 +438,7 @@ class SelectionMixin(object):
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys],
-                              keys=keys, axis=1), True
+                return concat([result[k] for k in keys], keys=keys, axis=1), True
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -530,44 +446,44 @@ class SelectionMixin(object):
                 # return a MI Series
                 try:
                     result = concat(result)
-                except TypeError:
+                except TypeError as err:
                     # we want to give a nice error here if
                     # we have non-same sized objects, so
                     # we don't automatically broadcast
 
-                    raise ValueError("cannot perform both aggregation "
-                                     "and transformation operations "
-                                     "simultaneously")
+                    raise ValueError(
+                        "cannot perform both aggregation "
+                        "and transformation operations "
+                        "simultaneously"
+                    ) from err
 
                 return result, True
 
             # fall thru
             from pandas import DataFrame, Series
+
             try:
                 result = DataFrame(result)
             except ValueError:
 
                 # we have a dict of scalars
-                result = Series(result,
-                                name=getattr(self, 'name', None))
+                result = Series(result, name=getattr(self, "name", None))
 
             return result, True
-        elif is_list_like(arg) and arg not in compat.string_types:
+        elif is_list_like(arg):
             # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg,
-                                                  _level=_level,
-                                                  _axis=_axis), None
+            return self._aggregate_multiple_funcs(arg, _axis=_axis), None
         else:
             result = None
 
-        f = self._is_cython_func(arg)
+        f = self._get_cython_func(arg)
         if f and not args and not kwargs:
             return getattr(self, f)(), None
 
         # caller can react
         return result, True
 
-    def _aggregate_multiple_funcs(self, arg, _level, _axis):
+    def _aggregate_multiple_funcs(self, arg, _axis):
         from pandas.core.reshape.concat import concat
 
         if _axis != 0:
@@ -584,33 +500,40 @@ class SelectionMixin(object):
         # degenerate case
         if obj.ndim == 1:
             for a in arg:
+                colg = self._gotitem(obj.name, ndim=1, subset=obj)
                 try:
-                    colg = self._gotitem(obj.name, ndim=1, subset=obj)
-                    results.append(colg.aggregate(a))
+                    new_res = colg.aggregate(a)
+
+                except TypeError:
+                    pass
+                else:
+                    results.append(new_res)
 
                     # make sure we find a good name
                     name = com.get_callable_name(a) or a
                     keys.append(name)
-                except (TypeError, DataError):
-                    pass
-                except SpecificationError:
-                    raise
 
         # multiples
         else:
             for index, col in enumerate(obj):
+                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
                 try:
-                    colg = self._gotitem(col, ndim=1,
-                                         subset=obj.iloc[:, index])
-                    results.append(colg.aggregate(arg))
-                    keys.append(col)
+                    new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
-                except ValueError:
+                except ValueError as err:
                     # cannot aggregate
-                    continue
-                except SpecificationError:
-                    raise
+                    if "Must produce aggregated value" in str(err):
+                        # raised directly in _aggregate_named
+                        pass
+                    elif "no results" in str(err):
+                        # raised directly in _aggregate_multiple_funcs
+                        pass
+                    else:
+                        raise
+                else:
+                    results.append(new_res)
+                    keys.append(col)
 
         # if we are empty
         if not len(results):
@@ -618,35 +541,21 @@ class SelectionMixin(object):
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
 
-            from pandas.core.dtypes.cast import is_nested_object
             from pandas import Series
+
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError("cannot combine transform and "
-                                 "aggregation operations")
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
             return result
 
-    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if obj is None:
-            obj = self._selected_obj.copy()
-        if obj_type is None:
-            obj_type = self._constructor
-        if isinstance(obj, obj_type):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return obj_type(obj, **kwargs)
-
-    def _is_cython_func(self, arg):
+    def _get_cython_func(self, arg: str) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -660,39 +569,54 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin(object):
-    """ common ops mixin to support a unified interface / docs for Series /
-    Index
+class ShallowMixin:
+    _attributes: List[str] = []
+
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
+
+
+class IndexOpsMixin:
+    """
+    Common ops mixin to support a unified interface / docs for Series / Index
     """
 
     # ndarray compatibility
     __array_priority__ = 1000
+    _deprecations: FrozenSet[str] = frozenset(
+        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
+    )
+
+    @property
+    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
 
     def transpose(self, *args, **kwargs):
         """
         Return the transpose, which is by definition self.
+
+        Returns
+        -------
+        %(klass)s
         """
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="Return the transpose, which is by "
-                                "definition self.")
-
-    @property
-    def _is_homogeneous_type(self):
-        """
-        Whether the object has a single dtype.
-
-        By definition, Series and Index are always considered homogeneous.
-        A MultiIndex may or may not be homogeneous, depending on the
-        dtypes of the levels.
-
-        See Also
-        --------
-        DataFrame._is_homogeneous_type
-        MultiIndex._is_homogeneous_type
-        """
-        return True
+    T = property(
+        transpose,
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
+    )
 
     @property
     def shape(self):
@@ -701,8 +625,12 @@ class IndexOpsMixin(object):
         """
         return self._values.shape
 
+    def __len__(self) -> int:
+        # We need this defined here for mypy
+        raise AbstractMethodError(self)
+
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
@@ -711,81 +639,44 @@ class IndexOpsMixin(object):
     def item(self):
         """
         Return the first element of the underlying data as a python scalar.
+
+        Returns
+        -------
+        scalar
+            The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        try:
-            return self.values.item()
-        except IndexError:
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError('can only convert an array of size 1 to a '
-                             'Python scalar')
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self._values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
-    def data(self):
-        """
-        Return the data pointer of the underlying data.
-        """
-        warnings.warn("{obj}.data is deprecated and will be removed "
-                      "in a future version".format(obj=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        return self.values.data
-
-    @property
-    def itemsize(self):
-        """
-        Return the size of the dtype of the item of the underlying data.
-        """
-        warnings.warn("{obj}.itemsize is deprecated and will be removed "
-                      "in a future version".format(obj=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        return self._ndarray_values.itemsize
-
-    @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
         return self._values.nbytes
 
     @property
-    def strides(self):
-        """
-        Return the strides of the underlying data.
-        """
-        warnings.warn("{obj}.strides is deprecated and will be removed "
-                      "in a future version".format(obj=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        return self._ndarray_values.strides
-
-    @property
-    def size(self):
+    def size(self) -> int:
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
-    def flags(self):
-        """
-        Return the ndarray.flags for the underlying data.
-        """
-        warnings.warn("{obj}.flags is deprecated and will be removed "
-                      "in a future version".format(obj=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        return self.values.flags
-
-    @property
-    def base(self):
-        """
-        Return the base object if the memory of the underlying data is shared.
-        """
-        warnings.warn("{obj}.base is deprecated and will be removed "
-                      "in a future version".format(obj=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        return self.values.base
-
-    @property
-    def array(self):
-        # type: () -> ExtensionArray
+    def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
 
@@ -793,7 +684,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        array : ExtensionArray
+        ExtensionArray
             An ExtensionArray of the values stored within. For extension
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
@@ -818,6 +709,8 @@ class IndexOpsMixin(object):
         period             PeriodArray
         interval           IntervalArray
         IntegerNA          IntegerArray
+        string             StringArray
+        boolean            BooleanArray
         datetime64[ns, tz] DatetimeArray
         ================== =============================
 
@@ -831,7 +724,6 @@ class IndexOpsMixin(object):
 
         Examples
         --------
-
         For regular NumPy types like int, and float, a PandasArray
         is returned.
 
@@ -848,37 +740,34 @@ class IndexOpsMixin(object):
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        result = self._values
+        raise AbstractMethodError(self)
 
-        if is_datetime64_ns_dtype(result.dtype):
-            from pandas.arrays import DatetimeArray
-            result = DatetimeArray(result)
-        elif is_timedelta64_ns_dtype(result.dtype):
-            from pandas.arrays import TimedeltaArray
-            result = TimedeltaArray(result)
-
-        elif not is_extension_array_dtype(result.dtype):
-            from pandas.core.arrays.numpy_ import PandasArray
-            result = PandasArray(result)
-
-        return result
-
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
 
-
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
+            Whether to ensure that the returned value is not a view on
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the type of the array.
+
+            .. versionadded:: 1.0.0
+
+        **kwargs
+            Additional keywords passed through to the ``to_numpy`` method
+            of the underlying array (for extension arrays).
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -948,38 +837,27 @@ class IndexOpsMixin(object):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if is_datetime64tz_dtype(self.dtype) and dtype is None:
-            # note: this is going to change very soon.
-            # I have a WIP PR making this unnecessary, but it's
-            # a bit out of scope for the DatetimeArray PR.
-            dtype = "object"
+        if is_extension_array_dtype(self.dtype):
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+        elif kwargs:
+            bad_keys = list(kwargs.keys())[0]
+            raise TypeError(
+                f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
+            )
 
         result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
-        if copy:
+        if copy or na_value is not lib.no_default:
             result = result.copy()
+            if na_value is not lib.no_default:
+                result[self.isna()] = na_value
         return result
-
-    @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        return self.values
 
     @property
     def empty(self):
         return not self.size
 
-    def max(self, axis=None, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -988,6 +866,9 @@ class IndexOpsMixin(object):
         axis : int, optional
             For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1017,34 +898,77 @@ class IndexOpsMixin(object):
         ('b', 2)
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
-    def argmax(self, axis=None, skipna=True):
+    @doc(op="max", oppose="min", value="largest")
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return a ndarray of the maximum argument indexer.
+        Return int position of the {value} value in the Series.
+
+        If the {op}imum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
-        axis : {None}
-            Dummy argument for consistency with Series
+        axis : {{None}}
+            Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        int
+            Row position of the {op}imum value.
 
         See Also
         --------
-        numpy.ndarray.argmax
+        Series.arg{op} : Return position of the {op}imum value.
+        Series.arg{oppose} : Return position of the {oppose}imum value.
+        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
+        >>> s.argmin()
+        0
+
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1074,23 +998,13 @@ class IndexOpsMixin(object):
         ('a', 1)
         """
         nv.validate_minmax_axis(axis)
+        nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def argmin(self, axis=None, skipna=True):
-        """
-        Return a ndarray of the minimum argument indexer.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series
-        skipna : bool, default True
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
+    @doc(argmax, op="min", oppose="max", value="smallest")
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
         nv.validate_minmax_axis(axis)
+        nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
@@ -1101,16 +1015,19 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
 
+        Returns
+        -------
+        list
+
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
+            nested list of Python scalars.
         """
-        if is_datetimelike(self._values):
-            return [com.maybe_box_datetimelike(x) for x in self._values]
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # check for ndarray instead of dtype to catch DTA/TDA
             return list(self._values)
-        else:
-            return self._values.tolist()
+        return self._values.tolist()
 
     to_list = tolist
 
@@ -1121,11 +1038,14 @@ class IndexOpsMixin(object):
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        iterator
         """
-        # We are explicity making element iterators.
-        if is_datetimelike(self._values):
-            return map(com.maybe_box_datetimelike, self._values)
-        elif is_extension_array_dtype(self._values):
+        # We are explicitly making element iterators.
+        if not isinstance(self._values, np.ndarray):
+            # Check type instead of dtype to catch DTA/TDA
             return iter(self._values)
         else:
             return map(self._values.item, range(self._values.size))
@@ -1137,13 +1057,24 @@ class IndexOpsMixin(object):
         """
         return bool(isna(self).any())
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
-        """ perform the reduction type operation if we can """
+    def _reduce(
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
+    ):
+        """
+        Perform the reduction type operation if we can.
+        """
         func = getattr(self, name, None)
         if func is None:
-            raise TypeError("{klass} cannot perform the operation {op}".format(
-                            klass=self.__class__.__name__, op=name))
+            raise TypeError(
+                f"{type(self).__name__} cannot perform the operation {name}"
+            )
         return func(skipna=skipna, **kwds)
 
     def _map_values(self, mapper, na_action=None):
@@ -1161,18 +1092,16 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        Union[Index, MultiIndex], inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
-
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(mapper, dict):
-            if hasattr(mapper, '__missing__'):
+        if is_dict_like(mapper):
+            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
@@ -1182,16 +1111,24 @@ class IndexOpsMixin(object):
                 # convert to an Series for efficiency.
                 # we specify the keys here to handle the
                 # possibility that they are tuples
-                from pandas import Series
-                mapper = Series(mapper)
+
+                # The return value of mapping with an empty mapper is
+                # expected to be pd.Series(np.nan, ...). As np.nan is
+                # of dtype float64 the return value of this method should
+                # be float64 as well
+                mapper = create_series_with_explicit_dtype(
+                    mapper, dtype_if_empty=np.float64
+                )
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
-            if is_extension_type(self.dtype):
-                values = self._values
-            else:
-                values = self.values
+            if is_categorical_dtype(self.dtype):
+                # use the built in categorical series mapper which saves
+                # time by mapping the categories instead of all values
+                return self._values.map(mapper)
+
+            values = self._values
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
@@ -1199,28 +1136,36 @@ class IndexOpsMixin(object):
             return new_values
 
         # we must convert to python types
-        if is_extension_type(self.dtype):
+        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+            # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)
-            values = getattr(values, 'values', values)
-            if na_action == 'ignore':
+            values = self.astype(object)._values
+            if na_action == "ignore":
+
                 def map_f(values, f):
-                    return lib.map_infer_mask(values, f,
-                                              isna(values).view(np.uint8))
-            else:
+                    return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
+
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)
 
         return new_values
 
-    def value_counts(self, normalize=False, sort=True, ascending=False,
-                     bins=None, dropna=True):
+    def value_counts(
+        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+    ):
         """
         Return a Series containing counts of unique values.
 
@@ -1230,27 +1175,28 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        normalize : boolean, default False
+        normalize : bool, default False
             If True then the object returned will contain the relative
             frequencies of the unique values.
-        sort : boolean, default True
-            Sort by values.
-        ascending : boolean, default False
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
             Sort in ascending order.
-        bins : integer, optional
+        bins : int, optional
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with numeric data.
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
         -------
-        counts : Series
+        Series
 
         See Also
         --------
         Series.count: Number of non-NA elements in a Series.
         DataFrame.count: Number of non-NA elements in a DataFrame.
+        DataFrame.value_counts: Equivalent method on DataFrames.
 
         Examples
         --------
@@ -1298,24 +1244,31 @@ class IndexOpsMixin(object):
         1.0    1
         dtype: int64
         """
-        from pandas.core.algorithms import value_counts
-        result = value_counts(self, sort=sort, ascending=ascending,
-                              normalize=normalize, bins=bins, dropna=dropna)
+        result = value_counts(
+            self,
+            sort=sort,
+            ascending=ascending,
+            normalize=normalize,
+            bins=bins,
+            dropna=dropna,
+        )
         return result
 
     def unique(self):
         values = self._values
 
-        if hasattr(values, 'unique'):
-
+        if not isinstance(values, np.ndarray):
             result = values.unique()
+            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
+                # GH#31182 Series._values returns EA, unpack for backward-compat
+                if getattr(self.dtype, "tz", None) is None:
+                    result = np.asarray(result)
         else:
-            from pandas.core.algorithms import unique1d
             result = unique1d(values)
 
         return result
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
 
@@ -1323,12 +1276,31 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include NaN in the count.
 
         Returns
         -------
-        nunique : int
+        int
+
+        See Also
+        --------
+        DataFrame.nunique: Method nunique for DataFrame.
+        Series.count: Count non-NA/null observations in the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 3, 5, 7, 7])
+        >>> s
+        0    1
+        1    3
+        2    5
+        3    7
+        4    7
+        dtype: int64
+
+        >>> s.nunique()
+        4
         """
         uniqs = self.unique()
         n = len(uniqs)
@@ -1337,57 +1309,61 @@ class IndexOpsMixin(object):
         return n
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return boolean if values in the object are unique.
 
         Returns
         -------
-        is_unique : boolean
+        bool
         """
-        return self.nunique() == len(self)
+        return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_increasing.
 
-        .. versionadded:: 0.19.0
-
         Returns
         -------
-        is_monotonic : boolean
+        bool
         """
         from pandas import Index
+
         return Index(self).is_monotonic
 
-    is_monotonic_increasing = is_monotonic
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        """
+        Alias for is_monotonic.
+        """
+        # mypy complains if we alias directly
+        return self.is_monotonic
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_decreasing.
 
-        .. versionadded:: 0.19.0
-
         Returns
         -------
-        is_monotonic_decreasing : boolean
+        bool
         """
         from pandas import Index
+
         return Index(self).is_monotonic_decreasing
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of the values
+        Memory usage of the values.
 
         Parameters
         ----------
         deep : bool
             Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+            `object` dtypes for system-level memory consumption.
 
         Returns
         -------
@@ -1395,45 +1371,58 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
 
         Notes
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
         """
-        if hasattr(self.array, 'memory_usage'):
+        if hasattr(self.array, "memory_usage"):
             return self.array.memory_usage(deep=deep)
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
-    @Substitution(
-        values='', order='', size_hint='',
-        sort=textwrap.dedent("""\
-            sort : boolean, default False
-                Sort `uniques` and shuffle `labels` to maintain the
+    @doc(
+        algorithms.factorize,
+        values="",
+        order="",
+        size_hint="",
+        sort=textwrap.dedent(
+            """\
+            sort : bool, default False
+                Sort `uniques` and shuffle `codes` to maintain the
                 relationship.
-            """))
-    @Appender(algorithms._shared_docs['factorize'])
+            """
+        ),
+    )
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
-    _shared_docs['searchsorted'] = (
-        """
+    _shared_docs[
+        "searchsorted"
+    ] = """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted %(klass)s `self` such that, if the
+        Find the indices into a sorted {klass} `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
+
+        .. note::
+
+            The {klass} *must* be monotonically sorted, otherwise
+            wrong locations will likely be returned. Pandas does *not*
+            check this for you.
 
         Parameters
         ----------
         value : array_like
             Values to insert into `self`.
-        side : {'left', 'right'}, optional
+        side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
@@ -1447,14 +1436,15 @@ class IndexOpsMixin(object):
             A scalar or array of insertion points with the
             same shape as `value`.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                 If `value` is a scalar, an int is now always returned.
                 Previously, scalar inputs returned an 1-item array for
                 :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
-        numpy.searchsorted
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
 
         Notes
         -----
@@ -1462,69 +1452,71 @@ class IndexOpsMixin(object):
 
         Examples
         --------
-
-        >>> x = pd.Series([1, 2, 3])
-        >>> x
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser
         0    1
         1    2
         2    3
         dtype: int64
 
-        >>> x.searchsorted(4)
+        >>> ser.searchsorted(4)
         3
 
-        >>> x.searchsorted([0, 4])
+        >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> x.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side='left')
         array([0, 2])
 
-        >>> x.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread',
-                                'cheese', 'milk'], ordered=True)
+        >>> ser = pd.Categorical(
+        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ... )
+        >>> ser
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
-        >>> x.searchsorted('bread')
+        >>> ser.searchsorted('bread')
         1
 
-        >>> x.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(['bread'], side='right')
         array([3])
-        """)
 
-    @Substitution(klass='IndexOpsMixin')
-    @Appender(_shared_docs['searchsorted'])
-    def searchsorted(self, value, side='left', sorter=None):
-        # needs coercion on the key (DatetimeIndex does already)
-        return self._values.searchsorted(value, side=side, sorter=sorter)
+        If the values are not monotonically sorted, wrong locations
+        may be returned:
 
-    def drop_duplicates(self, keep='first', inplace=False):
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+        >>> ser = pd.Series([2, 1, 3])
+        >>> ser
+        0    2
+        1    1
+        2    3
+        dtype: int64
+
+        >>> ser.searchsorted(1)  # doctest: +SKIP
+        0  # wrong result, correct would be 1
+        """
+
+    @doc(_shared_docs["searchsorted"], klass="Index")
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+        return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
+
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
-    def duplicated(self, keep='first'):
-        from pandas.core.algorithms import duplicated
+    def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return np.zeros(len(self), dtype=np.bool)
             return duplicated(self, keep=keep)
         else:
-            return self._constructor(duplicated(self, keep=keep),
-                                     index=self.index).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, **kwargs):
-        raise AbstractMethodError(self)
+            return self._constructor(
+                duplicated(self, keep=keep), index=self.index
+            ).__finalize__(self, method="duplicated")

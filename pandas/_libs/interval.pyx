@@ -1,9 +1,18 @@
-# -*- coding: utf-8 -*-
 import numbers
 from operator import le, lt
 
-from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
-                             PyObject_RichCompare)
+from cpython.datetime cimport PyDelta_Check, PyDateTime_IMPORT
+PyDateTime_IMPORT
+
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+)
 
 import cython
 from cython import Py_ssize_t
@@ -11,25 +20,36 @@ from cython import Py_ssize_t
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    NPY_QUICKSORT,
+    PyArray_ArgSort,
+    PyArray_Take,
+    float32_t,
+    float64_t,
+    int32_t,
+    int64_t,
     ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+    uint64_t,
+)
 cnp.import_array()
 
 
-cimport pandas._libs.util as util
-util.import_array()
+from pandas._libs cimport util
 
-from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector
+from pandas._libs.tslibs.util cimport (
+    is_integer_object,
+    is_float_object,
+    is_timedelta64_object,
+)
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.base cimport ABCTimedelta
 from pandas._libs.tslibs.timezones cimport tz_compare
-
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
-cdef class IntervalMixin(object):
+cdef class IntervalMixin:
 
     @property
     def closed_left(self):
@@ -41,8 +61,7 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return self.closed in ('left', 'both')
 
@@ -56,8 +75,7 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return self.closed in ('right', 'both')
 
@@ -71,8 +89,7 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return not self.closed_left
 
@@ -86,15 +103,14 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return not self.closed_right
 
     @property
     def mid(self):
         """
-        Return the midpoint of the Interval
+        Return the midpoint of the Interval.
         """
         try:
             return 0.5 * (self.left + self.right)
@@ -104,13 +120,63 @@ cdef class IntervalMixin(object):
 
     @property
     def length(self):
-        """Return the length of the Interval"""
-        try:
-            return self.right - self.left
-        except TypeError:
-            # length not defined for some types, e.g. string
-            msg = 'cannot compute length between {left!r} and {right!r}'
-            raise TypeError(msg.format(left=self.left, right=self.right))
+        """
+        Return the length of the Interval.
+        """
+        return self.right - self.left
+
+    @property
+    def is_empty(self):
+        """
+        Indicates if an interval is empty, meaning it contains no points.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        bool or ndarray
+            A boolean indicating if a scalar :class:`Interval` is empty, or a
+            boolean ``ndarray`` positionally indicating if an ``Interval`` in
+            an :class:`~arrays.IntervalArray` or :class:`IntervalIndex` is
+            empty.
+
+        Examples
+        --------
+        An :class:`Interval` that contains points is not empty:
+
+        >>> pd.Interval(0, 1, closed='right').is_empty
+        False
+
+        An ``Interval`` that does not contain any points is empty:
+
+        >>> pd.Interval(0, 0, closed='right').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='left').is_empty
+        True
+        >>> pd.Interval(0, 0, closed='neither').is_empty
+        True
+
+        An ``Interval`` that contains a single point is not empty:
+
+        >>> pd.Interval(0, 0, closed='both').is_empty
+        False
+
+        An :class:`~arrays.IntervalArray` or :class:`IntervalIndex` returns a
+        boolean ``ndarray`` positionally indicating if an ``Interval`` is
+        empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'),
+        ...        pd.Interval(1, 2, closed='neither')]
+        >>> pd.arrays.IntervalArray(ivs).is_empty
+        array([ True, False])
+
+        Missing values are not considered empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed='neither'), np.nan]
+        >>> pd.IntervalIndex(ivs).is_empty
+        array([ True, False])
+        """
+        return (self.right == self.left) & (self.closed != 'both')
 
     def _check_closed_matches(self, other, name='other'):
         """Check if the closed attribute of `other` matches.
@@ -129,11 +195,11 @@ cdef class IntervalMixin(object):
             When `other` is not closed exactly the same as self.
         """
         if self.closed != other.closed:
-            msg = "'{}.closed' is '{}', expected '{}'."
-            raise ValueError(msg.format(name, other.closed, self.closed))
+            raise ValueError(f"'{name}.closed' is {repr(other.closed)}, "
+                             f"expected {repr(self.closed)}.")
 
 
-cdef _interval_like(other):
+cdef bint _interval_like(other):
     return (hasattr(other, 'left')
             and hasattr(other, 'right')
             and hasattr(other, 'closed'))
@@ -143,17 +209,12 @@ cdef class Interval(IntervalMixin):
     """
     Immutable object implementing an Interval, a bounded slice-like interval.
 
-    .. versionadded:: 0.20.0
-
     Parameters
     ----------
     left : orderable scalar
         Left bound for the interval.
     right : orderable scalar
         Right bound for the interval.
-    closed : {'left', 'right', 'both', 'neither'}, default 'right'
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
     closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
@@ -238,68 +299,67 @@ cdef class Interval(IntervalMixin):
     True
     """
     _typ = "interval"
+    __array_priority__ = 1000
 
     cdef readonly object left
-    """Left bound for the interval"""
+    """
+    Left bound for the interval.
+    """
 
     cdef readonly object right
-    """Right bound for the interval"""
+    """
+    Right bound for the interval.
+    """
 
     cdef readonly str closed
     """
     Whether the interval is closed on the left-side, right-side, both or
-    neither
+    neither.
     """
 
     def __init__(self, left, right, str closed='right'):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
+
+        self._validate_endpoint(left)
+        self._validate_endpoint(right)
+
         if closed not in _VALID_CLOSED:
-            msg = "invalid option for 'closed': {closed}".format(closed=closed)
-            raise ValueError(msg)
+            raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
-            raise ValueError('left side of interval must be <= right side')
-        if (isinstance(left, Timestamp) and
+            raise ValueError("left side of interval must be <= right side")
+        if (isinstance(left, _Timestamp) and
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
-            msg = ("left and right must have the same time zone, got "
-                   "'{left_tz}' and '{right_tz}'")
-            raise ValueError(msg.format(left_tz=left.tzinfo,
-                                        right_tz=right.tzinfo))
+            raise ValueError("left and right must have the same time zone, got "
+                             f"{repr(left.tzinfo)}' and {repr(right.tzinfo)}")
         self.left = left
         self.right = right
         self.closed = closed
 
+    def _validate_endpoint(self, endpoint):
+        # GH 23013
+        if not (is_integer_object(endpoint) or is_float_object(endpoint) or
+                isinstance(endpoint, (_Timestamp, ABCTimedelta))):
+            raise ValueError("Only numeric, Timestamp and Timedelta endpoints "
+                             "are allowed when constructing an Interval.")
+
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if _interval_like(key):
-            raise TypeError('__contains__ not defined for two intervals')
+            raise TypeError("__contains__ not defined for two intervals")
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
     def __richcmp__(self, other, op: int):
-        if hasattr(other, 'ndim'):
-            # let numpy (or IntervalIndex) handle vectorization
-            return NotImplemented
-
-        if _interval_like(other):
+        if isinstance(other, Interval):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
 
-        # nb. could just return NotImplemented now, but handling this
-        # explicitly allows us to opt into the Python 3 behavior, even on
-        # Python 2.
-        if op == Py_EQ or op == Py_NE:
-            return NotImplemented
-        else:
-            name = type(self).__name__
-            other = type(other).__name__
-            op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError('unorderable types: {name}() {op} {other}()'
-                            .format(name=name, op=op_str, other=other))
+        return NotImplemented
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
@@ -310,37 +370,50 @@ cdef class Interval(IntervalMixin):
         right = self.right
 
         # TODO: need more general formatting methodology here
-        if isinstance(left, Timestamp) and isinstance(right, Timestamp):
+        if isinstance(left, _Timestamp) and isinstance(right, _Timestamp):
             left = left._short_repr
             right = right._short_repr
 
         return left, right
 
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = '{name}({left!r}, {right!r}, closed={closed!r})'.format(
-            name=name, left=left, right=right, closed=self.closed)
+        repr_str = f'{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})'
         return repr_str
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         left, right = self._repr_base()
         start_symbol = '[' if self.closed_left else '('
         end_symbol = ']' if self.closed_right else ')'
-        return '{start}{left}, {right}{end}'.format(
-            start=start_symbol, left=left, right=right, end=end_symbol)
+        return f'{start_symbol}{left}, {right}{end_symbol}'
 
     def __add__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+        elif (
+            isinstance(y, Interval)
+            and (
+                isinstance(self, numbers.Number)
+                or PyDelta_Check(self)
+                or is_timedelta64_object(self)
+            )
+        ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
-        if isinstance(y, numbers.Number):
+        if (
+            isinstance(y, numbers.Number)
+            or PyDelta_Check(y)
+            or is_timedelta64_object(y)
+        ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
@@ -380,12 +453,12 @@ cdef class Interval(IntervalMixin):
         Parameters
         ----------
         other : Interval
-            The interval to check against for an overlap.
+            Interval to check against for an overlap.
 
         Returns
         -------
         bool
-            ``True`` if the two intervals overlap, else ``False``.
+            True if the two intervals overlap.
 
         See Also
         --------
@@ -416,8 +489,8 @@ cdef class Interval(IntervalMixin):
         False
         """
         if not isinstance(other, Interval):
-            msg = '`other` must be an Interval, got {other}'
-            raise TypeError(msg.format(other=type(other).__name__))
+            raise TypeError("`other` must be an Interval, "
+                            f"got {type(other).__name__}")
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
@@ -431,36 +504,34 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def intervals_to_interval_bounds(ndarray intervals,
-                                 bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     """
     Parameters
     ----------
     intervals : ndarray
-        object array of Intervals / nulls
+        Object array of Intervals / nulls.
 
-    validate_closed: boolean, default True
-        boolean indicating if all intervals must be closed on the same side.
+    validate_closed: bool, default True
+        Boolean indicating if all intervals must be closed on the same side.
         Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
-    tuples (left: ndarray object array,
-            right: ndarray object array,
-            closed: str)
-
+    tuple of tuples
+        left : (ndarray, object, array)
+        right : (ndarray, object, array)
+        closed: str
     """
-
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan
@@ -468,8 +539,8 @@ def intervals_to_interval_bounds(ndarray intervals,
             continue
 
         if not isinstance(interval, Interval):
-            raise TypeError("type {typ} with value {iv} is not an interval"
-                            .format(typ=type(interval), iv=interval))
+            raise TypeError(f"type {type(interval)} with value "
+                            f"{interval} is not an interval")
 
         left[i] = interval.left
         right[i] = interval.right
@@ -479,8 +550,7 @@ def intervals_to_interval_bounds(ndarray intervals,
         elif closed != interval.closed:
             closed = None
             if validate_closed:
-                msg = 'intervals must all be closed on the same side'
-                raise ValueError(msg)
+                raise ValueError("intervals must all be closed on the same side")
 
     return left, right, closed
 

@@ -1,7 +1,7 @@
 .. _whatsnew_0120:
 
-v0.12.0 (July 24, 2013)
-------------------------
+Version 0.12.0 (July 24, 2013)
+------------------------------
 
 {{ header }}
 
@@ -59,21 +59,32 @@ API changes
     same shaped objects whether the groups are unique or not. Revert this issue (:issue:`2893`)
     with (:issue:`3596`).
 
-    .. ipython:: python
+    .. code-block:: ipython
 
-        df2 = pd.DataFrame([{"val1": 1, "val2": 20},
-                            {"val1": 1, "val2": 19},
-                            {"val1": 1, "val2": 27},
-                            {"val1": 1, "val2": 12}])
+        In [2]: df2 = pd.DataFrame([{"val1": 1, "val2": 20},
+           ...:                     {"val1": 1, "val2": 19},
+           ...:                     {"val1": 1, "val2": 27},
+           ...:                     {"val1": 1, "val2": 12}])
 
-        def func(dataf):
-            return dataf["val2"] - dataf["val2"].mean()
+        In [3]: def func(dataf):
+           ...:     return dataf["val2"] - dataf["val2"].mean()
+           ...:
 
-        # squeezing the result frame to a series (because we have unique groups)
-        df2.groupby("val1", squeeze=True).apply(func)
+        In [4]: # squeezing the result frame to a series (because we have unique groups)
+           ...: df2.groupby("val1", squeeze=True).apply(func)
+        Out[4]:
+        0    0.5
+        1   -0.5
+        2    7.5
+        3   -7.5
+        Name: 1, dtype: float64
 
-        # no squeezing (the default, and behavior in 0.10.1)
-        df2.groupby("val1").apply(func)
+        In [5]: # no squeezing (the default, and behavior in 0.10.1)
+           ...: df2.groupby("val1").apply(func)
+        Out[5]:
+        val2    0    1    2    3
+        val1
+        1     0.5 -0.5  7.5 -7.5
 
   - Raise on ``iloc`` when boolean indexing with a label based indexer mask
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
@@ -83,13 +94,8 @@ API changes
     ``iloc`` API to be *purely* positional based.
 
     .. ipython:: python
-       :suppress:
 
-       from pandas.compat import lrange
-
-    .. ipython:: python
-
-       df = pd.DataFrame(lrange(5), list('ABCDE'), columns=['a'])
+       df = pd.DataFrame(range(5), index=list('ABCDE'), columns=['a'])
        mask = (df.a % 2 == 0)
        mask
 
@@ -182,8 +188,8 @@ API changes
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-I/O Enhancements
-~~~~~~~~~~~~~~~~
+IO enhancements
+~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (:issue:`3477`, :issue:`3605`, :issue:`3606`, :issue:`3616`).
@@ -241,7 +247,7 @@ I/O Enhancements
 
       .. ipython:: python
 
-         from pandas.util.testing import makeCustomDataframe as mkdf
+         from pandas._testing import makeCustomDataframe as mkdf
          df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
          df.to_csv('mi.csv')
          print(open('mi.csv').read())
@@ -287,7 +293,7 @@ I/O Enhancements
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
 
-Other Enhancements
+Other enhancements
 ~~~~~~~~~~~~~~~~~~
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
@@ -317,22 +323,24 @@ Other Enhancements
 
   - ``pd.set_option()`` now allows N option, value pairs (:issue:`3667`).
 
-      Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
-      We can set them at the same time:
+    Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
+    We can set them at the same time:
 
-      .. ipython:: python
-         :suppress:
+    .. code-block:: ipython
 
-         pd.core.config.register_option('a.b', 2, 'ay dot bee')
-         pd.core.config.register_option('b.c', 3, 'bee dot cee')
+        In [31]: pd.get_option('a.b')
+        Out[31]: 2
 
-      .. ipython:: python
+        In [32]: pd.get_option('b.c')
+        Out[32]: 3
 
-         pd.get_option('a.b')
-         pd.get_option('b.c')
-         pd.set_option('a.b', 1, 'b.c', 4)
-         pd.get_option('a.b')
-         pd.get_option('b.c')
+        In [33]: pd.set_option('a.b', 1, 'b.c', 4)
+
+        In [34]: pd.get_option('a.b')
+        Out[34]: 1
+
+        In [35]: pd.get_option('b.c')
+        Out[35]: 4
 
   - The ``filter`` method for group objects returns a subset of the original
     object. Suppose we want to take only elements that belong to groups with a
@@ -374,7 +382,7 @@ Other Enhancements
     is detected (:issue:`4214`)
 
 
-Experimental Features
+Experimental features
 ~~~~~~~~~~~~~~~~~~~~~
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
@@ -401,7 +409,7 @@ Experimental Features
       dts = pd.date_range(dt, periods=5, freq=bday_egypt)
       print(pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
@@ -420,6 +428,7 @@ Bug Fixes
     original ``Series`` or ``NaN``. For example,
 
     .. ipython:: python
+        :okwarning:
 
         strs = 'go', 'bow', 'joe', 'slow'
         ds = pd.Series(strs)
