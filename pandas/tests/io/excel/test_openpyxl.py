@@ -8,6 +8,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
+from pandas.testing import ensure_clean
 
 openpyxl = pytest.importorskip("openpyxl")
 
@@ -120,4 +121,4 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     styled.to_excel(filename, engine="openpyxl")
 
     assert filename.exists()
-    os.remove(filename)
+    ensure_clean(filename)

@@ -901,7 +901,7 @@ class TestExcelWriter:
     #             assert 1 == cell_xf.border.bottom_line_style
     #             assert 1 == cell_xf.border.left_line_style
     #             assert 2 == cell_xf.alignment.hor_align
-    #     os.remove(filename)
+    #     ensure_clean(filename)
     # def test_to_excel_header_styling_xlsx(self, engine, ext):
     #     import StringIO
     #     s = StringIO(
@@ -953,7 +953,7 @@ class TestExcelWriter:
     #     mergedcells_addrs = ["C1", "E1", "G1"]
     #     for maddr in mergedcells_addrs:
     #         assert ws.cell(maddr).merged
-    #     os.remove(filename)
+    #     ensure_clean(filename)
 
     @pytest.mark.parametrize("use_headers", [True, False])
     @pytest.mark.parametrize("r_idx_nlevels", [1, 2, 3])
