@@ -66,6 +66,9 @@ def test_nat_vector_field_access():
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
             continue
+        if field in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            continue
 
         result = getattr(idx, field)
         expected = Index([getattr(x, field) for x in idx])
@@ -77,6 +80,9 @@ def test_nat_vector_field_access():
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
+            continue
+        if field in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
             continue
 
         result = getattr(ser.dt, field)

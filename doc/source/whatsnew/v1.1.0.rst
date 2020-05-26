@@ -590,6 +590,9 @@ Deprecations
 
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
+- :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`33595`)
 - :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
 - Indexing an :class:`Index` object with a float key is deprecated, and will
   raise an ``IndexError`` in the future. You can manually convert to an integer key
