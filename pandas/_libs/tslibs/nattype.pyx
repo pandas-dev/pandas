@@ -29,12 +29,12 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value,
 )
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.base cimport is_period_object
 
 
 # ----------------------------------------------------------------------
 # Constants
 nat_strings = {"NaT", "nat", "NAT", "nan", "NaN", "NAN"}
+cdef set c_nat_strings = nat_strings
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT  # python-visible constant
@@ -145,10 +145,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -162,6 +160,7 @@ cdef class _NaT(datetime):
                 return result
             raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __sub__(self, other):
@@ -181,10 +180,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -215,6 +212,7 @@ cdef class _NaT(datetime):
                 f"Cannot subtract NaT from ndarray with dtype {other.dtype}"
             )
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __pos__(self):

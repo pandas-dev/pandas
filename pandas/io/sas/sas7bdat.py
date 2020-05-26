@@ -14,12 +14,12 @@ Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
 from collections import abc
-from datetime import datetime
+from datetime import datetime, timedelta
 import struct
 
 import numpy as np
 
-from pandas.errors import EmptyDataError
+from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
 
@@ -27,6 +27,39 @@ from pandas.io.common import get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
+
+
+def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
+    """
+    Convert to Timestamp if possible, otherwise to datetime.datetime.
+    SAS float64 lacks precision for more than ms resolution so the fit
+    to datetime.datetime is ok.
+
+    Parameters
+    ----------
+    sas_datetimes : {Series, Sequence[float]}
+       Dates or datetimes in SAS
+    unit : {str}
+       "d" if the floats represent dates, "s" for datetimes
+
+    Returns
+    -------
+    Series
+       Series of datetime64 dtype or datetime.datetime.
+    """
+    try:
+        return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
+    except OutOfBoundsDatetime:
+        if unit == "s":
+            return sas_datetimes.apply(
+                lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
+            )
+        elif unit == "d":
+            return sas_datetimes.apply(
+                lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
+            )
+        else:
+            raise ValueError("unit must be 'd' or 's'")
 
 
 class _subheader_pointer:
@@ -706,15 +739,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
-                    unit = None
                     if self.column_formats[j] in const.sas_date_formats:
-                        unit = "d"
+                        rslt[name] = _convert_datetimes(rslt[name], "d")
                     elif self.column_formats[j] in const.sas_datetime_formats:
-                        unit = "s"
-                    if unit:
-                        rslt[name] = pd.to_datetime(
-                            rslt[name], unit=unit, origin="1960-01-01"
-                        )
+                        rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = self._string_chunk[js, :]

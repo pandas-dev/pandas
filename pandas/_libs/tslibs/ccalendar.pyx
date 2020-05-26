@@ -40,6 +40,7 @@ MONTHS_FULL = ['', 'January', 'February', 'March', 'April', 'May', 'June',
                'July', 'August', 'September', 'October', 'November',
                'December']
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
+cdef dict c_MONTH_NUMBERS = MONTH_NUMBERS
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
 MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
@@ -51,6 +52,9 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 DAY_SECONDS = 86400
 HOUR_SECONDS = 3600
+
+cdef int64_t DAY_NANOS = DAY_SECONDS * 1_000_000_000
+cdef int64_t HOUR_NANOS = HOUR_SECONDS * 1_000_000_000
 
 # ----------------------------------------------------------------------
 

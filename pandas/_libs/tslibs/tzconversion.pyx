@@ -16,7 +16,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
@@ -71,7 +71,7 @@ timedelta-like}
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         int64_t first_delta
-        int64_t HOURS_NS = HOUR_SECONDS * 1000000000, shift_delta = 0
+        int64_t shift_delta = 0
         ndarray[int64_t] trans, result, result_a, result_b, dst_hours, delta
         ndarray trans_idx, grp, a_idx, b_idx, one_diff
         npy_datetimestruct dts
@@ -142,10 +142,10 @@ timedelta-like}
     result_b[:] = NPY_NAT
 
     idx_shifted_left = (np.maximum(0, trans.searchsorted(
-        vals - DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
+        vals - DAY_NANOS, side='right') - 1)).astype(np.int64)
 
     idx_shifted_right = (np.maximum(0, trans.searchsorted(
-        vals + DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
+        vals + DAY_NANOS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         val = vals[i]
@@ -240,18 +240,18 @@ timedelta-like}
             # Handle nonexistent times
             if shift_forward or shift_backward or shift_delta != 0:
                 # Shift the nonexistent time to the closest existing time
-                remaining_mins = val % HOURS_NS
+                remaining_mins = val % HOUR_NANOS
                 if shift_delta != 0:
                     # Validate that we don't relocalize on another nonexistent
                     # time
-                    if -1 < shift_delta + remaining_mins < HOURS_NS:
+                    if -1 < shift_delta + remaining_mins < HOUR_NANOS:
                         raise ValueError(
                             f"The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
                     new_local = val + shift_delta
                 elif shift_forward:
-                    new_local = val + (HOURS_NS - remaining_mins)
+                    new_local = val + (HOUR_NANOS - remaining_mins)
                 else:
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
@@ -312,18 +312,21 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
+cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NULL):
     """
     Parameters
     ----------
     utc_val : int64_t
     tz : tzinfo
+    fold : bint*
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
 
     Returns
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
+    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
 
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
@@ -489,7 +492,8 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
 
-cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
+cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
+                                     bint* fold=NULL):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.
@@ -502,32 +506,6 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
-
-    Returns
-    -------
-    result : int64_t
-    """
-    cdef int64_t delta
-
-    delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
-
-    if to_utc:
-        return val - delta
-    else:
-        return val + delta
-
-
-cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
-    """
-    Convert the i8 representation of a datetime from UTC to local timezone,
-    set fold by pointer
-
-    Private, not intended for use outside of tslibs.conversion
-
-    Parameters
-    ----------
-    val : int64_t
-    tz : tzinfo
     fold : bint*
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment
@@ -540,11 +518,15 @@ cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
     -----
     Sets fold by pointer
     """
-    cdef int64_t delta
+    cdef:
+        int64_t delta
 
-    delta = _tzlocal_get_offset_components(val, tz, False, fold)
+    delta = _tzlocal_get_offset_components(val, tz, to_utc, fold)
 
-    return val + delta
+    if to_utc:
+        return val - delta
+    else:
+        return val + delta
 
 
 @cython.boundscheck(False)

@@ -1,5 +1,6 @@
-import cython
 from collections import defaultdict
+
+import cython
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -48,7 +49,7 @@ cdef class BlockPlacement:
         else:
             # Cython memoryview interface requires ndarray to be writeable.
             arr = np.require(val, dtype=np.int64, requirements='W')
-            assert arr.ndim == 1
+            assert arr.ndim == 1, arr.shape
             self._as_array = arr
             self._has_array = True
 

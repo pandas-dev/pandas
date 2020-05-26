@@ -25,6 +25,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -41,6 +42,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Axes,
@@ -133,7 +135,6 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
-from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 from pandas.core.sorting import ensure_key_mapped
 
@@ -454,6 +455,7 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
+
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -1158,7 +1160,7 @@ class DataFrame(NDFrame):
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
             lvals = left.values
-            rvals = right.values
+            rvals = right._values
         else:
             left = self
             lvals = self.values
@@ -1228,8 +1230,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), list of tuples, dict, or DataFrame.
+        DataFrame.from_records : DataFrame from structured ndarray, sequence
+            of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
 
         Examples
@@ -1279,7 +1281,9 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self, dtype=None, copy: bool = False) -> np.ndarray:
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
 
@@ -1300,6 +1304,11 @@ class DataFrame(NDFrame):
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the dtypes of the DataFrame columns.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1331,7 +1340,10 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy)
+        result = self._mgr.as_array(
+            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
+        )
+
         return result
 
     def to_dict(self, orient="dict", into=dict):
@@ -1628,9 +1640,13 @@ class DataFrame(NDFrame):
         """
         Convert structured or record ndarray to DataFrame.
 
+        Creates a DataFrame object from a structured ndarray, sequence of
+        tuples or dicts, or DataFrame.
+
         Parameters
         ----------
-        data : ndarray (structured dtype), list of tuples, dict, or DataFrame
+        data : structured ndarray, sequence of tuples or dicts, or DataFrame
+            Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -1651,6 +1667,47 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        DataFrame.from_dict : DataFrame from dict of array-like or dicts.
+        DataFrame : DataFrame object creation using constructor.
+
+        Examples
+        --------
+        Data can be provided as a structured ndarray:
+
+        >>> data = np.array([(3, 'a'), (2, 'b'), (1, 'c'), (0, 'd')],
+        ...                 dtype=[('col_1', 'i4'), ('col_2', 'U1')])
+        >>> pd.DataFrame.from_records(data)
+           col_1 col_2
+        0      3     a
+        1      2     b
+        2      1     c
+        3      0     d
+
+        Data can be provided as a list of dicts:
+
+        >>> data = [{'col_1': 3, 'col_2': 'a'},
+        ...         {'col_1': 2, 'col_2': 'b'},
+        ...         {'col_1': 1, 'col_2': 'c'},
+        ...         {'col_1': 0, 'col_2': 'd'}]
+        >>> pd.DataFrame.from_records(data)
+           col_1 col_2
+        0      3     a
+        1      2     b
+        2      1     c
+        3      0     d
+
+        Data can be provided as a list of tuples with corresponding columns:
+
+        >>> data = [(3, 'a'), (2, 'b'), (1, 'c'), (0, 'd')]
+        >>> pd.DataFrame.from_records(data, columns=['col_1', 'col_2'])
+           col_1 col_2
+        0      3     a
+        1      2     b
+        2      1     c
+        3      0     d
         """
         # Make a copy of the input columns so we can modify it
         if columns is not None:
@@ -1835,7 +1892,7 @@ class DataFrame(NDFrame):
         if index:
             if isinstance(self.index, MultiIndex):
                 # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index.values)))
+                ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
                 ix_vals = [self.index.values]
 
@@ -1970,6 +2027,7 @@ class DataFrame(NDFrame):
         variable_labels: Optional[Dict[Label, str]] = None,
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2033,6 +2091,19 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output dta. If string, specifies
+            compression mode. If dict, value at key 'method' specifies
+            compression mode. Compression mode must be one of {'infer', 'gzip',
+            'bz2', 'zip', 'xz', None}. If compression mode is 'infer' and
+            `fname` is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+            compression). If dict and compression mode is one of {'zip',
+            'gzip', 'bz2'}, or inferred as one of the above, other entries
+            passed as additional compression options.
+
+            .. versionadded:: 1.1.0
+
         Raises
         ------
         NotImplementedError
@@ -2088,6 +2159,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
+            compression=compression,
             **kwargs,
         )
         writer.write_file()
@@ -2949,7 +3021,7 @@ class DataFrame(NDFrame):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not is_bool_dtype(key.values):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -5672,14 +5744,7 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        if ops.should_series_dispatch(self, other, func):
-            # iterate over columns
-            new_data = ops.dispatch_to_series(self, other, _arith_op)
-        else:
-            with np.errstate(all="ignore"):
-                res_values = _arith_op(self.values, other.values)
-            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
-
+        new_data = ops.dispatch_to_series(self, other, _arith_op)
         return new_data
 
     def _construct_result(self, result) -> "DataFrame":
@@ -5694,10 +5759,11 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        out = self._constructor(result, index=self.index, copy=False)
+        out = self._constructor(result, copy=False)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
+        out.index = self.index
         return out
 
     def combine(
@@ -6191,11 +6257,23 @@ NaN 12.3   33.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = False,
+        squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
+
+        if squeeze is not no_default:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -7390,7 +7468,7 @@ NaN 12.3   33.0
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.astype(object).values, func)
+            return lib.map_infer(x.astype(object)._values, func)
 
         return self.apply(infer)
 
@@ -7913,7 +7991,7 @@ NaN 12.3   33.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.astype(float, copy=False).to_numpy()
+        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
@@ -8048,7 +8126,7 @@ NaN 12.3   33.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.astype(float, copy=False).to_numpy()
+        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
