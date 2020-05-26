@@ -821,7 +821,7 @@ You can create a scatter plot matrix using the
    df = pd.DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png
-   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
+   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde');
 
 .. ipython:: python
    :suppress:
