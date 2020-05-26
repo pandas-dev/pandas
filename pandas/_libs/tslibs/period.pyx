@@ -54,9 +54,9 @@ from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
     get_freq_code,
     get_freq_str,
-    get_rule_month,
     get_to_timestamp_base,
 )
+from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
@@ -2511,6 +2511,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
         year -= 1
 
     return year, month
+    # TODO: This whole func is really similar to parsing.pyx L434-L450
 
 
 def validate_end_alias(how):

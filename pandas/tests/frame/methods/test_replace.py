@@ -1388,3 +1388,18 @@ class TestDataFrameReplace:
         df = pd.DataFrame(np.eye(2), dtype=dtype)
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("replacement", [np.nan, 5])
+    def test_replace_with_duplicate_columns(self, replacement):
+        # GH 24798
+        result = pd.DataFrame({"A": [1, 2, 3], "A1": [4, 5, 6], "B": [7, 8, 9]})
+        result.columns = list("AAB")
+
+        expected = pd.DataFrame(
+            {"A": [1, 2, 3], "A1": [4, 5, 6], "B": [replacement, 8, 9]}
+        )
+        expected.columns = list("AAB")
+
+        result["B"] = result["B"].replace(7, replacement)
+
+        tm.assert_frame_equal(result, expected)

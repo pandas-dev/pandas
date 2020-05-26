@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 import operator
-from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -16,20 +15,31 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     ApplyTypeError,
     BaseOffset,
+    BQuarterBegin,
+    BQuarterEnd,
     BusinessMixin,
+    BusinessMonthBegin,
+    BusinessMonthEnd,
+    BYearBegin,
+    BYearEnd,
     CustomMixin,
     Day,
     Hour,
     Micro,
     Milli,
     Minute,
+    MonthBegin,
+    MonthEnd,
     Nano,
+    QuarterBegin,
+    QuarterEnd,
     Second,
     SingleConstructorOffset,
     Tick,
+    YearBegin,
+    YearEnd,
     apply_index_wraps,
     apply_wraps,
-    as_datetime,
     is_normalized,
     shift_month,
     to_dt64D,
@@ -96,7 +106,7 @@ class OffsetMeta(type):
         return issubclass(obj, BaseOffset)
 
 
-class DateOffset(BaseOffset, metaclass=OffsetMeta):
+class DateOffset(liboffsets.RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
@@ -191,116 +201,10 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
-    _adjust_dst = False
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        BaseOffset.__init__(self, n, normalize)
-
-        off, use_rd = liboffsets._determine_offset(kwds)
-        object.__setattr__(self, "_offset", off)
-        object.__setattr__(self, "_use_relativedelta", use_rd)
-        for key in kwds:
-            val = kwds[key]
-            object.__setattr__(self, key, val)
-
-    @apply_wraps
-    def apply(self, other):
-        if self._use_relativedelta:
-            other = as_datetime(other)
-
-        if len(self.kwds) > 0:
-            tzinfo = getattr(other, "tzinfo", None)
-            if tzinfo is not None and self._use_relativedelta:
-                # perform calculation in UTC
-                other = other.replace(tzinfo=None)
-
-            if self.n > 0:
-                for i in range(self.n):
-                    other = other + self._offset
-            else:
-                for i in range(-self.n):
-                    other = other - self._offset
-
-            if tzinfo is not None and self._use_relativedelta:
-                # bring tz back from UTC calculation
-                other = conversion.localize_pydatetime(other, tzinfo)
-
-            return Timestamp(other)
-        else:
-            return other + timedelta(self.n)
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        """
-        Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplementedError for offsets without a
-        vectorized implementation.
-
-        Parameters
-        ----------
-        i : DatetimeIndex
-
-        Returns
-        -------
-        y : DatetimeIndex
-        """
-        kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-        }
-        # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
-
-            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
-            if months:
-                shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, dtype=i.dtype)
-
-            weeks = (kwds.get("weeks", 0)) * self.n
-            if weeks:
-                # integer addition on PeriodIndex is deprecated,
-                #   so we directly use _time_shift instead
-                asper = i.to_period("W")
-                shifted = asper._time_shift(weeks)
-                i = shifted.to_timestamp() + i.to_perioddelta("W")
-
-            timedelta_kwds = {
-                k: v
-                for k, v in kwds.items()
-                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
-            }
-            if timedelta_kwds:
-                delta = Timedelta(**timedelta_kwds)
-                i = i + (self.n * delta)
-            return i
-        elif not self._use_relativedelta and hasattr(self, "_offset"):
-            # timedelta
-            return i + (self._offset * self.n)
-        else:
-            # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
-            raise NotImplementedError(
-                "DateOffset with relativedelta "
-                f"keyword(s) {kwd} not able to be "
-                "applied vectorized"
-            )
-
-    def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
-            return False
-        # TODO, see #1395
-        return True
+    pass
 
 
-class BusinessDay(BusinessMixin, SingleConstructorOffset):
+class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
     """
@@ -785,45 +689,25 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         CustomMixin.__init__(self, weekmask, holidays, calendar)
 
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
+        )
+
 
 # ---------------------------------------------------------------------
 # Month-Based Offset Classes
-
-
-class MonthEnd(liboffsets.MonthOffset):
-    """
-    DateOffset of one month end.
-    """
-
-    _prefix = "M"
-    _day_opt = "end"
-
-
-class MonthBegin(liboffsets.MonthOffset):
-    """
-    DateOffset of one month at beginning.
-    """
-
-    _prefix = "MS"
-    _day_opt = "start"
-
-
-class BusinessMonthEnd(liboffsets.MonthOffset):
-    """
-    DateOffset increments between business EOM dates.
-    """
-
-    _prefix = "BM"
-    _day_opt = "business_end"
-
-
-class BusinessMonthBegin(liboffsets.MonthOffset):
-    """
-    DateOffset of one business month at beginning.
-    """
-
-    _prefix = "BMS"
-    _day_opt = "business_start"
 
 
 @doc(bound="bound")
@@ -1311,6 +1195,9 @@ class WeekOfMonth(liboffsets.WeekOfMonthMixin):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.week, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1370,6 +1257,9 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
             raise ValueError("N cannot be 0")
         object.__setattr__(self, "week", -1)
 
+    def __reduce__(self):
+        return type(self), (self.n, self.normalize, self.weekday)
+
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
@@ -1396,115 +1286,6 @@ class LastWeekOfMonth(liboffsets.WeekOfMonthMixin):
         # TODO: handle n here...
         weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
-
-
-# ---------------------------------------------------------------------
-# Quarter-Based Offset Classes
-
-
-class QuarterOffset(liboffsets.QuarterOffset):
-    """
-    Quarter representation.
-    """
-
-    _default_startingMonth: Optional[int] = None
-    _from_name_startingMonth: Optional[int] = None
-
-
-class BQuarterEnd(QuarterOffset):
-    """
-    DateOffset increments between business Quarter dates.
-
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
-    """
-
-    _outputName = "BusinessQuarterEnd"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 12
-    _prefix = "BQ"
-    _day_opt = "business_end"
-
-
-# TODO: This is basically the same as BQuarterEnd
-class BQuarterBegin(QuarterOffset):
-    _outputName = "BusinessQuarterBegin"
-    # I suspect this is wrong for *all* of them.
-    # TODO: What does the above comment refer to?
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = "BQS"
-    _day_opt = "business_start"
-
-
-class QuarterEnd(QuarterOffset):
-    """
-    DateOffset increments between business Quarter dates.
-
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
-    """
-
-    _outputName = "QuarterEnd"
-    _default_startingMonth = 3
-    _prefix = "Q"
-    _day_opt = "end"
-
-
-class QuarterBegin(QuarterOffset):
-    _outputName = "QuarterBegin"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
-    _prefix = "QS"
-    _day_opt = "start"
-
-
-# ---------------------------------------------------------------------
-# Year-Based Offset Classes
-
-
-class BYearEnd(liboffsets.YearOffset):
-    """
-    DateOffset increments between business EOM dates.
-    """
-
-    _outputName = "BusinessYearEnd"
-    _default_month = 12
-    _prefix = "BA"
-    _day_opt = "business_end"
-
-
-class BYearBegin(liboffsets.YearOffset):
-    """
-    DateOffset increments between business year begin dates.
-    """
-
-    _outputName = "BusinessYearBegin"
-    _default_month = 1
-    _prefix = "BAS"
-    _day_opt = "business_start"
-
-
-class YearEnd(liboffsets.YearOffset):
-    """
-    DateOffset increments between calendar year ends.
-    """
-
-    _default_month = 12
-    _prefix = "A"
-    _day_opt = "end"
-
-
-class YearBegin(liboffsets.YearOffset):
-    """
-    DateOffset increments between calendar year begin dates.
-    """
-
-    _default_month = 1
-    _prefix = "AS"
-    _day_opt = "start"
 
 
 # ---------------------------------------------------------------------
