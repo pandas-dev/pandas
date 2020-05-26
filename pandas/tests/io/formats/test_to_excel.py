@@ -1,6 +1,6 @@
 """Tests formatting as writer-agnostic ExcelCells
 
-ExcelFormatter is tested implicitly in pandas/tests/io/test_excel.py
+ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
 
 import pytest
