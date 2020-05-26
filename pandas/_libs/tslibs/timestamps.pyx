@@ -1471,19 +1471,19 @@ default 'raise'
         return Timestamp(normalized_value).tz_localize(self.tz)
 
     def strftime(self, format: str) -> str:
-        # don't do additional processing if its not necessary
-        if not self.nanosecond or '%f' not in format:
-            return super().strftime(format)
-        newformat = []
-        for ch in format:
-            if ch == 'f':
-                # remove accompanying %
-                newformat.pop()
-                # and put fractional seconds in its place
-                newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
-            else:
-                newformat.append(ch)
-        newformat = "".join(newformat)
+        newformat = format
+        # only do additional processing if necessary
+        if self.nanosecond and '%f' in format:
+            newformat = []
+            for ch in format:
+                if ch == 'f':
+                    # remove accompanying %
+                    newformat.pop()
+                    # and put fractional seconds in its place
+                    newformat.append(f"{self.microsecond * 1000 + self.nanosecond}")
+                else:
+                    newformat.append(ch)
+            newformat = "".join(newformat)
         return _time.strftime(newformat, self.timetuple())
 
 
