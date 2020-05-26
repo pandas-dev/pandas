@@ -11,6 +11,10 @@ import numpy as np
 D_DATETIME_DTYPE = "datetime64[D]"
 
 
+def _to_date_values(values, copy=False):
+    data, _, _ = sequence_to_dt64ns(values, copy=copy)
+    return data.astype(D_DATETIME_DTYPE)
+
 class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     """
     Pandas ExtensionArray for date (year, month, day only) data.
@@ -42,7 +46,6 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     """
 
     def __init__(self, values, copy=False):
-        print("initing", values)
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
@@ -57,13 +60,15 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             )
             raise ValueError(msg)
 
+        values = _to_date_values(values, copy)
+
+        if values.dtype == "i8":
+            values = values.view(D_DATETIME_DTYPE)
+
         if copy:
             values = values.copy()
 
         self._data = values
-        print("backend numpy values:", self._data)
-        print("self representation", self)
-        print("done initing")
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
@@ -95,10 +100,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         DateArray
         """
-        data, _, _ = sequence_to_dt64ns(scalars, copy=copy)
-        return cls._simple_new(data.astype(D_DATETIME_DTYPE))
-
-    # def __repr__(self):
+        return cls._simple_new(_to_date_values(scalars, copy))
 
     @property
     def dtype(self) -> ExtensionDtype:
@@ -118,6 +120,10 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             return x
 
         return test
+
+    @property
+    def asi8(self) -> np.ndarray:
+        return self._data.astype("datetime64[ns]").view("i8")
 
     @property
     def date(self):
