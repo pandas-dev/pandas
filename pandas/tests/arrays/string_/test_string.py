@@ -10,9 +10,7 @@ from pandas.core.dtypes.common import is_string_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
-from pandas import StringDtype
 import pandas._testing as tm
-from pandas.core.arrays import StringArray
 
 
 def test_repr():
@@ -342,7 +340,7 @@ def test_memory_usage():
 
 def test_string_dtype_subclassing():
     @register_extension_dtype
-    class MyExtensionDtype(StringDtype):
+    class MyExtensionDtype(pd.StringDtype):
         name = "my_extension"
 
         def __repr__(self) -> str:
@@ -352,7 +350,7 @@ def test_string_dtype_subclassing():
         def construct_array_type(cls) -> "Type[MyExtensionStringArray]":
             return MyExtensionStringArray
 
-    class MyExtensionStringArray(StringArray):
+    class MyExtensionStringArray(pd.core.arrays.StringArray):
         def __init__(self, values, copy=False):
             super().__init__(values, copy)
             self._dtype = MyExtensionDtype()
