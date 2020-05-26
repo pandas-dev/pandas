@@ -541,7 +541,7 @@ Properties
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
     LastWeekOfMonth.weekday
-..  LastWeekOfMonth.week
+    LastWeekOfMonth.week
 
 Methods
 ~~~~~~~
