@@ -168,6 +168,7 @@ class StringArray(PandasArray):
     raise an error:
 
     >>> pd.arrays.StringArray(np.array([1, 2]))
+    Traceback (most recent call last)
     ValueError: StringArray requires a sequence of strings or pandas.NA
 
     For comparison methods, this returns a :class:`pandas.BooleanArray`
