@@ -6874,7 +6874,6 @@ NaN 12.3   33.0
              b   4.0
         dtype: float64
 
-        >>> s.unstack(level=-1)
              a   b
         one  1.0  2.0
         two  3.0  4.0
@@ -6922,7 +6921,7 @@ NaN 12.3   33.0
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
     ignore_index : bool, optional, default True
-        If False, original index is ignored. If True, the original index is retained.
+        If True, original index is ignored. If False, the original index is retained.
         Index labels will be repeated as necessary.
 
         .. versionadded:: 1.1.0
