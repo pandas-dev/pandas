@@ -6,20 +6,26 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    Period,
     Timedelta,
     Timestamp,
     ccalendar,
     conversion,
-    delta_to_nanoseconds,
     frequencies as libfrequencies,
     offsets as liboffsets,
 )
-from pandas._libs.tslibs.offsets import (
+from pandas._libs.tslibs.offsets import (  # noqa:F401
     ApplyTypeError,
     BaseOffset,
     BusinessMixin,
     CustomMixin,
+    Day,
+    Hour,
+    Micro,
+    Milli,
+    Minute,
+    Nano,
+    Second,
+    Tick,
     apply_index_wraps,
     apply_wraps,
     as_datetime,
@@ -29,7 +35,7 @@ from pandas._libs.tslibs.offsets import (
     to_dt64D,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 __all__ = [
     "Day",
@@ -185,8 +191,6 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
     _adjust_dst = False
 
@@ -295,17 +299,34 @@ class DateOffset(BaseOffset, metaclass=OffsetMeta):
         # TODO, see #1395
         return True
 
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
+
 
 class SingleConstructorMixin:
-    _params = cache_readonly(BaseOffset._params.fget)
-    freqstr = cache_readonly(BaseOffset.freqstr.fget)
-
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
+
+    @cache_readonly
+    def _params(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset._params.__get__)
+        return BaseOffset._params.__get__(self)
+
+    @cache_readonly
+    def freqstr(self):
+        # TODO: see if we can just write cache_readonly(BaseOffset.freqstr.__get__)
+        return BaseOffset.freqstr.__get__(self)
 
 
 class SingleConstructorOffset(SingleConstructorMixin, BaseOffset):
@@ -319,6 +340,10 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
     _prefix = "B"
     _attributes = frozenset(["n", "normalize", "offset"])
+
+    def __reduce__(self):
+        tup = (self.n, self.normalize, self.offset)
+        return type(self), tup
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -710,6 +735,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
 
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
+
     def __init__(
         self,
         n=1,
@@ -846,11 +877,12 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = "business_start"
 
 
+@doc(bound="bound")
 class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
-    Increments between %(bound)s of month dates.
+    Increments between {bound} of month dates.
 
     Parameters
     ----------
@@ -940,14 +972,12 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
-@Substitution(bound="end")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="end")
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBM"
 
 
-@Substitution(bound="beginning")
-@Appender(_CustomBusinessMonth.__doc__)
+@doc(_CustomBusinessMonth, bound="beginning")
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     _prefix = "CBMS"
 
@@ -1534,61 +1564,7 @@ class QuarterBegin(QuarterOffset):
 # Year-Based Offset Classes
 
 
-class YearOffset(SingleConstructorOffset):
-    """
-    DateOffset that just needs a month.
-    """
-
-    _attributes = frozenset(["n", "normalize", "month"])
-
-    def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self.month instead of other.month
-        # TODO: there may be a more performant way to do this
-        return liboffsets.get_day_of_month(
-            other.replace(month=self.month), self._day_opt
-        )
-
-    @apply_wraps
-    def apply(self, other):
-        years = roll_yearday(other, self.n, self.month, self._day_opt)
-        months = years * 12 + (self.month - other.month)
-        return shift_month(other, months, self._day_opt)
-
-    @apply_index_wraps
-    def apply_index(self, dtindex):
-        shifted = liboffsets.shift_quarters(
-            dtindex.asi8, self.n, self.month, self._day_opt, modby=12
-        )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
-
-    def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
-            return False
-        return dt.month == self.month and dt.day == self._get_offset_day(dt)
-
-    def __init__(self, n=1, normalize=False, month=None):
-        BaseOffset.__init__(self, n, normalize)
-
-        month = month if month is not None else self._default_month
-        object.__setattr__(self, "month", month)
-
-        if self.month < 1 or self.month > 12:
-            raise ValueError("Month must go from 1 to 12")
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        kwargs = {}
-        if suffix:
-            kwargs["month"] = ccalendar.MONTH_TO_CAL_NUM[suffix]
-        return cls(**kwargs)
-
-    @property
-    def rule_code(self) -> str:
-        month = ccalendar.MONTH_ALIASES[self.month]
-        return f"{self._prefix}-{month}"
-
-
-class BYearEnd(YearOffset):
+class BYearEnd(liboffsets.YearOffset):
     """
     DateOffset increments between business EOM dates.
     """
@@ -1599,7 +1575,7 @@ class BYearEnd(YearOffset):
     _day_opt = "business_end"
 
 
-class BYearBegin(YearOffset):
+class BYearBegin(liboffsets.YearOffset):
     """
     DateOffset increments between business year begin dates.
     """
@@ -1610,7 +1586,7 @@ class BYearBegin(YearOffset):
     _day_opt = "business_start"
 
 
-class YearEnd(YearOffset):
+class YearEnd(liboffsets.YearOffset):
     """
     DateOffset increments between calendar year ends.
     """
@@ -1620,7 +1596,7 @@ class YearEnd(YearOffset):
     _day_opt = "end"
 
 
-class YearBegin(YearOffset):
+class YearBegin(liboffsets.YearOffset):
     """
     DateOffset increments between calendar year begin dates.
     """
@@ -1634,7 +1610,50 @@ class YearBegin(YearOffset):
 # Special Offset Classes
 
 
-class FY5253(SingleConstructorOffset):
+class FY5253Mixin(BaseOffset):
+    def __init__(
+        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+    ):
+        BaseOffset.__init__(self, n, normalize)
+        object.__setattr__(self, "startingMonth", startingMonth)
+        object.__setattr__(self, "weekday", weekday)
+
+        object.__setattr__(self, "variation", variation)
+
+        if self.n == 0:
+            raise ValueError("N cannot be 0")
+
+        if self.variation not in ["nearest", "last"]:
+            raise ValueError(f"{self.variation} is not a valid variation")
+
+    def is_anchored(self) -> bool:
+        return (
+            self.n == 1 and self.startingMonth is not None and self.weekday is not None
+        )
+
+    # --------------------------------------------------------------------
+    # Name-related methods
+
+    @property
+    def rule_code(self) -> str:
+        prefix = self._prefix
+        suffix = self.get_rule_code_suffix()
+        return f"{prefix}-{suffix}"
+
+    def _get_suffix_prefix(self) -> str:
+        if self.variation == "nearest":
+            return "N"
+        else:
+            return "L"
+
+    def get_rule_code_suffix(self) -> str:
+        prefix = self._get_suffix_prefix()
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
+        weekday = ccalendar.int_to_weekday[self.weekday]
+        return f"{prefix}-{month}-{weekday}"
+
+
+class FY5253(SingleConstructorMixin, FY5253Mixin):
     """
     Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
 
@@ -1684,26 +1703,6 @@ class FY5253(SingleConstructorOffset):
 
     _prefix = "RE"
     _attributes = frozenset(["weekday", "startingMonth", "variation"])
-
-    def __init__(
-        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
-    ):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "startingMonth", startingMonth)
-        object.__setattr__(self, "weekday", weekday)
-
-        object.__setattr__(self, "variation", variation)
-
-        if self.n == 0:
-            raise ValueError("N cannot be 0")
-
-        if self.variation not in ["nearest", "last"]:
-            raise ValueError(f"{self.variation} is not a valid variation")
-
-    def is_anchored(self) -> bool:
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not is_normalized(dt):
@@ -1799,24 +1798,6 @@ class FY5253(SingleConstructorOffset):
                 # The previous self.weekday is closer than the upcoming one
                 return target_date + timedelta(days_forward - 7)
 
-    @property
-    def rule_code(self) -> str:
-        prefix = self._prefix
-        suffix = self.get_rule_code_suffix()
-        return f"{prefix}-{suffix}"
-
-    def _get_suffix_prefix(self) -> str:
-        if self.variation == "nearest":
-            return "N"
-        else:
-            return "L"
-
-    def get_rule_code_suffix(self) -> str:
-        prefix = self._get_suffix_prefix()
-        month = ccalendar.MONTH_ALIASES[self.startingMonth]
-        weekday = ccalendar.int_to_weekday[self.weekday]
-        return f"{prefix}-{month}-{weekday}"
-
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
         if varion_code == "N":
@@ -1840,7 +1821,7 @@ class FY5253(SingleConstructorOffset):
         return cls(**cls._parse_suffix(*args))
 
 
-class FY5253Quarter(SingleConstructorOffset):
+class FY5253Quarter(SingleConstructorMixin, FY5253Mixin):
     """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
@@ -1910,15 +1891,8 @@ class FY5253Quarter(SingleConstructorOffset):
         qtr_with_extra_week=1,
         variation="nearest",
     ):
-        BaseOffset.__init__(self, n, normalize)
-
-        object.__setattr__(self, "startingMonth", startingMonth)
-        object.__setattr__(self, "weekday", weekday)
+        FY5253Mixin.__init__(self, n, normalize, weekday, startingMonth, variation)
         object.__setattr__(self, "qtr_with_extra_week", qtr_with_extra_week)
-        object.__setattr__(self, "variation", variation)
-
-        if self.n == 0:
-            raise ValueError("N cannot be 0")
 
     @cache_readonly
     def _offset(self):
@@ -1927,9 +1901,6 @@ class FY5253Quarter(SingleConstructorOffset):
             weekday=self.weekday,
             variation=self.variation,
         )
-
-    def is_anchored(self) -> bool:
-        return self.n == 1 and self._offset.is_anchored()
 
     def _rollback_to_year(self, other):
         """
@@ -2046,9 +2017,9 @@ class FY5253Quarter(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
-        suffix = self._offset.get_rule_code_suffix()
+        suffix = FY5253Mixin.rule_code.fget(self)  # type: ignore
         qtr = self.qtr_with_extra_week
-        return f"{self._prefix}-{suffix}-{qtr}"
+        return f"{suffix}-{qtr}"
 
     @classmethod
     def _from_name(cls, *args):
@@ -2100,116 +2071,6 @@ class Easter(SingleConstructorOffset):
 
 
 # ---------------------------------------------------------------------
-# Ticks
-
-
-class Tick(liboffsets._Tick, SingleConstructorOffset):
-    def __add__(self, other):
-        if isinstance(other, Tick):
-            if type(self) == type(other):
-                return type(self)(self.n + other.n)
-            else:
-                return delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, Period):
-            return other + self
-        try:
-            return self.apply(other)
-        except ApplyTypeError:
-            return NotImplemented
-        except OverflowError as err:
-            raise OverflowError(
-                f"the add operation between {self} and {other} will overflow"
-            ) from err
-
-    # This is identical to DateOffset.__hash__, but has to be redefined here
-    # for Python 3, because we've redefined __eq__.
-    def __hash__(self) -> int:
-        return hash(self._params)
-
-    def apply(self, other):
-        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if isinstance(other, Timestamp):
-
-            # GH 15126
-            # in order to avoid a recursive
-            # call of __add__ and __radd__ if there is
-            # an exception, when we call using the + operator,
-            # we directly call the known method
-            result = other.__add__(self)
-            if result is NotImplemented:
-                raise OverflowError
-            return result
-        elif isinstance(other, (datetime, np.datetime64, date)):
-            return Timestamp(other) + self
-
-        if isinstance(other, timedelta):
-            return other + self.delta
-        elif isinstance(other, type(self)):
-            # TODO: this is reached in tests that specifically call apply,
-            #  but should not be reached "naturally" because __add__ should
-            #  catch this case first.
-            return type(self)(self.n + other.n)
-
-        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
-
-
-def delta_to_tick(delta: timedelta) -> Tick:
-    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
-        # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
-        else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
-    else:
-        nanos = delta_to_nanoseconds(delta)
-        if nanos % 1_000_000 == 0:
-            return Milli(nanos // 1_000_000)
-        elif nanos % 1000 == 0:
-            return Micro(nanos // 1000)
-        else:  # pragma: no cover
-            return Nano(nanos)
-
-
-class Day(Tick):
-    _inc = Timedelta(days=1)
-    _prefix = "D"
-
-
-class Hour(Tick):
-    _inc = Timedelta(hours=1)
-    _prefix = "H"
-
-
-class Minute(Tick):
-    _inc = Timedelta(minutes=1)
-    _prefix = "T"
-
-
-class Second(Tick):
-    _inc = Timedelta(seconds=1)
-    _prefix = "S"
-
-
-class Milli(Tick):
-    _inc = Timedelta(milliseconds=1)
-    _prefix = "L"
-
-
-class Micro(Tick):
-    _inc = Timedelta(microseconds=1)
-    _prefix = "U"
-
-
-class Nano(Tick):
-    _inc = Timedelta(nanoseconds=1)
-    _prefix = "N"
-
 
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
@@ -2219,7 +2080,7 @@ CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
 prefix_mapping = {
-    offset._prefix: offset  # type: ignore
+    offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
         YearEnd,  # 'A'
