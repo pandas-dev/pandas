@@ -109,7 +109,7 @@ def test_write_append_mode(ext, mode, expected):
 
 
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
-    
+
     with ensure_clean('styled.xlsx') as filename:
         # GH 29854
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
@@ -122,4 +122,3 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
         styled.to_excel(filename, engine="openpyxl")
 
         assert filename.exists()
-
