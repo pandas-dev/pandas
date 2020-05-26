@@ -164,14 +164,9 @@ class StringArray(PandasArray):
     ['1', '1']
     Length: 2, dtype: string
 
-    On the other hand, instantiating StringArrays directly with non-strings will
-    raise an error:
+    However, instantiating StringArrays directly with non-strings will raise an error.
 
-    >>> pd.arrays.StringArray(np.array([1, 2]))
-    Traceback (most recent call last)
-    ValueError: StringArray requires a sequence of strings or pandas.NA
-
-    For comparison methods, this returns a :class:`pandas.BooleanArray`
+    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
