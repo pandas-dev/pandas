@@ -297,9 +297,9 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
         msg = (
             f"Interpreting call\n\t'.{method_name}(a, b)' as "
             f"\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-            f"arguments to remove any ambiguity. In the future, using "
-            f"positional arguments for 'index' or 'columns' will raise "
-            f"a 'TypeError'."
+            "arguments to remove any ambiguity. In the future, using "
+            "positional arguments for 'index' or 'columns' will raise "
+            "a 'TypeError'."
         )
         warnings.warn(msg, FutureWarning, stacklevel=4)
         out[data._get_axis_name(0)] = args[0]
@@ -372,7 +372,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     """
     q_arr = np.asarray(q)
     msg = (
-        f"percentiles should all be in the interval [0, 1]."
+        "percentiles should all be in the interval [0, 1]."
         f"Try {q_arr / 100.0} instead."
     )
     if q_arr.ndim == 0:
