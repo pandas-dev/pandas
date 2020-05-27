@@ -202,7 +202,6 @@ class TestDataFrameInterpolate:
             result = df.interpolate(method="polynomial", order=1)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("axis", [0, 1])
     def test_interp_raise_on_only_mixed(self, axis):
         df = DataFrame(
             {
@@ -213,7 +212,12 @@ class TestDataFrameInterpolate:
                 "E": [1, 2, 3, 4],
             }
         )
-        with pytest.raises(TypeError):
+        msg = (
+            "Cannot interpolate with all object-dtype columns "
+            "in the DataFrame. Try setting at least one "
+            "column to a numeric dtype."
+        )
+        with pytest.raises(TypeError, match=msg):
             df.astype("object").interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
@@ -273,7 +277,6 @@ class TestDataFrameInterpolate:
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
 
-    @pytest.mark.parametrize("axis", [0, 1])
     def test_interp_time_inplace_axis(self, axis):
         # GH 9687
         periods = 5
@@ -299,9 +302,8 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    @pytest.mark.parametrize("axis", [0, 1])
     def test_interp_fillna_methods(self, axis, method):
-        # GH 33956
+        # GH 12918
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],

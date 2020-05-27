@@ -6889,7 +6889,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
-        # are being ignored, see #26796 for more information
+        # are being ignored, see gh-26796 for more information
         if method in ["backfill", "bfill", "pad", "ffill"]:
             return self.fillna(
                 method=method,
@@ -6899,7 +6899,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
 
-        # todo: change interpolation so that no transposing is necessary
         # Currently we need this to call the axis correctly inside the various
         # interpolation methods
         if axis == 0:
