@@ -834,11 +834,17 @@ class SQLTable(PandasObject):
         self, result, chunksize, columns, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set."""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 self.frame = DataFrame.from_records(
                     data, columns=columns, coerce_float=coerce_float
                 )
@@ -1228,11 +1234,21 @@ class SQLDatabase(PandasSQL):
         result, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield _wrap_result(
+                        [],
+                        columns,
+                        index_col=index_col,
+                        coerce_float=coerce_float,
+                        parse_dates=parse_dates,
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,
@@ -1698,14 +1714,20 @@ class SQLiteDatabase(PandasSQL):
         cursor, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = cursor.fetchmany(chunksize)
             if type(data) == tuple:
                 data = list(data)
             if not data:
                 cursor.close()
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,

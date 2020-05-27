@@ -292,6 +292,7 @@ I/O
 - :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue: `35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
+- :meth:`read_sql` returned an empty generator if `chunksize` was no-zero and the query returned no results. Now returns a generator with a single empty dataframe (:issue:`34411`)
 
 Plotting
 ^^^^^^^^
