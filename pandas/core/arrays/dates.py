@@ -13,6 +13,7 @@ import numpy as np
 
 D_DATETIME_DTYPE = "datetime64[D]"
 INTEGER_BACKEND = "i8"
+VALID_TYPES = {INTEGER_BACKEND, "datetime64[ns]", D_DATETIME_DTYPE, "object"}
 
 def _to_date_values(values, copy=False):
     data, _, _ = sequence_to_dt64ns(values, copy=copy)
@@ -63,6 +64,12 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             )
             raise ValueError(msg)
 
+        if not self._is_compatible_dtype(values.dtype):
+            msg = (
+                f"The dtype of 'values' is incorrect. Must be one of {VALID_TYPES}."
+                f" Got {values.dtype} instead."
+            )
+            raise ValueError(msg)
 
         if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
@@ -73,6 +80,11 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             values = values.copy()
 
         self._data = values
+
+    @staticmethod
+    def _is_compatible_dtype(dtype):
+        return is_integer_dtype(dtype) or is_object_dtype(dtype) or \
+               is_datetime64_dtype(dtype) or isinstance(dtype, DateArray)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
@@ -133,7 +145,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @property
     def as_datetime_i8(self) -> np.ndarray:
-        return self._data.astype("datetime64[ns]").view(INTEGER_BACKEND)
+        return self._data.astype(NS_DTYPE).view(INTEGER_BACKEND)
 
     @property
     def date(self):
@@ -142,7 +154,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     def astype(self, dtype, copy=True):
         if is_datetime64_dtype(dtype):
-            return array(self._data, dtype="datetime64[ns]")
+            return array(self._data, dtype=NS_DTYPE)
         if is_object_dtype(dtype):
             return self._box_values(self.as_datetime_i8)
         return super().astype(dtype, copy)

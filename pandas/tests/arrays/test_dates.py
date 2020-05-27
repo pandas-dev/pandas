@@ -100,3 +100,19 @@ def test_date_display_format(df: pd.DataFrame, series: Series):
         "Name: dates, dtype: date"
     )
     assert display == expected
+
+def test_non_array_raises():
+    with pytest.raises(ValueError, match="list"):
+        DateArray([1, 2, 3])
+
+def test_other_type_raises():
+
+    with pytest.raises(
+        ValueError, match="The dtype of 'values' is incorrect.*bool"
+    ):
+        DateArray(np.array([1, 2, 3], dtype="bool"))
+
+
+if __name__ == '__main__':
+    test = DateArray(np.array([1, 2, 3], dtype="bool"))
+    print(test)
