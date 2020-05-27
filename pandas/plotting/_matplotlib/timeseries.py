@@ -5,13 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from pandas._libs.tslibs.frequencies import (
-    FreqGroup,
-    base_and_stride,
-    get_freq_code,
-    is_subperiod,
-    is_superperiod,
-)
+from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
 from pandas._libs.tslibs.period import Period
 
 from pandas.core.dtypes.generic import (
@@ -27,6 +21,7 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_TimedeltaFormatter,
 )
 import pandas.tseries.frequencies as frequencies
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset
 
 # ---------------------------------------------------------------------
