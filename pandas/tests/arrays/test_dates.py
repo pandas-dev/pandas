@@ -64,8 +64,6 @@ def test_from_datetime_array():
     )
     pd_array = pd.array(np_array)
     result = DateArray._from_sequence(pd_array)
-    print(pd.array(np_array).date)
-    print(result.date)
     assert np.array_equal(pd_array.date, result.date)
 
 
@@ -105,8 +103,10 @@ def test_dtype_name_display(df: pd.DataFrame, series: Series):
 
 
 def test_date_display_format(df: pd.DataFrame, series: Series):
+    print(series.astype("datetime64").astype("date"))
     df["dates"] = series.astype("datetime64").astype("date")
     display = str(df["dates"])
+    print(display)
     expected = (
         "0   2019-01-01\n"
         "1   2020-12-11\n"
@@ -114,22 +114,6 @@ def test_date_display_format(df: pd.DataFrame, series: Series):
         "Name: dates, dtype: date"
     )
     assert display == expected
-
-
-def test_df_datetime64_to_date(df: pd.DataFrame, series: Series):
-    df["dates"] = series.astype("datetime64").astype("date")
-
-#
-# def test_df_string_to_date(df: pd.DataFrame):
-#     df["dates"] = df["strings"].astype("date")
-
-
-def test_df_object_to_date():
-    pass
-
-
-def test_df_integer_to_date():
-    pass
 
 
 # def test_read_data_date():
@@ -155,7 +139,11 @@ def test_is_date_dtype_for_dtype():
 
 
 if __name__ == "__main__":
-    test_init_date_array_from_datetimes()
+    # series = Series(["2019-01-01", "2020-12-11", "2020-10-11 12:11:12"])
+    # series.name = "strings"
+    # df = series.to_frame()
+    # df["strings"] = df["strings"].astype("string")
+    test_from_datetime_array()
     # test_datetime64_to_date()
     # test_read_data_date()
     # Series([0, 1, 0, 1]).astype("Int64").apply(str).astype("object").astype("string")

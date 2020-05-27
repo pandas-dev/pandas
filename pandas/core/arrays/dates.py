@@ -9,7 +9,7 @@ from pandas._libs import tslib
 import numpy as np
 
 D_DATETIME_DTYPE = "datetime64[D]"
-
+INTEGER_BACKEND = "i8"
 
 def _to_date_values(values, copy=False):
     data, _, _ = sequence_to_dt64ns(values, copy=copy)
@@ -62,7 +62,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
         values = _to_date_values(values, copy)
 
-        if values.dtype == "i8":
+        if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
 
         if copy:
@@ -72,10 +72,12 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
+        print("simple new")
+        print("before", values)
         assert isinstance(values, np.ndarray)
-        if values.dtype == "i8":
+        if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
-
+        print("after", values)
         result = object.__new__(cls)
         result._data = values
         return result
@@ -100,6 +102,9 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         DateArray
         """
+        # if scalars.dtype == "datetime64[ns]":
+
+
         return cls._simple_new(_to_date_values(scalars, copy))
 
     @property
@@ -123,11 +128,15 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @property
     def asi8(self) -> np.ndarray:
-        return self._data.astype("datetime64[ns]").view("i8")
+        return self._data.view(INTEGER_BACKEND)
+
+    @property
+    def as_datetime_i8(self) -> np.ndarray:
+        return self._data.astype("datetime64[ns]").view(INTEGER_BACKEND)
 
     @property
     def date(self):
-        timestamps = self.asi8
+        timestamps = self.as_datetime_i8
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
 
