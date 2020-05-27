@@ -66,7 +66,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
+    ["to_period", "to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
     + DatetimeArray._field_ops
     + DatetimeArray._datetimelike_methods,
     DatetimeArray,
@@ -90,7 +90,6 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
-        "isocalendar",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,

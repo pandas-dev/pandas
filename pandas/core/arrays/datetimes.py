@@ -1272,17 +1272,17 @@ default 'raise'
         --------
         >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
         >>> idx.isocalendar()
-           year  week  day
-        0  2019    52    7
-        1  2020     1    1
-        2  2020     1    2
-        3  2020     1    3
+                    year  week  day
+        2019-12-29  2019    52    7
+        2019-12-30  2020     1    1
+        2019-12-31  2020     1    2
+        2020-01-01  2020     1    3
         >>> idx.isocalendar().week
-        0    52
-        1     1
-        2     1
-        3     1
-        Name: week, dtype: UInt32
+        2019-12-29    52
+        2019-12-30     1
+        2019-12-31     1
+        2020-01-01     1
+        Freq: D, Name: week, dtype: UInt32
         """
         from pandas import DataFrame
 
