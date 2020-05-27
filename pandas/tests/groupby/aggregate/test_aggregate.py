@@ -312,38 +312,10 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
 
 def test_multiple_aggregations_named_tuple():
     # GH 34380
-    df = pd.DataFrame(
-        {
-            "name": [
-                "abc",
-                "abc",
-                "abc",
-                "abc",
-                "abc",
-                "abc",
-                "xyz",
-                "xyz",
-                "xyz",
-                "xyz",
-                "xyz",
-                "xyz",
-            ],
-            "change": [
-                np.nan,
-                1.5,
-                -0.4,
-                2.0,
-                -0.44444399999999995,
-                2.2,
-                np.nan,
-                4.0,
-                -0.4,
-                3.333333,
-                -0.307692,
-                1.222222,
-            ],
-        }
-    )
+    name = ["abc"] * 6 + ["xyz"] * 6
+    change = [np.nan, 1, -0.4, 2.0, -0.4, 2.2] * 2
+
+    df = pd.DataFrame({"name": name, "change": change})
     result = df.groupby("name")["change"].agg(
         pos=pd.NamedAgg(column="change", aggfunc=lambda x: x.gt(0).sum()),
         neg=pd.NamedAgg(column="change", aggfunc=lambda x: x.lt(0).sum()),
