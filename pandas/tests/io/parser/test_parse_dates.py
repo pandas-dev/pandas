@@ -81,7 +81,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         -------
         parsed : Series
         """
-        return parsing.try_parse_dates(parsing._concat_date_cols(date_cols))
+        return parsing.try_parse_dates(parsing.concat_date_cols(date_cols))
 
     result = parser.read_csv(
         StringIO(data),
@@ -208,7 +208,7 @@ def test_concat_date_col_fail(container, dim):
     date_cols = tuple(container([value]) for _ in range(dim))
 
     with pytest.raises(ValueError, match=msg):
-        parsing._concat_date_cols(date_cols)
+        parsing.concat_date_cols(date_cols)
 
 
 @pytest.mark.parametrize("keep_date_col", [True, False])
@@ -681,8 +681,10 @@ def test_parse_dates_string(all_parsers):
 """
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
-    index = date_range("1/1/2009", periods=3)
-    index.name = "date"
+    # freq doesnt round-trip
+    index = DatetimeIndex(
+        list(date_range("1/1/2009", periods=3)), name="date", freq=None
+    )
 
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
@@ -1101,7 +1103,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
-    s = StringIO(("{value},\n".format(value=value)) * 50000)
+    s = StringIO((f"{value},\n") * 50000)
 
     parser.read_csv(
         s,
@@ -1430,11 +1432,16 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = pd.date_range(
-        start="2018-01-04 09:01:00",
-        end="2018-01-04 09:05:00",
-        freq="1min",
-        tz=pytz.FixedOffset(540),
+    dti = pd.DatetimeIndex(
+        list(
+            pd.date_range(
+                start="2018-01-04 09:01:00",
+                end="2018-01-04 09:05:00",
+                freq="1min",
+                tz=pytz.FixedOffset(540),
+            ),
+        ),
+        freq=None,
     )
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
@@ -1516,3 +1523,35 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
 
     assert except_out_dateutil == except_in_dateutil
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "names, usecols, parse_dates, missing_cols",
+    [
+        (None, ["val"], ["date", "time"], "date, time"),
+        (None, ["val"], [0, "time"], "time"),
+        (None, ["val"], [["date", "time"]], "date, time"),
+        (None, ["val"], [[0, "time"]], "time"),
+        (None, ["val"], {"date": [0, "time"]}, "time"),
+        (None, ["val"], {"date": ["date", "time"]}, "date, time"),
+        (None, ["val"], [["date", "time"], "date"], "date, time"),
+        (["date1", "time1", "temperature"], None, ["date", "time"], "date, time"),
+        (
+            ["date1", "time1", "temperature"],
+            ["date1", "temperature"],
+            ["date1", "time"],
+            "time",
+        ),
+    ],
+)
+def test_missing_parse_dates_column_raises(
+    all_parsers, names, usecols, parse_dates, missing_cols
+):
+    # gh-31251 column names provided in parse_dates could be missing.
+    parser = all_parsers
+    content = StringIO("date,time,val\n2020-01-31,04:20:32,32\n")
+    msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(
+            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates,
+        )

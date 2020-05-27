@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
     is_iterator,
@@ -247,7 +248,7 @@ class MPLPlot:
                 yield col, values.values
 
     @property
-    def nseries(self):
+    def nseries(self) -> int:
         if self.data.ndim == 1:
             return 1
         else:
@@ -282,10 +283,10 @@ class MPLPlot:
             return self._get_ax_layer(ax)
 
         if hasattr(ax, "right_ax"):
-            # if it has right_ax proparty, ``ax`` must be left axes
+            # if it has right_ax property, ``ax`` must be left axes
             return ax.right_ax
         elif hasattr(ax, "left_ax"):
-            # if it has left_ax proparty, ``ax`` must be right axes
+            # if it has left_ax property, ``ax`` must be right axes
             return ax
         else:
             # otherwise, create twin axes
@@ -387,7 +388,7 @@ class MPLPlot:
         if self.include_bool is True:
             include_type.append(np.bool_)
 
-        # GH22799, exclude datatime-like type for boxplot
+        # GH22799, exclude datetime-like type for boxplot
         exclude_type = None
         if self._kind == "box":
             # TODO: change after solving issue 27881
@@ -432,7 +433,6 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-
         if self.orientation == "vertical" or self.orientation is None:
             self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -509,12 +509,12 @@ class MPLPlot:
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        """ Tick creation within matplotlib is reasonably expensive and is
-            internally deferred until accessed as Ticks are created/destroyed
-            multiple times per draw. It's therefore beneficial for us to avoid
-            accessing unless we will act on the Tick.
         """
-
+        Tick creation within matplotlib is reasonably expensive and is
+        internally deferred until accessed as Ticks are created/destroyed
+        multiple times per draw. It's therefore beneficial for us to avoid
+        accessing unless we will act on the Tick.
+        """
         if rot is not None or fontsize is not None:
             # rot=0 is a valid setting, hence the explicit None check
             labels = axis.get_majorticklabels() + axis.get_minorticklabels()
@@ -755,7 +755,6 @@ class MPLPlot:
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
         """
-
         if err is None:
             return None
 
@@ -904,7 +903,11 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-        img = ax.collections[0]
+
+        # GH33389, if ax is used multiple times, we should always
+        # use the last one which contains the latest information
+        # about the ax
+        img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if _mpl_ge_3_0_0():
@@ -936,6 +939,8 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -1099,7 +1104,7 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
-        # column_num is used to get the target column from protf in line and
+        # column_num is used to get the target column from plotf in line and
         # area plots
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
@@ -1184,6 +1189,8 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
+            if is_float(i) and i.is_integer():
+                i = int(i)
             try:
                 return pprint_thing(data.index[i])
             except Exception:

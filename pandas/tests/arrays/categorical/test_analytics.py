@@ -1,3 +1,4 @@
+import re
 import sys
 
 import numpy as np
@@ -15,10 +16,10 @@ class TestCategoricalAnalytics:
     def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        msg = "Categorical is not ordered for operation {}"
+        msg = f"Categorical is not ordered for operation {aggregation}"
         agg_func = getattr(cat, aggregation)
 
-        with pytest.raises(TypeError, match=msg.format(aggregation)):
+        with pytest.raises(TypeError, match=msg):
             agg_func()
 
     def test_min_max_ordered(self):
@@ -53,40 +54,36 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize("aggregation", ["min", "max"])
     def test_min_max_ordered_empty(self, categories, expected, aggregation):
         # GH 30227
-        cat = Categorical([], categories=list("ABC"), ordered=True)
+        cat = Categorical([], categories=categories, ordered=True)
 
         agg_func = getattr(cat, aggregation)
         result = agg_func()
         assert result is expected
 
+    @pytest.mark.parametrize(
+        "values, categories",
+        [(["a", "b", "c", np.nan], list("cba")), ([1, 2, 3, np.nan], [3, 2, 1])],
+    )
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_min_max_with_nan(self, skipna):
+    @pytest.mark.parametrize("function", ["min", "max"])
+    def test_min_max_with_nan(self, values, categories, function, skipna):
         # GH 25303
-        cat = Categorical(
-            [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
-        )
-        _min = cat.min(skipna=skipna)
-        _max = cat.max(skipna=skipna)
+        cat = Categorical(values, categories=categories, ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
 
         if skipna is False:
-            assert np.isnan(_min)
-            assert np.isnan(_max)
+            assert result is np.nan
         else:
-            assert _min == "c"
-            assert _max == "b"
+            expected = categories[0] if function == "min" else categories[2]
+            assert result == expected
 
-        cat = Categorical(
-            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
-        )
-        _min = cat.min(skipna=skipna)
-        _max = cat.max(skipna=skipna)
-
-        if skipna is False:
-            assert np.isnan(_min)
-            assert np.isnan(_max)
-        else:
-            assert _min == 2
-            assert _max == 1
+    @pytest.mark.parametrize("function", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_only_nan(self, function, skipna):
+        # https://github.com/pandas-dev/pandas/issues/33450
+        cat = Categorical([np.nan], categories=[1, 2], ordered=True)
+        result = getattr(cat, function)(skipna=skipna)
+        assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_deprecate_numeric_only_min_max(self, method):
@@ -96,6 +93,37 @@ class TestCategoricalAnalytics:
         )
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             getattr(cat, method)(numeric_only=True)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_raises(self, method):
+        cat = Categorical(["a", "b", "c", "b"], ordered=False)
+        msg = (
+            f"Categorical is not ordered for operation {method}\n"
+            "you can use .as_ordered() to change the Categorical to an ordered one"
+        )
+        method = getattr(np, method)
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            method(cat)
+
+    @pytest.mark.parametrize("kwarg", ["axis", "out", "keepdims"])
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_unsupported_kwargs_raises(self, method, kwarg):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        msg = (
+            f"the '{kwarg}' parameter is not supported in the pandas implementation "
+            f"of {method}"
+        )
+        kwargs = {kwarg: 42}
+        method = getattr(np, method)
+        with pytest.raises(ValueError, match=msg):
+            method(cat, **kwargs)
+
+    @pytest.mark.parametrize("method, expected", [("min", "a"), ("max", "c")])
+    def test_numpy_min_max_axis_equals_none(self, method, expected):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        method = getattr(np, method)
+        result = method(cat, axis=None)
+        assert result == expected
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
@@ -114,14 +142,14 @@ class TestCategoricalAnalytics:
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
-    def test_searchsorted(self, ordered_fixture):
+    def test_searchsorted(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
         cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=ordered_fixture,
+            ordered=ordered,
         )
         ser = Series(cat)
 

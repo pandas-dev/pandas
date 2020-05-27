@@ -128,9 +128,6 @@ class TestIntervalIndex:
         with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 4, closed="left") :]
 
-        # TODO with non-existing intervals ?
-        # s.loc[Interval(-1, 0):Interval(2, 3)]
-
         # slice of scalar
 
         expected = s.iloc[:3]
@@ -143,9 +140,32 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, s[:2.5])
         tm.assert_series_equal(expected, s[0.1:2.5])
 
-        # slice of scalar with step != 1
-        with pytest.raises(ValueError):
-            s[0:4:2]
+    def test_slice_step_ne1(self):
+        # GH#31658 slice of scalar with step != 1
+        s = self.s
+        expected = s.iloc[0:4:2]
+
+        result = s[0:4:2]
+        tm.assert_series_equal(result, expected)
+
+        result2 = s[0:4][::2]
+        tm.assert_series_equal(result2, expected)
+
+    def test_slice_float_start_stop(self):
+        # GH#31658 slicing with integers is positional, with floats is not
+        #  supported
+        ser = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
+
+        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+        with pytest.raises(ValueError, match=msg):
+            ser[1.5:9.5:2]
+
+    def test_slice_interval_step(self):
+        # GH#31658 allows for integer step!=1, not Interval step
+        s = self.s
+        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+        with pytest.raises(ValueError, match=msg):
+            s[0 : 4 : Interval(0, 1)]
 
     def test_loc_with_overlap(self):
 

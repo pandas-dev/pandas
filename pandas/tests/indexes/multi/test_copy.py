@@ -80,7 +80,6 @@ def test_copy_method_kwargs(deep, kwarg, value):
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
     )
-    return
     idx_copy = idx.copy(**{kwarg: value, "deep": deep})
     if kwarg == "names":
         assert getattr(idx_copy, kwarg) == value

@@ -14,7 +14,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    conftest,
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
@@ -82,11 +81,7 @@ class TestCategoricalIndex:
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
-        msg = (
-            r"cannot do label indexing on <class 'pandas\.core\.indexes\.category"
-            r"\.CategoricalIndex'> with these indexers \[1\] of <class 'int'>"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1$"):
             df.loc[1]
 
     def test_getitem_scalar(self):
@@ -98,15 +93,6 @@ class TestCategoricalIndex:
         expected = s.iloc[0]
         result = s[cats[0]]
         assert result == expected
-
-    def test_slicing_directly(self):
-        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
-        sliced = cat[3]
-        assert sliced == "d"
-        sliced = cat[3:5]
-        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
-        tm.assert_numpy_array_equal(sliced._codes, expected._codes)
-        tm.assert_index_equal(sliced.categories, expected.categories)
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
@@ -170,7 +156,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.iloc[2, :]
@@ -180,7 +166,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.iloc[2, 0]
@@ -190,7 +176,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -200,7 +186,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -211,7 +197,7 @@ class TestCategoricalIndex:
         # res_df = df.loc["j":"k",[0,1]] # doesn't work?
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -221,7 +207,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", df.columns[0]]
@@ -254,23 +240,23 @@ class TestCategoricalIndex:
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
     def test_slicing_doc_examples(self):
 
@@ -765,9 +751,9 @@ class TestCategoricalIndex:
             [1.5, 2.5, 3.5],
             [-1.5, -2.5, -3.5],
             # numpy int/uint
-            *[np.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_INT_DTYPES],
+            *[np.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_DTYPES],
             # numpy floats
-            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in conftest.FLOAT_DTYPES],
+            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in tm.FLOAT_DTYPES],
             # numpy object
             np.array([1, "b", 3.5], dtype=object),
             # pandas scalars
@@ -775,16 +761,16 @@ class TestCategoricalIndex:
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
-            *[pd.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_EA_INT_DTYPES],
+            *[pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES],
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
+    def test_loc_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
-        cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+        cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
         sl = slice(idx_values[0], idx_values[1])
 

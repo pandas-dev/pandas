@@ -1,69 +1,72 @@
 """ test scalar indexing, including at and iat """
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, period_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
 
 class TestScalar(Base):
-    def test_at_and_iat_get(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_at_and_iat_get(self, kind):
         def _check(f, func, values=False):
 
             if f is not None:
-                indicies = self.generate_indices(f, values)
-                for i in indicies:
+                indices = self.generate_indices(f, values)
+                for i in indices:
                     result = getattr(f, func)[i]
                     expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(result, expected)
 
-        for kind in self._kinds:
+        d = getattr(self, kind)
 
-            d = getattr(self, kind)
+        # iat
+        for f in [d["ints"], d["uints"]]:
+            _check(f, "iat", values=True)
 
-            # iat
-            for f in [d["ints"], d["uints"]]:
-                _check(f, "iat", values=True)
+        for f in [d["labels"], d["ts"], d["floats"]]:
+            if f is not None:
+                msg = "iAt based indexing can only have integer indexers"
+                with pytest.raises(ValueError, match=msg):
+                    self.check_values(f, "iat")
 
-            for f in [d["labels"], d["ts"], d["floats"]]:
-                if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        self.check_values(f, "iat")
+        # at
+        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
+            _check(f, "at")
 
-            # at
-            for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-                _check(f, "at")
-
-    def test_at_and_iat_set(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_at_and_iat_set(self, kind):
         def _check(f, func, values=False):
 
             if f is not None:
-                indicies = self.generate_indices(f, values)
-                for i in indicies:
+                indices = self.generate_indices(f, values)
+                for i in indices:
                     getattr(f, func)[i] = 1
                     expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(expected, 1)
 
-        for kind in self._kinds:
+        d = getattr(self, kind)
 
-            d = getattr(self, kind)
+        # iat
+        for f in [d["ints"], d["uints"]]:
+            _check(f, "iat", values=True)
 
-            # iat
-            for f in [d["ints"], d["uints"]]:
-                _check(f, "iat", values=True)
+        for f in [d["labels"], d["ts"], d["floats"]]:
+            if f is not None:
+                msg = "iAt based indexing can only have integer indexers"
+                with pytest.raises(ValueError, match=msg):
+                    _check(f, "iat")
 
-            for f in [d["labels"], d["ts"], d["floats"]]:
-                if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        _check(f, "iat")
+        # at
+        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
+            _check(f, "at")
 
-            # at
-            for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-                _check(f, "at")
+
+class TestScalar2:
+    # TODO: Better name, just separating things that dont need Base class
 
     def test_at_iat_coercion(self):
 
@@ -125,38 +128,111 @@ class TestScalar(Base):
         result = df.iat[2, 0]
         assert result == 2
 
-    def test_at_to_fail(self):
+    def test_frame_at_with_duplicate_axes(self):
+        # GH#33041
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        result = df.at[0, "A"]
+        expected = df.iloc[0]
+
+        tm.assert_series_equal(result, expected)
+
+        result = df.T.at["A", 0]
+        tm.assert_series_equal(result, expected)
+
+        # setter
+        df.at[1, "A"] = 2
+        expected = Series([2.0, 2.0], index=["A", "A"], name=1)
+        tm.assert_series_equal(df.iloc[1], expected)
+
+    def test_frame_at_with_duplicate_axes_requires_scalar_lookup(self):
+        # GH#33041 check that falling back to loc doesn't allow non-scalar
+        #  args to slip in
+
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        msg = "Invalid call for scalar access"
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"]
+
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"] = 1
+
+    def test_series_at_raises_type_error(self):
         # at should not fallback
         # GH 7814
-        s = Series([1, 2, 3], index=list("abc"))
-        result = s.at["a"]
+        # GH#31724 .at should match .loc
+        ser = Series([1, 2, 3], index=list("abc"))
+        result = ser.at["a"]
         assert result == 1
-        msg = (
-            "At based indexing on an non-integer index can only have "
-            "non-integer indexers"
-        )
-        with pytest.raises(ValueError, match=msg):
-            s.at[0]
+        result = ser.loc["a"]
+        assert result == 1
 
+        with pytest.raises(KeyError, match="^0$"):
+            ser.at[0]
+        with pytest.raises(KeyError, match="^0$"):
+            ser.loc[0]
+
+    def test_frame_raises_key_error(self):
+        # GH#31724 .at should match .loc
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
         result = df.at["a", "A"]
         assert result == 1
-        with pytest.raises(ValueError, match=msg):
-            df.at["a", 0]
+        result = df.loc["a", "A"]
+        assert result == 1
 
-        s = Series([1, 2, 3], index=[3, 2, 1])
-        result = s.at[1]
+        with pytest.raises(KeyError, match="^0$"):
+            df.at["a", 0]
+        with pytest.raises(KeyError, match="^0$"):
+            df.loc["a", 0]
+
+    def test_series_at_raises_key_error(self):
+        # GH#31724 .at should match .loc
+
+        ser = Series([1, 2, 3], index=[3, 2, 1])
+        result = ser.at[1]
         assert result == 3
-        msg = "At based indexing on an integer index can only have integer indexers"
-        with pytest.raises(ValueError, match=msg):
-            s.at["a"]
+        result = ser.loc[1]
+        assert result == 3
+
+        with pytest.raises(KeyError, match="a"):
+            ser.at["a"]
+        with pytest.raises(KeyError, match="a"):
+            # .at should match .loc
+            ser.loc["a"]
+
+    def test_frame_at_raises_key_error(self):
+        # GH#31724 .at should match .loc
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
+
         result = df.at[1, 0]
         assert result == 3
-        with pytest.raises(ValueError, match=msg):
-            df.at["a", 0]
+        result = df.loc[1, 0]
+        assert result == 3
 
+        with pytest.raises(KeyError, match="a"):
+            df.at["a", 0]
+        with pytest.raises(KeyError, match="a"):
+            df.loc["a", 0]
+
+        with pytest.raises(KeyError, match="a"):
+            df.at[1, "a"]
+        with pytest.raises(KeyError, match="a"):
+            df.loc[1, "a"]
+
+    # TODO: belongs somewhere else?
+    def test_getitem_list_missing_key(self):
         # GH 13822, incorrect error string with non-unique columns when missing
         # column is accessed
         df = DataFrame({"x": [1.0], "y": [2.0], "z": [3.0]})
@@ -245,3 +321,95 @@ class TestScalar(Base):
         s = Series([1, 2])
         result = s[np.array(0)]
         assert result == 1
+
+
+def test_iat_dont_wrap_object_datetimelike():
+    # GH#32809 .iat calls go through DataFrame._get_value, should not
+    #  call maybe_box_datetimelike
+    dti = date_range("2016-01-01", periods=3)
+    tdi = dti - dti
+    ser = Series(dti.to_pydatetime(), dtype=object)
+    ser2 = Series(tdi.to_pytimedelta(), dtype=object)
+    df = DataFrame({"A": ser, "B": ser2})
+    assert (df.dtypes == object).all()
+
+    for result in [df.at[0, "A"], df.iat[0, 0], df.loc[0, "A"], df.iloc[0, 0]]:
+        assert result is ser[0]
+        assert isinstance(result, datetime)
+        assert not isinstance(result, Timestamp)
+
+    for result in [df.at[1, "B"], df.iat[1, 1], df.loc[1, "B"], df.iloc[1, 1]]:
+        assert result is ser2[1]
+        assert isinstance(result, timedelta)
+        assert not isinstance(result, Timedelta)
+
+
+def test_iat_series_with_period_index():
+    # GH 4390, iat incorrectly indexing
+    index = period_range("1/1/2001", periods=10)
+    ser = Series(np.random.randn(10), index=index)
+    expected = ser[index[0]]
+    result = ser.iat[0]
+    assert expected == result
+
+
+def test_at_with_tuple_index_get():
+    # GH 26989
+    # DataFrame.at getter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    assert df.at[(1, 2), "a"] == 1
+
+    # Series.at getter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    assert series.at[(1, 2)] == 1
+
+
+def test_at_with_tuple_index_set():
+    # GH 26989
+    # DataFrame.at setter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    df.at[(1, 2), "a"] = 2
+    assert df.at[(1, 2), "a"] == 2
+
+    # Series.at setter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    series.at[1, 2] = 3
+    assert series.at[1, 2] == 3
+
+
+def test_multiindex_at_get():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc getter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    assert df.at[(1, 3), "a"] == 1
+    assert df.loc[(1, 3), "a"] == 1
+
+    # Series.at and Series.loc getter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    assert series.at[1, 3] == 1
+    assert series.loc[1, 3] == 1
+
+
+def test_multiindex_at_set():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc setter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    df.at[(1, 3), "a"] = 3
+    assert df.at[(1, 3), "a"] == 3
+    df.loc[(1, 3), "a"] = 4
+    assert df.loc[(1, 3), "a"] == 4
+
+    # Series.at and Series.loc setter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    series.at[1, 3] = 5
+    assert series.at[1, 3] == 5
+    series.loc[1, 3] = 6
+    assert series.loc[1, 3] == 6

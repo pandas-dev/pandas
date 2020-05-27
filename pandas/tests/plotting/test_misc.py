@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for misc plot functions """
 
 import numpy as np

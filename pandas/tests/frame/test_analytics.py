@@ -60,16 +60,18 @@ def assert_stat_op_calc(
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
-
     f = getattr(frame, opname)
 
     if check_dates:
+        expected_warning = FutureWarning if opname in ["mean", "median"] else None
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df["a"] = range(len(df))
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
 
@@ -150,7 +152,6 @@ def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only
     has_numeric_only : bool, default False
         Whether the method "opname" has the kwarg "numeric_only"
     """
-
     # make sure works on mixed-type frame
     getattr(float_string_frame, opname)(axis=0)
     getattr(float_string_frame, opname)(axis=1)
@@ -178,7 +179,6 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
     has_skipna : bool, default True
         Whether the method "opname" has the kwarg "skip_na"
     """
-
     f = getattr(frame, opname)
 
     if has_skipna:
@@ -331,6 +331,8 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
+        # GH#32571 check_less_precise is needed on apparently-random
+        #  py37-npdev builds and OSX-PY36-min_version builds
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
             "sum",
@@ -344,7 +346,9 @@ class TestDataFrameAnalytics:
             "sum", np.sum, float_frame_with_na, skipna_alternative=np.nansum
         )
         assert_stat_op_calc("mean", np.mean, float_frame_with_na, check_dates=True)
-        assert_stat_op_calc("product", np.prod, float_frame_with_na)
+        assert_stat_op_calc(
+            "product", np.prod, float_frame_with_na, skipna_alternative=np.nanprod
+        )
 
         assert_stat_op_calc("mad", mad, float_frame_with_na)
         assert_stat_op_calc("var", var, float_frame_with_na)
@@ -460,7 +464,8 @@ class TestDataFrameAnalytics:
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         df = pd.DataFrame({"A": [1, 1], "B": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
         expected = pd.Series([1.0], index=["A"])
         tm.assert_series_equal(result, expected)
 
@@ -470,7 +475,9 @@ class TestDataFrameAnalytics:
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
         df = pd.DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
+
         expected = pd.Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
@@ -866,29 +873,38 @@ class TestDataFrameAnalytics:
         expected = pd.Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            # in the future datetime columns will be included
+            result = df.mean()
         expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="casts to object-dtype and then tries to add timestamps",
-        raises=TypeError,
-        strict=True,
-    )
     def test_mean_datetimelike_numeric_only_false(self):
         df = pd.DataFrame(
             {
                 "A": np.arange(3),
                 "B": pd.date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
             }
         )
 
+        # datetime(tz) and timedelta work
         result = df.mean(numeric_only=False)
-        expected = pd.Series(
-            {"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"], "D": df.loc[1, "D"]}
-        )
+        expected = pd.Series({"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"]})
+        tm.assert_series_equal(result, expected)
+
+        # mean of period is not allowed
+        df["D"] = pd.period_range("2016", periods=3, freq="A")
+
+        with pytest.raises(TypeError, match="mean is not implemented for Period"):
+            df.mean(numeric_only=False)
+
+    def test_mean_extensionarray_numeric_only_true(self):
+        # https://github.com/pandas-dev/pandas/issues/33256
+        arr = np.random.randint(1000, size=(10, 5))
+        df = pd.DataFrame(arr, dtype="Int64")
+        result = df.mean(numeric_only=True)
+        expected = pd.DataFrame(arr).mean()
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
@@ -908,8 +924,8 @@ class TestDataFrameAnalytics:
 
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
@@ -917,14 +933,14 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
@@ -932,7 +948,7 @@ class TestDataFrameAnalytics:
                     expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 
@@ -1143,59 +1159,6 @@ class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Matrix-like
 
-    def test_dot(self):
-        a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
-        )
-        b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
-        )
-
-        result = a.dot(b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        # Check alignment
-        b1 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_frame_equal(result, expected)
-
-        # Check series argument
-        result = a.dot(b["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        result = a.dot(b1["one"])
-        tm.assert_series_equal(result, expected["one"], check_names=False)
-        assert result.name is None
-
-        # can pass correct-length arrays
-        row = a.iloc[0].values
-
-        result = a.dot(row)
-        expected = a.dot(a.iloc[0])
-        tm.assert_series_equal(result, expected)
-
-        with pytest.raises(ValueError, match="Dot product shape mismatch"):
-            a.dot(row[:-1])
-
-        a = np.random.rand(1, 5)
-        b = np.random.rand(5, 1)
-        A = DataFrame(a)
-
-        # TODO(wesm): unused
-        B = DataFrame(b)  # noqa
-
-        # it works
-        result = A.dot(b)
-
-        # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
-
-        with pytest.raises(ValueError, match="aligned"):
-            df.dot(df2)
-
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(
@@ -1270,3 +1233,68 @@ class TestDataFrameAnalytics:
             df_nan.clip(lower=s, axis=0)
             for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
                 getattr(df, op)(s_nan, axis=0)
+
+
+class TestDataFrameReductions:
+    def test_min_max_dt64_with_NaT(self):
+        # Both NaT and Timestamp are in DataFrame.
+        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT, pd.Timestamp("2012-05-01")]})
+
+        res = df.min()
+        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        # GH12941, only NaTs are in DataFrame.
+        df = pd.DataFrame({"foo": [pd.NaT, pd.NaT]})
+
+        res = df.min()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_dt64_api_consistency_with_NaT(self):
+        # Calling the following sum functions returned an error for dataframes but
+        # returned NaT for series. These tests check that the API is consistent in
+        # min/max calls on empty Series/DataFrames. See GH:33704 for more
+        # information
+        df = pd.DataFrame(dict(x=pd.to_datetime([])))
+        expected_dt_series = pd.Series(pd.to_datetime([]))
+        # check axis 0
+        assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
+        assert (df.max(axis=0).x is pd.NaT) == (expected_dt_series.max() is pd.NaT)
+
+        # check axis 1
+        tm.assert_series_equal(df.min(axis=1), expected_dt_series)
+        tm.assert_series_equal(df.max(axis=1), expected_dt_series)
+
+    def test_min_max_dt64_api_consistency_empty_df(self):
+        # check DataFrame/Series api consistency when calling min/max on an empty
+        # DataFrame/Series.
+        df = pd.DataFrame(dict(x=[]))
+        expected_float_series = pd.Series([], dtype=float)
+        # check axis 0
+        assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())
+        assert np.isnan(df.max(axis=0).x) == np.isnan(expected_float_series.max())
+        # check axis 1
+        tm.assert_series_equal(df.min(axis=1), expected_float_series)
+        tm.assert_series_equal(df.min(axis=1), expected_float_series)
+
+    @pytest.mark.parametrize(
+        "initial",
+        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
+    )
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_preserve_timezone(self, initial: str, method):
+        # GH 28552
+        initial_dt = pd.to_datetime(initial)
+        expected = Series([initial_dt])
+        df = DataFrame([expected])
+        result = getattr(df, method)(axis=1)
+        tm.assert_series_equal(result, expected)

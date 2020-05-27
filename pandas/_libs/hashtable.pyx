@@ -8,10 +8,9 @@ from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint32_t, float64_t
+from numpy.math cimport NAN
 cnp.import_array()
 
-cdef extern from "numpy/npy_math.h":
-    float64_t NAN "NPY_NAN"
 
 from pandas._libs.khash cimport (
     khiter_t,
@@ -54,7 +53,7 @@ from pandas._libs.khash cimport (
 )
 
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
 from pandas._libs.missing cimport checknull
 
@@ -86,7 +85,10 @@ cdef class Factorizer:
         self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
     ):
         """
+        Examples
+        --------
         Factorize values with nans replaced by na_sentinel
+
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
@@ -131,7 +133,10 @@ cdef class Int64Factorizer:
     def factorize(self, const int64_t[:] values, sort=False,
                   na_sentinel=-1, na_value=None):
         """
+        Examples
+        --------
         Factorize values with nans replaced by na_sentinel
+
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """

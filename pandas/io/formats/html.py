@@ -9,9 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas import option_context
+from pandas import MultiIndex, option_context
 
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
@@ -56,7 +54,7 @@ class HTMLFormatter(TableFormatter):
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
         if isinstance(self.fmt.col_space, int):
-            self.fmt.col_space = "{colspace}px".format(colspace=self.fmt.col_space)
+            self.fmt.col_space = f"{self.fmt.col_space}px"
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -101,7 +99,7 @@ class HTMLFormatter(TableFormatter):
         self, s: Any, header: bool = False, indent: int = 0, tags: Optional[str] = None
     ) -> None:
         """
-        Method for writting a formatted <th> cell.
+        Method for writing a formatted <th> cell.
 
         If col_space is set on the formatter then that is used for
         the value of min-width.
@@ -124,7 +122,7 @@ class HTMLFormatter(TableFormatter):
         """
         if header and self.fmt.col_space is not None:
             tags = tags or ""
-            tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
+            tags += f'style="min-width: {self.fmt.col_space};"'
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
@@ -135,9 +133,9 @@ class HTMLFormatter(TableFormatter):
         self, s: Any, kind: str = "td", indent: int = 0, tags: Optional[str] = None
     ) -> None:
         if tags is not None:
-            start_tag = "<{kind} {tags}>".format(kind=kind, tags=tags)
+            start_tag = f"<{kind} {tags}>"
         else:
-            start_tag = "<{kind}>".format(kind=kind)
+            start_tag = f"<{kind}>"
 
         if self.escape:
             # escape & first to prevent double escaping of &
@@ -149,17 +147,12 @@ class HTMLFormatter(TableFormatter):
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += '<a href="{url}" target="_blank">'.format(url=rs_unescaped)
+            start_tag += f'<a href="{rs_unescaped}" target="_blank">'
             end_a = "</a>"
         else:
             end_a = ""
 
-        self.write(
-            "{start}{rs}{end_a}</{kind}>".format(
-                start=start_tag, rs=rs, end_a=end_a, kind=kind
-            ),
-            indent,
-        )
+        self.write(f"{start_tag}{rs}{end_a}</{kind}>", indent)
 
     def write_tr(
         self,
@@ -177,7 +170,7 @@ class HTMLFormatter(TableFormatter):
         if align is None:
             self.write("<tr>", indent)
         else:
-            self.write('<tr style="text-align: {align};">'.format(align=align), indent)
+            self.write(f'<tr style="text-align: {align};">', indent)
         indent += indent_delta
 
         for i, s in enumerate(line):
@@ -196,9 +189,7 @@ class HTMLFormatter(TableFormatter):
         if self.should_show_dimensions:
             by = chr(215)  # ×
             self.write(
-                "<p>{rows} rows {by} {cols} columns</p>".format(
-                    rows=len(self.frame), by=by, cols=len(self.frame.columns)
-                )
+                f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
 
         return self.elements
@@ -224,12 +215,10 @@ class HTMLFormatter(TableFormatter):
         if self.table_id is None:
             id_section = ""
         else:
-            id_section = ' id="{table_id}"'.format(table_id=self.table_id)
+            id_section = f' id="{self.table_id}"'
 
         self.write(
-            '<table border="{border}" class="{cls}"{id_section}>'.format(
-                border=self.border, cls=" ".join(_classes), id_section=id_section
-            ),
+            f'<table border="{self.border}" class="{" ".join(_classes)}"{id_section}>',
             indent,
         )
 
@@ -242,7 +231,7 @@ class HTMLFormatter(TableFormatter):
 
     def _write_col_header(self, indent: int) -> None:
         truncate_h = self.fmt.truncate_h
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
@@ -385,7 +374,7 @@ class HTMLFormatter(TableFormatter):
         fmt_values = self._get_formatted_values()
 
         # write values
-        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
             self._write_hierarchical_rows(fmt_values, indent + self.indent_delta)
         else:
             self._write_regular_rows(fmt_values, indent + self.indent_delta)
@@ -594,7 +583,7 @@ class NotebookFormatter(HTMLFormatter):
             ("tbody tr th:only-of-type", "vertical-align", "middle"),
             ("tbody tr th", "vertical-align", "top"),
         ]
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             element_props.append(("thead tr th", "text-align", "left"))
             if self.show_row_idx_names:
                 element_props.append(

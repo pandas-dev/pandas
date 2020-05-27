@@ -1,9 +1,20 @@
 from itertools import product
+from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
+import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -220,3 +231,134 @@ class TestCounting:
         mi = MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
         expected = Series([], index=mi, dtype=np.int64, name="C")
         tm.assert_series_equal(result, expected, check_index_type=False)
+
+    def test_count_groupby_column_with_nan_in_groupby_column(self):
+        # https://github.com/pandas-dev/pandas/issues/32841
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        res = df.groupby(["B"]).count()
+        expected = DataFrame(
+            index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
+        )
+        tm.assert_frame_equal(expected, res)
+
+
+def test_groupby_timedelta_cython_count():
+    df = DataFrame(
+        {"g": list("ab" * 2), "delt": np.arange(4).astype("timedelta64[ns]")}
+    )
+    expected = Series([2, 2], index=pd.Index(["a", "b"], name="g"), name="delt")
+    result = df.groupby("g").delt.count()
+    tm.assert_series_equal(expected, result)
+
+
+def test_count():
+    n = 1 << 15
+    dr = date_range("2015-08-30", periods=n // 10, freq="T")
+
+    df = DataFrame(
+        {
+            "1st": np.random.choice(list(ascii_lowercase), n),
+            "2nd": np.random.randint(0, 5, n),
+            "3rd": np.random.randn(n).round(3),
+            "4th": np.random.randint(-10, 10, n),
+            "5th": np.random.choice(dr, n),
+            "6th": np.random.randn(n).round(3),
+            "7th": np.random.randn(n).round(3),
+            "8th": np.random.choice(dr, n) - np.random.choice(dr, 1),
+            "9th": np.random.choice(list(ascii_lowercase), n),
+        }
+    )
+
+    for col in df.columns.drop(["1st", "2nd", "4th"]):
+        df.loc[np.random.choice(n, n // 10), col] = np.nan
+
+    df["9th"] = df["9th"].astype("category")
+
+    for key in ["1st", "2nd", ["1st", "2nd"]]:
+        left = df.groupby(key).count()
+        right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+        tm.assert_frame_equal(left, right)
+
+
+def test_count_non_nulls():
+    # GH#5610
+    # count counts non-nulls
+    df = pd.DataFrame(
+        [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, np.nan]],
+        columns=["A", "B", "C"],
+    )
+
+    count_as = df.groupby("A").count()
+    count_not_as = df.groupby("A", as_index=False).count()
+
+    expected = DataFrame([[1, 2], [0, 0]], columns=["B", "C"], index=[1, 3])
+    expected.index.name = "A"
+    tm.assert_frame_equal(count_not_as, expected.reset_index())
+    tm.assert_frame_equal(count_as, expected)
+
+    count_B = df.groupby("A")["B"].count()
+    tm.assert_series_equal(count_B, expected["B"])
+
+
+def test_count_object():
+    df = pd.DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    result = df.groupby("c").a.count()
+    expected = pd.Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
+    tm.assert_series_equal(result, expected)
+
+    df = pd.DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    result = df.groupby("c").a.count()
+    expected = pd.Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
+    tm.assert_series_equal(result, expected)
+
+
+def test_count_cross_type():
+    # GH8169
+    vals = np.hstack(
+        (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
+    )
+
+    df = pd.DataFrame(vals, columns=["a", "b", "c", "d"])
+    df[df == 2] = np.nan
+    expected = df.groupby(["c", "d"]).count()
+
+    for t in ["float32", "object"]:
+        df["a"] = df["a"].astype(t)
+        df["b"] = df["b"].astype(t)
+        result = df.groupby(["c", "d"]).count()
+        tm.assert_frame_equal(result, expected)
+
+
+def test_lower_int_prec_count():
+    df = DataFrame(
+        {
+            "a": np.array([0, 1, 2, 100], np.int8),
+            "b": np.array([1, 2, 3, 6], np.uint32),
+            "c": np.array([4, 5, 6, 8], np.int16),
+            "grp": list("ab" * 2),
+        }
+    )
+    result = df.groupby("grp").count()
+    expected = DataFrame(
+        {"a": [2, 2], "b": [2, 2], "c": [2, 2]}, index=pd.Index(list("ab"), name="grp")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_count_uses_size_on_exception():
+    class RaisingObjectException(Exception):
+        pass
+
+    class RaisingObject:
+        def __init__(self, msg="I will raise inside Cython"):
+            super().__init__()
+            self.msg = msg
+
+        def __eq__(self, other):
+            # gets called in Cython to check that raising calls the method
+            raise RaisingObjectException(self.msg)
+
+    df = DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
+    result = df.groupby("grp").count()
+    expected = DataFrame({"a": [2, 2]}, index=pd.Index(list("ab"), name="grp"))
+    tm.assert_frame_equal(result, expected)

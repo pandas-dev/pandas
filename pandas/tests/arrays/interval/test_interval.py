@@ -81,11 +81,36 @@ class TestMethods:
         with pytest.raises(ValueError, match=match):
             ser.where([True, False, True], other=other)
 
+    def test_shift(self):
+        # https://github.com/pandas-dev/pandas/issues/31495
+        a = IntervalArray.from_breaks([1, 2, 3])
+        result = a.shift()
+        # int -> float
+        expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
+        tm.assert_interval_array_equal(result, expected)
+
+    def test_shift_datetime(self):
+        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
+        result = a.shift(2)
+        expected = a.take([-1, -1, 0], allow_fill=True)
+        tm.assert_interval_array_equal(result, expected)
+
+        result = a.shift(-1)
+        expected = a.take([1, 2, -1], allow_fill=True)
+        tm.assert_interval_array_equal(result, expected)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
         result = IntervalArray.from_arrays(left, right)
+
+        if result.dtype.subtype.kind in ["i", "u"]:
+            msg = "Cannot set float NaN to integer-backed IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                result[0] = np.NaN
+            return
+
         result[0] = np.nan
 
         expected_left = Index([left._na_value] + list(left[1:]))
@@ -164,7 +189,7 @@ def test_arrow_array_missing():
     import pyarrow as pa
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
-    arr = IntervalArray.from_breaks([0, 1, 2, 3])
+    arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
     arr[1] = None
 
     result = pa.array(arr)
@@ -191,8 +216,8 @@ def test_arrow_array_missing():
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0, 1, 2, 3], pd.date_range("2017", periods=4, freq="D")],
-    ids=["int", "datetime64[ns]"],
+    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
@@ -212,3 +237,26 @@ def test_arrow_table_roundtrip(breaks):
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+@pytest.mark.parametrize(
+    "breaks",
+    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    ids=["float", "datetime64[ns]"],
+)
+def test_arrow_table_roundtrip_without_metadata(breaks):
+    import pyarrow as pa
+
+    arr = IntervalArray.from_breaks(breaks)
+    arr[1] = None
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    # remove the metadata
+    table = table.replace_schema_metadata()
+    assert table.schema.metadata is None
+
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.IntervalDtype)
+    tm.assert_frame_equal(result, df)

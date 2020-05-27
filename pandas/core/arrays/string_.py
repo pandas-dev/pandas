@@ -13,7 +13,8 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -151,15 +152,21 @@ class StringArray(PandasArray):
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
-    values.
+    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    will convert the values to strings.
 
+    >>> pd.array(['1', 1], dtype="object")
+    <PandasArray>
+    ['1', 1]
+    Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
-    Traceback (most recent call last):
-    ...
-    ValueError: StringArray requires an object-dtype ndarray of strings.
+    <StringArray>
+    ['1', '1']
+    Length: 2, dtype: string
 
-    For comparison methods, this returns a :class:`pandas.BooleanArray`
+    However, instantiating StringArrays directly with non-strings will raise an error.
+
+    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
@@ -202,10 +209,15 @@ class StringArray(PandasArray):
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
         na_values = isna(result)
-        if na_values.any():
-            if result is scalars:
-                # force a copy now, if we haven't already
-                result = result.copy()
+        has_nans = na_values.any()
+        if has_nans and result is scalars:
+            # force a copy now, if we haven't already
+            result = result.copy()
+
+        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
+        result = np.asarray(result, dtype=str)
+        result = np.asarray(result, dtype="object")
+        if has_nans:
             result[na_values] = StringDtype.na_value
 
         return cls(result)
@@ -271,9 +283,19 @@ class StringArray(PandasArray):
             if copy:
                 return self.copy()
             return self
+        elif isinstance(dtype, _IntegerDtype):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype.numpy_dtype)
+            return IntegerArray(values, mask, copy=False)
+
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
+        if name in ["min", "max"]:
+            return getattr(self, name)(skipna=skipna)
+
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def value_counts(self, dropna=False):
@@ -281,7 +303,13 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    # Overrride parent because we have different return types.
+    def memory_usage(self, deep=False):
+        result = self._ndarray.nbytes
+        if deep:
+            return result + lib.memory_usage_of_objects(self._ndarray)
+        return result
+
+    # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.

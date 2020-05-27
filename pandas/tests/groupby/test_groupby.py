@@ -109,7 +109,8 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df1.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df1.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     df2 = DataFrame(
@@ -124,12 +125,14 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df2.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
     df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    result = df.groupby("X", squeeze=False).count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
 
@@ -658,6 +661,34 @@ def test_groupby_as_index_agg(df):
         tm.assert_frame_equal(left, right)
 
 
+def test_ops_not_as_index(reduction_func):
+    # GH 10355, 21090
+    # Using as_index=False should not modify grouped column
+
+    if reduction_func in ("corrwith",):
+        pytest.skip("Test not applicable")
+
+    if reduction_func in ("nth", "ngroup", "size",):
+        pytest.skip("Skip until behavior is determined (GH #5755)")
+
+    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
+    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
+
+    g = df.groupby("a", as_index=False)
+
+    result = getattr(g, reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g.agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(g["b"], reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g["b"].agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
@@ -919,51 +950,6 @@ def test_groupby_complex():
 
     result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
-
-
-def test_mutate_groups():
-
-    # GH3380
-
-    df = DataFrame(
-        {
-            "cat1": ["a"] * 8 + ["b"] * 6,
-            "cat2": ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2
-            + ["f"] * 2
-            + ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2,
-            "cat3": [f"g{x}" for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
-        }
-    )
-
-    def f_copy(x):
-        x = x.copy()
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
-
-
-def test_no_mutate_but_looks_like():
-
-    # GH 8467
-    # first show's mutation indicator
-    # second does not, but should yield the same results
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    tm.assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1496,7 +1482,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):
@@ -1765,7 +1751,7 @@ def test_tuple_as_grouping():
         }
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"('a', 'b')"):
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()

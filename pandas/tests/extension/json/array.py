@@ -1,10 +1,11 @@
-"""Test extension array for storing nested data in a pandas container.
+"""
+Test extension array for storing nested data in a pandas container.
 
 The JSONArray stores lists of dictionaries. The storage mechanism is a list,
 not an ndarray.
 
-Note:
-
+Note
+----
 We currently store lists of UserDicts. Pandas has a few places
 internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
@@ -16,9 +17,11 @@ import numbers
 import random
 import string
 import sys
-from typing import Type
+from typing import Any, Mapping, Type
 
 import numpy as np
+
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
@@ -27,7 +30,7 @@ from pandas.api.extensions import ExtensionArray, ExtensionDtype
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value = UserDict()
+    na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
     def construct_array_type(cls) -> Type["JSONArray"]:
@@ -104,6 +107,12 @@ class JSONArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self.data)
 
+    def __eq__(self, other):
+        return NotImplemented
+
+    def __ne__(self, other):
+        return NotImplemented
+
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object
@@ -136,13 +145,13 @@ class JSONArray(ExtensionArray):
                 output = [
                     self.data[loc] if loc != -1 else fill_value for loc in indexer
                 ]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
 
         return self._from_sequence(output)
 
@@ -153,12 +162,18 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+        from pandas.core.arrays.string_ import StringDtype
 
+        dtype = pandas_dtype(dtype)
         # needed to add this check for the Series constructor
         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
+        elif isinstance(dtype, StringDtype):
+            value = self.astype(str)  # numpy doesn'y like nested dicts
+            return dtype.construct_array_type()._from_sequence(value, copy=False)
+
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):

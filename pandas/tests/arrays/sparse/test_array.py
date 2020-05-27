@@ -96,6 +96,22 @@ class TestSparseArray:
         with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
 
+    def test_constructor_warns_when_losing_timezone(self):
+        # GH#32501 warn when losing timezone inforamtion
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(dti)
+
+        tm.assert_sp_array_equal(result, expected)
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(pd.Series(dti))
+
+        tm.assert_sp_array_equal(result, expected)
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: Behavior change: specifying SparseIndex no longer changes the
@@ -186,6 +202,19 @@ class TestSparseArray:
         import scipy.sparse
 
         mat = scipy.sparse.random(size, 1, density=0.5, format=format)
+        result = SparseArray.from_spmatrix(mat)
+
+        result = np.asarray(result)
+        expected = mat.toarray().ravel()
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_including_explicit_zero(self, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(10, 1, density=0.5, format=format)
+        mat.data[0] = 0
         result = SparseArray.from_spmatrix(mat)
 
         result = np.asarray(result)
@@ -954,6 +983,25 @@ class TestSparseArrayAnalytics:
         out = SparseArray(data, fill_value=np.nan).sum()
         assert out == 40.0
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.array([0, 1, np.nan, 1]),
+            np.array([0, 1, 1]),
+            np.array([True, True, False]),
+        ],
+    )
+    @pytest.mark.parametrize("fill_value", [0, 1, np.nan, True, False])
+    @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
+    def test_sum_min_count(self, arr, fill_value, min_count, expected):
+        # https://github.com/pandas-dev/pandas/issues/25777
+        sparray = SparseArray(arr, fill_value=fill_value)
+        result = sparray.sum(min_count=min_count)
+        if np.isnan(expected):
+            assert np.isnan(result)
+        else:
+            assert result == expected
+
     def test_numpy_sum(self):
         data = np.arange(10).astype(float)
         out = np.sum(SparseArray(data))
@@ -1102,7 +1150,7 @@ class TestSparseArrayAnalytics:
         arr = SparseArray([1, 2, 0, 0, 0], kind="block")
         result = arr.nbytes
         # (2 * 8) + 4 + 4
-        # sp_values, blocs, blenghts
+        # sp_values, blocs, blengths
         assert result == 24
 
     def test_asarray_datetime64(self):

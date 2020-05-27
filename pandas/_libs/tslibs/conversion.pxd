@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython.datetime cimport datetime
 
 from numpy cimport int64_t, int32_t
@@ -12,6 +10,7 @@ cdef class _TSObject:
         npy_datetimestruct dts      # npy_datetimestruct
         int64_t value               # numpy dt64
         object tzinfo
+        bint fold
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -24,3 +23,4 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 cdef int64_t get_datetime64_nanos(object val) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)
+cdef int64_t cast_from_unit(object ts, str unit) except? -1

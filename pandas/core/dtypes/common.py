@@ -1,10 +1,13 @@
-""" common type operations """
+"""
+Common type operations.
+"""
+
 from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import algos, lib
+from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
@@ -16,18 +19,12 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
     registry,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategorical,
-    ABCDatetimeIndex,
-    ABCIndexClass,
-    ABCPeriodArray,
-    ABCPeriodIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
     is_complex,
+    is_dataclass,
     is_decimal,
     is_dict_like,
     is_file_like,
@@ -61,18 +58,15 @@ _POSSIBLY_CAST_DTYPES = {
     ]
 }
 
-_NS_DTYPE = conversion.NS_DTYPE
-_TD_DTYPE = conversion.TD_DTYPE
-_INT64_DTYPE = np.dtype(np.int64)
+DT64NS_DTYPE = conversion.DT64NS_DTYPE
+TD64NS_DTYPE = conversion.TD64NS_DTYPE
+INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
-
-_ensure_datetime64ns = conversion.ensure_datetime64ns
-_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def ensure_float(arr):
@@ -89,7 +83,6 @@ def ensure_float(arr):
     float_arr : The original array cast to the float dtype if
                 possible. Otherwise, the original array is returned.
     """
-
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
     return arr
@@ -113,28 +106,6 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     elif not isinstance(value, str):
         value = str(value)
     return value
-
-
-def ensure_categorical(arr):
-    """
-    Ensure that an array-like object is a Categorical (if not already).
-
-    Parameters
-    ----------
-    arr : array-like
-        The array that we want to convert into a Categorical.
-
-    Returns
-    -------
-    cat_arr : The original array cast as a Categorical. If it already
-              is a Categorical, we return as is.
-    """
-
-    if not is_categorical(arr):
-        from pandas import Categorical
-
-        arr = Categorical(arr)
-    return arr
 
 
 def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
@@ -193,12 +164,14 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
+        raise TypeError(
+            f"Value needs to be a scalar value, was type {type(value).__name__}"
+        )
     try:
         new_value = int(value)
         assert new_value == value
-    except (TypeError, ValueError, AssertionError):
-        raise TypeError(f"Wrong type {type(value)} for value {value}")
+    except (TypeError, ValueError, AssertionError) as err:
+        raise TypeError(f"Wrong type {type(value)} for value {value}") from err
     return new_value
 
 
@@ -322,7 +295,6 @@ def is_scipy_sparse(arr) -> bool:
     >>> is_scipy_sparse(pd.arrays.SparseArray([1, 2, 3]))
     False
     """
-
     global _is_scipy_sparse
 
     if _is_scipy_sparse is None:
@@ -364,7 +336,12 @@ def is_categorical(arr) -> bool:
     >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
     """
-
+    warnings.warn(
+        "is_categorical is deprecated and will be removed in a future version.  "
+        "Use is_categorical_dtype instead",
+        FutureWarning,
+        stacklevel=2,
+    )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
@@ -395,7 +372,9 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_dtype([1, 2, 3])
     False
     """
-
+    if isinstance(arr_or_dtype, np.dtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
 
 
@@ -431,6 +410,9 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
 
     if arr_or_dtype is None:
         return False
@@ -464,6 +446,9 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_dtype('0 days')
     False
     """
+    if isinstance(arr_or_dtype, np.dtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "m"
 
     return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
 
@@ -495,8 +480,10 @@ def is_period_dtype(arr_or_dtype) -> bool:
     >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.type is Period
 
-    # TODO: Consider making Period an instance of PeriodDtype
     if arr_or_dtype is None:
         return False
     return PeriodDtype.is_dtype(arr_or_dtype)
@@ -531,8 +518,10 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.type is Interval
 
-    # TODO: Consider making Interval an instance of IntervalDtype
     if arr_or_dtype is None:
         return False
     return IntervalDtype.is_dtype(arr_or_dtype)
@@ -565,6 +554,9 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     >>> is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    if isinstance(arr_or_dtype, ExtensionDtype):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.name == "category"
 
     if arr_or_dtype is None:
         return False
@@ -599,7 +591,6 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2]))
     False
     """
-
     # TODO: gh-15585: consider making the checks stricter.
     def condition(dtype) -> bool:
         return dtype.kind in ("O", "S", "U") and not is_excluded_dtype(dtype)
@@ -608,77 +599,10 @@ def is_string_dtype(arr_or_dtype) -> bool:
         """
         These have kind = "O" but aren't string dtypes so need to be explicitly excluded
         """
-        is_excluded_checks = (is_period_dtype, is_interval_dtype)
+        is_excluded_checks = (is_period_dtype, is_interval_dtype, is_categorical_dtype)
         return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
 
     return _is_dtype(arr_or_dtype, condition)
-
-
-def is_period_arraylike(arr) -> bool:
-    """
-    Check whether an array-like is a periodical array-like or PeriodIndex.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a periodical array-like or
-        PeriodIndex instance.
-
-    Examples
-    --------
-    >>> is_period_arraylike([1, 2, 3])
-    False
-    >>> is_period_arraylike(pd.Index([1, 2, 3]))
-    False
-    >>> is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-    True
-    """
-
-    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
-        return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return is_period_dtype(arr.dtype)
-    return getattr(arr, "inferred_type", None) == "period"
-
-
-def is_datetime_arraylike(arr) -> bool:
-    """
-    Check whether an array-like is a datetime array-like or DatetimeIndex.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime array-like or
-        DatetimeIndex.
-
-    Examples
-    --------
-    >>> is_datetime_arraylike([1, 2, 3])
-    False
-    >>> is_datetime_arraylike(pd.Index([1, 2, 3]))
-    False
-    >>> is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
-    True
-    """
-
-    if isinstance(arr, ABCDatetimeIndex):
-        return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return (
-            is_object_dtype(arr.dtype)
-            and lib.infer_dtype(arr, skipna=False) == "datetime"
-        )
-    return getattr(arr, "inferred_type", None) == "datetime"
 
 
 def is_dtype_equal(source, target) -> bool:
@@ -705,10 +629,9 @@ def is_dtype_equal(source, target) -> bool:
     False
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
-    >>> is_dtype_equal(DatetimeTZDtype(), "datetime64")
+    >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
-
     try:
         source = _get_dtype(source)
         target = _get_dtype(target)
@@ -767,7 +690,6 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
     >>> is_any_int_dtype(pd.Index([1, 2.]))  # float
     False
     """
-
     return _is_dtype_type(arr_or_dtype, classes(np.integer, np.timedelta64))
 
 
@@ -822,7 +744,6 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     >>> is_integer_dtype(pd.Index([1, 2.]))  # float
     False
     """
-
     return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.integer))
 
 
@@ -862,7 +783,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     True
     >>> is_signed_integer_dtype('Int8')
     True
-    >>> is_signed_dtype(pd.Int8Dtype)
+    >>> is_signed_integer_dtype(pd.Int8Dtype)
     True
     >>> is_signed_integer_dtype(np.datetime64)
     False
@@ -879,7 +800,6 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-
     return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
 
 
@@ -979,7 +899,6 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-
     return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
@@ -994,7 +913,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64 dtype.
 
     Examples
@@ -1011,12 +930,14 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_any_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(np.array([], dtype="datetime64[ns]"))
     True
-    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
+    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
+        # GH#33400 fastpath for dtype object
+        return arr_or_dtype.kind == "M"
 
     if arr_or_dtype is None:
         return False
@@ -1034,7 +955,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64[ns] dtype.
 
     Examples
@@ -1051,16 +972,13 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_ns_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_ns_dtype(np.array([], dtype=np.datetime64))  # no unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64"))  # no unit
     False
-    >>> is_datetime64_ns_dtype(np.array([],
-                               dtype="datetime64[ps]"))  # wrong unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))  # wrong unit
     False
-    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                               dtype=np.datetime64))  # has 'ns' unit
+    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1070,7 +988,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = _get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == _NS_DTYPE or getattr(tipo, "base", None) == _NS_DTYPE
+    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
@@ -1101,7 +1019,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
     False
     """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype == _TD_DTYPE)
+    return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
@@ -1139,25 +1057,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
     True
     """
-
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
-
-
-def _is_unorderable_exception(e: TypeError) -> bool:
-    """
-    Check if the exception raised is an unorderable exception.
-
-    Parameters
-    ----------
-    e : Exception or sub-class
-        The exception object to check.
-
-    Returns
-    -------
-    bool
-        Whether or not the exception raised is an unorderable exception.
-    """
-    return "'>' not supported between instances of" in str(e)
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
@@ -1200,7 +1100,6 @@ def is_numeric_v_string_like(a, b):
     >>> is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
     False
     """
-
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
@@ -1240,7 +1139,8 @@ def is_datetimelike_v_numeric(a, b):
 
     Examples
     --------
-    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
+    >>> from datetime import datetime
+    >>> dt = np.datetime64(datetime(2017, 1, 1))
     >>>
     >>> is_datetimelike_v_numeric(1, 1)
     False
@@ -1261,7 +1161,6 @@ def is_datetimelike_v_numeric(a, b):
     >>> is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
     False
     """
-
     if not hasattr(a, "dtype"):
         a = np.asarray(a)
     if not hasattr(b, "dtype"):
@@ -1312,7 +1211,6 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     return (
@@ -1359,7 +1257,6 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     >>> is_numeric_dtype(np.array([], dtype=np.timedelta64))
     False
     """
-
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
     )
@@ -1393,7 +1290,6 @@ def is_string_like_dtype(arr_or_dtype) -> bool:
     >>> is_string_like_dtype(pd.Series([1, 2]))
     False
     """
-
     return _is_dtype(arr_or_dtype, lambda dtype: dtype.kind in ("S", "U"))
 
 
@@ -1552,7 +1448,7 @@ def is_extension_type(arr) -> bool:
         stacklevel=2,
     )
 
-    if is_categorical(arr):
+    if is_categorical_dtype(arr):
         return True
     elif is_sparse(arr):
         return True
@@ -1639,7 +1535,6 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     >>> is_complex_dtype(np.array([1 + 1j, 5]))
     True
     """
-
     return _is_dtype_type(arr_or_dtype, classes(np.complexfloating))
 
 
@@ -1658,7 +1553,6 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     bool
 
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1687,7 +1581,6 @@ def _get_dtype(arr_or_dtype) -> DtypeObj:
     ------
     TypeError : The passed in object is None.
     """
-
     if arr_or_dtype is None:
         raise TypeError("Cannot deduce dtype from null object")
 
@@ -1718,7 +1611,6 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     -------
     bool : if the condition is satisfied for the arr_or_dtype
     """
-
     if arr_or_dtype is None:
         return condition(type(None))
 
@@ -1768,7 +1660,6 @@ def infer_dtype_from_object(dtype):
     -------
     dtype_object : The extracted numpy dtype.type-style object.
     """
-
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
@@ -1828,11 +1719,10 @@ def _validate_date_like_dtype(dtype) -> None:
     ValueError : The dtype is an illegal date-like dtype (e.g. the
                  the frequency provided is too specific)
     """
-
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError(e)
+        raise TypeError(e) from e
     if typ != "generic" and typ != "ns":
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
@@ -1871,9 +1761,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except SyntaxError:
+    except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError(f"data type '{dtype}' not understood")
+        raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will

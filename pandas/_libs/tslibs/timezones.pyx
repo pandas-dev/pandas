@@ -1,12 +1,14 @@
+from cpython.datetime cimport tzinfo
 from datetime import timezone
 
 # dateutil compat
 from dateutil.tz import (
-    tzutc as _dateutil_tzutc,
+    gettz as dateutil_gettz,
+    tzfile as _dateutil_tzfile,
     tzlocal as _dateutil_tzlocal,
-    tzfile as _dateutil_tzfile)
+    tzutc as _dateutil_tzutc,
+)
 
-from dateutil.tz import gettz as dateutil_gettz
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
@@ -22,12 +24,13 @@ cnp.import_array()
 from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 
 cdef int64_t NPY_NAT = get_nat()
-cdef object utc_stdlib = timezone.utc
+cdef tzinfo utc_stdlib = timezone.utc
+cdef tzinfo utc_pytz = UTC
 
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
+    return tz is utc_pytz or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
 cdef inline bint is_tzlocal(object tz):
@@ -103,7 +106,9 @@ cpdef inline object maybe_get_tz(object tz):
 
 
 def _p_tz_cache_key(tz):
-    """ Python interface for cache function to facilitate testing."""
+    """
+    Python interface for cache function to facilitate testing.
+    """
     return tz_cache_key(tz)
 
 
@@ -120,7 +125,7 @@ cdef inline object tz_cache_key(object tz):
     dateutil timezones.
 
     Notes
-    =====
+    -----
     This cannot just be the hash of a timezone object. Unfortunately, the
     hashes of two dateutil tz objects which represent the same timezone are
     not equal (even though the tz objects will compare equal and represent
@@ -148,14 +153,14 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo, obj):
+cdef get_utcoffset(tzinfo tz, obj):
     try:
-        return tzinfo._utcoffset
+        return tz._utcoffset
     except AttributeError:
-        return tzinfo.utcoffset(obj)
+        return tz.utcoffset(obj)
 
 
-cdef inline bint is_fixed_offset(object tz):
+cdef inline bint is_fixed_offset(tzinfo tz):
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
@@ -172,7 +177,7 @@ cdef inline bint is_fixed_offset(object tz):
     return 1
 
 
-cdef object get_utc_trans_times_from_dateutil_tz(object tz):
+cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     """
     Transition times in dateutil timezones are stored in local non-dst
     time.  This code converts them to UTC. It's the reverse of the code
@@ -196,7 +201,7 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000000
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1_000_000_000
 
     return arr
 
@@ -217,7 +222,7 @@ cdef object get_dst_info(object tz):
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
         # psycopg2.tz.FixedOffsetTimezone
-        num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
+        num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 None)
@@ -234,7 +239,7 @@ cdef object get_dst_info(object tz):
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
                 # get utc trans times
-                trans_list = get_utc_trans_times_from_dateutil_tz(tz)
+                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
                 trans = np.hstack([
                     np.array([0], dtype='M8[s]'),  # place holder for 1st item
                     np.array(trans_list, dtype='M8[s]')]).astype(
@@ -313,7 +318,7 @@ cpdef bint tz_compare(object start, object end):
 
     Returns:
     -------
-    compare : bint
+    bool
 
     """
     # GH 18523

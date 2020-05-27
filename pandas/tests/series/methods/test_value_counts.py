@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Series
@@ -177,3 +178,28 @@ class TestSeriesValueCounts:
             exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
             res = ser.value_counts(dropna=False, sort=False)
             tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "ser, dropna, exp",
+        [
+            (
+                pd.Series([False, True, True, pd.NA]),
+                False,
+                pd.Series([2, 1, 1], index=[True, False, pd.NA]),
+            ),
+            (
+                pd.Series([False, True, True, pd.NA]),
+                True,
+                pd.Series([2, 1], index=[True, False]),
+            ),
+            (
+                pd.Series(range(3), index=[True, False, np.nan]).index,
+                False,
+                pd.Series([1, 1, 1], index=[True, False, pd.NA]),
+            ),
+        ],
+    )
+    def test_value_counts_bool_with_nan(self, ser, dropna, exp):
+        # GH32146
+        out = ser.value_counts(dropna=dropna)
+        tm.assert_series_equal(out, exp)
