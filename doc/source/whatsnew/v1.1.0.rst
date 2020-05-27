@@ -642,6 +642,7 @@ Performance improvements
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
+- Performance improvement in arithmetic operations (sub, add, mul, div) for MultiIndex (:issue:`34297`)
 
 .. ---------------------------------------------------------------------------
 
@@ -884,6 +885,7 @@ Reshaping
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
+- Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 
 Sparse
 ^^^^^^
