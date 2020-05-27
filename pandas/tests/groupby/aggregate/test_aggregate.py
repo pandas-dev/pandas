@@ -314,7 +314,6 @@ def test_multiple_aggregations_named_tuple():
     # GH 34380
     name = ["abc"] * 6 + ["xyz"] * 6
     change = [np.nan, 1, -0.4, 2.0, -0.4, 2.2] * 2
-
     df = pd.DataFrame({"name": name, "change": change})
     result = df.groupby("name")["change"].agg(
         pos=pd.NamedAgg(column="change", aggfunc=lambda x: x.gt(0).sum()),
