@@ -2,98 +2,73 @@ from pandas import Series
 import pandas as pd
 import numpy as np
 from pandas.core.arrays.dates import DateArray
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.dtypes.dtypes import DateDtype
-from pandas.core.dtypes.common import is_date_dtype
+from pandas.core.dtypes.dtypes import DateDtype, DatetimeTZDtype
+from pandas.core.dtypes.common import is_date_dtype, is_integer_dtype
 import pytest
 
+DATETIME_STRINGS = [
+    "2001-01-01T12:00",
+    "2002-02-03T13:56:03.172",
+    "2007-07-13",
+    "2006-01-13",
+    "2010-08-13",
+]
 
-def test_init_date_array_from_ints():
-    arr = DateArray(np.arange(5))
-    np.array_equal(pd.date_range("1970-01-01", periods=5, freq="H").date, arr.date)
+VALID_CONVERSION_TYPES = ["object", "string", "i8", "datetime64[ns]"]
+SECONDS_IN_A_DAY = 86400
+NANO_SECONDS_IN_A_SECOND = 10 ** 9
+NANO_SECONDS_IN_A_DAY = SECONDS_IN_A_DAY * NANO_SECONDS_IN_A_SECOND
 
 
-def test_init_date_array_from_strings():
+@pytest.mark.parametrize("type", VALID_CONVERSION_TYPES)
+def test_init_date_array_from_numpy(type: str):
     dt_range = pd.date_range("1970-01-01", periods=5, freq="D")
-    date_range_as_string = dt_range.astype("string").to_numpy()
-    arr = DateArray(date_range_as_string)
+
+    date_range_as_type = dt_range.astype(type).to_numpy()
+    if type == "i8":
+        date_range_as_type //= NANO_SECONDS_IN_A_DAY
+    arr = DateArray(date_range_as_type)
     assert np.array_equal(dt_range.date, arr.date)
 
-def test_init_date_array_from_datetimes():
-    dt_range = pd.date_range("1970-01-01", periods=5, freq="D")
-    date_range_as_string = dt_range.to_numpy()
-    arr = DateArray(date_range_as_string)
-    assert np.array_equal(dt_range.date, arr.date)
 
-
-def test_from_int_array():
-    arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10 ** 9
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.array(np.arange(5, dtype=np.int64)),
+        pd.array(np.arange(5, dtype=np.object)),
+        pd.date_range("1970-01-01", periods=5, freq="D").astype("object"),
+        pd.array(np.array(DATETIME_STRINGS, dtype="datetime64")),
+        # pd.array(np.array(DATETIME_STRINGS, dtype="object"), dtype="string"),
+    ],
+)
+def test_date_from_pandas_array(arr):
     result = DateArray._from_sequence(arr)
+    if is_integer_dtype(arr):
+        arr *= NANO_SECONDS_IN_A_DAY
+    assert np.array_equal(arr.astype(DatetimeTZDtype(tz="utc")).date, result.date)
+
+
+@pytest.fixture
+def date_array():
+    return DateArray._from_sequence(pd.array(np.arange(5, dtype=np.int64)))
+
+
+def test_date_array_to_int(date_array):
+    assert np.array_equal(date_array.astype("i8"), np.arange(5, dtype=np.int64))
+
+
+def test_date_array_to_datetime64(date_array):
     assert np.array_equal(
-        pd.date_range("1970-01-01", periods=5, freq="H").date, result.date
+        date_array.astype("datetime64[ns]").date,
+        pd.date_range("1970-01-01", periods=5, freq="D").astype("datetime64[ns]").date,
     )
 
 
-def test_from_object_int_array():
-    arr = pd.array(np.arange(5, dtype=np.object)) * 3600 * 10 ** 9
-    result = DateArray._from_sequence(arr)
-    assert np.array_equal(
-        pd.date_range("1970-01-01", periods=5, freq="H").date, result.date
+def test_date_array_to_str(date_array):
+    object_dates = pd.array(
+        np.array(["1970-01-0%d" % x for x in range(1, 6)]), dtype="string"
     )
-
-
-def test_from_object_array():
-    dt_range = pd.date_range("1970-01-01", periods=5, freq="D")
-    obj_array = dt_range.astype("object")
-    result = DateArray._from_sequence(obj_array)
-    assert np.array_equal(
-        dt_range.date, result.date
-    )
-
-def test_from_datetime_array():
-    np_array = np.array(
-        [
-            "2001-01-01T12:00",
-            "2002-02-03T13:56:03.172",
-            "2007-07-13",
-            "2006-01-13",
-            "2010-08-13",
-        ],
-        dtype="datetime64",
-    )
-    pd_array = pd.array(np_array)
-    result = DateArray._from_sequence(pd_array)
-    assert np.array_equal(pd_array.date, result.date)
-
-def test_from_string_array():
-    np_array = np.array(
-        [
-            "2001-01-01T12:00",
-            "2002-02-03T13:56:03.172",
-            "2007-07-13",
-            "2006-01-13",
-            "2010-08-13",
-        ],
-        dtype="object",
-    )
-    pd_array = pd.array(np_array, dtype="string")
-    result = DateArray._from_sequence(pd_array)
-    assert np.array_equal(pd_array.astype("datetime64[ns]").date, result.date)
-
-def test_to_int_array():
-    pass
-
-
-def test_to_object_array():
-    pass
-
-
-def test_to_string_array():
-    pass
-
-
-def test_to_datetime_array():
-    pass
+    assert np.array_equal(date_array.astype("string"), object_dates)
 
 
 @pytest.fixture
@@ -116,10 +91,8 @@ def test_dtype_name_display(df: pd.DataFrame, series: Series):
 
 
 def test_date_display_format(df: pd.DataFrame, series: Series):
-    print(series.astype("datetime64").astype("date"))
     df["dates"] = series.astype("datetime64").astype("date")
     display = str(df["dates"])
-    print(display)
     expected = (
         "0   2019-01-01\n"
         "1   2020-12-11\n"
@@ -138,14 +111,3 @@ def test_is_date_dtype_for_dtype():
 
     assert is_date_dtype("date")
     assert is_date_dtype("date64")
-
-
-if __name__ == "__main__":
-    # series = Series(["2019-01-01", "2020-12-11", "2020-10-11 12:11:12"])
-    # series.name = "strings"
-    # df = series.to_frame()
-    # df["strings"] = df["strings"].astype("string")
-    test_from_string_array()
-    # test_datetime64_to_date()
-    # test_read_data_date()
-    # Series([0, 1, 0, 1]).astype("Int64").apply(str).astype("object").astype("string")

@@ -1,9 +1,12 @@
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays.datetimelike import DatelikeOps, DatetimeLikeArrayMixin
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.core.dtypes.common import is_integer_dtype, is_datetime64_dtype, is_object_dtype
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.dtypes import DateDtype
+from pandas.core.construction import array
 from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs.tslibs.conversion import NS_DTYPE
 from pandas._libs import tslib
 
 import numpy as np
@@ -60,10 +63,11 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             )
             raise ValueError(msg)
 
-        values = _to_date_values(values, copy)
 
         if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
+        else:
+            values = _to_date_values(values, copy)
 
         if copy:
             values = values.copy()
@@ -100,10 +104,11 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         DateArray
         """
-        # if scalars.dtype == "datetime64[ns]":
-
-
-        return cls._simple_new(_to_date_values(scalars, copy))
+        if is_integer_dtype(scalars):
+            values = scalars._data
+        else:
+            values = _to_date_values(scalars, copy)
+        return cls._simple_new(values)
 
     @property
     def dtype(self) -> ExtensionDtype:
@@ -119,10 +124,8 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @property
     def _box_func(self):
-        def test(x: np.int64):
-            return x
-
-        return test
+        # TODO Implement Datestamp of a similar form in cython
+        return lambda x: Timestamp(x, freq="D", tz="utc")
 
     @property
     def asi8(self) -> np.ndarray:
@@ -137,15 +140,21 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         timestamps = self.as_datetime_i8
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
+    def astype(self, dtype, copy=True):
+        if is_datetime64_dtype(dtype):
+            return array(self._data, dtype="datetime64[ns]")
+        if is_object_dtype(dtype):
+            return self._box_values(self.as_datetime_i8)
+        return super().astype(dtype, copy)
 
-    # def astype(self, dtype, copy=True):
-    #     print(dtype)
-    #     print("test")
-    #     exit()
+    def _format_native_types(self, na_rep="NaT", date_format=None):
+        from pandas.io.formats.format import _get_format_datetime64_from_values
+
+        fmt = _get_format_datetime64_from_values(self, date_format)
+
+        return tslib.format_array_from_datetime(
+            self.as_datetime_i8, tz="utc", format=fmt, na_rep=na_rep
+        )
 
     def __len__(self):
         return len(self._data)
-
-    # TODO Add month name
-
-    # TODO Add day name

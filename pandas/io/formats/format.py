@@ -67,6 +67,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays.dates import DateArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
@@ -359,7 +360,6 @@ class SeriesFormatter:
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
-        print(fmt_values)
 
         if self.truncate_v:
             n_header_rows = 0
@@ -1660,7 +1660,8 @@ def _get_format_datetime64(
 
 
 def _get_format_datetime64_from_values(
-    values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
+    values: Union[np.ndarray, DatetimeArray, DatetimeIndex, DateArray], date_format: Optional[
+            str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
 
