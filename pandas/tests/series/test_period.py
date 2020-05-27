@@ -113,3 +113,13 @@ class TestSeriesPeriod:
         expected = Series([input_vals], dtype="Period[D]")
         result = Series([input_vals], dtype="datetime64[ns]").dt.to_period("D")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("comparison_data", ["a", False, 1, 1.0, None])
+    def test_comparison_operations(self, comparison_data):
+        # GH 28980
+        expected = Series([False, False])
+        result = (
+            Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]")
+            == comparison_data
+        )
+        tm.assert_series_equal(result, expected)
