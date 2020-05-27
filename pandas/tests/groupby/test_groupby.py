@@ -661,6 +661,34 @@ def test_groupby_as_index_agg(df):
         tm.assert_frame_equal(left, right)
 
 
+def test_ops_not_as_index(reduction_func):
+    # GH 10355, 21090
+    # Using as_index=False should not modify grouped column
+
+    if reduction_func in ("corrwith",):
+        pytest.skip("Test not applicable")
+
+    if reduction_func in ("nth", "ngroup", "size",):
+        pytest.skip("Skip until behavior is determined (GH #5755)")
+
+    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
+    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
+
+    g = df.groupby("a", as_index=False)
+
+    result = getattr(g, reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g.agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(g["b"], reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g["b"].agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)

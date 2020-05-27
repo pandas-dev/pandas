@@ -583,6 +583,53 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
    df[['a', 'c']] = 1
    df
 
+.. _whatsnew_110.api_breaking.groupby_consistency:
+
+Consistency across groupby reductions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nunique`` would include the grouping column(s) in the columns of the result. Now the grouping column(s) only appear in the index, consistent with other reductions. (:issue:`32579`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=True).nunique()
+   Out[4]:
+      a  b
+   a
+   x  1  1
+   y  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=True).nunique()
+
+Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxmax``, ``idxmin``, ``mad``, ``nunique``, ``sem``, ``skew``, or ``std`` would modify the grouping column. Now the grouping column remains unchanged, consistent with other reductions. (:issue:`21090`, :issue:`10355`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=False).nunique()
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=False).nunique()
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
@@ -855,7 +902,6 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
-- Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
 
 Reshaping
 ^^^^^^^^^
