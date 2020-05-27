@@ -255,7 +255,7 @@ def test_agg_multiple_functions_maintain_order(df):
     tm.assert_index_equal(result.columns, exp_cols)
 
 
-def test_agg_multiple_functions_same_name(df):
+def test_agg_multiple_functions_same_name():
     # GH 30880
     df = pd.DataFrame(
         np.random.randn(1000, 3),
@@ -276,7 +276,7 @@ def test_agg_multiple_functions_same_name(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_multiple_functions_same_name_with_ohlc_present(df):
+def test_agg_multiple_functions_same_name_with_ohlc_present():
     # GH 30880
     # ohlc expands dimensions, so different test to the above is required.
     df = pd.DataFrame(
@@ -308,6 +308,51 @@ def test_agg_multiple_functions_same_name_with_ohlc_present(df):
     # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_frame_equal(result, expected)
+
+
+def test_multiple_aggregations_named_tuple():
+    # GH 34380
+    df = pd.DataFrame(
+        {
+            "name": [
+                "abc",
+                "abc",
+                "abc",
+                "abc",
+                "abc",
+                "abc",
+                "xyz",
+                "xyz",
+                "xyz",
+                "xyz",
+                "xyz",
+                "xyz",
+            ],
+            "change": [
+                np.nan,
+                1.5,
+                -0.4,
+                2.0,
+                -0.44444399999999995,
+                2.2,
+                np.nan,
+                4.0,
+                -0.4,
+                3.333333,
+                -0.307692,
+                1.222222,
+            ],
+        }
+    )
+    result = df.groupby("name")["change"].agg(
+        pos=pd.NamedAgg(column="change", aggfunc=lambda x: x.gt(0).sum()),
+        neg=pd.NamedAgg(column="change", aggfunc=lambda x: x.lt(0).sum()),
+    )
+    expected = pd.DataFrame(
+        {"pos": [3.0, 3.0], "neg": [2.0, 2.0]},
+        index=pd.Index(["abc", "xyz"], name="name"),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):
