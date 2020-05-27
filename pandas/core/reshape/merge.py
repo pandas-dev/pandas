@@ -837,7 +837,7 @@ class _MergeOperation:
                 # make sure to just use the right values
                 mask = left_indexer == -1
                 if mask.all():
-                    key_col = rvals
+                    key_col = Index(rvals)
                 else:
                     key_col = Index(lvals).where(~mask, rvals)
 

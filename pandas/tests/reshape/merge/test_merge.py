@@ -2227,3 +2227,10 @@ def test_categorical_non_unique_monotonic(n_categories):
         index=left_index,
     )
     tm.assert_frame_equal(expected, result)
+
+
+def test_merge_empty_right_index_left_on():
+    left = pd.DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
+    right = pd.DataFrame({"b": [1]}).set_index(["b"])
+    result = pd.merge(left, right, left_on=["b"], right_index=True)
+    assert result.empty
