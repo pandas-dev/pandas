@@ -138,6 +138,9 @@ python setup.py develop
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
 
+## Benchmarks
+[Benchmarks from airspeed velocity](https://pandas.pydata.org/speed/pandas/#/)
+
 ## License
 [BSD 3](LICENSE)
 
