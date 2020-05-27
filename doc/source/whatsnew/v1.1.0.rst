@@ -827,7 +827,10 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
 - Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the result shape was incorrect when the output index was not identical to the input index (:issue:`31612`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the output index shape for functions returning a DataFrame which is equally indexed
+  to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
+  indices. In particular, the result index shape might change if a copy of the input would be returned.
+  The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 
 Reshaping
 ^^^^^^^^^
