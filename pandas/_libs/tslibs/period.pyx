@@ -957,20 +957,6 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] dtarr, int freq, tz=None):
-    """
-    Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
-    periods corresponding to desired frequency, per period convention.
-    """
-    cdef:
-        int64_t[:] out
-
-    out = localize_dt64arr_to_period(dtarr, freq, tz)
-    return out.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
@@ -1456,8 +1442,7 @@ def extract_freq(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
-                                           int freq, object tz):
+def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
@@ -1506,7 +1491,7 @@ cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
                 dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = get_period_ordinal(&dts, freq)
 
-    return result
+    return result.base  # .base to get underlying ndarray
 
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
