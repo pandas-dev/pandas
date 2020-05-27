@@ -4,8 +4,9 @@ timedelta support tools
 
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
     convert_to_timedelta64,
     parse_timedelta_string,
     parse_timedelta_unit,
@@ -115,19 +116,15 @@ def to_timedelta(arg, unit=None, box=True, errors='raise'):
 def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
     try:
-        result = parse_timedelta_string(r, unit)
-        result = np.timedelta64(result)
-    except (ValueError, TypeError):
-        try:
-            result = convert_to_timedelta64(r, unit)
-        except ValueError:
-            if errors == 'raise':
-                raise
-            elif errors == 'ignore':
-                return r
+        result = Timedelta(r, unit)
+    except ValueError:
+        if errors == 'raise':
+            raise
+        elif errors == 'ignore':
+            return r
 
-            # coerce
-            result = pd.NaT
+        # coerce
+        result = NaT
 
     return result
 

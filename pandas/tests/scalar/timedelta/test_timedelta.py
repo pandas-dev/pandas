@@ -8,6 +8,7 @@ from pandas._libs.tslibs import NaT, iNaT
 
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 import pandas._testing as tm
 
 
@@ -83,7 +84,7 @@ class TestTimedeltas:
         assert rng.microseconds == 0
         assert rng.nanoseconds == 0
 
-        msg = "'Timedelta' object has no attribute '{}'"
+        msg = ""Timedelta" object has no attribute "{}""
         with pytest.raises(AttributeError, match=msg.format("hours")):
             rng.hours
         with pytest.raises(AttributeError, match=msg.format("minutes")):
@@ -109,7 +110,7 @@ class TestTimedeltas:
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
         assert rng.nanoseconds == 456
-        msg = "'Timedelta' object has no attribute '{}'"
+        msg = ""Timedelta" object has no attribute "{}""
         with pytest.raises(AttributeError, match=msg.format("hours")):
             rng.hours
         with pytest.raises(AttributeError, match=msg.format("minutes")):
@@ -265,7 +266,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
-        msg = "Units 'M' and 'Y' are no longer supported"
+        msg = "Units "M" and "Y" are no longer supported"
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 
@@ -367,38 +368,38 @@ class TestTimedeltas:
 
     def test_short_format_converters(self):
         def conv(v):
-            return v.astype('m8[ns]')
+            return v.astype("m8[ns]")
 
-        assert ct('10ns') == np.timedelta64(10, 'ns')
-        assert ct('100ns') == np.timedelta64(100, 'ns')
+        assert ct("10ns") == np.timedelta64(10, "ns")
+        assert ct("100ns") == np.timedelta64(100, "ns")
 
-        assert ct('1000ns') == np.timedelta64(1000, 'ns')
-        assert ct('1000NS') == np.timedelta64(1000, 'ns')
+        assert ct("1000ns") == np.timedelta64(1000, "ns")
+        assert ct("1000NS") == np.timedelta64(1000, "ns")
 
-        assert ct('10us') == np.timedelta64(10000, 'ns')
-        assert ct('100us') == np.timedelta64(100000, 'ns')
-        assert ct('1000us') == np.timedelta64(1000000, 'ns')
-        assert ct('1000Us') == np.timedelta64(1000000, 'ns')
-        assert ct('1000uS') == np.timedelta64(1000000, 'ns')
+        assert ct("10us") == np.timedelta64(10000, "ns")
+        assert ct("100us") == np.timedelta64(100000, "ns")
+        assert ct("1000us") == np.timedelta64(1000000, "ns")
+        assert ct("1000Us") == np.timedelta64(1000000, "ns")
+        assert ct("1000uS") == np.timedelta64(1000000, "ns")
 
-        assert ct('1ms') == np.timedelta64(1000000, 'ns')
-        assert ct('10ms') == np.timedelta64(10000000, 'ns')
-        assert ct('100ms') == np.timedelta64(100000000, 'ns')
-        assert ct('1000ms') == np.timedelta64(1000000000, 'ns')
+        assert ct("1ms") == np.timedelta64(1000000, "ns")
+        assert ct("10ms") == np.timedelta64(10000000, "ns")
+        assert ct("100ms") == np.timedelta64(100000000, "ns")
+        assert ct("1000ms") == np.timedelta64(1000000000, "ns")
 
-        assert ct('-1s') == -np.timedelta64(1000000000, 'ns')
-        assert ct('1s') == np.timedelta64(1000000000, 'ns')
-        assert ct('10s') == np.timedelta64(10000000000, 'ns')
-        assert ct('100s') == np.timedelta64(100000000000, 'ns')
-        assert ct('1000s') == np.timedelta64(1000000000000, 'ns')
+        assert ct("-1s") == -np.timedelta64(1000000000, "ns")
+        assert ct("1s") == np.timedelta64(1000000000, "ns")
+        assert ct("10s") == np.timedelta64(10000000000, "ns")
+        assert ct("100s") == np.timedelta64(100000000000, "ns")
+        assert ct("1000s") == np.timedelta64(1000000000000, "ns")
 
-        assert ct('1d') == conv(np.timedelta64(1, 'D'))
-        assert ct('-1d') == -conv(np.timedelta64(1, 'D'))
-        assert ct('1D') == conv(np.timedelta64(1, 'D'))
-        assert ct('10D') == conv(np.timedelta64(10, 'D'))
-        assert ct('100D') == conv(np.timedelta64(100, 'D'))
-        assert ct('1000D') == conv(np.timedelta64(1000, 'D'))
-        assert ct('10000D') == conv(np.timedelta64(10000, 'D'))
+        assert ct("1d") == conv(np.timedelta64(1, "D"))
+        assert ct("-1d") == -conv(np.timedelta64(1, "D"))
+        assert ct("1D") == conv(np.timedelta64(1, "D"))
+        assert ct("10D") == conv(np.timedelta64(10, "D"))
+        assert ct("100D") == conv(np.timedelta64(100, "D"))
+        assert ct("1000D") == conv(np.timedelta64(1000, "D"))
+        assert ct("10000D") == conv(np.timedelta64(10000, "D"))
 
         # space
         assert Timedelta(" 10000D ") == conv(np.timedelta64(10000, "D"))
@@ -495,71 +496,42 @@ class TestTimedeltas:
 
     def test_total_seconds_precision(self):
         # GH 19458
-        assert Timedelta('30S').total_seconds() == 30.0
-        assert Timedelta('0ns').total_seconds() == 0.0
-        assert Timedelta('-2S').total_seconds() == -2.0
-        assert Timedelta('5.324S').total_seconds() == 5.324
-        assert (Timedelta('30S').total_seconds() - 30.0) < 1e-20
-        assert (30.0 - Timedelta('30S').total_seconds()) < 1e-20
+        assert Timedelta("30S").total_seconds() == 30.0
+        assert Timedelta("0ns").total_seconds() == 0.0
+        assert Timedelta("-2S").total_seconds() == -2.0
+        assert Timedelta("5.324S").total_seconds() == 5.324
+        assert (Timedelta("30S").total_seconds() - 30.0) < 1e-20
+        assert (30.0 - Timedelta("30S").total_seconds()) < 1e-20
 
     def test_timedelta_arithmetic(self):
-        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
-        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
+        data = pd.Series(["nat", "32 days"], dtype="timedelta64[ns]")
+        deltas = [timedelta(days=1), Timedelta(1, unit="D")]
         for delta in deltas:
             result_method = data.add(delta)
             result_operator = data + delta
-            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
+            expected = pd.Series(["nat", "33 days"], dtype="timedelta64[ns]")
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
 
             result_method = data.sub(delta)
             result_operator = data - delta
-            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
+            expected = pd.Series(["nat", "31 days"], dtype="timedelta64[ns]")
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
             # GH 9396
             result_method = data.div(delta)
             result_operator = data / delta
-            expected = pd.Series([np.nan, 32.], dtype='float64')
+            expected = pd.Series([np.nan, 32.], dtype="float64")
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
 
-    def test_apply_to_timedelta(self):
-        timedelta_NaT = pd.to_timedelta('NaT')
 
-        list_of_valid_strings = ['00:00:01', '00:00:02']
-        a = pd.to_timedelta(list_of_valid_strings)
-        b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-        list_of_strings = ['00:00:01', np.nan, pd.NaT, timedelta_NaT]
-
-        # TODO: unused?
-        a = pd.to_timedelta(list_of_strings)  # noqa
-        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-    def test_components(self):
-        rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')
-        rng.components
-
-        # with nat
-        s = Series(rng)
-        s[1] = np.nan
-
-        result = s.dt.components
-        assert not result.iloc[0].isna().all()
-        assert result.iloc[1].isna().all()
-
-
-@pytest.mark.parametrize('value, expected', [
-    (Timedelta('10S'), True),
-    (Timedelta('-10S'), True),
-    (Timedelta(10, unit='ns'), True),
-    (Timedelta(0, unit='ns'), False),
-    (Timedelta(-10, unit='ns'), True),
+@pytest.mark.parametrize("value, expected", [
+    (Timedelta("10S"), True),
+    (Timedelta("-10S"), True),
+    (Timedelta(10, unit="ns"), True),
+    (Timedelta(0, unit="ns"), False),
+    (Timedelta(-10, unit="ns"), True),
     (Timedelta(None), True),
     (pd.NaT, True),
 ])

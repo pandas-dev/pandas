@@ -200,7 +200,7 @@ class BinOp(ops.BinOp):
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
         elif kind == "timedelta64" or kind == "timedelta":
-            v = Timedelta(v, unit="s").value
+            v = Timedelta(v).value
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
