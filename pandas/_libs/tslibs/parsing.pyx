@@ -376,7 +376,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, object default,
+cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
