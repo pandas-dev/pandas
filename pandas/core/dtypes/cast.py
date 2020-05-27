@@ -103,9 +103,9 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj):
+    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
 
-        if any(isinstance(v, ABCSeries) for v in obj.values):
+        if any(isinstance(v, ABCSeries) for v in obj._values):
             return True
 
     return False
@@ -126,7 +126,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()), skipna=False)
+            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
@@ -312,12 +312,14 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
-    d = {
-        (np.dtype(np.bool), "add"): np.dtype(np.int64),
-        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
-        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-    }
-    return d.get((dtype, how), dtype)
+    from pandas.core.arrays.boolean import BooleanDtype
+    from pandas.core.arrays.integer import Int64Dtype
+
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+        return np.dtype(np.int64)
+    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
+        return Int64Dtype()
+    return dtype
 
 
 def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
@@ -335,9 +337,16 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     -------
     ExtensionArray or obj
     """
+    from pandas.core.arrays.string_ import StringArray
+
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
+
+    # Everything can be be converted to StringArrays, but we may not want to convert
+    if issubclass(cls, StringArray) and lib.infer_dtype(obj) != "string":
+        return obj
+
     try:
         result = cls._from_sequence(obj, dtype=dtype)
     except Exception:
@@ -1366,7 +1375,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
-                            is_dt_string = is_string_dtype(value)
+                            is_dt_string = is_string_dtype(value.dtype)
                             value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize

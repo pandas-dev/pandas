@@ -393,7 +393,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
 
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    if is_string_dtype(left) or is_string_dtype(right):
+    if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
 
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
@@ -520,7 +520,9 @@ def na_value_for_dtype(dtype, compat: bool = True):
             return 0
         return np.nan
     elif is_bool_dtype(dtype):
-        return False
+        if compat:
+            return False
+        return np.nan
     return np.nan
 
 
