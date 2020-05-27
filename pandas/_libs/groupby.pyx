@@ -378,8 +378,8 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_any_all(uint8_t[:] out,
-                  const int64_t[:] labels,
                   const uint8_t[:] values,
+                  const int64_t[:] labels,
                   const uint8_t[:] mask,
                   object val_test,
                   bint skipna):
@@ -560,7 +560,8 @@ def _group_var(floating[:, :] out,
                int64_t[:] counts,
                floating[:, :] values,
                const int64_t[:] labels,
-               Py_ssize_t min_count=-1):
+               Py_ssize_t min_count=-1,
+               int64_t ddof=1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
@@ -600,10 +601,10 @@ def _group_var(floating[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 ct = nobs[i, j]
-                if ct < 2:
+                if ct <= ddof:
                     out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - 1)
+                    out[i, j] /= (ct - ddof)
 
 
 group_var_float32 = _group_var['float']
@@ -714,12 +715,10 @@ group_ohlc_float64 = _group_ohlc['double']
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_quantile(floating[:, :] out,
-                   int64_t[:] counts,
-                   floating[:, :] values,
-                   const int64_t[:] labels,
-                   Py_ssize_t min_count,
-                   const uint8_t[:, :] mask,
+def group_quantile(ndarray[float64_t] out,
+                   numeric[:] values,
+                   ndarray[int64_t] labels,
+                   ndarray[uint8_t] mask,
                    float64_t q,
                    object interpolation):
     """
@@ -742,12 +741,12 @@ def group_quantile(floating[:, :] out,
     provided `out` parameter.
     """
     cdef:
-        Py_ssize_t i, N=len(labels), K, ngroups, grp_sz=0, non_na_sz
+        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz
         Py_ssize_t grp_start=0, idx=0
         int64_t lab
         uint8_t interp
         float64_t q_idx, frac, val, next_val
-        int64_t[:, :] non_na_counts, sort_arrs
+        ndarray[int64_t] counts, non_na_counts, sort_arr
 
     assert values.shape[0] == N
 
@@ -763,11 +762,9 @@ def group_quantile(floating[:, :] out,
     }
     interp = inter_methods[interpolation]
 
+    counts = np.zeros_like(out, dtype=np.int64)
     non_na_counts = np.zeros_like(out, dtype=np.int64)
-    sort_arrs = np.empty_like(values, dtype=np.int64)
     ngroups = len(counts)
-
-    N, K = (<object>values).shape
 
     # First figure out the size of every group
     with nogil:
@@ -775,52 +772,49 @@ def group_quantile(floating[:, :] out,
             lab = labels[i]
             if lab == -1:  # NA group label
                 continue
-            counts[lab] += 1
-            for j in range(K):
-                if not mask[i, j]:
-                    non_na_counts[lab, j] += 1
 
-    for j in range(K):
-        order = (values[:, j], labels)
-        r = np.lexsort(order).astype(np.int64, copy=False)
-        # TODO: Need better way to assign r to column j
-        for i in range(N):
-            sort_arrs[i, j] = r[i]
+            counts[lab] += 1
+            if not mask[i]:
+                non_na_counts[lab] += 1
+
+    # Get an index of values sorted by labels and then values
+    order = (values, labels)
+    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
     with nogil:
         for i in range(ngroups):
             # Figure out how many group elements there are
             grp_sz = counts[i]
-            for j in range(K):
-                non_na_sz = non_na_counts[i, j]
-                if non_na_sz == 0:
-                    out[i, j] = NaN
+            non_na_sz = non_na_counts[i]
+
+            if non_na_sz == 0:
+                out[i] = NaN
+            else:
+                # Calculate where to retrieve the desired value
+                # Casting to int will intentionally truncate result
+                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
+
+                val = values[sort_arr[idx]]
+                # If requested quantile falls evenly on a particular index
+                # then write that index's value out. Otherwise interpolate
+                q_idx = q * (non_na_sz - 1)
+                frac = q_idx % 1
+
+                if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                    out[i] = val
                 else:
-                    # Calculate where to retrieve the desired value
-                    # Casting to int will intentionally truncate result
-                    idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
-
-                    val = values[sort_arrs[idx, j], j]
-                    # If requested quantile falls evenly on a particular index
-                    # then write that index's value out. Otherwise interpolate
-                    q_idx = q * (non_na_sz - 1)
-                    frac = q_idx % 1
-
-                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                        out[i, j] = val
-                    else:
-                        next_val = values[sort_arrs[idx + 1, j], j]
-                        if interp == INTERPOLATION_LINEAR:
-                            out[i, j] = val + (next_val - val) * frac
-                        elif interp == INTERPOLATION_HIGHER:
-                            out[i, j] = next_val
-                        elif interp == INTERPOLATION_MIDPOINT:
-                            out[i, j] = (val + next_val) / 2.0
-                        elif interp == INTERPOLATION_NEAREST:
-                            if frac > .5 or (frac == .5 and q > .5):  # Always OK?
-                                out[i, j] = next_val
-                            else:
-                                out[i, j] = val
+                    next_val = values[sort_arr[idx + 1]]
+                    if interp == INTERPOLATION_LINEAR:
+                        out[i] = val + (next_val - val) * frac
+                    elif interp == INTERPOLATION_HIGHER:
+                        out[i] = next_val
+                    elif interp == INTERPOLATION_MIDPOINT:
+                        out[i] = (val + next_val) / 2.0
+                    elif interp == INTERPOLATION_NEAREST:
+                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
+                            out[i] = next_val
+                        else:
+                            out[i] = val
 
             # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
