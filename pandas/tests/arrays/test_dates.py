@@ -100,14 +100,3 @@ def test_date_display_format(df: pd.DataFrame, series: Series):
         "Name: dates, dtype: date"
     )
     assert display == expected
-
-
-def test_is_date_dtype_for_dtype():
-    date_dtype = DateDtype()
-    assert is_date_dtype(date_dtype)
-
-    assert not is_date_dtype("yes64")
-    assert not is_date_dtype("date27")
-
-    assert is_date_dtype("date")
-    assert is_date_dtype("date64")

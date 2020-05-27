@@ -213,7 +213,13 @@ def test_is_date_type():
     assert not com.is_date_dtype([1, 2, 3])
     assert not com.is_date_dtype(np.array([], dtype=int))
 
-    assert com.is_date_dtype(DateDtype("2020-01-01"))
+    assert not com.is_date_dtype("yes64")
+    assert not com.is_date_dtype("date27")
+
+    assert com.is_date_dtype("date")
+    assert com.is_date_dtype("date64")
+
+    assert com.is_date_dtype(DateDtype())
 
 
 def test_is_datetime64_dtype():
