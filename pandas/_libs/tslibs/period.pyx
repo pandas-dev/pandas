@@ -1281,14 +1281,16 @@ cdef int pyear(int64_t ordinal, int freq):
 @cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return quarter
 
