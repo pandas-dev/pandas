@@ -5819,6 +5819,14 @@ Stack the differences on rows
 2 self   NaN   3.0
   other  NaN   4.0
 
+Keep the equal values
+
+>>> df.compare(df2, keep_equal=True)
+  col1       col3
+  self other self other
+0    a     c  1.0   1.0
+2    b     b  3.0   4.0
+
 Keep all original rows and columns
 
 >>> df.compare(df2, keep_shape=True)
