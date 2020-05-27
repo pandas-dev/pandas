@@ -59,6 +59,9 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.weekmask
+    BusinessDay.holidays
+    BusinessDay.calendar
 
 Methods
 ~~~~~~~
@@ -95,6 +98,9 @@ Properties
     BusinessHour.n
     BusinessHour.start
     BusinessHour.end
+    BusinessHour.weekmask
+    BusinessHour.holidays
+    BusinessHour.calendar
 
 Methods
 ~~~~~~~
@@ -1253,6 +1259,9 @@ Properties
     BDay.offset
     BDay.rule_code
     BDay.n
+    BDay.weekmask
+    BDay.holidays
+    BDay.calendar
 
 Methods
 ~~~~~~~
@@ -1472,6 +1481,7 @@ Methods
     CDay.rollback
     CDay.rollforward
     CDay.__call__
+
 
 .. _api.frequencies:
 
