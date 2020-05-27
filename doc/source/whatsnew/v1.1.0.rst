@@ -227,7 +227,7 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
-- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`).
+- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
@@ -583,6 +583,53 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
    df[['a', 'c']] = 1
    df
 
+.. _whatsnew_110.api_breaking.groupby_consistency:
+
+Consistency across groupby reductions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nunique`` would include the grouping column(s) in the columns of the result. Now the grouping column(s) only appear in the index, consistent with other reductions. (:issue:`32579`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=True).nunique()
+   Out[4]:
+      a  b
+   a
+   x  1  1
+   y  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=True).nunique()
+
+Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxmax``, ``idxmin``, ``mad``, ``nunique``, ``sem``, ``skew``, or ``std`` would modify the grouping column. Now the grouping column remains unchanged, consistent with other reductions. (:issue:`21090`, :issue:`10355`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=False).nunique()
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=False).nunique()
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
@@ -855,7 +902,10 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
-- Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the output index shape for functions returning a DataFrame which is equally indexed
+  to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
+  indices. In particular, the result index shape might change if a copy of the input would be returned.
+  The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 
 Reshaping
 ^^^^^^^^^
