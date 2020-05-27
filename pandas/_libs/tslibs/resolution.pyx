@@ -28,26 +28,18 @@ cdef:
 
 # ----------------------------------------------------------------------
 
-cpdef resolution(const int64_t[:] stamps, tz=None):
+def resolution(const int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-        int reso = RESO_DAY, curr_reso
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-    return _reso_local(stamps, tz)
-
-
-cdef _reso_local(const int64_t[:] stamps, object tz):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans
         int64_t[:] deltas
         Py_ssize_t[:] pos
-        npy_datetimestruct dts
         int64_t local_val, delta
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
 
     if is_utc(tz) or tz is None:
         for i in range(n):

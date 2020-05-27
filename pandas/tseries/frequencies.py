@@ -10,7 +10,18 @@ from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, MONTH_NUMBERS, int_to_weekday
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.offsets import _offset_to_period_map
+from pandas._libs.tslibs.offsets import (
+    DateOffset,
+    Day,
+    Hour,
+    Micro,
+    Milli,
+    Minute,
+    Nano,
+    Second,
+    _offset_to_period_map,
+    prefix_mapping,
+)
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._libs.tslibs.resolution import Resolution, month_position_check
 from pandas._libs.tslibs.timezones import UTC
@@ -25,18 +36,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
-
-from pandas.tseries.offsets import (
-    DateOffset,
-    Day,
-    Hour,
-    Micro,
-    Milli,
-    Minute,
-    Nano,
-    Second,
-    prefix_mapping,
-)
 
 _ONE_MICRO = 1000
 _ONE_MILLI = _ONE_MICRO * 1000

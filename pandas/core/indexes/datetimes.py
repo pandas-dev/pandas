@@ -8,6 +8,7 @@ import numpy as np
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
 from pandas._libs.tslibs import fields, parsing, resolution as libresolution, timezones
 from pandas._libs.tslibs.frequencies import get_freq_group
+from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
@@ -30,7 +31,6 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):

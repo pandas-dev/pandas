@@ -137,6 +137,7 @@ Methods
 .. autosummary::
    :toctree: api/
 
+    CustomBusinessDay.apply_index
     CustomBusinessDay.apply
     CustomBusinessDay.copy
     CustomBusinessDay.isAnchored
