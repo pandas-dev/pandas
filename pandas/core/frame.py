@@ -3421,6 +3421,10 @@ class DataFrame(NDFrame):
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
 
+        See Also
+        --------
+        DataFrame.dtypes: Return Series with the data type of each column.
+
         Notes
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
@@ -3468,7 +3472,7 @@ class DataFrame(NDFrame):
         4  1.0
         5  2.0
 
-        >>> df.select_dtypes(exclude=['int'])
+        >>> df.select_dtypes(exclude=['int64'])
                b    c
         0   True  1.0
         1  False  2.0
