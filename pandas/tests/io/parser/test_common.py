@@ -1517,7 +1517,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         ),
     ],
 )
-def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
+def test_read_empty_with_usecols(all_parsers, data, kwargs, expected, pyarrow_xfail):
     # see gh-12493
     parser = all_parsers
 
@@ -2082,7 +2082,7 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_row_bom(all_parsers):
+def test_first_row_bom(all_parsers, pyarrow_xfail):
     # see gh-26545
     parser = all_parsers
     data = '''\ufeff"Head1"	"Head2"	"Head3"'''

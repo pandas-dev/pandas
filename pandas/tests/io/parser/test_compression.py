@@ -81,16 +81,11 @@ def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
 
 
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(parser_and_data, compression_only, buffer, filename):
+def test_compression(parser_and_data, compression_only, buffer, filename, pyarrow_xfail):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
     ext = "gz" if compress_type == "gzip" else compress_type
-    pyarrow_unsupported_exts = {"bz2", "zip", "xz"}
-    if ext in pyarrow_unsupported_exts and parser.engine == "pyarrow":
-        # need to skip since this test will hang forever and not fail
-        pytest.skip(f"The pyarrow package doesn't come with {ext} support")
-
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
@@ -118,6 +113,8 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     expected = parser.read_csv(csv1, **kwargs)
     kwargs["compression"] = "infer"
 
+    if ext == "bz2":
+        pytest.xfail("pyarrow wheels don't have bz2 codec support")
     if buffer:
         with open(csv1) as f:
             result = parser.read_csv(f, **kwargs)
@@ -128,7 +125,7 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
+def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt, pyarrow_xfail):
     # see gh-18071, gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)

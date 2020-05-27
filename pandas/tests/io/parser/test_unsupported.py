@@ -121,3 +121,22 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         with pytest.raises(ValueError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
+
+    def test_pyarrow_engine(self):
+        from pandas.io.parsers import _pyarrow_unsupported as pa_unsupported
+
+        data = """1,2,3,,
+        1,2,3,4,
+        1,2,3,4,5
+        1,2,,,
+        1,2,3,4,"""
+
+        for default in pa_unsupported:
+            msg = (
+                f"The {repr(default)} option is not "
+                f"supported with the 'pyarrow' engine"
+            )
+            print(default)
+            kwargs = {default: object()}
+            with pytest.raises(ValueError, match=msg):
+                read_csv(StringIO(data), engine="pyarrow", **kwargs)

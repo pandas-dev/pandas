@@ -21,7 +21,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import FilePathOrBuffer
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import import_optional_dependency, VERSIONS
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -444,7 +444,14 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = kwds.get("chunksize", None)
+    if kwds.get("engine") == "pyarrow":  # chunksize not supported for pyarrow
+        if iterator:
+            raise ValueError("The 'iterator' option is not supported with the 'pyarrow' engine")
+        if chunksize is not None:
+            raise ValueError("The 'chunksize' option is not supported with the 'pyarrow' engine")
+    else:
+        chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
@@ -830,6 +837,9 @@ class TextFileReader(abc.Iterator):
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
         if kwds.get("dialect") is not None:
+            if engine == "pyarrow":
+                raise ValueError("The 'dialect' option is not supported with the 'pyarrow' engine")
+
             dialect = kwds["dialect"]
             if dialect in csv.list_dialects():
                 dialect = csv.get_dialect(dialect)
@@ -923,11 +933,11 @@ class TextFileReader(abc.Iterator):
                 if engine == "pyarrow" and value != default:
                     raise ValueError(
                         f"The {repr(argname)} option is not supported with the "
-                        f"{repr(engine)} engine"
+                        f"'pyarrow' engine"
                     )
             if argname == "iterator" and engine == "pyarrow":
                 raise ValueError(
-                    "The iterator option is not supported with the pyarrow engine"
+                    "The iterator option is not supported with the 'pyarrow' engine"
                 )
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
@@ -2281,6 +2291,7 @@ class ArrowParserWrapper(ParserBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
 
     def read(self):
+        VERSIONS["pyarrow"] = "0.15.0"
         pyarrow = import_optional_dependency(
             "pyarrow.csv", extra="pyarrow is required to use the pyarrow engine"
         )
@@ -2297,19 +2308,11 @@ class ArrowParserWrapper(ParserBase):
         convert_options = {k: v for k, v in kwdscopy.items() if k in convertoptions}
         read_options = pyarrow.ReadOptions(autogenerate_column_names=True)
         headerexists = True if self.header is not None and self.header >= 0 else False
-        try:
-            skiprows = self.kwds.get("skiprows")
-            if skiprows is not None:
-                read_options = pyarrow.ReadOptions(skip_rows=skiprows)
-            elif self.header >= 0:
-                read_options = pyarrow.ReadOptions(skip_rows=self.header)
-        except TypeError as e:
-            msg = "__init__() got an unexpected keyword argument"
-            if msg in str(e):
-                raise ImportError(
-                    "pyarrow version >= 0.15.0 is required to use "
-                    "read_csv with engine='pyarrow'"
-                )
+        skiprows = self.kwds.get("skiprows")
+        if skiprows is not None:
+            read_options = pyarrow.ReadOptions(skip_rows=skiprows)
+        elif headerexists:
+            read_options = pyarrow.ReadOptions(skip_rows=self.header)
         table = pyarrow.read_csv(
             self.src,
             read_options=read_options,
