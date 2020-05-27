@@ -393,40 +393,6 @@ Methods
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.__call__
 
-SemiMonthOffset
----------------
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.freqstr
-    SemiMonthOffset.kwds
-    SemiMonthOffset.name
-    SemiMonthOffset.nanos
-    SemiMonthOffset.normalize
-    SemiMonthOffset.rule_code
-    SemiMonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.apply
-    SemiMonthOffset.apply_index
-    SemiMonthOffset.copy
-    SemiMonthOffset.isAnchored
-    SemiMonthOffset.onOffset
-    SemiMonthOffset.is_anchored
-    SemiMonthOffset.is_on_offset
-    SemiMonthOffset.__call__
-
 SemiMonthEnd
 ------------
 .. autosummary::
@@ -446,6 +412,7 @@ Properties
     SemiMonthEnd.normalize
     SemiMonthEnd.rule_code
     SemiMonthEnd.n
+    SemiMonthEnd.day_of_month
 
 Methods
 ~~~~~~~
@@ -480,6 +447,7 @@ Properties
     SemiMonthBegin.normalize
     SemiMonthBegin.rule_code
     SemiMonthBegin.n
+    SemiMonthBegin.day_of_month
 
 Methods
 ~~~~~~~
@@ -514,6 +482,7 @@ Properties
     Week.normalize
     Week.rule_code
     Week.n
+    Week.weekday
 
 Methods
 ~~~~~~~
@@ -548,6 +517,7 @@ Properties
     WeekOfMonth.normalize
     WeekOfMonth.rule_code
     WeekOfMonth.n
+    WeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -583,6 +553,7 @@ Properties
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
     LastWeekOfMonth.weekday
+    LastWeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -934,6 +905,7 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.qtr_with_extra_week
     FY5253Quarter.startingMonth
     FY5253Quarter.variation
     FY5253Quarter.weekday

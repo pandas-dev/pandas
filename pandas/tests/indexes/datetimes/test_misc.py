@@ -404,6 +404,7 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
     expected_data_frame = pd.DataFrame(
         [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
         columns=["year", "week", "day"],
+        index=dates,
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)

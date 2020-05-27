@@ -13,6 +13,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.astype_string:
+
+All dtypes can now be converted to ``StringDtype``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, declaring or converting to :class:`StringDtype` was in general only possible if the data was already only ``str`` or nan-like (:issue:`31204`).
+:class:`StringDtype` now works in all situations where ``astype(str)`` or ``dtype=str`` work:
+
+For example, the below now works:
+
+.. ipython:: python
+
+   ser = pd.Series([1, "abc", np.nan], dtype="string")
+   ser
+   ser[0]
+   pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
+
+
 .. _whatsnew_110.period_index_partial_string_slicing:
 
 Nonmonotonic PeriodIndex Partial String Slicing
@@ -209,7 +227,7 @@ Other enhancements
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
-- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`).
+- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
@@ -565,6 +583,53 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
    df[['a', 'c']] = 1
    df
 
+.. _whatsnew_110.api_breaking.groupby_consistency:
+
+Consistency across groupby reductions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nunique`` would include the grouping column(s) in the columns of the result. Now the grouping column(s) only appear in the index, consistent with other reductions. (:issue:`32579`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=True).nunique()
+   Out[4]:
+      a  b
+   a
+   x  1  1
+   y  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=True).nunique()
+
+Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxmax``, ``idxmin``, ``mad``, ``nunique``, ``sem``, ``skew``, or ``std`` would modify the grouping column. Now the grouping column remains unchanged, consistent with other reductions. (:issue:`21090`, :issue:`10355`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=False).nunique()
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  2
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=False).nunique()
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
@@ -624,6 +689,7 @@ Performance improvements
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
+- Performance improvement in arithmetic operations (sub, add, mul, div) for MultiIndex (:issue:`34297`)
 
 .. ---------------------------------------------------------------------------
 
@@ -805,6 +871,7 @@ I/O
 - Bug in :meth:`~DataFrame.read_feather` was raising an `ArrowIOError` when reading an s3 or http file path (:issue:`29055`)
 - Bug in :meth:`read_parquet` was raising a ``FileNotFoundError`` when passed an s3 directory path. (:issue:`26388`)
 - Bug in :meth:`~DataFrame.to_parquet` was throwing an ``AttributeError`` when writing a partitioned parquet file to s3 (:issue:`27596`)
+- Bug in :meth:`~DataFrame.to_excel` could not handle the column name `render` and was raising an ``KeyError`` (:issue:`34331`)
 
 Plotting
 ^^^^^^^^
@@ -835,7 +902,10 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
-- Bug in :meth:`DataFrameGroupby.std` and :meth:`DataFrameGroupby.sem` would modify grouped-by columns when ``as_index=False`` (:issue:`10355`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the output index shape for functions returning a DataFrame which is equally indexed
+  to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
+  indices. In particular, the result index shape might change if a copy of the input would be returned.
+  The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 
 Reshaping
 ^^^^^^^^^
@@ -865,6 +935,7 @@ Reshaping
 - Bug in :func:`cut` raised an error when non-unique labels (:issue:`33141`)
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
+- Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 
 Sparse
 ^^^^^^
