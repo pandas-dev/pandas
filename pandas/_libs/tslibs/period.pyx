@@ -54,9 +54,9 @@ from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
     get_freq_code,
     get_freq_str,
-    get_rule_month,
     get_to_timestamp_base,
 )
+from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
@@ -65,7 +65,9 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport (
+    to_offset, is_tick_object, is_offset_object,
+)
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -955,35 +957,6 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] dtarr, int freq, tz=None):
-    """
-    Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
-    periods corresponding to desired frequency, per period convention.
-    """
-    cdef:
-        int64_t[:] out
-        Py_ssize_t i, l
-        npy_datetimestruct dts
-
-    l = len(dtarr)
-
-    out = np.empty(l, dtype='i8')
-
-    if tz is None:
-        with nogil:
-            for i in range(l):
-                if dtarr[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(dtarr[i], &dts)
-                out[i] = get_period_ordinal(&dts, freq)
-    else:
-        out = localize_dt64arr_to_period(dtarr, freq, tz)
-    return out.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
@@ -1279,14 +1252,16 @@ cdef int pyear(int64_t ordinal, int freq):
 @cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return quarter
 
@@ -1469,8 +1444,7 @@ def extract_freq(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
-                                           int freq, object tz):
+def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
@@ -1519,7 +1493,7 @@ cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
                 dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = get_period_ordinal(&dts, freq)
 
-    return result
+    return result.base  # .base to get underlying ndarray
 
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
@@ -1578,36 +1552,37 @@ cdef class _Period:
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented
+        return NotImplemented  # TODO: ndarray[object]?
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
-    def _add_delta(self, other):
+    def _add_delta(self, other) -> "Period":
         cdef:
             int64_t nanos, offset_nanos
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                is_tick_object(other)):
-            offset = to_offset(self.freq.rule_code)
-            if is_tick_object(offset):
-                nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                if nanos % offset_nanos == 0:
-                    ordinal = self.ordinal + (nanos // offset_nanos)
-                    return Period(ordinal=ordinal, freq=self.freq)
-            raise IncompatibleFrequency("Input cannot be converted to "
-                                        f"Period(freq={self.freqstr})")
-        elif util.is_offset_object(other):
-            if other.base == self.freq.base:
-                ordinal = self.ordinal + other.n
+        if is_tick_object(self.freq):
+            nanos = delta_to_nanoseconds(other)
+            offset_nanos = self.freq.base.nanos
+            if nanos % offset_nanos == 0:
+                ordinal = self.ordinal + (nanos // offset_nanos)
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                        own_freq=self.freqstr,
-                                        other_freq=other.freqstr)
-            raise IncompatibleFrequency(msg)
-        else:  # pragma no cover
-            return NotImplemented
+        raise IncompatibleFrequency("Input cannot be converted to "
+                                    f"Period(freq={self.freqstr})")
+
+    def _add_offset(self, other) -> "Period":
+        # Non-Tick DateOffset other
+        cdef:
+            int64_t ordinal
+
+        if other.base == self.freq.base:
+            ordinal = self.ordinal + other.n
+            return Period(ordinal=ordinal, freq=self.freq)
+
+        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                    own_freq=self.freqstr,
+                                    other_freq=other.freqstr)
+        raise IncompatibleFrequency(msg)
 
     def __add__(self, other):
         if not is_period_object(self):
@@ -1616,9 +1591,10 @@ cdef class _Period:
                 return NaT
             return other.__add__(self)
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+        if is_any_tdlike_scalar(other):
             return self._add_delta(other)
+        elif is_offset_object(other):
+            return self._add_offset(other)
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
@@ -1642,8 +1618,11 @@ cdef class _Period:
                 return NaT
             return NotImplemented
 
-        elif (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+        elif is_any_tdlike_scalar(other):
+            neg_other = -other
+            return self + neg_other
+        elif is_offset_object(other):
+            # Non-Tick DateOffset
             neg_other = -other
             return self + neg_other
         elif util.is_integer_object(other):
@@ -2504,6 +2483,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
         year -= 1
 
     return year, month
+    # TODO: This whole func is really similar to parsing.pyx L434-L450
 
 
 def validate_end_alias(how):
@@ -2514,3 +2494,18 @@ def validate_end_alias(how):
     if how not in {'S', 'E'}:
         raise ValueError('How must be one of S or E')
     return how
+
+
+cpdef is_any_tdlike_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
+    return util.is_timedelta64_object(obj) or PyDelta_Check(obj) or is_tick_object(obj)
