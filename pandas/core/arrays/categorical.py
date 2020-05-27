@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Type, Union, cast
+from typing import TYPE_CHECKING, Dict, Hashable, List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -54,6 +54,9 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
+
+if TYPE_CHECKING:
+    from pandas._typing import DataFrame  # noqa: F401
 
 
 def _cat_compare_op(op):
@@ -369,6 +372,110 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
+
+    @classmethod
+    def from_dummies(cls, dummies: "DataFrame", ordered=None):
+        """
+        Create a `Categorical` using a ``DataFrame`` encoding those categories
+        as dummy/ one-hot encoded variables.
+
+        The ``DataFrame`` must be coercible to boolean,
+        and have no more than one truthy value per row.
+        The columns of the ``DataFrame`` become the categories of the `Categorical`.
+        A column whose header is NA will be dropped.
+
+        Parameters
+        ----------
+            dummies : DataFrame of bool-like
+            ordered : bool
+                Whether or not this Categorical is ordered.
+
+        Raises
+        ------
+            ValueError
+                If a sample belongs to >1 category
+
+        Returns
+        -------
+        Categorical
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ... [[1, 0, 0], [0, 1, 0], [0, 0, 1]], columns=["a", "b", "c"]
+        ... )
+        >>> Categorical.from_dummies(df)
+        [a, b, c]
+        Categories (3, object): [a, b, c]
+        """
+        # GH 8745
+        from pandas import Series
+
+        df = dummies.drop(columns=np.nan, errors="ignore").astype(bool)
+
+        if (df.sum(axis=1) > 1).any():
+            raise ValueError("Some rows belong to >1 category")
+
+        index_into = Series([np.nan] + list(df.columns))
+        mult_by = np.arange(1, len(index_into))
+
+        codes = (df.astype(int) * mult_by).sum(axis=1) - 1
+        codes[codes.isna()] = -1
+        return cls.from_codes(codes, df.columns.values, ordered=ordered)
+
+    def to_dummies(self, na_column=None) -> "DataFrame":
+        """
+        Create a ``DataFrame`` representing this `Categorical`
+        as dummy/ one-hot encoded variables.
+
+        For more power over column names or to use a sparse matrix,
+        see :func:`pandas.get_dummies`.
+
+        Parameters
+        ----------
+            na_column : Optional
+                If None, NA values will be represented as a row of zeros.
+                Otherwise, this is the name of a new column representing
+                those NA values.
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> Categorical(["a", "b", "c"]).to_dummies()
+           a      b      c
+        0  True   False  False
+        1  False  True   False
+        2  False  False  True
+
+        >>> Categorical(["a", "b", np.nan]).to_dummies()
+           a      b
+        0  True   False
+        1  False  True
+        2  False  False
+
+        >>> Categorical(["a", "b", np.nan]).to_dummies("c")
+           a      b      c
+        0  True   False  False
+        1  False  True   False
+        2  False  False  True
+
+        See Also
+        --------
+        :func:`pandas.get_dummies`
+        """
+        from pandas import DataFrame, CategoricalIndex
+
+        eye = np.eye(len(self.categories) + 1, dtype=bool)
+        arr = eye[self.codes, :]
+
+        if na_column is None:
+            return DataFrame(arr[:, :-1], columns=CategoricalIndex(self.categories))
+        else:
+            cat_lst = list(self.categories) + [na_column]
+            return DataFrame(arr, columns=CategoricalIndex(cat_lst))
 
     @property
     def dtype(self) -> CategoricalDtype:
