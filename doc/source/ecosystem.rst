@@ -154,10 +154,22 @@ Spun off from the main pandas library, the `qtpandas <https://github.com/draperj
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
 `D-Tale <https://github.com/man-group/dtale>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-D-Tale is the combination of a Flask back-end and React front-end to bring you an easy way to view, edit & analyze Pandas data structures. Also, includes a fully-featured chart builder by way of Plotly Dash. It integrates seamlessly with jupyter notebooks, python terminals, kaggle & Google Colab. Currently this tool supports such Pandas objects as DataFrame, Series, MultiIndex, DatetimeIndex & RangeIndex. A nice demo is located `here <http://alphatechadmin.pythonanywhere.com/>`__.
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
 
+.. code:: python
+
+    import dtale; dtale.show(df)
+
+D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+& Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
+and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
 .. _ecosystem.ide:
 
