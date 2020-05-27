@@ -1277,7 +1277,6 @@ performance regressions. pandas is in the process of migrating to
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
 test results can be found `here <https://pandas.pydata.org/speed/pandas/#/>`__.
-asv supports both python2 and python3.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
