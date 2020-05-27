@@ -1683,4 +1683,4 @@ to generate the plots. Some libraries implementing a backend for pandas are list
 on the ecosystem :ref:`ecosystem.visualization` page.
 
 Developers guide can be found at
-https://dev.pandas.io/docs/development/extending.html#plotting-backends
+https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends
