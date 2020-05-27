@@ -50,7 +50,6 @@ def test_from_object_array():
         dt_range.date, result.date
     )
 
-
 def test_from_datetime_array():
     np_array = np.array(
         [
@@ -66,6 +65,20 @@ def test_from_datetime_array():
     result = DateArray._from_sequence(pd_array)
     assert np.array_equal(pd_array.date, result.date)
 
+def test_from_string_array():
+    np_array = np.array(
+        [
+            "2001-01-01T12:00",
+            "2002-02-03T13:56:03.172",
+            "2007-07-13",
+            "2006-01-13",
+            "2010-08-13",
+        ],
+        dtype="object",
+    )
+    pd_array = pd.array(np_array, dtype="string")
+    result = DateArray._from_sequence(pd_array)
+    assert np.array_equal(pd_array.astype("datetime64[ns]").date, result.date)
 
 def test_to_int_array():
     pass
@@ -116,17 +129,6 @@ def test_date_display_format(df: pd.DataFrame, series: Series):
     assert display == expected
 
 
-# def test_read_data_date():
-#     df = read_csv()
-#     df["dates"] = series.astype("datetime64").astype("date")
-#     df["datetimes"] = series.astype("datetime64")
-#     print(df["dates"])
-#     print(df)
-#     print(df.dtypes)
-#     for data in df["dates"]:
-#         print(data)
-
-
 def test_is_date_dtype_for_dtype():
     date_dtype = DateDtype()
     assert is_date_dtype(date_dtype)
@@ -143,7 +145,7 @@ if __name__ == "__main__":
     # series.name = "strings"
     # df = series.to_frame()
     # df["strings"] = df["strings"].astype("string")
-    test_from_datetime_array()
+    test_from_string_array()
     # test_datetime64_to_date()
     # test_read_data_date()
     # Series([0, 1, 0, 1]).astype("Int64").apply(str).astype("object").astype("string")

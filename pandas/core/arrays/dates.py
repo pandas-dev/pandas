@@ -72,12 +72,10 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
-        print("simple new")
-        print("before", values)
         assert isinstance(values, np.ndarray)
         if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
-        print("after", values)
+
         result = object.__new__(cls)
         result._data = values
         return result
