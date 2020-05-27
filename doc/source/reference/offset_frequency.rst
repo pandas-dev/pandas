@@ -59,6 +59,9 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.weekmask
+    BusinessDay.holidays
+    BusinessDay.calendar
 
 Methods
 ~~~~~~~
@@ -95,6 +98,9 @@ Properties
     BusinessHour.n
     BusinessHour.start
     BusinessHour.end
+    BusinessHour.weekmask
+    BusinessHour.holidays
+    BusinessHour.calendar
 
 Methods
 ~~~~~~~
@@ -128,6 +134,9 @@ Properties
     CustomBusinessDay.normalize
     CustomBusinessDay.rule_code
     CustomBusinessDay.n
+    CustomBusinessDay.weekmask
+    CustomBusinessDay.calendar
+    CustomBusinessDay.holidays
 
 Methods
 ~~~~~~~
@@ -162,6 +171,9 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.weekmask
+    CustomBusinessHour.calendar
+    CustomBusinessHour.holidays
     CustomBusinessHour.start
     CustomBusinessHour.end
 
@@ -334,6 +346,9 @@ Properties
     CustomBusinessMonthEnd.normalize
     CustomBusinessMonthEnd.rule_code
     CustomBusinessMonthEnd.n
+    CustomBusinessMonthEnd.weekmask
+    CustomBusinessMonthEnd.calendar
+    CustomBusinessMonthEnd.holidays
 
 Methods
 ~~~~~~~
@@ -368,6 +383,9 @@ Properties
     CustomBusinessMonthBegin.normalize
     CustomBusinessMonthBegin.rule_code
     CustomBusinessMonthBegin.n
+    CustomBusinessMonthBegin.weekmask
+    CustomBusinessMonthBegin.calendar
+    CustomBusinessMonthBegin.holidays
 
 Methods
 ~~~~~~~
@@ -1241,6 +1259,9 @@ Properties
     BDay.offset
     BDay.rule_code
     BDay.n
+    BDay.weekmask
+    BDay.holidays
+    BDay.calendar
 
 Methods
 ~~~~~~~
@@ -1356,6 +1377,9 @@ Properties
     CBMonthEnd.offset
     CBMonthEnd.rule_code
     CBMonthEnd.n
+    CBMonthEnd.weekmask
+    CBMonthEnd.holidays
+    CBMonthEnd.calendar
 
 Methods
 ~~~~~~~
@@ -1397,6 +1421,9 @@ Properties
     CBMonthBegin.offset
     CBMonthBegin.rule_code
     CBMonthBegin.n
+    CBMonthBegin.weekmask
+    CBMonthBegin.holidays
+    CBMonthBegin.calendar
 
 Methods
 ~~~~~~~
@@ -1435,6 +1462,9 @@ Properties
     CDay.offset
     CDay.rule_code
     CDay.n
+    CDay.weekmask
+    CDay.calendar
+    CDay.holidays
 
 Methods
 ~~~~~~~
@@ -1451,6 +1481,7 @@ Methods
     CDay.rollback
     CDay.rollforward
     CDay.__call__
+
 
 .. _api.frequencies:
 

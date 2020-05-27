@@ -1247,10 +1247,26 @@ cdef class BusinessMixin(SingleConstructorOffset):
 
     cdef readonly:
         timedelta _offset
+        # Only Custom subclasses use weekmask, holiday, calendar
+        object weekmask, holidays, calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
         self._offset = offset
+
+    cpdef _init_custom(self, weekmask, holidays, calendar):
+        """
+        Additional __init__ for Custom subclasses.
+        """
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+        self.weekmask = weekmask
+        self.holidays = holidays
+        self.calendar = calendar
 
     @property
     def offset(self):
@@ -1276,6 +1292,18 @@ cdef class BusinessMixin(SingleConstructorOffset):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
+
+        if self._prefix.startswith("C"):
+            # i.e. this is a Custom class
+            weekmask = state.pop("weekmask")
+            holidays = state.pop("holidays")
+            calendar, holidays = _get_calendar(weekmask=weekmask,
+                                               holidays=holidays,
+                                               calendar=None)
+            self.weekmask = weekmask
+            self.calendar = calendar
+            self.holidays = holidays
+
         BaseOffset.__setstate__(self, state)
 
 
@@ -1783,25 +1811,6 @@ cdef class BusinessHour(BusinessMixin):
             return True
         else:
             return False
-
-
-class CustomMixin:
-    """
-    Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes.
-    """
-
-    def __init__(self, weekmask, holidays, calendar):
-        calendar, holidays = _get_calendar(
-            weekmask=weekmask, holidays=holidays, calendar=calendar
-        )
-        # Custom offset instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        object.__setattr__(self, "weekmask", weekmask)
-        object.__setattr__(self, "holidays", holidays)
-        object.__setattr__(self, "calendar", calendar)
 
 
 cdef class WeekOfMonthMixin(SingleConstructorOffset):
@@ -3252,7 +3261,7 @@ cdef class Easter(SingleConstructorOffset):
 # Custom Offset classes
 
 
-class CustomBusinessDay(CustomMixin, BusinessDay):
+cdef class CustomBusinessDay(BusinessDay):
     """
     DateOffset subclass representing custom business days excluding holidays.
 
@@ -3291,12 +3300,12 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         offset=timedelta(0),
     ):
         BusinessDay.__init__(self, n, normalize, offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
+        self._init_custom(weekmask, holidays, calendar)
 
-    def __setstate__(self, state):
+    cpdef __setstate__(self, state):
         self.holidays = state.pop("holidays")
         self.weekmask = state.pop("weekmask")
-        super().__setstate__(state)
+        BusinessDay.__setstate__(self, state)
 
     @apply_wraps
     def apply(self, other):
@@ -3338,7 +3347,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(CustomMixin, BusinessHour):
+class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -3361,7 +3370,7 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         offset=timedelta(0),
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
+        self._init_custom(weekmask, holidays, calendar)
 
     def __reduce__(self):
         # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
@@ -3380,7 +3389,7 @@ class CustomBusinessHour(CustomMixin, BusinessHour):
         )
 
 
-class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
+class _CustomBusinessMonth(BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -3420,7 +3429,7 @@ class _CustomBusinessMonth(CustomMixin, BusinessMixin, MonthOffset):
         offset=timedelta(0),
     ):
         BusinessMixin.__init__(self, n, normalize, offset)
-        CustomMixin.__init__(self, weekmask, holidays, calendar)
+        self._init_custom(weekmask, holidays, calendar)
 
     def __reduce__(self):
         # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
