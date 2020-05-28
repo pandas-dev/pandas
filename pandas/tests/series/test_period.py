@@ -118,8 +118,6 @@ class TestSeriesPeriod:
     def test_comparison_operations(self, comparison_data):
         # GH 28980
         expected = Series([False, False])
-        result = (
-            Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]")
-            == comparison_data
-        )
+        s = Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]")
+        result = s == comparison_data
         tm.assert_series_equal(result, expected)
