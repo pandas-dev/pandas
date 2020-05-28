@@ -464,9 +464,11 @@ class TestSeriesAggregate:
             series.agg(func)
 
     def test_transform_none_to_type(self):
+        # GH34377
         df = pd.DataFrame({"a": [None]})
 
-        with pytest.raises(TypeError):
+        msg = "DataFrame constructor called with incompatible data and dtype"
+        with pytest.raises(TypeError, match=msg):
             df.transform({"a": int})
 
 
