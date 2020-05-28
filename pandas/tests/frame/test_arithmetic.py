@@ -49,9 +49,11 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                msg = re.escape(
-                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
-                )
+                msgs = [
+                    r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
+                    "invalid type promotion",
+                ]
+                msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
                     x >= y
                 with pytest.raises(TypeError, match=msg):
@@ -106,7 +108,7 @@ class TestFrameComparisons:
             else:
                 msg = (
                     "'(<|>)=?' not supported between "
-                    "instances of 'Timestamp' and 'float'"
+                    "instances of 'numpy.ndarray' and 'Timestamp'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
@@ -336,6 +338,20 @@ class TestFrameFlexComparisons:
         empty = df.iloc[:0]
         result = getattr(empty, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(result, pd.Series([2], index=[np.dtype(bool)]))
+
+    def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):
+        ii = pd.IntervalIndex.from_breaks([1, 2, 3])
+        df = pd.DataFrame({"A": ii, "B": ii})
+
+        ser = pd.Series([0, 0])
+        res = df.eq(ser, axis=0)
+
+        expected = pd.DataFrame({"A": [False, False], "B": [False, False]})
+        tm.assert_frame_equal(res, expected)
+
+        ser2 = pd.Series([1, 2], index=["A", "B"])
+        res2 = df.eq(ser2, axis=1)
+        tm.assert_frame_equal(res2, expected)
 
 
 # -------------------------------------------------------------------
@@ -612,13 +628,6 @@ class TestFrameArithmetic:
         ]
 
         expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
-
-        if opname in ["__rmod__", "__rfloordiv__"]:
-            # exvals will have dtypes [f8, i8, i8] so expected will be
-            #   all-f8, but the DataFrame operation will return mixed dtypes
-            # use exvals[-1].dtype instead of "i8" for compat with 32-bit
-            # systems/pythons
-            expected[False] = expected[False].astype(exvals[-1].dtype)
 
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
@@ -1042,7 +1051,7 @@ class TestFrameArithmeticUnsorted:
 
         # no upcast needed
         added = mixed_float_frame + series
-        _check_mixed_float(added)
+        assert np.all(added.dtypes == series.dtype)
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
@@ -1415,12 +1424,13 @@ class TestFrameArithmeticUnsorted:
             range(1, 4),
         ]:
 
-            tm.assert_series_equal(
-                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
+            expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
+            tm.assert_frame_equal(align(df, val, "index")[1], expected)
+
+            expected = DataFrame(
+                {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
             )
-            tm.assert_series_equal(
-                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
-            )
+            tm.assert_frame_equal(align(df, val, "columns")[1], expected)
 
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
@@ -1489,3 +1499,31 @@ def test_pow_nan_with_zero():
 
     result = left["A"] ** right["A"]
     tm.assert_series_equal(result, expected["A"])
+
+
+def test_dataframe_series_extension_dtypes():
+    # https://github.com/pandas-dev/pandas/issues/34311
+    df = pd.DataFrame(np.random.randint(0, 100, (10, 3)), columns=["a", "b", "c"])
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+
+    expected = df.to_numpy("int64") + ser.to_numpy("int64").reshape(-1, 3)
+    expected = pd.DataFrame(expected, columns=df.columns, dtype="Int64")
+
+    df_ea = df.astype("Int64")
+    result = df_ea + ser
+    tm.assert_frame_equal(result, expected)
+    result = df_ea + ser.astype("Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_blockwise_slicelike():
+    # GH#34367
+    arr = np.random.randint(0, 1000, (100, 10))
+    df1 = pd.DataFrame(arr)
+    df2 = df1.copy()
+    df2.iloc[0, [1, 3, 7]] = np.nan
+
+    res = df1 + df2
+
+    expected = pd.DataFrame({i: df1[i] + df2[i] for i in df1.columns})
+    tm.assert_frame_equal(res, expected)

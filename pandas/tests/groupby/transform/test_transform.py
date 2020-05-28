@@ -15,7 +15,6 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
-    _is_numpy_dev,
     concat,
     date_range,
 )
@@ -330,8 +329,6 @@ def test_transform_transformation_func(transformation_func):
     if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
         # These transformation functions are not yet covered in this test
         pytest.xfail("See GH 31269")
-    elif _is_numpy_dev and transformation_func in ["cummin"]:
-        pytest.xfail("https://github.com/pandas-dev/pandas/issues/31992")
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
@@ -1025,7 +1022,7 @@ def test_groupby_transform_with_datetimes(func, values):
     dates = pd.date_range("1/1/2011", periods=10, freq="D")
 
     stocks = pd.DataFrame({"price": np.arange(10.0)}, index=dates)
-    stocks["week_id"] = pd.to_datetime(stocks.index).week
+    stocks["week_id"] = dates.isocalendar().week
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 

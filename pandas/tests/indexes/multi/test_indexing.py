@@ -519,13 +519,14 @@ class TestGetLoc:
         result = index.get_loc(2)
         expected = slice(0, 4)
         assert result == expected
-        # FIXME: dont leave commented-out
-        # pytest.raises(Exception, index.get_loc, 2)
 
         index = Index(["c", "a", "a", "b", "b"])
         rs = index.get_loc("c")
         xp = 0
         assert rs == xp
+
+        with pytest.raises(KeyError):
+            index.get_loc(2)
 
     def test_get_loc_level(self):
         index = MultiIndex(
@@ -605,10 +606,6 @@ class TestGetLoc:
         key = ["b", "d"]
         levels[level] = np.array([0, nulls_fixture], dtype=type(nulls_fixture))
         key[level] = nulls_fixture
-
-        if nulls_fixture is pd.NA:
-            pytest.xfail("MultiIndex from pd.NA in np.array broken; see GH 31883")
-
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 

@@ -131,6 +131,7 @@ class TestDatetimeIndex:
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
+        i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
@@ -703,7 +704,9 @@ class TestDatetimeIndex:
         end = Timestamp("2013-01-02 06:00:00", tz="America/Los_Angeles")
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
-            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"], tz="America/Los_Angeles"
+            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
+            tz="America/Los_Angeles",
+            freq="D",
         )
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is consistent for pytz
@@ -812,6 +815,16 @@ class TestTimeSeries:
 
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
+
+        result = DatetimeIndex(rng, freq=None)
+        assert result.freq is None
+
+        result = DatetimeIndex(rng._data, freq=None)
+        assert result.freq is None
 
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture

@@ -139,7 +139,7 @@ See :ref:`api.frame.sparse` for more.
 Sparse calculation
 ------------------
 
-You can apply NumPy `ufuncs <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
+You can apply NumPy `ufuncs <https://numpy.org/doc/stable/reference/ufuncs.html>`_
 to ``SparseArray`` and get a ``SparseArray`` as a result.
 
 .. ipython:: python

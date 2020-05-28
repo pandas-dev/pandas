@@ -407,6 +407,10 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
+        df.index = index
+
         df.to_excel(path, "test1")
         reader = ExcelFile(path)
 
@@ -476,6 +480,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_sheets(self, frame, tsframe, path):
+
+        # freq doesnt round-trip
+        index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
+        tsframe.index = index
+
         frame = frame.copy()
         frame["A"][:5] = np.nan
 
@@ -581,6 +590,11 @@ class TestExcelWriter:
 
     def test_excel_roundtrip_datetime(self, merge_cells, tsframe, path):
         # datetime.date, not sure what to test here exactly
+
+        # freq does not round-trip
+        index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
+        tsframe.index = index
+
         tsf = tsframe.copy()
 
         tsf.index = [x.date() for x in tsframe.index]
@@ -1185,6 +1199,14 @@ class TestExcelWriter:
         expected.mixed = expected.mixed.apply(str)
         expected.numeric = expected.numeric.astype("int64")
 
+        tm.assert_frame_equal(read, expected)
+
+    def test_render_as_column_name(self, path):
+        # see gh-34331
+        df = DataFrame({"render": [1, 2], "data": [3, 4]})
+        df.to_excel(path, "Sheet1")
+        read = pd.read_excel(path, "Sheet1", index_col=0)
+        expected = df
         tm.assert_frame_equal(read, expected)
 
     def test_true_and_false_value_options(self, path):
