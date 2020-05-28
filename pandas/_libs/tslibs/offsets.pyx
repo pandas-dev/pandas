@@ -1,6 +1,7 @@
 import cython
 
 import operator
+import re
 import time
 from typing import Any
 import warnings
@@ -101,17 +102,6 @@ cdef bint is_offset_object(object obj):
 
 cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
-
-
-cdef to_offset(object obj):
-    """
-    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
-    imports
-    """
-    if isinstance(obj, BaseOffset):
-        return obj
-    from pandas.tseries.frequencies import to_offset
-    return to_offset(obj)
 
 
 cdef datetime _as_datetime(datetime obj):
@@ -3505,6 +3495,9 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
+# ----------------------------------------------------------------------
+# to_offset helpers
+
 prefix_mapping = {
     offset._prefix: offset
     for offset in [
@@ -3542,6 +3535,223 @@ prefix_mapping = {
     ]
 }
 
+_name_to_offset_map = {
+    "days": Day(1),
+    "hours": Hour(1),
+    "minutes": Minute(1),
+    "seconds": Second(1),
+    "milliseconds": Milli(1),
+    "microseconds": Micro(1),
+    "nanoseconds": Nano(1),
+}
+
+# hack to handle WOM-1MON
+opattern = re.compile(
+    r"([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)"
+)
+
+_lite_rule_alias = {
+    "W": "W-SUN",
+    "Q": "Q-DEC",
+
+    "A": "A-DEC",      # YearEnd(month=12),
+    "Y": "A-DEC",
+    "AS": "AS-JAN",    # YearBegin(month=1),
+    "YS": "AS-JAN",
+    "BA": "BA-DEC",    # BYearEnd(month=12),
+    "BY": "BA-DEC",
+    "BAS": "BAS-JAN",  # BYearBegin(month=1),
+    "BYS": "BAS-JAN",
+
+    "Min": "T",
+    "min": "T",
+    "ms": "L",
+    "us": "U",
+    "ns": "N",
+}
+
+_dont_uppercase = {"MS", "ms"}
+
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
+
+# TODO: still needed?
+# cache of previously seen offsets
+_offset_map = {}
+
+
+cpdef base_and_stride(str freqstr):
+    """
+    Return base freq and stride info from string representation
+
+    Returns
+    -------
+    base : str
+    stride : int
+
+    Examples
+    --------
+    _freq_and_stride('5Min') -> 'Min', 5
+    """
+    groups = opattern.match(freqstr)
+
+    if not groups:
+        raise ValueError(f"Could not evaluate {freqstr}")
+
+    stride = groups.group(1)
+
+    if len(stride):
+        stride = int(stride)
+    else:
+        stride = 1
+
+    base = groups.group(2)
+
+    return base, stride
+
+
+# TODO: better name?
+def _get_offset(name: str) -> BaseOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
+    """
+    if name not in _dont_uppercase:
+        name = name.upper()
+        name = _lite_rule_alias.get(name, name)
+        name = _lite_rule_alias.get(name.lower(), name)
+    else:
+        name = _lite_rule_alias.get(name, name)
+
+    if name not in _offset_map:
+        try:
+            split = name.split("-")
+            klass = prefix_mapping[split[0]]
+            # handles case where there's no suffix (and will TypeError if too
+            # many '-')
+            offset = klass._from_name(*split[1:])
+        except (ValueError, TypeError, KeyError) as err:
+            # bad prefix or suffix
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+        # cache
+        _offset_map[name] = offset
+
+    return _offset_map[name]
+
+
+cpdef to_offset(freq):
+    """
+    Return DateOffset object from string or tuple representation
+    or datetime.timedelta object.
+
+    Parameters
+    ----------
+    freq : str, tuple, datetime.timedelta, DateOffset or None
+
+    Returns
+    -------
+    DateOffset or None
+
+    Raises
+    ------
+    ValueError
+        If freq is an invalid frequency
+
+    See Also
+    --------
+    DateOffset : Standard kind of date increment used for a date range.
+
+    Examples
+    --------
+    >>> to_offset("5min")
+    <5 * Minutes>
+
+    >>> to_offset("1D1H")
+    <25 * Hours>
+
+    >>> to_offset(("W", 2))
+    <2 * Weeks: weekday=6>
+
+    >>> to_offset((2, "B"))
+    <2 * BusinessDays>
+
+    >>> to_offset(pd.Timedelta(days=1))
+    <Day>
+
+    >>> to_offset(Hour())
+    <Hour>
+    """
+    if freq is None:
+        return None
+
+    if isinstance(freq, BaseOffset):
+        return freq
+
+    if isinstance(freq, tuple):
+        name = freq[0]
+        stride = freq[1]
+        if isinstance(stride, str):
+            name, stride = stride, name
+        name, _ = base_and_stride(name)
+        delta = _get_offset(name) * stride
+
+    elif isinstance(freq, timedelta):
+        from .timedeltas import Timedelta
+
+        delta = None
+        freq = Timedelta(freq)
+        try:
+            for name in freq.components._fields:
+                offset = _name_to_offset_map[name]
+                stride = getattr(freq.components, name)
+                if stride != 0:
+                    offset = stride * offset
+                    if delta is None:
+                        delta = offset
+                    else:
+                        delta = delta + offset
+        except ValueError as err:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+
+    else:
+        delta = None
+        stride_sign = None
+        try:
+            split = re.split(opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
+                # the last element must be blank
+                raise ValueError("last element must be blank")
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
+                if sep != "" and not sep.isspace():
+                    raise ValueError("separator must be spaces")
+                prefix = _lite_rule_alias.get(name) or name
+                if stride_sign is None:
+                    stride_sign = -1 if stride.startswith("-") else 1
+                if not stride:
+                    stride = 1
+
+                from .resolution import Resolution  # TODO: avoid runtime import
+
+                if prefix in Resolution.reso_str_bump_map:
+                    stride, name = Resolution.get_stride_from_decimal(
+                        float(stride), prefix
+                    )
+                stride = int(stride)
+                offset = _get_offset(name)
+                offset = offset * int(np.fabs(stride) * stride_sign)
+                if delta is None:
+                    delta = offset
+                else:
+                    delta = delta + offset
+        except (ValueError, TypeError) as err:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+
+    if delta is None:
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    return delta
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic

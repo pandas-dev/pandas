@@ -1,21 +1,16 @@
-import re
-
 cimport numpy as cnp
 cnp.import_array()
 
 from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.offsets cimport is_offset_object
-
-# ----------------------------------------------------------------------
-# Constants
-
-# hack to handle WOM-1MON
-opattern = re.compile(
-    r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    _dont_uppercase,
+    _lite_rule_alias,
+    base_and_stride,
+    opattern,
 )
-
-INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 # ---------------------------------------------------------------------
 # Period codes
@@ -102,27 +97,6 @@ _period_code_map.update({
     "A": 1000,   # Annual
     "W": 4000,   # Weekly
     "C": 5000})  # Custom Business Day
-
-_lite_rule_alias = {
-    'W': 'W-SUN',
-    'Q': 'Q-DEC',
-
-    'A': 'A-DEC',      # YearEnd(month=12),
-    'Y': 'A-DEC',
-    'AS': 'AS-JAN',    # YearBegin(month=1),
-    'YS': 'AS-JAN',
-    'BA': 'BA-DEC',    # BYearEnd(month=12),
-    'BY': 'BA-DEC',
-    'BAS': 'BAS-JAN',  # BYearBegin(month=1),
-    'BYS': 'BAS-JAN',
-
-    'Min': 'T',
-    'min': 'T',
-    'ms': 'L',
-    'us': 'U',
-    'ns': 'N'}
-
-_dont_uppercase = {'MS', 'ms'}
 
 # Map attribute-name resolutions to resolution abbreviations
 _attrname_to_abbrevs = {
@@ -221,36 +195,6 @@ cpdef get_freq_code(freqstr):
     code = _period_str_to_code(base)
 
     return code, stride
-
-
-cpdef base_and_stride(str freqstr):
-    """
-    Return base freq and stride info from string representation
-
-    Returns
-    -------
-    base : str
-    stride : int
-
-    Examples
-    --------
-    _freq_and_stride('5Min') -> 'Min', 5
-    """
-    groups = opattern.match(freqstr)
-
-    if not groups:
-        raise ValueError(f"Could not evaluate {freqstr}")
-
-    stride = groups.group(1)
-
-    if len(stride):
-        stride = int(stride)
-    else:
-        stride = 1
-
-    base = groups.group(2)
-
-    return base, stride
 
 
 cpdef _period_str_to_code(str freqstr):
