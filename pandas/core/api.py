@@ -8,6 +8,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
+    DateDtype
 )
 from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 

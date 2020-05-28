@@ -13,6 +13,7 @@ from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays.dates import DateArray
 
 __all__ = [
     "ExtensionArray",
@@ -31,4 +32,5 @@ __all__ = [
     "SparseArray",
     "StringArray",
     "TimedeltaArray",
+    "DateArray"
 ]

@@ -11,7 +11,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.dtypes import DateDtype
 from pandas.core.construction import array
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.conversion import NS_DTYPE
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 from pandas._libs import tslib, lib
 
 import numpy as np
@@ -41,9 +41,6 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     ----------
     values : Series, Index, DateArray, ndarray
         The date data.
-    freq : str or Offset, optional
-    dtype : pd.DateDtype
-
     copy : bool, default False
         Whether to copy the underlying array of values.
 
@@ -159,7 +156,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @property
     def as_datetime_i8(self) -> np.ndarray:
-        return self._data.astype(NS_DTYPE).view(INTEGER_BACKEND)
+        return self._data.astype(DT64NS_DTYPE).view(INTEGER_BACKEND)
 
     @property
     def date(self):
@@ -173,18 +170,14 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
                 return self.copy()
             return self
         if is_datetime64_dtype(dtype):
-            return array(self._data, dtype=NS_DTYPE)
+            return array(self._data, dtype=DT64NS_DTYPE)
         if is_object_dtype(dtype):
             return self._box_values(self.as_datetime_i8)
         return super().astype(dtype, copy)
 
     def _format_native_types(self, na_rep="NaT", date_format=None):
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(self, date_format)
-
         return tslib.format_array_from_datetime(
-            self.as_datetime_i8, tz="utc", format=fmt, na_rep=na_rep
+            self.as_datetime_i8, tz="utc", format="%Y-%m-%d", na_rep=na_rep
         )
 
     def __len__(self):

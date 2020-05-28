@@ -46,7 +46,9 @@ def test_date_from_pandas_array(arr):
     result = DateArray._from_sequence(arr)
     if is_integer_dtype(arr):
         arr *= NANO_SECONDS_IN_A_DAY
-    tm.assert_numpy_array_equal(arr.astype(DatetimeTZDtype(tz="utc")).date, result.date)
+    tm.assert_numpy_array_equal(
+        pd.array(arr.astype("datetime64[ns]")).date, result.date
+    )
 
 
 @pytest.fixture
@@ -69,6 +71,8 @@ def test_date_array_to_str(date_array):
     object_dates = pd.array(
         np.array(["1970-01-0%d" % x for x in range(1, 6)]), dtype="string"
     )
+    print(date_array.astype("string"))
+    print(object_dates._ndarray)
     tm.assert_numpy_array_equal(date_array.astype("string"), object_dates._ndarray)
 
 

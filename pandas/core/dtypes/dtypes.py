@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         IntervalArray,
         PeriodArray,
         DatetimeArray,
+        DateArray,
     )
     from pandas import Categorical  # noqa: F401
 
@@ -1232,3 +1233,91 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         return IntervalArray._concat_same_type(results)
+
+
+@register_extension_dtype
+class DateDtype(PandasExtensionDtype):
+    """
+    An ExtensionDtype to hold a single date.
+    The attributes name & type are set when subclasses are created.
+    """
+
+    _date_aliases = {"date", "date64"}
+    _unit = "D"
+    _numpy_dtype = np.dtype("datetime64[D]")
+
+    def __str__(self):
+        return "date"
+
+    @property
+    def name(self) -> str_type:
+        """
+        The alias for DateDtype is ``'string'``.
+        """
+        return str(self)
+
+    @property
+    def type(self):
+        return Timestamp
+
+    @property
+    def na_value(self):
+        return NaT
+
+    def __repr__(self):
+        return type(self)
+
+    @property
+    def kind(self):
+        return self._numpy_dtype.kind
+
+    @property
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+
+        if string in cls._date_aliases:
+            return cls()
+
+        msg = (
+            f"Cannot construct a 'DateDtype' from '{string}'.\n\n"
+            "Incorrectly formatted string passed to constructor. "
+            "Valid formats include only date"
+        )
+        raise TypeError(msg)
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import DateArray
+
+        return DateArray
+
+    # TODO make from arrow
+
+    @classmethod
+    def is_dtype(cls, dtype) -> bool:
+        if isinstance(dtype, str):
+            if dtype.lower().startswith("date"):
+                try:
+                    if cls.construct_from_string(dtype) is not None:
+                        return True
+                    else:
+                        return False
+                except (ValueError, TypeError):
+                    return False
+            else:
+                return False
+        return super().is_dtype(dtype)
