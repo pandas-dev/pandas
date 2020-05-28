@@ -47,6 +47,14 @@ BusinessDay
 
     BusinessDay
 
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BDay
+
 Properties
 ~~~~~~~~~~
 .. autosummary::
@@ -1237,47 +1245,6 @@ Methods
     Nano.is_on_offset
     Nano.__call__
     Nano.apply
-
-BDay
-----
-.. autosummary::
-   :toctree: api/
-
-    BDay
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BDay.base
-    BDay.freqstr
-    BDay.kwds
-    BDay.name
-    BDay.nanos
-    BDay.normalize
-    BDay.offset
-    BDay.rule_code
-    BDay.n
-    BDay.weekmask
-    BDay.holidays
-    BDay.calendar
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BDay.apply
-    BDay.apply_index
-    BDay.copy
-    BDay.isAnchored
-    BDay.onOffset
-    BDay.is_anchored
-    BDay.is_on_offset
-    BDay.rollback
-    BDay.rollforward
-    BDay.__call__
 
 BMonthEnd
 ---------
