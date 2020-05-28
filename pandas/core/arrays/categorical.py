@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import TYPE_CHECKING, Dict, Hashable, List, Type, Union, cast
+from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -374,26 +374,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @classmethod
-    def from_dummies(cls, dummies: "DataFrame", ordered=None):
-        """
-        Create a `Categorical` using a ``DataFrame`` encoding those categories
-        as dummy/ one-hot encoded variables.
+    def from_dummies(
+        cls, dummies: "DataFrame", ordered: Optional[bool] = None
+    ) -> "Categorical":
+        """Create a `Categorical` using a ``DataFrame`` of dummy variables.
 
         The ``DataFrame`` must be coercible to boolean,
         and have no more than one truthy value per row.
         The columns of the ``DataFrame`` become the categories of the `Categorical`.
-        A column whose header is NA will be dropped.
+        A column whose header is NA will be dropped;
+        any row with a NA value will be uncategorised.
 
         Parameters
         ----------
-            dummies : DataFrame of bool-like
-            ordered : bool
-                Whether or not this Categorical is ordered.
+        dummies : DataFrame of bool-like
+        ordered : bool
+            Whether or not this Categorical is ordered.
 
         Raises
         ------
-            ValueError
-                If a sample belongs to >1 category
+        ValueError
+            If a sample belongs to >1 category
 
         Returns
         -------
@@ -409,15 +410,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Categories (3, object): [a, b, c]
         """
         # GH 8745
-        from pandas import Series
-
         df = dummies.drop(columns=np.nan, errors="ignore").astype(bool)
 
         if (df.sum(axis=1) > 1).any():
             raise ValueError("Some rows belong to >1 category")
 
-        index_into = Series([np.nan] + list(df.columns))
-        mult_by = np.arange(1, len(index_into))
+        mult_by = np.arange(1, df.shape[1] + 1)
 
         codes = (df.astype(int) * mult_by).sum(axis=1) - 1
         codes[codes.isna()] = -1
@@ -425,18 +423,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     def to_dummies(self, na_column=None) -> "DataFrame":
         """
-        Create a ``DataFrame`` representing this `Categorical`
-        as dummy/ one-hot encoded variables.
+        Create a ``DataFrame`` of boolean dummy variables representing this object.
 
         For more power over column names or to use a sparse matrix,
         see :func:`pandas.get_dummies`.
 
         Parameters
         ----------
-            na_column : Optional
-                If None, NA values will be represented as a row of zeros.
-                Otherwise, this is the name of a new column representing
-                those NA values.
+        na_column : Optional
+            If None, NA values will be represented as a row of zeros.
+            Otherwise, this is the name of a new column representing
+            those NA values.
 
         Returns
         -------
