@@ -147,13 +147,3 @@ def test_astype_int(dtype):
 
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
-
-if __name__ == '__main__':
-    # test = DateArray(np.array([1, 2, 3], dtype="bool"))
-    # print(test)
-    # test_setitem_objects(pd.Timestamp.now())
-    # print(np.arange(5))
-    # object_array = pd.array(np.arange(5)).astype("object")
-    # print(object_array.dtype)
-    # print(object_array.astype("datetime64[D]").dtype.kind)
-    print(pd.array(np.arange(5).astype("str")).astype("string").astype("Int64"))
