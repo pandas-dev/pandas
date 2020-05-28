@@ -886,7 +886,6 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.quantile` raising on nullable integers (:issue:`33136`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
-- Bug in :meth:`GroupBy.quantile` causes the quantiles to be shifted when the ``by`` axis contains ``NaN`` (:issue:`33200`, :issue:`33569`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the output index shape for functions returning a DataFrame which is equally indexed
   to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
