@@ -447,7 +447,6 @@ cdef class BaseOffset:
         Returns a tuple containing all of the attributes needed to evaluate
         equality between two DateOffset objects.
         """
-        # NB: non-cython subclasses override property with cache_readonly
         d = getattr(self, "__dict__", {})
         all_paras = d.copy()
         all_paras["n"] = self.n
@@ -705,63 +704,22 @@ cdef class BaseOffset:
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
-        if isinstance(self, MonthOffset):
-            # We can't just override MonthOffset.__setstate__ because of the
-            #  combination of MRO resolution and cython not handling
-            #  multiple inheritance nicely for cdef classes.
-            state.pop("_use_relativedelta", False)
-            state.pop("offset", None)
-            state.pop("_offset", None)
-            state.pop("kwds", {})
-
-        if 'offset' in state:
-            # Older (<0.22.0) versions have offset attribute instead of _offset
-            if '_offset' in state:  # pragma: no cover
-                raise AssertionError('Unexpected key `_offset`')
-            state['_offset'] = state.pop('offset')
-            state['kwds']['offset'] = state['_offset']
-
-        if '_offset' in state and not isinstance(state['_offset'], timedelta):
-            # relativedelta, we need to populate using its kwds
-            offset = state['_offset']
-            odict = offset.__dict__
-            kwds = {key: odict[key] for key in odict if odict[key]}
-            state.update(kwds)
-
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
-
-        if not len(state):
-            # FIXME: kludge because some classes no longer have a __dict__,
-            #  so we need to short-circuit before raising on the next line
-            return
-
-        self.__dict__.update(state)
-
-        if 'weekmask' in state and 'holidays' in state:
-            weekmask = state.pop("weekmask")
-            holidays = state.pop("holidays")
-            calendar, holidays = _get_calendar(weekmask=weekmask,
-                                               holidays=holidays,
-                                               calendar=None)
-            self.calendar = calendar
-            self.holidays = holidays
+        # At this point we expect state to be empty
 
     def __getstate__(self):
         """Return a pickleable state"""
-        state = getattr(self, "__dict__", {}).copy()
+        state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
         # as its a np.busyday; we recreate on deserialization
-        if 'calendar' in state:
-            del state['calendar']
-        try:
-            state['kwds'].pop('calendar')
-        except KeyError:
-            pass
+        state.pop("calendar", None)
+        if "kwds" in state:
+            state["kwds"].pop("calendar", None)
 
         return state
 
@@ -1022,6 +980,38 @@ cdef class RelativeDeltaOffset(BaseOffset):
         for key in kwds:
             val = kwds[key]
             object.__setattr__(self, key, val)
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
+        #  class, so the only one with __dict__
+        state = self.__dict__.copy()
+        state["n"] = self.n
+        state["normalize"] = self.normalize
+        return state
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+
+        if "offset" in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if "_offset" in state:  # pragma: no cover
+                raise AssertionError("Unexpected key `_offset`")
+            state["_offset"] = state.pop("offset")
+            state["kwds"]["offset"] = state["_offset"]
+
+        if "_offset" in state and not isinstance(state["_offset"], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state["_offset"]
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
+
+        self.__dict__.update(state)
 
     @apply_wraps
     def apply(self, other):
@@ -1289,6 +1279,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         if "_offset" in state:
             self._offset = state.pop("_offset")
         elif "offset" in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
             self._offset = state.pop("offset")
 
         if self._prefix.startswith("C"):
@@ -2162,6 +2153,14 @@ cdef class MonthOffset(SingleConstructorOffset):
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+    cpdef __setstate__(self, state):
+        state.pop("_use_relativedelta", False)
+        state.pop("offset", None)
+        state.pop("_offset", None)
+        state.pop("kwds", {})
+
+        BaseOffset.__setstate__(self, state)
 
 
 cdef class MonthEnd(MonthOffset):
