@@ -62,9 +62,8 @@ CAPITALIZATION_EXCEPTIONS = {
     "TimedeltaIndex",
     "DatetimeIndex",
     "IntervalIndex",
-    "Categorical",
     "CategoricalIndex",
-    "Categorical",
+    ("categorical", "Categorical"), 
     "GroupBy",
     "SPSS",
     "ORC",
@@ -140,14 +139,15 @@ CAPITALIZATION_EXCEPTIONS = {
     "Panel",
 }
 
-CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
+CAP_EXCEPTIONS_DICT = {exception.lower() if type(exception) is str else exception[0].lower(): exception for exception in CAPITALIZATION_EXCEPTIONS}
+
 
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
 symbols = ("*", "=", "-", "^", "~", "#", '"')
 
 
-def correct_title_capitalization(title: str) -> str:
+def correct_title_capitalization(title: str) -> (str, list):
     """
     Algorithm to create the correct capitalization for a given title.
 
@@ -167,6 +167,8 @@ def correct_title_capitalization(title: str) -> str:
     if title[0] == ":":
         return title
 
+    keeping_list = [el for el in title.split(' ') if el.lower() in CAP_EXCEPTIONS_DICT]
+
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
@@ -178,13 +180,40 @@ def correct_title_capitalization(title: str) -> str:
     # Split a title into a list using non-word character delimiters.
     word_list = re.split(r"\W", removed_https_title)
 
-    for word in word_list:
-        if word.lower() in CAP_EXCEPTIONS_DICT:
-            correct_title = re.sub(
-                rf"\b{word}\b", CAP_EXCEPTIONS_DICT[word.lower()], correct_title
-            )
 
-    return correct_title
+    list_exceptions_tuple: list = []
+    for word in word_list:
+        if word:
+            for exception in CAP_EXCEPTIONS_DICT:
+
+                #print('Exception is: ', exception)
+                if type(CAP_EXCEPTIONS_DICT[exception]) is str:
+                    if word.lower() == exception and word != CAP_EXCEPTIONS_DICT[exception]:
+                        correct_title = re.sub(
+                            rf"\b{word}\b", CAP_EXCEPTIONS_DICT[exception], correct_title
+                        )
+                elif type(CAP_EXCEPTIONS_DICT[exception]) is tuple:
+                    # print(CAP_EXCEPTIONS_DICT[exception])
+                    # print(CAP_EXCEPTIONS_DICT[exception][0])
+                    if word.lower() == exception:
+                        if word not in CAP_EXCEPTIONS_DICT[exception]:
+                            correct_title = re.sub(
+                                rf"\b{word}\b", CAP_EXCEPTIONS_DICT[exception][0], correct_title
+                            )
+                        elif word in CAP_EXCEPTIONS_DICT[exception]:
+                            for el in keeping_list:
+                                if word.lower() == el.lower():
+                                    word2 = re.sub(
+                                    rf"\b{word}\b", el, word
+                                )
+                                    correct_title = re.sub(
+                                    rf"\b{word}\b", word2, correct_title
+                                )
+
+                    if CAP_EXCEPTIONS_DICT[exception] not in list_exceptions_tuple:
+                        list_exceptions_tuple.append(CAP_EXCEPTIONS_DICT[exception])
+
+    return correct_title, list_exceptions_tuple
 
 
 def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
@@ -274,12 +303,44 @@ def main(source_paths: List[str], output_format: str) -> int:
 
     for filename in find_rst_files(source_paths):
         for title, line_number in find_titles(filename):
-            if title != correct_title_capitalization(title):
+            # print('title is ', title)
+            # print('tuple list is ', correct_title_capitalization(title)[1])
+            if title != correct_title_capitalization(title)[0]:
                 print(
                     f"""{filename}:{line_number}:{err_msg} "{title}" to "{
-                    correct_title_capitalization(title)}" """
+                    correct_title_capitalization(title)[0]}" """
                 )
                 number_of_errors += 1
+                if correct_title_capitalization(title)[1]:
+                    #print(correct_title_capitalization(title)[1])
+                    for el in correct_title_capitalization(title)[1]:
+                        for word in title.split(' '):
+                            if word in el:
+                                print(
+                                    f"\n\nBe careful. In '{title}', '{word}' can have different writings:", end=' ')
+                                for elem in el:
+                                    print(elem, end=" ")
+                                print('\n')
+
+            elif correct_title_capitalization(title)[1]:
+                #print('Yo!')
+                #print(title)
+                if correct_title_capitalization(title)[1]:
+                    for el in correct_title_capitalization(title)[1]:
+                        for word in title.split(' '):
+
+                            #if title == "Method readcsv supports parsing Categorical directly":
+                                # print('title.split is ', title.split(' '))
+                                # print('BIP BIP', title)
+                            if word.lower() in el:
+                                # print('Yes it does')
+                                # print(word)
+                                print(
+                                    f"\n\nBe careful. In '{title}', '{word}' can have different writings:", end=' ')
+                                for elem in el:
+                                    print(elem, end=' ')
+                                print('\n')
+            #print(correct_title_capitalization(title)[1])
 
     return number_of_errors
 

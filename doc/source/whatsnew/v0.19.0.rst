@@ -1078,7 +1078,7 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 
 .. _whatsnew_0190.api.multiindex:
 
-``MultiIndex`` constructors, ``groupby`` and ``set_index`` preserve categorical dtypes
+``MultiIndex`` constructors, ``groupby`` and ``set_index`` preserve Categorical dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``MultiIndex.from_arrays`` and ``MultiIndex.from_product`` will now preserve categorical dtype
