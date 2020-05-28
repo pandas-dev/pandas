@@ -2171,7 +2171,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         # GH 33924
         # key may contain nan elements, check_array_indexer needs bool array
         result = pd_array(result, dtype=bool)
-    return check_array_indexer(indexer, result)
+    return check_array_indexer(index, result)
 
 
 def convert_missing_indexer(indexer):
