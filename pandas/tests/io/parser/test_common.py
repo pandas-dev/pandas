@@ -17,7 +17,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, to_datetime
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
@@ -2146,6 +2146,6 @@ a,b
     expected = DataFrame(
         [["1", "2020-05-23 01:00:00"]], columns=["a", "b"], dtype="string"
     )
-    expected = expected.astype({"b": np.datetime64})
-    df = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
-    tm.assert_frame_equal(df, expected)
+    expected['b'] = to_datetime(expected['b'])
+    result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
+    tm.assert_frame_equal(result, expected)
