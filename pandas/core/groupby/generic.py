@@ -239,10 +239,10 @@ class SeriesGroupBy(GroupBy[Series]):
             columns = list(kwargs)
             func = []
             for col in columns:
-                if isinstance(kwargs[col],(list,NamedAgg,tuple)):
-                    raise TypeError(tuple_given_message.format(type(kwargs[col]).__name__))
+                if isinstance(kwargs[col], (list, NamedAgg, tuple)):
+                    raise TypeError(tuple_given_message.\
+                        format(type(kwargs[col]).__name__))
                 func.append(kwargs[col])
-            
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
@@ -290,7 +290,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
             ret = concat(ret, axis=1)
         return ret
-
     agg = aggregate
 
     def _aggregate_multiple_funcs(self, arg):
