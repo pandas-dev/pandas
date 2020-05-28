@@ -149,7 +149,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-    **storage_options,
+    **storage_options: Dict[str, Any],
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -162,7 +162,8 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
-    storage_options: passed on to fsspec, if using it
+    storage_options: dict
+        passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
     -------

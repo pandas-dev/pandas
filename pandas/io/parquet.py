@@ -172,7 +172,7 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             import fsspec
 
-            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
+            # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
             kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
@@ -190,9 +190,6 @@ class FastParquetImpl(BaseImpl):
     def read(self, path, columns=None, **kwargs):
         if is_fsspec_url(path):
             import fsspec
-
-            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
-            # TODO: Support 'ab'
 
             open_with = lambda path, _: fsspec.open(path, "rb").open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)

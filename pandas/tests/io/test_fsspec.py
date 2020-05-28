@@ -5,8 +5,6 @@ from pandas import DataFrame, date_range, read_csv, read_parquet
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
-from pandas.io.common import is_fsspec_url
-
 df1 = DataFrame(
     {
         "int": [1, 3],
@@ -29,12 +27,6 @@ def cleared_fs():
         memfs.store.clear()
 
 
-def test_is_fsspec_url():
-    assert is_fsspec_url("gcs://pandas/somethingelse.com")
-    assert is_fsspec_url("gs://pandas/somethingelse.com")
-    assert not is_fsspec_url("random:pandas/somethingelse.com")
-
-
 @td.skip_if_no("fsspec")
 def test_read_csv(cleared_fs):
     from fsspec.implementations.memory import MemoryFile
@@ -47,9 +39,10 @@ def test_read_csv(cleared_fs):
 
 @td.skip_if_no("fsspec")
 def test_reasonable_error(monkeypatch):
-    from fsspec.registry import _registry, known_implementations
+    from fsspec.registry import known_implementations
+    from fsspec import registry
 
-    _registry.clear()
+    registry.target.clear()
     with pytest.raises(ValueError) as e:
         read_csv("nosuchprotocol://test/test.csv")
         assert "nosuchprotocol" in str(e.value)

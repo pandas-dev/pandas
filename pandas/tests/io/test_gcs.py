@@ -12,9 +12,9 @@ from pandas.util import _test_decorators as td
 @td.skip_if_no("gcsfs")
 def test_read_csv_gcs(monkeypatch):
     from fsspec import AbstractFileSystem
-    from fsspec.registry import _registry
+    from fsspec import registry
 
-    _registry.clear()  # noqa  # remove state
+    registry.target.clear()  # noqa  # remove state
 
     df1 = DataFrame(
         {
@@ -38,9 +38,9 @@ def test_read_csv_gcs(monkeypatch):
 @td.skip_if_no("gcsfs")
 def test_to_csv_gcs(monkeypatch):
     from fsspec import AbstractFileSystem
-    from fsspec.registry import _registry
+    from fsspec import registry
 
-    _registry.clear()  # noqa  # remove state
+    registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],
@@ -77,9 +77,9 @@ def test_to_csv_gcs(monkeypatch):
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     from fsspec import AbstractFileSystem
-    from fsspec.registry import _registry
+    from fsspec import registry
 
-    _registry.clear()  # noqa  # remove state
+    registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],
