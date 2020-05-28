@@ -313,11 +313,11 @@ class TestMelt:
         df = pd.DataFrame(np.random.randn(5, 4), columns=list("abcd"))
 
         # Try to melt with missing `value_vars` column name
-        msg = lambda Var, Col: f"The following '{Var}' are not present in " \
-                               f"the DataFrame: {Col}"
-        with pytest.raises(
-            KeyError, match=msg(Var="value_vars", Col="\\['C'\\]")
-        ):
+        msg = (
+            lambda Var, Col: f"The following '{Var}' are not present in "
+            f"the DataFrame: {Col}"
+        )
+        with pytest.raises(KeyError, match=msg(Var="value_vars", Col="\\['C'\\]")):
             df.melt(["a", "b"], ["C", "d"])
 
         # Try to melt with missing `id_vars` column name
@@ -326,8 +326,7 @@ class TestMelt:
 
         # Multiple missing
         with pytest.raises(
-            KeyError,
-            match=msg(Var="id_vars", Col="\\['not_here', 'or_there'\\]"),
+            KeyError, match=msg(Var="id_vars", Col="\\['not_here', 'or_there'\\]"),
         ):
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
@@ -337,9 +336,7 @@ class TestMelt:
         with pytest.raises(KeyError, match=msg(Var="id_vars", Col="\\['E'\\]")):
             multi.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
-        with pytest.raises(
-            KeyError, match=msg(Var="value_vars", Col="\\['F'\\]")
-        ):
+        with pytest.raises(KeyError, match=msg(Var="value_vars", Col="\\['F'\\]")):
             multi.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):

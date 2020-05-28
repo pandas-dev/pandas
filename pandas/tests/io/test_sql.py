@@ -1893,7 +1893,7 @@ class _TestMySQLAlchemy:
         url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
             f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
-            connect_args=cls.connect_args
+            connect_args=cls.connect_args,
         )
 
     @classmethod
