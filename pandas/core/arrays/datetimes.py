@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_date_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -698,6 +699,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             return self
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
+        elif is_date_dtype(dtype):
+            return dtype.construct_array_type()._from_sequence(self._data)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
     # ----------------------------------------------------------------

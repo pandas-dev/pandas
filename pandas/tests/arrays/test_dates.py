@@ -76,8 +76,7 @@ def test_date_array_to_str(date_array):
     [
         pd.array(np.arange(5, dtype=np.int64)),
         pd.array(np.arange(5, dtype=np.object)),
-        pd.date_range("1970-01-01", periods=5, freq="D").astype("object"),
-        pd.array(np.array(DATETIME_STRINGS, dtype="datetime64")),
+        pd.array(pd.date_range("1970-01-01", periods=5, freq="D")),
         pd.array(np.array(DATETIME_STRINGS, dtype="object"), dtype="string"),
     ],
 )
@@ -175,4 +174,8 @@ def test_astype_int(dtype):
 if __name__ == '__main__':
     # test = DateArray(np.array([1, 2, 3], dtype="bool"))
     # print(test)
-    test_setitem_objects(pd.Timestamp.now())
+    # test_setitem_objects(pd.Timestamp.now())
+    print(np.arange(5))
+    object_array = pd.array(np.arange(5)).astype("object")
+    print(object_array.dtype)
+    print(object_array.astype("datetime64[D]").dtype.kind)
