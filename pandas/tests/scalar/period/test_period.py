@@ -632,6 +632,28 @@ class TestPeriodMethods:
         result = p.to_timestamp("5S", how="start")
         assert result == expected
 
+    def test_to_timestamp_round(self):
+        result = Period("2020-12-31 23:59:59.9995").to_timestamp().round("1 ms")
+        expected = Period("2021-01-01 00:00:00.000").to_timestamp()
+        assert result == expected
+        result = Period("2020-12-31 23:59:59.999499").to_timestamp().round("1 ms")
+        expected = Period("2020-12-31 23:59:59.999").to_timestamp()
+        assert result == expected
+
+        result = Period("2020-12-31 23:59:59.500").to_timestamp().round("1 s")
+        expected = Period("2021-01-01 00:00:00").to_timestamp()
+        assert result == expected
+        result = Period("2020-12-31 23:59:59.499999").to_timestamp().round("1 s")
+        expected = Period("2020-12-31 23:59:59").to_timestamp()
+        assert result == expected
+
+        result = Period("2020-12-31 23:59:30").to_timestamp().round("1 min")
+        expected = Period("2021-01-01 00:00").to_timestamp()
+        assert result == expected
+        result = Period("2020-12-31 23:59:29.999999").to_timestamp().round("1 min")
+        expected = Period("2020-12-31 23:59").to_timestamp()
+        assert result == expected
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
