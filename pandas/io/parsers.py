@@ -1337,7 +1337,7 @@ def _validate_parse_dates_arg(parse_dates):
 
 def _check_unexpected_data(columns, data, index_col):
     """
-    Checks whether or not ammount of columns in data matches expected number of columns.
+    Checks if ammount of columns in data matches expected number of columns.
     Raises a warning if those numbers don't match.
 
     Parameters
