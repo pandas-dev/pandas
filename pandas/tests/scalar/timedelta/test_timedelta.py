@@ -83,12 +83,12 @@ class TestTimedeltas:
         assert rng.microseconds == 0
         assert rng.nanoseconds == 0
 
-        msg = "'Timedelta' object has no attribute '{}'"
-        with pytest.raises(AttributeError, match=msg.format("hours")):
+        msg = lambda x: f"'Timedelta' object has no attribute '{x}'"
+        with pytest.raises(AttributeError, match=msg("hours")):
             rng.hours
-        with pytest.raises(AttributeError, match=msg.format("minutes")):
+        with pytest.raises(AttributeError, match=msg("minutes")):
             rng.minutes
-        with pytest.raises(AttributeError, match=msg.format("milliseconds")):
+        with pytest.raises(AttributeError, match=msg("milliseconds")):
             rng.milliseconds
 
         # GH 10050
@@ -109,12 +109,12 @@ class TestTimedeltas:
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
         assert rng.nanoseconds == 456
-        msg = "'Timedelta' object has no attribute '{}'"
-        with pytest.raises(AttributeError, match=msg.format("hours")):
+        msg = lambda x: f"'Timedelta' object has no attribute '{x}'"
+        with pytest.raises(AttributeError, match=msg("hours")):
             rng.hours
-        with pytest.raises(AttributeError, match=msg.format("minutes")):
+        with pytest.raises(AttributeError, match=msg("minutes")):
             rng.minutes
-        with pytest.raises(AttributeError, match=msg.format("milliseconds")):
+        with pytest.raises(AttributeError, match=msg("milliseconds")):
             rng.milliseconds
 
         # components
