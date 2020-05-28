@@ -2,7 +2,6 @@ from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import operator
-from unittest.mock import Mock
 import warnings
 
 import numpy as np
@@ -729,25 +728,40 @@ class TestDataFrameApply:
 
     def test_apply_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/30815
-        non_reducing_mock = Mock(side_effect=lambda x: x)
-        reducing_mock = Mock(return_value=1)
 
         df = pd.DataFrame({"a": [1, 2, 3]})
+        names = []  # Save row names function is applied to
 
-        # no reduction
-        df.apply(non_reducing_mock, axis=1)
-        assert non_reducing_mock.call_count == 3
+        def reducing_function(row):
+            names.append(row.name)
 
-        # reduction
-        df.apply(reducing_mock, axis=1)
-        assert reducing_mock.call_count == 3
+        def non_reducing_function(row):
+            names.append(row.name)
+            return row
+
+        for func in [reducing_function, non_reducing_function]:
+            del names[:]
+
+            df.apply(func, axis=1)
+            assert names == list(df.index)
 
     def test_applymap_function_runs_once(self):
-        reducing_mock = Mock(return_value=1)
 
         df = pd.DataFrame({"a": [1, 2, 3]})
-        df.applymap(reducing_mock)
-        assert reducing_mock.call_count == 3
+        values = []  # Save values function is applied to
+
+        def reducing_function(val):
+            values.append(val)
+
+        def non_reducing_function(val):
+            values.append(val)
+            return val
+
+        for func in [reducing_function, non_reducing_function]:
+            del values[:]
+
+            df.applymap(func)
+            assert values == df.a.to_list()
 
 
 class TestInferOutputShape:
