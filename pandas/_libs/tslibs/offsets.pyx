@@ -3532,16 +3532,6 @@ prefix_mapping = {
     ]
 }
 
-_name_to_offset_map = {
-    "days": Day(1),
-    "hours": Hour(1),
-    "minutes": Minute(1),
-    "seconds": Second(1),
-    "milliseconds": Milli(1),
-    "microseconds": Micro(1),
-    "nanoseconds": Nano(1),
-}
-
 # hack to handle WOM-1MON
 opattern = re.compile(
     r"([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)"
@@ -3695,26 +3685,12 @@ cpdef to_offset(freq):
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
-        from .timedeltas import Timedelta
+        return delta_to_tick(freq)
 
-        delta = None
-        freq = Timedelta(freq)
-        try:
-            for name in freq.components._fields:
-                offset = _name_to_offset_map[name]
-                stride = getattr(freq.components, name)
-                if stride != 0:
-                    offset = stride * offset
-                    if delta is None:
-                        delta = offset
-                    else:
-                        delta = delta + offset
-        except ValueError as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
-
-    else:
+    elif isinstance(freq, str):
         delta = None
         stride_sign = None
+
         try:
             split = re.split(opattern, freq)
             if split[-1] != "" and not split[-1].isspace():
@@ -3744,6 +3720,8 @@ cpdef to_offset(freq):
                     delta = delta + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+    else:
+        delta = None
 
     if delta is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
