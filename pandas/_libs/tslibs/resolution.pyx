@@ -37,7 +37,7 @@ reso_str_bump_map = {
     "N": None,
 }
 
-_freq_reso_map = {v: k for k, v in attrname_to_abbrevs.items()}
+_abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 _reso_str_map = {
     RESO_NS: "nanosecond",
@@ -182,21 +182,23 @@ class Resolution(Enum):
         return cls(_str_reso_map[resostr])
 
     @classmethod
-    def get_str_from_freq(cls, freq: str) -> str:
+    def get_attrname_from_abbrev(cls, freq: str) -> str:
         """
         Return resolution str against frequency str.
 
         Examples
         --------
-        >>> Resolution.get_str_from_freq('H')
+        >>> Resolution.get_attrname_from_abbrev('H')
         'hour'
         """
-        return _freq_reso_map[freq]
+        return _abbrev_to_attrnames[freq]
 
     @classmethod
     def get_reso_from_freq(cls, freq: str) -> "Resolution":
         """
         Return resolution code against frequency str.
+
+        `freq` is given the `offset.freqstr` for some DateOffset object.
 
         Examples
         --------
@@ -206,16 +208,16 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
         True
         """
-        return cls.get_reso(cls.get_str_from_freq(freq))
+        return cls.get_reso(cls.get_attrname_from_abbrev(freq))
 
     @classmethod
-    def get_stride_from_decimal(cls, value, freq):
+    def get_stride_from_decimal(cls, value: float, freq: str):
         """
         Convert freq with decimal stride into a higher freq with integer stride
 
         Parameters
         ----------
-        value : int or float
+        value : float
         freq : str
             Frequency string
 
