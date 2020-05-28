@@ -12,7 +12,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
-    DateDtype
+    DateDtype,
 )
 
 import pandas as pd
@@ -737,5 +737,6 @@ def test__get_dtype_fails(input_param, expected_error_message):
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_is_date_type()
