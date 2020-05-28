@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series, get_dummies
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
@@ -398,6 +398,19 @@ class TestCategoricalAPI:
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
         assert out.tolist() == val.tolist()
+
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            ["a", "b", "b", "a"],
+            ["a", "b", "b", "a", np.nan],
+            [1, 1.5, "a", (1, "b")],
+            [1, 1.5, "a", (1, "b"), np.nan],
+        ],
+    )
+    def test_to_dummies(self, vals):
+        cats = Categorical(vals)
+        tm.assert_equal(cats.to_dummies(), get_dummies(cats).astype(bool))
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):

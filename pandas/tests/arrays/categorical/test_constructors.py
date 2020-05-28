@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p16
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -10,6 +12,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     CategoricalIndex,
+    DataFrame,
     DatetimeIndex,
     Index,
     Interval,
@@ -19,6 +22,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    get_dummies,
     period_range,
     timedelta_range,
 )
@@ -635,6 +639,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
+    @pytest.mark.skipif(_np_version_under1p16, reason="Skipping for NumPy <1.16")
     def test_constructor_string_and_tuples(self):
         # GH 21416
         c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
@@ -682,3 +687,49 @@ class TestCategoricalConstructors:
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
+
+    def test_from_dummies(self):
+        # GH 8745
+        raw = ["a", "a", "b", "c", "c", "a"]
+        dummies = get_dummies(raw)
+        cats = Categorical.from_dummies(dummies)
+        assert list(cats) == raw
+
+    def test_from_dummies_nan(self):
+        raw = ["a", "a", "b", "c", "c", "a", np.nan]
+        dummies = get_dummies(raw)
+        cats = Categorical.from_dummies(dummies)
+        assert list(cats)[:-1] == raw[:-1]
+        assert pd.isna(list(cats)[-1])
+
+    def test_from_dummies_gt1(self):
+        dummies = DataFrame([[1, 0, 1], [0, 1, 0], [0, 0, 1]], columns=["a", "b", "c"])
+        with pytest.raises(ValueError):
+            Categorical.from_dummies(dummies)
+
+    @pytest.mark.parametrize("ordered", [None, False, True])
+    def test_from_dummies_ordered(self, ordered):
+        raw = ["a", "a", "b", "c", "c", "a"]
+        dummies = get_dummies(raw)
+        cats = Categorical.from_dummies(dummies, ordered)
+        assert cats.ordered == bool(ordered)
+
+    def test_from_dummies_types(self):
+        cols = ["a", 1, 1.5, ("a", "b"), (1, "c")]
+        dummies = DataFrame(np.eye(len(cols)), columns=cols)
+        cats = Categorical.from_dummies(dummies)
+        assert list(cats) == cols
+
+    def test_from_dummies_drops_na(self):
+        cols = ["a", "b", np.nan]
+        dummies = DataFrame(np.eye(len(cols)), columns=cols)
+        cats = Categorical.from_dummies(dummies)
+        assert list(cats.categories) == cols[:-1]
+        assert pd.isna(cats[-1])
+
+    def test_from_dummies_multiindex(self):
+        tups = [("a", 1), ("a", 2), ("b", 1), ("b", 2)]
+        cols = MultiIndex.from_tuples(tups)
+        dummies = DataFrame(np.eye(len(cols)), columns=cols)
+        cats = Categorical.from_dummies(dummies)
+        assert list(cats.categories) == tups
