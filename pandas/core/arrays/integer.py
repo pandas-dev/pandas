@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -442,17 +442,20 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
+        from pandas.core.arrays.boolean import BooleanDtype
+        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
             result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return type(self)(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
         elif isinstance(dtype, BooleanDtype):
             result = self._data.astype("bool", copy=False)
-            return BooleanArray(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
@@ -722,7 +725,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes = {
+_dtypes: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
