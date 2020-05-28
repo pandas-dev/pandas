@@ -110,7 +110,7 @@ cdef datetime _as_datetime(datetime obj):
     return obj
 
 
-cpdef bint is_normalized(datetime dt):
+cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
         return False
@@ -280,7 +280,7 @@ cpdef int get_firstbday(int year, int month) nogil:
     return first
 
 
-def _get_calendar(weekmask, holidays, calendar):
+cdef _get_calendar(weekmask, holidays, calendar):
     """Generate busdaycalendar"""
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
@@ -299,7 +299,7 @@ def _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [to_dt64D(dt) for dt in holidays]
+    holidays = [_to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
     kwargs = {'weekmask': weekmask}
@@ -310,7 +310,7 @@ def _get_calendar(weekmask, holidays, calendar):
     return busdaycalendar, holidays
 
 
-def to_dt64D(dt):
+cdef _to_dt64D(dt):
     # Currently
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
@@ -333,7 +333,7 @@ def to_dt64D(dt):
 # Validation
 
 
-def _validate_business_time(t_input):
+cdef _validate_business_time(t_input):
     if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
@@ -358,7 +358,7 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "minutes", "seconds", "microseconds"}
 
 
-def _determine_offset(kwds):
+cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
     # more nanosecond(s) are handled by apply_wraps
@@ -661,7 +661,7 @@ cdef class BaseOffset:
         return get_day_of_month(other, self._day_opt)
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
 
         # Default (slow) method for determining if some date is a member of the
@@ -1107,7 +1107,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             )
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         # TODO: see GH#1395
         return True
@@ -1418,7 +1418,7 @@ cdef class BusinessDay(BusinessMixin):
         return result
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
@@ -1769,7 +1769,7 @@ cdef class BusinessHour(BusinessMixin):
             raise ApplyTypeError("Only know how to combine business hour with datetime")
 
     def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:
@@ -1784,7 +1784,7 @@ cdef class BusinessHour(BusinessMixin):
         """
         Slight speedups using calculated values.
         """
-        # if self.normalize and not is_normalized(dt):
+        # if self.normalize and not _is_normalized(dt):
         #     return False
         # Valid BH can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
@@ -1833,7 +1833,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -1891,7 +1891,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
@@ -2036,7 +2036,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return self.n == 1 and self.startingMonth is not None
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
@@ -2153,7 +2153,7 @@ cdef class QuarterBegin(QuarterOffset):
 
 cdef class MonthOffset(SingleConstructorOffset):
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -2357,7 +2357,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _min_day_of_month = 1
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
@@ -2417,7 +2417,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     _prefix = "SMS"
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
 
@@ -2576,7 +2576,7 @@ cdef class Week(SingleConstructorOffset):
         return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
             return True
@@ -2847,7 +2847,7 @@ cdef class FY5253(FY5253Mixin):
         return type(self), tup
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
@@ -3023,7 +3023,7 @@ cdef class FY5253Quarter(FY5253Mixin):
 
     _prefix = "REQ"
     _attributes = frozenset(
-        ["weekday", "startingMonth", "qtr_with_extra_week", "variation"]
+        ["n", "normalize", "weekday", "startingMonth", "qtr_with_extra_week", "variation"]
     )
 
     cdef readonly:
@@ -3169,7 +3169,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
             return True
@@ -3242,7 +3242,7 @@ cdef class Easter(SingleConstructorOffset):
         return new
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
@@ -3327,13 +3327,13 @@ cdef class CustomBusinessDay(BusinessDay):
                 "datetime, datetime64 or timedelta."
             )
 
-    def apply_index(self, i):
+    def apply_index(self, dtindex):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
-        day64 = to_dt64D(dt)
+        day64 = _to_dt64D(dt)
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
