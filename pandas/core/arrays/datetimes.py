@@ -700,7 +700,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         elif is_date_dtype(dtype):
-            return dtype.construct_array_type()._from_sequence(self._data)
+            return dtype.construct_array_type()._from_sequence(self._data, copy)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
     # ----------------------------------------------------------------
