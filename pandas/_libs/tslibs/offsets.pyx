@@ -3753,6 +3753,7 @@ cpdef to_offset(freq):
 
     return delta
 
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
