@@ -3347,7 +3347,7 @@ cdef class CustomBusinessDay(BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(BusinessHour):
+cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -3389,7 +3389,7 @@ class CustomBusinessHour(BusinessHour):
         )
 
 
-class _CustomBusinessMonth(BusinessMixin, MonthOffset):
+cdef class _CustomBusinessMonth(BusinessMixin):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -3415,9 +3415,6 @@ class _CustomBusinessMonth(BusinessMixin, MonthOffset):
     _attributes = frozenset(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
-
-    is_on_offset = BaseOffset.is_on_offset  # override MonthOffset method
-    apply_index = BaseOffset.apply_index  # override MonthOffset method
 
     def __init__(
         self,
@@ -3490,11 +3487,11 @@ class _CustomBusinessMonth(BusinessMixin, MonthOffset):
         return result
 
 
-class CustomBusinessMonthEnd(_CustomBusinessMonth):
+cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBM"
 
 
-class CustomBusinessMonthBegin(_CustomBusinessMonth):
+cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     _prefix = "CBMS"
 
 
