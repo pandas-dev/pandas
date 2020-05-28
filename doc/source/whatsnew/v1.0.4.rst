@@ -1,8 +1,8 @@
 
 .. _whatsnew_104:
 
-What's new in 1.0.4 (May 29, 2020)
-----------------------------------
+What's new in 1.0.4 (May ??, 2020)
+------------------------------------
 
 These are the changes in pandas 1.0.4. See :ref:`release` for a full changelog
 including other versions of pandas.
