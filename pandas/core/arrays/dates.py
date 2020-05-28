@@ -49,6 +49,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     -------
     None
     """
+    freq = "D"
 
     def __init__(self, values, copy=False):
         if isinstance(values, (ABCSeries, ABCIndexClass)):
@@ -129,10 +130,6 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     @property
     def dtype(self) -> ExtensionDtype:
         return DateDtype()
-
-    @property
-    def freq(self):
-        return "D"
 
     def __iter__(self):
         for date_data in self._data:
