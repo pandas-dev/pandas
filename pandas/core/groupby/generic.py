@@ -240,7 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
             func = []
             for col in columns:
                 if isinstance(kwargs[col],(list,NamedAgg,tuple)):
-                    raise TypeError(tuple_given_message.format(type(kwargs[col])))
+                    raise TypeError(tuple_given_message.format(type(kwargs[col]).__name__))
                 func.append(kwargs[col])
             
             kwargs = {}
