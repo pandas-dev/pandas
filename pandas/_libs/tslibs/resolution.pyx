@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
@@ -25,6 +27,41 @@ cdef:
     int RESO_HR = 5
     int RESO_DAY = 6
 
+reso_str_bump_map = {
+    "D": "H",
+    "H": "T",
+    "T": "S",
+    "S": "L",
+    "L": "U",
+    "U": "N",
+    "N": None,
+}
+
+_freq_reso_map = {v: k for k, v in attrname_to_abbrevs.items()}
+
+_reso_str_map = {
+    RESO_NS: "nanosecond",
+    RESO_US: "microsecond",
+    RESO_MS: "millisecond",
+    RESO_SEC: "second",
+    RESO_MIN: "minute",
+    RESO_HR: "hour",
+    RESO_DAY: "day",
+}
+
+_str_reso_map = {v: k for k, v in _reso_str_map.items()}
+
+# factor to multiply a value by to convert it to the next finer grained
+# resolution
+_reso_mult_map = {
+    RESO_NS: None,
+    RESO_US: 1000,
+    RESO_MS: 1000,
+    RESO_SEC: 1000,
+    RESO_MIN: 60,
+    RESO_HR: 60,
+    RESO_DAY: 24,
+}
 
 # ----------------------------------------------------------------------
 
@@ -36,7 +73,7 @@ cpdef resolution(const int64_t[:] stamps, tz=None):
 
     if tz is not None:
         tz = maybe_get_tz(tz)
-    return _reso_local(stamps, tz)
+    return Resolution(_reso_local(stamps, tz))
 
 
 cdef _reso_local(const int64_t[:] stamps, object tz):
@@ -107,7 +144,7 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
-class Resolution:
+class Resolution(Enum):
 
     # Note: cython won't allow us to reference the cdef versions at the
     # module level
@@ -119,41 +156,14 @@ class Resolution:
     RESO_HR = 5
     RESO_DAY = 6
 
-    _reso_str_map = {
-        RESO_NS: 'nanosecond',
-        RESO_US: 'microsecond',
-        RESO_MS: 'millisecond',
-        RESO_SEC: 'second',
-        RESO_MIN: 'minute',
-        RESO_HR: 'hour',
-        RESO_DAY: 'day'}
+    def __lt__(self, other):
+        return self.value < other.value
 
-    # factor to multiply a value by to convert it to the next finer grained
-    # resolution
-    _reso_mult_map = {
-        RESO_NS: None,
-        RESO_US: 1000,
-        RESO_MS: 1000,
-        RESO_SEC: 1000,
-        RESO_MIN: 60,
-        RESO_HR: 60,
-        RESO_DAY: 24}
-
-    reso_str_bump_map = {
-        'D': 'H',
-        'H': 'T',
-        'T': 'S',
-        'S': 'L',
-        'L': 'U',
-        'U': 'N',
-        'N': None}
-
-    _str_reso_map = {v: k for k, v in _reso_str_map.items()}
-
-    _freq_reso_map = {v: k for k, v in attrname_to_abbrevs.items()}
+    def __ge__(self, other):
+        return self.value >= other.value
 
     @classmethod
-    def get_str(cls, reso: int) -> str:
+    def get_str(cls, reso: "Resolution") -> str:
         """
         Return resolution str against resolution code.
 
@@ -162,10 +172,10 @@ class Resolution:
         >>> Resolution.get_str(Resolution.RESO_SEC)
         'second'
         """
-        return cls._reso_str_map.get(reso, 'day')
+        return _reso_str_map[reso.value]
 
     @classmethod
-    def get_reso(cls, resostr: str) -> int:
+    def get_reso(cls, resostr: str) -> "Resolution":
         """
         Return resolution str against resolution code.
 
@@ -177,7 +187,7 @@ class Resolution:
         >>> Resolution.get_reso('second') == Resolution.RESO_SEC
         True
         """
-        return cls._str_reso_map.get(resostr, cls.RESO_DAY)
+        return cls(_str_reso_map[resostr])
 
     @classmethod
     def get_str_from_freq(cls, freq: str) -> str:
@@ -189,10 +199,10 @@ class Resolution:
         >>> Resolution.get_str_from_freq('H')
         'hour'
         """
-        return cls._freq_reso_map.get(freq, 'day')
+        return _freq_reso_map[freq]
 
     @classmethod
-    def get_reso_from_freq(cls, freq: str) -> int:
+    def get_reso_from_freq(cls, freq: str) -> "Resolution":
         """
         Return resolution code against frequency str.
 
@@ -237,13 +247,13 @@ class Resolution:
             return int(value), freq
         else:
             start_reso = cls.get_reso_from_freq(freq)
-            if start_reso == 0:
+            if start_reso.value == 0:
                 raise ValueError(
                     "Could not convert to integer offset at any resolution"
                 )
 
-            next_value = cls._reso_mult_map[start_reso] * value
-            next_name = cls.reso_str_bump_map[freq]
+            next_value = _reso_mult_map[start_reso.value] * value
+            next_name = reso_str_bump_map[freq]
             return cls.get_stride_from_decimal(next_value, next_name)
 
 
