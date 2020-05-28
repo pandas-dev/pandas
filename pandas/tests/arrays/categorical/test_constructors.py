@@ -696,6 +696,7 @@ class TestCategoricalConstructors:
         assert list(cats) == raw
 
     def test_from_dummies_nan(self):
+        # GH 8745
         raw = ["a", "a", "b", "c", "c", "a", np.nan]
         dummies = get_dummies(raw)
         cats = Categorical.from_dummies(dummies)
@@ -703,24 +704,28 @@ class TestCategoricalConstructors:
         assert pd.isna(list(cats)[-1])
 
     def test_from_dummies_gt1(self):
+        # GH 8745
         dummies = DataFrame([[1, 0, 1], [0, 1, 0], [0, 0, 1]], columns=["a", "b", "c"])
         with pytest.raises(ValueError):
             Categorical.from_dummies(dummies)
 
     @pytest.mark.parametrize("ordered", [None, False, True])
     def test_from_dummies_ordered(self, ordered):
+        # GH 8745
         raw = ["a", "a", "b", "c", "c", "a"]
         dummies = get_dummies(raw)
         cats = Categorical.from_dummies(dummies, ordered)
         assert cats.ordered == bool(ordered)
 
     def test_from_dummies_types(self):
+        # GH 8745
         cols = ["a", 1, 1.5, ("a", "b"), (1, "c")]
         dummies = DataFrame(np.eye(len(cols)), columns=cols)
         cats = Categorical.from_dummies(dummies)
         assert list(cats) == cols
 
     def test_from_dummies_drops_na(self):
+        # GH 8745
         cols = ["a", "b", np.nan]
         dummies = DataFrame(np.eye(len(cols)), columns=cols)
         cats = Categorical.from_dummies(dummies)
@@ -728,6 +733,7 @@ class TestCategoricalConstructors:
         assert pd.isna(cats[-1])
 
     def test_from_dummies_multiindex(self):
+        # GH 8745
         tups = [("a", 1), ("a", 2), ("b", 1), ("b", 2)]
         cols = MultiIndex.from_tuples(tups)
         dummies = DataFrame(np.eye(len(cols)), columns=cols)

@@ -409,6 +409,7 @@ class TestCategoricalAPI:
         ],
     )
     def test_to_dummies(self, vals):
+        # GH 8745
         cats = Categorical(vals)
         tm.assert_equal(cats.to_dummies(), get_dummies(cats).astype(bool))
 
