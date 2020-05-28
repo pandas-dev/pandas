@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from pandas.util._validators import validate_args
@@ -22,10 +20,8 @@ def test_bad_arg_length_max_value_single():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
     msg = (
-        r"{fname}\(\) takes at most {max_length} "
-        r"argument \({actual_length} given\)".format(
-            fname=_fname, max_length=max_length, actual_length=actual_length
-        )
+        fr"{_fname}\(\) takes at most {max_length} "
+        fr"argument \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -40,10 +36,8 @@ def test_bad_arg_length_max_value_multiple():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
     msg = (
-        r"{fname}\(\) takes at most {max_length} "
-        r"arguments \({actual_length} given\)".format(
-            fname=_fname, max_length=max_length, actual_length=actual_length
-        )
+        fr"{_fname}\(\) takes at most {max_length} "
+        fr"arguments \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -54,15 +48,11 @@ def test_bad_arg_length_max_value_multiple():
 def test_not_all_defaults(i):
     bad_arg = "foo"
     msg = (
-        "the '{arg}' parameter is not supported "
-        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+        f"the '{bad_arg}' parameter is not supported "
+        fr"in the pandas implementation of {_fname}\(\)"
     )
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = 2
-    compat_args["bar"] = -1
-    compat_args["baz"] = 3
-
+    compat_args = {"foo": 2, "bar": -1, "baz": 3}
     arg_vals = (1, -1, 3)
 
     with pytest.raises(ValueError, match=msg):
@@ -73,8 +63,5 @@ def test_validation():
     # No exceptions should be raised.
     validate_args(_fname, (None,), 2, dict(out=None))
 
-    compat_args = OrderedDict()
-    compat_args["axis"] = 1
-    compat_args["out"] = None
-
+    compat_args = {"axis": 1, "out": None}
     validate_args(_fname, (1, None), 2, compat_args)

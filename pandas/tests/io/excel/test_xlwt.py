@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _XlwtWriter
 
@@ -18,7 +18,12 @@ def test_excel_raise_error_on_multiindex_columns_and_no_index(ext):
         [("site", ""), ("2014", "height"), ("2014", "weight")]
     )
     df = DataFrame(np.random.randn(10, 3), columns=cols)
-    with pytest.raises(NotImplementedError):
+
+    msg = (
+        "Writing to Excel with MultiIndex columns and no index "
+        "\\('index'=False\\) is not yet implemented."
+    )
+    with pytest.raises(NotImplementedError, match=msg):
         with tm.ensure_clean(ext) as path:
             df.to_excel(path, index=False)
 

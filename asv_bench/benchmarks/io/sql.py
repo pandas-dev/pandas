@@ -4,7 +4,8 @@ import numpy as np
 from sqlalchemy import create_engine
 
 from pandas import DataFrame, date_range, read_sql_query, read_sql_table
-import pandas.util.testing as tm
+
+from ..pandas_vb_common import tm
 
 
 class SQL:

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ------------------------------------------------------------------
 # Helper Functions
@@ -17,6 +17,18 @@ def id_func(x):
 
 
 # ------------------------------------------------------------------
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -216,41 +228,6 @@ def box(request):
     Several array-like containers that should have effectively identical
     behavior with respect to arithmetic operations.
     """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        pd.Index,
-        pd.Series,
-        pytest.param(pd.DataFrame, marks=pytest.mark.xfail),
-        tm.to_array,
-    ],
-    ids=id_func,
-)
-def box_df_fail(request):
-    """
-    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        (pd.Index, False),
-        (pd.Series, False),
-        (pd.DataFrame, False),
-        pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
-        (tm.to_array, False),
-    ],
-    ids=id_func,
-)
-def box_transpose_fail(request):
-    """
-    Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the tranpose=True case xfailed.
-    """
-    # GH#23620
     return request.param
 
 

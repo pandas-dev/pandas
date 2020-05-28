@@ -3,7 +3,7 @@ Functions to generate methods and pin them to the appropriate classes.
 """
 import operator
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.ops.roperator import (
     radd,
@@ -93,16 +93,18 @@ def add_special_arithmetic_methods(cls):
 
         def f(self, other):
             result = method(self, other)
-
+            # Delete cacher
+            self._reset_cacher()
             # this makes sure that we are aligned like the input
             # we are updating inplace so we want to ignore is_copy
             self._update_inplace(
-                result.reindex_like(self, copy=False)._data, verify_is_copy=False
+                result.reindex_like(self, copy=False), verify_is_copy=False
             )
 
             return self
 
-        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
+        name = method.__name__.strip("__")
+        f.__name__ = f"__i{name}__"
         return f
 
     new_methods.update(
@@ -214,7 +216,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         )
 
     if special:
-        dunderize = lambda x: "__{name}__".format(name=x.strip("_"))
+        dunderize = lambda x: f"__{x.strip('_')}__"
     else:
         dunderize = lambda x: x
     new_methods = {dunderize(k): v for k, v in new_methods.items()}
@@ -223,10 +225,4 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
 
 def _add_methods(cls, new_methods):
     for name, method in new_methods.items():
-        # For most methods, if we find that the class already has a method
-        # of the same name, it is OK to over-write it.  The exception is
-        # inplace methods (__iadd__, __isub__, ...) for SparseArray, which
-        # retain the np.ndarray versions.
-        force = not (issubclass(cls, ABCSparseArray) and name.startswith("__i"))
-        if force or name not in cls.__dict__:
-            setattr(cls, name, method)
+        setattr(cls, name, method)

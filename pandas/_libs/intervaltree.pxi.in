@@ -6,12 +6,17 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 from pandas._libs.algos import is_monotonic
 
-ctypedef fused scalar_t:
-    float64_t
-    float32_t
+ctypedef fused int_scalar_t:
     int64_t
-    int32_t
+    float64_t
+
+ctypedef fused uint_scalar_t:
     uint64_t
+    float64_t
+
+ctypedef fused scalar_t:
+    int_scalar_t
+    uint_scalar_t
 
 # ----------------------------------------------------------------------
 # IntervalTree
@@ -21,7 +26,7 @@ cdef class IntervalTree(IntervalMixin):
     """A centered interval tree
 
     Based off the algorithm described on Wikipedia:
-    http://en.wikipedia.org/wiki/Interval_tree
+    https://en.wikipedia.org/wiki/Interval_tree
 
     we are emulating the IndexEngine interface
     """
@@ -114,43 +119,6 @@ cdef class IntervalTree(IntervalMixin):
         sort_order = np.lexsort(values)
         return is_monotonic(sort_order, False)[0]
 
-    def get_loc(self, scalar_t key):
-        """Return all positions corresponding to intervals that overlap with
-        the given scalar key
-        """
-        result = Int64Vector()
-        self.root.query(result, key)
-        if not result.data.n:
-            raise KeyError(key)
-        return result.to_array().astype('intp')
-
-    def _get_partial_overlap(self, key_left, key_right, side):
-        """Return all positions corresponding to intervals with the given side
-        falling between the left and right bounds of an interval query
-        """
-        if side == 'left':
-            values = self.left
-            sorter = self.left_sorter
-        else:
-            values = self.right
-            sorter = self.right_sorter
-        key = [key_left, key_right]
-        i, j = values.searchsorted(key, sorter=sorter)
-        return sorter[i:j]
-
-    def get_loc_interval(self, key_left, key_right):
-        """Lookup the intervals enclosed in the given interval bounds
-
-        The given interval is presumed to have closed bounds.
-        """
-        import pandas as pd
-        left_overlap = self._get_partial_overlap(key_left, key_right, 'left')
-        right_overlap = self._get_partial_overlap(key_left, key_right, 'right')
-        enclosing = self.get_loc(0.5 * (key_left + key_right))
-        combined = np.concatenate([left_overlap, right_overlap, enclosing])
-        uniques = pd.unique(combined)
-        return uniques.astype('intp')
-
     def get_indexer(self, scalar_t[:] target):
         """Return the positions corresponding to unique intervals that overlap
         with the given array of scalar targets.
@@ -165,7 +133,12 @@ cdef class IntervalTree(IntervalMixin):
         result = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            try:
+                self.root.query(result, target[i])
+            except OverflowError:
+                # overflow -> no match, which is already handled below
+                pass
+
             if result.data.n == old_len:
                 result.append(-1)
             elif result.data.n > old_len + 1:
@@ -187,7 +160,12 @@ cdef class IntervalTree(IntervalMixin):
         missing = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            try:
+                self.root.query(result, target[i])
+            except OverflowError:
+                # overflow -> no match, which is already handled below
+                pass
+
             if result.data.n == old_len:
                 result.append(-1)
                 missing.append(i)
@@ -231,7 +209,7 @@ cdef sort_values_and_indices(all_values, all_indices, subset):
 {{py:
 
 nodes = []
-for dtype in ['float32', 'float64', 'int32', 'int64', 'uint64']:
+for dtype in ['float64', 'int64', 'uint64']:
     for closed, cmp_left, cmp_right in [
         ('left', '<=', '<'),
         ('right', '<', '<='),
@@ -239,19 +217,26 @@ for dtype in ['float32', 'float64', 'int32', 'int64', 'uint64']:
         ('neither', '<', '<')]:
         cmp_left_converse = '<' if cmp_left == '<=' else '<='
         cmp_right_converse = '<' if cmp_right == '<=' else '<='
+        if dtype.startswith('int'):
+            fused_prefix = 'int_'
+        elif dtype.startswith('uint'):
+            fused_prefix = 'uint_'
+        elif dtype.startswith('float'):
+            fused_prefix = ''
         nodes.append((dtype, dtype.title(),
                       closed, closed.title(),
                       cmp_left,
                       cmp_right,
                       cmp_left_converse,
-                      cmp_right_converse))
+                      cmp_right_converse,
+                      fused_prefix))
 
 }}
 
 NODE_CLASSES = {}
 
 {{for dtype, dtype_title, closed, closed_title, cmp_left, cmp_right,
-      cmp_left_converse, cmp_right_converse in nodes}}
+      cmp_left_converse, cmp_right_converse, fused_prefix in nodes}}
 
 cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
     """Non-terminal node for an IntervalTree
@@ -354,7 +339,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cpdef query(self, Int64Vector result, scalar_t point):
+    cpdef query(self, Int64Vector result, {{fused_prefix}}scalar_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """

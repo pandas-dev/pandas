@@ -51,7 +51,7 @@ def test_parsers_iso8601(date_str, exp):
     ],
 )
 def test_parsers_iso8601_invalid(date_str):
-    msg = 'Error parsing datetime string "{s}"'.format(s=date_str)
+    msg = f'Error parsing datetime string "{date_str}"'
 
     with pytest.raises(ValueError, match=msg):
         tslib._test_parse_iso8601(date_str)
@@ -59,9 +59,7 @@ def test_parsers_iso8601_invalid(date_str):
 
 def test_parsers_iso8601_invalid_offset_invalid():
     date_str = "2001-01-01 12-34-56"
-    msg = "Timezone hours offset out of range " 'in datetime string "{s}"'.format(
-        s=date_str
-    )
+    msg = f'Timezone hours offset out of range in datetime string "{date_str}"'
 
     with pytest.raises(ValueError, match=msg):
         tslib._test_parse_iso8601(date_str)

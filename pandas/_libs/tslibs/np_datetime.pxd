@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython.datetime cimport date, datetime
 
 from numpy cimport int64_t, int32_t
@@ -54,8 +52,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
 
-
-cdef int reverse_ops[6]
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 

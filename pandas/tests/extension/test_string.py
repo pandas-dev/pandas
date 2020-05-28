@@ -77,11 +77,22 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestNoReduce(base.BaseNoReduceTests):
-    pass
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+
+        if op_name in ["min", "max"]:
+            return None
+
+        s = pd.Series(data)
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    @pytest.mark.skip(reason="returns nullable")
+    def test_value_counts(self, all_data, dropna):
+        return super().test_value_counts(all_data, dropna)
 
 
 class TestCasting(base.BaseCastingTests):

@@ -12,8 +12,11 @@ import struct
 import sys
 import warnings
 
+from pandas._typing import F
+
 PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
+PY39 = sys.version_info >= (3, 9)
 PYPY = platform.python_implementation() == "PyPy"
 
 
@@ -25,7 +28,7 @@ PYPY = platform.python_implementation() == "PyPy"
 # found at https://bitbucket.org/gutworth/six
 
 
-def set_function_name(f, name, cls):
+def set_function_name(f: F, name: str, cls) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -110,8 +113,7 @@ def _import_lzma():
         return lzma
     except ImportError:
         msg = (
-            "Could not import the lzma module. "
-            "Your installed Python is incomplete. "
+            "Could not import the lzma module. Your installed Python is incomplete. "
             "Attempting to use lzma compression will result in a RuntimeError."
         )
         warnings.warn(msg)

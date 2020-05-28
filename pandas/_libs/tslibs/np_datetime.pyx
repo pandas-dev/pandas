@@ -1,12 +1,15 @@
 from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
-from cpython.datetime cimport (datetime, date,
-                               PyDateTime_IMPORT,
-                               PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
-                               PyDateTime_GET_DAY, PyDateTime_DATE_GET_HOUR,
-                               PyDateTime_DATE_GET_MINUTE,
-                               PyDateTime_DATE_GET_SECOND,
-                               PyDateTime_DATE_GET_MICROSECOND)
+from cpython.datetime cimport (
+    PyDateTime_DATE_GET_HOUR,
+    PyDateTime_DATE_GET_MICROSECOND,
+    PyDateTime_DATE_GET_MINUTE,
+    PyDateTime_DATE_GET_SECOND,
+    PyDateTime_GET_DAY,
+    PyDateTime_GET_MONTH,
+    PyDateTime_GET_YEAR,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from numpy cimport int64_t
@@ -64,15 +67,6 @@ cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
 
 # ----------------------------------------------------------------------
 # Comparison
-
-cdef int reverse_ops[6]
-
-reverse_ops[Py_LT] = Py_GT
-reverse_ops[Py_LE] = Py_GE
-reverse_ops[Py_EQ] = Py_EQ
-reverse_ops[Py_NE] = Py_NE
-reverse_ops[Py_GT] = Py_LT
-reverse_ops[Py_GE] = Py_LE
 
 
 cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:

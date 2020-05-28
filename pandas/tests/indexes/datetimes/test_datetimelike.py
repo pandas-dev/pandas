@@ -2,7 +2,7 @@
 import pytest
 
 from pandas import DatetimeIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -17,7 +17,7 @@ class TestDatetimeIndex(DatetimeLike):
     def indices(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> DatetimeIndex:
         return date_range("20130101", periods=5)
 
     def test_shift(self):

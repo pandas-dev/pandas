@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -243,3 +243,15 @@ def test_series_getitem_multiindex_xs_by_label():
 
     result = s.xs("one", level="L2")
     tm.assert_series_equal(result, expected)
+
+
+def test_xs_levels_raises():
+    df = DataFrame({"A": [1, 2, 3]})
+
+    msg = "Index must be a MultiIndex"
+    with pytest.raises(TypeError, match=msg):
+        df.xs(0, level="as")
+
+    s = df.A
+    with pytest.raises(TypeError, match=msg):
+        s.xs(0, level="as")

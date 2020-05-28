@@ -5,13 +5,14 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import List
+from typing import Hashable, List, Mapping, Optional, Sequence, Union
 import warnings
 from zipfile import ZipFile
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._typing import FilePathOrBuffer
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -33,27 +34,26 @@ class CSVFormatter:
     def __init__(
         self,
         obj,
-        path_or_buf=None,
-        sep=",",
-        na_rep="",
-        float_format=None,
+        path_or_buf: Optional[FilePathOrBuffer[str]] = None,
+        sep: str = ",",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
         cols=None,
-        header=True,
-        index=True,
-        index_label=None,
-        mode="w",
-        encoding=None,
-        compression="infer",
-        quoting=None,
+        header: Union[bool, Sequence[Hashable]] = True,
+        index: bool = True,
+        index_label: Optional[Union[bool, Hashable, Sequence[Hashable]]] = None,
+        mode: str = "w",
+        encoding: Optional[str] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
+        quoting: Optional[int] = None,
         line_terminator="\n",
-        chunksize=None,
+        chunksize: Optional[int] = None,
         quotechar='"',
-        date_format=None,
-        doublequote=True,
-        escapechar=None,
+        date_format: Optional[str] = None,
+        doublequote: bool = True,
+        escapechar: Optional[str] = None,
         decimal=".",
     ):
-
         self.obj = obj
 
         if path_or_buf is None:
@@ -62,7 +62,7 @@ class CSVFormatter:
         # Extract compression mode as given, if dict
         compression, self.compression_args = get_compression_method(compression)
 
-        self.path_or_buf, _, _, _ = get_filepath_or_buffer(
+        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
             path_or_buf, encoding=encoding, compression=compression, mode=mode
         )
         self.sep = sep
@@ -131,8 +131,7 @@ class CSVFormatter:
         self.cols = cols
 
         # preallocate data 2d list
-        self.blocks = self.obj._data.blocks
-        ncols = sum(b.shape[0] for b in self.blocks)
+        ncols = self.obj.shape[-1]
         self.data = [None] * ncols
 
         if chunksize is None:
@@ -154,14 +153,17 @@ class CSVFormatter:
         if not index:
             self.nlevels = 0
 
-    def save(self):
+    def save(self) -> None:
         """
-        Create the writer & save
+        Create the writer & save.
         """
         # GH21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, "write"):
-            msg = "compression has no effect when passing file-like object as input."
-            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+            warnings.warn(
+                "compression has no effect when passing file-like object as input.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
         # when zip compression is called.
         is_zip = isinstance(self.path_or_buf, ZipFile) or (
@@ -221,9 +223,10 @@ class CSVFormatter:
                 f.close()
                 for _fh in handles:
                     _fh.close()
+            elif self.should_close:
+                f.close()
 
     def _save_header(self):
-
         writer = self.writer
         obj = self.obj
         index_label = self.index_label
@@ -303,8 +306,7 @@ class CSVFormatter:
                 encoded_labels.extend([""] * len(columns))
                 writer.writerow(encoded_labels)
 
-    def _save(self):
-
+    def _save(self) -> None:
         self._save_header()
 
         nrows = len(self.data_index)
@@ -321,16 +323,18 @@ class CSVFormatter:
 
             self._save_chunk(start_i, end_i)
 
-    def _save_chunk(self, start_i: int, end_i: int):
-
+    def _save_chunk(self, start_i: int, end_i: int) -> None:
         data_index = self.data_index
 
         # create the data for a chunk
         slicer = slice(start_i, end_i)
-        for i in range(len(self.blocks)):
-            b = self.blocks[i]
+
+        df = self.obj.iloc[slicer]
+        blocks = df._mgr.blocks
+
+        for i in range(len(blocks)):
+            b = blocks[i]
             d = b.to_native_types(
-                slicer=slicer,
                 na_rep=self.na_rep,
                 float_format=self.float_format,
                 decimal=self.decimal,

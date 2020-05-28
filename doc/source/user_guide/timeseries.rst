@@ -122,7 +122,7 @@ as ``np.nan`` does for float data.
 
 .. _timeseries.representation:
 
-Timestamps vs. Time Spans
+Timestamps vs. time spans
 -------------------------
 
 Timestamped data is the most basic type of time series data that associates
@@ -786,6 +786,15 @@ Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
 on :ref:`.dt accessors<basics.dt_accessors>`.
 
+.. versionadded:: 1.1.0
+
+You may obtain the year, week and day components of the ISO year from the ISO 8601 standard:
+
+.. ipython:: python
+
+   idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+   idx.to_series().dt.isocalendar()
+
 .. _timeseries.offsets:
 
 DateOffset objects
@@ -1434,7 +1443,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time Series-Related Instance Methods
+Time series-related instance methods
 ------------------------------------
 
 Shifting / lagging
@@ -1563,18 +1572,15 @@ end of the interval is closed:
 
    ts.resample('5Min', closed='left').mean()
 
-Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
-labels. ``label`` specifies whether the result is labeled with the beginning or
-the end of the interval. ``loffset`` performs a time adjustment on the output
-labels.
+Parameters like ``label`` are used to manipulate the resulting labels.
+``label`` specifies whether the result is labeled with the beginning or
+the end of the interval.
 
 .. ipython:: python
 
    ts.resample('5Min').mean()  # by default label='left'
 
    ts.resample('5Min', label='left').mean()
-
-   ts.resample('5Min', label='left', loffset='1s').mean()
 
 .. warning::
 
@@ -1780,6 +1786,58 @@ natural and functions similarly to :py:func:`itertools.groupby`:
 
 See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
+.. _timeseries.adjust-the-start-of-the-bins:
+
+Use `origin` or `offset` to adjust the start of the bins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divide a day evenly (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
+
+For example:
+
+.. ipython:: python
+
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Here we can see that, when using ``origin`` with its default value (``'start_day'``), the result after ``'2000-10-02 00:00:00'`` are not identical depending on the start of time series:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='start_day').sum()
+    ts[middle:end].resample('17min', origin='start_day').sum()
+
+
+Here we can see that, when setting ``origin`` to ``'epoch'``, the result after ``'2000-10-02 00:00:00'`` are identical depending on the start of time series:
+
+.. ipython:: python
+
+   ts.resample('17min', origin='epoch').sum()
+   ts[middle:end].resample('17min', origin='epoch').sum()
+
+
+If needed you can use a custom timestamp for ``origin``:
+
+.. ipython:: python
+
+   ts.resample('17min', origin='2001-01-01').sum()
+   ts[middle:end].resample('17min', origin=pd.Timestamp('2001-01-01')).sum()
+
+If needed you can just adjust the bins with an ``offset`` Timedelta that would be added to the default ``origin``.
+Those two examples are equivalent for this time series:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='start').sum()
+    ts.resample('17min', offset='23h30min').sum()
+
+
+Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
 
 .. _timeseries.periods:
 
@@ -1951,6 +2009,10 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+PeriodIndex now supports partial string slicing with non-monotonic indexes.
+
+.. versionadded:: 1.1.0
+
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
@@ -1980,6 +2042,7 @@ As with ``DatetimeIndex``, the endpoints will be included in the result. The exa
 .. ipython:: python
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
+
 
 Frequency conversion and resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2251,6 +2314,24 @@ you can use the ``tz_convert`` method.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
+.. warning::
+
+    If you are using dates beyond 2038-01-18, due to current deficiencies
+    in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
+    to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
+    the DST transitions will be applied. It should be noted though, that time zone data for far future time zones
+    are likely to be inaccurate, as they are simple extrapolations of the current set of (regularly revised) rules.
+
+    For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
+
+    .. ipython:: python
+
+       d_2037 = '2037-03-31T010101'
+       d_2038 = '2038-03-31T010101'
+       DST = 'Europe/London'
+       assert pd.Timestamp(d_2037, tz=DST) != pd.Timestamp(d_2037, tz='GMT')
+       assert pd.Timestamp(d_2038, tz=DST) == pd.Timestamp(d_2038, tz='GMT')
+
 Under the hood, all timestamps are stored in UTC. Values from a time zone aware
 :class:`DatetimeIndex` or :class:`Timestamp` will have their fields (day, hour, minute, etc.)
 localized to the time zone. However, timestamps with the same UTC value are
@@ -2291,6 +2372,35 @@ To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)
 
    # tz_convert(None) is identical to tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UTC').tz_localize(None)
+
+.. _timeseries.fold:
+
+Fold
+~~~~
+
+.. versionadded:: 1.1.0
+
+For ambiguous times, pandas supports explicitly specifying the keyword-only fold argument.
+Due to daylight saving time, one wall clock time can occur twice when shifting
+from summer to winter time; fold describes whether the datetime-like corresponds
+to the first (0) or the second time (1) the wall clock hits the ambiguous time.
+Fold is supported only for constructing from naive ``datetime.datetime``
+(see `datetime documentation <https://docs.python.org/3/library/datetime.html>`__ for details) or from :class:`Timestamp`
+or for constructing from components (see below). Only ``dateutil`` timezones are supported
+(see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
+for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
+timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
+with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
+on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct
+control over how they are handled.
+
+.. ipython:: python
+
+   pd.Timestamp(datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
+                tz='dateutil/Europe/London', fold=0)
+   pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+                tz='dateutil/Europe/London', fold=1)
 
 .. _timeseries.timezone_ambiguous:
 

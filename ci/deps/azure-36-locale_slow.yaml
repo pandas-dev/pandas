@@ -6,14 +6,14 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
   # pandas dependencies
-  - beautifulsoup4==4.6.0
+  - beautifulsoup4=4.6.0
   - bottleneck=1.2.*
   - lxml
   - matplotlib=2.2.2

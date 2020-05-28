@@ -20,7 +20,7 @@ Cython (writing C extensions for pandas)
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizable
-speed-ups by offloading work to `cython <http://cython.org/>`__.
+speed-ups by offloading work to `cython <https://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
 by trying to remove for-loops and making use of NumPy vectorization. It's always worth
@@ -69,7 +69,7 @@ We achieve our result by using ``apply`` (row-wise):
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
 time is spent during this operation (limited to the most time consuming
-four calls) using the `prun ipython magic function <http://ipython.org/ipython-doc/stable/api/generated/IPython.core.magics.execution.html#IPython.core.magics.execution.ExecutionMagics.prun>`__:
+four calls) using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:
 
 .. ipython:: python
 
@@ -77,11 +77,6 @@ four calls) using the `prun ipython magic function <http://ipython.org/ipython-d
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
-
-.. note::
-
-  In Python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In Python 3 ``range`` is already a generator.
 
 .. _enhancingperf.plain:
 
@@ -298,7 +293,7 @@ advanced Cython techniques:
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
 For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
-`compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
+`compiler directives <https://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
 
@@ -401,7 +396,7 @@ Consider the following toy example of doubling each observation:
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
+   In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
    1000 loops, best of 3: 145 us per loop
 
 Caveats
@@ -423,9 +418,9 @@ prefer that Numba throw an error if it cannot compile a function in a way that
 speeds up your code, pass Numba the argument
 ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
-<http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
+<https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `Numba docs <http://numba.pydata.org/>`__.
+Read more in the `Numba docs <https://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
@@ -604,13 +599,6 @@ identifier.
 The ``inplace`` keyword determines whether this assignment will performed
 on the original ``DataFrame`` or return a copy with the new column.
 
-.. warning::
-
-   For backwards compatibility, ``inplace`` defaults to ``True`` if not
-   specified. This will change in a future version of pandas - if your
-   code depends on an inplace assignment you should update to explicitly
-   set ``inplace=True``.
-
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
@@ -619,7 +607,7 @@ on the original ``DataFrame`` or return a copy with the new column.
    df.eval('a = 1', inplace=True)
    df
 
-When ``inplace`` is set to ``False``, a copy of the ``DataFrame`` with the
+When ``inplace`` is set to ``False``, the default, a copy of the ``DataFrame`` with the
 new or modified columns is returned and the original frame is unchanged.
 
 .. ipython:: python
@@ -657,11 +645,6 @@ whether the query modifies the original frame.
    df.query('a > 2')
    df.query('a > 2', inplace=True)
    df
-
-.. warning::
-
-   Unlike with ``eval``, the default value for ``inplace`` for ``query``
-   is ``False``.  This is consistent with prior versions of pandas.
 
 Local variables
 ~~~~~~~~~~~~~~~

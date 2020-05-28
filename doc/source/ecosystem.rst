@@ -5,7 +5,7 @@
 {{ header }}
 
 ****************
-Pandas ecosystem
+pandas ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
@@ -30,7 +30,7 @@ substantial projects that you feel should be on this list, please let us know.
 Data cleaning and validation
 ----------------------------
 
-`pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
+`Pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
@@ -41,10 +41,25 @@ Pyjanitor provides a clean API for cleaning data, using method chaining.
 Engarde is a lightweight library used to explicitly state assumptions about your datasets
 and check that they're *actually* true.
 
+`pandas-path <https://github.com/drivendataorg/pandas-path/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since Python 3.4, `pathlib <https://docs.python.org/3/library/pathlib.html>`_ has been
+included in the Python standard library. Path objects provide a simple
+and delightful way to interact with the file system. The pandas-path package enables the
+Path API for pandas through a custom accessor ``.path``. Getting just the filenames from
+a series of full file paths is as simple as ``my_files.path.name``. Other convenient operations like
+joining paths, replacing file extensions, and checking if files exist are also available.
+
 .. _ecosystem.stats:
 
 Statistics and machine learning
 -------------------------------
+
+`pandas-tfrecords <https://pypi.org/project/pandas-tfrecords/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
 
 `Statsmodels <https://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +115,7 @@ It is very similar to the matplotlib plotting backend, but provides interactive
 web-based charts and maps.
 
 
-`seaborn <https://seaborn.pydata.org>`__
+`Seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Seaborn is a Python visualization library based on
@@ -112,18 +127,16 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`yhat/ggpy <https://github.com/yhat/ggpy>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`plotnine <https://github.com/has2k1/plotnine/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
-It's really quite incredible. Various implementations to other languages are available,
-but a faithful implementation for Python users has long been missing. Although still young
-(as of Jan-2014), the `yhat/ggpy <https://github.com/yhat/ggpy>`__ project has been
-progressing quickly in that direction.
+Various implementations to other languages are available.
+A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
 
-`IPython Vega <https://github.com/vega/ipyvega>`__
+`IPython vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
@@ -134,7 +147,7 @@ progressing quickly in that direction.
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
-`QtPandas <https://github.com/draperjames/qtpandas>`__
+`Qtpandas <https://github.com/draperjames/qtpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
@@ -174,7 +187,7 @@ See :ref:`Options and Settings <options>` and
 :ref:`Available Options <options.available>`
 for pandas ``display.`` settings.
 
-`quantopian/qgrid <https://github.com/quantopian/qgrid>`__
+`Quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 qgrid is "an interactive grid for sorting and filtering
@@ -236,16 +249,16 @@ The following data feeds are available:
  * Stooq Index Data
  * MOEX Data
 
-`quandl/Python <https://github.com/quandl/Python>`__
+`Quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
 Pandas DataFrames with timeseries indexes.
 
-`pydatastream <https://github.com/vfilimonov/pydatastream>`__
+`Pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
-`Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
-SOAP API to return indexed Pandas DataFrames with financial data.
+`Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
+REST API to return indexed Pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
@@ -295,8 +308,8 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Blaze <http://blaze.pydata.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Blaze <https://blaze.pydata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
@@ -327,6 +340,21 @@ PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
+`Pandarallel <https://github.com/nalepae/pandarallel>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
+If also displays progress bars.
+
+.. code:: python
+
+    from pandarallel import pandarallel
+
+    pandarallel.initialize(progress_bar=True)
+
+    # df.apply(func)
+    df.parallel_apply(func)
+
 `Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -356,7 +384,7 @@ Pandas provides an interface for defining
 system. The following libraries implement that interface to provide types not
 found in NumPy or pandas, which work well with pandas' data containers.
 
-`cyberpandas`_
+`Cyberpandas`_
 ~~~~~~~~~~~~~~
 
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
@@ -371,13 +399,16 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-============== ========== =========================
-Library        Accessor   Classes
-============== ========== =========================
-`cyberpandas`_ ``ip``     ``Series``
-`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
-============== ========== =========================
+=============== ========== ========================= ===============================================================
+Library         Accessor   Classes                   Description
+=============== ========== ========================= ===============================================================
+`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
+`pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
+`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+=============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
-
+.. _Altair: https://altair-viz.github.io/
+.. _pandas_path: https://github.com/drivendataorg/pandas-path/
+.. _pathlib.Path: https://docs.python.org/3/library/pathlib.html

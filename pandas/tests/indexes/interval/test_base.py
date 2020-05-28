@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import IntervalIndex, Series, date_range
+import pandas._testing as tm
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class TestBase(Base):
@@ -79,3 +79,10 @@ class TestBase(Base):
         expected = IntervalIndex([np.nan] + idx[1:].tolist())
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
+
+    def test_getitem_2d_deprecated(self):
+        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
+        idx = self.create_index()
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                idx[:, None]

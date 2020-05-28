@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 
-pytest.importorskip("pyarrow", minversion="0.12.0")
+pytest.importorskip("pyarrow", minversion="0.13.0")
 
 from .arrays import ArrowStringDtype  # isort:skip
 

@@ -7,7 +7,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameCov:
@@ -58,36 +58,30 @@ class TestDataFrameCov:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "other_column", [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0])]
+    )
+    def test_cov_nullable_integer(self, other_column):
+        # https://github.com/pandas-dev/pandas/issues/33803
+        data = pd.DataFrame({"a": pd.array([1, 2, None]), "b": other_column})
+        result = data.cov()
+        arr = np.array([[0.5, 0.5], [0.5, 1.0]])
+        expected = pd.DataFrame(arr, columns=["a", "b"], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
 
-    @staticmethod
-    def _check_method(frame, method="pearson"):
-        correls = frame.corr(method=method)
-        expected = frame["A"].corr(frame["C"], method=method)
+    @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
+    @td.skip_if_no_scipy
+    def test_corr_scipy_method(self, float_frame, method):
+        float_frame["A"][:5] = np.nan
+        float_frame["B"][5:10] = np.nan
+
+        correls = float_frame.corr(method=method)
+        expected = float_frame["A"].corr(float_frame["C"], method=method)
         tm.assert_almost_equal(correls["A"]["C"], expected)
-
-    @td.skip_if_no_scipy
-    def test_corr_pearson(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "pearson")
-
-    @td.skip_if_no_scipy
-    def test_corr_kendall(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "kendall")
-
-    @td.skip_if_no_scipy
-    def test_corr_spearman(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "spearman")
 
     # ---------------------------------------------------------------------
 
@@ -169,6 +163,22 @@ class TestDataFrameCorr:
 
         df3.cov()
         df3.corr()
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize(
+        "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
+    )
+    @pytest.mark.parametrize(
+        "other_column",
+        [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0]), np.array([1.0, 2.0, np.nan])],
+    )
+    @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+    def test_corr_nullable_integer(self, nullable_column, other_column, method):
+        # https://github.com/pandas-dev/pandas/issues/33803
+        data = pd.DataFrame({"a": nullable_column, "b": other_column})
+        result = data.corr(method=method)
+        expected = pd.DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameCorrWith:

@@ -1,7 +1,8 @@
+import numpy as np
 import pytest
 
 from pandas import NaT, Period, PeriodIndex, date_range, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestPeriodRange:
@@ -50,6 +51,13 @@ class TestPeriodRange:
         ).to_period()
         result = period_range(start=start, end=end, freq="Q", name="foo")
         tm.assert_index_equal(result, expected)
+
+        # test for issue # 21793
+        start, end = Period("2017Q1", freq="Q"), Period("2018Q1", freq="Q")
+        idx = period_range(start=start, end=end, freq="Q", name="foo")
+        result = idx == idx.values
+        expected = np.array([True, True, True, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
         # empty
         expected = PeriodIndex([], freq="W", name="foo")

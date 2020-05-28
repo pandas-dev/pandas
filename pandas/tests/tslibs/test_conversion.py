@@ -4,16 +4,15 @@ import numpy as np
 import pytest
 from pytz import UTC
 
-from pandas._libs.tslib import iNaT
-from pandas._libs.tslibs import conversion, timezones, tzconversion
+from pandas._libs.tslibs import conversion, iNaT, timezones, tzconversion
 
 from pandas import Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _compare_utc_to_local(tz_didx):
     def f(x):
-        return conversion.tz_convert_single(x, UTC, tz_didx.tz)
+        return tzconversion.tz_convert_single(x, UTC, tz_didx.tz)
 
     result = tzconversion.tz_convert(tz_didx.asi8, UTC, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
@@ -23,7 +22,7 @@ def _compare_utc_to_local(tz_didx):
 
 def _compare_local_to_utc(tz_didx, utc_didx):
     def f(x):
-        return conversion.tz_convert_single(x, tz_didx.tz, UTC)
+        return tzconversion.tz_convert_single(x, tz_didx.tz, UTC)
 
     result = tzconversion.tz_convert(utc_didx.asi8, tz_didx.tz, UTC)
     expected = np.vectorize(f)(utc_didx.asi8)
@@ -70,6 +69,15 @@ def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
     result = conversion.ensure_datetime64ns(arr, copy=copy)
     assert result.base is (None if copy else arr)
+
+
+def test_ensure_datetime64ns_bigendian():
+    # GH#29684
+    arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
+    result = conversion.ensure_datetime64ns(arr)
+
+    expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 class SubDatetime(datetime):

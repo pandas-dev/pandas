@@ -2,8 +2,8 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-
-from typing import Hashable, List, Optional, Tuple
+from typing import Dict, Hashable, List, Optional, Tuple
+import warnings
 
 import numpy as np
 
@@ -11,7 +11,6 @@ from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_list_like,
@@ -27,6 +26,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -34,8 +34,7 @@ from pandas.io.formats.printing import pprint_thing
 
 class Grouper:
     """
-    A Grouper allows the user to specify a groupby instruction for a target
-    object.
+    A Grouper allows the user to specify a groupby instruction for an object.
 
     This specification will select a column via the key parameter, or if the
     level and/or axis parameters are given, a level of the index of the target
@@ -47,17 +46,18 @@ class Grouper:
     Parameters
     ----------
     key : str, defaults to None
-        groupby key, which selects the grouping column of the target
+        Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
-        the level for the target index
+        The level for the target index.
     freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
-    axis : number/name of the axis, defaults to 0
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
+    axis : str, int, defaults to 0
+        Number/name of the axis.
     sort : bool, default to False
-        whether to sort the resulting labels
+        Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -67,8 +67,37 @@ class Grouper:
         If grouper is PeriodIndex and `freq` parameter is passed.
     base : int, default 0
         Only when `freq` parameter is passed.
+        For frequencies that evenly subdivide 1 day, the "origin" of the
+        aggregated intervals. For example, for '5min' frequency, base could
+        range from 0 through 4. Defaults to 0.
+
+        .. deprecated:: 1.1.0
+            The new arguments that you should use are 'offset' or 'origin'.
+
     loffset : str, DateOffset, timedelta object
         Only when `freq` parameter is passed.
+
+        .. deprecated:: 1.1.0
+            loffset is only working for ``.resample(...)`` and not for
+            Grouper (:issue:`28302`).
+            However, loffset is also deprecated for ``.resample(...)``
+            See: :class:`DataFrame.resample`
+
+    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        The timestamp on which to adjust the grouping. The timezone of origin must
+        match the timezone of the index.
+        If a timestamp is not used, these values are also supported:
+
+        - 'epoch': `origin` is 1970-01-01
+        - 'start': `origin` is the first value of the timeseries
+        - 'start_day': `origin` is the first day at midnight of the timeseries
+
+        .. versionadded:: 1.1.0
+
+    offset : Timedelta or str, default is None
+        An offset timedelta added to the origin.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -76,19 +105,121 @@ class Grouper:
 
     Examples
     --------
-
     Syntactic sugar for ``df.groupby('A')``
 
-    >>> df.groupby(Grouper(key='A'))
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "Animal": ["Falcon", "Parrot", "Falcon", "Falcon", "Parrot"],
+    ...         "Speed": [100, 5, 200, 300, 15],
+    ...     }
+    ... )
+    >>> df
+       Animal  Speed
+    0  Falcon    100
+    1  Parrot      5
+    2  Falcon    200
+    3  Falcon    300
+    4  Parrot     15
+    >>> df.groupby(pd.Grouper(key="Animal")).mean()
+            Speed
+    Animal
+    Falcon    200
+    Parrot     10
 
-    Specify a resample operation on the column 'date'
+    Specify a resample operation on the column 'Publish date'
 
-    >>> df.groupby(Grouper(key='date', freq='60s'))
+    >>> df = pd.DataFrame(
+    ...    {
+    ...        "Publish date": [
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-02"),
+    ...             pd.Timestamp("2000-01-09"),
+    ...             pd.Timestamp("2000-01-16")
+    ...         ],
+    ...         "ID": [0, 1, 2, 3],
+    ...         "Price": [10, 20, 30, 40]
+    ...     }
+    ... )
+    >>> df
+      Publish date  ID  Price
+    0   2000-01-02   0     10
+    1   2000-01-02   1     20
+    2   2000-01-09   2     30
+    3   2000-01-16   3     40
+    >>> df.groupby(pd.Grouper(key="Publish date", freq="1W")).mean()
+                   ID  Price
+    Publish date
+    2000-01-02    0.5   15.0
+    2000-01-09    2.0   30.0
+    2000-01-16    3.0   40.0
 
-    Specify a resample operation on the level 'date' on the columns axis
-    with a frequency of 60s
+    If you want to adjust the start of the bins based on a fixed timestamp:
 
-    >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
+    >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    >>> rng = pd.date_range(start, end, freq='7min')
+    >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    >>> ts
+    2000-10-01 23:30:00     0
+    2000-10-01 23:37:00     3
+    2000-10-01 23:44:00     6
+    2000-10-01 23:51:00     9
+    2000-10-01 23:58:00    12
+    2000-10-02 00:05:00    15
+    2000-10-02 00:12:00    18
+    2000-10-02 00:19:00    21
+    2000-10-02 00:26:00    24
+    Freq: 7T, dtype: int64
+
+    >>> ts.groupby(pd.Grouper(freq='17min')).sum()
+    2000-10-01 23:14:00     0
+    2000-10-01 23:31:00     9
+    2000-10-01 23:48:00    21
+    2000-10-02 00:05:00    54
+    2000-10-02 00:22:00    24
+    Freq: 17T, dtype: int64
+
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
+    2000-10-01 23:18:00     0
+    2000-10-01 23:35:00    18
+    2000-10-01 23:52:00    27
+    2000-10-02 00:09:00    39
+    2000-10-02 00:26:00    24
+    Freq: 17T, dtype: int64
+
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
+    2000-10-01 23:24:00     3
+    2000-10-01 23:41:00    15
+    2000-10-01 23:58:00    45
+    2000-10-02 00:15:00    45
+    Freq: 17T, dtype: int64
+
+    If you want to adjust the start of the bins with an `offset` Timedelta, the two
+    following lines are equivalent:
+
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='start')).sum()
+    2000-10-01 23:30:00     9
+    2000-10-01 23:47:00    21
+    2000-10-02 00:04:00    54
+    2000-10-02 00:21:00    24
+    Freq: 17T, dtype: int64
+
+    >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
+    2000-10-01 23:30:00     9
+    2000-10-01 23:47:00    21
+    2000-10-02 00:04:00    54
+    2000-10-02 00:21:00    24
+    Freq: 17T, dtype: int64
+
+    To replace the use of the deprecated `base` argument, you can now use `offset`,
+    in this example it is equivalent to have `base=2`:
+
+    >>> ts.groupby(pd.Grouper(freq='17min', offset='2min')).sum()
+    2000-10-01 23:16:00     0
+    2000-10-01 23:33:00     9
+    2000-10-01 23:50:00    36
+    2000-10-02 00:07:00    39
+    2000-10-02 00:24:00    24
+    Freq: 17T, dtype: int64
     """
 
     _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
@@ -97,10 +228,49 @@ class Grouper:
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
 
+            # Deprecation warning of `base` and `loffset` since v1.1.0:
+            # we are raising the warning here to be able to set the `stacklevel`
+            # properly since we need to raise the `base` and `loffset` deprecation
+            # warning from three different cases:
+            #   core/generic.py::NDFrame.resample
+            #   core/groupby/groupby.py::GroupBy.resample
+            #   core/groupby/grouper.py::Grouper
+            # raising these warnings from TimeGrouper directly would fail the test:
+            #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
+
+            # hacky way to set the stacklevel: if cls is TimeGrouper it means
+            # that the call comes from a pandas internal call of resample,
+            # otherwise it comes from pd.Grouper
+            stacklevel = 4 if cls is TimeGrouper else 2
+            if kwargs.get("base", None) is not None:
+                warnings.warn(
+                    "'base' in .resample() and in Grouper() is deprecated.\n"
+                    "The new arguments that you should use are 'offset' or 'origin'.\n"
+                    '\n>>> df.resample(freq="3s", base=2)\n'
+                    "\nbecomes:\n"
+                    '\n>>> df.resample(freq="3s", offset="2s")\n',
+                    FutureWarning,
+                    stacklevel=stacklevel,
+                )
+
+            if kwargs.get("loffset", None) is not None:
+                warnings.warn(
+                    "'loffset' in .resample() and in Grouper() is deprecated.\n"
+                    '\n>>> df.resample(freq="3s", loffset="8H")\n'
+                    "\nbecomes:\n"
+                    "\n>>> from pandas.tseries.frequencies import to_offset"
+                    '\n>>> df = df.resample(freq="3s").mean()'
+                    '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+                    FutureWarning,
+                    stacklevel=stacklevel,
+                )
+
             cls = TimeGrouper
         return super().__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
+    def __init__(
+        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+    ):
         self.key = key
         self.level = level
         self.freq = freq
@@ -112,6 +282,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self.dropna = dropna
 
     @property
     def ax(self):
@@ -129,7 +300,6 @@ class Grouper:
         -------
         a tuple of binner, grouper, obj (possibly sorted)
         """
-
         self._set_grouper(obj)
         self.grouper, _, self.obj = get_grouper(
             self.obj,
@@ -138,6 +308,7 @@ class Grouper:
             level=self.level,
             sort=self.sort,
             validate=validate,
+            dropna=self.dropna,
         )
         return self.binner, self.grouper, self.obj
 
@@ -194,7 +365,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis)
 
         self.obj = obj
         self.grouper = ax
@@ -224,7 +395,7 @@ class Grouping:
     index : Index
     grouper :
     obj Union[DataFrame, Series]:
-    name :
+    name : Label
     level :
     observed : bool, default False
         If we are a Categorical, use the observed values
@@ -250,6 +421,7 @@ class Grouping:
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
+        dropna: bool = True,
     ):
         self.name = name
         self.level = level
@@ -260,13 +432,14 @@ class Grouping:
         self.obj = obj
         self.observed = observed
         self.in_axis = in_axis
+        self.dropna = dropna
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
 
         if isinstance(grouper, MultiIndex):
-            self.grouper = grouper.values
+            self.grouper = grouper._values
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -384,7 +557,7 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = ensure_categorical(self.grouper)
+        values = Categorical(self.grouper)
         return values._reverse_indexer()
 
     @property
@@ -413,13 +586,15 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
-                codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+                codes, uniques = algorithms.factorize(
+                    self.grouper, sort=self.sort, dropna=self.dropna
+                )
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> dict:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -432,6 +607,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
+    dropna: bool = True,
 ) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
@@ -562,10 +738,11 @@ def get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
         if not _is_label_like(key):
-            items = obj._data.items
+            # items -> .columns for DataFrame, .index for Series
+            items = obj.axes[-1]
             try:
                 items.get_loc(key)
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
                 # TypeError shows up here if we pass e.g. Int64Index
                 return False
 
@@ -577,7 +754,9 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, ValueError):
+            # TODO: ValueError: Given date string not likely a datetime.
+            # should be KeyError?
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
@@ -605,8 +784,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
-                " must be same length"
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
+                "must be same length"
             )
 
         # create the Grouping
@@ -621,6 +800,7 @@ def get_grouper(
                 sort=sort,
                 observed=observed,
                 in_axis=in_axis,
+                dropna=dropna,
             )
             if not isinstance(gpr, Grouping)
             else gpr

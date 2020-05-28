@@ -3,13 +3,15 @@
 
 from collections import defaultdict
 import copy
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas._typing import Scalar
 from pandas.util._decorators import deprecate
 
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -17,7 +19,6 @@ def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
-
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":
@@ -61,7 +62,6 @@ def nested_to_record(
 
     Examples
     --------
-
     IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
                                   nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
@@ -112,13 +112,13 @@ def nested_to_record(
 def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
-    errors: Optional[str] = "raise",
+    errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -160,12 +160,10 @@ def _json_normalize(
 
     Examples
     --------
-
-    >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
     ...         {'id': 2, 'name': 'Faye Raker'}]
-    >>> json_normalize(data)
+    >>> pandas.json_normalize(data)
         id        name name.family name.first name.given name.last
     0  1.0         NaN         NaN     Coleen        NaN      Volk
     1  NaN         NaN      Regner        NaN       Mose       NaN
@@ -229,14 +227,36 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js, spec):
+    def _pull_field(
+        js: Dict[str, Any], spec: Union[List, str]
+    ) -> Union[Scalar, Iterable]:
+        """Internal function to pull field"""
         result = js
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+        return result
 
+    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
+        """
+        Internal function to pull field for records, and similar to
+        _pull_field, but require to return list. And will raise error
+        if has non iterable value.
+        """
+        result = _pull_field(js, spec)
+
+        # GH 31507 GH 30145, GH 26284 if result is not list, raise TypeError if not
+        # null, otherwise return an empty list
+        if not isinstance(result, list):
+            if pd.isnull(result):
+                result = []
+            else:
+                raise TypeError(
+                    f"{js} has non list value {result} for path {spec}. "
+                    "Must be list or null."
+                )
         return result
 
     if isinstance(data, list) and not data:
@@ -265,28 +285,28 @@ def _json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta = [m if isinstance(m, list) else [m] for m in meta]
+    _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records: List = []
     lengths = []
 
     meta_vals: DefaultDict = defaultdict(list)
-    meta_keys = [sep.join(val) for val in meta]
+    meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                recs = _pull_records(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -296,7 +316,7 @@ def _json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
@@ -307,10 +327,9 @@ def _json_normalize(
                                 meta_val = np.nan
                             else:
                                 raise KeyError(
-                                    "Try running with "
-                                    "errors='ignore' as key "
+                                    "Try running with errors='ignore' as key "
                                     f"{e} is not always present"
-                                )
+                                ) from e
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 

@@ -3,7 +3,8 @@ import warnings
 import numpy as np
 
 import pandas as pd
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas.api.types import union_categoricals
@@ -60,18 +61,6 @@ class Constructor:
 
     def time_existing_series(self):
         pd.Categorical(self.series)
-
-
-class CategoricalOps:
-    params = ["__lt__", "__le__", "__eq__", "__ne__", "__ge__", "__gt__"]
-    param_names = ["op"]
-
-    def setup(self, op):
-        N = 10 ** 5
-        self.cat = pd.Categorical(list("aabbcd") * N, ordered=True)
-
-    def time_categorical_op(self, op):
-        getattr(self.cat, op)("b")
 
 
 class Concat:
@@ -268,9 +257,6 @@ class Indexing:
 
     def time_get_loc(self):
         self.index.get_loc(self.category)
-
-    def time_shape(self):
-        self.index.shape
 
     def time_shallow_copy(self):
         self.index._shallow_copy()

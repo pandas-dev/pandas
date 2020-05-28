@@ -4,7 +4,7 @@ from pandas.errors import NullFrequencyError
 
 import pandas as pd
 from pandas import TimedeltaIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltaIndexShift:
@@ -38,7 +38,8 @@ class TestTimedeltaIndexShift:
 
     def test_tdi_shift_int(self):
         # GH#8083
-        trange = pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        tdi = pd.to_timedelta(range(5), unit="d")
+        trange = tdi._with_freq("infer") + pd.offsets.Hour(1)
         result = trange.shift(1)
         expected = TimedeltaIndex(
             [
@@ -54,7 +55,8 @@ class TestTimedeltaIndexShift:
 
     def test_tdi_shift_nonstandard_freq(self):
         # GH#8083
-        trange = pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        tdi = pd.to_timedelta(range(5), unit="d")
+        trange = tdi._with_freq("infer") + pd.offsets.Hour(1)
         result = trange.shift(3, freq="2D 1s")
         expected = TimedeltaIndex(
             [
@@ -71,5 +73,5 @@ class TestTimedeltaIndexShift:
     def test_shift_no_freq(self):
         # GH#19147
         tdi = TimedeltaIndex(["1 days 01:00:00", "2 days 01:00:00"], freq=None)
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
             tdi.shift(2)

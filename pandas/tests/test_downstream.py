@@ -8,8 +8,10 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
+import pandas._testing as tm
 
 
 def import_module(name):
@@ -19,7 +21,7 @@ def import_module(name):
     try:
         return importlib.import_module(name)
     except ModuleNotFoundError:  # noqa
-        pytest.skip("skipping as {} not available".format(name))
+        pytest.skip(f"skipping as {name} not available")
 
 
 @pytest.fixture
@@ -47,6 +49,19 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
+def test_xarray_cftimeindex_nearest():
+    # https://github.com/pydata/xarray/issues/3751
+    import cftime
+    import xarray
+
+    times = xarray.cftime_range("0001", periods=2)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
+
+
 def test_oo_optimizable():
     # GH 21071
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
@@ -54,6 +69,7 @@ def test_oo_optimizable():
 
 @tm.network
 # Cython import warning
+@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
@@ -97,7 +113,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
 @tm.network
 def test_pandas_datareader():
 
@@ -114,26 +130,6 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
-def test_geopandas_coordinate_indexer():
-    # this test is included to have coverage of one case in the indexing.py
-    # code that is only kept for compatibility with geopandas, see
-    # https://github.com/pandas-dev/pandas/issues/27258
-    # We should be able to remove this after some time when its usage is
-    # removed in geopandas
-    from pandas.core.indexing import _NDFrameIndexer
-
-    class _CoordinateIndexer(_NDFrameIndexer):
-        def _getitem_tuple(self, tup):
-            obj = self.obj
-            xs, ys = tup
-            return obj[xs][ys]
-
-    Series._create_indexer("cx", _CoordinateIndexer)
-    s = Series(range(5))
-    res = s.cx[:, :]
-    tm.assert_series_equal(s, res)
-
-
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
@@ -145,18 +141,23 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
 def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags
     # -S : disable site-packages
     # -s : disable user site-packages
     # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # And, that's apparently not enough, so we give up.
     # https://github.com/MacPython/pandas-wheels/pull/50
-    call = ["python", "-sSE", "-c", "import pandas"]
 
-    with pytest.raises(subprocess.CalledProcessError) as exc:
+    pyexe = sys.executable.replace("\\", "/")
+    call = [pyexe, "-sSE", "-c", "import pandas"]
+
+    msg = (
+        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
+        "returned non-zero exit status 1."
+    )
+
+    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()
