@@ -768,6 +768,7 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
+    Categorical.to_dummies : Simply create dummy variables from a Categorical.
 
     Examples
     --------
