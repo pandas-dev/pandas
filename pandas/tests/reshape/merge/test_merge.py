@@ -2229,8 +2229,19 @@ def test_categorical_non_unique_monotonic(n_categories):
     tm.assert_frame_equal(expected, result)
 
 
-def test_merge_empty_right_index_left_on():
-    left = pd.DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
-    right = pd.DataFrame({"b": [1]}).set_index(["b"])
-    result = pd.merge(left, right, left_on=["b"], right_index=True)
-    assert result.empty
+@pytest.mark.parametrize(
+    ("kwargs", "args"),
+    [
+        ({"left_on": ["b"], "right_index": True}, 1),
+        ({"left_index": True, "right_on": ["b"]}, -1),
+    ],
+)
+def test_merge_empty_right_index_left_on(kwargs, args):
+    # 33814
+    df1 = pd.DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
+    df2 = pd.DataFrame({"b": [1]}).set_index(["b"])
+    result = pd.merge(*[df1, df2][::args], **kwargs)
+    expected = pd.DataFrame(
+        index=MultiIndex(levels=[[int()], [int()]], codes=[[], []], names=["a", "b"])
+    )
+    tm.assert_frame_equal(result, expected)
