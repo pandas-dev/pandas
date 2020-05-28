@@ -31,6 +31,7 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -185,12 +186,11 @@ def get_filepath_or_buffer(
         return reader, encoding, compression, True
 
     if is_fsspec_url(filepath_or_buffer):
-        import fsspec
+        fsspec = import_optional_dependency('fsspec')
 
         file_obj = fsspec.open(
             filepath_or_buffer, mode=mode or "rb", **storage_options
         ).open()
-        # TODO: both fsspec and pandas handle compression and encoding
         return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):

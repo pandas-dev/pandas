@@ -102,7 +102,10 @@ class PyArrowImpl(BaseImpl):
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
         if partition_cols is not None:
+            # user may provide filesystem= with an instance, in which case it takes priority
+            # and fsspec need not analyse the path
             if is_fsspec_url(path) and "filesystem" not in kwargs:
+                import_optional_dependency('fsspec')
                 import fsspec.core
 
                 fs, path = fsspec.core.url_to_fs(path)
@@ -123,12 +126,15 @@ class PyArrowImpl(BaseImpl):
 
     def read(self, path, columns=None, **kwargs):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
+            import_optional_dependency('fsspec')
             import fsspec.core
 
             fs, path = fsspec.core.url_to_fs(path)
             parquet_ds = self.api.parquet.ParquetDataset(path, filesystem=fs, **kwargs)
         else:
             parquet_ds = self.api.parquet.ParquetDataset(path, **kwargs)
+            # this key valid for ParquetDataset but not read_pandas
+            kwargs.pop('filesystem', None)
 
         kwargs["columns"] = columns
         result = parquet_ds.read_pandas(**kwargs).to_pandas()
@@ -170,7 +176,7 @@ class FastParquetImpl(BaseImpl):
             kwargs["file_scheme"] = "hive"
 
         if is_fsspec_url(path):
-            import fsspec
+            fsspec = import_optional_dependency('fsspec')
 
             # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
             kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
@@ -189,7 +195,7 @@ class FastParquetImpl(BaseImpl):
 
     def read(self, path, columns=None, **kwargs):
         if is_fsspec_url(path):
-            import fsspec
+            fsspec = import_optional_dependency('fsspec')
 
             open_with = lambda path, _: fsspec.open(path, "rb").open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)

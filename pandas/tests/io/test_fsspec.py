@@ -18,16 +18,13 @@ text = df1.to_csv(index=False).encode()
 
 @pytest.fixture
 def cleared_fs():
-    import fsspec
+    fsspec = pytest.importorskip('fsspec')
 
     memfs = fsspec.filesystem("memory")
-    try:
-        yield memfs
-    finally:
-        memfs.store.clear()
+    yield memfs
+    memfs.store.clear()
 
 
-@td.skip_if_no("fsspec")
 def test_read_csv(cleared_fs):
     from fsspec.implementations.memory import MemoryFile
 
@@ -37,8 +34,7 @@ def test_read_csv(cleared_fs):
     tm.assert_frame_equal(df1, df2)
 
 
-@td.skip_if_no("fsspec")
-def test_reasonable_error(monkeypatch):
+def test_reasonable_error(monkeypatch, cleared_fs):
     from fsspec.registry import known_implementations
     from fsspec import registry
 
@@ -57,7 +53,6 @@ def test_reasonable_error(monkeypatch):
         assert err_mgs in str(e.value)
 
 
-@td.skip_if_no("fsspec")
 def test_to_csv(cleared_fs):
     df1.to_csv("memory://test/test.csv", index=True)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
@@ -66,8 +61,7 @@ def test_to_csv(cleared_fs):
 
 
 @td.skip_if_no("fastparquet")
-@td.skip_if_no("fsspec")
-def test_to_parquet_new_file(monkeypatch):
+def test_to_parquet_new_file(monkeypatch, cleared_fs):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
