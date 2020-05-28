@@ -18,7 +18,7 @@ text = df1.to_csv(index=False).encode()
 
 @pytest.fixture
 def cleared_fs():
-    fsspec = pytest.importorskip('fsspec')
+    fsspec = pytest.importorskip("fsspec")
 
     memfs = fsspec.filesystem("memory")
     yield memfs

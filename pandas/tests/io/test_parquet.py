@@ -540,8 +540,13 @@ class TestParquetPyArrow(Base):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem()
         kw = dict(filesystem=s3)
-        check_round_trip(df_compat, pa, path="pandas-test/pyarrow.parquet",
-                         read_kwargs=kw, write_kwargs=kw)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="pandas-test/pyarrow.parquet",
+            read_kwargs=kw,
+            write_kwargs=kw,
+        )
 
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa):
         # GH #19134

@@ -186,7 +186,7 @@ def get_filepath_or_buffer(
         return reader, encoding, compression, True
 
     if is_fsspec_url(filepath_or_buffer):
-        fsspec = import_optional_dependency('fsspec')
+        fsspec = import_optional_dependency("fsspec")
 
         file_obj = fsspec.open(
             filepath_or_buffer, mode=mode or "rb", **storage_options
