@@ -234,9 +234,15 @@ class SeriesGroupBy(GroupBy[Series]):
         relabeling = func is None
         columns = None
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
+        tuple_given_message = "'func' is expected but recieved {} in **kwargs."
         if relabeling:
             columns = list(kwargs)
-            func = [kwargs[col] for col in columns]
+            func = []
+            for col in columns:
+                if isinstance(kwargs[col],(list,NamedAgg,tuple)):
+                    raise TypeError(tuple_given_message.format(type(kwargs[col])))
+                func.append(kwargs[col])
+            
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
@@ -298,11 +304,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             columns = list(arg.keys())
             arg = arg.items()
-        elif any(isinstance(x, (tuple, list)) for x in arg):
-            arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
-            # indicated column order
-            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
