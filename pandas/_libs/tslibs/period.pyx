@@ -40,7 +40,10 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -1591,7 +1594,7 @@ cdef class _Period:
                 return NaT
             return other.__add__(self)
 
-        if is_any_tdlike_scalar(other):
+        if is_any_td_scalar(other):
             return self._add_delta(other)
         elif is_offset_object(other):
             return self._add_offset(other)
@@ -1618,7 +1621,7 @@ cdef class _Period:
                 return NaT
             return NotImplemented
 
-        elif is_any_tdlike_scalar(other):
+        elif is_any_td_scalar(other):
             neg_other = -other
             return self + neg_other
         elif is_offset_object(other):
@@ -2494,18 +2497,3 @@ def validate_end_alias(how):
     if how not in {'S', 'E'}:
         raise ValueError('How must be one of S or E')
     return how
-
-
-cpdef is_any_tdlike_scalar(object obj):
-    """
-    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
-
-    Parameters
-    ----------
-    obj : object
-
-    Returns
-    -------
-    bool
-    """
-    return util.is_timedelta64_object(obj) or PyDelta_Check(obj) or is_tick_object(obj)
