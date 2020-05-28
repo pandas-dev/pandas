@@ -148,30 +148,6 @@ def test_astype_int(dtype):
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
 
-@pytest.mark.parametrize(
-        "obj",
-        [
-            pd.Timestamp.now(),
-            pd.Timestamp.now().to_datetime64(),
-            pd.Timestamp.now().to_pydatetime(),
-        ],
-    )
-def test_setitem_objects(obj):
-    # make sure we accept datetime64 and datetime in addition to Timestamp
-    datetime_array = pd.array(pd.date_range("2000", periods=2, freq="D"),
-                              dtype="datetime64[ns]").astype("date")
-    print(datetime_array.astype("date"))
-    print()
-    dti = pd.date_range("2000", periods=2, freq="D").astype("date")
-    print(dti)
-    raise Exception
-    # arr = dti._data
-    # print(arr)
-    #
-    # arr[0] = obj
-    # print(arr)
-    # assert arr[0] == obj
-
 if __name__ == '__main__':
     # test = DateArray(np.array([1, 2, 3], dtype="bool"))
     # print(test)
