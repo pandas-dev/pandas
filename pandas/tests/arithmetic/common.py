@@ -70,7 +70,14 @@ def assert_invalid_comparison(left, right, box):
     result = right != left
     tm.assert_equal(result, ~expected)
 
-    msg = "Invalid comparison between|Cannot compare type|not supported between"
+    msg = "|".join(
+        [
+            "Invalid comparison between",
+            "Cannot compare type",
+            "not supported between",
+            "invalid type promotion",
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         left < right
     with pytest.raises(TypeError, match=msg):
