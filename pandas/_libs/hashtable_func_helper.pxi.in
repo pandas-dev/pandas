@@ -84,6 +84,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
         int64_t[:] result_counts
         {{endif}}
 
+        # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
 
     table = kh_init_{{ttype}}()
@@ -297,6 +298,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
     cdef:
         int count, max_count = 1
         int j = -1  # so you can do +=
+        # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
         kh_{{table_type}}_t *table
         ndarray[{{ctype}}] modes
