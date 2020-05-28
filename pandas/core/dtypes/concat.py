@@ -98,7 +98,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return arr.astype(dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0):
+def concat_compat(to_concat, axis: int = 0, ignore_2d_ea: bool = True):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -153,8 +153,13 @@ def concat_compat(to_concat, axis: int = 0):
         return concat_datetime(to_concat, axis=axis, typs=typs)
 
     elif any_ea and axis == 1:
-        to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
-        return np.concatenate(to_concat, axis=axis)
+        if single_dtype and ignore_2d_ea:
+            # TODO(EA2D): special-casing not needed with 2D EAs
+            cls = type(to_concat[0])
+            return cls._concat_same_type(to_concat)
+        else:
+            to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
+            return np.concatenate(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
