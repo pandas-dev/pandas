@@ -1514,3 +1514,16 @@ def test_dataframe_series_extension_dtypes():
     tm.assert_frame_equal(result, expected)
     result = df_ea + ser.astype("Int64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_blockwise_slicelike():
+    # GH#34367
+    arr = np.random.randint(0, 1000, (100, 10))
+    df1 = pd.DataFrame(arr)
+    df2 = df1.copy()
+    df2.iloc[0, [1, 3, 7]] = np.nan
+
+    res = df1 + df2
+
+    expected = pd.DataFrame({i: df1[i] + df2[i] for i in df1.columns})
+    tm.assert_frame_equal(res, expected)
