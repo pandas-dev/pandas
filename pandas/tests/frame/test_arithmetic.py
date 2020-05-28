@@ -1523,7 +1523,16 @@ def test_dataframe_blockwise_slicelike():
     df2 = df1.copy()
     df2.iloc[0, [1, 3, 7]] = np.nan
 
-    res = df1 + df2
+    df3 = df1.copy()
+    df3.iloc[0, [5]] = np.nan
 
-    expected = pd.DataFrame({i: df1[i] + df2[i] for i in df1.columns})
-    tm.assert_frame_equal(res, expected)
+    df4 = df1.copy()
+    df4.iloc[0, np.arange(2, 5)] = np.nan
+    df5 = df1.copy()
+    df5.iloc[0, np.arange(4, 7)] = np.nan
+
+    for left, right in [(df1, df2), (df2, df3), (df4, df5)]:
+        res = left + right
+
+        expected = pd.DataFrame({i: left[i] + right[i] for i in left.columns})
+        tm.assert_frame_equal(res, expected)
