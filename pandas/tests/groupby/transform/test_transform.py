@@ -1022,7 +1022,7 @@ def test_groupby_transform_with_datetimes(func, values):
     dates = pd.date_range("1/1/2011", periods=10, freq="D")
 
     stocks = pd.DataFrame({"price": np.arange(10.0)}, index=dates)
-    stocks["week_id"] = pd.to_datetime(stocks.index).week
+    stocks["week_id"] = dates.isocalendar().week
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 

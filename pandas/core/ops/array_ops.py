@@ -85,13 +85,7 @@ def masked_arith_op(x: np.ndarray, y, op):
         yrav = y.ravel()
         mask = notna(xrav) & ymask.ravel()
 
-        if yrav.shape != mask.shape:
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only = an issue in DataFrame case
-            raise ValueError("Cannot broadcast operands together.")
-
+        # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], yrav[mask])
@@ -119,13 +113,6 @@ def masked_arith_op(x: np.ndarray, y, op):
     result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
-
-
-def define_na_arithmetic_op(op):
-    def na_op(x, y):
-        return na_arithmetic_op(x, y, op)
-
-    return na_op
 
 
 def na_arithmetic_op(left, right, op, is_cmp: bool = False):
@@ -378,15 +365,35 @@ def get_array_op(op):
 
     Returns
     -------
-    function
+    functools.partial
     """
-    op_name = op.__name__.strip("_")
+    if isinstance(op, partial):
+        # We get here via dispatch_to_series in DataFrame case
+        # TODO: avoid getting here
+        return op
+
+    op_name = op.__name__.strip("_").lstrip("r")
+    if op_name == "arith_op":
+        # Reached via DataFrame._combine_frame
+        return op
+
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
         return partial(comparison_op, op=op)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
-    else:
+    elif op_name in {
+        "add",
+        "sub",
+        "mul",
+        "truediv",
+        "floordiv",
+        "mod",
+        "divmod",
+        "pow",
+    }:
         return partial(arithmetic_op, op=op)
+    else:
+        raise NotImplementedError(op_name)
 
 
 def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
