@@ -528,7 +528,6 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
             parser.read_csv(StringIO(data), header=header, index_col=index_col)
     else:
         result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        template = "Unnamed: {i}_level_0"
         exp_columns = []
 
         for i, col in enumerate(columns):
