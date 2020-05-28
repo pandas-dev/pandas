@@ -77,7 +77,7 @@ def test_date_array_to_str(date_array):
         pd.array(np.arange(5, dtype=np.int64)),
         pd.array(np.arange(5, dtype=np.object)),
         pd.array(pd.date_range("1970-01-01", periods=5, freq="D")),
-        pd.array(np.array(DATETIME_STRINGS, dtype="object"), dtype="string"),
+        DateArray(np.arange(5, dtype=np.int64))
     ],
 )
 def test_other_type_to_date(arr):
@@ -148,34 +148,36 @@ def test_astype_int(dtype):
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
 
-# @pytest.mark.parametrize(
-#         "obj",
-#         [
-#             pd.Timestamp.now(),
-#             pd.Timestamp.now().to_datetime64(),
-#             pd.Timestamp.now().to_pydatetime(),
-#         ],
-#     )
-# def test_setitem_objects(obj):
-#     # make sure we accept datetime64 and datetime in addition to Timestamp
-#     datetime_array = pd.date_range("2000", periods=2, freq="D").astype("datetime64["
-#                                                                        "ns]").to_frame().reset_index()[0]
-#     print(datetime_array.astype("date"))
-#     print()
-#     dti = pd.date_range("2000", periods=2, freq="D").astype("date")
-#     # print(dti)
-#     # arr = dti._data
-#     # print(arr)
-#     #
-#     # arr[0] = obj
-#     # print(arr)
-#     # assert arr[0] == obj
+@pytest.mark.parametrize(
+        "obj",
+        [
+            pd.Timestamp.now(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp.now().to_pydatetime(),
+        ],
+    )
+def test_setitem_objects(obj):
+    # make sure we accept datetime64 and datetime in addition to Timestamp
+    datetime_array = pd.array(pd.date_range("2000", periods=2, freq="D"),
+                              dtype="datetime64[ns]").astype("date")
+    print(datetime_array.astype("date"))
+    print()
+    dti = pd.date_range("2000", periods=2, freq="D").astype("date")
+    print(dti)
+    raise Exception
+    # arr = dti._data
+    # print(arr)
+    #
+    # arr[0] = obj
+    # print(arr)
+    # assert arr[0] == obj
 
 if __name__ == '__main__':
     # test = DateArray(np.array([1, 2, 3], dtype="bool"))
     # print(test)
     # test_setitem_objects(pd.Timestamp.now())
-    print(np.arange(5))
-    object_array = pd.array(np.arange(5)).astype("object")
-    print(object_array.dtype)
-    print(object_array.astype("datetime64[D]").dtype.kind)
+    # print(np.arange(5))
+    # object_array = pd.array(np.arange(5)).astype("object")
+    # print(object_array.dtype)
+    # print(object_array.astype("datetime64[D]").dtype.kind)
+    print(pd.array(np.arange(5).astype("str")).astype("string").astype("Int64"))

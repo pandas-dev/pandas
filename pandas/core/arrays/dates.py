@@ -1,7 +1,8 @@
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays.datetimelike import DatelikeOps, DatetimeLikeArrayMixin
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
-from pandas.core.dtypes.common import is_integer_dtype, is_datetime64_dtype, is_object_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_datetime64_dtype, \
+    is_object_dtype, pandas_dtype
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.dtypes import DateDtype
 from pandas.core.construction import array
@@ -156,6 +157,11 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, type(self.dtype)):
+            if copy:
+                return self.copy()
+            return self
         if is_datetime64_dtype(dtype):
             return array(self._data, dtype=NS_DTYPE)
         if is_object_dtype(dtype):
