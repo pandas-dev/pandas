@@ -1325,7 +1325,7 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if isinstance(self.offset, timedelta):
+        if PyDelta_Check(self.offset):
             zero = timedelta(0, 0, 0)
             if self.offset >= zero:
                 off_str = "+" + get_str(self.offset)
@@ -1337,7 +1337,7 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             n = self.n
             wday = other.weekday()
 
@@ -1368,7 +1368,7 @@ cdef class BusinessDay(BusinessMixin):
                 result = result + self.offset
             return result
 
-        elif isinstance(other, (timedelta, Tick)):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             return BusinessDay(
                 self.n, offset=self.offset + other, normalize=self.normalize
             )
@@ -1649,7 +1649,7 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             # used for detecting edge condition
             nanosecond = getattr(other, "nanosecond", 0)
             # reset timezone and nanosecond
@@ -2511,7 +2511,7 @@ cdef class Week(SingleConstructorOffset):
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if not isinstance(other, datetime):
+        if not PyDateTime_Check(other):
             raise TypeError(
                 f"Cannot add {type(other).__name__} to {type(self).__name__}"
             )
@@ -3305,7 +3305,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
         else:
             roll = "backward"
 
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             date_in = other
             np_dt = np.datetime64(date_in.date())
 
@@ -3320,7 +3320,7 @@ class CustomBusinessDay(CustomMixin, BusinessDay):
                 result = result + self.offset
             return result
 
-        elif isinstance(other, (timedelta, Tick)):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
         else:
             raise ApplyTypeError(
