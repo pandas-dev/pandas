@@ -3,7 +3,6 @@ import functools
 from io import StringIO
 from itertools import islice
 import os
-import re
 from typing import Any, Callable, Optional, Type
 
 import numpy as np
@@ -507,6 +506,7 @@ def read_json(
         The number of lines from the line-delimited jsonfile that has to be read.
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
+
         .. versionadded:: 1.1
 
     Returns
@@ -688,9 +688,9 @@ class JsonReader(abc.Iterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, "read") and not self.chunksize:
+        if hasattr(data, "read") and (not self.chunksize or not self.nrows):
             data = data.read()
-        if not hasattr(data, "read") and self.chunksize:
+        if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
         return data
@@ -738,17 +738,17 @@ class JsonReader(abc.Iterator):
         """
         Read the whole JSON input into a pandas object.
         """
-        if self.lines and self.chunksize:
-            obj = concat(self)
-        elif self.lines:
-            data = ensure_str(self.data)
-            if self.nrows:
-                compiled_pattern = re.compile(".*\n")
-                data = (line.group(0) for line in compiled_pattern.finditer(data))
-                data = islice(data, self.nrows)
+        if self.lines:
+            if self.chunksize:
+                obj = concat(self)
+            elif self.nrows:
+                lines = list(islice(self.data, self.nrows))
+                lines_json = self._combine_lines(lines)
+                obj = self._get_object_parser(lines_json)
             else:
+                data = ensure_str(self.data)
                 data = data.split("\n")
-            obj = self._get_object_parser(self._combine_lines(data))
+                obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
