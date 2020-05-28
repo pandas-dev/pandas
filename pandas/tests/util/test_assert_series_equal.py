@@ -165,7 +165,7 @@ Series length are different
         tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
 
 
-def test_series_equal_values_mismatch(check_less_precise):
+def test_series_equal_numeric_values_mismatch(check_less_precise):
     msg = """Series are different
 
 Series values are different \\(33\\.33333 %\\)
@@ -175,6 +175,38 @@ Series values are different \\(33\\.33333 %\\)
 
     s1 = Series([1, 2, 3])
     s2 = Series([1, 2, 4])
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
+
+
+def test_series_equal_categorical_values_mismatch(check_less_precise):
+    msg = """Series are different
+
+Series values are different \\(66\\.66667 %\\)
+\\[index\\]: \\[0, 1, 2\\]
+\\[left\\]:  \\[a, b, c\\]
+Categories \\(3, object\\): \\[a, b, c\\]
+\\[right\\]: \\[a, c, b\\]
+Categories \\(3, object\\): \\[a, b, c\\]"""
+
+    s1 = Series(Categorical(["a", "b", "c"]))
+    s2 = Series(Categorical(["a", "c", "b"]))
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
+
+
+def test_series_equal_datetime_values_mismatch(check_less_precise):
+    msg = """numpy array are different
+
+numpy array values are different \\(100.0 %\\)
+\\[index\\]: \\[0, 1, 2\\]
+\\[left\\]:  \\[1514764800000000000, 1514851200000000000, 1514937600000000000\\]
+\\[right\\]: \\[1549065600000000000, 1549152000000000000, 1549238400000000000\\]"""
+
+    s1 = Series(pd.date_range("2018-01-01", periods=3, freq="D"))
+    s2 = Series(pd.date_range("2019-02-02", periods=3, freq="D"))
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)

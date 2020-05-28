@@ -9,12 +9,8 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
-from pandas.core.window.common import (
-    _doc_template,
-    _get_center_of_mass,
-    _shared_docs,
-    zsqrt,
-)
+import pandas.core.common as com
+from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
 _bias_template = """
@@ -25,6 +21,34 @@ _bias_template = """
         *args, **kwargs
             Arguments and keyword arguments to be passed into func.
 """
+
+
+def get_center_of_mass(comass, span, halflife, alpha) -> float:
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
+    if valid_count > 1:
+        raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
+
+    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
+    if comass is not None:
+        if comass < 0:
+            raise ValueError("comass must satisfy: comass >= 0")
+    elif span is not None:
+        if span < 1:
+            raise ValueError("span must satisfy: span >= 1")
+        comass = (span - 1) / 2.0
+    elif halflife is not None:
+        if halflife <= 0:
+            raise ValueError("halflife must satisfy: halflife > 0")
+        decay = 1 - np.exp(np.log(0.5) / halflife)
+        comass = 1 / decay - 1
+    elif alpha is not None:
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
+        comass = (1.0 - alpha) / alpha
+    else:
+        raise ValueError("Must pass one of comass, span, halflife, or alpha")
+
+    return float(comass)
 
 
 class EWM(_Rolling):
@@ -144,7 +168,7 @@ class EWM(_Rolling):
         axis=0,
     ):
         self.obj = obj
-        self.com = _get_center_of_mass(com, span, halflife, alpha)
+        self.com = get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = min_periods
         self.adjust = adjust
         self.ignore_na = ignore_na
@@ -250,7 +274,7 @@ class EWM(_Rolling):
 
         return self._wrap_results(results, block_list, obj, exclude)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
@@ -264,7 +288,7 @@ class EWM(_Rolling):
         nv.validate_window_func("mean", args, kwargs)
         return self._apply("ewma", **kwargs)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="std")
     @Appender(_doc_template)
     @Appender(_bias_template)
     def std(self, bias=False, *args, **kwargs):
@@ -276,7 +300,7 @@ class EWM(_Rolling):
 
     vol = std
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)
     @Appender(_bias_template)
     def var(self, bias=False, *args, **kwargs):
@@ -298,7 +322,7 @@ class EWM(_Rolling):
 
         return self._apply(f, **kwargs)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
         """
@@ -345,7 +369,7 @@ class EWM(_Rolling):
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="corr")
     @Appender(_doc_template)
     def corr(self, other=None, pairwise=None, **kwargs):
         """

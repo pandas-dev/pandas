@@ -33,7 +33,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.13.3"
+min_numpy_ver = "1.15.4"
 min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
@@ -307,6 +307,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
+        "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/c_timestamp.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
         "pandas/_libs/tslibs/period.pyx",
@@ -602,10 +603,7 @@ ext_data = {
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
+    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
@@ -747,7 +745,7 @@ extensions.append(ujson_ext)
 def setup_package():
     setuptools_kwargs = {
         "install_requires": [
-            "python-dateutil >= 2.6.1",
+            "python-dateutil >= 2.7.3",
             "pytz >= 2017.2",
             f"numpy >= {min_numpy_ver}",
         ],
@@ -760,7 +758,7 @@ def setup_package():
         maintainer=AUTHOR,
         version=versioneer.get_version(),
         packages=find_packages(include=["pandas", "pandas.*"]),
-        package_data={"": ["templates/*", "_libs/*.dll"]},
+        package_data={"": ["templates/*", "_libs/**/*.dll"]},
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
         maintainer_email=EMAIL,
         description=DESCRIPTION,
