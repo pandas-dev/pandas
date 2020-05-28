@@ -73,7 +73,6 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.arrays.dates import DateArray
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing

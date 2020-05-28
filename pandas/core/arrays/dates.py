@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import is_integer_dtype, is_datetime64_dtype, \
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.dtypes import DateDtype
 from pandas.core.construction import array
-from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.conversion import NS_DTYPE
 from pandas._libs import tslib, lib
 
