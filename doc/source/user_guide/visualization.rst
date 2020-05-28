@@ -1331,15 +1331,8 @@ don't affect to the output. You should explicitly pass ``sharex=False`` and ``sh
 otherwise you will see a warning.
 
 .. ipython:: python
-   :suppress:
 
-   import matplotlib
-
-   matplotlib.rc('xtick', labelsize=8)
-
-.. ipython:: python
-
-   fig, axes = plt.subplots(4, 4, figsize=(6, 6))
+   fig, axes = plt.subplots(4, 4, figsize=(9, 9))
    plt.subplots_adjust(wspace=0.5, hspace=0.5)
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
@@ -1353,7 +1346,6 @@ otherwise you will see a warning.
    :suppress:
 
    plt.close('all')
-   matplotlib.rcdefaults()
 
 Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a particular axis:
 
@@ -1377,7 +1369,7 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 .. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
-   plt.subplots_adjust(wspace=0.2, hspace=0.4)
+   plt.subplots_adjust(wspace=0.2, hspace=0.5)
    df['A'].plot(ax=axes[0, 0]);
    axes[0, 0].set_title('A');
    df['B'].plot(ax=axes[0, 1]);
