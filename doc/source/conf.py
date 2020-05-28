@@ -413,7 +413,7 @@ if pattern is None:
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("http://www.statsmodels.org/devel/", None),
+        "statsmodels": ("https://www.statsmodels.org/devel/", None),
     }
 
 # extlinks alias
