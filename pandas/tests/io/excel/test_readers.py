@@ -1087,4 +1087,5 @@ class TestExcelFileRead:
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
+        # GH 33476
         pd.read_excel(filename, sheet_name="Sheet1", index_col=0, header=[0, 1])

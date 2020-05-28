@@ -187,6 +187,7 @@ def test_no_multi_index_level_names_empty(all_parsers):
 
 
 def test_header_with_index_col(all_parsers):
+    # GH 33476
     parser = all_parsers
     data = """
 I11,A,A
