@@ -88,6 +88,8 @@ def test_date_array_to_str(date_array):
 def test_other_type_to_date(arr):
     date_array = DateArray(np.arange(5, dtype=np.int64))
     other_arr_to_date = arr.astype("date")
+    print(other_arr_to_date)
+    print(date_array)
     tm.assert_numpy_array_equal(date_array._data, other_arr_to_date._data)
 
 

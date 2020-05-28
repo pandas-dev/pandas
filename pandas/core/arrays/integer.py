@@ -14,6 +14,7 @@ from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
+    is_date_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -453,6 +454,8 @@ class IntegerArray(BaseMaskedArray):
         elif isinstance(dtype, BooleanDtype):
             result = self._data.astype("bool", copy=False)
             return BooleanArray(result, mask=self._mask, copy=False)
+        elif is_date_dtype(dtype):
+            return dtype.construct_array_type()._from_sequence(self._data, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
