@@ -9,6 +9,7 @@ from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, MONTH_NUMBERS, int_to_w
 from pandas._libs.tslibs.fields import build_field_sarray
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
+    Day,
     _get_offset,
     _offset_to_period_map,
     to_offset,
