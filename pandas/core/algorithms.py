@@ -1814,7 +1814,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel=3):
+def diff(arr, n: int, axis: int = 0, stacklevel=4):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1857,7 +1857,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel + 1,
+                stacklevel=stacklevel,
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
