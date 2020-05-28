@@ -1129,8 +1129,7 @@ class DateDtype(PandasExtensionDtype):
 
     _date_aliases = {"date", "date64"}
     _unit = "D"
-    _numpy_dtype = np.datetime64
-
+    _numpy_dtype = np.dtype("datetime64[D]")
 
     @property
     def name(self) -> str:
@@ -1152,7 +1151,7 @@ class DateDtype(PandasExtensionDtype):
 
     @property
     def kind(self):
-        return self.type.kind
+        return self._numpy_dtype.kind
 
     @property
     def itemsize(self):
