@@ -468,6 +468,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
         return False
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
 
+
 def is_date_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the date dtype.
@@ -498,6 +499,7 @@ def is_date_dtype(arr_or_dtype) -> bool:
     False
     """
     return DateDtype.is_dtype(arr_or_dtype)
+
 
 def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """

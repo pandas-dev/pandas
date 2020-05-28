@@ -1164,7 +1164,6 @@ class DateDtype(PandasExtensionDtype):
             return cls()
         return super().construct_from_string(string)
 
-
     @classmethod
     def construct_array_type(cls):
         """
@@ -1194,4 +1193,3 @@ class DateDtype(PandasExtensionDtype):
             else:
                 return False
         return super().is_dtype(dtype)
-

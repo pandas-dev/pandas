@@ -71,13 +71,14 @@ def test_date_array_to_str(date_array):
     )
     tm.assert_numpy_array_equal(date_array.astype("string"), object_dates._ndarray)
 
+
 @pytest.mark.parametrize(
     "arr",
     [
         pd.array(np.arange(5, dtype=np.int64)),
         pd.array(np.arange(5, dtype=np.object)),
         pd.array(pd.date_range("1970-01-01", periods=5, freq="D")),
-        DateArray(np.arange(5, dtype=np.int64))
+        DateArray(np.arange(5, dtype=np.int64)),
     ],
 )
 def test_other_type_to_date(arr):
@@ -116,15 +117,16 @@ def test_date_display_format(df: pd.DataFrame, series: Series):
     )
     assert display == expected
 
+
 def test_non_array_raises():
     with pytest.raises(ValueError, match="list"):
         DateArray([1, 2, 3])
 
+
 def test_other_type_raises():
-    with pytest.raises(
-        ValueError, match="The dtype of 'values' is incorrect.*bool"
-    ):
+    with pytest.raises(ValueError, match="The dtype of 'values' is incorrect.*bool"):
         DateArray(np.array([1, 2, 3], dtype="bool"))
+
 
 def test_copy():
     data = np.array([1, 2, 3], dtype="datetime64[D]")
@@ -133,6 +135,7 @@ def test_copy():
 
     arr = DateArray(data, copy=True)
     assert arr._data is not data
+
 
 @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
 def test_astype_int(dtype):

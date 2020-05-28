@@ -1495,7 +1495,7 @@ class DateFormatter(GenericArrayFormatter):
         if self.formatter is not None and callable(self.formatter):
             return [self.formatter(x) for x in values]
 
-        return values._data.astype('str')
+        return values._data.astype("str")
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
@@ -1659,8 +1659,8 @@ def _get_format_datetime64(
 
 
 def _get_format_datetime64_from_values(
-    values: Union[np.ndarray, DatetimeArray, DatetimeIndex, DateArray], date_format: Optional[
-            str]
+    values: Union[np.ndarray, DatetimeArray, DatetimeIndex, DateArray],
+    date_format: Optional[str],
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
 

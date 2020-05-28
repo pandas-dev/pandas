@@ -1,8 +1,12 @@
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays.datetimelike import DatelikeOps, DatetimeLikeArrayMixin
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
-from pandas.core.dtypes.common import is_integer_dtype, is_datetime64_dtype, \
-    is_object_dtype, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_datetime64_dtype,
+    is_object_dtype,
+    pandas_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.dtypes import DateDtype
 from pandas.core.construction import array
@@ -16,9 +20,11 @@ D_DATETIME_DTYPE = "datetime64[D]"
 INTEGER_BACKEND = "i8"
 VALID_TYPES = {INTEGER_BACKEND, "datetime64[ns]", D_DATETIME_DTYPE, "object"}
 
+
 def _to_date_values(values, copy=False):
     data, _, _ = sequence_to_dt64ns(values, copy=copy)
     return data.astype(D_DATETIME_DTYPE)
+
 
 class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     """
@@ -49,6 +55,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     -------
     None
     """
+
     freq = "D"
 
     def __init__(self, values, copy=False):
@@ -85,8 +92,12 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
     @staticmethod
     def _is_compatible_dtype(dtype):
-        return is_integer_dtype(dtype) or is_object_dtype(dtype) or \
-               is_datetime64_dtype(dtype) or dtype == "datetime64[D]"
+        return (
+            is_integer_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_datetime64_dtype(dtype)
+            or dtype == "datetime64[D]"
+        )
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
@@ -118,8 +129,10 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         DateArray
         """
-        if isinstance(scalars, np.ndarray) and lib.infer_dtype(scalars, skipna=True) \
-                == "integer":
+        if (
+            isinstance(scalars, np.ndarray)
+            and lib.infer_dtype(scalars, skipna=True) == "integer"
+        ):
             values = scalars.astype(INTEGER_BACKEND)
         elif is_integer_dtype(scalars):
             values = scalars._data
