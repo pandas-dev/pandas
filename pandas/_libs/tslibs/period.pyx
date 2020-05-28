@@ -1334,15 +1334,15 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_period_field_arr(int code, const int64_t[:] arr, int freq):
+def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         int64_t[:] out
         accessor f
 
-    func = _get_accessor_func(code)
+    func = _get_accessor_func(field)
     if func is NULL:
-        raise ValueError(f"Unrecognized period code: {code}")
+        raise ValueError(f"Unrecognized field name: {field}")
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1356,30 +1356,30 @@ def get_period_field_arr(int code, const int64_t[:] arr, int freq):
     return out.base  # .base to access underlying np.ndarray
 
 
-cdef accessor _get_accessor_func(int code):
-    if code == 0:
+cdef accessor _get_accessor_func(str field):
+    if field == "year":
         return <accessor>pyear
-    elif code == 1:
+    elif field == "qyear":
         return <accessor>pqyear
-    elif code == 2:
+    elif field == "quarter":
         return <accessor>pquarter
-    elif code == 3:
+    elif field == "month":
         return <accessor>pmonth
-    elif code == 4:
+    elif field == "day":
         return <accessor>pday
-    elif code == 5:
+    elif field == "hour":
         return <accessor>phour
-    elif code == 6:
+    elif field == "minute":
         return <accessor>pminute
-    elif code == 7:
+    elif field == "second":
         return <accessor>psecond
-    elif code == 8:
+    elif field == "week":
         return <accessor>pweek
-    elif code == 9:
+    elif field == "day_of_year":
         return <accessor>pday_of_year
-    elif code == 10:
+    elif field == "weekday":
         return <accessor>pweekday
-    elif code == 11:
+    elif field == "days_in_month":
         return <accessor>pdays_in_month
     return NULL
 
@@ -1432,12 +1432,8 @@ def extract_freq(ndarray[object] values):
     for i in range(n):
         value = values[i]
 
-        try:
-            # now Timestamp / NaT has freq attr
-            if is_period_object(value):
-                return value.freq
-        except AttributeError:
-            pass
+        if is_period_object(value):
+            return value.freq
 
     raise ValueError('freq not specified and cannot be inferred')
 
