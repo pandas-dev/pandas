@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -538,6 +539,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
+        dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):

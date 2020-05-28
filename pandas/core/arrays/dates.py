@@ -7,7 +7,7 @@ from pandas.core.dtypes.dtypes import DateDtype
 from pandas.core.construction import array
 from pandas._libs.tslibs import Timestamp, NaT
 from pandas._libs.tslibs.conversion import NS_DTYPE
-from pandas._libs import tslib
+from pandas._libs import tslib, lib
 
 import numpy as np
 
@@ -73,7 +73,7 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
 
         if values.dtype == INTEGER_BACKEND:
             values = values.view(D_DATETIME_DTYPE)
-        else:
+        elif values.dtype != "datetime64[D]":
             values = _to_date_values(values, copy)
 
         if copy:
@@ -84,16 +84,19 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     @staticmethod
     def _is_compatible_dtype(dtype):
         return is_integer_dtype(dtype) or is_object_dtype(dtype) or \
-               is_datetime64_dtype(dtype) or isinstance(dtype, DateArray)
+               is_datetime64_dtype(dtype) or dtype == "datetime64[D]"
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
         assert isinstance(values, np.ndarray)
         if values.dtype == INTEGER_BACKEND:
+            print(values)
             values = values.view(D_DATETIME_DTYPE)
+            print(values)
 
         result = object.__new__(cls)
         result._data = values
+        print(result)
         return result
 
     @classmethod
@@ -116,7 +119,10 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         -------
         DateArray
         """
-        if is_integer_dtype(scalars):
+        if isinstance(scalars, np.ndarray) and lib.infer_dtype(scalars, skipna=True) \
+                == "integer":
+            values = scalars.astype(INTEGER_BACKEND)
+        elif is_integer_dtype(scalars):
             values = scalars._data
         else:
             values = _to_date_values(scalars, copy)

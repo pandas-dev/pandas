@@ -2,9 +2,10 @@ from pandas import Series
 import pandas as pd
 import numpy as np
 from pandas.core.arrays.dates import DateArray
-from pandas.core.dtypes.dtypes import DateDtype, DatetimeTZDtype
-from pandas.core.dtypes.common import is_date_dtype, is_integer_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.common import is_integer_dtype
 import pytest
+import pandas.util.testing as tm
 
 DATETIME_STRINGS = [
     "2001-01-01T12:00",
@@ -28,7 +29,7 @@ def test_init_date_array_from_numpy(type: str):
     if type == "i8":
         date_range_as_type //= NANO_SECONDS_IN_A_DAY
     arr = DateArray(date_range_as_type)
-    assert np.array_equal(dt_range.date, arr.date)
+    tm.assert_numpy_array_equal(dt_range.date, arr.date)
 
 
 @pytest.mark.parametrize(
@@ -45,7 +46,7 @@ def test_date_from_pandas_array(arr):
     result = DateArray._from_sequence(arr)
     if is_integer_dtype(arr):
         arr *= NANO_SECONDS_IN_A_DAY
-    assert np.array_equal(arr.astype(DatetimeTZDtype(tz="utc")).date, result.date)
+    tm.assert_numpy_array_equal(arr.astype(DatetimeTZDtype(tz="utc")).date, result.date)
 
 
 @pytest.fixture
@@ -54,11 +55,11 @@ def date_array():
 
 
 def test_date_array_to_int(date_array):
-    assert np.array_equal(date_array.astype("i8"), np.arange(5, dtype=np.int64))
+    tm.assert_numpy_array_equal(date_array.astype("i8"), np.arange(5, dtype=np.int64))
 
 
 def test_date_array_to_datetime64(date_array):
-    assert np.array_equal(
+    tm.assert_numpy_array_equal(
         date_array.astype("datetime64[ns]").date,
         pd.date_range("1970-01-01", periods=5, freq="D").astype("datetime64[ns]").date,
     )
@@ -68,7 +69,22 @@ def test_date_array_to_str(date_array):
     object_dates = pd.array(
         np.array(["1970-01-0%d" % x for x in range(1, 6)]), dtype="string"
     )
-    assert np.array_equal(date_array.astype("string"), object_dates)
+    tm.assert_numpy_array_equal(date_array.astype("string"), object_dates._ndarray)
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.array(np.arange(5, dtype=np.int64)),
+        pd.array(np.arange(5, dtype=np.object)),
+        pd.date_range("1970-01-01", periods=5, freq="D").astype("object"),
+        pd.array(np.array(DATETIME_STRINGS, dtype="datetime64")),
+        pd.array(np.array(DATETIME_STRINGS, dtype="object"), dtype="string"),
+    ],
+)
+def test_other_type_to_date(arr):
+    date_array = DateArray(np.arange(5, dtype=np.int64))
+    other_arr_to_date = arr.astype("date")
+    tm.assert_numpy_array_equal(date_array._data, other_arr_to_date._data)
 
 
 @pytest.fixture
@@ -106,13 +122,57 @@ def test_non_array_raises():
         DateArray([1, 2, 3])
 
 def test_other_type_raises():
-
     with pytest.raises(
         ValueError, match="The dtype of 'values' is incorrect.*bool"
     ):
         DateArray(np.array([1, 2, 3], dtype="bool"))
 
+def test_copy():
+    data = np.array([1, 2, 3], dtype="datetime64[D]")
+    arr = DateArray(data, copy=False)
+    assert arr._data is data
+
+    arr = DateArray(data, copy=True)
+    assert arr._data is not data
+
+@pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
+def test_astype_int(dtype):
+    arr = DateArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
+    result = arr.astype(dtype)
+
+    if np.dtype(dtype).kind == "u":
+        expected_dtype = np.dtype("uint64")
+    else:
+        expected_dtype = np.dtype("int64")
+    expected = arr.astype(expected_dtype)
+
+    assert result.dtype == expected_dtype
+    tm.assert_numpy_array_equal(result, expected)
+
+# @pytest.mark.parametrize(
+#         "obj",
+#         [
+#             pd.Timestamp.now(),
+#             pd.Timestamp.now().to_datetime64(),
+#             pd.Timestamp.now().to_pydatetime(),
+#         ],
+#     )
+# def test_setitem_objects(obj):
+#     # make sure we accept datetime64 and datetime in addition to Timestamp
+#     datetime_array = pd.date_range("2000", periods=2, freq="D").astype("datetime64["
+#                                                                        "ns]").to_frame().reset_index()[0]
+#     print(datetime_array.astype("date"))
+#     print()
+#     dti = pd.date_range("2000", periods=2, freq="D").astype("date")
+#     # print(dti)
+#     # arr = dti._data
+#     # print(arr)
+#     #
+#     # arr[0] = obj
+#     # print(arr)
+#     # assert arr[0] == obj
 
 if __name__ == '__main__':
-    test = DateArray(np.array([1, 2, 3], dtype="bool"))
-    print(test)
+    # test = DateArray(np.array([1, 2, 3], dtype="bool"))
+    # print(test)
+    test_setitem_objects(pd.Timestamp.now())
