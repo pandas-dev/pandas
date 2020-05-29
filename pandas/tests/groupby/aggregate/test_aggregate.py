@@ -516,27 +516,21 @@ class TestNamedAggregationSeries:
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
         msg = "func is"
         with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(
-                a=pd.NamedAgg(column='anything', aggfunc='min')
-            )
+            s.groupby(s.values).agg(a=pd.NamedAgg(column="anything", aggfunc="min"))
 
     def test_agg_with_tuple(self):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
         msg = "func is"
         with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(
-                a=('anything', 'min')
-            )
+            s.groupby(s.values).agg(a=("anything", "min"))
 
     def test_agg_with_list(self):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
         msg = "func is"
         with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(
-                a=['anything', 'min']
-            )
+            s.groupby(s.values).agg(a=["anything", "min"])
 
 
 class TestNamedAggregationDataFrame:
