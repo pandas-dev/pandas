@@ -304,7 +304,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
             columns = list(arg.keys())
             arg = arg.items()
+        elif anyisinstance(x, (tuple, list)) for x in arg):
+            arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
+            # indicated column order
+            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
