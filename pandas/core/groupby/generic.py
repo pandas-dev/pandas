@@ -239,7 +239,7 @@ class SeriesGroupBy(GroupBy[Series]):
             columns = list(kwargs)
             func = []
             for col in columns:
-                if isinstance(kwargs[col], (list, NamedAgg, tuple)):
+                if isinstance(kwargs[col], (list, tuple)):
                     raise TypeError(
                         tuple_given_message.format(type(kwargs[col]).__name__)
                     )
@@ -310,12 +310,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
             # indicated column order
             columns = next(zip(*arg))
-
         else:
             # list of functions / function names
             columns = []
             for f in arg:
                 columns.append(com.get_callable_name(f) or f)
+
             arg = zip(columns, arg)
 
         results = {}
